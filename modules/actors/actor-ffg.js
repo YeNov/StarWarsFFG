@@ -704,4 +704,22 @@ export class ActorFFG extends Actor {
     }
     return super.applyActiveEffects();
   }
+
+  /** @override **/
+  *allApplicableEffects() {
+    for ( const effect of this.effects ) {
+      yield effect;
+    }
+    if ( CONFIG.ActiveEffect.legacyTransferral ) return;
+    for ( const item of this.items ) {
+      for ( const effect of item.effects ) {
+        if(!effect.transfer)
+          continue;
+        // if that's an equippable item, don't apply an effect unless equipped
+        let isItemEquipped = item.system.equippable?.equipped;
+        if(isItemEquipped === undefined || isItemEquipped === true)
+          yield  effect;
+      }
+    }
+  }
 }
