@@ -131,8 +131,14 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         break;
       case "itemattachment":
         this.position.width = 500;
-        this.position.height = 450;
+        this.position.height = 550;
         data.modTypeSelected = this.object.system.type;
+        // enrich modification descriptions for display
+        if (data.data.itemmodifier) {
+          for (let modification of data.data.itemmodifier) {
+            modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(modification.system.description);
+          }
+        }
         break;
       case "itemmodifier":
         this.position.width = 450;
@@ -517,6 +523,103 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
 
   /* -------------------------------------------- */
 
+  /**
+   * Handle adding/deleting modifications on a standalone itemattachment sheet
+   */
+  async _onStandaloneModificationControl(event) {
+    event.preventDefault();
+    const action = event.currentTarget.getAttribute('data-action');
+    if (action === 'create') {
+      const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
+      itemmodifier.push({
+        name: "New Modification",
+        type: "itemmodifier",
+        img: "icons/svg/item-bag.svg",
+        system: {
+          description: "Placeholder description",
+          active: false,
+          rank: 0,
+          attributes: {},
+        },
+      });
+      await this.object.update({ "system.itemmodifier": itemmodifier });
+    } else if (action === 'delete') {
+      const modIndex = $(event.currentTarget).closest(".modification_title").index();
+      const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
+      itemmodifier.splice(modIndex, 1);
+      await this.object.update({ "system.itemmodifier": itemmodifier });
+    }
+  }
+
+  /**
+   * Handle adding/deleting mods (modifiers) within modifications on a standalone itemattachment sheet
+   */
+  async _onStandaloneModControl(event) {
+    event.preventDefault();
+    const action = event.currentTarget.getAttribute('data-action');
+    const modificationId = $(event.currentTarget).data("modification-id");
+
+    if (action === 'create') {
+      const isDirectBaseMod = modificationId === undefined;
+
+      if (isDirectBaseMod) {
+        // This is for base mods, not modifications - let the existing handler deal with it
+        return;
+      }
+
+      const nk = new Date().getTime();
+      const modifierTypes = CONFIG.FFG.allowableModifierTypes;
+      const modifierChoices = CONFIG.FFG.allowableModifierChoices;
+
+      let rendered = await foundry.applications.handlebars.renderTemplate(
+        'systems/starwarsffg/templates/items/dialogs/ffg-mod.html',
+        {
+          modifierTypes: modifierTypes,
+          modifierChoices: modifierChoices,
+          direct: false,
+          number: modificationId,
+          attachmentType: this.object.system.type,
+          id: `attr${nk}`,
+          attr: {
+            modtype: Object.keys(CONFIG.FFG.allowableModifierTypes)[0],
+            mod: Object.keys(CONFIG.FFG.allowableModifierChoices[Object.keys(CONFIG.FFG.allowableModifierTypes)[0]])[0],
+            value: 1,
+          },
+        }
+      );
+
+      $(event.currentTarget).parent().parent().children(".attributes-list").append(rendered);
+      // re-bind listeners on the new elements
+      this.activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
+      // submit the form to persist the change
+      this.submit();
+    } else if (action === 'delete') {
+      // check if this is a mod within a modification (has a parent .modification_title)
+      const inModification = $(event.currentTarget).closest(".modification_title").length > 0;
+      if (inModification) {
+        $(event.currentTarget).parent().remove();
+        this.submit();
+      }
+    }
+  }
+
+  /**
+   * Handle dropdown changes for modifier type selectors on standalone itemattachment modifications
+   */
+  async _onStandaloneDropdownChange(event) {
+    const newValue = event.currentTarget.value;
+    const dropdown = event.currentTarget.getAttribute('data-type');
+
+    if (dropdown === 'modtype') {
+      let newHtml = '';
+      const chosenConfig = CONFIG.FFG.allowableModifierChoices[newValue];
+      Object.keys(chosenConfig).forEach(function (choice) {
+        newHtml += `<option value="${chosenConfig[choice]['value']}">${game.i18n.localize(chosenConfig[choice]['label'])}</option>`;
+      });
+      $(event.currentTarget).parent().find(".flat_editor.dropdown.mod").html(newHtml);
+    }
+  }
+
   /** @override */
   activateListeners(html) {
     super.activateListeners(html);
@@ -704,6 +807,13 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     // Everything below here is only needed if the sheet is editable
     if (this.object.flags.readonly) this.options.editable = false;
     if (!this.options.editable) return;
+
+    // Standalone itemattachment modification controls
+    if (this.object.type === "itemattachment") {
+      html.find(".flat_editor.add-modification").on("click", this._onStandaloneModificationControl.bind(this));
+      html.find(".flat_editor.add-mod").on("click", this._onStandaloneModControl.bind(this));
+      html.find(".flat_editor.dropdown").on("change", this._onStandaloneDropdownChange.bind(this));
+    }
 
     // Add or Remove Attribute
     html.find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
@@ -1522,6 +1632,25 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
   /** @override */
   _updateObject(event, formData) {
     if(this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
+
+    // For standalone itemattachments, process the itemmodifier array notation from the modifications tab
+    if (this.object.type === "itemattachment") {
+      const expanded = foundry.utils.expandObject(formData);
+      const systemKeys = Object.keys(expanded?.system || {});
+      const arrayKeys = systemKeys.filter(k => k.includes("[") && k.includes("]"));
+      if (arrayKeys.length > 0) {
+        for (const arrayKey of arrayKeys) {
+          const cleanKey = arrayKey.replace(/\[.*\]/, "");
+          if (!Object.keys(expanded.system).includes(cleanKey)) {
+            expanded.system[cleanKey] = [];
+          }
+          expanded.system[cleanKey].push(expanded.system[arrayKey]);
+          delete expanded.system[arrayKey];
+        }
+        // flatten back to dot notation for the standard update path
+        formData = foundry.utils.flattenObject(expanded);
+      }
+    }
 
     const itemUpdate = ItemHelpers.itemUpdate.bind(this);
     itemUpdate(event, formData);
