@@ -116,22 +116,31 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     data.isOwned = this.object.flags?.starwarsffg?.ffgIsOwned;
     data.modTypeSelected = "all";
 
+    const setInitialSize = !this._sizeInitialized;
+    this._sizeInitialized = true;
+
     switch (this.object.type) {
       case "weapon":
-        this.position.width = 550;
-        this.position.height = 750;
+        if (setInitialSize) {
+          this.position.width = 550;
+          this.position.height = 750;
+        }
         data.data.enrichedSpecial = await PopoutEditor.renderDiceImages(data?.data?.special?.value, this.actor ? this.actor : {});
         data.modTypeSelected = "weapon";
         break;
       case "shipweapon":
-        this.position.width = 550;
-        this.position.height = 750;
+        if (setInitialSize) {
+          this.position.width = 550;
+          this.position.height = 750;
+        }
         data.data.enrichedSpecial = await PopoutEditor.renderDiceImages(data?.data?.special?.value, this.actor ? this.actor : {});
         data.modTypeSelected = "vehicle";
         break;
       case "itemattachment":
-        this.position.width = 500;
-        this.position.height = 550;
+        if (setInitialSize) {
+          this.position.width = 500;
+          this.position.height = 550;
+        }
         data.modTypeSelected = this.object.system.type;
         // enrich modification descriptions for display
         if (data.data.itemmodifier) {
@@ -141,41 +150,57 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         }
         break;
       case "itemmodifier":
-        this.position.width = 450;
-        this.position.height = 350;
+        if (setInitialSize) {
+          this.position.width = 450;
+          this.position.height = 350;
+        }
         data.modTypeSelected = this.object.system.type;
         break;
       case "armour":
-        this.position.width = 385;
-        this.position.height = 750;
+        if (setInitialSize) {
+          this.position.width = 385;
+          this.position.height = 750;
+        }
         data.modTypeSelected = "armor";
         break;
       case "gear":
-        this.position.width = 385;
-        this.position.height = 750;
+        if (setInitialSize) {
+          this.position.width = 385;
+          this.position.height = 750;
+        }
         break;
       case "shipattachment":
-        this.position.width = 385;
-        this.position.height = 615;
+        if (setInitialSize) {
+          this.position.width = 385;
+          this.position.height = 615;
+        }
         data.modTypeSelected = "vehicle";
         break;
       case "ability":
       case "homesteadupgrade":
-        this.position.width = 385;
-        this.position.height = 615;
+        if (setInitialSize) {
+          this.position.width = 385;
+          this.position.height = 615;
+        }
         break;
       case "talent":
-        this.position.width = 405;
-        this.position.height = 535;
+        if (setInitialSize) {
+          this.position.width = 405;
+          this.position.height = 535;
+        }
         break;
       case "criticalinjury":
       case "criticaldamage":
-        this.position.width = 320;
-        this.position.height = 500;
+        if (setInitialSize) {
+          this.position.width = 320;
+          this.position.height = 500;
+        }
         break;
       case "forcepower":
-        this.position.width = 720;
-        this.position.height = 840;
+        if (setInitialSize) {
+          this.position.width = 720;
+          this.position.height = 840;
+        }
         data.isReadOnly = false;
         if (!this.options.editable) {
           data.isEditing = false;
@@ -212,8 +237,10 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         }
         break;
       case "specialization":
-        this.position.width = 850;
-        this.position.height = 1005;
+        if (setInitialSize) {
+          this.position.width = 850;
+          this.position.height = 1005;
+        }
         data.isReadOnly = false;
         if (!this.options.editable) {
           data.isEditing = false;
@@ -245,8 +272,10 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         }
         break;
       case "species":
-        this.position.width = 550;
-        this.position.height = 650;
+        if (setInitialSize) {
+          this.position.width = 550;
+          this.position.height = 650;
+        }
 
         const attributesForCharacteristics = Object.keys(data.data.attributes).filter((key) => {
           return Object.keys(CONFIG.FFG.characteristics).includes(key);
@@ -304,8 +333,10 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
 
         break;
       case "career":
-        this.position.width = 500;
-        this.position.height = 600;
+        if (setInitialSize) {
+          this.position.width = 500;
+          this.position.height = 600;
+        }
         if (Object.keys(this.object.system.specializations).length === 0) {
           // handlebars sucks
           data.data.specializations = false;
@@ -330,8 +361,10 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         }
         break;
       case "signatureability": {
-        this.position.width = 720;
-        this.position.height = 545;
+        if (setInitialSize) {
+          this.position.width = 720;
+          this.position.height = 545;
+        }
         data.data.isReadOnly = false;
         if (!this.options.editable) {
           data.data.isEditing = false;
@@ -369,18 +402,18 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         break;
       }
       case "background": {
-        this.position.height = 545;
+        if (setInitialSize) this.position.height = 545;
         data.data.backgroundTypes = CONFIG.FFG.characterCreator.backgroundTypes;
         break;
       }
       case "obligation": {
-        this.position.height = 545;
+        if (setInitialSize) this.position.height = 545;
         data.data.obligationTypes = CONFIG.FFG.characterCreator.obligationTypes;
         data.data.subtypes = CONFIG.FFG.characterCreator.obligationSubTypes;
         break;
       }
       case "motivation": {
-        this.position.height = 545;
+        if (setInitialSize) this.position.height = 545;
         data.data.motivationTypes = CONFIG.FFG.characterCreator.motivationTypes;
         break;
       }

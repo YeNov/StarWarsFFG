@@ -380,21 +380,23 @@ export default class ItemHelpers {
 
     if (Object.keys(droppedItem.system).includes("itemmodifier")) {
       for (const droppedModifier of droppedItem.system.itemmodifier) {
-        for (const attr of Object.keys(droppedModifier.system.attributes)) {
-          CONFIG.logger.debug(`checking ${attr}`);
-          const matchingEffect = droppedItem.effects.find(effect => effect.name === attr);
-          const newKey = `attr${new Date().getTime()}`;
-          CONFIG.logger.debug(`located matching effect from itemmodifier ${droppedModifier.name} for ${attr}, updating to ${newKey}`);
-          // copy the data to the new field
-          droppedModifier.system.attributes[newKey] = droppedModifier.system.attributes[attr];
-          // delete the old field
-          delete droppedModifier.system.attributes[attr];
-          // update the active effect
-          if (matchingEffect) {
-            matchingEffect.name = newKey;
+        if (droppedModifier.system.attributes) {
+          for (const attr of Object.keys(droppedModifier.system.attributes)) {
+            CONFIG.logger.debug(`checking ${attr}`);
+            const matchingEffect = droppedItem.effects.find(effect => effect.name === attr);
+            const newKey = `attr${new Date().getTime()}`;
+            CONFIG.logger.debug(`located matching effect from itemmodifier ${droppedModifier.name} for ${attr}, updating to ${newKey}`);
+            // copy the data to the new field
+            droppedModifier.system.attributes[newKey] = droppedModifier.system.attributes[attr];
+            // delete the old field
+            delete droppedModifier.system.attributes[attr];
+            // update the active effect
+            if (matchingEffect) {
+              matchingEffect.name = newKey;
+            }
+            // ensure further keys have a new entry
+            await new Promise(r => setTimeout(r, 1));
           }
-          // ensure further keys have a new entry
-          await new Promise(r => setTimeout(r, 1));
         }
       }
     }
