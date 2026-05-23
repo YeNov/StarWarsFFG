@@ -12,6 +12,33 @@ export default class RollBuilderFFG extends FormApplication {
     };
     this.dicePool = rollDicePool;
     this.description = rollDescription;
+    this.adversaryRanks = RollBuilderFFG._computeAdversaryRanks();
+  }
+
+  /**
+   * Snapshot the max Adversary rank sum across the user's targeted tokens.
+   * Mirrors the rank-counting logic in modules/helpers/token.js drawAdversaryCount.
+   * Returns 0 if no targets, no actors, or no Adversary items.
+   */
+  static _computeAdversaryRanks() {
+    try {
+      const itemName = game.settings.get("starwarsffg", "adversaryItemName");
+      const targets = Array.from(game.user?.targets ?? []);
+      if (!targets.length) return 0;
+      let max = 0;
+      for (const token of targets) {
+        const items = token?.actor?.items?.filter((i) => i.name === itemName) ?? [];
+        let sum = 0;
+        for (const item of items) {
+          sum += item?.system?.ranks?.current || 0;
+        }
+        if (sum > max) max = sum;
+      }
+      return max;
+    } catch (err) {
+      CONFIG.logger?.warn?.("Adversary rank detection failed", err);
+      return 0;
+    }
   }
 
   /** @override */
@@ -109,7 +136,11 @@ export default class RollBuilderFFG extends FormApplication {
       labels,
       diceSymbols,
       simDisplay: display,
-      simCount: game.settings.get("starwarsffg", "rollSimulation")
+      simCount: game.settings.get("starwarsffg", "rollSimulation"),
+      adversaryRanks: this.adversaryRanks,
+      adversaryLabel: this.adversaryRanks > 0
+        ? game.i18n.format("SWFFG.Adversary.RollWithRanks", { ranks: this.adversaryRanks })
+        : game.i18n.localize("SWFFG.Adversary.RollWith"),
     };
   }
 
@@ -119,6 +150,10 @@ export default class RollBuilderFFG extends FormApplication {
 
     this._initializeInputs(html);
     this._activateInputs(html);
+
+    html.find(".adversary-toggle").on("change", () => {
+      this._updateAdversaryPreview(html);
+    });
 
     html.find(".btn").click(async (event) => {
       // if sound was not passed search for sound dropdown value
@@ -235,6 +270,10 @@ export default class RollBuilderFFG extends FormApplication {
         if (this.roll.crew) {
           this.roll.item['crew'] = this.roll.crew
         }
+        const adversaryChecked = html.find(".adversary-toggle").is(":checked");
+        if (adversaryChecked && this.adversaryRanks > 0 && this.dicePool.difficulty > 0) {
+          this.dicePool.upgradeDifficulty(this.adversaryRanks);
+        }
         const roll = new game.ffg.RollFFG(this.dicePool.renderDiceExpression(), this.roll.item, this.dicePool, this.roll.flavor);
         // check if this is a crew roll - and it's a roll for a weapon
         if (this.roll.item && this.roll.item.hasOwnProperty('crew') && Object.keys(this.roll.item).length > 1) {
@@ -278,6 +317,38 @@ export default class RollBuilderFFG extends FormApplication {
     poolDiv.innerHTML = "";
     this.dicePool.renderPreview(poolDiv);
     this._updateSimulationPreview();
+    this._updateAdversaryPreview(html);
+  }
+
+  _updateAdversaryPreview(html) {
+    const container = html.find(".adversary-preview")[0];
+    if (!container) return;
+    container.innerHTML = "";
+
+    const toggle = html.find(".adversary-toggle")[0];
+    const checked = toggle ? toggle.checked : true;
+    const gate = checked && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
+    if (!gate) return;
+
+    const clone = new game.ffg.DicePoolFFG({
+      proficiency: this.dicePool.proficiency,
+      ability:     this.dicePool.ability,
+      challenge:   this.dicePool.challenge,
+      difficulty:  this.dicePool.difficulty,
+      boost:       this.dicePool.boost,
+      setback:     this.dicePool.setback,
+      force:       this.dicePool.force,
+      advantage:   this.dicePool.advantage,
+      success:     this.dicePool.success,
+      threat:      this.dicePool.threat,
+      failure:     this.dicePool.failure,
+      light:       this.dicePool.light,
+      dark:        this.dicePool.dark,
+      triumph:     this.dicePool.triumph,
+      despair:     this.dicePool.despair,
+    });
+    clone.upgradeDifficulty(this.adversaryRanks);
+    clone.renderPreview(container);
   }
 
   _initializeInputs(html) {
