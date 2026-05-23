@@ -143,6 +143,16 @@
       {{/if}}
     </div>
     </details>
+    <div class="adversary-controls">
+      <label>
+        <input type="checkbox" class="adversary-toggle" checked />
+        {{adversaryLabel}}
+      </label>
+    </div>
+    <details class="adversary-preview-details">
+      <summary>{{localize "SWFFG.Adversary.UpgradedPool"}}</summary>
+      <div class="adversary-preview dice-pool"></div>
+    </details>
     <div class="roll-button flexrow">
       <button class="btn">{{localize "SWFFG.SkillsRoll"}}</button>
     </div>
