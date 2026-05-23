@@ -9,6 +9,7 @@ import EmbeddedItemHelpers from "../helpers/embeddeditem-helpers.js";
 import ActorHelpers, {xpLogSpend} from "../helpers/actor-helpers.js";
 import ItemOptions from "./item-ffg-options.js";
 import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
+import { canPurchaseNode } from "../helpers/talent-tree.js";
 
 /**
  * Extend the basic ItemSheet with some very simple modifications
@@ -207,6 +208,21 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
           data.isEditing = false;
           data.isReadOnly = true;
         }
+        // Pre-populate sizeInt and canPurchase BEFORE the await-heavy loop
+        // so they remain set even if enrichHTML throws mid-loop (e.g. for a
+        // non-GM viewer hitting a permission-restricted embedded reference).
+        for (let x = 0; x < 16; x++) {
+          if (!data.data.upgrades[`upgrade${x}`]) continue;
+          data.data.upgrades[`upgrade${x}`].sizeInt = ItemSheetFFG.SIZE_TO_INT[data.data.upgrades[`upgrade${x}`].size];
+        }
+        for (let x = 0; x < 16; x++) {
+          if (!data.data.upgrades[`upgrade${x}`]) continue;
+          data.data.upgrades[`upgrade${x}`].canPurchase = canPurchaseNode(
+            data.data.upgrades,
+            `upgrade${x}`,
+            { prefix: "upgrade", width: 4, total: 16, sizeAware: true, rootHasImplicitParent: true }
+          );
+        }
         for (let x = 0; x < 16; x++) {
           data.data.upgrades[`upgrade${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(data.data.upgrades[`upgrade${x}`].description);
           let upgradeSize = ItemSheetFFG.SIZE_TO_INT[data.data.upgrades[`upgrade${x}`].size];
@@ -255,6 +271,17 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
               return;
           }
           this.item.flags.starwarsffg.loaded = true;
+        }
+        // Compute canPurchase first so it's always populated even if a later
+        // `await` (e.g. enrichHTML on a restricted embedded reference) throws
+        // mid-loop for non-GM viewers.
+        for (let x = 0; x < 20; x++) {
+          if (!data.data.talents[`talent${x}`]) continue;
+          data.data.talents[`talent${x}`].canPurchase = canPurchaseNode(
+            data.data.talents,
+            `talent${x}`,
+            { prefix: "talent", width: 4, total: 20, sizeAware: false }
+          );
         }
         for (let x = 0; x < 20; x++) {
           data.data.talents[`talent${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(data.data.talents[`talent${x}`].description);
@@ -370,6 +397,21 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         if (!this.options.editable) {
           data.data.isEditing = false;
           data.data.isReadOnly = true;
+        }
+        // Pre-populate sizeInt and canPurchase BEFORE the await-heavy loop
+        // (see force-power case for rationale — non-GM viewers can hit a
+        // restricted reference inside enrichHTML and abort the loop).
+        for (let x = 0; x < 8; x++) {
+          if (!data.data.upgrades[`upgrade${x}`]) continue;
+          data.data.upgrades[`upgrade${x}`].sizeInt = ItemSheetFFG.SIZE_TO_INT[data.data.upgrades[`upgrade${x}`].size];
+        }
+        for (let x = 0; x < 8; x++) {
+          if (!data.data.upgrades[`upgrade${x}`]) continue;
+          data.data.upgrades[`upgrade${x}`].canPurchase = canPurchaseNode(
+            data.data.upgrades,
+            `upgrade${x}`,
+            { prefix: "upgrade", width: 4, total: 8, sizeAware: true, rootHasImplicitParent: true }
+          );
         }
         for (let x = 0; x < 8; x++) {
           data.data.upgrades[`upgrade${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(data.data.upgrades[`upgrade${x}`].description);
@@ -1539,6 +1581,16 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     const baseName = element.data("base-item-name");
     const upgradeName = element.data("upgrade-name");
     const upgradeId = element.data("upgrade-id");
+
+    if (!canPurchaseNode(
+      this.object.system.upgrades,
+      upgradeId,
+      { prefix: "upgrade", width: 4, total: 16, sizeAware: true, rootHasImplicitParent: true }
+    )) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotConnected"));
+      return;
+    }
+
     let owner;
     let availableXP;
     let totalXP;
@@ -1597,6 +1649,16 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     const baseName = element.data("base-item-name");
     const upgradeName = element.data("upgrade-name");
     const upgradeId = element.data("upgrade-id");
+
+    if (!canPurchaseNode(
+      this.object.system.upgrades,
+      upgradeId,
+      { prefix: "upgrade", width: 4, total: 8, sizeAware: true, rootHasImplicitParent: true }
+    )) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotConnected"));
+      return;
+    }
+
     let owner;
     let availableXP;
     let totalXP;
@@ -1657,6 +1719,16 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     const baseName = element.data("base-item-name");
     const upgradeName = element.data("upgrade-name");
     const upgradeId = element.data("upgrade-id");
+
+    if (!canPurchaseNode(
+      this.object.system.talents,
+      upgradeId,
+      { prefix: "talent", width: 4, total: 20, sizeAware: false }
+    )) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotConnected"));
+      return;
+    }
+
     let owner;
     let availableXP;
     let totalXP;
