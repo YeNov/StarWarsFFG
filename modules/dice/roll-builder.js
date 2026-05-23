@@ -326,7 +326,7 @@ export default class RollBuilderFFG extends FormApplication {
     container.innerHTML = "";
 
     const toggle = html.find(".adversary-toggle")[0];
-    const checked = toggle ? toggle.checked : true;
+    const checked = toggle ? toggle.checked : false;
     const gate = checked && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
     if (!gate) return;
 
@@ -337,6 +337,7 @@ export default class RollBuilderFFG extends FormApplication {
       difficulty:  this.dicePool.difficulty,
       boost:       this.dicePool.boost,
       setback:     this.dicePool.setback,
+      remsetback:  this.dicePool.remsetback,
       force:       this.dicePool.force,
       advantage:   this.dicePool.advantage,
       success:     this.dicePool.success,
@@ -346,6 +347,7 @@ export default class RollBuilderFFG extends FormApplication {
       dark:        this.dicePool.dark,
       triumph:     this.dicePool.triumph,
       despair:     this.dicePool.despair,
+      upgrades:    this.dicePool.upgrades,
     });
     clone.upgradeDifficulty(this.adversaryRanks);
     clone.renderPreview(container);
