@@ -36,7 +36,7 @@ export default class RollBuilderFFG extends FormApplication {
       }
       return max;
     } catch (err) {
-      CONFIG.logger?.warn?.("Adversary rank detection failed", err);
+      CONFIG.logger?.debug?.("Adversary rank detection failed", err);
       return 0;
     }
   }
