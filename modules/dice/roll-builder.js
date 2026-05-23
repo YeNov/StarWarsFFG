@@ -1,4 +1,5 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
+import { DicePoolFFG } from "./pool.js";
 
 export default class RollBuilderFFG extends FormApplication {
   constructor(rollData, rollDicePool, rollDescription, rollSkillName, rollItem, rollAdditionalFlavor, rollSound) {
@@ -47,7 +48,8 @@ export default class RollBuilderFFG extends FormApplication {
       id: "roll-builder",
       classes: ["starwarsffg", "roll-builder-dialog"],
       template: "systems/starwarsffg/templates/dice/roll-options-ffg.html",
-      width: 350
+      width: 350,
+      resizable: true
     });
   }
 
@@ -321,36 +323,40 @@ export default class RollBuilderFFG extends FormApplication {
   }
 
   _updateAdversaryPreview(html) {
-    const container = html.find(".adversary-preview")[0];
-    if (!container) return;
-    container.innerHTML = "";
+    try {
+      const container = html.find(".adversary-preview")[0];
+      if (!container) return;
+      container.innerHTML = "";
 
-    const toggle = html.find(".adversary-toggle")[0];
-    const checked = toggle ? toggle.checked : false;
-    const gate = checked && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
-    if (!gate) return;
+      const toggle = html.find(".adversary-toggle")[0];
+      const checked = toggle ? toggle.checked : false;
+      const gate = checked && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
+      if (!gate) return;
 
-    const clone = new game.ffg.DicePoolFFG({
-      proficiency: this.dicePool.proficiency,
-      ability:     this.dicePool.ability,
-      challenge:   this.dicePool.challenge,
-      difficulty:  this.dicePool.difficulty,
-      boost:       this.dicePool.boost,
-      setback:     this.dicePool.setback,
-      remsetback:  this.dicePool.remsetback,
-      force:       this.dicePool.force,
-      advantage:   this.dicePool.advantage,
-      success:     this.dicePool.success,
-      threat:      this.dicePool.threat,
-      failure:     this.dicePool.failure,
-      light:       this.dicePool.light,
-      dark:        this.dicePool.dark,
-      triumph:     this.dicePool.triumph,
-      despair:     this.dicePool.despair,
-      upgrades:    this.dicePool.upgrades,
-    });
-    clone.upgradeDifficulty(this.adversaryRanks);
-    clone.renderPreview(container);
+      const clone = new DicePoolFFG({
+        proficiency: this.dicePool.proficiency,
+        ability:     this.dicePool.ability,
+        challenge:   this.dicePool.challenge,
+        difficulty:  this.dicePool.difficulty,
+        boost:       this.dicePool.boost,
+        setback:     this.dicePool.setback,
+        remsetback:  this.dicePool.remsetback,
+        force:       this.dicePool.force,
+        advantage:   this.dicePool.advantage,
+        success:     this.dicePool.success,
+        threat:      this.dicePool.threat,
+        failure:     this.dicePool.failure,
+        light:       this.dicePool.light,
+        dark:        this.dicePool.dark,
+        triumph:     this.dicePool.triumph,
+        despair:     this.dicePool.despair,
+        upgrades:    this.dicePool.upgrades,
+      });
+      clone.upgradeDifficulty(this.adversaryRanks);
+      clone.renderPreview(container);
+    } catch (err) {
+      CONFIG.logger?.debug?.("Adversary preview render failed", err);
+    }
   }
 
   _initializeInputs(html) {
