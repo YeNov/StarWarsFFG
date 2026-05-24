@@ -41,6 +41,7 @@ import { AbilityDie, BoostDie, ChallengeDie, DifficultyDie, ForceDie, Proficienc
 import { createFFGMacro, updateMacro } from "./helpers/macros.js";
 import EmbeddedItemHelpers from "./helpers/embeddeditem-helpers.js";
 import { ApplyDamage } from "./helpers/apply-damage.js";
+import { ApplyCrit } from "./helpers/apply-crit.js";
 import DataImporter from "./importer/data-importer.js";
 import PauseFFG from "./apps/pause-ffg.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -1084,6 +1085,7 @@ Hooks.on("renderChatMessage", async (app, html, messageData) => {
   content[0].innerHTML = await PopoutEditor.renderDiceImages(content[0].innerHTML);
 
   ApplyDamage.bindChatMessage(app, html);
+  ApplyCrit.bindChatMessage(app, html);
 
   html.on("click", ".ffg-pool-to-player", () => {
     const poolData = messageData.message.flags.starwarsffg;
