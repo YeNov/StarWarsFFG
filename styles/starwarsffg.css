@@ -2917,17 +2917,24 @@ img {
     margin: 0 0.5em;
 }
 
-/* Apply Damage chat button */
-.ffg-apply-damage-wrap {
+/* Weapon-card chat actions (Apply Crit + Apply Damage) */
+.ffg-chat-actions {
   margin-top: 6px;
   display: flex;
   justify-content: flex-start;
+  gap: 6px;
 }
+.ffg-apply-crit,
 .ffg-apply-damage {
   font-size: 0.85em;
   padding: 2px 8px;
   cursor: pointer;
 }
+.ffg-apply-crit i.fas,
 .ffg-apply-damage i.fas {
   margin-right: 4px;
+}
+.ffg-apply-crit[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
