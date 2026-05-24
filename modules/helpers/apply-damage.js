@@ -129,7 +129,7 @@ export class ApplyDamage {
       </div>
     `;
 
-    const weaponName = item.name;
+    const weaponName = itemData.name || itemSystem.name || "weapon";
     const title = game.i18n.format("SWFFG.ApplyDamage.DialogTitle", { name: a.name });
 
     new Dialog({
