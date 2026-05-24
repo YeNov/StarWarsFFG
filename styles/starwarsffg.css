@@ -2916,3 +2916,18 @@ img {
     background-size: 32px;
     margin: 0 0.5em;
 }
+
+/* Apply Damage chat button */
+.ffg-apply-damage-wrap {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+}
+.ffg-apply-damage {
+  font-size: 0.85em;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.ffg-apply-damage i.fas {
+  margin-right: 4px;
+}
