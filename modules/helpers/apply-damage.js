@@ -95,7 +95,7 @@ export class ApplyDamage {
     let breachRanks = 0;
     for (const q of qualities) {
       const name = (q?.name || "").toLowerCase();
-      const ranks = Number(q?.totalRanks ?? q?.system?.rank ?? 0) || 0;
+      const ranks = Number(q?.system?.rank_current ?? q?.system?.rank ?? 0) || 0;
       if (name === "pierce") pierceRanks += ranks;
       else if (name === "breach") breachRanks += ranks;
     }
