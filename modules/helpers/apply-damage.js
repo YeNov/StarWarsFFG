@@ -35,9 +35,14 @@ export class ApplyDamage {
    * @param {ChatMessage} message
    */
   static async show(message) {
-    const ffgUuid = message.flags?.starwarsffg?.ffgUuid;
-    const item = ffgUuid ? await fromUuid(ffgUuid) : null;
-    if (!item) {
+    // The weapon attack chat message embeds the rendered/adjusted weapon data
+    // directly on the roll (see modules/dice/roll.js render() — it assigns
+    // item.toObject + computed details onto roll.data). That copy already has
+    // doNotSubmit.qualities with totalRanks and damage.adjusted, so we don't
+    // need to re-resolve the live item via fromUuid — which can fail when the
+    // item lived on an unlinked-token actor or was deleted.
+    const itemData = message.rolls?.[0]?.data;
+    if (!itemData) {
       ui.notifications.warn(game.i18n.localize("SWFFG.ApplyDamage.ItemMissing"));
       return;
     }
@@ -81,23 +86,25 @@ export class ApplyDamage {
       return;
     }
 
-    // Use getItemDetails() to pick up attachment-provided adjustments
-    // to both damage and the qualities list.
-    const details = await item.getItemDetails();
-    const adjusted = Number(details?.damage?.adjusted) || 0;
-    const baseValue = Number(details?.damage?.value ?? item.system?.damage?.value) || 0;
+    // Damage and qualities are read straight from the chat-embedded item data.
+    const itemSystem = itemData.system || {};
+    const adjusted = Number(itemSystem.damage?.adjusted) || 0;
+    const baseValue = Number(itemSystem.damage?.value) || 0;
     const baseDamage = adjusted !== 0 ? adjusted : baseValue;
     const successes = Number(message.rolls?.[0]?.ffg?.success) || 0;
     const autoDamage = baseDamage + successes;
 
-    const qualities = details?.adjusteditemmodifier || item.system?.itemmodifier || [];
+    // The rendered qualities live at system.doNotSubmit.qualities with computed
+    // totalRanks (including attachment stacking). Names may carry a suffix like
+    // " Quality" (e.g. "Pierce Quality"); substring match handles both forms.
+    const qualities = itemSystem.doNotSubmit?.qualities || [];
     let pierceRanks = 0;
     let breachRanks = 0;
     for (const q of qualities) {
       const name = (q?.name || "").toLowerCase();
-      const ranks = Number(q?.system?.rank_current ?? q?.system?.rank ?? 0) || 0;
-      if (name === "pierce") pierceRanks += ranks;
-      else if (name === "breach") breachRanks += ranks;
+      const ranks = Number(q?.totalRanks ?? 0) || 0;
+      if (name.includes("pierce")) pierceRanks += ranks;
+      else if (name.includes("breach")) breachRanks += ranks;
     }
     const autoPierce = pierceRanks + 10 * breachRanks;
 
