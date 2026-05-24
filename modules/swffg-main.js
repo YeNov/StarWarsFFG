@@ -40,6 +40,7 @@ import {register_crew} from "./helpers/crew.js";
 import { AbilityDie, BoostDie, ChallengeDie, DifficultyDie, ForceDie, ProficiencyDie, SetbackDie } from "./dice-pool-ffg.js";
 import { createFFGMacro, updateMacro } from "./helpers/macros.js";
 import EmbeddedItemHelpers from "./helpers/embeddeditem-helpers.js";
+import { ApplyDamage } from "./helpers/apply-damage.js";
 import DataImporter from "./importer/data-importer.js";
 import PauseFFG from "./apps/pause-ffg.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -1081,6 +1082,8 @@ Hooks.on("renderCompendiumDirectory", (app, html, data) => {
 Hooks.on("renderChatMessage", async (app, html, messageData) => {
   const content = html.find(".message-content");
   content[0].innerHTML = await PopoutEditor.renderDiceImages(content[0].innerHTML);
+
+  ApplyDamage.bindChatMessage(app, html);
 
   html.on("click", ".ffg-pool-to-player", () => {
     const poolData = messageData.message.flags.starwarsffg;
