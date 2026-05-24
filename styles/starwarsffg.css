@@ -2921,7 +2921,7 @@ img {
 .ffg-apply-damage-wrap {
   margin-top: 6px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .ffg-apply-damage {
   font-size: 0.85em;
