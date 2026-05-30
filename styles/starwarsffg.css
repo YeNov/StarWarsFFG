@@ -55,6 +55,40 @@ section {
   overflow: visible !important;
 }
 
+/* V13 ApplicationV2 robustness: mirror the legacy .app.window-app
+   header/content sizing that the V1 sheet CSS depends on. */
+body.game .starwarsffg.application.sheet {
+  line-height: normal;
+}
+body.game .starwarsffg.application.sheet > * {
+  flex: 1;
+}
+body.game .starwarsffg.application.sheet > .window-header {
+  flex: 0 0 30px;
+  padding: 0 8px;
+  gap: 0;
+}
+body.game .starwarsffg.application.sheet > .window-header .window-title {
+  margin: 0;
+}
+body.game .starwarsffg.application.sheet > .window-header a {
+  flex: none;
+  margin: 0 0 0 8px;
+}
+body.game .starwarsffg.application.sheet > form.window-content {
+  padding: 8px;
+  color: var(--color-text-dark-primary);
+}
+body.game .starwarsffg.application.sheet > form.window-content > * {
+  flex: 1;
+}
+body.game .starwarsffg.application.sheet :is(.header-name, .minion-name) input {
+  min-width: 20px;
+  height: var(--form-field-height);
+  padding: 1px 3px;
+  line-height: inherit;
+}
+
 /* V1-style inline labeled header actions, projected from V13's
    controls-dropdown by FFGDocumentSheetV2._projectLegacyHeaderControls. */
 .starwarsffg.application.sheet > .window-header > .legacy-header-action {
