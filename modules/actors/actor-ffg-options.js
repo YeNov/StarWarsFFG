@@ -10,12 +10,46 @@ export default class ActorOptions {
   }
 
   init(html) {
-      const options = $(`.starwarsffg.sheet.actor[data-appid='${this.data.appId}'] .ffg-sheet-options`);
-      if (options.length === 0) {
-        const button = $(`<a class="ffg-sheet-options"><i class="fas fa-wrench"></i>${game.i18n.localize("SWFFG.SheetOptions")}</a>`);
-        button.insertBefore(`.starwarsffg.sheet.actor[data-appid='${this.data.appId}'] header a:first`);
-        button.on("click", this.handler.bind(this));
+    const root = this._findSheetRoot(html);
+    if (!root || root.querySelector(":scope > .window-header > .ffg-sheet-options")) return;
+
+    const header = root.querySelector(":scope > .window-header");
+    if (!header) return;
+
+    const button = document.createElement("a");
+    button.href = "#";
+    button.classList.add("ffg-sheet-options");
+    if (root.classList.contains("application")) button.classList.add("legacy-header-action");
+    button.innerHTML = `<i class="fas fa-wrench"></i>${game.i18n.localize("SWFFG.SheetOptions")}`;
+    button.addEventListener("click", this.handler.bind(this));
+
+    const anchor = header.querySelector(":scope > a, :scope > button, :scope > [data-action]") ?? header.lastElementChild;
+    header.insertBefore(button, anchor);
+  }
+
+  _findSheetRoot(html) {
+    const appId = `${this.data.appId}`;
+    const candidates = [];
+    const addAncestors = (element) => {
+      for (let node = element; node && node !== document; node = node.parentElement) {
+        if (
+          node.dataset?.appid === appId
+          && node.classList?.contains("starwarsffg")
+          && node.classList.contains("sheet")
+          && node.classList.contains("actor")
+        ) {
+          candidates.push(node);
+        }
       }
+    };
+
+    const sheetElement = this.data.element?.jquery ? this.data.element[0] : this.data.element;
+    const htmlElement = html?.jquery ? html[0] : html?.[0] ?? html;
+    addAncestors(sheetElement);
+    addAncestors(htmlElement);
+    candidates.push(...document.querySelectorAll(`.starwarsffg.sheet.actor[data-appid="${appId}"]`));
+
+    return candidates.find((element) => element.querySelector(":scope > .window-header")) ?? candidates[0] ?? null;
   }
 
   handler(event) {
