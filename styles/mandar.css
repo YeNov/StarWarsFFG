@@ -82,6 +82,18 @@ section {
   z-index: 99999;
 }
 
+/* V2 ApplicationV2 compat: legacy V2 tabs are positioned relative to
+   FORM.window-content, which starts below the window header. Keep the
+   Mandar tab strip aligned with the V1 app-root positioning, and allow
+   it to extend outside the V2 content form. */
+.starwarsffg.application.sheet > form.window-content {
+  overflow: visible !important;
+}
+
+.starwarsffg.application.sheet nav.sheet-tabs {
+  top: 0.125rem;
+}
+
 .hidden-content {
   display: none;
 }

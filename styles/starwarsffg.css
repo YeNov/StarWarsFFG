@@ -56,7 +56,10 @@ section {
   overflow: visible !important;
 }
 .starwarsffg.application.sheet > form.window-content {
-  overflow: visible;
+  overflow: visible !important;
+}
+.starwarsffg.application.sheet nav.sheet-tabs {
+  top: 2px;
 }
 
 /* V13 ApplicationV2 robustness: mirror the legacy .app.window-app
