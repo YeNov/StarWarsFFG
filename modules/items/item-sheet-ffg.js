@@ -1630,12 +1630,31 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
               // actor in a permanently-disabled state -- a leak there drops every
               // characteristic bonus and collapses Brawn-derived stats (wounds,
               // soak, encumbrance) on the actor sheet.
+              let xpDeducted = false;
               try {
-                owner.update({system: {experience: {available: availableXP - cost}}});
-                await xpLogSpend(owner, `${config.logLabel} ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
+                // Deduct the XP first and AWAIT it: this is the only step that
+                // actually charges the player (xpLogSpend just writes a log flag).
+                // A failed deduction must abort the purchase so the node is never
+                // learned for free -- and since the update is atomic, a failure
+                // means no XP left the actor, so no refund/compensation is needed.
+                await owner.update({system: {experience: {available: availableXP - cost}}});
+                xpDeducted = true;
+                // The spend log is a secondary record; a logging failure must not
+                // abort an already-charged purchase or leave XP spent with nothing
+                // learned, so swallow it rather than letting it gate the steps below.
+                try {
+                  await xpLogSpend(owner, `${config.logLabel} ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
+                } catch (e) {
+                  CONFIG.logger.warn(`Failed to write XP spend log for ${owner.name}`, e);
+                }
+              } catch (e) {
+                CONFIG.logger.warn(`Failed to deduct XP for ${owner.name}; aborting purchase`, e);
+                ui.notifications.error(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.Failed"));
               } finally {
                 await ActorHelpers.endEditMode(owner, AEState, true);
               }
+              // Only learn the node if the XP actually came out of the actor.
+              if (!xpDeducted) return;
               // Learn the node and enable its AE AFTER endEditMode (see method doc).
               await this.object.update({[`system.${config.treeProp}.${upgradeId}.islearned`]: true});
               await ItemHelpers.syncAEStatus(this.object, this.object.getEmbeddedCollection("ActiveEffect"));
