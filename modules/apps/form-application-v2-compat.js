@@ -104,6 +104,14 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
 
     initialized.form.submitOnChange = legacyOptions.submitOnChange ?? initialized.form.submitOnChange;
     initialized.form.closeOnSubmit = legacyOptions.closeOnSubmit ?? initialized.form.closeOnSubmit;
+    // V2's form pipeline is intentionally disabled; submission is handled
+    // manually by _onChangeInput / _onSubmit to match V1 semantics.
+    initialized.form = {
+      ...initialized.form,
+      submitOnChange: false,
+      closeOnSubmit: initialized.form?.closeOnSubmit ?? true,
+      handler: null,
+    };
     return initialized;
   }
 
