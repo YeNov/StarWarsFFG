@@ -74,7 +74,12 @@ export class DialogV2Compat {
 
   async _prepareContent() {
     if (this.options.template) {
-      return foundry.applications.handlebars.renderTemplate(this.options.template, this.data.content ?? {});
+      const context = {
+        ...this.data,
+        content: this.data.content ?? {},
+        buttons: this.data.buttons ?? {},
+      };
+      return foundry.applications.handlebars.renderTemplate(this.options.template, context);
     }
 
     const content = this.data.content;
