@@ -2,56 +2,71 @@
 
 Date: 2026-05-30
 URL: `http://192.168.1.7:30000/`
-Automated login: `Andre`
 
 ## Capture Scope
 
-The comparison was captured from the same Foundry URL on both branches:
+Two comparison passes were captured from the same Foundry URL on both `main` and `V2-port`.
 
-- `V2-port`
-- `main`
+The first pass used `Andre`. That was enough for owned character, vehicle, weapon, and talent fallbacks, but not enough for GM-only actor/token fixtures.
 
-The following planned documents were not owned by `Andre`, so the harness used owned fallbacks where possible:
-
-| Target | Planned document | Result |
-| --- | --- | --- |
-| Character | `Jovel Nial` | Fallback to owned character `Орііз Катард` |
-| Minion | `Akk Dog` | Not captured: no owned minion fallback was available |
-| Vehicle | `All Terrain Light Scout Transport` | Fallback to owned vehicle `SCS-17a "Sentinel" Armored Landspeeder (гравців)` |
-| Weapon | `KD-30F "Dissuader-FETT" Pistol` | Fallback to owned embedded weapon `Vibro-ax` |
-| Talent | first owned embedded talent | Captured `Quick Draw (from armor attachment)` |
-
-The user-visible token minion sheet still needs a GM-owned or otherwise accessible capture to compare precisely.
+The second pass used `Gamemaster` with no password. This is the primary comparison pass because it captured the planned documents directly, including the token-style `Scout Trooper Recon Team` minion sheet from the active scene.
 
 ## Screenshot Records
 
-Captured artifacts are under `tmp/sheet-compare/`:
+GM capture artifacts:
 
 | Sheet | Main screenshot | V2-port screenshot |
 | --- | --- | --- |
-| Character | `tmp/sheet-compare/main/character.png` | `tmp/sheet-compare/v2/character.png` |
-| Vehicle | `tmp/sheet-compare/main/vehicle.png` | `tmp/sheet-compare/v2/vehicle.png` |
-| Weapon | `tmp/sheet-compare/main/weapon.png` | `tmp/sheet-compare/v2/weapon.png` |
-| Talent | `tmp/sheet-compare/main/talent.png` | `tmp/sheet-compare/v2/talent.png` |
+| Character: `Jovel Nial` | `tmp/sheet-compare/main-gm/character.png` | `tmp/sheet-compare/v2-gm/character.png` |
+| Minion: `Akk Dog` | `tmp/sheet-compare/main-gm/minion.png` | `tmp/sheet-compare/v2-gm/minion.png` |
+| Token minion: `[Token] Scout Trooper Recon Team` | `tmp/sheet-compare/main-gm/scout-token-minion.png` | `tmp/sheet-compare/v2-gm/scout-token-minion.png` |
+| Vehicle: `All Terrain Light Scout Transport` | `tmp/sheet-compare/main-gm/vehicle.png` | `tmp/sheet-compare/v2-gm/vehicle.png` |
+| Weapon: `KD-30F "Dissuader-FETT" Pistol` | `tmp/sheet-compare/main-gm/weapon.png` | `tmp/sheet-compare/v2-gm/weapon.png` |
+| Talent: `Dark Side Paragon` | `tmp/sheet-compare/main-gm/talent.png` | `tmp/sheet-compare/v2-gm/talent.png` |
 
-Raw DOM and layout metrics:
+GM raw DOM and layout metrics:
 
-- `tmp/sheet-compare/main/summary.json`
-- `tmp/sheet-compare/v2/summary.json`
+- `tmp/sheet-compare/main-gm/summary.json`
+- `tmp/sheet-compare/v2-gm/summary.json`
+
+Earlier `Andre` fallback artifacts are still under `tmp/sheet-compare/main/` and `tmp/sheet-compare/v2/`.
 
 ## Findings
 
-### 1. Right-side sheet tabs are clipped in `V2-port`
+### 1. Minion and token minion sheets have a major V2-only header action leak
 
-This is the largest layout regression visible in every captured sheet.
+This is the most precise match for the broken example.
 
-On `main`, the vertical tab bar shows full tabs with icons. On `V2-port`, only a narrow colored strip is visible at the right edge; the icons are clipped away.
+On `main`, the `KILL` stat card contains only the expected minion/group skull controls. On `V2-port`, the card includes extra header action text and icons:
 
-Measured tab positions:
+- `Sheet`
+- `Options`
+- extra skull icon line
+
+Measured on `[Token] Scout Trooper Recon Team`:
+
+| Metric | Main | V2-port | Difference |
+| --- | ---: | ---: | ---: |
+| Sheet header height | 237.31 px | 293.31 px | +56.00 px |
+| Sheet body Y | 351.31 px | 407.31 px | +56.00 px |
+| Skills table Y | 451.31 px | 507.31 px | +56.00 px |
+| Skills table height | 241.00 px | 199.69 px | -41.31 px |
+
+The same shift occurs on the `Akk Dog` minion sheet. This means the visible body is pushed down and the skill tables lose space.
+
+Likely root cause: the V2 compatibility header action projection is entering the sheet body content, or an old header action selector is no longer scoped to the window header.
+
+### 2. Right-side sheet tabs are clipped in `V2-port`
+
+On `main`, the vertical tab bar shows full tabs with icons. On `V2-port`, only narrow colored strips are visible at the right edge; the icons are clipped away.
+
+Measured first-tab positions in the GM pass:
 
 | Sheet | Main first tab Y | V2-port first tab Y | Difference |
 | --- | ---: | ---: | ---: |
 | Character | 116 | 146 | +30 px |
+| Minion | 116 | 146 | +30 px |
+| Token minion | 116 | 146 | +30 px |
 | Vehicle | 132 | 162 | +30 px |
 | Weapon | 116 | 146 | +30 px |
 | Talent | 116 | 146 | +30 px |
@@ -64,32 +79,35 @@ Likely cause from captured DOM:
 
 The tabs appear to be inside or affected by the form/window-content clipping context after the V2 compatibility migration.
 
-### 2. Header controls differ from `main`
+### 3. Header controls differ from `main`
 
-`main` shows the older visible header actions such as `Sheet`, `Prototype Token`, and `Close`, plus `Sheet Options` near the title area.
+`main` shows the older visible header actions such as `Sheet`, `Prototype Token` or `Token`, and `Close`, plus `Sheet Options` near the title area.
 
 `V2-port` shows compact V2-style icon controls only. The title text is cleaner on `V2-port`, but the visible control layout no longer matches `main`.
 
-Examples from capture metrics:
+Examples from GM capture metrics:
 
 | Sheet | Main header title | V2-port header title |
 | --- | --- | --- |
-| Character | `Орііз КатардSheet Options` | `Орііз Катард` |
-| Vehicle | `SCS-17a ... Sheet Options` | `SCS-17a ...` |
-| Weapon | `Vibro-axSheet Options` | `Vibro-ax` |
+| Character | `Jovel NialSheet Options` | `Jovel Nial` |
+| Token minion | `[Token] Scout Trooper Recon TeamSheet Options` | `[Token] Scout Trooper Recon Team` |
+| Vehicle | `All Terrain Light Scout TransportSheet Options` | `All Terrain Light Scout Transport` |
+| Weapon | `KD-30F "Dissuader-FETT" PistolSheet Options` | `KD-30F "Dissuader-FETT" Pistol` |
 
-### 3. Unchecked checkbox styling differs
+This is partly expected from V2 window chrome, but it is also connected to the minion `Sheet Options` leakage described above.
+
+### 4. Unchecked checkbox styling differs
 
 On `main`, unchecked checkboxes render as light/empty boxes.
 
-On `V2-port`, unchecked boxes render as dark filled squares in the character skills list and talent attributes. This is visible on:
+On `V2-port`, unchecked boxes render as dark filled squares. This is visible on:
 
-- Character skill career/spec checkboxes
+- Character and minion skill career/spec checkboxes
 - Talent `Ranked?`, `Force Talent?`, and `Conflict?`
 
 This may be another side effect of the changed form/content root classes.
 
-### 4. Character sheet body is slightly shorter in `V2-port`
+### 5. Character sheet body is slightly shorter in `V2-port`
 
 The character sheet outer window size is identical in both captures, but the scrollable body and skill table area are shorter in `V2-port`.
 
@@ -101,9 +119,9 @@ The character sheet outer window size is identical in both captures, but the scr
 
 The visual result is that slightly less of the skill list is visible before scrolling.
 
-### 5. Item sheets open on different active tabs
+### 6. Item sheets open on different active tabs
 
-The embedded weapon and talent sheets do not open to the same active tab.
+The item sheets do not open to the same active tab.
 
 | Sheet | Main active tab | V2-port active tab |
 | --- | --- | --- |
@@ -117,7 +135,7 @@ This produces large visible differences below the shared header/stat sections:
 
 This may be intentional if tab persistence/default behavior changed, but it is not visually equivalent to `main`.
 
-### 6. Root classes differ substantially
+### 7. Root classes differ substantially
 
 Captured root classes:
 
@@ -126,25 +144,27 @@ Captured root classes:
 | Actor | `app window-app starwarsffg sheet actor v2 themed theme-light` | `application sheet app window-app starwarsffg actor v2` |
 | Item | `app window-app starwarsffg sheet item v2 themed theme-light` | `application sheet app window-app starwarsffg item v2` |
 
-The V2-port root includes the restored legacy-style classes, but drops `themed theme-light` and places `sheet` earlier in the class list. The visual impact is mainly seen through clipping/header/control differences rather than the class list by itself.
+The V2-port root includes restored legacy-style classes, but drops `themed theme-light` and uses a V2 `FORM.window-content.editable...` root inside the sheet.
 
 ## Pixel Difference Samples
 
-These are rough sampled diffs, checking every second pixel and counting RGB delta greater than 30.
+These are rough sampled diffs from the GM pass, checking every second pixel and counting RGB delta greater than 30.
 
 | Sheet | Screenshot size | Sampled diff |
 | --- | --- | ---: |
-| Character | 750 x 863 | 11.55% |
-| Vehicle | 720 x 904 | 7.37% |
-| Weapon | 670 x 830 | 18.80% |
-| Talent | 525 x 615 | 20.46% |
+| Character | 750 x 863 | 13.02% |
+| Minion | 720 x 724 | 37.03% |
+| Token minion | 720 x 724 | 37.15% |
+| Vehicle | 720 x 904 | 8.95% |
+| Weapon | 670 x 830 | 15.09% |
+| Talent | 525 x 615 | 22.70% |
 
-The weapon/talent diff is inflated by the active-tab mismatch. The character/vehicle diff mostly reflects header controls and clipped side tabs.
+The minion/token-minion diffs are high because the V2-only `Sheet Options` leak changes the sheet header height and shifts the body down.
 
 ## Recommended Fix Order
 
-1. Fix vertical tab clipping first. The body content is mostly aligned, but the tabs are visibly broken.
-2. Decide whether `V2-port` should intentionally keep V2 icon header controls or restore the visible `main` header action layout.
+1. Fix the minion/token-minion `Sheet Options` leakage into the `KILL` stat card.
+2. Fix vertical tab clipping.
 3. Restore checkbox visual parity for unchecked boxes.
-4. Decide whether item sheets should preserve the `main` active-tab behavior or whether `description` is now the intended default.
-5. Re-run comparison with a GM-accessible minion/token sheet, especially `Scout Trooper Recon Team`, because the automated `Andre` login could not capture that sheet.
+4. Decide whether `V2-port` should intentionally keep V2 icon header controls or restore the visible `main` header action layout.
+5. Decide whether item sheets should preserve the `main` active-tab behavior or whether `description` is now the intended default.
