@@ -94,6 +94,18 @@ section {
   top: 0.125rem;
 }
 
+.starwarsffg.application.sheet input[type="checkbox"] {
+  -webkit-appearance: checkbox !important;
+  appearance: auto !important;
+  accent-color: #777;
+  color-scheme: light;
+}
+
+.starwarsffg.application.sheet input[type="checkbox"]::before,
+.starwarsffg.application.sheet input[type="checkbox"]::after {
+  content: unset !important;
+}
+
 .hidden-content {
   display: none;
 }

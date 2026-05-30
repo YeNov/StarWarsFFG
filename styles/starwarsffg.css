@@ -61,6 +61,16 @@ section {
 .starwarsffg.application.sheet nav.sheet-tabs {
   top: 2px;
 }
+.starwarsffg.application.sheet input[type="checkbox"] {
+  -webkit-appearance: checkbox !important;
+  appearance: auto !important;
+  accent-color: #777;
+  color-scheme: light;
+}
+.starwarsffg.application.sheet input[type="checkbox"]::before,
+.starwarsffg.application.sheet input[type="checkbox"]::after {
+  content: unset !important;
+}
 
 /* V13 ApplicationV2 robustness: mirror the legacy .app.window-app
    header/content sizing that the V1 sheet CSS depends on. */
