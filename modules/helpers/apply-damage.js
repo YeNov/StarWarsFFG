@@ -9,7 +9,7 @@ import { applyToTargetActor } from "./gm-bridge.js";
 
 export class ApplyDamage {
   /**
-   * Called from the renderChatMessage hook. Enforces visibility (button is
+   * Called from the renderChatMessageHTML hook. Enforces visibility (button is
    * removed for users who are neither GM nor the message author) and binds
    * the click handler.
    * @param {ChatMessage} message — the live ChatMessage instance.

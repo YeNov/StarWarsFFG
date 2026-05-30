@@ -10,7 +10,7 @@ import { applyToTargetActor } from "./gm-bridge.js";
 
 export class ApplyCrit {
   /**
-   * Called from the renderChatMessage hook. Computes crit eligibility from the
+   * Called from the renderChatMessageHTML hook. Computes crit eligibility from the
    * roll's advantages/triumphs vs the weapon's critical rating, sets the
    * disabled attribute and tooltip when ineligible, and binds the click handler.
    * @param {ChatMessage} message — the live ChatMessage instance.
