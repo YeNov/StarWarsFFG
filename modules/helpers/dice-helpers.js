@@ -2,6 +2,7 @@ import PopoutEditor from "../popout-editor.js";
 import RollBuilderFFG from "../dice/roll-builder.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import ImportHelpers from "../importer/import-helpers.js";
+import { DicePoolFFG } from "../dice-pool-ffg.js";
 
 export default class DiceHelpers {
   static async rollSkill(obj, event, type, flavorText, sound) {
@@ -306,31 +307,144 @@ export default class DiceHelpers {
  * @returns {DicePoolFFG}
  */
 export function get_dice_pool(actor_id, skill_name, incoming_roll) {
-  const actor = game.actors.get(actor_id);
-  const parsed_skill_name = convert_skill_name(skill_name);
-  const skill = actor.system.skills[parsed_skill_name];
-  const characteristic = actor.system.characteristics[skill.characteristic];
+  const incomingPool = incoming_roll instanceof DicePoolFFG ? incoming_roll : new DicePoolFFG(incoming_roll ?? {});
+  const actor = resolveDicePoolActor(actor_id, skill_name);
+  const { skill } = resolveSkill(actor, skill_name);
+  const characteristic = actor?.system?.characteristics?.[skill?.characteristic];
+
+  if (!actor || !skill || !characteristic) {
+    CONFIG.logger.debug(`Unable to build dice pool for actor ${actor_id} and skill ${skill_name}`);
+    return incomingPool;
+  }
+
+  const characteristicValue = Number(characteristic.value) || 0;
+  const skillRank = Number(skill.rank) || 0;
 
   const dicePool = new DicePoolFFG({
-    ability: Math.max(characteristic.value, skill.rank) + incoming_roll.ability - (Math.min(characteristic.value, skill.rank) + incoming_roll.proficiency),
-    proficiency: Math.min(characteristic.value, skill.rank) + incoming_roll.proficiency,
-    boost: (skill.boost ?? 0) + incoming_roll.boost,
-    setback: (skill.setback ?? 0) + incoming_roll.setback,
-    force: (skill.force ?? 0) + incoming_roll.force,
-    advantage: (skill.advantage ?? 0) + incoming_roll.advantage,
-    dark: (skill.dark ?? 0) + incoming_roll.dark,
-    light: (skill.light ?? 0) + incoming_roll.light,
-    failure: (skill.failure ?? 0) + incoming_roll.failure,
-    threat: (skill.threat ?? 0) + incoming_roll.threat,
-    success: (skill.success ?? 0) + incoming_roll.success,
-    triumph: (skill.triumph ?? 0) + incoming_roll.triumph,
-    despair: (skill.despair ?? 0) + incoming_roll.despair,
-    upgrades: (skill.upgrades ?? 0) + incoming_roll.upgrades,
-    remsetback: skill?.remsetback ? skill.remsetback : 0 + incoming_roll.remsetback,
-    difficulty: +incoming_roll.difficulty,
-    challenge: +incoming_roll.challenge,
+    ability: Math.max(characteristicValue, skillRank) + incomingPool.ability - (Math.min(characteristicValue, skillRank) + incomingPool.proficiency),
+    proficiency: Math.min(characteristicValue, skillRank) + incomingPool.proficiency,
+    boost: (skill.boost ?? 0) + incomingPool.boost,
+    setback: (skill.setback ?? 0) + incomingPool.setback,
+    force: (skill.force ?? 0) + incomingPool.force,
+    advantage: (skill.advantage ?? 0) + incomingPool.advantage,
+    dark: (skill.dark ?? 0) + incomingPool.dark,
+    light: (skill.light ?? 0) + incomingPool.light,
+    failure: (skill.failure ?? 0) + incomingPool.failure,
+    threat: (skill.threat ?? 0) + incomingPool.threat,
+    success: (skill.success ?? 0) + incomingPool.success,
+    triumph: (skill.triumph ?? 0) + incomingPool.triumph,
+    despair: (skill.despair ?? 0) + incomingPool.despair,
+    upgrades: (skill.upgrades ?? 0) + incomingPool.upgrades,
+    remsetback: (skill.remsetback ?? 0) + incomingPool.remsetback,
+    difficulty: +incomingPool.difficulty,
+    challenge: +incomingPool.challenge,
   });
   return dicePool;
+}
+
+function resolveDicePoolActor(actor_id, skill_name) {
+  const actors = [];
+  const worldActor = game.actors.get(actor_id);
+
+  for (const token of globalThis.canvas?.tokens?.controlled ?? []) {
+    if (token?.actor?.id === actor_id) {
+      actors.push(token.actor);
+    }
+  }
+
+  if (worldActor) {
+    actors.push(worldActor);
+  }
+
+  for (const token of worldActor?.getActiveTokens?.() ?? []) {
+    if (token?.actor) {
+      actors.push(token.actor);
+    }
+  }
+
+  return actors.find((actor) => resolveSkill(actor, skill_name).skill) ?? actors[0] ?? null;
+}
+
+function resolveSkill(actor, skill_name) {
+  const skills = actor?.system?.skills ?? {};
+  const candidates = [
+    skill_name,
+    findSkillKeyByData(skills, skill_name),
+    convert_skill_name(skill_name),
+  ].filter((skillKey, index, array) => skillKey && array.indexOf(skillKey) === index);
+
+  for (const skillKey of candidates) {
+    if (skills?.[skillKey]) {
+      const configuredSkill = getConfiguredSkill(skillKey) ?? {};
+      return {
+        key: skillKey,
+        skill: {
+          ...configuredSkill,
+          ...skills[skillKey],
+          characteristic: skills[skillKey].characteristic ?? configuredSkill.characteristic,
+        },
+      };
+    }
+  }
+
+  const configuredSkillKey = candidates.find((skillKey) => getConfiguredSkill(skillKey));
+  if (configuredSkillKey) {
+    return {
+      key: configuredSkillKey,
+      skill: {
+        rank: 0,
+        ...getConfiguredSkill(configuredSkillKey),
+      },
+    };
+  }
+
+  return { key: null, skill: null };
+}
+
+function findSkillKeyByData(skills, skill_name) {
+  if (!skill_name) {
+    return null;
+  }
+
+  if (skills?.[skill_name]) {
+    return skill_name;
+  }
+
+  const normalizedName = String(skill_name).toLowerCase();
+  return Object.keys(skills ?? {}).find((skillKey) => {
+    const skill = skills[skillKey];
+
+    if (!skill) {
+      return false;
+    }
+
+    const localizedLabel = skill.label ? game.i18n.localize(skill.label) : null;
+    return [skillKey, skill.name, skill.value, skill.label, localizedLabel]
+      .filter((candidate) => candidate !== undefined && candidate !== null)
+      .some((candidate) => String(candidate).toLowerCase() === normalizedName);
+  }) ?? null;
+}
+
+function getConfiguredSkill(skillKey) {
+  if (!skillKey) {
+    return null;
+  }
+
+  const theme = game.settings.get("starwarsffg", "skilltheme");
+  const skillLists = CONFIG.FFG?.alternateskilllists ?? [];
+  const themeSkill = skillLists.find((list) => list.id === theme)?.skills?.[skillKey];
+  const starWarsSkill = skillLists.find((list) => list.id === "starwars")?.skills?.[skillKey];
+  const configuredSkill = {
+    ...(CONFIG.FFG?.skills?.[skillKey] ?? {}),
+    ...(starWarsSkill ?? {}),
+    ...(themeSkill ?? {}),
+  };
+
+  if (Object.keys(configuredSkill).length === 0) {
+    return null;
+  }
+
+  return configuredSkill;
 }
 
 /**
@@ -339,17 +453,27 @@ export function get_dice_pool(actor_id, skill_name, incoming_roll) {
  * @returns {null|string}
  */
 function convert_skill_name(pool_skill_name) {
+  if (!pool_skill_name) {
+    return null;
+  }
+
   CONFIG.logger.debug(`Converting ${pool_skill_name} to skill name`);
-  const skills = CONFIG.FFG.skills;
-  for (var skill in skills) {
-    if (game.i18n.localize(skills[skill]['label']) === pool_skill_name) {
+  const skills = CONFIG.FFG?.skills ?? {};
+
+  if (skills?.[pool_skill_name]) {
+    CONFIG.logger.debug(`Found direct mapping to ${pool_skill_name}`);
+    return pool_skill_name;
+  }
+
+  for (const skill in skills) {
+    if (skills[skill]["label"] && game.i18n.localize(skills[skill]["label"]) === pool_skill_name) {
       CONFIG.logger.debug(`Found mapping to ${skill}`);
       return skill;
     }
   }
   // it would appear that sometimes it's value instead of label
-  for (var skill in skills) {
-    if (skills[skill]['value'] === pool_skill_name) {
+  for (const skill in skills) {
+    if (skills[skill]["value"] === pool_skill_name) {
       CONFIG.logger.debug(`Found mapping to ${skill}`);
       return skill;
     }
