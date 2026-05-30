@@ -93,6 +93,17 @@ body.game .starwarsffg.application.sheet :is(.header-name, .minion-name) input {
   line-height: inherit;
 }
 
+/* Defensive: force FA Solid font-weight in case an ancestor selector
+   resets it to 400. */
+.starwarsffg .sheet-tabs i.fas,
+.starwarsffg .sheet-tabs i.fa-solid {
+  font-weight: 900;
+}
+.starwarsffg .sheet-tabs i.far,
+.starwarsffg .sheet-tabs i.fa-regular {
+  font-weight: 400;
+}
+
 /* V1-style inline labeled header actions, projected from V13's
    controls-dropdown by FFGDocumentSheetV2._projectLegacyHeaderControls. */
 .starwarsffg.application.sheet > .window-header > .legacy-header-action {
