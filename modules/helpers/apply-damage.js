@@ -5,6 +5,8 @@
  *
  * See docs/superpowers/specs/2026-05-24-apply-damage-chat-button-design.md
  */
+import { applyToTargetActor } from "./gm-bridge.js";
+
 export class ApplyDamage {
   /**
    * Called from the renderChatMessage hook. Enforces visibility (button is
@@ -154,8 +156,10 @@ export class ApplyDamage {
             const applied = Math.max(0, damage - effectiveSoak);
 
             try {
-              const current = Number(foundry.utils.getProperty(a, path)) || 0;
-              await a.update({ [path]: current + applied });
+              // Writes to the target actor; when the clicking player does not own
+              // the target, this forwards to the active GM (see gm-bridge.js).
+              const ok = await applyToTargetActor(a, { type: "damage", path, delta: applied });
+              if (!ok) return;
             } catch (err) {
               CONFIG.logger?.warn?.("ApplyDamage: actor.update failed", err);
               ui.notifications.warn(game.i18n.localize("SWFFG.ApplyDamage.TargetGone"));

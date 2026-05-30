@@ -6,6 +6,8 @@
  *
  * See docs/superpowers/specs/2026-05-24-apply-crit-chat-button-design.md
  */
+import { applyToTargetActor } from "./gm-bridge.js";
+
 export class ApplyCrit {
   /**
    * Called from the renderChatMessage hook. Computes crit eligibility from the
@@ -172,7 +174,11 @@ export class ApplyCrit {
             if (!item) return;
 
             try {
-              await realActor.createEmbeddedDocuments("Item", [item.toObject()]);
+              // Embeds the crit item on the target actor; when the clicking
+              // player does not own the target, this forwards to the active GM
+              // (see gm-bridge.js).
+              const ok = await applyToTargetActor(realActor, { type: "crit", items: [item.toObject()] });
+              if (!ok) return;
               await ChatMessage.create({
                 speaker: ChatMessage.getSpeaker({ token: target.document }),
                 content: item.system?.description ?? "",
