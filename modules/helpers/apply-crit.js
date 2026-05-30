@@ -71,6 +71,17 @@ export class ApplyCrit {
     const isLinked = target.document.actorLink === true;
     const realActor = isLinked ? game.actors.get(a.id) : a;
 
+    if (type === "minion") {
+      try {
+        const ok = await applyToTargetActor(realActor, { type: "kill-minion" });
+        if (!ok) return;
+      } catch (err) {
+        CONFIG.logger?.warn?.("ApplyCrit: kill minion failed", err);
+        ui.notifications.warn(game.i18n.localize("SWFFG.ApplyCrit.TargetGone"));
+      }
+      return;
+    }
+
     // Modifier: count existing crit items × 10.
     const existingCrits = realActor.items.filter(
       (i) => i.type === "criticalinjury" || i.type === "criticaldamage"

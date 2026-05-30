@@ -11,6 +11,7 @@ import ActorHelpers, {xpLogEarn, xpLogSpend} from "../helpers/actor-helpers.js";
 import ItemHelpers from "../helpers/item-helpers.js";
 import EmbeddedItemHelpers from "../helpers/embeddeditem-helpers.js";
 import EffectHelpers from "../helpers/effects.js";
+import { killMinion, killMinionGroup } from "../helpers/minions.js";
 import {
   change_role,
   deregister_crew,
@@ -2588,13 +2589,10 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
   async _handleKillMinion(event) {
     event.stopPropagation();
     const target = $(event.currentTarget);
-    const minionHealth = this.actor.system.unit_wounds.value;
-    const currentHealth = this.actor.system.stats.wounds.value;
     if (target.hasClass("kill-minion")) {
-      let damageAmount = minionHealth - (currentHealth % minionHealth) + 1;
-      await this.actor.update({'system.stats.wounds.value': currentHealth + damageAmount});
+      await killMinion(this.actor);
     } else if (target.hasClass("kill-group")) {
-      await this.actor.update({'system.stats.wounds.value': this.actor.system.stats.wounds.max + 1});
+      await killMinionGroup(this.actor);
     }
   }
 
