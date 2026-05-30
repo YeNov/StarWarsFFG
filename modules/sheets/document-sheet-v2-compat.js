@@ -179,6 +179,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
 
     const form = this.form;
     if (form) {
+      this._applyLegacyRootClasses(form, context);
       form.dataset.appid = this.appId;
       form.addEventListener("submit", this._onSubmit.bind(this));
       form.addEventListener("change", this._onChangeInput.bind(this));
@@ -188,6 +189,20 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     const html = $(form ?? this.element);
     this._activateCoreListeners(html);
     this.activateListeners(html);
+  }
+
+  _applyLegacyRootClasses(form, context = {}) {
+    form.setAttribute("autocomplete", "off");
+    form.classList.toggle("editable", this.isEditable);
+    form.classList.toggle("locked", !this.isEditable);
+
+    for (const cls of this._getLegacyRootClasses(context)) {
+      if (cls) form.classList.add(cls);
+    }
+  }
+
+  _getLegacyRootClasses(_context = {}) {
+    return [];
   }
 
   async close(options = {}) {

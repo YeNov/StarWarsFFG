@@ -36,4 +36,19 @@ export class ItemSheetV2Compat extends FFGDocumentSheetV2 {
     data.item = data.document;
     return data;
   }
+
+  _getLegacyRootClasses(context = {}) {
+    const classes = super._getLegacyRootClasses(context);
+    const sheetClass = {
+      armour: "item-sheet-armor",
+      shipweapon: "item-sheet-vehicle-weapon",
+      shipattachment: "item-sheet-vehicle-attachment",
+      itemmodifier: "item-sheet-modifiers",
+      ability: "item-sheet-talent",
+      criticaldamage: "item-sheet-criticalinjury",
+    }[this.item.type] ?? `item-sheet-${this.item.type}`;
+
+    classes.push(sheetClass);
+    return classes;
+  }
 }

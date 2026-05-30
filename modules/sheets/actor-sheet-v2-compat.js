@@ -44,6 +44,21 @@ export class ActorSheetV2Compat extends FFGDocumentSheetV2 {
     return context;
   }
 
+  _getLegacyRootClasses(context = {}) {
+    const classes = super._getLegacyRootClasses(context);
+    const sheetClass = {
+      character: "character",
+      rival: "character",
+      nemesis: "character",
+      minion: "minion",
+      vehicle: "vehicle",
+      homestead: "homestead",
+    }[this.actor.type];
+
+    if (sheetClass) classes.push(sheetClass);
+    return classes;
+  }
+
   _getSubmitData(updateData = {}) {
     const data = super._getSubmitData(updateData);
     const overrides = foundry.utils.flattenObject(this.actor.overrides);
