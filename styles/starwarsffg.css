@@ -45,6 +45,16 @@ section {
   font-size: 9pt;
 }
 
+/* V2 ApplicationV2 compat: allow the right-side tab strip and other
+   absolutely-positioned chrome on legacy sheets to extend past the
+   application root, which Foundry V13's `applications` layer sets to
+   overflow:hidden. !important is required because that layer outranks
+   our `system` layer in V13's @layer order. */
+.starwarsffg.application.sheet,
+.starwarsffg.application.sheet > .window-content {
+  overflow: visible !important;
+}
+
 .hidden-content {
   display: none;
 }

@@ -7,9 +7,10 @@ const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api
 export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheetV2) {
   static DEFAULT_OPTIONS = {
     tag: "div",
-    classes: ["sheet"],
+    classes: ["app", "window-app", "sheet"],
     window: {
       contentTag: "form",
+      contentClasses: [],
       resizable: true,
     },
     form: {
