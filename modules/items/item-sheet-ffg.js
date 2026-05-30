@@ -1765,10 +1765,18 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
               } finally {
                 await ActorHelpers.endEditMode(owner, AEState, true);
               }
-              // update the form because the fields are read when an update is performed
-              const input = $(`[name="data.talents.${upgradeId}.islearned"]`, this.element)[0];
-              input.checked = true;
-              await this.object.sheet.submit({preventClose: true});
+              // Learn the talent and enable its Active Effect AFTER endEditMode.
+              // endEditMode reverts every AE on the actor and its items back to the
+              // pre-purchase snapshot (the talent's AE = disabled, since it wasn't
+              // learned yet). Persisting `islearned` and syncing the AE here -- after
+              // the snapshot has been restored, with awaited document updates instead
+              // of a fire-and-forget form submit -- guarantees the talent sticks AND
+              // its modifier (e.g. Grit's +1 strain) actually applies. Doing it inside
+              // the edit-mode window let endEditMode undo the AE enable, so XP was spent
+              // but the effect never took hold.
+              await this.object.update({[`system.talents.${upgradeId}.islearned`]: true});
+              await ItemHelpers.syncAEStatus(this.object, this.object.getEmbeddedCollection("ActiveEffect"));
+              this.render(true);
             },
           },
           cancel: {
