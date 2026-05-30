@@ -205,6 +205,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     const html = $(form ?? this.element);
     this._activateCoreListeners(html);
     this.activateListeners(html);
+    this._callLegacyRenderHook(html, context);
   }
 
   _applyLegacyRootClasses(form, context = {}) {
@@ -265,6 +266,13 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
 
   _getLegacyRootClasses(_context = {}) {
     return [];
+  }
+
+  _callLegacyRenderHook(html, context = {}) {
+    const documentName = this.document?.documentName;
+    if (!documentName) return;
+
+    Hooks.callAll(`render${documentName}Sheet`, this, html, context);
   }
 
   async close(options = {}) {
