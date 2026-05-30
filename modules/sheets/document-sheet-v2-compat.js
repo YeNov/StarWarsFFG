@@ -154,6 +154,10 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     return this.options.template;
   }
 
+  // NOTE: `toObject(false)` returns the raw source document data, not the
+  // transformed view that ActiveEffects produce. This matches V1 ActorSheet
+  // semantics and is required by edit-mode workflows that need unmodified
+  // values (see ActorHelpers.beginEditMode).
   getData(_options = {}) {
     const data = this.document.toObject(false);
     const isEditable = this.isEditable;
