@@ -187,6 +187,8 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     }
     this.element.dataset.appid = this.appId;
 
+    this._projectLegacyHeaderControls();
+
     const html = $(form ?? this.element);
     this._activateCoreListeners(html);
     this.activateListeners(html);
@@ -199,6 +201,36 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
 
     for (const cls of this._getLegacyRootClasses(context)) {
       if (cls) form.classList.add(cls);
+    }
+  }
+
+  _projectLegacyHeaderControls() {
+    const header = this.element.querySelector(":scope > .window-header");
+    const dropdown = this.element.querySelector(":scope > menu.controls-dropdown");
+    if (!header) return;
+
+    header.querySelectorAll(":scope > .legacy-header-action").forEach((el) => el.remove());
+
+    if (!dropdown) return;
+    const sources = dropdown.querySelectorAll("button[data-action]");
+    if (!sources.length) return;
+
+    const anchor = header.querySelector(":scope > [data-action='toggleControls']") ?? header.lastElementChild;
+    for (const button of sources) {
+      const action = button.dataset.action;
+      const label = button.textContent.trim();
+      if (!action || !label) continue;
+
+      const link = document.createElement("a");
+      link.className = "legacy-header-action";
+      link.dataset.action = action;
+      link.innerHTML = `${button.querySelector("i")?.outerHTML ?? ""} <span>${label}</span>`;
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        button.click();
+      });
+      header.insertBefore(link, anchor);
     }
   }
 
