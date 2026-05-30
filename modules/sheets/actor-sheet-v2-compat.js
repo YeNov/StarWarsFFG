@@ -27,11 +27,11 @@ export class ActorSheetV2Compat extends FFGDocumentSheetV2 {
   }
 
   get token() {
-    return this.object.token || this.options.token || null;
+    return this.object.token || this._token || null;
   }
 
   async close(options = {}) {
-    this.options.token = null;
+    this._token = null;
     return super.close(options);
   }
 

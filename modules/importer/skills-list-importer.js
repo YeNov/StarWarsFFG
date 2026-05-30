@@ -1,7 +1,8 @@
 import Helpers from "../helpers/common.js";
 import { defaultSkillList } from "../config/ffg-skillslist.js";
+import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
 
-export default class SkillListImporter extends FormApplication {
+export default class SkillListImporter extends FormApplicationV2Compat {
   /** @override */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {

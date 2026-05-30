@@ -1,7 +1,8 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
 import { DicePoolFFG } from "./pool.js";
+import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
 
-export default class RollBuilderFFG extends FormApplication {
+export default class RollBuilderFFG extends FormApplicationV2Compat {
   constructor(rollData, rollDicePool, rollDescription, rollSkillName, rollItem, rollAdditionalFlavor, rollSound) {
     super();
     this.roll = {

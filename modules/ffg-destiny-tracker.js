@@ -1,14 +1,15 @@
 import { GroupManager } from "./groupmanager-ffg.js";
+import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
 
 /**
  * A specialized form used to pop out the editor.
- * @extends {FormApplication}
+ * @extends {FormApplicationV2Compat}
  *
  * OPTIONS:
  *
  *
  */
-export default class DestinyTracker extends FormApplication {
+export default class DestinyTracker extends FormApplicationV2Compat {
   constructor(object={}, options={}) {
     super(object, options);
 

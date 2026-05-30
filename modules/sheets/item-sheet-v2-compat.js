@@ -27,6 +27,10 @@ export class ItemSheetV2Compat extends FFGDocumentSheetV2 {
     return this.item.actor;
   }
 
+  get isEditable() {
+    return super.isEditable && !this.item.flags?.readonly;
+  }
+
   getData(options = {}) {
     const data = super.getData(options);
     data.item = data.document;

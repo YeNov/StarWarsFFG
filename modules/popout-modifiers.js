@@ -1,10 +1,12 @@
 /**
  * A specialized form used to pop out the editor.
- * @extends {FormApplication}
+ * @extends {FormApplicationV2Compat}
  */
 
 import ModifierHelpers from "./helpers/modifiers.js";
-export default class PopoutModifiers extends FormApplication {
+import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
+
+export default class PopoutModifiers extends FormApplicationV2Compat {
   /** @override */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {

@@ -205,7 +205,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
           this.position.height = 840;
         }
         data.isReadOnly = false;
-        if (!this.options.editable) {
+        if (!this.isEditable) {
           data.isEditing = false;
           data.isReadOnly = true;
         }
@@ -260,7 +260,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
           this.position.height = 1005;
         }
         data.isReadOnly = false;
-        if (!this.options.editable) {
+        if (!this.isEditable) {
           data.isEditing = false;
           data.isReadOnly = true;
         }
@@ -395,7 +395,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
           this.position.height = 545;
         }
         data.data.isReadOnly = false;
-        if (!this.options.editable) {
+        if (!this.isEditable) {
           data.data.isEditing = false;
           data.data.isReadOnly = true;
         }
@@ -885,8 +885,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     }
 
     // Everything below here is only needed if the sheet is editable
-    if (this.object.flags.readonly) this.options.editable = false;
-    if (!this.options.editable) return;
+    if (!this.isEditable) return;
 
     // Standalone itemattachment modification controls
     if (this.object.type === "itemattachment") {
@@ -1953,7 +1952,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
   }
 
   _canDragStart(selector) {
-    return this.options.editable && this.object.isOwner;
+    return this.isEditable;
   }
 
   _canDragDrop(selector) {

@@ -1,25 +1,25 @@
-const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * Compatibility base for porting the existing document sheets to Foundry's
- * ApplicationV2 framework without rewriting every legacy sheet handler at once.
+ * Compatibility base for legacy FormApplication-style tools running on
+ * Foundry's ApplicationV2 framework.
  */
-export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheetV2) {
+export class FormApplicationV2Compat extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     tag: "div",
-    classes: ["sheet"],
+    classes: ["form"],
     window: {
       contentTag: "form",
-      resizable: true,
+      resizable: false,
     },
     form: {
       submitOnChange: false,
-      closeOnSubmit: false,
+      closeOnSubmit: true,
     },
   };
 
   static PARTS = {
-    sheet: {
+    form: {
       root: true,
       template: "",
     },
@@ -27,6 +27,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
 
   static get defaultOptions() {
     return {
+      baseApplication: null,
       width: null,
       height: null,
       top: null,
@@ -36,49 +37,24 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
       minimizable: true,
       resizable: false,
       id: "",
-      classes: ["sheet"],
+      classes: ["form"],
       dragDrop: [],
       tabs: [],
       filters: [],
       title: "",
       template: null,
       scrollY: [],
-      closeOnSubmit: false,
+      closeOnSubmit: true,
       editable: true,
-      sheetConfig: true,
-      submitOnChange: true,
-      submitOnClose: true,
-      secrets: [],
+      sheetConfig: false,
+      submitOnChange: false,
+      submitOnClose: false,
     };
   }
 
-  static _migrateConstructorParams(first, rest) {
-    if ((first instanceof Object) && (first.document instanceof foundry.abstract.Document)) {
-      return first;
-    }
-
-    if (!(first instanceof foundry.abstract.Document)) {
-      throw new Error("A DocumentSheetV2 application must be provided a Document instance.");
-    }
-
-    const legacyOptions = rest.find((option) => option && (foundry.utils.getType(option) === "Object")) ?? {};
-    const options = {
-      document: first,
-      legacyOptions,
-    };
-
-    if (typeof legacyOptions.title === "string") options.window = { title: legacyOptions.title };
-    const positionKeys = ["top", "left", "width", "height", "scale", "zIndex"];
-    options.position = positionKeys.reduce((position, key) => {
-      if (legacyOptions[key] !== undefined) position[key] = legacyOptions[key];
-      return position;
-    }, {});
-
-    return options;
-  }
-
-  constructor(...args) {
-    super(...args);
+  constructor(object = {}, options = {}) {
+    super({ legacyOptions: options });
+    this.object = object;
     this.appId = this.id;
     this._dragDrop = [];
     this._tabs = [];
@@ -87,7 +63,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     this._priorState = 0;
     this._submitting = false;
     this.editors = {};
-    this._token = this.options.token ?? null;
+    this._title = null;
   }
 
   _initializeApplicationOptions(options) {
@@ -98,18 +74,20 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
       { inplace: false },
     );
 
+    for (const [key, value] of Object.entries(legacyOptions)) {
+      if (!(key in initialized)) initialized[key] = value;
+    }
+
     initialized.legacyOptions = legacyOptions;
     initialized.editable = legacyOptions.editable !== false;
     initialized.closeOnSubmit = legacyOptions.closeOnSubmit;
     initialized.submitOnChange = legacyOptions.submitOnChange;
     initialized.submitOnClose = legacyOptions.submitOnClose;
-    initialized.sheetConfig = legacyOptions.sheetConfig;
     initialized.dragDrop = legacyOptions.dragDrop ?? [];
     initialized.tabs = legacyOptions.tabs ?? [];
     initialized.filters = legacyOptions.filters ?? [];
     initialized.scrollY = legacyOptions.scrollY ?? [];
     initialized.template = legacyOptions.template;
-    initialized.token = legacyOptions.token ?? null;
     if (legacyOptions.id) initialized.id = legacyOptions.id;
 
     initialized.classes.push(...(legacyOptions.classes ?? []));
@@ -129,40 +107,33 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     return initialized;
   }
 
-  get object() {
-    return this.document;
-  }
-
   get form() {
     return this.element?.querySelector("form") ?? super.form;
   }
 
   get isEditable() {
-    return (this.options.editable !== false) && super.isEditable;
+    return this.options.editable !== false;
   }
 
   get template() {
     return this.options.template;
   }
 
+  get title() {
+    return this._title ?? game.i18n.localize(this.options.window.title || this.options.title || "");
+  }
+
   getData(_options = {}) {
-    const data = this.document.toObject(false);
-    const isEditable = this.isEditable;
     return {
-      cssClass: isEditable ? "editable" : "locked",
-      editable: isEditable,
-      document: this.document,
-      data,
-      limited: this.document.limited,
+      object: this.object,
       options: this.options,
-      owner: this.document.isOwner,
       title: this.title,
     };
   }
 
-  _configureRenderParts(options) {
+  _configureRenderParts(_options) {
     return {
-      sheet: {
+      form: {
         root: true,
         template: this.template,
         scrollable: this.options.scrollY ?? [],
@@ -174,9 +145,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     return this.getData(options);
   }
 
-  async _onRender(context, options) {
-    await super._onRender(context, options);
-
+  async _onRender(_context, _options) {
     const form = this.form;
     if (form) {
       form.dataset.appid = this.appId;
@@ -236,31 +205,8 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     });
 
     if (this.isEditable) {
-      html.find("img[data-edit]").on("click", this._onEditImage.bind(this));
       html.find("button.file-picker").on("click", this._activateFilePicker.bind(this));
     }
-  }
-
-  async _onEditImage(event) {
-    event.preventDefault();
-    const target = event.currentTarget;
-    const attr = target.dataset.edit;
-    const current = foundry.utils.getProperty(this.document._source, attr);
-    const fp = new foundry.applications.apps.FilePicker({
-      current,
-      type: "image",
-      callback: (path) => {
-        target.src = path;
-        if (this.options.submitOnChange) {
-          this._onSubmit(new Event("submit", { cancelable: true }));
-        }
-      },
-      position: {
-        top: this.position.top + 40,
-        left: this.position.left + 10,
-      },
-    });
-    return fp.browse();
   }
 
   _activateFilePicker(event) {
@@ -290,9 +236,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (target?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
 
     const input = event.target;
-    if (input?.type === "color" && input.dataset.edit && this.form?.elements[input.dataset.edit]) {
-      this.form.elements[input.dataset.edit].value = input.value;
-    } else if (input?.type === "range") {
+    if (input?.type === "range") {
       const field = input.parentElement?.querySelector(".range-value");
       if (field) {
         if (field.tagName === "INPUT") field.value = input.value;
@@ -324,26 +268,14 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
   }
 
   _getSubmitData(updateData = {}) {
-    if (!this.form) throw new Error("The sheet has no registered form element.");
+    if (!this.form) throw new Error("The form application has no registered form element.");
     const fd = new foundry.applications.ux.FormDataExtended(this.form, { editors: this.editors });
     let data = fd.object;
     if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
     return foundry.utils.flattenObject(data);
   }
 
-  _prepareSubmitData(_event, _form, formData, updateData) {
-    let data = foundry.utils.deepClone(formData.object);
-    if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
-    return foundry.utils.flattenObject(data);
-  }
-
-  async _processSubmitData(event, _form, submitData) {
-    return this._updateObject(event, submitData);
-  }
-
-  async _updateObject(_event, formData) {
-    return this.document.update(formData);
-  }
+  async _updateObject(_event, _formData) {}
 
   _canDragStart(_selector) {
     return this.isEditable;
