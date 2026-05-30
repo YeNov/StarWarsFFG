@@ -43,22 +43,28 @@ async function performApply(actor, op) {
  * when the current user can modify the actor, otherwise forwards the request to
  * the active GM over the system socket.
  *
+ * An optional `op.gmChat` (a ChatMessage.create payload) is posted by whoever
+ * performs the write -- so a GM-only whisper is authored by the GM rather than
+ * by a non-owning player, who would otherwise be able to see their own whisper.
+ *
  * @param {Actor} actor  The resolved target actor (synthetic token actor is fine).
- * @param {object} op     See {@link performApply}.
- * @returns {Promise<boolean>} true if the write was applied locally or forwarded
- *   to an active GM; false if it could not be applied (no GM connected).
+ * @param {object} op     See {@link performApply}; may also carry `gmChat`.
+ * @returns {Promise<"local"|"forwarded"|false>} "local" if applied on this
+ *   client, "forwarded" if handed to the active GM, false if it could not be
+ *   applied (no GM connected). The caller uses this to avoid double-posting
+ *   `gmChat` (the GM posts it on the forwarded path).
  */
 export async function applyToTargetActor(actor, op) {
   if (actor?.isOwner) {
     await performApply(actor, op);
-    return true;
+    return "local";
   }
   if (!game.users.activeGM) {
     ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM"));
     return false;
   }
   game.socket.emit(FFG_SOCKET, { event: APPLY_EVENT, actorUuid: actor.uuid, ...op });
-  return true;
+  return "forwarded";
 }
 
 /**
@@ -73,6 +79,11 @@ export function registerGMBridge() {
       const actor = await fromUuid(data.actorUuid);
       if (!actor) return;
       await performApply(actor, data);
+      // Posted GM-side so a GM-only whisper is authored by the GM, not the
+      // forwarding player (who would otherwise see their own whisper).
+      if (data.gmChat) {
+        await ChatMessage.create(data.gmChat);
+      }
     } catch (err) {
       CONFIG.logger?.warn?.("FFG GM bridge: failed to apply forwarded request", err);
     }
