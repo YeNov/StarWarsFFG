@@ -40,6 +40,8 @@ section {
 .window-app {
   font-family: "Roboto", sans-serif;
 }
+/* Applies to both V1 SECTION.window-content and V2 FORM.window-content;
+   the background and base font-size are wanted on both shapes. */
 .window-app .window-content {
   background: #cccccc;
   font-size: 9pt;
@@ -50,9 +52,11 @@ section {
    application root, which Foundry V13's `applications` layer sets to
    overflow:hidden. !important is required because that layer outranks
    our `system` layer in V13's @layer order. */
-.starwarsffg.application.sheet,
-.starwarsffg.application.sheet > .window-content {
+.starwarsffg.application.sheet {
   overflow: visible !important;
+}
+.starwarsffg.application.sheet > form.window-content {
+  overflow: visible;
 }
 
 /* V13 ApplicationV2 robustness: mirror the legacy .app.window-app
@@ -540,7 +544,7 @@ img {
   top: -1px;
   color: #8b0000;
 }
-.starwarsffg.sheet .window-content {
+.starwarsffg.sheet section.window-content {
   overflow-y: hidden;
 }
 .starwarsffg.sheet .sheet-body {
