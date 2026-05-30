@@ -95,11 +95,25 @@ body.game .starwarsffg.application.sheet > .window-header a {
   margin: 0 0 0 8px;
 }
 body.game .starwarsffg.application.sheet > form.window-content {
+  height: calc(100% - 30px);
+  min-height: 0;
   padding: 8px;
   color: var(--color-text-dark-primary);
 }
 body.game .starwarsffg.application.sheet > form.window-content > * {
-  flex: 1;
+  flex: initial !important;
+}
+body.game .starwarsffg.application.sheet.actor > form.window-content.character > .sheet-body {
+  flex: 0 0 calc(100% - 15.75rem) !important;
+  height: calc(100% - 15.75rem) !important;
+}
+body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .sheet-body {
+  flex: 1 !important;
+}
+body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
+  flex: 0 0 calc(100% - 22rem) !important;
+  height: calc(100% - 22rem) !important;
+  min-height: 0;
 }
 body.game .starwarsffg.application.sheet :is(.header-name, .minion-name) input {
   min-width: 20px;
