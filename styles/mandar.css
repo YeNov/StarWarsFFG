@@ -94,6 +94,11 @@ section {
   top: 0.125rem;
 }
 
+.starwarsffg.application.sheet > .window-header .window-title {
+  font-size: var(--font-size-16);
+  line-height: 30px;
+}
+
 .starwarsffg.application.sheet input[type="checkbox"] {
   -webkit-appearance: checkbox !important;
   appearance: auto !important;
@@ -104,6 +109,28 @@ section {
 .starwarsffg.application.sheet input[type="checkbox"]::before,
 .starwarsffg.application.sheet input[type="checkbox"]::after {
   content: unset !important;
+}
+
+/* V1-style inline labeled header actions, projected from V13's window
+   controls by FFGDocumentSheetV2._projectLegacyHeaderControls. */
+.starwarsffg.application.sheet > .window-header > .legacy-header-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 6px;
+  padding: 0 2px;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action:hover {
+  text-shadow: 0 0 6px var(--color-shadow-highlight, #ffae00);
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action > i {
+  font-size: 0.9em;
 }
 
 .hidden-content {

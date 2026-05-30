@@ -86,6 +86,8 @@ body.game .starwarsffg.application.sheet > .window-header {
   gap: 0;
 }
 body.game .starwarsffg.application.sheet > .window-header .window-title {
+  font-size: var(--font-size-16);
+  line-height: 30px;
   margin: 0;
 }
 body.game .starwarsffg.application.sheet > .window-header a {
@@ -117,8 +119,8 @@ body.game .starwarsffg.application.sheet :is(.header-name, .minion-name) input {
   font-weight: 400;
 }
 
-/* V1-style inline labeled header actions, projected from V13's
-   controls-dropdown by FFGDocumentSheetV2._projectLegacyHeaderControls. */
+/* V1-style inline labeled header actions, projected from V13's window
+   controls by FFGDocumentSheetV2._projectLegacyHeaderControls. */
 .starwarsffg.application.sheet > .window-header > .legacy-header-action {
   display: inline-flex;
   align-items: center;

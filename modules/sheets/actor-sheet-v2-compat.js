@@ -59,6 +59,43 @@ export class ActorSheetV2Compat extends FFGDocumentSheetV2 {
     return classes;
   }
 
+  _getHeaderControls() {
+    const controls = super._getHeaderControls();
+    if (!this.isEditable) return controls;
+
+    if (this.actor.isToken) {
+      controls.push({
+        action: "configureToken",
+        icon: "fa-regular fa-circle-user",
+        label: "DOCUMENT.Token",
+        onClick: this._onConfigureToken.bind(this),
+      });
+    } else {
+      controls.push({
+        action: "configurePrototypeToken",
+        icon: "fa-solid fa-circle-user",
+        label: "TOKEN.TitlePrototype",
+        onClick: this._onConfigurePrototypeToken.bind(this),
+      });
+    }
+
+    return controls;
+  }
+
+  _onConfigurePrototypeToken() {
+    new CONFIG.Token.prototypeSheetClass({
+      prototype: this.actor.prototypeToken,
+      position: {
+        left: Math.max(this.position.left - 570, 10),
+        top: this.position.top,
+      },
+    }).render({ force: true });
+  }
+
+  _onConfigureToken() {
+    this.actor.token?.sheet?.render({ force: true });
+  }
+
   _getSubmitData(updateData = {}) {
     const data = super._getSubmitData(updateData);
     const overrides = foundry.utils.flattenObject(this.actor.overrides);

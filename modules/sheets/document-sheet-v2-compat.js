@@ -225,25 +225,41 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     header.querySelectorAll(":scope > .legacy-header-action").forEach((el) => el.remove());
 
     if (!dropdown) return;
-    const sources = dropdown.querySelectorAll("button[data-action]");
+    const sources = [
+      ...dropdown.querySelectorAll(":scope > .header-control[data-action]"),
+      ...header.querySelectorAll(":scope > button.header-control[data-action='close']"),
+    ];
     if (!sources.length) return;
 
     const anchor = header.querySelector(":scope > [data-action='toggleControls']") ?? header.lastElementChild;
-    for (const button of sources) {
-      const action = button.dataset.action;
-      const label = button.textContent.trim();
+    for (const source of sources) {
+      const action = source.dataset.action;
+      const button = source.matches("button") ? source : source.querySelector("button");
+      const rawLabel = (source.querySelector(".control-label")?.textContent ?? source.dataset.tooltip ?? source.ariaLabel ?? button?.ariaLabel ?? "").trim();
+      const label = this._getLegacyHeaderActionLabel(action, rawLabel);
       if (!action || !label) continue;
 
       const link = document.createElement("a");
       link.className = "legacy-header-action";
       link.dataset.action = action;
-      link.innerHTML = `${button.querySelector("i")?.outerHTML ?? ""} <span>${label}</span>`;
+      link.innerHTML = `${source.querySelector("i")?.outerHTML ?? ""} <span>${label}</span>`;
       link.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        button.click();
+        button?.click();
       });
       header.insertBefore(link, anchor);
+    }
+  }
+
+  _getLegacyHeaderActionLabel(action, fallback) {
+    switch (action) {
+      case "configureSheet":
+        return "Sheet";
+      case "close":
+        return game.i18n.localize("SWFFG.ButtonClose") || "Close";
+      default:
+        return fallback;
     }
   }
 
