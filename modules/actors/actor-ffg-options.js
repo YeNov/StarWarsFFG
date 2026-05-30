@@ -1,4 +1,5 @@
 import ActorHelpers from "../helpers/actor-helpers.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 export default class ActorOptions {
   constructor(data, html) {
@@ -20,7 +21,7 @@ export default class ActorOptions {
   handler(event) {
     const title = `${game.i18n.localize("SWFFG.CharacterSheet")} ${game.i18n.localize("SWFFG.Options")}: ${this.data.actor.name}`;
 
-    new Dialog(
+    new DialogV2Compat(
       {
         title,
         content: {

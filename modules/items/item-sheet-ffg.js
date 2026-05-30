@@ -11,6 +11,7 @@ import ActorHelpers, {xpLogSpend} from "../helpers/actor-helpers.js";
 import ItemOptions from "./item-ffg-options.js";
 import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
 import { canPurchaseNode } from "../helpers/talent-tree.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 /**
  * Extend the basic ItemSheet with some very simple modifications
@@ -1174,7 +1175,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       if (item) {
         const title = `${this.object.name} ${item.name}`;
 
-        new Dialog(
+        new DialogV2Compat(
           {
             title,
             content: {
@@ -1448,7 +1449,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       editModeExited = true;
       await ActorHelpers.endEditMode(owner, AEState, true);
     };
-    new Dialog(
+    new DialogV2Compat(
       {
         title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.Talent.ConfirmTitle"),
         content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Talent.ConfirmText", {cost: cost, talent: talent}),
@@ -1490,7 +1491,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const sourceIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addSource = new Dialog({
+      const addSource = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</p>
@@ -1531,7 +1532,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addTag = new Dialog({
+      const addTag = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</p>
@@ -1612,7 +1613,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       return;
     }
 
-    new Dialog(
+    new DialogV2Compat(
       {
         title: game.i18n.localize(config.titleKey),
         content: game.i18n.format(config.contentKey, {cost: cost, upgrade: upgradeName}),

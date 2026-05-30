@@ -23,6 +23,7 @@ import {
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 import {itemPillHover} from "../swffg-main.js";
 
 export class ActorSheetFFG extends ActorSheetV2Compat {
@@ -100,7 +101,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
         const cost = await this.calcPurchasePrice(itemData);
         const availableXP = this.actor.system.experience.available;
         if (cost > 0 && cost < availableXP) {
-          new Dialog(
+          new DialogV2Compat(
           {
             title: game.i18n.localize("SWFFG.DragDrop.Title"),
             buttons: {
@@ -717,7 +718,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       if (game.settings.get("starwarsffg", "HealingItemAction") === '0') {
           // prompt
           // show a prompt asking what the user wants to do
-          new Dialog(
+          new DialogV2Compat(
               {
                   title: game.i18n.localize("SWFFG.MedicalItemNameUseTitle"),
                   buttons: {
@@ -1003,7 +1004,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
         }
       );
 
-      new Dialog(
+      new DialogV2Compat(
         {
           title: game.i18n.localize("SWFFG.Crew.Title"),
           content: content,
@@ -1039,7 +1040,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
 
       const title = `${game.i18n.localize("SWFFG.TalentSource")} ${item.name}`;
 
-      new Dialog(
+      new DialogV2Compat(
         {
           title: title,
           content: {
@@ -1246,7 +1247,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
         }
 
         // actually show the dialog
-        await new Dialog(
+        await new DialogV2Compat(
           {
             title: game.i18n.localize("SWFFG.Crew.Roles.Gunner.Title"),
             content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Gunner.Description")}</p>`,
@@ -1307,7 +1308,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
           }
         }
         // actually show the dialog
-        await new Dialog(
+        await new DialogV2Compat(
           {
             title: game.i18n.localize("SWFFG.Crew.Roles.Weapon.Title"),
             content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Weapon.Description")}</p>`,
@@ -1677,7 +1678,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       label = CONFIG.FFG.skills[ability].label;
     }
 
-    new Dialog(
+    new DialogV2Compat(
       {
         title: `${game.i18n.localize("SWFFG.SkillCharacteristicDialogTitle")} ${game.i18n.localize(label)}`,
         content: {
@@ -1719,7 +1720,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
   _onCreateSkill(a) {
     const group = $(a).parent().data("type");
 
-    new Dialog(
+    new DialogV2Compat(
       {
         title: `${game.i18n.localize("SWFFG.SkillAddDialogTitle")}`,
         content: {
@@ -1786,7 +1787,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
       return;
     }
-    const dialog = new Dialog(
+    const dialog = new DialogV2Compat(
       {
         title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SkillRank.ConfirmTitle"),
         content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.SkillRank.Text", {cost: cost, skill: skill, old: curRank, new: curRank + 1}),
@@ -1862,7 +1863,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     CONFIG.logger.debug(`refunding ${mode} for ${purchaseId}`);
     const purchasedEffect = this.object.getEmbeddedCollection("ActiveEffect").find(ae => ae.name.includes(purchaseId));
     if (purchasedEffect) {
-      const dialog = new Dialog(
+      const dialog = new DialogV2Compat(
         {
           title: game.i18n.localize("SWFFG.Actors.Sheets.Refund.DialogTitle"),
           content: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Text"),
@@ -2480,7 +2481,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       return;
     }
 
-    const dialog = new Dialog(
+    const dialog = new DialogV2Compat(
     {
         title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.DialogTitle", {itemType: itemType}),
         content: content,
@@ -2554,7 +2555,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
       return;
     }
-    const dialog = new Dialog(
+    const dialog = new DialogV2Compat(
       {
         title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmTitle", {characteristic: characteristic}),
         content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmText", {cost: cost, level: characteristicValue + 1, characteristic: characteristic}),
@@ -2609,7 +2610,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     <input type="text" id="adjustReason" name="adjustReason" value="${game.i18n.localize("SWFFG.XP.Adjust.Window.Default")}" />
     `;
 
-    let d = new Dialog({
+    let d = new DialogV2Compat({
       title: game.i18n.localize("SWFFG.XP.Adjust.Window.Title"),
       content: content,
       buttons: {
@@ -2688,7 +2689,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     </div>
     `;
 
-    let d = new Dialog({
+    let d = new DialogV2Compat({
       title: game.i18n.localize("SWFFG.XP.Import.Title"),
       content: content,
       buttons: {
@@ -2757,7 +2758,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const sourceIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addSource = new Dialog({
+      const addSource = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</p>
@@ -2804,7 +2805,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addTag = new Dialog({
+      const addTag = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</p>

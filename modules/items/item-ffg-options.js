@@ -1,3 +1,5 @@
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
+
 export default class ItemOptions {
   constructor(data, html) {
     this.data = data;
@@ -17,7 +19,7 @@ export default class ItemOptions {
   handler(event) {
     const title = `${game.i18n.localize("SWFFG.ItemSheet")} ${game.i18n.localize("SWFFG.Options")}: ${this.data.item.name}`;
 
-    new Dialog(
+    new DialogV2Compat(
       {
         title,
         content: {

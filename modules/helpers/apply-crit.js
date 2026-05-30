@@ -7,6 +7,7 @@
  * See docs/superpowers/specs/2026-05-24-apply-crit-chat-button-design.md
  */
 import { applyToTargetActor } from "./gm-bridge.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 export class ApplyCrit {
   /**
@@ -156,7 +157,7 @@ export class ApplyCrit {
       </div>
     `;
 
-    new Dialog({
+    new DialogV2Compat({
       title,
       content,
       buttons: {

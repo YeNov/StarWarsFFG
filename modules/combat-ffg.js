@@ -1,5 +1,6 @@
 import {DicePoolFFG, RollFFG} from "./dice-pool-ffg.js";
 import PopoutEditor from "./popout-editor.js";
+import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
 
 /**
  * Extend the base Combat entity.
@@ -85,7 +86,7 @@ export class CombatFFG extends Combat {
   async addInitiativeSlot() {
     // ask the user which disposition and initiative they would like, so we can add a generic slot
 
-    let slotDialog = new Dialog({
+    let slotDialog = new DialogV2Compat({
       title: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Title"),
       content: `
         <p>${game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Initiative")} :</p>
@@ -237,7 +238,7 @@ export class CombatFFG extends Combat {
         diceSymbols,
       });
 
-      new Dialog({
+      new DialogV2Compat({
         title,
         content,
         buttons: {
@@ -415,7 +416,7 @@ export class CombatFFG extends Combat {
 
     let action = game.settings.get("starwarsffg", "removeCombatantAction")
     if (action === "prompt") {
-      new Dialog({
+      new DialogV2Compat({
         title: game.i18n.localize("SWFFG.CombatantRemoval.Title"),
         content: game.i18n.localize("SWFFG.CombatantRemoval.Body"),
         buttons: {
@@ -663,7 +664,7 @@ export class CombatFFG extends Combat {
     const slotId = el.getAttribute("data-alt-id");
     const combatant = this.combatants.get(slotId);
     const currentInitiative = combatant.initiative;
-    const updateDialog = new Dialog({
+    const updateDialog = new DialogV2Compat({
       title: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Title"),
       content: `
         <p>${game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Initiative")} :</p>
