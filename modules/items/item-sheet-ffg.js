@@ -1620,15 +1620,20 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
               // Wrap the remaining steps in try/finally so a thrown await never
               // leaks the actor in a permanently-disabled state.
               try {
-                // update the form because the fields are read when an update is performed
-                const input = $(`[name="data.upgrades.${upgradeId}.islearned"]`, this.element)[0];
-                input.checked = true;
-                await this.object.sheet.submit({preventClose: true});
                 owner.update({system: {experience: {available: availableXP - cost}}});
                 await xpLogSpend(owner, `force power ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
               } finally {
                 await ActorHelpers.endEditMode(owner, AEState, true);
               }
+              // Learn the upgrade and enable its Active Effect AFTER endEditMode.
+              // endEditMode reverts every AE on the actor and its items to the
+              // pre-purchase snapshot (this upgrade's AE = disabled), so persisting
+              // islearned and syncing the AE here -- with awaited document updates
+              // instead of a fire-and-forget form submit -- guarantees the upgrade
+              // sticks AND its modifier applies. See _buySpecializationUpgrade.
+              await this.object.update({[`system.upgrades.${upgradeId}.islearned`]: true});
+              await ItemHelpers.syncAEStatus(this.object, this.object.getEmbeddedCollection("ActiveEffect"));
+              this.render(true);
             },
           },
           cancel: {
