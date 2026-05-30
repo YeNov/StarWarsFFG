@@ -1,7 +1,8 @@
 /**
  * Extend the basic ActorSheet with some very simple modifications
- * @extends {ActorSheet}
+ * @extends {ActorSheetV2Compat}
  */
+import { ActorSheetV2Compat } from "../sheets/actor-sheet-v2-compat.js";
 import PopoutEditor from "../popout-editor.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import ActorOptions from "./actor-ffg-options.js";
@@ -24,7 +25,7 @@ import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
 import {itemPillHover} from "../swffg-main.js";
 
-export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
+export class ActorSheetFFG extends ActorSheetV2Compat {
   constructor(...args) {
     super(...args);
     /**
@@ -363,14 +364,15 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     const htmlElement = html.get(0);
 
     // Activate tabs
-    let tabs = html.find(".tabs");
-    let initial = this._sheetTab;
-    new foundry.applications.ux.Tabs(tabs, {
-      initial: initial,
-      callback: (clicked) => {
-        this._sheetTab = clicked.data("tab");
+    const tabs = new foundry.applications.ux.Tabs({
+      navSelector: ".tabs",
+      contentSelector: ".sheet-body",
+      initial: this._sheetTab ?? "characteristics",
+      callback: (_event, _tabs, active) => {
+        this._sheetTab = active;
       },
     });
+    tabs.bind(htmlElement);
 
     html.find(".alt-tab").click((ev) => {
       const item = $(ev.currentTarget);

@@ -1,4 +1,5 @@
 import PopoutEditor from "../popout-editor.js";
+import { ItemSheetV2Compat } from "../sheets/item-sheet-v2-compat.js";
 import Helpers from "../helpers/common.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import ItemHelpers from "../helpers/item-helpers.js";
@@ -13,10 +14,10 @@ import { canPurchaseNode } from "../helpers/talent-tree.js";
 
 /**
  * Extend the basic ItemSheet with some very simple modifications
- * @extends {ItemSheet}
+ * @extends {ItemSheetV2Compat}
  */
 
-export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
+export class ItemSheetFFG extends ItemSheetV2Compat {
   /** @override */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -699,6 +700,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
   /** @override */
   activateListeners(html) {
     super.activateListeners(html);
+    const htmlElement = html.get(0);
     html.find(".ffg-purchase").click(async (ev) => {
       if(this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
       await this._handleItemBuy(ev)
@@ -751,14 +753,16 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
       }
     }
 
-    // TODO: This is not needed in Foundry 0.6.0
     // Activate tabs
-    let tabs = html.find(".tabs");
-    let initial = this._sheetTab;
-    new foundry.applications.ux.Tabs(tabs, {
-      initial: initial,
-      callback: (clicked) => (this._sheetTab = clicked.data("tab")),
+    const tabs = new foundry.applications.ux.Tabs({
+      navSelector: ".tabs",
+      contentSelector: ".sheet-body",
+      initial: this._sheetTab ?? "description",
+      callback: (_event, _tabs, active) => {
+        this._sheetTab = active;
+      },
     });
+    tabs.bind(htmlElement);
 
     html.find(".items .item, .header-description-block .item, .injuries .item").click(async (ev) => {
       const li = $(ev.currentTarget);
