@@ -13,7 +13,7 @@ function normalizeIcon(icon) {
 export class DialogV2Compat {
   constructor(data = {}, options = {}) {
     this.data = data;
-    this.options = { jQuery: true, ...options };
+    this.options = { ...options, jQuery: options.jQuery ?? true };
     this.app = null;
     this._buttonActions = [];
   }
