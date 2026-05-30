@@ -188,6 +188,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     this.element.dataset.appid = this.appId;
 
     this._projectLegacyHeaderControls();
+    this.element.querySelector(":scope > .window-resize-handle")?.classList.add("window-resizable-handle");
 
     const html = $(form ?? this.element);
     this._activateCoreListeners(html);
