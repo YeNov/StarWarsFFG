@@ -755,10 +755,11 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     }
 
     // Activate tabs
+    const initialTab = this.options.tabs?.[0]?.initial ?? "description";
     const tabs = new foundry.applications.ux.Tabs({
       navSelector: ".tabs",
       contentSelector: ".sheet-body",
-      initial: this._sheetTab ?? "description",
+      initial: this._sheetTab ?? initialTab,
       callback: (_event, _tabs, active) => {
         this._sheetTab = active;
       },

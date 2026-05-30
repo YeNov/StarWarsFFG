@@ -282,15 +282,11 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (!root) return;
 
     this._tabs = (this.options.tabs ?? []).map((tabConfig) => {
-      const flagPath = `sheetTab.${this.appId}`;
-      const stored = this.document?.getFlag?.("starwarsffg", flagPath);
       const tabs = new foundry.applications.ux.Tabs({
         ...tabConfig,
-        initial: stored ?? this._sheetTab ?? tabConfig.initial,
+        initial: this._sheetTab ?? tabConfig.initial,
         callback: (_event, _tabs, active) => {
           this._sheetTab = active;
-          if (this.document?.getFlag?.("starwarsffg", flagPath) === active) return;
-          this.document?.setFlag?.("starwarsffg", flagPath, active);
         },
       });
       tabs.bind(root);
