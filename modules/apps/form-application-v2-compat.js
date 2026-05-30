@@ -102,14 +102,19 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
       }
     }
 
-    initialized.form.submitOnChange = legacyOptions.submitOnChange ?? initialized.form.submitOnChange;
-    initialized.form.closeOnSubmit = legacyOptions.closeOnSubmit ?? initialized.form.closeOnSubmit;
-    // V2's form pipeline is intentionally disabled; submission is handled
-    // manually by _onChangeInput / _onSubmit to match V1 semantics.
+    // V2's form pipeline is intentionally and unconditionally disabled here;
+    // submission is handled manually by _onChangeInput / _onSubmit to match
+    // V1 semantics. Do not add `legacyOptions.submitOnChange ?? …` plumbing
+    // elsewhere — it would be dead code (overwritten here) and signals an
+    // intent we don't actually support. The `closeOnSubmit` semantics that
+    // legacy callers expect are preserved via `this.options.closeOnSubmit`
+    // (set earlier from legacyOptions) which the manual `_onSubmit` reads;
+    // the `form.closeOnSubmit` sub-object here is V2 framework state that
+    // does nothing once `handler: null` neuters the pipeline.
     initialized.form = {
       ...initialized.form,
       submitOnChange: false,
-      closeOnSubmit: initialized.form?.closeOnSubmit ?? true,
+      closeOnSubmit: false,
       handler: null,
     };
     return initialized;
