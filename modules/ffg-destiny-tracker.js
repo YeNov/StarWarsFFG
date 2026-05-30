@@ -169,8 +169,9 @@ export default class DestinyTracker extends FormApplication {
     $(".ffg-destiny-roll").on("click", this.OnClickRollDestiny.bind(this));
 
     // setup chat hook for destiny roll
-    Hooks.on("renderChatMessage", (app, html, messageData) => {
-      html.on("click", ".ffg-destiny-roll", this.OnClickRollDestiny.bind(this));
+    Hooks.on("renderChatMessageHTML", (...args) => {
+      const html = args[1];
+      $(html).on("click", ".ffg-destiny-roll", this.OnClickRollDestiny.bind(this));
     });
 
     // setup socket handler for checking destiny roll

@@ -21,6 +21,12 @@ export default class RollBuilderFFG extends FormApplication {
    * Mirrors the rank-counting logic in modules/helpers/token.js drawAdversaryCount.
    * Returns 0 if no targets, no actors, or no Adversary items.
    */
+  static _adversaryLabelText(ranks) {
+    return ranks > 0
+      ? game.i18n.format("SWFFG.Adversary.RollWithRanks", { ranks })
+      : game.i18n.localize("SWFFG.Adversary.RollWith");
+  }
+
   static _computeAdversaryRanks() {
     try {
       const itemName = game.settings.get("starwarsffg", "adversaryItemName");
@@ -140,9 +146,7 @@ export default class RollBuilderFFG extends FormApplication {
       simDisplay: display,
       simCount: game.settings.get("starwarsffg", "rollSimulation"),
       adversaryRanks: this.adversaryRanks,
-      adversaryLabel: this.adversaryRanks > 0
-        ? game.i18n.format("SWFFG.Adversary.RollWithRanks", { ranks: this.adversaryRanks })
-        : game.i18n.localize("SWFFG.Adversary.RollWith"),
+      adversaryLabel: RollBuilderFFG._adversaryLabelText(this.adversaryRanks),
     };
   }
 
@@ -155,6 +159,12 @@ export default class RollBuilderFFG extends FormApplication {
 
     html.find(".adversary-toggle").on("change", () => {
       this._updateAdversaryPreview(html);
+    });
+
+    this._refreshAdversary(html);
+    this._adversaryHookId = Hooks.on("targetToken", (user) => {
+      if (user?.id !== game.user.id) return;
+      this._refreshAdversary(html);
     });
 
     html.find(".btn").click(async (event) => {
@@ -322,6 +332,18 @@ export default class RollBuilderFFG extends FormApplication {
     this._updateAdversaryPreview(html);
   }
 
+  _refreshAdversary(html) {
+    this.adversaryRanks = RollBuilderFFG._computeAdversaryRanks();
+    const controls = html.find(".adversary-controls")[0];
+    const details = html.find(".adversary-preview-details")[0];
+    const labelSpan = html.find(".adversary-label")[0];
+    const visible = this.adversaryRanks > 0;
+    if (controls) controls.style.display = visible ? "" : "none";
+    if (details) details.style.display = visible ? "" : "none";
+    if (labelSpan) labelSpan.textContent = RollBuilderFFG._adversaryLabelText(this.adversaryRanks);
+    this._updateAdversaryPreview(html);
+  }
+
   _updateAdversaryPreview(html) {
     try {
       const container = html.find(".adversary-preview")[0];
@@ -442,6 +464,15 @@ export default class RollBuilderFFG extends FormApplication {
   }
 
   _updateObject() {}
+
+  /** @override */
+  async close(options) {
+    if (this._adversaryHookId) {
+      Hooks.off("targetToken", this._adversaryHookId);
+      this._adversaryHookId = null;
+    }
+    return super.close(options);
+  }
 
   /**
    * Add the results of the dice simulation

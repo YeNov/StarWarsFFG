@@ -1575,60 +1575,90 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     }
   }
 
-  async _buyForcePowerUpgrade(event) {
+  /**
+   * Shared purchase flow for a talent-tree node: specialization talent, force
+   * power upgrade, or signature ability upgrade. All three trees enforce the
+   * connected-to-root rule, confirm via a dialog, spend + log XP inside the
+   * Edit Mode window, then -- crucially -- learn the node and enable its Active
+   * Effect AFTER endEditMode. endEditMode reverts every AE on the actor and its
+   * items to the pre-purchase snapshot (this node's AE = disabled, since it
+   * wasn't learned yet); persisting islearned and syncing the AE afterwards,
+   * with awaited document updates instead of a fire-and-forget form submit,
+   * guarantees the node sticks AND its modifier (e.g. Grit's +1 strain) applies.
+   *
+   * @param {Event} event              The buy-button click event.
+   * @param {object} config
+   * @param {string} config.itemType      Expected item type, passed to _buyHandleClick.
+   * @param {string} config.treeProp      System property holding the tree ("talents" | "upgrades").
+   * @param {object} config.purchaseOpts  Opts forwarded to canPurchaseNode.
+   * @param {string} config.titleKey      i18n key for the confirm dialog title.
+   * @param {string} config.contentKey    i18n key for the confirm dialog body.
+   * @param {string} config.logLabel      Human-readable prefix for the XP spend log entry.
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _buyTreeNode(event, config) {
     const element = $(event.target);
     const cost = element.data("cost");
     const baseName = element.data("base-item-name");
     const upgradeName = element.data("upgrade-name");
     const upgradeId = element.data("upgrade-id");
 
-    if (!canPurchaseNode(
-      this.object.system.upgrades,
-      upgradeId,
-      { prefix: "upgrade", width: 4, total: 16, sizeAware: true, rootHasImplicitParent: true }
-    )) {
+    if (!canPurchaseNode(this.object.system[config.treeProp], upgradeId, config.purchaseOpts)) {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotConnected"));
       return;
     }
 
-    let owner;
-    let availableXP;
-    let totalXP;
-    let AEState;
-    let availableXPToLog;
-    const dialog = new Dialog(
+    new Dialog(
       {
-        title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.FP.ConfirmTitle"),
-        content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.FP.ConfirmText", {cost: cost, upgrade: upgradeName}),
+        title: game.i18n.localize(config.titleKey),
+        content: game.i18n.format(config.contentKey, {cost: cost, upgrade: upgradeName}),
         buttons: {
           done: {
             icon: '<i class="fa-regular fa-circle-up"></i>',
             label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
-            callback: async (that) => {
+            callback: async () => {
+              let basic_data;
               try {
-                // this fixes the actual math bugs but the log shows incorrect values. need to fix that.
-                const basic_data = await this._buyHandleClick(cost, "forcepower");
-                owner = basic_data.owner;
-                availableXP = basic_data.availableXP;
-                totalXP = basic_data.totalXP;
-                AEState = basic_data.AEState;
-                availableXPToLog = basic_data.availableXPToLog;
-              } catch (e) {
+                basic_data = await this._buyHandleClick(cost, config.itemType);
+              } catch {
                 return;
               }
+              const {owner, availableXP, totalXP, AEState, availableXPToLog} = basic_data;
               // Edit Mode is now active and persisted (every AE disabled in DB).
-              // Wrap the remaining steps in try/finally so a thrown await never
-              // leaks the actor in a permanently-disabled state.
+              // Wrap the XP steps in try/finally so a thrown await never leaks the
+              // actor in a permanently-disabled state -- a leak there drops every
+              // characteristic bonus and collapses Brawn-derived stats (wounds,
+              // soak, encumbrance) on the actor sheet.
+              let xpDeducted = false;
               try {
-                // update the form because the fields are read when an update is performed
-                const input = $(`[name="data.upgrades.${upgradeId}.islearned"]`, this.element)[0];
-                input.checked = true;
-                await this.object.sheet.submit({preventClose: true});
-                owner.update({system: {experience: {available: availableXP - cost}}});
-                await xpLogSpend(owner, `force power ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
+                // Deduct the XP first and AWAIT it: this is the only step that
+                // actually charges the player (xpLogSpend just writes a log flag).
+                // A failed deduction must abort the purchase so the node is never
+                // learned for free -- and since the update is atomic, a failure
+                // means no XP left the actor, so no refund/compensation is needed.
+                await owner.update({system: {experience: {available: availableXP - cost}}});
+                xpDeducted = true;
+                // The spend log is a secondary record; a logging failure must not
+                // abort an already-charged purchase or leave XP spent with nothing
+                // learned, so swallow it rather than letting it gate the steps below.
+                try {
+                  await xpLogSpend(owner, `${config.logLabel} ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
+                } catch (e) {
+                  CONFIG.logger.warn(`Failed to write XP spend log for ${owner.name}`, e);
+                }
+              } catch (e) {
+                CONFIG.logger.warn(`Failed to deduct XP for ${owner.name}; aborting purchase`, e);
+                ui.notifications.error(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.Failed"));
               } finally {
                 await ActorHelpers.endEditMode(owner, AEState, true);
               }
+              // Only learn the node if the XP actually came out of the actor.
+              if (!xpDeducted) return;
+              // Learn the node and enable its AE AFTER endEditMode (see method doc).
+              await this.object.update({[`system.${config.treeProp}.${upgradeId}.islearned`]: true});
+              await ItemHelpers.syncAEStatus(this.object, this.object.getEmbeddedCollection("ActiveEffect"));
+              this.render(true);
             },
           },
           cancel: {
@@ -1641,146 +1671,39 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         classes: ["dialog", "starwarsffg"],
       }
     ).render(true);
+  }
+
+  async _buyForcePowerUpgrade(event) {
+    await this._buyTreeNode(event, {
+      itemType: "forcepower",
+      treeProp: "upgrades",
+      purchaseOpts: { prefix: "upgrade", width: 4, total: 16, sizeAware: true, rootHasImplicitParent: true },
+      titleKey: "SWFFG.Actors.Sheets.Purchase.FP.ConfirmTitle",
+      contentKey: "SWFFG.Actors.Sheets.Purchase.FP.ConfirmText",
+      logLabel: "force power",
+    });
   }
 
   async _buySignatureAbilityUpgrade(event) {
-    const element = $(event.target);
-    const cost = element.data("cost");
-    const baseName = element.data("base-item-name");
-    const upgradeName = element.data("upgrade-name");
-    const upgradeId = element.data("upgrade-id");
-
-    if (!canPurchaseNode(
-      this.object.system.upgrades,
-      upgradeId,
-      { prefix: "upgrade", width: 4, total: 8, sizeAware: true, rootHasImplicitParent: true }
-    )) {
-      ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotConnected"));
-      return;
-    }
-
-    let owner;
-    let availableXP;
-    let totalXP;
-    let AEState;
-    let availableXPToLog;
-    const dialog = new Dialog(
-      {
-        title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SA.ConfirmTitle"),
-        content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.SA.ConfirmText", {cost: cost, upgrade: upgradeName}),
-        buttons: {
-          done: {
-            icon: '<i class="fa-regular fa-circle-up"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
-            callback: async (that) => {
-
-              try {
-                // this fixes the actual math bugs but the log shows incorrect values. need to fix that.
-                const basic_data = await this._buyHandleClick(cost, "signatureability");
-                owner = basic_data.owner;
-                availableXP = basic_data.availableXP;
-                totalXP = basic_data.totalXP;
-                AEState = basic_data.AEState;
-                availableXPToLog = basic_data.availableXPToLog;
-              } catch (e) {
-                return;
-              }
-
-              // Edit Mode is now active and persisted (every AE disabled in DB).
-              // Wrap the remaining steps in try/finally so a thrown await never
-              // leaks the actor in a permanently-disabled state.
-              try {
-                // update the form because the fields are read when an update is performed
-                const input = $(`[name="data.upgrades.${upgradeId}.islearned"]`, this.element)[0];
-                input.checked = true;
-                await this.object.sheet.submit({preventClose: true});
-                owner.update({system: {experience: {available: availableXP - cost}}});
-                await xpLogSpend(owner, `signature ability ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
-              } finally {
-                await ActorHelpers.endEditMode(owner, AEState, true);
-              }
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-cancel"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
-          },
-        },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-      }
-    ).render(true);
+    await this._buyTreeNode(event, {
+      itemType: "signatureability",
+      treeProp: "upgrades",
+      purchaseOpts: { prefix: "upgrade", width: 4, total: 8, sizeAware: true, rootHasImplicitParent: true },
+      titleKey: "SWFFG.Actors.Sheets.Purchase.SA.ConfirmTitle",
+      contentKey: "SWFFG.Actors.Sheets.Purchase.SA.ConfirmText",
+      logLabel: "signature ability",
+    });
   }
 
   async _buySpecializationUpgrade(event) {
-    const element = $(event.target);
-    const cost = element.data("cost");
-    const baseName = element.data("base-item-name");
-    const upgradeName = element.data("upgrade-name");
-    const upgradeId = element.data("upgrade-id");
-
-    if (!canPurchaseNode(
-      this.object.system.talents,
-      upgradeId,
-      { prefix: "talent", width: 4, total: 20, sizeAware: false }
-    )) {
-      ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotConnected"));
-      return;
-    }
-
-    let owner;
-    let availableXP;
-    let totalXP;
-    let AEState;
-    let availableXPToLog;
-    const dialog = new Dialog(
-      {
-        title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.Specialization.ConfirmTitle"),
-        content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Specialization.ConfirmText", {cost: cost, upgrade: upgradeName}),
-        buttons: {
-          done: {
-            icon: '<i class="fa-regular fa-circle-up"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
-            callback: async (that) => {
-
-              try {
-                const basic_data = await this._buyHandleClick(cost, "specialization");
-                owner = basic_data.owner;
-                availableXP = basic_data.availableXP;
-                totalXP = basic_data.totalXP;
-                AEState = basic_data.AEState;
-                availableXPToLog = basic_data.availableXPToLog;
-              } catch (e) {
-                return;
-              }
-              // Edit Mode is now active and persisted (every AE disabled in DB).
-              // Wrap the remaining steps in try/finally so a thrown await never
-              // leaks the actor in a permanently-disabled state -- a leak here
-              // is what causes characteristics to fall to 0 and wounds/strain/
-              // soak/encumbrance to collapse on the actor sheet.
-              try {
-                owner.update({system: {experience: {available: availableXP - cost}}});
-                await xpLogSpend(owner, `specialization ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
-              } finally {
-                await ActorHelpers.endEditMode(owner, AEState, true);
-              }
-              // update the form because the fields are read when an update is performed
-              const input = $(`[name="data.talents.${upgradeId}.islearned"]`, this.element)[0];
-              input.checked = true;
-              await this.object.sheet.submit({preventClose: true});
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-cancel"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
-          },
-        },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-      }
-    ).render(true);
+    await this._buyTreeNode(event, {
+      itemType: "specialization",
+      treeProp: "talents",
+      purchaseOpts: { prefix: "talent", width: 4, total: 20, sizeAware: false },
+      titleKey: "SWFFG.Actors.Sheets.Purchase.Specialization.ConfirmTitle",
+      contentKey: "SWFFG.Actors.Sheets.Purchase.Specialization.ConfirmText",
+      logLabel: "specialization",
+    });
   }
 
   /* -------------------------------------------- */

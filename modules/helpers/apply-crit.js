@@ -6,9 +6,11 @@
  *
  * See docs/superpowers/specs/2026-05-24-apply-crit-chat-button-design.md
  */
+import { applyToTargetActor } from "./gm-bridge.js";
+
 export class ApplyCrit {
   /**
-   * Called from the renderChatMessage hook. Computes crit eligibility from the
+   * Called from the renderChatMessageHTML hook. Computes crit eligibility from the
    * roll's advantages/triumphs vs the weapon's critical rating, sets the
    * disabled attribute and tooltip when ineligible, and binds the click handler.
    * @param {ChatMessage} message — the live ChatMessage instance.
@@ -68,6 +70,17 @@ export class ApplyCrit {
     // Linked vs unlinked actor resolution (mirrors the macro).
     const isLinked = target.document.actorLink === true;
     const realActor = isLinked ? game.actors.get(a.id) : a;
+
+    if (type === "minion") {
+      try {
+        const ok = await applyToTargetActor(realActor, { type: "kill-minion" });
+        if (!ok) return;
+      } catch (err) {
+        CONFIG.logger?.warn?.("ApplyCrit: kill minion failed", err);
+        ui.notifications.warn(game.i18n.localize("SWFFG.ApplyCrit.TargetGone"));
+      }
+      return;
+    }
 
     // Modifier: count existing crit items × 10.
     const existingCrits = realActor.items.filter(
@@ -172,7 +185,11 @@ export class ApplyCrit {
             if (!item) return;
 
             try {
-              await realActor.createEmbeddedDocuments("Item", [item.toObject()]);
+              // Embeds the crit item on the target actor; when the clicking
+              // player does not own the target, this forwards to the active GM
+              // (see gm-bridge.js).
+              const ok = await applyToTargetActor(realActor, { type: "crit", items: [item.toObject()] });
+              if (!ok) return;
               await ChatMessage.create({
                 speaker: ChatMessage.getSpeaker({ token: target.document }),
                 content: item.system?.description ?? "",

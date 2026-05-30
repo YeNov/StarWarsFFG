@@ -42,6 +42,7 @@ import { createFFGMacro, updateMacro } from "./helpers/macros.js";
 import EmbeddedItemHelpers from "./helpers/embeddeditem-helpers.js";
 import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
+import { registerGMBridge } from "./helpers/gm-bridge.js";
 import DataImporter from "./importer/data-importer.js";
 import PauseFFG from "./apps/pause-ffg.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -1080,15 +1081,19 @@ Hooks.on("renderCompendiumDirectory", (app, html, data) => {
 });
 
 // Update chat messages with dice images
-Hooks.on("renderChatMessage", async (app, html, messageData) => {
-  const content = html.find(".message-content");
-  content[0].innerHTML = await PopoutEditor.renderDiceImages(content[0].innerHTML);
+Hooks.on("renderChatMessageHTML", async (message, html) => {
+  const content = html.querySelector(".message-content");
+  if (content) {
+    content.innerHTML = await PopoutEditor.renderDiceImages(content.innerHTML);
+  }
 
-  ApplyDamage.bindChatMessage(app, html);
-  ApplyCrit.bindChatMessage(app, html);
+  const $html = $(html);
 
-  html.on("click", ".ffg-pool-to-player", () => {
-    const poolData = messageData.message.flags.starwarsffg;
+  ApplyDamage.bindChatMessage(message, $html);
+  ApplyCrit.bindChatMessage(message, $html);
+
+  $html.on("click", ".ffg-pool-to-player", () => {
+    const poolData = message.flags.starwarsffg;
 
     const dicePool = new DicePoolFFG(poolData.dicePool);
 
@@ -1096,7 +1101,7 @@ Hooks.on("renderChatMessage", async (app, html, messageData) => {
   });
 
   // collapse / expand item details
-  html.find(".starwarsffg.item-card .summary").on("click", async (event) => {
+  $html.find(".starwarsffg.item-card .summary").on("click", async (event) => {
     event.preventDefault();
     const li = $(event.currentTarget);
     const details = li.parent().children(".collapsible-content");
@@ -1114,7 +1119,7 @@ Hooks.on("renderChatMessage", async (app, html, messageData) => {
   });
 
   // item card tooltips
-  html.find(".starwarsffg.item-card .item-pill, .starwarsffg .specials .hover-tooltip").on("mouseover", (event) => {
+  $html.find(".starwarsffg.item-card .item-pill, .starwarsffg .specials .hover-tooltip").on("mouseover", (event) => {
     itemPillHover(event);
   });
 });
@@ -1131,6 +1136,9 @@ function isCurrentVersionNullOrBlank(currentVersion) {
 // Handle migration duties
 Hooks.once("ready", async () => {
   SettingsHelpers.readyLevelSetting();
+
+  // Forward Apply Damage / Apply Crit writes from non-owning players to the GM.
+  registerGMBridge();
 
   // NOTE: the "currentVersion" will be updated in handleUpdate, preventing the code below from running in the future
   // this is intended to encourage migrating code to this file to clean up the main file

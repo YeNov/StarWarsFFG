@@ -228,7 +228,7 @@ export class ActorFFG extends Actor {
 
       // Filter out skills that are not custom (manually added) or part of the current system skill list
       Object.keys(data.skills)
-      .filter(s => !data.skills[s].custom && !CONFIG.FFG.skills[s])
+      .filter(s => !data.skills[s] || (!data.skills[s].custom && !CONFIG.FFG.skills[s]))
       .forEach(s => delete data.skills[s]);
 
       let unique = [...new Set(Object.values(data.skills).map((item) => item.type))];
@@ -277,11 +277,14 @@ export class ActorFFG extends Actor {
 
       //localize skill names
       for (let skill of Object.keys(data.skills)) {
+        data.skills[skill].name = data.skills[skill].name ?? skill;
+        data.skills[skill].value = data.skills[skill].value ?? skill;
+
         let skillLabel = CONFIG.FFG.skills?.[skill]?.label;
 
         if (!skillLabel) {
           // this is a one-off skill added directly to the character
-          skillLabel = data.skills[skill].label;
+          skillLabel = data.skills[skill].label ?? skill;
         }
 
         const localizedField = game.i18n.localize(skillLabel);

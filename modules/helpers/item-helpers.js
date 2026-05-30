@@ -221,52 +221,12 @@ export default class ItemHelpers {
    */
   static async syncAEStatus(item, activeEffects) {
     CONFIG.logger.debug(`Syncing ${activeEffects.length} Active Effects status...`);
-    if (["specialization", "signatureability"].includes(item.type)) {
-      CONFIG.logger.debug("specialization, or signature ability, looking through AEs to sync");
-      for (const activeEffect of activeEffects) {
-        if (["specialization"].includes(item.type)) {
-          for (const talentKey of Object.keys(item.system.talents)) {
-            const talent = item.system.talents[talentKey];
-            try {
-              const locatedMod = talent.attributes[activeEffect.name]; // this can throw an exception; best to handle it
-              if (locatedMod) {
-                if (talent.islearned) {
-                  CONFIG.logger.debug(`located attribute granting AE (${activeEffect.name}) AND the talent (${talent.name}) is learned, unsuspending`);
-                  await activeEffect.update({disabled: false});
-                } else {
-                  CONFIG.logger.debug(`located attribute granting AE (${activeEffect.name}), but the talent is not learned, suspending`);
-                  await activeEffect.update({disabled: true});
-                }
-              }
-            } catch {
-              CONFIG.logger.debug("no attribute granting AE found");
-            }
-          }
-        }
-      }
-    } else if (["forcepower"].includes(item.type)) {
-      CONFIG.logger.debug("force power, looking through AEs to sync");
-      for (const activeEffect of activeEffects) {
-        if (["forcepower"].includes(item.type)) {
-          for (const upgradeKey of Object.keys(item.system.upgrades)) {
-            const upgrade = item.system.upgrades[upgradeKey];
-            try {
-              const locatedMod = upgrade.attributes[activeEffect.name]; // this can throw an exception; best to handle it
-              if (locatedMod) {
-                if (upgrade.islearned) {
-                  CONFIG.logger.debug(`located attribute granting AE (${activeEffect.name}) AND the upgrade (${upgrade.name}) is learned, unsuspending`);
-                  await activeEffect.update({disabled: false});
-                } else {
-                  CONFIG.logger.debug(`located attribute granting AE (${activeEffect.name}), but the upgrade is not learned, suspending`);
-                  await activeEffect.update({disabled: true});
-                }
-              }
-            } catch {
-              CONFIG.logger.debug("no attribute granting AE found");
-            }
-          }
-        }
-      }
+    if (["specialization"].includes(item.type)) {
+      CONFIG.logger.debug("specialization, looking through AEs to sync");
+      await ItemHelpers.syncTreeActiveEffects(item, item.system.talents, "talent");
+    } else if (["forcepower", "signatureability"].includes(item.type)) {
+      CONFIG.logger.debug("force power or signature ability, looking through AEs to sync");
+      await ItemHelpers.syncTreeActiveEffects(item, item.system.upgrades, "upgrade");
     } else if (["armour", "weapon", "shipweapon"].includes(item.type)) {
       CONFIG.logger.debug("armor and weapon, checking modifiers to sync value to rank");
       // sync AEs to the rank value - that is, if we have a mod which adds 1 to max wounds with 4 ranks, the AE should have a value of 4, not 1
@@ -291,6 +251,127 @@ export default class ItemHelpers {
     } else {
       CONFIG.logger.debug(`'other' item type ${item.type}, no need to sync AE status'`);
     }
+  }
+
+  /**
+   * Rebuild Active Effects for learned tree nodes from their current modifier data.
+   * Some imported or migrated tree-node effects can have stale change payloads; updating
+   * disabled alone does not reliably make Foundry re-apply those item effects.
+   *
+   * @param item
+   * @param tree
+   * @param nodeLabel
+   * @returns {Promise<void>}
+   */
+  static async syncTreeActiveEffects(item, tree, nodeLabel) {
+    const existingEffects = Array.from(item.getEmbeddedCollection("ActiveEffect"));
+    const desiredEffects = [];
+    const toCreate = [];
+    const claimedEffects = new Set();
+
+    for (const nodeKey of Object.keys(tree || {})) {
+      const node = tree[nodeKey];
+      for (const attrName of Object.keys(node.attributes || {})) {
+        if (attrName.startsWith("-=")) {
+          continue;
+        }
+
+        const changes = ItemHelpers.buildActiveEffectChanges(node.attributes[attrName], attrName);
+        if (!changes.length) {
+          continue;
+        }
+
+        desiredEffects.push({
+          name: attrName,
+          img: node.img || item.img,
+          changes,
+          disabled: !node.islearned,
+          flags: {
+            starwarsffg: {
+              treeActiveEffect: true,
+              treeAttribute: attrName,
+              treeNode: nodeKey,
+              treeNodeType: nodeLabel,
+            },
+          },
+          nodeName: node.name,
+        });
+      }
+    }
+
+    for (const effectData of desiredEffects) {
+      const flaggedEffect = existingEffects.find(effect =>
+        !claimedEffects.has(effect.id) &&
+        effect.getFlag("starwarsffg", "treeActiveEffect") &&
+        effect.getFlag("starwarsffg", "treeAttribute") === effectData.flags.starwarsffg.treeAttribute &&
+        effect.getFlag("starwarsffg", "treeNode") === effectData.flags.starwarsffg.treeNode &&
+        effect.getFlag("starwarsffg", "treeNodeType") === effectData.flags.starwarsffg.treeNodeType
+      );
+      const unclaimedEffect = flaggedEffect || existingEffects.find(effect => !claimedEffects.has(effect.id) && effect.name === effectData.name);
+
+      CONFIG.logger.debug(`located attribute granting AE (${effectData.name}) from ${nodeLabel} (${effectData.nodeName}), syncing changes and disabled=${effectData.disabled}`);
+      if (unclaimedEffect) {
+        claimedEffects.add(unclaimedEffect.id);
+        await unclaimedEffect.update({
+          changes: effectData.changes,
+          disabled: effectData.disabled,
+          flags: effectData.flags,
+        });
+      } else {
+        toCreate.push({
+          name: effectData.name,
+          img: effectData.img,
+          changes: effectData.changes,
+          disabled: effectData.disabled,
+          flags: effectData.flags,
+        });
+      }
+    }
+
+    if (toCreate.length) {
+      await item.createEmbeddedDocuments("ActiveEffect", toCreate);
+    }
+  }
+
+  /**
+   * Convert a modifier attribute into Active Effect changes.
+   *
+   * @param attribute
+   * @param attrName
+   * @returns {Array}
+   */
+  static buildActiveEffectChanges(attribute, attrName) {
+    const changes = [];
+    let modtype = attribute?.modtype;
+    let mod = attribute?.mod;
+    let value = attribute?.value;
+
+    if ((!modtype || !mod) && attrName?.includes(".")) {
+      const parts = attrName.split(".");
+      if (parts.length >= 3) {
+        modtype = modtype || parts[0];
+        mod = mod || parts.slice(1, -1).join(".");
+        value = value ?? parts[parts.length - 1];
+      }
+    }
+
+    if (!modtype || !mod) {
+      return changes;
+    }
+
+    const explodedMods = ModifierHelpers.explodeMod(modtype, mod);
+    for (const curMod of explodedMods) {
+      const key = ModifierHelpers.getModKeyPath(curMod.modType, curMod.mod);
+      if (key) {
+        changes.push({
+          key,
+          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          value,
+        });
+      }
+    }
+
+    return changes;
   }
 
   /**
