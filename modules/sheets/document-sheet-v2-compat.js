@@ -297,11 +297,21 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     Hooks.callAll(`render${documentName}Sheet`, this, html, context);
   }
 
+  _callLegacyCloseHook(html) {
+    const documentName = this.document?.documentName;
+    if (!documentName) return;
+
+    Hooks.callAll(`close${documentName}Sheet`, this, html);
+  }
+
   async close(options = {}) {
     if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
       const event = new Event("submit", { cancelable: true });
       await this._onSubmit(event, { preventClose: true });
     }
+    // Fire while the form is still in the DOM so legacy listeners can inspect it.
+    const form = this.form;
+    if (form) this._callLegacyCloseHook($(form));
     return super.close(options);
   }
 
