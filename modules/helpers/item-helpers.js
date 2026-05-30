@@ -221,8 +221,8 @@ export default class ItemHelpers {
    */
   static async syncAEStatus(item, activeEffects) {
     CONFIG.logger.debug(`Syncing ${activeEffects.length} Active Effects status...`);
-    if (["specialization", "signatureability"].includes(item.type)) {
-      CONFIG.logger.debug("specialization, or signature ability, looking through AEs to sync");
+    if (["specialization"].includes(item.type)) {
+      CONFIG.logger.debug("specialization, looking through AEs to sync");
       for (const activeEffect of activeEffects) {
         if (["specialization"].includes(item.type)) {
           for (const talentKey of Object.keys(item.system.talents)) {
@@ -244,10 +244,10 @@ export default class ItemHelpers {
           }
         }
       }
-    } else if (["forcepower"].includes(item.type)) {
-      CONFIG.logger.debug("force power, looking through AEs to sync");
+    } else if (["forcepower", "signatureability"].includes(item.type)) {
+      CONFIG.logger.debug("force power or signature ability, looking through AEs to sync");
       for (const activeEffect of activeEffects) {
-        if (["forcepower"].includes(item.type)) {
+        if (["forcepower", "signatureability"].includes(item.type)) {
           for (const upgradeKey of Object.keys(item.system.upgrades)) {
             const upgrade = item.system.upgrades[upgradeKey];
             try {
