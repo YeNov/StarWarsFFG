@@ -72,36 +72,32 @@ section {
   content: unset !important;
 }
 
-/* V13 ApplicationV2 robustness: mirror the legacy .app.window-app
-   header/content sizing that the V1 sheet CSS depends on. */
-body.game .starwarsffg.application.sheet {
+/* V13 ApplicationV2 robustness: pin the title input's box dimensions.
+   V13 source rule (foundry2.css, applications layer):
+     body.game .app input[type="text"], ...input[type="number"], etc. {
+       height: var(--form-field-height);   // 26px
+       line-height: inherit;               // inherits "normal" from `.app`
+       padding: 1px 3px;
+     }
+   That rule and `body.game .app { line-height: normal; }` together keep
+   the actor/minion name input at 26px tall. Removing `.app`/`.window-app`
+   from the V2 root drops both, the input falls back to line-height ~32px
+   from V13's ApplicationV2 form layer and visibly clips the title row.
+   Mirror just the three sizing properties under V2-scoped selectors so
+   future Foundry releases that don't preserve `.app`/`.window-app` can't
+   regress the title size. (Class projection in document-sheet-v2-compat.js
+   is still our first line of defense; this rule is the safety net.) */
+.starwarsffg.application.sheet :is(.header-name, .minion-name) input {
+  height: var(--form-field-height, 26px);
   line-height: normal;
+  padding: 1px 3px;
 }
-body.game .starwarsffg.application.sheet > * {
-  flex: 1;
-}
-body.game .starwarsffg.application.sheet > .window-header {
-  flex: 0 0 30px;
-  padding: 0 8px;
-  gap: 0;
-}
-body.game .starwarsffg.application.sheet > .window-header .window-title {
-  font-size: var(--font-size-16);
-  line-height: 30px;
-  margin: 0;
-}
-body.game .starwarsffg.application.sheet > .window-header a {
-  flex: none;
-  margin: 0 0 0 8px;
-}
+
+/* V2 sheet content sizing (from b64598a4): keep the inner body panels
+   sized correctly for character/vehicle/item-talent sheets. */
 body.game .starwarsffg.application.sheet > form.window-content {
   height: calc(100% - 30px);
   min-height: 0;
-  padding: 8px;
-  color: var(--color-text-dark-primary);
-}
-body.game .starwarsffg.application.sheet > form.window-content > * {
-  flex: initial !important;
 }
 body.game .starwarsffg.application.sheet.actor > form.window-content.character > .sheet-body {
   flex: 0 0 calc(100% - 15.75rem) !important;
@@ -114,12 +110,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
   flex: 0 0 calc(100% - 22rem) !important;
   height: calc(100% - 22rem) !important;
   min-height: 0;
-}
-body.game .starwarsffg.application.sheet :is(.header-name, .minion-name) input {
-  min-width: 20px;
-  height: var(--form-field-height);
-  padding: 1px 3px;
-  line-height: inherit;
 }
 
 /* Defensive: force FA Solid font-weight in case an ancestor selector
