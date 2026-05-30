@@ -11,10 +11,21 @@ export default class ActorOptions {
 
   init(html) {
     const root = this._findSheetRoot(html);
-    if (!root || root.querySelector(":scope > .window-header > .ffg-sheet-options")) return;
+    if (!root) {
+      // Diagnostic: silent failure here means the Sheet Options button never
+      // appears in the header. Most common cause is the sheet root not
+      // matching `.starwarsffg.sheet.actor[data-appid=...]` (e.g. unexpected
+      // class list on a token actor sheet or a subclass that strips classes).
+      console.warn(`starwarsffg | ActorOptions.init: could not resolve sheet root for appId="${this.data.appId}"; Sheet Options button will not be injected.`);
+      return;
+    }
+    if (root.querySelector(":scope > .window-header > .ffg-sheet-options")) return;
 
     const header = root.querySelector(":scope > .window-header");
-    if (!header) return;
+    if (!header) {
+      console.warn(`starwarsffg | ActorOptions.init: sheet root for appId="${this.data.appId}" has no :scope > .window-header; Sheet Options button will not be injected.`);
+      return;
+    }
 
     const button = document.createElement("a");
     button.href = "#";
