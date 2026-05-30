@@ -5,6 +5,17 @@ const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api
  * ApplicationV2 framework without rewriting every legacy sheet handler at once.
  */
 export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheetV2) {
+  /**
+   * Per-document active-tab cache keyed by `${appName}:${documentUuid}`. Used
+   * to persist the active sheet tab across close-and-reopen within a single
+   * page session. We intentionally avoid `document.setFlag` here: writing a
+   * flag triggers a re-render of the sheet, which re-runs `_activateCoreListeners`
+   * and rebinds the `Tabs` instance — racing with the user's click. An
+   * in-memory map sidesteps that loop and keeps ephemeral UI state out of the
+   * persisted document data. Lost on full page reload, which is acceptable.
+   */
+  static _activeTabCache = new Map();
+
   static DEFAULT_OPTIONS = {
     tag: "div",
     classes: ["app", "window-app", "sheet", "themed", "theme-light"],
@@ -150,6 +161,12 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     return (this.options.editable !== false) && super.isEditable;
   }
 
+  get _activeTabCacheKey() {
+    const uuid = this.document?.uuid;
+    if (!uuid) return null;
+    return `${this.constructor.name}:${uuid}`;
+  }
+
   get template() {
     return this.options.template;
   }
@@ -289,12 +306,15 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     const root = html[0];
     if (!root) return;
 
+    const cacheKey = this._activeTabCacheKey;
     this._tabs = (this.options.tabs ?? []).map((tabConfig) => {
+      const cached = cacheKey ? this.constructor._activeTabCache.get(cacheKey) : undefined;
       const tabs = new foundry.applications.ux.Tabs({
         ...tabConfig,
-        initial: this._sheetTab ?? tabConfig.initial,
+        initial: cached ?? this._sheetTab ?? tabConfig.initial,
         callback: (_event, _tabs, active) => {
           this._sheetTab = active;
+          if (cacheKey) this.constructor._activeTabCache.set(cacheKey, active);
         },
       });
       tabs.bind(root);
