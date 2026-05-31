@@ -173,11 +173,26 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
   }
 
   async close(options = {}) {
-    if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
-      const event = new Event("submit", { cancelable: true });
-      await this._onSubmit(event, { preventClose: true });
+    // Block any render attempts that fire while we're closing. Subclasses
+    // such as itemEditor / talentEditor / forcePowerEditor call
+    // `this.render(true)` from inside their `_updateObject` overrides, which
+    // races super.close and re-attaches the DOM. Mirror the FFGDocumentSheetV2
+    // approach: set `_closing` and have our `render()` bail while it's set.
+    this._closing = true;
+    try {
+      if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
+        const event = new Event("submit", { cancelable: true });
+        await this._onSubmit(event, { preventClose: true });
+      }
+      return await super.close(options);
+    } finally {
+      this._closing = false;
     }
-    return super.close(options);
+  }
+
+  async render(options, _options) {
+    if (this._closing) return this;
+    return super.render(options, _options);
   }
 
   activateListeners(_html) {}
