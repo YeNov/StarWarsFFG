@@ -686,14 +686,16 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       $(event.currentTarget).parent().parent().children(".attributes-list").append(rendered);
       // re-bind listeners on the new elements
       this.activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
-      // submit the form to persist the change
-      this.submit();
+      // submit the form to persist the change. submit() throws in this compat
+      // layer (form handler is nulled), so use the manual pipeline; render to
+      // rebuild the attribute list from persisted data.
+      this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
     } else if (action === 'delete') {
       // check if this is a mod within a modification (has a parent .modification_title)
       const inModification = $(event.currentTarget).closest(".modification_title").length > 0;
       if (inModification) {
         $(event.currentTarget).parent().remove();
-        this.submit();
+        this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
       }
     }
   }
@@ -1489,7 +1491,10 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
                 const talentId = $(li).attr("id");
                 const input = $(`[name="data.talents.${talentId}.islearned"]`, this.element)[0];
                 input.checked = true;
-                await this.object.sheet.submit();
+                // ApplicationV2's submit() throws in this compat layer (the
+                // form handler is intentionally nulled); persist via the
+                // manual pipeline instead, rendering to reflect the purchase.
+                await this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
                 owner.update({system: {experience: {available: availableXP - cost}}});
                 await xpLogSpend(owner, `specialization ${baseName} talent ${talent}`, cost, availableXP - cost, totalXP);
               } finally {
