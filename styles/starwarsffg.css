@@ -182,24 +182,25 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
    layout makes the label wrap awkwardly and pushes the hint into
    a third column. Restore stacking *only* inside the sheet options
    dialog root. */
-/* Dense Sheet Options dialog layout — label + input on one row, hint on
-   its own row immediately below with no padding between them. Wider
-   label and hint font sizes for readability against the V13 dark
-   dialog theme. !important throughout because V13's `applications`
-   layer rules win the cascade against our `system` layer. */
+/* V1-style Sheet Options layout: title + description stacked on the LEFT,
+   active control on the RIGHT. Each option block is well-separated
+   vertically, but title and description sit tightly together.
+   !important throughout because V13's `applications` layer rules win
+   the cascade against our `system` layer.
+
+   Two shapes:
+   1. Boolean (checkbox): 2-column CSS grid — label/notes left, checkbox
+      right and vertically centered across both rows.
+   2. Wide inputs (text / select): stacked — label, input full-width
+      below, notes below that. */
 .starwarsffg.application.dialog .sheet-options-dialog .form-group {
   display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: wrap !important;
-  align-items: center !important;
-  column-gap: 12px !important;
-  row-gap: 0 !important;
-  margin: 0 0 10px 0 !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  margin: 0 0 16px 0 !important;
   padding: 0 !important;
 }
 .starwarsffg.application.dialog .sheet-options-dialog .form-group > label {
-  flex: 1 1 60% !important;
-  min-width: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   font-weight: bold !important;
@@ -208,25 +209,49 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
   white-space: normal !important;
 }
 .starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields {
-  flex: 0 0 auto !important;
   display: flex !important;
   align-items: center !important;
-  margin: 0 !important;
+  margin: 4px 0 0 0 !important;
   padding: 0 !important;
   min-height: 0 !important;
 }
-/* Wide inputs (text/select) take their own full-width row below the label */
-.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields:has(> input[type="text"]),
-.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields:has(> select) {
-  flex: 1 1 100% !important;
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields > input[type="text"],
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields > select {
+  width: 100% !important;
 }
 .starwarsffg.application.dialog .sheet-options-dialog .form-group > .notes {
-  flex: 1 1 100% !important;
   margin: 1px 0 0 0 !important;
   padding: 0 !important;
   font-size: 0.95em !important;
   line-height: 1.25 !important;
   opacity: 0.85 !important;
+}
+
+/* Boolean form-groups: 2-column grid so the checkbox sits to the right
+   of the label/notes stack instead of below it. */
+.starwarsffg.application.dialog .sheet-options-dialog .form-group:has(> .form-fields > input[type="checkbox"]) {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  grid-template-areas:
+    "label field"
+    "notes field" !important;
+  column-gap: 16px !important;
+  row-gap: 1px !important;
+  align-items: center !important;
+}
+.starwarsffg.application.dialog .sheet-options-dialog .form-group:has(> .form-fields > input[type="checkbox"]) > label {
+  grid-area: label !important;
+  align-self: end !important;
+}
+.starwarsffg.application.dialog .sheet-options-dialog .form-group:has(> .form-fields > input[type="checkbox"]) > .form-fields {
+  grid-area: field !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+.starwarsffg.application.dialog .sheet-options-dialog .form-group:has(> .form-fields > input[type="checkbox"]) > .notes {
+  grid-area: notes !important;
+  align-self: start !important;
+  margin: 0 !important;
 }
 
 /* Equalize checkbox sizes (V13's default unchecked-vs-checked render
