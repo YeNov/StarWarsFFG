@@ -287,19 +287,22 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (!header || header.dataset.ffgMinimizeBound) return;
     header.dataset.ffgMinimizeBound = "1";
     header.addEventListener("dblclick", (event) => {
-      // Ignore dblclicks on interactive header controls (close button, the
-      // controls-dropdown trigger, our injected legacy-header-action links).
-      if (event.target.closest("button, a, [data-action]")) return;
-      event.preventDefault();
-      event.stopPropagation();
-      // Clear the text selection the first click leaves behind.
-      window.getSelection?.()?.removeAllRanges?.();
-      try {
-        if (this.minimized) this.maximize();
-        else this.minimize();
-      } catch (err) {
-        console.warn("starwarsffg | header minimize toggle failed:", err);
+      // V13's ApplicationV2 already binds its own #onWindowDoubleClick on
+      // the same header in the bubble phase, and its filter only ignores
+      // elements with a `data-action` attribute. So a dblclick on our
+      // injected Sheet Options <a>, on legacy-header-action links, or on
+      // anything else without data-action would still minimize via V13's
+      // handler. Run in capture phase and, when the dblclick is on an
+      // interactive control, stopImmediatePropagation to prevent V13's
+      // handler from also firing.
+      if (event.target.closest("button, a, [data-action], input, select, label, .ffg-sheet-options, .legacy-header-action")) {
+        event.stopImmediatePropagation();
+        return;
       }
+      // Title-area dblclick: V13 will handle the actual minimize itself,
+      // we just need to not interfere. Clear the text selection the first
+      // click leaves behind.
+      window.getSelection?.()?.removeAllRanges?.();
     }, true);
   }
 

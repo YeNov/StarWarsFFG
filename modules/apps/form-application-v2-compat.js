@@ -215,16 +215,16 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
     if (header && !header.dataset.ffgMinimizeBound) {
       header.dataset.ffgMinimizeBound = "1";
       header.addEventListener("dblclick", (event) => {
-        if (event.target.closest("button, a, [data-action]")) return;
-        event.preventDefault();
-        event.stopPropagation();
-        window.getSelection?.()?.removeAllRanges?.();
-        try {
-          if (this.minimized) this.maximize();
-          else this.minimize();
-        } catch (err) {
-          console.warn("starwarsffg | header minimize toggle failed:", err);
+        // V13 already binds its own dblclick→minimize on the same header
+        // (foundry.mjs:28106) but only excludes elements with `data-action`.
+        // Capture phase + stopImmediatePropagation lets us veto the
+        // minimize on interactive header controls (Sheet Options, legacy
+        // header links, form fields, etc.).
+        if (event.target.closest("button, a, [data-action], input, select, label, .ffg-sheet-options, .legacy-header-action")) {
+          event.stopImmediatePropagation();
+          return;
         }
+        window.getSelection?.()?.removeAllRanges?.();
       }, true);
     }
 
