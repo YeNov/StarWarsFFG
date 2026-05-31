@@ -397,6 +397,29 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       await this._onSubmit(event, { render: true });
     });
 
+    // Minion sheets compute several display fields in _prepareMinionData
+    // from raw inputs that the user edits directly:
+    //   unit_wounds.value + quantity.max -> stats.wounds.max
+    //   stats.wounds.value + unit_wounds.value -> quantity.value (alive)
+    //   quantity.value + groupskill -> skill.rank
+    // The default change pipeline submits with render: false, so editing
+    // any of those raw inputs persists the value but leaves the derived
+    // fields displaying their pre-edit numbers until the sheet is closed
+    // and reopened. Force render: true on change for these specific
+    // numeric/select inputs (text-typing inputs aren't in this list, so
+    // mid-typing DOM swaps remain prevented).
+    if (this.actor.type === "minion") {
+      const minionDerivedInputs = [
+        'input[name="data.unit_wounds.value"]',
+        'input[name="data.quantity.max"]',
+        'input[name="data.stats.wounds.value"]',
+      ].join(", ");
+      html.find(minionDerivedInputs).on("change", async (event) => {
+        event.stopPropagation();
+        await this._onSubmit(event, { render: true });
+      });
+    }
+
     html.find(".popout-editor").on("mouseover", (event) => {
       $(event.currentTarget).find(".popout-editor-button").show();
     });
