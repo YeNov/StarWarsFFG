@@ -242,12 +242,14 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
 
   /**
    * Actions from V13's controls-dropdown that we mirror as inline,
-   * V1-style labeled links in the window header. Everything else stays
-   * inside the `⋮` dropdown — the user only wants Sheet Options (a custom
-   * link injected by ActorOptions/ItemOptions, not part of the dropdown)
-   * and Close visible inline.
+   * V1-style labeled links in the window header. Empty by default: the
+   * V13 `×` icon already covers Close, and every other dropdown entry
+   * (Configure Sheet, Prototype Token, Copy Document ID, etc.) is fine
+   * to stay inside the `⋮` menu. The only inline header link the user
+   * actually wants is Sheet Options, which ActorOptions/ItemOptions
+   * inject directly — not via this projection.
    */
-  static LEGACY_HEADER_ACTIONS = new Set(["close"]);
+  static LEGACY_HEADER_ACTIONS = new Set();
 
   _projectLegacyHeaderControls() {
     const header = this.element.querySelector(":scope > .window-header");
