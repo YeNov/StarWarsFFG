@@ -1263,6 +1263,167 @@ EOF
 
 ---
 
+### Task D1.bb: Forward `_onSubmit` options through every override and call-site
+
+**Files:**
+- Modify: `modules/actors/actor-sheet-ffg.js:2741` (`ActorSheetFFG._onSubmit` override drops options)
+- Modify: `modules/items/item-sheet-ffg.js:1830, 1862, 1883, 1893, 1903, 1925, 2083` (`this._onSubmit(event)` call-sites needing `{ render: true }`)
+- Modify: `modules/actors/actor-sheet-ffg.js:1454, 1963` (same — structural changes that need a render)
+
+**What this fixes:** Without this task, D1.a and D1.b's careful render
+control vanishes at two edges:
+
+1. The `ActorSheetFFG._onSubmit(event)` override passes `event` to `super`
+   and drops every other option — `render`, `preventClose`, the
+   coalescing pending payload. Editor saves on actor sheets, close
+   submits, and any other call passing options get them silently
+   discarded.
+2. Nine in-codebase `await this._onSubmit(event)` call-sites in the
+   sheets are structural changes (toggle edit-mode, combine/split
+   upgrades, link-top/link-right, uplink, add-duty, skill-filter). All
+   were relying on the auto-render to redraw the post-change UI. With
+   D1's new default of `render: false`, they silently no-op the
+   redraw.
+
+- [ ] **Step 1: Update `ActorSheetFFG._onSubmit` to forward options**
+
+In `modules/actors/actor-sheet-ffg.js:2741`, find:
+
+```js
+  /** @override **/
+  async _onSubmit(event) {
+    const formValid = event?.target?.form?.reportValidity();
+    if (formValid === false) {
+      return;
+    }
+    return await super._onSubmit(event);
+  }
+```
+
+Replace with:
+
+```js
+  /** @override **/
+  async _onSubmit(event, options = {}) {
+    const formValid = event?.target?.form?.reportValidity();
+    if (formValid === false) {
+      return;
+    }
+    return await super._onSubmit(event, options);
+  }
+```
+
+This preserves the form-validity short-circuit while letting `render`,
+`preventClose`, and any coalesce-loop metadata flow through.
+
+- [ ] **Step 2: Audit other `_onSubmit` overrides**
+
+Run:
+
+```bash
+grep -nE "async\s+_onSubmit\b|_onSubmit\(event\)\s*\{" modules/items/item-sheet-ffg.js modules/items/item-editor.js
+```
+
+For each hit that declares `_onSubmit(event)` without `options`, apply the
+same `(event, options = {})` + `super._onSubmit(event, options)` change.
+
+`item-sheet-ffg.js` typically has no override (it inherits from
+`FFGDocumentSheetV2` via `ItemSheetV2Compat`). `item-editor.js` has
+inner classes that may override — audit each.
+
+- [ ] **Step 3: Update structural-change `_onSubmit` call-sites with `{ render: true }`**
+
+In `modules/items/item-sheet-ffg.js`, change each of these lines:
+
+| Line | Action | Change |
+|---|---|---|
+| 1830 | edit-mode toggle | `await this._onSubmit(event, { render: true });` |
+| 1862 | combine upgrade  | `await this._onSubmit(event, { render: true });` |
+| 1883 | split upgrade    | `await this._onSubmit(event, { render: true });` |
+| 1893 | link-top toggle  | `await this._onSubmit(event, { render: true });` |
+| 1903 | link-right toggle| `await this._onSubmit(event, { render: true });` |
+| 1925 | uplink toggle    | `await this._onSubmit(event, { render: true });` |
+| 2083 | drop-talent      | already followed by `this.render(true);` at 2090 — leave as `{ render: false }` to avoid double-render, OR change to `{ render: true }` and remove line 2090. Pick one. |
+
+For line 2083, the cleaner fix is:
+
+```js
+await this._onSubmit(event, { render: true });
+await specialization.update(updateData);
+await specialization.deleteEmbeddedDocuments("ActiveEffect", toDelete);
+await this._transferActiveEffects(itemObject);
+// drop the redundant this.render(true); at line 2090
+```
+
+In `modules/actors/actor-sheet-ffg.js`, change:
+
+| Line | Action | Change |
+|---|---|---|
+| 1454 | add-duty append  | `await this._onSubmit(event, { render: true });` |
+| 1963 | skill-filter set | `await this._onSubmit(event, { render: true });` |
+
+- [ ] **Step 4: Audit `_onSubmit(event)` in item-editor.js**
+
+```bash
+grep -nE "this\._onSubmit\(" modules/items/item-editor.js
+```
+
+Each match (lines around 180, 193, 229, 242, 635, 639, 854, 858 per the
+earlier `_updateObject` audit) is inside an `itemEditor` /
+`talentEditor` / `forcePowerEditor` workflow. Each one calls
+`this._updateObject(undefined, this._getSubmitData())` rather than
+`_onSubmit`. Verify — if they use `_onSubmit(event)`, add
+`{ render: true }` to the structural ones.
+
+- [ ] **Step 5: Live-verify structural changes redraw**
+
+For each structural action, repro on the running server and confirm the
+UI updates without a manual reload:
+
+- Toggle edit-mode on a force power → tile borders show the editing
+  affordances.
+- Combine two upgrades on a force power → cells merge visually.
+- Split a combined upgrade → cells separate.
+- Toggle link-top on an upgrade → connector arrow appears.
+- Add a duty on a character → new row appears in the duty list.
+- Click a skill filter on a character → list visibly filters.
+
+If any of these stop redrawing, the call-site missed the `{ render: true }`
+or the override is still dropping options.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add modules/actors/actor-sheet-ffg.js modules/items/item-sheet-ffg.js
+git commit -m "$(cat <<'EOF'
+Forward _onSubmit options through overrides and structural call-sites
+
+D1.a/D1.b's render control was vanishing at two edges:
+
+1. ActorSheetFFG._onSubmit(event) overrode the base and passed only
+   event to super, silently dropping render / preventClose / the
+   coalesce-loop pending payload. Editor saves on actor sheets and
+   close submits lost their options. Fix: accept options and forward.
+
+2. Nine this._onSubmit(event) call-sites in item-sheet-ffg.js and
+   actor-sheet-ffg.js were structural changes (edit-mode toggle,
+   combine/split upgrade, link-top/link-right, uplink, add-duty,
+   skill-filter) that relied on the auto-render hook. With D1's new
+   render: false default, they silently no-op'd the redraw. Add
+   { render: true } to each. The drop-talent flow at item-sheet-
+   ffg.js:2083 was already followed by an explicit this.render(true)
+   -- consolidated to a single render via { render: true } and
+   removed the redundant call.
+
+Verified live: every structural action (combine/split, link-top,
+uplink, add-duty, skill-filter, edit-mode toggle) redraws the sheet
+correctly without a manual reload.
+EOF
+)"
+```
+
+---
+
 ### Task D1.c: Audit sheet-level `this.render(true)` calls and patch cross-field reactivity
 
 **Files:**
@@ -1329,15 +1490,34 @@ For each broken case, find the corresponding listener in
 field update:
 
 ```js
-$(html).find(`[name="data.ranks.ranked"]`).on("change", async () => {
-  await this.submit();
-  await this.render(false);  // explicitly redraw to reflect sibling visibility
+$(html).find(`[name="data.ranks.ranked"]`).on("change", async (event) => {
+  // Do NOT call this.submit() -- the compat shim sets form.handler to
+  // null in _initializeApplicationOptions (document-sheet-v2-compat.js
+  // line 148), and ApplicationV2's submit() requires a handler and
+  // will throw. Use our manual pipeline instead, with render: true so
+  // the conditional sibling field redraws.
+  await this._onSubmit(event ?? new Event("submit", { cancelable: true }), { render: true });
 });
 ```
 
 If the field is currently bound only via `submitOnChange:true` (i.e. no
-explicit listener), add one in `activateListeners` for the specific
-selector that needs reactivity.
+explicit listener), the change handler already routes through
+`_onSubmit(event)` from `_onChangeInput` — that path picks up D1's new
+`render: false` default. Add an explicit reactive listener as above to
+override the render flag for that one field, OR (cleaner) keep the
+existing `submitOnChange` wire-up and add a separate `change` listener
+that only does `this.render(false)` after the submit:
+
+```js
+$(html).find(`[name="data.ranks.ranked"]`).on("change", async () => {
+  // submitOnChange has already fired _onSubmit with render: false;
+  // we just need to redraw to reflect sibling visibility.
+  await this.render(false);
+});
+```
+
+Both patterns work; the second is closer to the legacy V1 mental model
+and avoids double-submitting if the existing wire-up also handled it.
 
 - [ ] **Step 4: Apply REMOVE classifications**
 
