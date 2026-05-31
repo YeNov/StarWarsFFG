@@ -74,10 +74,15 @@ export class DialogV2Compat {
 
   async _prepareContent() {
     if (this.options.template) {
+      // Deliberately omit `buttons` from the template context. DialogV2
+      // already renders its own button bar from the `buttons:` constructor
+      // argument; passing them into the template too causes legacy
+      // templates with their own `{{#each buttons}}` loop (e.g.
+      // ffg-sheet-options.html) to render a second, duplicate row.
+      const { buttons, ...rest } = this.data;
       const context = {
-        ...this.data,
+        ...rest,
         content: this.data.content ?? {},
-        buttons: this.data.buttons ?? {},
       };
       return foundry.applications.handlebars.renderTemplate(this.options.template, context);
     }
