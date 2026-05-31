@@ -20,7 +20,7 @@ export class itemEditor extends FormApplicationV2Compat  {
       super.defaultOptions,
       {
         title: `Embedded Item Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        //height: 720,
+        height: 600,
         width: 520,
         template: "systems/starwarsffg/templates/items/dialogs/ffg-embedded-itemattachment.html",
         closeOnSubmit: false,
@@ -548,7 +548,7 @@ export class talentEditor extends itemEditor {
       super.defaultOptions,
       {
         title: `Embedded Talent Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        //height: 720,
+        height: 600,
         width: 520,
         closeOnSubmit: false,
         submitOnClose: true,
@@ -762,7 +762,7 @@ export class forcePowerEditor extends itemEditor {
       super.defaultOptions,
       {
         title: `Embedded Force Power Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        //height: 720,
+        height: 600,
         width: 520,
         closeOnSubmit: false,
         submitOnClose: true,

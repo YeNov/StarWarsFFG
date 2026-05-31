@@ -233,3 +233,15 @@ span {
   height: 100% !important;
 }
 
+// Embedded modifier/talent/upgrade editors render the description as a
+// single-line input by default, which truncates anything longer than a few
+// words. Render it as a textarea that fills the available width and gives a
+// usable multi-line editing area.
+.flat_editor .modifier-description,
+.starwarsffg.sheet .modifier-description {
+  flex: 1 1 auto;
+  min-height: 8em;
+  width: 100%;
+  resize: vertical;
+}
+
