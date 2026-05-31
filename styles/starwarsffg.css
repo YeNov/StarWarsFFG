@@ -143,6 +143,31 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
   font-size: 0.9em;
 }
 
+/* V2 ApplicationV2 compat: V13's .form-group defaults to flex-row
+   (label | form-fields | notes side-by-side). The legacy
+   templates/dialogs/ffg-sheet-options.html template was authored
+   against the V1 default of a stacked column layout, so the row
+   layout makes the label wrap awkwardly and pushes the hint into
+   a third column. Restore stacking *only* inside the sheet options
+   dialog root. */
+.starwarsffg.application.dialog .sheet-options-dialog .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > label {
+  font-weight: bold;
+}
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .notes {
+  font-size: 0.85em;
+  opacity: 0.85;
+  margin: 0;
+}
+.starwarsffg.application.dialog .sheet-options-dialog .form-group + .form-group {
+  margin-top: 8px;
+}
+
 .hidden-content {
   display: none;
 }
