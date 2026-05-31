@@ -2,11 +2,27 @@ import ActorHelpers from "../helpers/actor-helpers.js";
 import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 export default class ActorOptions {
+  /**
+   * Per-actor cache of suspended Active Effect state, keyed by actor UUID.
+   *
+   * `ActorOptions` is reinstantiated on every sheet render (see
+   * `actor-sheet-ffg.js` activateListeners), so instance state cannot survive
+   * the `sheet.render(true)` call that the edit-mode handler issues itself.
+   * The cache must live on the class so the next dialog open can find the
+   * original AE state recorded when edit mode was first enabled and use it
+   * to revert via `ActorHelpers.endEditMode`. Without this, toggling edit
+   * mode OFF after a re-render finds an empty `this.suspended`, skips
+   * `endEditMode`, and leaves AEs disabled until world reload.
+   *
+   * Lost on full page reload, which is acceptable — edit mode is a transient
+   * authoring affordance, not persisted state.
+   */
+  static _suspendedAECache = new Map();
+
   constructor(data, html) {
     this.data = data;
     this.options = {};
     this.init(html);
-    this.suspended = {};
   }
 
   init(html) {
@@ -96,17 +112,21 @@ export default class ActorOptions {
 
               // read the most recent version, not the registered flag version
               const editMode = updateObject['flags.starwarsffg.config.enableEditMode'];
+              const cache = ActorOptions._suspendedAECache;
+              const cacheKey = this.data.object.uuid;
+              const stored = cache.get(cacheKey);
               if (editMode) {
-                if (Object.keys(this.suspended).length === 0) {
+                if (!stored) {
                   // suspend AEs
-                  this.suspended = await ActorHelpers.beginEditMode(this.data.object);
+                  const suspended = await ActorHelpers.beginEditMode(this.data.object);
+                  cache.set(cacheKey, suspended);
                   updateObject[`flags.starwarsffg.config.editModeActor`] = game.user.id;
                 }
               } else {
                 // unsuspend AEs
-                if (Object.keys(this.suspended).length > 0) {
-                  await ActorHelpers.endEditMode(this.data.object, this.suspended);
-                  this.suspended = {};
+                if (stored) {
+                  await ActorHelpers.endEditMode(this.data.object, stored);
+                  cache.delete(cacheKey);
                 }
                 updateObject[`flags.starwarsffg.config.editModeActor`] = "";
               }
