@@ -132,6 +132,9 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
   }
 
   setPosition(position = {}) {
+    // V13's _updatePosition reads `el.parentElement.offsetWidth` without
+    // guarding against a detached element; skip if not yet inserted.
+    if (!this.element?.parentElement) return position;
     // While the window is minimizing or already minimized, V13 calls
     // setPosition with header-only dimensions; clamping those up to the
     // interactive-resize minimum would block the collapse.

@@ -304,6 +304,14 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
   }
 
   setPosition(position = {}) {
+    // V13's _updatePosition reads `el.parentElement.offsetWidth` and only
+    // guards against the element itself being null, not against the element
+    // being detached. If setPosition fires before the element is inserted
+    // into the DOM (race during initial render, especially when reopening a
+    // sheet) it throws a "Cannot read properties of null (reading
+    // 'offsetWidth')". Skip the call in that case -- V13 will reapply the
+    // position via its render flow once the element is attached.
+    if (!this.element?.parentElement) return position;
     // While the window is minimizing or already minimized, V13 calls
     // setPosition with header-only dimensions (~30px height). Clamping those
     // up to the interactive-resize minimum prevents the collapse and leaves
