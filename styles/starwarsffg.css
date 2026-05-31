@@ -99,12 +99,22 @@ body.game .starwarsffg.application.sheet > form.window-content {
   height: calc(100% - 30px);
   min-height: 0;
 }
-body.game .starwarsffg.application.sheet.actor > form.window-content.character > .sheet-body {
-  flex: 0 0 calc(100% - 15.75rem) !important;
-  height: calc(100% - 15.75rem) !important;
+body.game .starwarsffg.application.sheet.actor > form.window-content.character > .sheet-body,
+body.game .starwarsffg.application.sheet.actor > form.window-content.minion > .sheet-body {
+  /* form.window-content is a flex column under V13's ApplicationV2; let the
+     body fill all remaining vertical space below the .sheet-header rather
+     than computing a fixed rem-based offset. The old
+     `calc(100% - 15.75rem)` rule left a blank gray strip at the bottom
+     whenever the header's actual height did not exactly equal 15.75rem
+     (252px @ 16px root font) — true in V13 because the chrome above the
+     legacy header is shaped differently. */
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
 }
 body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .sheet-body {
-  flex: 1 !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
 }
 body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
   flex: 0 0 calc(100% - 22rem) !important;
