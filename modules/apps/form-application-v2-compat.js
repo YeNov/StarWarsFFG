@@ -132,11 +132,24 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
   }
 
   setPosition(position = {}) {
+    // While the window is minimizing or already minimized, V13 calls
+    // setPosition with header-only dimensions; clamping those up to the
+    // interactive-resize minimum would block the collapse.
+    if (this._minimizing || this.minimized) return super.setPosition(position);
     const min = this._minDimensions();
     const clamped = { ...position };
     if (typeof clamped.width === "number" && clamped.width < min.width) clamped.width = min.width;
     if (typeof clamped.height === "number" && clamped.height < min.height) clamped.height = min.height;
     return super.setPosition(clamped);
+  }
+
+  async minimize(...args) {
+    this._minimizing = true;
+    try {
+      return await super.minimize(...args);
+    } finally {
+      this._minimizing = false;
+    }
   }
 
   get form() {
@@ -190,6 +203,27 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
       }
     }
     this.element.dataset.appid = this.appId;
+
+    // Restore V1's dblclick-header-to-minimize behavior. V13's ApplicationV2
+    // only exposes minimize via the controls-dropdown; dblclicking the header
+    // otherwise just selects the title text. Capture phase to win against any
+    // V13 internal handler that stops propagation.
+    const header = this.element?.querySelector(":scope > .window-header");
+    if (header && !header.dataset.ffgMinimizeBound) {
+      header.dataset.ffgMinimizeBound = "1";
+      header.addEventListener("dblclick", (event) => {
+        if (event.target.closest("button, a, [data-action]")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        window.getSelection?.()?.removeAllRanges?.();
+        try {
+          if (this.minimized) this.maximize();
+          else this.minimize();
+        } catch (err) {
+          console.warn("starwarsffg | header minimize toggle failed:", err);
+        }
+      }, true);
+    }
 
     const html = $(form ?? this.element);
     this._activateCoreListeners(html);

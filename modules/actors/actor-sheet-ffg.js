@@ -234,8 +234,12 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     };
 
     // Establish sheet width and height using either saved persistent values or default values defined in swffg-config.js
-    this.position.width = this.sheetWidth || CONFIG.FFG.sheets.defaultWidth[this.actor.type];
-    this.position.height = this.sheetHeight || CONFIG.FFG.sheets.defaultHeight[this.actor.type];
+    // Skip while minimized/minimizing -- otherwise this fights the V13 minimize
+    // collapse and snaps the sheet back to full size on the next render.
+    if (!this.minimized && !this._minimizing) {
+      this.position.width = this.sheetWidth || CONFIG.FFG.sheets.defaultWidth[this.actor.type];
+      this.position.height = this.sheetHeight || CONFIG.FFG.sheets.defaultHeight[this.actor.type];
+    }
 
     switch (this.actor.type) {
       case "character":

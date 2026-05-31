@@ -3,6 +3,38 @@
   font-family: "Roboto";
   src: url("../fonts/Roboto-Regular.ttf") format("truetype");
 }
+/* Minimized window state (V13 ApplicationV2). V13 sets inline
+   `style.maxWidth = var(--minimized-width)` (200px) and
+   `style.maxHeight = var(--header-height)` (36px) on minimize, then adds
+   `.minimized`. We:
+   - Widen the max-width so the title isn't truncated.
+   - Force the height to collapse to the header (our hand-maintained sheet
+     CSS includes `overflow: visible !important` so without explicit
+     height/max-height overrides the inline pre-minimize height keeps the
+     box tall).
+   - Hide the resize handle.
+   - Hide the form/window-content (V13 already does this; redundant safety). */
+.starwarsffg.minimized,
+.application.starwarsffg.minimized {
+  width: max-content !important;
+  min-width: 200px !important;
+  max-width: 600px !important;
+  height: var(--header-height, 36px) !important;
+  max-height: var(--header-height, 36px) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.starwarsffg.minimized .window-resize-handle,
+.application.starwarsffg.minimized .window-resize-handle,
+.application.starwarsffg.minimized .window-resizable-handle {
+  display: none !important;
+}
+.starwarsffg.minimized > .window-content,
+.starwarsffg.minimized > form.window-content,
+.application.starwarsffg.minimized > .window-content,
+.application.starwarsffg.minimized > form.window-content {
+  display: none !important;
+}
 @font-face {
   font-family: "StarJedi";
   src: url("../fonts/StarJedi-Regular.ttf") format("truetype");

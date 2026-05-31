@@ -233,6 +233,8 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     this._projectLegacyHeaderControls();
     this.element.querySelector(":scope > .window-resize-handle")?.classList.add("window-resizable-handle");
 
+    this._bindHeaderMinimize();
+
     const html = $(form ?? this.element);
     this._activateCoreListeners(html);
     this.activateListeners(html);
@@ -273,12 +275,54 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     return this.constructor.MIN_DIMENSIONS;
   }
 
+  /**
+   * Restore V1's dblclick-header-to-minimize toggle. V13's ApplicationV2 only
+   * exposes minimize via the controls-dropdown; dblclicking the header
+   * otherwise just selects the title text (visible as a black highlight).
+   * Listen in the capture phase so we run before any V13 internal handler
+   * that might stop propagation, and dedupe via a dataset flag.
+   */
+  _bindHeaderMinimize() {
+    const header = this.element?.querySelector(":scope > .window-header");
+    if (!header || header.dataset.ffgMinimizeBound) return;
+    header.dataset.ffgMinimizeBound = "1";
+    header.addEventListener("dblclick", (event) => {
+      // Ignore dblclicks on interactive header controls (close button, the
+      // controls-dropdown trigger, our injected legacy-header-action links).
+      if (event.target.closest("button, a, [data-action]")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      // Clear the text selection the first click leaves behind.
+      window.getSelection?.()?.removeAllRanges?.();
+      try {
+        if (this.minimized) this.maximize();
+        else this.minimize();
+      } catch (err) {
+        console.warn("starwarsffg | header minimize toggle failed:", err);
+      }
+    }, true);
+  }
+
   setPosition(position = {}) {
+    // While the window is minimizing or already minimized, V13 calls
+    // setPosition with header-only dimensions (~30px height). Clamping those
+    // up to the interactive-resize minimum prevents the collapse and leaves
+    // the window stuck at an awkward in-between size.
+    if (this._minimizing || this.minimized) return super.setPosition(position);
     const min = this._minDimensions();
     const clamped = { ...position };
     if (typeof clamped.width === "number" && clamped.width < min.width) clamped.width = min.width;
     if (typeof clamped.height === "number" && clamped.height < min.height) clamped.height = min.height;
     return super.setPosition(clamped);
+  }
+
+  async minimize(...args) {
+    this._minimizing = true;
+    try {
+      return await super.minimize(...args);
+    } finally {
+      this._minimizing = false;
+    }
   }
 
   _projectLegacyHeaderControls() {
