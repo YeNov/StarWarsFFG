@@ -122,11 +122,24 @@ export class DialogV2Compat {
   }
 
   async _submitLegacyAction(action, event) {
+    // Guard against re-entry: the callback is async, so a second click during
+    // its await (e.g. a double-click on "Adjust" in the XP dialog) would run
+    // the callback twice before the dialog closes -- applying the action twice.
+    // Ignore further submits once one is in flight, and disable the dialog
+    // buttons for immediate visual feedback.
+    if (this._actionSubmitted) return;
+    this._actionSubmitted = true;
+    const buttons = this.app?.element?.querySelectorAll("button[data-action]");
+    buttons?.forEach((b) => (b.disabled = true));
+
     const button = this.data.buttons?.[action];
     try {
       await button?.callback?.call(this, this.element, event);
       await this.close();
     } catch (err) {
+      // Submit failed and the dialog stays open -- allow the user to retry.
+      this._actionSubmitted = false;
+      buttons?.forEach((b) => (b.disabled = false));
       ui.notifications.error(err.message);
       throw err;
     }
