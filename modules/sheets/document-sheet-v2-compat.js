@@ -317,14 +317,31 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
   }
 
   async close(options = {}) {
-    if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
-      const event = new Event("submit", { cancelable: true });
-      await this._onSubmit(event, { preventClose: true });
+    // Block any render attempts that fire while we're closing. The submit-on-
+    // close path runs `document.update`, which can trigger BOTH Foundry's
+    // auto-render-on-update hook AND an explicit `this.render(true)` from
+    // legacy helpers (see ItemHelpers.itemUpdate / ActorHelpers.updateActor).
+    // Either one will race with super.close and re-attach the DOM, leaving
+    // the user feeling like × did nothing. The `_closing` flag is consulted
+    // by our overridden `render()` to bail out cleanly.
+    this._closing = true;
+    try {
+      if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
+        const event = new Event("submit", { cancelable: true });
+        await this._onSubmit(event, { preventClose: true, render: false });
+      }
+      // Fire while the form is still in the DOM so legacy listeners can inspect it.
+      const form = this.form;
+      if (form) this._callLegacyCloseHook($(form));
+      return await super.close(options);
+    } finally {
+      this._closing = false;
     }
-    // Fire while the form is still in the DOM so legacy listeners can inspect it.
-    const form = this.form;
-    if (form) this._callLegacyCloseHook($(form));
-    return super.close(options);
+  }
+
+  async render(options, _options) {
+    if (this._closing) return this;
+    return super.render(options, _options);
   }
 
   activateListeners(_html) {}
@@ -435,7 +452,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (this.options.submitOnChange) return this._onSubmit(event);
   }
 
-  async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false } = {}) {
+  async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false, render = true } = {}) {
     event?.preventDefault?.();
     if (!this.form || !this.isEditable || this._submitting) return false;
 
@@ -445,7 +462,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (preventRender) this._state = 1;
 
     try {
-      await this._updateObject(event, formData);
+      await this._updateObject(event, formData, { render });
     } finally {
       this._submitting = false;
       if (preventRender) this._state = priorState;
@@ -473,8 +490,8 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     return this._updateObject(event, submitData);
   }
 
-  async _updateObject(_event, formData) {
-    return this.document.update(formData);
+  async _updateObject(_event, formData, { render = true } = {}) {
+    return this.document.update(formData, { render });
   }
 
   _canDragStart(_selector) {
