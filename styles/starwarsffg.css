@@ -182,46 +182,84 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
    layout makes the label wrap awkwardly and pushes the hint into
    a third column. Restore stacking *only* inside the sheet options
    dialog root. */
-/* Dense Sheet Options dialog layout (matches the V1 look the user prefers):
-   label + input on one row, hint wraps onto its own line below, tight
-   spacing between groups. Keeps the V13 dark dialog theme. */
+/* Dense Sheet Options dialog layout — label + input on one row, hint on
+   its own row immediately below with no padding between them. Wider
+   label and hint font sizes for readability against the V13 dark
+   dialog theme. !important throughout because V13's `applications`
+   layer rules win the cascade against our `system` layer. */
 .starwarsffg.application.dialog .sheet-options-dialog .form-group {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: 8px;
-  row-gap: 2px;
-  margin: 0 0 4px 0;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+  row-gap: 0 !important;
+  margin: 0 0 10px 0 !important;
+  padding: 0 !important;
 }
 .starwarsffg.application.dialog .sheet-options-dialog .form-group > label {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-weight: bold;
-  margin: 0;
+  flex: 1 1 60% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-weight: bold !important;
+  font-size: 1.05em !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
 }
 .starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  margin: 0;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+/* Wide inputs (text/select) take their own full-width row below the label */
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields:has(> input[type="text"]),
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields:has(> select) {
+  flex: 1 1 100% !important;
 }
 .starwarsffg.application.dialog .sheet-options-dialog .form-group > .notes {
-  flex: 1 1 100%;
-  font-size: 0.85em;
-  opacity: 0.85;
-  margin: 0;
+  flex: 1 1 100% !important;
+  margin: 1px 0 0 0 !important;
+  padding: 0 !important;
+  font-size: 0.95em !important;
+  line-height: 1.25 !important;
+  opacity: 0.85 !important;
 }
 
-/* Light-orange tint on unchecked checkboxes so they're not invisible
-   against the V13 dark dialog background. Checked state is unaffected. */
+/* Equalize checkbox sizes (V13's default unchecked-vs-checked render
+   visibly differently). Force a single appearance pipeline so the
+   light-orange tint applies to both states at the same square size. */
 .starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"] {
-  accent-color: #ffae5e;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 174, 94, 0.85) !important;
+  border-radius: 3px !important;
+  background-color: rgba(255, 174, 94, 0.3) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  flex: 0 0 20px !important;
 }
-.starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"]:not(:checked) {
-  background-color: rgba(255, 174, 94, 0.35);
-  outline: 1px solid rgba(255, 174, 94, 0.7);
-  outline-offset: -1px;
+.starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"]:checked {
+  background-color: #ffae5e !important;
+}
+.starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"]:checked::after {
+  content: "\f00c";                /* FA check */
+  font-family: "Font Awesome 6 Pro";
+  font-weight: 900;
+  font-size: 13px;
+  color: #1b0e02;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hidden-content {
