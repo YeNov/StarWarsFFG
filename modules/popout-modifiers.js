@@ -56,6 +56,25 @@ export default class PopoutModifiers extends FormApplicationV2Compat {
   /* -------------------------------------------- */
 
   /** @override */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    // Constrain the (potentially long) modifier list to scroll within the
+    // window instead of overflowing the frame. Applied as inline styles so it
+    // is immune to theme stylesheets (mandar) winning the cascade. The form is
+    // the flex window-content; make it a column and let the .attributes list
+    // take the remaining height and scroll, keeping the buttons row pinned.
+    const form = this.element?.querySelector("form");
+    const attributes = form?.querySelector(":scope > .attributes");
+    if (form && attributes) {
+      form.style.display = "flex";
+      form.style.flexDirection = "column";
+      attributes.style.flex = "1 1 auto";
+      attributes.style.minHeight = "0";
+      attributes.style.overflowY = "auto";
+    }
+  }
+
+  /** @override */
   activateListeners(html) {
     super.activateListeners(html);
 
