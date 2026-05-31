@@ -152,7 +152,12 @@ Find the insertion point (the closing `}` of `_activateCoreListeners`) and add:
     });
 
     this.editors[name].instance = editor;
-    containerEl.classList.add("editor-active");
+    // The "prosemirror" class on the container is what the change-handler
+    // editor guard (D1.a) looks for. Without it, every keystroke inside
+    // the editor bubbles a `change` to the form and triggers a full submit
+    // -- exactly what the V1 guard was preventing. V1 added the engine
+    // class to .editor on mount; mirror that here.
+    containerEl.classList.add("editor-active", "prosemirror");
   }
 
   async _saveEditor(name, { remove = true } = {}) {
@@ -162,8 +167,14 @@ Find the insertion point (the closing `}` of `_activateCoreListeners`) and add:
     // ActorHelpers.updateActor run AE sync, talent propagation, attribute
     // reshaping, XP logging. FormDataExtended pulls the editor value out of
     // state.instance via the engine="prosemirror" entry on this.editors.
+    //
+    // Pass render: true so the sheet re-renders after save: the {{editor}}
+    // block needs to redraw with the now-saved enriched content, and
+    // _destroyEditor below removes the editor instance without restoring
+    // the rendered preview. Without render: true the user sees ProseMirror
+    // teardown leftovers in the description area.
     const event = new Event("submit", { cancelable: true });
-    await this._onSubmit(event, { preventClose: true });
+    await this._onSubmit(event, { preventClose: true, render: true });
     if (remove) this._destroyEditor(name);
   }
 
@@ -171,7 +182,7 @@ Find the insertion point (the closing `}` of `_activateCoreListeners`) and add:
     const state = this.editors[name];
     if (!state) return;
     try { state.instance?.destroy(); } catch (_e) {}
-    state.container?.classList.remove("editor-active");
+    state.container?.classList.remove("editor-active", "prosemirror");
     delete this.editors[name];
   }
 ```
@@ -200,9 +211,25 @@ Open `http://192.168.1.7:30000/` → open a character → Biography tab → clic
 the pencil/edit button on the biography editor. Expected:
 
 - ProseMirror editor mounts inline.
+- Container picks up the `prosemirror` and `editor-active` classes
+  (verify in DevTools: `document.querySelector(".editor.editor-active.prosemirror")`
+  resolves to a node).
 - Type "test content" → click the save (floppy) icon in the editor menu.
-- Editor closes; biography area shows "test content" rendered.
+- Editor closes; biography area shows "test content" rendered with
+  enriched HTML (i.e. dice glyphs etc. would render if present). This
+  works because `_saveEditor` passes `render: true` to `_onSubmit`, so
+  the sheet re-renders and the `{{editor}}` helper redraws with the
+  freshly enriched content. If you see ProseMirror teardown leftovers
+  (e.g. an empty `.editor-content` or doubled markup), the re-render
+  didn't fire — check that D1 didn't accidentally force the default
+  back to `false` and that the `render: true` argument actually
+  threaded through.
 - Reload the sheet (close + reopen) → content persists.
+- During typing, the form's change-handler should NOT fire on every
+  keystroke (verify by `_submitting` not being set — check with
+  `ui.activeWindow._submitting` in console between keystrokes). This
+  is guarded by the `prosemirror` class on the container that D1.a's
+  editor guard reads.
 
 If the editor does NOT mount, open DevTools console and check for errors.
 Common failure modes:
@@ -241,18 +268,30 @@ FormApplication.activateEditor did. Result: biography / description
 tabs on every sheet were read-only.
 
 Add _activateEditors / _activateEditor / _saveEditor / _destroyEditor.
-Register each active editor as { instance, options: { engine:
-"prosemirror" } } so FormDataExtended pulls the value at submit-on-
-close (form-data-extended.mjs:155 reads via this exact shape — omit
-it and the editor's content is silently lost). Route save through
-this._onSubmit({ preventClose: true }) so ItemHelpers.itemUpdate /
-ActorHelpers.updateActor still run their AE sync, talent propagation,
-attribute reshaping, and XP logging.
+
+Three load-bearing details:
+- Register each active editor as { instance, options: { engine:
+  "prosemirror" } } so FormDataExtended pulls the value at submit-on-
+  close (form-data-extended.mjs:155 reads via this exact shape; omit
+  it and the editor's content is silently lost).
+- Add the `prosemirror` class to the container alongside `editor-
+  active`. D1.a's change-handler editor guard looks for
+  `.editor.prosemirror, .editor.tinymce` -- without the class, every
+  keystroke inside the editor bubbles a `change` to the form and
+  triggers a full submit, which is exactly what V1 prevented.
+- Route _saveEditor through this._onSubmit({ preventClose: true,
+  render: true }) so ItemHelpers.itemUpdate / ActorHelpers.updateActor
+  still run their AE sync / talent propagation / attribute reshaping /
+  XP logging, AND the sheet re-renders so the {{editor}} block redraws
+  with the saved enriched content (without render: true,
+  _destroyEditor would tear down the editor and leave the user looking
+  at ProseMirror teardown leftovers).
 
 Verified live: biography saves and reload-persists on character
 sheet, talent description edit propagates into specialization tree
-tooltips, and close-without-save preserves typed content via the
-submit-on-close pipeline.
+tooltips, close-without-save preserves typed content via the submit-
+on-close pipeline, and the change-handler editor guard correctly
+ignores in-editor keystrokes (no spurious submits during typing).
 EOF
 )"
 ```
@@ -750,24 +789,39 @@ full method. Find:
 Replace with:
 
 ```js
-  async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false, render = false } = {}) {
+  async _onSubmit(event, options = {}) {
+    let { updateData = null, preventClose = false, preventRender = false, render = false } = options;
     event?.preventDefault?.();
     if (!this.form || !this.isEditable) return false;
 
     // Coalesce concurrent submits. The previous _submitting early-return
     // dropped a click that arrived while a previous update was awaiting --
     // exactly the spec-tree multi-click checkbox bug. Instead, set a
-    // pending flag and let the in-flight submit re-run with the post-click
-    // form state when it finishes.
+    // pending request and return the in-flight promise so the caller waits
+    // for the flushed pending submit to complete.
+    //
+    // Critical: returning early without `_submitInFlight` would let
+    // callers like close() / _saveEditor proceed to DOM teardown while
+    // the original submit is still extracting form data, racing the
+    // teardown against the extraction. Return the in-flight promise to
+    // preserve the caller's "submit completed before I keep going"
+    // invariant.
     if (this._submitting) {
       this._submitPending = { updateData, preventClose, render };
-      return true;
+      return this._submitInFlight;
     }
 
     this._submitting = true;
     let formData;
+    let currentRender = render;
+    let currentPreventClose = preventClose;
     const priorState = this._state;
     if (preventRender) this._state = 1;
+
+    let resolveFlush;
+    let rejectFlush;
+    this._submitInFlight = new Promise((res, rej) => { resolveFlush = res; rejectFlush = rej; });
+
     let iter = 0;
     try {
       do {
@@ -777,20 +831,30 @@ Replace with:
         }
         this._submitPending = null;
         formData = this._getSubmitData(updateData);
-        await this._updateObject(event, formData, { render });
-        // If a pending submit was registered while we awaited, its render
-        // preference wins for the next iteration.
-        if (this._submitPending?.render) render = true;
+        await this._updateObject(event, formData, { render: currentRender });
+        // If a pending submit was registered while we awaited, carry its
+        // intent forward to the next iteration. render: true wins over
+        // false; preventClose: false wins over true.
+        if (this._submitPending) {
+          if (this._submitPending.render) currentRender = true;
+          if (!this._submitPending.preventClose) currentPreventClose = false;
+          updateData = this._submitPending.updateData ?? updateData;
+        }
       } while (this._submitPending);
+
+      if (this.options.closeOnSubmit && !currentPreventClose) {
+        await this.close({ submit: false, force: true });
+      }
+      resolveFlush(formData);
+      return formData;
+    } catch (err) {
+      rejectFlush(err);
+      throw err;
     } finally {
       this._submitting = false;
+      this._submitInFlight = null;
       if (preventRender) this._state = priorState;
     }
-
-    if (this.options.closeOnSubmit && !preventClose) {
-      await this.close({ submit: false, force: true });
-    }
-    return formData;
   }
 ```
 
@@ -812,24 +876,32 @@ First, fix the editor guard in `_onChangeInput` (line 262-276): change
 ```
 
 Then replace `_onSubmit` (line 278-296) with the same coalesce-loop shape
-as Step 2, adapted (no `_state` priorState handling needed if the original
-didn't have it — copy from the existing method body and just swap the
-early-return for the coalesce loop). The resulting method:
+including the in-flight promise. `FormApplicationV2Compat._updateObject`
+takes 2 args (line 306), so we don't thread `render` to it — but we still
+need the in-flight promise for callers like the inner item-editor save
+flows that await `_onSubmit` and then immediately tear down DOM.
 
 ```js
-  async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false, render = false } = {}) {
+  async _onSubmit(event, options = {}) {
+    let { updateData = null, preventClose = false, preventRender = false } = options;
     event?.preventDefault?.();
     if (!this.form || !this.isEditable) return false;
 
     if (this._submitting) {
-      this._submitPending = { updateData, preventClose, render };
-      return true;
+      this._submitPending = { updateData, preventClose };
+      return this._submitInFlight;
     }
 
     this._submitting = true;
     let formData;
+    let currentPreventClose = preventClose;
     const priorState = this._state;
     if (preventRender) this._state = 1;
+
+    let resolveFlush;
+    let rejectFlush;
+    this._submitInFlight = new Promise((res, rej) => { resolveFlush = res; rejectFlush = rej; });
+
     let iter = 0;
     try {
       do {
@@ -840,23 +912,27 @@ early-return for the coalesce loop). The resulting method:
         this._submitPending = null;
         formData = this._getSubmitData(updateData);
         await this._updateObject(event, formData);
-        if (this._submitPending?.render) render = true;
+        if (this._submitPending) {
+          if (!this._submitPending.preventClose) currentPreventClose = false;
+          updateData = this._submitPending.updateData ?? updateData;
+        }
       } while (this._submitPending);
+
+      if (this.options.closeOnSubmit && !currentPreventClose) {
+        await this.close({ submit: false, force: true });
+      }
+      resolveFlush(formData);
+      return formData;
+    } catch (err) {
+      rejectFlush(err);
+      throw err;
     } finally {
       this._submitting = false;
+      this._submitInFlight = null;
       if (preventRender) this._state = priorState;
     }
-
-    if (this.options.closeOnSubmit && !preventClose) {
-      await this.close({ submit: false, force: true });
-    }
-    return formData;
   }
 ```
-
-(Note: `FormApplicationV2Compat._updateObject` takes 2 args, not 3 — see
-line 306. We do NOT thread `render` here; that's D1.b on the document-sheet
-side only.)
 
 - [ ] **Step 4: Live-verify coalescing on a benign sheet**
 
@@ -900,9 +976,9 @@ Coalesce concurrent submits instead of dropping them
 The _submitting early-return swallowed any change that arrived while
 a previous update was awaiting. Spec-tree multi-click checkbox bug
 reproduced exactly this: click 1 starts a submit, click 2 sets the
-DOM and fires change, _onSubmit early-returns, then click 1's
-auto-rerender redraws the DOM back to click 1's state -- click 2
-silently disappears.
+DOM and fires change, _onSubmit early-returns, then click 1's auto-
+render redraws the DOM back to click 1's state -- click 2 silently
+disappears.
 
 Replace with a coalesce loop: while a submit is running, set
 _submitPending; the in-flight submit re-reads getSubmitData() and
@@ -910,13 +986,25 @@ re-runs until no pending requests remain. Captures the post-second-
 click form state instead of dropping it. Guarded with an 8-iteration
 ceiling to surface bugs if the loop ever fails to converge.
 
+Critical lifecycle detail: store the in-flight promise as
+_submitInFlight and return it from the early-return path. Callers
+like close() / _saveEditor await _onSubmit and then immediately tear
+down DOM or editor state. Returning early without the in-flight
+promise would let them proceed while the original submit is still
+extracting form data -- racing teardown against extraction. Returning
+the in-flight promise preserves the "submit completed before caller
+keeps going" invariant; coalesced pending submits flush as part of
+the same promise chain so the caller waits for the full flush.
+
 Also fix the editor guard in _onChangeInput on both
 FFGDocumentSheetV2 and FormApplicationV2Compat: the listener is
 attached to the form, so event.currentTarget is the form itself,
 never an editor. Use event.target instead.
 
 Verified live: rapid 5-char name change on weapon sheet fires 1-2
-updates not 5+, multi-click checkbox parity preserved.
+updates not 5+, multi-click checkbox parity preserved, close after
+a rapid typing burst completes only after the final pending submit
+has flushed (no orphaned DOM-teardown errors).
 EOF
 )"
 ```
@@ -1015,7 +1103,7 @@ await this.object.update(formData, { render });
 Read the full method (likely lines 1717 to ~1745) carefully and adjust
 each `update` / `helper` call. Document the exact lines changed.
 
-- [ ] **Step 4: Update `ActorHelpers.updateActor` signature**
+- [ ] **Step 4: Update `ActorHelpers.updateActor` — signature AND explicit-render gating**
 
 In `modules/helpers/actor-helpers.js`, find the method (starts around line 21,
 ends at line 68). Change the signature:
@@ -1024,13 +1112,19 @@ ends at line 68). Change the signature:
   static async updateActor(event, formData, { render = false } = {}) {
 ```
 
-And change the final `document.update` call (line 67):
+Change the final `document.update` call (line 67):
 
 ```js
     return await this.object.update(formData, { render });
 ```
 
-- [ ] **Step 5: Update `ItemHelpers.itemUpdate` signature**
+Then audit the rest of the method body for any explicit `this.render(true)`
+/ `this.sheet.render(true)` calls and gate them on `render`. If the audit
+script in D1.c Step 1 returns no hits in `actor-helpers.js`, this gating
+step is a no-op here — but DO check, because any unconditional render
+defeats D1's purpose.
+
+- [ ] **Step 5: Update `ItemHelpers.itemUpdate` — signature AND explicit-render gating**
 
 In `modules/helpers/item-helpers.js`, find the method at line 4. Change the
 signature:
@@ -1039,20 +1133,51 @@ signature:
   static async itemUpdate(event, formData, { render = false } = {}) {
 ```
 
-And thread `{ render }` to the primary `document.update` call at line 41:
+Thread `{ render }` to the primary `document.update` call at line 41:
 
 ```js
     await this.object.update(formData, { render });
 ```
 
-Important: this is the ONLY place where the document holding the form is
-updated. The downstream `await item.update(updateData)` (line 75) and
-`await spec.update(updateData)` (line 79) are talent-propagation writes to
-DIFFERENT documents; those should keep their default render behaviour so
-the downstream sheets visibly refresh. Do NOT thread `render: false` to
-those calls.
+**This is not enough on its own.** Line 44 currently has an unconditional
+`await this.render(true);` that fires AFTER `document.update`. With the
+auto-render hook now suppressed, this explicit call becomes the SOLE
+source of the DOM swap, and the mid-interaction race the user is
+reporting in spec-tree multi-click and weapon dropdowns is unchanged.
+The render flag must gate this call:
 
-- [ ] **Step 6: Live-verify subclass-override forwarding works**
+```js
+    await this.object.update(formData, { render });
+    await ItemHelpers.syncAEStatus(this.object, this.object.getEmbeddedCollection("ActiveEffect"));
+    if (render) await this.render(true);
+```
+
+The downstream cross-doc propagation block (lines 46-84) calls
+`item.sheet.render(true)` at line 76 and `spec.sheet.render(true)` at
+line 80. These write to OTHER documents (the propagated talent's
+container item or its parent specialization). Their sheets DO need to
+refresh when the propagated data changes, AND they aren't the sheet
+the user is currently interacting with — so they can't race the user's
+in-flight click. Leave those two `sheet.render(true)` calls in place.
+
+The career-skills branch starting at line 85 may also have render calls
+— audit and gate any that target `this` (current sheet), leave any that
+target OTHER docs unchanged.
+
+- [ ] **Step 5a: Spot-check the audit covered every `this.render` in the helper**
+
+```bash
+grep -nE "this\.render|\.sheet\.render" modules/helpers/item-helpers.js modules/helpers/actor-helpers.js
+```
+
+For each hit, classify in a comment in the commit body:
+
+- `this.render(...)` on the current sheet → gated on `render` flag.
+- `<otherDoc>.sheet.render(...)` → unchanged (different sheet, no race).
+- `<otherDoc>.render(...)` (rendering a document) → these don't exist on
+  Foundry docs; should be `.sheet.render`. Flag any irregularity.
+
+- [ ] **Step 6: Live-verify both layers of render suppression**
 
 In Chrome console on the running server:
 
@@ -1064,10 +1189,19 @@ item.sheet.render = function(...args) { renderCount++; console.log("[diag] sheet
 // Open the weapon sheet, change the name field, blur.
 ```
 
-Expected: `[diag] sheet.render call 1` from the explicit `_render` on
-sheet open, then ZERO additional `sheet.render` calls from the name change
-(because `render: false` flows through). If you see additional render calls,
-trace which override dropped the flag.
+Expected: `[diag] sheet.render call 1` from the explicit render on sheet
+open, then ZERO additional `sheet.render` calls from the name change.
+Two things have to be true for zero:
+
+1. `{ render: false }` reaches `document.update` (the auto-render hook
+   stays silent). Verified by the override-signature changes in Steps 2/3.
+2. `ItemHelpers.itemUpdate`'s explicit `this.render(true)` at line 44 is
+   gated and does NOT fire when `render: false`. Verified by Step 5.
+
+If you see one extra render call, either the gating was missed in the
+helper OR a subclass override dropped the flag. Trace by adding a
+console.log inside `ItemHelpers.itemUpdate` right before the gated
+`if (render)` block.
 
 - [ ] **Step 7: Live-verify the weapon dropdown stays open**
 
@@ -1096,115 +1230,150 @@ unsaved. Confirm no "ghost" sheet remains and no console error.
 ```bash
 git add modules/sheets/document-sheet-v2-compat.js modules/actors/actor-sheet-ffg.js modules/items/item-sheet-ffg.js modules/helpers/actor-helpers.js modules/helpers/item-helpers.js
 git commit -m "$(cat <<'EOF'
-Thread { render } through update overrides and helpers
+Thread { render } through update overrides and gate helper renders
 
 D1.a's render-suppression at FFGDocumentSheetV2._onSubmit was being
-dropped at the subclass-override boundary:
-ActorSheetFFG._updateObject(event, formData) and
-ItemSheetFFG._updateObject(event, formData) only declared 2 params,
-so the base's { render } third arg never reached
-ActorHelpers.updateActor / ItemHelpers.itemUpdate.
+dropped at TWO points:
+
+1. Subclass-override boundary: ActorSheetFFG._updateObject and
+   ItemSheetFFG._updateObject only declared 2 params, so the base's
+   { render } third arg never reached the helpers.
+2. Helper-level explicit render: ItemHelpers.itemUpdate calls
+   this.render(true) unconditionally at line 44, AFTER the document
+   update. Threading { render } only to document.update would
+   suppress the auto-render hook but the explicit render would still
+   fire -- DOM swap mid-interaction unchanged. The user's spec-tree
+   multi-click and weapon-dropdown symptoms would persist.
 
 Add { render = false } third parameter to both overrides and to the
-two helpers; forward it to the final this.object.update() call.
-Talent-propagation writes inside ItemHelpers.itemUpdate to OTHER
-documents (item.update / spec.update at lines 75/79) keep their
-default render behaviour so downstream sheets still refresh after
-cross-doc propagation.
+two helpers. Forward to this.object.update(formData, { render }) AND
+gate every helper-issued this.render(...) on the same flag. Cross-doc
+propagation writes (item.update / spec.update at item-helpers.js:75/79)
+target DIFFERENT documents and can't race the user's in-flight click,
+so their sheet.render(true) calls stay unchanged.
 
 Verified live: weapon name-field change produces zero auto-renders
-(was producing one per change), weapon dropdowns stay open through
-selection, buy-talent flow runs cleanly under rapid repeated use,
-spec tree closes reliably even with unsaved modifier-panel content.
+(was producing one per change with the prior draft), weapon dropdowns
+stay open through selection, buy-talent flow runs cleanly under rapid
+repeated use, spec tree closes reliably even with unsaved modifier-
+panel content.
 EOF
 )"
 ```
 
 ---
 
-### Task D1.c: Audit and prune redundant `this.render(true)` calls
+### Task D1.c: Audit sheet-level `this.render(true)` calls and patch cross-field reactivity
 
 **Files:**
-- Modify (potentially): `modules/helpers/item-helpers.js`, `modules/helpers/actor-helpers.js`, `modules/items/item-sheet-ffg.js`, `modules/actors/actor-sheet-ffg.js`.
+- Modify (potentially): `modules/items/item-sheet-ffg.js`, `modules/actors/actor-sheet-ffg.js`.
+- Helpers (`item-helpers.js`, `actor-helpers.js`) are already covered by D1.b's gating step; this task focuses on the sheets themselves and on listeners that previously depended on the auto-render hook to redraw conditional UI.
 
-**What this fixes:** Removes redundant auto-renders that were compensating
-for the now-suppressed auto-render hook. Without this step, fields that
-visibly update may stutter (one D1-suppressed render skipped, then a
-helper-issued explicit render fires, producing two screen frames).
+**What this fixes:** Listeners that mutated form state and relied on the
+now-suppressed auto-render to re-show / re-hide conditional fields
+(e.g. the `ranks.ranked` checkbox on a talent unhides the rank-input
+field). With D1.b, those flows render zero times by default; explicit
+`this.render(false)` calls have to be added back where cross-field
+reactivity was previously implicit.
 
 - [ ] **Step 1: Build the audit list**
 
 Run:
 
 ```bash
-grep -nE "this\.render\(true\)|sheet\.render\(true\)|\.render\(true\)" modules/helpers/item-helpers.js modules/helpers/actor-helpers.js modules/items/item-sheet-ffg.js modules/actors/actor-sheet-ffg.js
+grep -nE "this\.render\b|sheet\.render\b" modules/items/item-sheet-ffg.js modules/actors/actor-sheet-ffg.js
 ```
 
-Record every match in a working list. Expected hits: at minimum
-`item-helpers.js:44, 76, 80`, plus zero-to-many in actor-helpers and the
-sheets. Save the list to a scratch file or just keep it in the commit
-message draft.
+Record every match. Expected: handful of sites in each file. For each,
+read the surrounding 10 lines.
 
-- [ ] **Step 2: Classify each call-site**
+- [ ] **Step 2: Classify each sheet-level call-site**
 
-For each match, read the surrounding 10 lines and classify:
+For each match, decide:
 
-- **KEEP** — fires after a structural change the document auto-render
-  wouldn't redraw correctly (e.g. cross-document talent propagation, where
-  the downstream doc's sheet needs refreshing). The `item.sheet.render(true)`
-  at line 76 and `spec.sheet.render(true)` at line 80 fall here — they're
-  refreshing OTHER docs.
-- **REMOVE** — was firing solely to refresh the current sheet after the
-  auto-render hook. Now redundant because:
-  - On normal change submits, render is suppressed (D1.b) — these explicit
-    calls used to be belt-and-suspenders; the suspenders are now gone, so
-    the belt is needed. Re-classify as KEEP.
-  - On explicit save flows (e.g. a button that calls `this.submit()`),
-    `render: false` is passed for the update but the explicit render after
-    is the intended refresh. KEEP.
-- **DEFER** — uncertain; leave in place and note in the commit body for a
-  future audit.
+- **KEEP** — fires after a structural change the auto-render wouldn't
+  cover correctly. E.g. cross-doc refresh, or a side-effecting branch
+  that already passes `render: true` to its update.
+- **REMOVE** — was compensating for the auto-render and is now redundant
+  with the explicit save-button flow. Such a call AFTER a
+  `document.update(formData, { render: true })` is a double-render.
 
-The likely outcome: most or all current call-sites are KEEP. The pruning
-might be zero. That's OK — this task is an audit, not a forced refactor.
+The likely outcome: most current sheet-level calls are KEEP, because the
+sheets historically passed updates straight to `document.update` (no
+{ render: false }) and relied on the auto-render. The handful of sites
+that explicitly called `this.render(true)` AFTER an auto-rendering
+update were the double-render bugs hidden by the timing race; remove
+those.
 
-- [ ] **Step 3: Apply any REMOVE classifications**
+- [ ] **Step 3: Find cross-field reactivity listeners that need explicit re-render**
 
-For each call-site marked REMOVE, delete the line. If the deletion makes
-the surrounding code dead (e.g. an `if` block that only had that one line),
-clean up the dead code too.
+Several listeners change a field's value AND expect a sibling field to
+appear/disappear/relabel on the next render. With auto-render now
+suppressed for the change pipeline, these stop working unless they
+explicitly request a re-render after the update.
 
-- [ ] **Step 4: Live-verify no regression**
+Known candidates (verify each by repro):
 
-Reload the running world. Spot-check the same surfaces as D1.b's Step 6-9.
-Plus:
+- `ranks.ranked` checkbox on a talent (`templates/items/ffg-talent-sheet.html:15-17`)
+  unhides `ranks.current`. After toggle: the rank-input field should
+  appear. Test on a talent item; if it doesn't, add an explicit
+  `await this.render(false)` to the change handler.
+- `data.activation.value` dropdown on a talent — may relabel the
+  activation badge text. Test on the spec tree (the talent's tile
+  reads `talent.activationLabel`).
+- Any `sheet.actor.system.skills` mutation on the character sheet that
+  shows/hides skill rows.
 
-- Edit a field on the character sheet → tab away. Sheet should reflect the
-  change after a single render frame, not zero frames (no stuck UI) and
-  not two frames (no double-render stutter).
-- Toggle a `ranks.ranked` checkbox on a talent → confirm the rank-input
-  field appears/disappears. If it doesn't, that toggle-handler depended on
-  the auto-render and now needs an explicit `this.render(false)` added to
-  its own listener. Find the handler in `modules/items/item-sheet-ffg.js`
-  via `grep -n 'ranks.ranked'` and add the explicit render.
+For each broken case, find the corresponding listener in
+`activateListeners` of the relevant sheet file. Add right after the
+field update:
 
-- [ ] **Step 5: Commit**
+```js
+$(html).find(`[name="data.ranks.ranked"]`).on("change", async () => {
+  await this.submit();
+  await this.render(false);  // explicitly redraw to reflect sibling visibility
+});
+```
+
+If the field is currently bound only via `submitOnChange:true` (i.e. no
+explicit listener), add one in `activateListeners` for the specific
+selector that needs reactivity.
+
+- [ ] **Step 4: Apply REMOVE classifications**
+
+For each call-site marked REMOVE in Step 2, delete the line. Clean up
+any surrounding dead code.
+
+- [ ] **Step 5: Live-verify no regression**
+
+Reload the running world. Spot-check the same surfaces as D1.b's
+Steps 6-9. Plus:
+
+- Edit a field on the character sheet → tab away. Sheet should reflect
+  the change after a single render frame, not zero frames (no stuck
+  UI) and not two frames (no double-render stutter).
+- Toggle `ranks.ranked` on a talent → rank-input field appears.
+- Toggle off → rank-input disappears.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add modules/helpers/ modules/items/ modules/actors/
+git add modules/items/item-sheet-ffg.js modules/actors/actor-sheet-ffg.js
 git commit -m "$(cat <<'EOF'
-Audit explicit this.render(true) call-sites post-D1.b
+Audit sheet-level renders and add explicit cross-field reactivity
 
-Reviewed every sheet.render(true) / this.render(true) in the helpers
-and sheets after D1.b suppressed the auto-render hook on the change-
-submit path.
+After D1.b gated helper-issued this.render(true) on the { render }
+flag, listeners that depended on the auto-render hook to redraw
+conditional UI need their own explicit this.render(false) calls.
 
-Classification:
-- KEEP <N>: cross-doc propagation refreshes (item-helpers.js:76, 80
-  refresh propagated talent + spec sheets after the parent doc's
-  update) -- the suppressed auto-render no longer covers them.
-- KEEP <N>: explicit refresh-after-save buttons -- intentional.
-- REMOVE <N>: <list any actually removed; if zero, say "none">.
+Found cross-field reactivity gaps:
+- <list>: needed explicit render after change.
+
+Found redundant double-renders to prune:
+- <list, or "none">.
+
+Live-verified no stutter on field edits and that conditional fields
+(ranks.current under ranks.ranked, etc.) reappear after toggle.
 
 Live-verified no regression on field-edit, ranks.ranked toggle,
 spec-tree state changes, and cross-sheet propagation flows.
