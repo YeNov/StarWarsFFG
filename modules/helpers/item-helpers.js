@@ -48,6 +48,18 @@ export default class ItemHelpers {
     // editor-save flows pass render: true to get the redraw they need.
     if (render) await this.render(true);
 
+    // `render: false` on the update above suppresses every sheet render
+    // triggered by Foundry's updateItem hook -- including the parent actor
+    // sheet's. That's correct for THIS item's sheet (avoids mid-edit DOM
+    // swaps) but the owning actor's sheet shows derived data (weapon rolls,
+    // talent panels, etc.) that goes stale until the actor sheet is closed
+    // and reopened. Explicitly re-render the actor sheet here when the
+    // edited item is embedded; the sheet's own coalesce/race guards already
+    // handle the case where the user hasn't opened it.
+    if (this.object.isEmbedded && this.object.actor?.sheet?.rendered) {
+      this.object.actor.sheet.render(false);
+    }
+
     if (this.object.type === "talent") {
       if (this.object.flags?.clickfromparent?.length) {
         let listofparents = JSON.parse(JSON.stringify(this.object.flags.clickfromparent));
