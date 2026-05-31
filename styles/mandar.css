@@ -183,7 +183,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   padding: 0 2px;
   color: inherit;
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 1em;
   white-space: nowrap;
 }
 
@@ -192,7 +192,23 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 }
 
 .starwarsffg.application.sheet > .window-header > .legacy-header-action > i {
-  font-size: 0.9em;
+  font-size: 1em;
+}
+
+/* V13 ApplicationV2 header glyph buttons (⋮ Toggle Controls, globe Copy
+   Document UUID, × Close Window) render as bright white pills because
+   V13's base `button` background-color leaks past the `.header-control`
+   reset. Force transparent here too so the mandar theme keeps the fix. */
+.starwarsffg.application.sheet > .window-header button.header-control,
+.starwarsffg.application.sheet > .window-header button.header-control:hover,
+.starwarsffg.application.sheet > .window-header button.header-control:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  /* Match the legacy-header-action label color so the glyphs aren't
+     visually disconnected from the "Sheet Options" label. */
+  color: inherit !important;
+  --button-text-color: inherit !important;
 }
 
 .hidden-content {

@@ -194,14 +194,34 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   padding: 0 2px;
   color: inherit;
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 1em;
   white-space: nowrap;
 }
 .starwarsffg.application.sheet > .window-header > .legacy-header-action:hover {
   text-shadow: 0 0 6px var(--color-shadow-highlight, #ffae00);
 }
 .starwarsffg.application.sheet > .window-header > .legacy-header-action > i {
-  font-size: 0.9em;
+  font-size: 1em;
+}
+
+/* V13 ApplicationV2 header glyph buttons (Toggle Controls = ⋮,
+   Copy Document UUID = globe, Close Window = ×). V13's base button rule
+   gives every <button> a cool-5-50 (light gray) background; the
+   `.header-control` rule meant to clear that gets out-specificity'd in
+   our cascade, so the buttons render as bright white pills against the
+   header. Force the background to transparent. */
+.starwarsffg.application.sheet > .window-header button.header-control,
+.starwarsffg.application.sheet > .window-header button.header-control:hover,
+.starwarsffg.application.sheet > .window-header button.header-control:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  /* Match the legacy-header-action label color (which uses `color:
+     inherit`). V13's default `.header-control` sets
+     `--button-text-color: var(--color-light-1)` (near-white), which made
+     the glyphs visually disconnected from the "Sheet Options" label. */
+  color: inherit !important;
+  --button-text-color: inherit !important;
 }
 
 /* V2 ApplicationV2 compat: V13 renders .window-resize-handle as a blank
