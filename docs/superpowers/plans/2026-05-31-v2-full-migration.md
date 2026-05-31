@@ -51,7 +51,12 @@ last PR of the stage.
   passes `{render: false}` to AE updates so the inner `this.object` rebind
   doesn't clobber the typed value. Keep.
 - Header dblclick veto of V13's built-in handler on Sheet Options / legacy
-  header actions / `[data-action]` controls. Native form does not need this.
+  header actions / `[data-action]` controls. This is a V13 behavior, not a
+  V1/V2 framework difference — V13's `#onWindowDoubleClick` minimizes on any
+  header dblclick whose target lacks `data-action`. Port or prove unnecessary
+  per control (e.g. drop the veto if Sheet Options gets ported to a real
+  V13 `data-action` header control; keep it if any of our injected header
+  affordances stay non-action `<a>` elements).
 - `_minimizing` flag / detach guard around `setPosition`. Native form likely
   does not need either — but verify before deletion.
 - Active-tab cache (`_activeTabCache` keyed by `${className}:${uuid}`) — keep
@@ -121,15 +126,23 @@ naming the replacement and a reference to this plan path. Example:
 - [ ] **Step 0.2: Add lint guard for new imports**
 
 The repo uses ESLint flat config (`eslint.config.mjs`). A plain global
-`no-restricted-imports` rule would immediately flag the existing 24
-importers on the inventory list. Instead use a two-config override pattern:
+`no-restricted-imports` rule would immediately flag the existing importers
+on the inventory list (23 unique files, 26 import statements counting
+internal compat-to-compat imports). Instead use a two-config override
+pattern:
 
 1. Add a default config block that turns `no-restricted-imports` to `error`
-   for paths matching `**/dialog-v2-compat`, `**/form-application-v2-compat`,
-   and `**/sheets/*-v2-compat`.
+   for paths matching `**/dialog-v2-compat.js`,
+   `**/form-application-v2-compat.js`, and `**/sheets/*-v2-compat.js`.
+   The `.js` suffix is required because the existing import statements
+   include it (`from "./apps/dialog-v2-compat.js"`); patterns without `.js`
+   would not match.
 2. Add a second config block with `files: [...]` matching the existing
-   importers (the 22 files listed in the inventory plus the 5 compat modules
-   themselves) and override the rule back to `off` for those files only.
+   importers (the 21 external importers plus the 2 compat-to-compat
+   internal importers — `modules/sheets/actor-sheet-v2-compat.js` and
+   `modules/sheets/item-sheet-v2-compat.js` both import from
+   `document-sheet-v2-compat.js`) and override the rule back to `off`
+   for those files only.
 
 After each stage's call-site port, remove the now-clean files from the
 allowlist (Step `N.last` in each stage explicitly drops them). The allowlist
@@ -141,9 +154,9 @@ blocks come out together in Stage 5.
 {
   rules: {
     "no-restricted-imports": ["error", { patterns: [
-      "**/dialog-v2-compat",
-      "**/form-application-v2-compat",
-      "**/sheets/*-v2-compat",
+      "**/dialog-v2-compat.js",
+      "**/form-application-v2-compat.js",
+      "**/sheets/*-v2-compat.js",
     ]}],
   },
 },
@@ -151,7 +164,7 @@ blocks come out together in Stage 5.
   files: [
     "modules/actors/actor-ffg-options.js",
     "modules/actors/actor-sheet-ffg.js",
-    // ... full list from inventory
+    // ... full list from inventory (23 files total)
   ],
   rules: { "no-restricted-imports": "off" },
 },
@@ -164,12 +177,15 @@ only files on the allowlist.
 - [ ] **Step 0.3: Land the focused regression harness**
 
 Add `tests/v2-migration/{dialog-submit,sheet-tab-cache,form-submit-coalesce}.test.js`
-per the "Focused regression harness" section below. Wire a `scripts.test`
-entry in `package.json` if one isn't already present. CI must run the
-harness on every PR for stages 1–5.
+per the "Focused regression harness" section below. Register the three
+suites in `tests/ffg-tests.js` alongside the existing
+`HelpersTests` / `ModifiersTests` / `TalentTreeTests` registrations so
+they appear when GM opens the Functional Tests panel.
 
-**Acceptance:** the three tests pass against the V2-port baseline
-(`d7a0acdc`) so they can be used as tripwires for later stages.
+**Acceptance:** opening Functional Tests in a localhost world with the
+test data flag set shows the three new suites and they pass against the
+V2-port baseline (`d7a0acdc`). Future stage PRs include a checkbox
+"V2-migration suite green" in the PR description.
 
 - [ ] **Step 0.4: Land per-stage verification checklist scaffolding**
 
@@ -370,6 +386,11 @@ When grep for the symbol returns zero hits, delete
 - The render-race protection / submit-coalescing previously guaranteed by the
   compat layer is either preserved by the native form handler or proven
   unnecessary (verify by repeating the original repro for each guard).
+- **Mandar theme verification**: switch the world to the Mandar theme and
+  re-run the destiny pool, popout editor, popout modifiers, and dice pool
+  flows. Confirm no visible regressions (the destiny halo, modifier list
+  scroll, popout editor fill, and editor save button all behave the same
+  under Mandar as under the default theme).
 
 ---
 
@@ -392,16 +413,30 @@ label `"Item Sheet v2"` while `ItemSheetFFG` stays registered as
 they share the same base. The wrapper must be collapsed.
 
 Decision to make at the start of the stage:
-- **Collapse** — fold the `v2` class and `scrollY` differences into
-  `ItemSheetFFG`, delete `item-sheet-ffg-v2.js`, and unregister the V2 entry.
-  Existing worlds that selected the V2 sheet will keep working if we keep
-  `ItemSheetFFGV2` as a deprecated alias for one release.
+- **Collapse with deprecated alias** *(default)* — fold the `v2` class and
+  `scrollY` differences into `ItemSheetFFG`, delete the `ItemSheetFFGV2`
+  class body, but keep `export class ItemSheetFFGV2 extends ItemSheetFFG {}`
+  as a one-release deprecated alias and keep its registration entry. Worlds
+  that have `item.flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
+  working without intervention. The alias and its registration are removed
+  in the release *after* V2-full lands.
+- **Collapse with migration** — same as above but actively rewrite stored
+  sheet-class selections on world load. Add a one-shot migration in
+  `swffg-migration.js` that finds every document with
+  `flags.core.sheetClass` referencing `ItemSheetFFGV2` or `ActorSheetFFGV2`
+  and rewrites it to the kept class name. Once the migration version flag
+  ticks past V2-full's version, the migration is a no-op and can be deleted.
 - **Replace** — keep `ItemSheetFFGV2` as the public class name, delete
-  `ItemSheetFFG` and rename the file. The V1 registration goes away.
+  `ItemSheetFFG` and rename the file. The V1 registration goes away. No
+  migration needed for V2 users, but V1 users (anyone who selected the V1
+  sheet manually) need a flag rewrite the other direction.
 
-The plan assumes **collapse** unless the project decides otherwise during
-this stage. Either way, the sheet-registration call at `swffg-main.js:848-854`
-must end up with exactly one item-sheet registration (no v1/v2 fork).
+The plan defaults to **collapse with deprecated alias** because it's the
+lowest-friction path for existing worlds. Stage 3.7 below assumes that
+choice; switch the step's wording if the project picks a different
+decision. Either way, the sheet-registration call at `swffg-main.js:848-854`
+must end up with one *real* item-sheet registration plus at most one
+deprecated alias entry.
 
 **Migration pattern:**
 
@@ -429,12 +464,18 @@ Per-task steps:
 - [ ] **Step 3.5: Active-tab cache reattachment**
 - [ ] **Step 3.6: Header projection / Sheet Options injection — port or
   delete based on whether the V13 dropdown is acceptable**
-- [ ] **Step 3.7: Collapse `item-sheet-ffg-v2.js`** — fold its option
-  differences into `ItemSheetFFG`, delete the file, and update
-  `swffg-main.js:852-854` so only one item-sheet entry registers (no
-  `makeDefault: true` fork). Drop the imports of `ItemSheetFFGV2` from
-  `swffg-main.js` and any other consumers. Update sheet labels
-  (`"Item Sheet v1"` / `"Item Sheet v2"`) to a single `"Item Sheet"` entry.
+- [ ] **Step 3.7: Collapse `item-sheet-ffg-v2.js`** (default = collapse
+  with deprecated alias) — fold its option differences (`v2` class,
+  `scrollY: [".sheet-body", ".tab"]`, initial tab `"attributes"`) into
+  `ItemSheetFFG`, replace the file body with the alias
+  `export class ItemSheetFFGV2 extends ItemSheetFFG {}` plus a JSDoc
+  `@deprecated` block referencing this plan. Update `swffg-main.js:852-854`:
+  - Drop `makeDefault: true` from the V2 entry (V1 entry takes it).
+  - Update label `"Item Sheet v2"` → `"Item Sheet v2 (deprecated, use Item Sheet)"`.
+  - Keep the registration so `item.flags.core.sheetClass === "ffg.ItemSheetFFGV2"`
+    in existing worlds keeps resolving.
+
+  Schedule removal of the alias for the release after V2-full lands.
 - [ ] **Step 3.8: Delete `item-sheet-v2-compat.js`**
 
 **Acceptance:**
@@ -448,6 +489,15 @@ Per-task steps:
 - The render-race guards for biography editor / embedded editors hold.
 - Sheet Options + Add Source / Add Tag still single-instance with proper
   focus and close-path cleanup (from the V2-port review).
+- **Mandar theme verification**: switch the world to the Mandar theme and
+  re-run a representative subset (weapon, talent, career, species, item
+  attachment + Add Source/Tag + Sheet Options). Confirm body overflow
+  flex rules, `.metadata-add-control` positioning, sheet-body scroll
+  region, and Sheet Options dialog grid layout match the default theme.
+- **Saved sheet-class settings**: confirm a world with documents whose
+  `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` opens those documents
+  without falling back, then explicitly verifies the deprecated alias
+  registration appears in the sheet config picker with the new label.
 
 ---
 
@@ -471,10 +521,16 @@ adversary variant. `swffg-main.js:847-851` registers both V1 and V2
 flavours, with V2 as `makeDefault: true`. After native migration the V2
 suffix is redundant.
 
-Same decision as Stage 3 — **collapse** by default. Fold the option
-differences into `ActorSheetFFG` / `AdversarySheetFFG`, delete the
-`-ffg-v2.js` files, and end up with one actor-sheet registration per
-sheet kind (`Actor Sheet`, `Adversary Sheet`).
+Same decision tree as Stage 3 — **collapse with deprecated alias** by
+default. Fold the option differences into `ActorSheetFFG` /
+`AdversarySheetFFG`, replace each V2 file body with a one-line alias
+class plus `@deprecated` JSDoc, drop `makeDefault: true` from the V2
+registration entries, and relabel them
+`"Actor Sheet v2 (deprecated, use Actor Sheet)"` /
+`"Adversary Sheet v2 (deprecated, use Adversary Sheet)"`. Existing worlds
+with `actor.flags.core.sheetClass === "ffg.ActorSheetFFGV2"` keep
+working. The aliases and their registrations get removed in the release
+*after* V2-full lands.
 
 Per-task steps:
 
@@ -494,10 +550,21 @@ Per-task steps:
   `ModifierHelpers.applyActiveEffectOnUpdate` — confirm the `{render: false}`
   on inner AE updates is still needed under native form handler; keep if so**
 - [ ] **Step 4.8: Collapse `actor-sheet-ffg-v2.js` and
-  `adversary-sheet-ffg-v2.js`** — fold option differences into the V1
-  classes, delete the V2 wrapper files, and update `swffg-main.js:847-851`
-  so each actor sheet kind registers exactly once with the labels `"Actor
-  Sheet"` and `"Adversary Sheet"`. Drop the V2 imports from `swffg-main.js`.
+  `adversary-sheet-ffg-v2.js`** (default = collapse with deprecated alias) —
+  fold option differences (template path, V2 class, scrollY, tab nav
+  selector) into the V1 classes, replace each V2 file body with the
+  one-line alias class plus `@deprecated` JSDoc, and update
+  `swffg-main.js:847-851`:
+  - Drop `makeDefault: true` from each V2 registration entry (V1 entries
+    take it).
+  - Update labels `"Actor Sheet v2"` / `"Adversary Sheet v2"` to
+    `"Actor Sheet v2 (deprecated, use Actor Sheet)"` /
+    `"Adversary Sheet v2 (deprecated, use Adversary Sheet)"`.
+  - Keep the V2 registrations so worlds with
+    `actor.flags.core.sheetClass === "ffg.ActorSheetFFGV2"` keep
+    resolving.
+
+  Schedule removal of the aliases for the release after V2-full lands.
 - [ ] **Step 4.9: Delete `actor-sheet-v2-compat.js` and
   `document-sheet-v2-compat.js`**
 
@@ -511,6 +578,15 @@ Per-task steps:
 - Minimize / restore via header dblclick works; resize handle hidden when
   minimized; width fits title.
 - Sheet Options injection (or V13 dropdown equivalent) still single-instance.
+- **Mandar theme verification**: switch to Mandar and re-run
+  character + minion + vehicle. Confirm character body fill (no gray
+  strip), minion derived-data fields update on input change, vehicle
+  body flex, header glyph colors, and the chat-action button layout from
+  `mandar.css` survive.
+- **Saved sheet-class settings**: confirm worlds with
+  `actor.flags.core.sheetClass === "ffg.ActorSheetFFGV2"` or
+  `"ffg.AdversarySheetFFGV2"` open without fallback, with the deprecated
+  alias entries visible in the sheet config picker.
 
 ---
 
@@ -557,18 +633,46 @@ When 5.5 passes, this is the only merge to `main`. Tag the merge commit
 **Acceptance:**
 - No `*-compat.js` files anywhere in `modules/`.
 - `grep -rn '\(FFGDocumentSheetV2\|ActorSheetV2Compat\|ItemSheetV2Compat\|FormApplicationV2Compat\|DialogV2Compat\)' modules/` returns zero hits.
-- Full regression sweep clean.
+- Full regression sweep clean **under both default and Mandar themes**.
 - `V2-full` merged to `main`.
 
 ---
 
 ## Focused regression harness
 
-A new `tests/v2-migration/` directory adds three Mocha scenario files.
-Each is a small, self-contained smoke test that exercises one of the
-high-risk behaviors named in the risk register. The tests are not
-exhaustive sheet-behavior coverage; they are tripwires for silent
-regressions during the migration.
+**Execution model.** The repo's existing tests do not have a CLI runner.
+`tests/ffg-tests.js` extends `FormApplication` and registers Mocha at
+runtime *inside Foundry*, triggered from `swffg-main.js:1380` when
+`localhost` + a system data flag are set. `.github/workflows/main.yml`
+fires only on `release: published`, not on PRs. So
+"`mocha tests/v2-migration/**/*.test.js`" is not actually a runnable
+command for this codebase.
+
+Two viable paths for this harness, ordered from minimum-bootstrap to
+most-coverage:
+
+1. **Extend the in-Foundry runner (default for this plan).** Add the new
+   tests as Mocha suite functions in `tests/v2-migration/*.test.js`, then
+   register them in `tests/ffg-tests.js` alongside the existing
+   `HelpersTests` / `ModifiersTests` / `TalentTreeTests` suites. Stage
+   acceptance includes the manual step "open Functional Tests in the live
+   Foundry world, run the suite, confirm the V2-migration suite passes."
+   No CI bootstrap is required. Trade-off: tests are not gated by CI; an
+   honour-system step on every stage PR description.
+2. **Bootstrap Playwright (stretch).** Add a `tests/playwright/` runner
+   that starts a Foundry V13 server, navigates to the join page as GM,
+   loads the test world, triggers `new FFGFunctionalTests().render(true)`,
+   waits for the Mocha JSON reporter output, and asserts pass count.
+   Add a `pr-checks.yml` GitHub Actions workflow triggered on
+   `pull_request: [opened, synchronize]` that runs the Playwright suite.
+   Trade-off: ~1-2 days of bootstrap work for a true PR gate. Mark this as
+   a separate sub-task; the migration does not block on it.
+
+The plan's default is path (1). Stages 1-5 acceptance lists assume the
+in-Foundry run. Path (2) lands as an independent improvement and can
+upgrade any later stage's acceptance criterion from manual to CI-gated.
+
+**Tests:**
 
 - [ ] **`tests/v2-migration/dialog-submit.test.js`** — Build a minimal
   fixture dialog (the same shape as Add Source / XP Adjust), drive it
@@ -582,7 +686,7 @@ regressions during the migration.
   document sheet, activate tab "tab2", close, reopen. Assert the cache
   key (currently `${className}:${uuid}`) is set and that the reopened
   sheet activates "tab2". Then re-render in place and assert the active
-  tab does not snap back to the default. This catches the duplicate-Tabs-
+  tab does not snap back to the default. Catches the duplicate-Tabs-
   binding regression the second-pass review fixed.
 - [ ] **`tests/v2-migration/form-submit-coalesce.test.js`** — Simulate
   multiple synchronous change events on a fixture form (the spec-tree
@@ -590,9 +694,6 @@ regressions during the migration.
   single `_updateObject` call and that the final `formData` reflects the
   *last* change, not the first. Catches loss of the submit-coalesce
   invariant.
-
-Run with the existing test runner (`npm test` if defined; otherwise add a
-`scripts.test` that runs `mocha tests/v2-migration/**/*.test.js`).
 
 Each stage that touches the corresponding behavior must keep these tests
 passing. The harness lands once in Stage 0 (alongside the lint guard) so
