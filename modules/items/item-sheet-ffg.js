@@ -1653,10 +1653,21 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       return;
     }
 
-    new DialogV2Compat(
+    // Synchronous re-entry guard: a purchase dialog is already open (or being
+    // opened), so ignore this click. This flag is set BEFORE any await or
+    // dialog construction -- an earlier version closed the prior dialog with
+    // `await`, but that await yields to the event loop and lets a second fast
+    // click interleave and open its own window. A plain synchronous flag can't
+    // be raced: each click handler runs its sync portion to completion before
+    // the next runs. Cleared when the dialog closes (purchase / cancel / x).
+    if (this._purchaseDialogOpen) return;
+    this._purchaseDialogOpen = true;
+
+    const purchaseDialog = new DialogV2Compat(
       {
         title: game.i18n.localize(config.titleKey),
         content: game.i18n.format(config.contentKey, {cost: cost, upgrade: upgradeName}),
+        close: () => { this._purchaseDialogOpen = false; },
         buttons: {
           done: {
             icon: '<i class="fa-regular fa-circle-up"></i>',
@@ -1714,7 +1725,8 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       {
         classes: ["dialog", "starwarsffg"],
       }
-    ).render(true);
+    );
+    purchaseDialog.render(true);
   }
 
   async _buyForcePowerUpgrade(event) {
