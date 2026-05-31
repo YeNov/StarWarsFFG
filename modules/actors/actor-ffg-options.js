@@ -19,6 +19,14 @@ export default class ActorOptions {
    */
   static _suspendedAECache = new Map();
 
+  /**
+   * Per-actor Sheet Options dialog instance, keyed by actor uuid. Used to
+   * enforce a single-instance policy: a second click on the Sheet Options
+   * button while a dialog is already open should focus it rather than open
+   * a second copy. Entries are removed when the dialog closes.
+   */
+  static _openDialogs = new Map();
+
   constructor(data, html) {
     this.data = data;
     this.options = {};
@@ -86,9 +94,18 @@ export default class ActorOptions {
     // window header handling.
     event?.preventDefault?.();
     event?.stopPropagation?.();
+
+    // Allow only one Sheet Options dialog per actor at a time. Repeated
+    // clicks should focus the existing dialog rather than stacking new ones.
+    const openKey = this.data.object.uuid;
+    const existing = ActorOptions._openDialogs.get(openKey);
+    if (existing?.app?.rendered) {
+      existing.app.bringToFront?.();
+      return;
+    }
     const title = `${game.i18n.localize("SWFFG.CharacterSheet")} ${game.i18n.localize("SWFFG.Options")}: ${this.data.actor.name}`;
 
-    new DialogV2Compat(
+    const dialog = new DialogV2Compat(
       {
         title,
         content: {
@@ -151,7 +168,21 @@ export default class ActorOptions {
         classes: ["dialog", "starwarsffg"],
         template: "systems/starwarsffg/templates/dialogs/ffg-sheet-options.html",
       }
-    ).render(true);
+    );
+    ActorOptions._openDialogs.set(openKey, dialog);
+    // Drop the entry whether the dialog is dismissed via a button, the close
+    // (×) control, or Esc, so a fresh click reopens a new dialog.
+    const drop = () => {
+      if (ActorOptions._openDialogs.get(openKey) === dialog) {
+        ActorOptions._openDialogs.delete(openKey);
+      }
+    };
+    const wrappedClose = dialog.close.bind(dialog);
+    dialog.close = async (...args) => {
+      try { return await wrappedClose(...args); }
+      finally { drop(); }
+    };
+    dialog.render(true);
   }
 
   async register(optionName, options) {

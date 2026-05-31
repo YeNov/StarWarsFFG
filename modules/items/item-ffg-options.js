@@ -1,6 +1,13 @@
 import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 export default class ItemOptions {
+  /**
+   * Per-item Sheet Options dialog instance, keyed by item uuid. Single-
+   * instance guard so a second click on Sheet Options focuses the existing
+   * dialog instead of stacking another one.
+   */
+  static _openDialogs = new Map();
+
   constructor(data, html) {
     this.data = data;
     this.options = {};
@@ -68,9 +75,16 @@ export default class ItemOptions {
     // window header handling.
     event?.preventDefault?.();
     event?.stopPropagation?.();
+
+    const openKey = this.data.item.uuid;
+    const existing = ItemOptions._openDialogs.get(openKey);
+    if (existing?.app?.rendered) {
+      existing.app.bringToFront?.();
+      return;
+    }
     const title = `${game.i18n.localize("SWFFG.ItemSheet")} ${game.i18n.localize("SWFFG.Options")}: ${this.data.item.name}`;
 
-    new DialogV2Compat(
+    const dialog = new DialogV2Compat(
       {
         title,
         content: {
@@ -120,7 +134,19 @@ export default class ItemOptions {
         classes: ["dialog", "starwarsffg"],
         template: "systems/starwarsffg/templates/dialogs/ffg-sheet-options.html",
       }
-    ).render(true);
+    );
+    ItemOptions._openDialogs.set(openKey, dialog);
+    const drop = () => {
+      if (ItemOptions._openDialogs.get(openKey) === dialog) {
+        ItemOptions._openDialogs.delete(openKey);
+      }
+    };
+    const wrappedClose = dialog.close.bind(dialog);
+    dialog.close = async (...args) => {
+      try { return await wrappedClose(...args); }
+      finally { drop(); }
+    };
+    dialog.render(true);
   }
 
   async register(optionName, options) {
