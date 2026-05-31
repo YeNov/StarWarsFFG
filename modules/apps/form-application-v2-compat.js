@@ -181,8 +181,13 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
     const form = this.form;
     if (form) {
       form.dataset.appid = this.appId;
-      form.addEventListener("submit", this._onSubmit.bind(this));
-      form.addEventListener("change", this._onChangeInput.bind(this));
+      // Attach once per form element: ApplicationV2 reuses the content <form>
+      // across re-renders, so re-binding here would stack duplicate handlers.
+      if (!form.dataset.ffgListenersBound) {
+        form.dataset.ffgListenersBound = "1";
+        form.addEventListener("submit", this._onSubmit.bind(this));
+        form.addEventListener("change", this._onChangeInput.bind(this));
+      }
     }
     this.element.dataset.appid = this.appId;
 
@@ -279,10 +284,11 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
   }
 
   _onChangeInput(event) {
-    const target = event.currentTarget;
-    if (target?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
-
+    // The change listener is bound to the form, so event.currentTarget is the
+    // form itself -- never an editor. Guard on the actual changed element.
     const input = event.target;
+    if (input?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
+
     if (input?.type === "range") {
       const field = input.parentElement?.querySelector(".range-value");
       if (field) {
@@ -294,24 +300,58 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
     if (this.options.submitOnChange) return this._onSubmit(event);
   }
 
-  async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false } = {}) {
+  async _onSubmit(event, options = {}) {
+    let { updateData = null, preventClose = false, preventRender = false } = options;
     event?.preventDefault?.();
-    if (!this.form || !this.isEditable || this._submitting) return false;
+    if (!this.form || !this.isEditable) return false;
+
+    // Coalesce concurrent submits and return the in-flight promise so callers
+    // that await _onSubmit before tearing down DOM (close / inner editor save
+    // flows) wait for the flushed submit. Mirrors FFGDocumentSheetV2.
+    if (this._submitting) {
+      this._submitPending = { updateData, preventClose };
+      return this._submitInFlight;
+    }
 
     this._submitting = true;
-    const formData = this._getSubmitData(updateData);
+    let formData;
+    let currentPreventClose = preventClose;
     const priorState = this._state;
     if (preventRender) this._state = 1;
 
+    let resolveFlush;
+    let rejectFlush;
+    this._submitInFlight = new Promise((res, rej) => { resolveFlush = res; rejectFlush = rej; });
+
+    let iter = 0;
     try {
-      await this._updateObject(event, formData);
+      do {
+        if (iter++ > 8) {
+          console.warn("starwarsffg | _onSubmit coalesce loop exceeded 8 iterations; bailing");
+          break;
+        }
+        this._submitPending = null;
+        formData = this._getSubmitData(updateData);
+        await this._updateObject(event, formData);
+        if (this._submitPending) {
+          if (!this._submitPending.preventClose) currentPreventClose = false;
+          updateData = this._submitPending.updateData ?? updateData;
+        }
+      } while (this._submitPending);
+
+      if (this.options.closeOnSubmit && !currentPreventClose) {
+        await this.close({ submit: false, force: true });
+      }
+      resolveFlush(formData);
+      return formData;
+    } catch (err) {
+      rejectFlush(err);
+      throw err;
     } finally {
       this._submitting = false;
+      this._submitInFlight = null;
       if (preventRender) this._state = priorState;
     }
-
-    if (this.options.closeOnSubmit && !preventClose) await this.close({ submit: false, force: true });
-    return formData;
   }
 
   _getSubmitData(updateData = {}) {

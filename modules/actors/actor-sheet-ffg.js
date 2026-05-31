@@ -1451,7 +1451,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       let newKey = document.createElement("div");
       newKey.innerHTML = `<input type="text" name="data.dutylist.${nk}.type" value="" style="display:none;"/><input class="attribute-value" type="text" name="data.dutylist.${nk}.magnitude" value="0" data-dtype="Number" placeholder="0"/>`;
       form.appendChild(newKey);
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     });
 
     html.find(".remove-duty").on("click", async (event) => {
@@ -1960,18 +1960,18 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     var filter = a.id;
     $(a).prop("checked", true);
     filters.filter = filter;
-    await this._onSubmit(event);
+    await this._onSubmit(event, { render: true });
   }
   /* -------------------------------------------- */
 
   /** @override */
-  async _updateObject(event, formData) {
+  async _updateObject(event, formData, { render = false } = {}) {
     const actorUpdate = ActorHelpers.updateActor.bind(this);
     // Save persistent sheet height and width for future use.
     this.sheetWidth = this.position.width;
     this.sheetHeight = this.position.height;
 
-    await actorUpdate(event, formData);
+    await actorUpdate(event, formData, { render });
   }
 
   /**
@@ -2738,12 +2738,12 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
   }
 
   /** @override **/
-  async _onSubmit(event) {
+  async _onSubmit(event, options = {}) {
     const formValid = event?.target?.form?.reportValidity();
     if (formValid === false) {
       return;
     }
-    return await super._onSubmit(event);
+    return await super._onSubmit(event, options);
   }
 
   /**

@@ -1,7 +1,7 @@
 import ModifierHelpers from "./modifiers.js";
 
 export default class ItemHelpers {
-  static async itemUpdate(event, formData) {
+  static async itemUpdate(event, formData, { render = false } = {}) {
     formData = foundry.utils.expandObject(formData);
 
     if (this.object.isEmbedded && this.object.actor?.compendium?.metadata) {
@@ -38,10 +38,15 @@ export default class ItemHelpers {
     delete formData._id;
 
     foundry.utils.setProperty(formData, `flags.starwarsffg.loaded`, false);
-    await this.object.update(formData);
+    await this.object.update(formData, { render });
     // sync the active effect state (if applicable). needs to be after the update so we have the updated state
     await ItemHelpers.syncAEStatus(this.object, this.object.getEmbeddedCollection("ActiveEffect"));
-    await this.render(true);
+    // Gate the explicit sheet re-render on the render flag. With the auto-
+    // render hook suppressed (render: false from the change pipeline), an
+    // unconditional this.render(true) here would re-introduce the mid-
+    // interaction DOM swap that the render-race fix removes. Structural and
+    // editor-save flows pass render: true to get the redraw they need.
+    if (render) await this.render(true);
 
     if (this.object.type === "talent") {
       if (this.object.flags?.clickfromparent?.length) {

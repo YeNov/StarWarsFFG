@@ -216,8 +216,17 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (form) {
       this._applyLegacyRootClasses(form, context);
       form.dataset.appid = this.appId;
-      form.addEventListener("submit", this._onSubmit.bind(this));
-      form.addEventListener("change", this._onChangeInput.bind(this));
+      // ApplicationV2 reuses the content <form> element across re-renders
+      // (only its innerHTML is replaced), so attaching submit/change handlers
+      // on every _onRender stacks duplicate listeners. Each duplicate fires
+      // its own submit; with submit-coalescing that becomes one redundant
+      // document.update per accumulated render. Attach exactly once per form
+      // element, guarded by a dataset flag.
+      if (!form.dataset.ffgListenersBound) {
+        form.dataset.ffgListenersBound = "1";
+        form.addEventListener("submit", this._onSubmit.bind(this));
+        form.addEventListener("change", this._onChangeInput.bind(this));
+      }
     }
     this.element.dataset.appid = this.appId;
 
@@ -547,10 +556,11 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
   }
 
   _onChangeInput(event) {
-    const target = event.currentTarget;
-    if (target?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
-
+    // The change listener is bound to the form, so event.currentTarget is the
+    // form itself -- never an editor. Guard on the actual changed element.
     const input = event.target;
+    if (input?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
+
     if (input?.type === "color" && input.dataset.edit && this.form?.elements[input.dataset.edit]) {
       this.form.elements[input.dataset.edit].value = input.value;
     } else if (input?.type === "range") {
@@ -564,24 +574,64 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (this.options.submitOnChange) return this._onSubmit(event);
   }
 
-  async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false, render = true } = {}) {
+  async _onSubmit(event, options = {}) {
+    let { updateData = null, preventClose = false, preventRender = false, render = false } = options;
     event?.preventDefault?.();
-    if (!this.form || !this.isEditable || this._submitting) return false;
+    if (!this.form || !this.isEditable) return false;
+
+    // Coalesce concurrent submits. The previous `this._submitting` early-
+    // return dropped a change that arrived mid-flight -- exactly the spec-tree
+    // multi-click checkbox bug. Instead, record the pending request and return
+    // the in-flight promise so callers (close / _saveEditor) still wait for the
+    // flushed submit before tearing down DOM.
+    if (this._submitting) {
+      this._submitPending = { updateData, preventClose, render };
+      return this._submitInFlight;
+    }
 
     this._submitting = true;
-    const formData = this._getSubmitData(updateData);
+    let formData;
+    let currentRender = render;
+    let currentPreventClose = preventClose;
     const priorState = this._state;
     if (preventRender) this._state = 1;
 
+    let resolveFlush;
+    let rejectFlush;
+    this._submitInFlight = new Promise((res, rej) => { resolveFlush = res; rejectFlush = rej; });
+
+    let iter = 0;
     try {
-      await this._updateObject(event, formData, { render });
+      do {
+        if (iter++ > 8) {
+          console.warn("starwarsffg | _onSubmit coalesce loop exceeded 8 iterations; bailing");
+          break;
+        }
+        this._submitPending = null;
+        formData = this._getSubmitData(updateData);
+        await this._updateObject(event, formData, { render: currentRender });
+        // A pending submit registered while we awaited carries its intent
+        // forward: render: true wins, preventClose: false wins.
+        if (this._submitPending) {
+          if (this._submitPending.render) currentRender = true;
+          if (!this._submitPending.preventClose) currentPreventClose = false;
+          updateData = this._submitPending.updateData ?? updateData;
+        }
+      } while (this._submitPending);
+
+      if (this.options.closeOnSubmit && !currentPreventClose) {
+        await this.close({ submit: false, force: true });
+      }
+      resolveFlush(formData);
+      return formData;
+    } catch (err) {
+      rejectFlush(err);
+      throw err;
     } finally {
       this._submitting = false;
+      this._submitInFlight = null;
       if (preventRender) this._state = priorState;
     }
-
-    if (this.options.closeOnSubmit && !preventClose) await this.close({ submit: false, force: true });
-    return formData;
   }
 
   _getSubmitData(updateData = {}) {
@@ -602,7 +652,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     return this._updateObject(event, submitData);
   }
 
-  async _updateObject(_event, formData, { render = true } = {}) {
+  async _updateObject(_event, formData, { render = false } = {}) {
     return this.document.update(formData, { render });
   }
 

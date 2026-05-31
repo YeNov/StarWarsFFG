@@ -724,6 +724,14 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       await this._handleItemBuy(ev)
     });
 
+    // Cross-field reactivity: toggling "Ranked" shows/hides the rank-count
+    // field via {{#if data.ranks.ranked}}. The generic change pipeline now
+    // submits with render:false (render-race fix), so request an explicit
+    // re-render for this one field. Coalesces with the pipeline's own submit.
+    html.find('[name="data.ranks.ranked"]').on("change", async (ev) => {
+      await this._onSubmit(ev, { render: true });
+    });
+
     html.find(".source-control").click(async (ev) => {
       await this._handleSourceControl(ev);
     });
@@ -1731,7 +1739,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
   /* -------------------------------------------- */
 
   /** @override */
-  _updateObject(event, formData) {
+  async _updateObject(event, formData, { render = false } = {}) {
     if(this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
 
     // For standalone itemattachments, process the itemmodifier array notation from the modifications tab
@@ -1754,7 +1762,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     }
 
     const itemUpdate = ItemHelpers.itemUpdate.bind(this);
-    itemUpdate(event, formData);
+    await itemUpdate(event, formData, { render });
   }
 
   /**
@@ -1844,7 +1852,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
 
       $(".talent-grid").toggleClass("talent-disable-edit");
       $(".talent-uplink-connections").toggleClass("talent-disable-edit");
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     }
 
     if (action === "combine") {
@@ -1876,7 +1884,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
         $(`input[name='data.upgrades.${nextNextKey}.visible']`).val("false");
         $(`input[name='data.upgrades.${nextNextNextKey}.visible']`).val("false");
       }
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     }
 
     if (action === "split") {
@@ -1897,7 +1905,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
         $(`input[name='data.upgrades.${nextNextKey}.visible']`).val(true);
         $(`input[name='data.upgrades.${nextNextKey}.size']`).val("double");
       }
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     }
 
     if (action === "link-top") {
@@ -1907,7 +1915,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
         const currentValue = $(`input[name='data.${itemType}.${key}.links-top-${linkid}']`).val() == "true";
         $(`input[name='data.${itemType}.${key}.links-top-${linkid}']`).val(!currentValue);
 
-        await this._onSubmit(event);
+        await this._onSubmit(event, { render: true });
       }
     }
 
@@ -1917,7 +1925,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
         const currentValue = $(`input[name='data.${itemType}.${key}.links-right']`).val() == "true";
         $(`input[name='data.${itemType}.${key}.links-right']`).val(!currentValue);
 
-        await this._onSubmit(event);
+        await this._onSubmit(event, { render: true });
       }
     }
 
@@ -1939,7 +1947,7 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
         const inputElement = $(`input[name='data.uplink_nodes.${linkid}']`);
         const currentValue = inputElement.val() === "true";
         inputElement.val(!currentValue);
-        await this._onSubmit(event);
+        await this._onSubmit(event, { render: true });
       }
     }
   }
