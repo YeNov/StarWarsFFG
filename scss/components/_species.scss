@@ -1,6 +1,6 @@
 .item-sheet-species {
   $swffg-species-color: rgb(73, 12, 11);
-  
+
   .sheet-header {
     img {
       &.profile-img {
@@ -44,10 +44,10 @@
       }
     }
   }
-  
+
   .attribute {
     .block-title {
-      background-color: $swffg-species-color;  
+      background-color: $swffg-species-color;
     }
   }
 
@@ -64,7 +64,7 @@
           padding: 0 5px 0 5px;
           margin-bottom: 0;
         }
-         
+
         .weapon-values {
           margin: 0 5px;
           padding: 0 5px 0 5px;

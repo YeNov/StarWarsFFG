@@ -1,7 +1,7 @@
 .item-sheet-itemattachment {
   .profile-img-field {
     width: 25%;
-    
+
     img {
 
       &.profile-img {
@@ -24,7 +24,7 @@
         &:not(:first-child) {
           position: relative;
           text-align: center;
-  
+
           .quantity {
             top: 3px;
           }

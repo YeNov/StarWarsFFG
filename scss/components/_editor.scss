@@ -89,7 +89,7 @@ span.dietype {
   }
   &.remsetback {
     color: black;
-    
+
     &::after {
       content : "-";
       color: white;
@@ -101,7 +101,7 @@ span.dietype {
 
   &.restricted {
     color: #8b0000;;
-    
+
     &::after {
       content : "-";
       color: white;
@@ -142,7 +142,7 @@ span.dietype {
 
   &.adddifficulty {
     color: purple;;
-    
+
     &::after {
       content : "+";
       color: white;
@@ -155,7 +155,7 @@ span.dietype {
 
   &.updifficulty {
     color: purple;;
-    
+
     &::after {
       content : "\2191";
       color: white;
@@ -168,7 +168,7 @@ span.dietype {
 
   &.cancelthreat {
     color: black;
-    
+
     &::after {
       content : "\2716";
       color: red;

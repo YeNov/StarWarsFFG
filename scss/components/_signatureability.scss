@@ -14,7 +14,7 @@
 .item-sheet-signatureability {
   $swffg-signatureability-background: rgb(99, 0, 0);
   $swffg-signatureability-input-background: rgb(252, 173, 173);
-  
+
   .talent-background {
     .talent-header {
       background-color: $swffg-signatureability-background;
@@ -62,8 +62,8 @@
   }
   .talent-modifiers {
     position: absolute;
-    right:5px; 
-    bottom:2px; 
+    right:5px;
+    bottom:2px;
     z-index: 10;
   }
 }

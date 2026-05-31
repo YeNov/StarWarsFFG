@@ -32,7 +32,7 @@
       }
     }
   }
- 
+
   .window-content {
     overflow-y: hidden;
   }
@@ -69,14 +69,14 @@
     &.adjusted {
       color: #8b0000;
     }
-    
+
     .rank {
       padding-right: 15px;
       &:hover {
         color: green;
       }
     }
-  
+
     .item-delete {
       cursor: pointer;
       &:hover {

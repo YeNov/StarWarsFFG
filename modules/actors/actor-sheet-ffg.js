@@ -368,16 +368,10 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     // convert jquery element to HTMLElement for usage with Foundry calls
     const htmlElement = html.get(0);
 
-    // Activate tabs
-    const tabs = new foundry.applications.ux.Tabs({
-      navSelector: ".tabs",
-      contentSelector: ".sheet-body",
-      initial: this._sheetTab ?? "characteristics",
-      callback: (_event, _tabs, active) => {
-        this._sheetTab = active;
-      },
-    });
-    tabs.bind(htmlElement);
+    // Tabs are bound by FFGDocumentSheetV2._activateCoreListeners using the
+    // defaultOptions.tabs config and the per-document _activeTabCache. Do not
+    // re-bind here -- a second Tabs controller on the same nav would race and
+    // immediately activate the default tab, defeating the cache.
 
     html.find(".alt-tab").click((ev) => {
       const item = $(ev.currentTarget);
@@ -2798,6 +2792,15 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const sourceIndex = $(event.currentTarget).data("index");
     if (action === "add") {
+      if (this._addSourceDialogOpen) {
+        this._addSourceDialog?.app?.bringToFront?.();
+        return;
+      }
+      this._addSourceDialogOpen = true;
+      const releaseSourceLock = () => {
+        this._addSourceDialogOpen = false;
+        if (this._addSourceDialog === addSource) this._addSourceDialog = null;
+      };
       const addSource = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
         content: `
@@ -2823,14 +2826,17 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
           },
         },
         default: "submit",
+        close: releaseSourceLock,
       });
+      this._addSourceDialog = addSource;
       addSource.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      requestAnimationFrame(() => addSource.app?.bringToFront?.());
     } else if (action === "remove") {
       const sources = foundry.utils.deepClone(this.object.system.metadata.sources);
       sources.splice(sourceIndex, 1);
       await this.object.update({"system.metadata.sources": sources});
+      this.render(true);
     }
-    this.render(true);
   }
 
   /**
@@ -2845,6 +2851,15 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
+      if (this._addTagDialogOpen) {
+        this._addTagDialog?.app?.bringToFront?.();
+        return;
+      }
+      this._addTagDialogOpen = true;
+      const releaseTagLock = () => {
+        this._addTagDialogOpen = false;
+        if (this._addTagDialog === addTag) this._addTagDialog = null;
+      };
       const addTag = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
         content: `
@@ -2869,14 +2884,17 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
           },
         },
         default: "submit",
+        close: releaseTagLock,
       });
+      this._addTagDialog = addTag;
       addTag.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      requestAnimationFrame(() => addTag.app?.bringToFront?.());
     } else if (action === "remove") {
       const tags = foundry.utils.deepClone(this.object.system.metadata.tags);
       tags.splice(tagIndex, 1);
       await this.object.update({"system.metadata.tags": tags});
+      this.render(true);
     }
-    this.render(true);
   }
 }
 

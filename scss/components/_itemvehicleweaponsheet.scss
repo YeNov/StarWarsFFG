@@ -41,7 +41,7 @@
       background-color: $swffg-weapon-color;
     }
   }
-  
+
   .firing-arcs {
     gap: 0px;
     text-align: left;
@@ -54,9 +54,9 @@
       text-indent: -15px;
       font-size: .675rem;
     }
-    
+
     input[type="checkbox"] {
-    
+
       position: relative;
       padding: 0;
       margin: 0;
@@ -82,7 +82,7 @@
         overflow-x: hidden;
       }
     }
-  } 
+  }
 }
 
 &.sheet {
@@ -93,7 +93,7 @@
           padding: 0 5px 0 5px;
           margin-bottom: 0;
         }
-         
+
         .weapon-values {
           margin: 0 5px;
           padding: 0 5px 0 5px;

@@ -720,7 +720,6 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
   /** @override */
   activateListeners(html) {
     super.activateListeners(html);
-    const htmlElement = html.get(0);
     html.find(".ffg-purchase").click(async (ev) => {
       if(this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
       await this._handleItemBuy(ev)
@@ -790,17 +789,10 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       }
     }
 
-    // Activate tabs
-    const initialTab = this.options.tabs?.[0]?.initial ?? "description";
-    const tabs = new foundry.applications.ux.Tabs({
-      navSelector: ".tabs",
-      contentSelector: ".sheet-body",
-      initial: this._sheetTab ?? initialTab,
-      callback: (_event, _tabs, active) => {
-        this._sheetTab = active;
-      },
-    });
-    tabs.bind(htmlElement);
+    // Tabs are bound by FFGDocumentSheetV2._activateCoreListeners using the
+    // defaultOptions.tabs config and the per-document _activeTabCache. Do not
+    // re-bind here; a second Tabs controller on the same nav races and snaps
+    // back to the default tab on the next render.
 
     html.find(".items .item, .header-description-block .item, .injuries .item").click(async (ev) => {
       const li = $(ev.currentTarget);
@@ -1533,11 +1525,20 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     if (action === "add") {
       // Single-instance guard: a second click on `+` while an Add Source
       // dialog is open should focus that dialog, not stack another. Tracked
-      // per-sheet so different items each get their own dialog.
-      if (this._addSourceDialog?.app?.rendered) {
-        this._addSourceDialog.app.bringToFront?.();
+      // per-sheet so different items each get their own dialog. Use a sync
+      // flag set before any async hop -- DialogV2Compat.render is
+      // fire-and-forget and the dialog isn't `.app.rendered` until after the
+      // first render await resolves, so a fast double-click would otherwise
+      // slip through.
+      if (this._addSourceDialogOpen) {
+        this._addSourceDialog?.app?.bringToFront?.();
         return;
       }
+      this._addSourceDialogOpen = true;
+      const releaseSourceLock = () => {
+        this._addSourceDialogOpen = false;
+        if (this._addSourceDialog === addSource) this._addSourceDialog = null;
+      };
       const addSource = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
         content: `
@@ -1563,13 +1564,9 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
           },
         },
         default: "submit",
+        close: releaseSourceLock,
       });
       this._addSourceDialog = addSource;
-      const wrappedClose = addSource.close.bind(addSource);
-      addSource.close = async (...args) => {
-        try { return await wrappedClose(...args); }
-        finally { if (this._addSourceDialog === addSource) this._addSourceDialog = null; }
-      };
       addSource.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
       // V13 dialogs sometimes render with a stale z-index and land behind
       // the parent sheet. Force them to the front after the next paint.
@@ -1591,10 +1588,15 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      if (this._addTagDialog?.app?.rendered) {
-        this._addTagDialog.app.bringToFront?.();
+      if (this._addTagDialogOpen) {
+        this._addTagDialog?.app?.bringToFront?.();
         return;
       }
+      this._addTagDialogOpen = true;
+      const releaseTagLock = () => {
+        this._addTagDialogOpen = false;
+        if (this._addTagDialog === addTag) this._addTagDialog = null;
+      };
       const addTag = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
         content: `
@@ -1619,13 +1621,9 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
           },
         },
         default: "submit",
+        close: releaseTagLock,
       });
       this._addTagDialog = addTag;
-      const wrappedClose = addTag.close.bind(addTag);
-      addTag.close = async (...args) => {
-        try { return await wrappedClose(...args); }
-        finally { if (this._addTagDialog === addTag) this._addTagDialog = null; }
-      };
       addTag.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
       requestAnimationFrame(() => addTag.app?.bringToFront?.());
     } else if (action === "remove") {
