@@ -1079,12 +1079,22 @@ img {
 }
 
 .starwarsffg .shadow-text {
+  /* Center the label in the colored tab. The tab collapses to ~26px under
+     ApplicationV2 and its top ~10px hides behind the value box, so fill the
+     tab and flex-center the text with a padding-top that pushes the centering
+     into the visible bottom strip. (Matches scss/components/_sheet_base.scss.) */
   position: absolute;
-  bottom: 2%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 9px;
+  box-sizing: border-box;
   font-size: 9px;
-  left: 50%;
-  transform: translateX(-50%);
-  line-height: 1rem;
+  line-height: 1;
 }
 
 .starwarsffg .shadow-left {

@@ -156,11 +156,24 @@
   }
 
   .shadow-text {
+    /* Center the label in the colored tab. Under ApplicationV2 the tab
+       collapses to ~26px and its top ~10px is hidden behind the value-input
+       box, so only the bottom strip is visible. Fill the tab with an absolute
+       box (position:absolute keeps the ancestor clip-path from cutting the
+       text) and flex-center the text, with a padding-top to push the centering
+       down into the visible strip. */
     position: absolute;
-    top: 5px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 9px;
+    box-sizing: border-box;
     font-size: 9px;
-    left: 50%;
-    transform: translateX(-50%);
+    line-height: 1;
   }
 
   .shadow-left {
