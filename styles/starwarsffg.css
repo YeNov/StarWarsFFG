@@ -3,17 +3,6 @@
   font-family: "Roboto";
   src: url("../fonts/Roboto-Regular.ttf") format("truetype");
 }
-/* Minimized window state (V13 ApplicationV2). V13 sets inline
-   `style.maxWidth = var(--minimized-width)` (200px) and
-   `style.maxHeight = var(--header-height)` (36px) on minimize, then adds
-   `.minimized`. We:
-   - Widen the max-width so the title isn't truncated.
-   - Force the height to collapse to the header (our hand-maintained sheet
-     CSS includes `overflow: visible !important` so without explicit
-     height/max-height overrides the inline pre-minimize height keeps the
-     box tall).
-   - Hide the resize handle.
-   - Hide the form/window-content (V13 already does this; redundant safety). */
 .starwarsffg.minimized,
 .application.starwarsffg.minimized {
   width: max-content !important;
@@ -72,18 +61,11 @@ section {
 .window-app {
   font-family: "Roboto", sans-serif;
 }
-/* Applies to both V1 SECTION.window-content and V2 FORM.window-content;
-   the background and base font-size are wanted on both shapes. */
 .window-app .window-content {
   background: #cccccc;
   font-size: 9pt;
 }
 
-/* V2 ApplicationV2 compat: allow the right-side tab strip and other
-   absolutely-positioned chrome on legacy sheets to extend past the
-   application root, which Foundry V13's `applications` layer sets to
-   overflow:hidden. !important is required because that layer outranks
-   our `system` layer in V13's @layer order. */
 .starwarsffg.application.sheet {
   overflow: visible !important;
 }
@@ -104,42 +86,18 @@ section {
   content: unset !important;
 }
 
-/* V13 ApplicationV2 robustness: pin the title input's box dimensions.
-   V13 source rule (foundry2.css, applications layer):
-     body.game .app input[type="text"], ...input[type="number"], etc. {
-       height: var(--form-field-height);   // 26px
-       line-height: inherit;               // inherits "normal" from `.app`
-       padding: 1px 3px;
-     }
-   That rule and `body.game .app { line-height: normal; }` together keep
-   the actor/minion name input at 26px tall. Removing `.app`/`.window-app`
-   from the V2 root drops both, the input falls back to line-height ~32px
-   from V13's ApplicationV2 form layer and visibly clips the title row.
-   Mirror just the three sizing properties under V2-scoped selectors so
-   future Foundry releases that don't preserve `.app`/`.window-app` can't
-   regress the title size. (Class projection in document-sheet-v2-compat.js
-   is still our first line of defense; this rule is the safety net.) */
 .starwarsffg.application.sheet :is(.header-name, .minion-name) input {
   height: var(--form-field-height, 26px);
   line-height: normal;
   padding: 1px 3px;
 }
 
-/* V2 sheet content sizing (from b64598a4): keep the inner body panels
-   sized correctly for character/vehicle/item-talent sheets. */
 body.game .starwarsffg.application.sheet > form.window-content {
   height: calc(100% - 30px);
   min-height: 0;
 }
 body.game .starwarsffg.application.sheet.actor > form.window-content.character > .sheet-body,
 body.game .starwarsffg.application.sheet.actor > form.window-content.minion > .sheet-body {
-  /* form.window-content is a flex column under V13's ApplicationV2; let the
-     body fill all remaining vertical space below the .sheet-header rather
-     than computing a fixed rem-based offset. The old
-     `calc(100% - 15.75rem)` rule left a blank gray strip at the bottom
-     whenever the header's actual height did not exactly equal 15.75rem
-     (252px @ 16px root font) — true in V13 because the chrome above the
-     legacy header is shaped differently. */
   flex: 1 1 auto !important;
   min-height: 0 !important;
   height: auto !important;
@@ -154,18 +112,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
   min-height: 0;
 }
 
-/* V2 ApplicationV2: under V13 the window-content (form) is `display: flex;
-   flex-flow: column nowrap`. The various item sheets shipped a calc-based
-   height on `.sheet-body` (e.g. `height: calc(100% - 11.75rem)` on career,
-   `calc(100% - 21.1125rem)` on species, `calc(100% - 26.6125rem)` on
-   weapon, etc.) that assumed a fixed header height. V13's header chrome is
-   shaped differently, leaving the body either short with a gray strip
-   below or long with content overflowing past the sheet bounds.
-
-   Mirror the actor-sheet flex treatment: let the sheet body grow to fill
-   the remaining column space and scroll its own overflow instead of
-   leaking past the sheet. !important is required because the per-type
-   calc-height rules below use the same specificity. */
 body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -173,8 +119,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   overflow-y: auto !important;
 }
 
-/* Defensive: force FA Solid font-weight in case an ancestor selector
-   resets it to 400. */
 .starwarsffg .sheet-tabs i.fas,
 .starwarsffg .sheet-tabs i.fa-solid {
   font-weight: 900;
@@ -184,8 +128,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   font-weight: 400;
 }
 
-/* V1-style inline labeled header actions, projected from V13's window
-   controls by FFGDocumentSheetV2._projectLegacyHeaderControls. */
 .starwarsffg.application.sheet > .window-header > .legacy-header-action {
   display: inline-flex;
   align-items: center;
@@ -204,40 +146,23 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   font-size: 1em;
 }
 
-/* V13 ApplicationV2 header glyph buttons (Toggle Controls = ⋮,
-   Copy Document UUID = globe, Close Window = ×). V13's base button rule
-   gives every <button> a cool-5-50 (light gray) background; the
-   `.header-control` rule meant to clear that gets out-specificity'd in
-   our cascade, so the buttons render as bright white pills against the
-   header. Force the background to transparent. */
 .starwarsffg.application.sheet > .window-header button.header-control,
 .starwarsffg.application.sheet > .window-header button.header-control:hover,
 .starwarsffg.application.sheet > .window-header button.header-control:focus {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  /* Match the legacy-header-action label color (which uses `color:
-     inherit`). V13's default `.header-control` sets
-     `--button-text-color: var(--color-light-1)` (near-white), which made
-     the glyphs visually disconnected from the "Sheet Options" label. */
   color: inherit !important;
   --button-text-color: inherit !important;
 }
 
-/* V2 ApplicationV2 compat: V13 renders .window-resize-handle as a blank
-   16x16 square in the bottom-right corner. V1 painted a diagonal-arrow
-   glyph there so users could see the grip. Restore the glyph via a
-   pseudo-element on the V2 resize handle (also aliased as
-   .window-resizable-handle in document-sheet-v2-compat.js). The native
-   resize behavior is unaffected — V13 binds the handler on the handle
-   element regardless of pseudo-element children. */
 .starwarsffg.application.sheet > .window-resize-handle {
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
 }
 .starwarsffg.application.sheet > .window-resize-handle::before {
-  content: "\f424"; /* fa-up-right-and-down-left-from-center */
+  content: "\f424";
   font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free", "FontAwesome";
   font-weight: 900;
   font-size: 12px;
@@ -246,19 +171,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   pointer-events: none;
 }
 
-/* V2 ApplicationV2 compat: V13's .form-group defaults to flex-row
-   (label | form-fields | notes side-by-side). The legacy
-   templates/dialogs/ffg-sheet-options.html template was authored
-   against the V1 default of a stacked column layout, so the row
-   layout makes the label wrap awkwardly and pushes the hint into
-   a third column. Restore stacking *only* inside the sheet options
-   dialog root. */
-/* V1-style Sheet Options layout: every option uses a 2-column grid —
-   title + description stacked on the LEFT, active control on the RIGHT
-   (checkbox, text input, or select). Title and description sit tightly
-   together; options are well-separated vertically.
-   !important throughout because V13's `applications` layer rules win
-   the cascade against our `system` layer. */
 .starwarsffg.application.dialog .sheet-options-dialog .form-group {
   display: grid !important;
   grid-template-columns: 1fr auto !important;
@@ -305,9 +217,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   opacity: 0.85 !important;
 }
 
-/* Equalize checkbox sizes (V13's default unchecked-vs-checked render
-   visibly differently). Force a single appearance pipeline so the
-   light-orange tint applies to both states at the same square size. */
 .starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"] {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -326,7 +235,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   background-color: #ffae5e !important;
 }
 .starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"]:checked::after {
-  content: "\f00c";                /* FA check */
+  content: "\f00c";
   font-family: "Font Awesome 6 Pro";
   font-weight: 900;
   font-size: 13px;
@@ -1568,13 +1477,6 @@ img {
 .starwarsffg .tox.tox-tinymce {
   height: 100% !important;
 }
-/* Embedded modifier/talent/upgrade editors render the description as a
-   single-line input by default, which truncates anything longer than a few
-   words. Render it as a textarea that fills the available width with a usable
-   multi-line editing area. (Hand-maintained: mirrors the rule in
-   scss/components/_editor.scss; the compiled CSS carries V2-compat edits that
-   are not in the SCSS sources, so do NOT regenerate this file with
-   `gulp css` without first reconciling those.) */
 .starwarsffg.sheet .modifier-description,
 .flat_editor .modifier-description {
   flex: 1 1 auto;
@@ -3063,10 +2965,6 @@ img {
   box-shadow: none;
   background: transparent;
   position: absolute;
-  /* Shrink the application frame (and its V13 backdrop-blur) to the visible
-     widget, instead of the default 300x200 minimum. No padding here -- the
-     10px gap lives inside .window-content so the V13 border (drawn on
-     .window-content) hugs the blur edge instead of floating inside it. */
   width: max-content !important;
   height: max-content !important;
   min-width: 0 !important;

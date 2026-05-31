@@ -2,12 +2,6 @@
   font-family: "Roboto";
   src: url("../fonts/Roboto-Regular.ttf") format("truetype");
 }
-/* Minimized window state (V13 ApplicationV2). V13 sets inline
-   `style.maxWidth = var(--minimized-width)` (200px) and
-   `style.maxHeight = var(--header-height)` (36px) on minimize, then adds
-   `.minimized`. We override max-width to fit the title and force the height
-   to collapse (our `.starwarsffg.application.sheet { overflow: visible !important }`
-   otherwise lets the pre-minimize height keep the box tall). */
 .starwarsffg.minimized,
 .application.starwarsffg.minimized {
   width: max-content !important;
@@ -109,10 +103,6 @@ section {
   z-index: 99999;
 }
 
-/* V2 ApplicationV2 compat: legacy V2 tabs are positioned relative to
-   FORM.window-content, which starts below the window header. Keep the
-   Mandar tab strip aligned with the V1 app-root positioning, and allow
-   it to extend outside the V2 content form. */
 .starwarsffg.application.sheet > form.window-content {
   overflow: visible !important;
 }
@@ -141,10 +131,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
   min-height: 0;
 }
 
-/* V2 item sheets: let .sheet-body flex-grow and scroll its own overflow
-   instead of leaking past the sheet bounds. The shipped calc-based heights
-   on each item-sheet-X .sheet-body assumed a fixed header height that V13
-   doesn't match. Mirrors styles/starwarsffg.css. */
 body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -173,8 +159,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   content: unset !important;
 }
 
-/* V1-style inline labeled header actions, projected from V13's window
-   controls by FFGDocumentSheetV2._projectLegacyHeaderControls. */
 .starwarsffg.application.sheet > .window-header > .legacy-header-action {
   display: inline-flex;
   align-items: center;
@@ -195,18 +179,12 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   font-size: 1em;
 }
 
-/* V13 ApplicationV2 header glyph buttons (⋮ Toggle Controls, globe Copy
-   Document UUID, × Close Window) render as bright white pills because
-   V13's base `button` background-color leaks past the `.header-control`
-   reset. Force transparent here too so the mandar theme keeps the fix. */
 .starwarsffg.application.sheet > .window-header button.header-control,
 .starwarsffg.application.sheet > .window-header button.header-control:hover,
 .starwarsffg.application.sheet > .window-header button.header-control:focus {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  /* Match the legacy-header-action label color so the glyphs aren't
-     visually disconnected from the "Sheet Options" label. */
   color: inherit !important;
   --button-text-color: inherit !important;
 }
@@ -1133,10 +1111,6 @@ img {
 }
 
 .starwarsffg .shadow-text {
-  /* Center the label in the colored tab. The tab collapses to ~26px under
-     ApplicationV2 and its top ~10px hides behind the value box, so fill the
-     tab and flex-center the text with a padding-top that pushes the centering
-     into the visible bottom strip. (Matches scss/components/_sheet_base.scss.) */
   position: absolute;
   top: 0;
   bottom: 0;
@@ -4360,10 +4334,6 @@ img {
   box-shadow: none;
   background: transparent;
   position: absolute;
-  /* Shrink the application frame (and its V13 backdrop-blur) to the visible
-     widget, instead of the default 300x200 minimum. No padding here -- the
-     10px gap lives inside .window-content so the V13 border (drawn on
-     .window-content) hugs the blur edge instead of floating inside it. */
   width: max-content !important;
   height: max-content !important;
   min-width: 0 !important;
