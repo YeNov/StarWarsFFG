@@ -16,9 +16,22 @@ All ten user-reported issues addressed and live-verified on the running world
 c89bf84d  Bound embedded editor height and enlarge modifier desc.    (C1+C2, user #7,#8)
 4edbbd5c  Fix render-race on sheet change pipeline                   (D1.a/b/bb/c, user #3,#5,#9)
 244ec304  Fix broken submit() calls in buy-talent and attr controls (user #6)
+c9b216c0  Add session handoff (this doc, later amended)
+6d554da9  Restore hand-maintained CSS clobbered by SCSS recompile    (side-tab regression fix)
 ```
 
 (A2 and E1 required no code change — see below.)
+
+> **CSS landmine (learned the hard way this session).** `styles/starwarsffg.css`
+> is **hand-maintained**: it carries a large V2-compat block (right-side tab
+> strip, actor body-fill / gray-strip fix, title-input sizing, checkbox
+> appearance, FA font-weights) that was **never** back-ported into the SCSS
+> sources under `scss/`. Running `npm run compile` / `gulp css` regenerates the
+> file from SCSS and **destroys** those edits. The C2 fix did exactly this and
+> dropped the side tabs; `6d554da9` restored the hand-maintained file and
+> re-applied the one C2 rule by hand. **Do not run `gulp css` until the
+> V2-compat CSS is reconciled into SCSS.** Edit `styles/starwarsffg.css`
+> directly for now.
 
 ## Per-issue outcome
 
@@ -30,7 +43,7 @@ c89bf84d  Bound embedded editor height and enlarge modifier desc.    (C1+C2, use
 | #5 | spec talent checkbox multi-click breaks state | **D1.a** — coalesce loop replaces the drop-on-busy `_submitting` guard. Verified: 3 rapid clicks land with correct parity, no revert. |
 | #6 | buy-talent button broken | **submit() fix** — `sheet.submit()` throws in this compat layer (form handler is nulled); replaced with the manual `_onSubmit(...)` pipeline. Verified end-to-end: bought "Grit" on Jovel Nial's Slicer, talent learned + XP 100→95 (reverted after). |
 | #7 | spec modifiers list overflow | **C1** — the three embedded editors had `//height: 720` commented out, so the window grew unbounded with many rows. Set `height: 600`; the existing `.tab.active` overflow CSS now scrolls internally. Verified at 18 rows: window bounded, list scrolls. |
-| #8 | spec modifier description textarea too small | **C2** — swapped the single-line `<input>` to a `<textarea class="modifier-description" rows="4">` in `ffg-embedded-talent.html` + `ffg-embedded-upgrade.html`, with scoped SCSS (flex-fill, min 8em, resize). 32px → ~79px, resizable. |
+| #8 | spec modifier description textarea too small | **C2** — swapped the single-line `<input>` to a `<textarea class="modifier-description" rows="4">` in `ffg-embedded-talent.html` + `ffg-embedded-upgrade.html`, with a `.modifier-description` rule (flex-fill, min 8em, resize) hand-added to `styles/starwarsffg.css`. 32px → 112px min, resizable. |
 | #9 | spec tree won't close | **D1** — covered by the render-race fix + the existing `_closing` guard; field edits no longer race the close. Verified during the D cluster. |
 | #10 | spec tree resizes to broken values | **B1** — `setPosition` clamp. Tree-type items (specialization/forcepower/signatureability) floor at 700×600; base 300×200 elsewhere, composing under ApplicationV2's own CSS content minimum. |
 | #1 (minor) | dblclick header → black, no collapse | **A2 — no change needed.** Could not reproduce: V13's built-in dblclick handler collapses on every header target tested (title, header, injected Sheet Options link), and the header already has `user-select: none`. Resolved by prior V2-port header work; the user's list predates it. |
