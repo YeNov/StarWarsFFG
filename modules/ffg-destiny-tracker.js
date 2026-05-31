@@ -30,6 +30,18 @@ export default class DestinyTracker extends FormApplicationV2Compat {
     });
   }
 
+  /**
+   * The destiny tracker is a small chrome widget, not a regular form. The base
+   * 300x200 minimum from FormApplicationV2Compat forces the application frame
+   * (and its backdrop-blur) to a rectangle much larger than the widget, leaving
+   * a visible blur halo around the icons. Allow the frame to shrink to the
+   * actual content size; the 10px gap around the widget is provided by CSS.
+   * @override
+   */
+  _minDimensions() {
+    return { width: 1, height: 1 };
+  }
+
   /** @override */
   getData() {
     // Get current value
