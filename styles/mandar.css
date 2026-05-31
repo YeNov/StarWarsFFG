@@ -711,6 +711,12 @@ img {
   align-items: flex-start;
 }
 
+.starwarsffg .metadata-add-control {
+  margin-left: auto;
+  margin-right: 8px;
+  margin-top: 6px;
+}
+
 .starwarsffg.sheet.item .tab[data-tab].active {
   height: 100%;
 }

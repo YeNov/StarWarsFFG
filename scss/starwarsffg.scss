@@ -9,6 +9,7 @@
 @import "global/grid";
 @import "global/flex";
 @import "global/image";
+@import "global/v2_compat";
 
 .starwarsffg {
   @import "components/forms";
@@ -54,3 +55,4 @@
 @import "components/initiative_dialog";
 @import "components/ogimport";
 @import "components/destiny_ui";
+@import "components/chat_actions";

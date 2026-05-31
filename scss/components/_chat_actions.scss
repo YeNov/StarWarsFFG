@@ -1,0 +1,32 @@
+.combat-sidebar li.combatant .roll {
+  display: block;
+  width: 40px;
+  height: var(--sidebar-item-height);
+  background: url(../../../icons/svg/d20.svg) no-repeat 50% 50%;
+  background-size: 32px;
+  margin: 0 0.5em;
+}
+
+.ffg-chat-actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.ffg-apply-crit,
+.ffg-apply-damage {
+  flex: 1 1 0;
+  font-size: 0.85em;
+  padding: 2px 8px;
+  cursor: pointer;
+
+  i.fas {
+    margin-right: 4px;
+  }
+}
+
+.ffg-apply-crit[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,0 +1,221 @@
+.starwarsffg.minimized,
+.application.starwarsffg.minimized {
+  width: max-content !important;
+  min-width: 200px !important;
+  max-width: 600px !important;
+  height: var(--header-height, 36px) !important;
+  max-height: var(--header-height, 36px) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.starwarsffg.minimized .window-resize-handle,
+.application.starwarsffg.minimized .window-resize-handle,
+.application.starwarsffg.minimized .window-resizable-handle {
+  display: none !important;
+}
+
+.starwarsffg.minimized > .window-content,
+.starwarsffg.minimized > form.window-content,
+.application.starwarsffg.minimized > .window-content,
+.application.starwarsffg.minimized > form.window-content {
+  display: none !important;
+}
+
+.starwarsffg.application.sheet {
+  overflow: visible !important;
+}
+
+.starwarsffg.application.sheet > form.window-content {
+  overflow: visible !important;
+}
+
+.starwarsffg.application.sheet nav.sheet-tabs {
+  top: 2px;
+}
+
+.starwarsffg.application.sheet input[type="checkbox"] {
+  -webkit-appearance: checkbox !important;
+  appearance: auto !important;
+  accent-color: #777;
+  color-scheme: light;
+}
+
+.starwarsffg.application.sheet input[type="checkbox"]::before,
+.starwarsffg.application.sheet input[type="checkbox"]::after {
+  content: unset !important;
+}
+
+.starwarsffg.application.sheet :is(.header-name, .minion-name) input {
+  height: var(--form-field-height, 26px);
+  line-height: normal;
+  padding: 1px 3px;
+}
+
+body.game .starwarsffg.application.sheet > form.window-content {
+  height: calc(100% - 30px);
+  min-height: 0;
+}
+
+body.game .starwarsffg.application.sheet.actor > form.window-content.character > .sheet-body,
+body.game .starwarsffg.application.sheet.actor > form.window-content.minion > .sheet-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .sheet-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
+  flex: 0 0 calc(100% - 22rem) !important;
+  height: calc(100% - 22rem) !important;
+  min-height: 0;
+}
+
+body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
+}
+
+.starwarsffg .sheet-tabs i.fas,
+.starwarsffg .sheet-tabs i.fa-solid {
+  font-weight: 900;
+}
+
+.starwarsffg .sheet-tabs i.far,
+.starwarsffg .sheet-tabs i.fa-regular {
+  font-weight: 400;
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 6px;
+  padding: 0 2px;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1em;
+  white-space: nowrap;
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action:hover {
+  text-shadow: 0 0 6px var(--color-shadow-highlight, #ffae00);
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action > i {
+  font-size: 1em;
+}
+
+.starwarsffg.application.sheet > .window-header button.header-control,
+.starwarsffg.application.sheet > .window-header button.header-control:hover,
+.starwarsffg.application.sheet > .window-header button.header-control:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  --button-text-color: inherit !important;
+}
+
+.starwarsffg.application.sheet > .window-resize-handle {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.starwarsffg.application.sheet > .window-resize-handle::before {
+  content: "\f424";
+  font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free", "FontAwesome";
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog .form-group {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  grid-template-areas:
+    "label field"
+    "notes field" !important;
+  column-gap: 16px !important;
+  row-gap: 1px !important;
+  align-items: center !important;
+  margin: 0 0 16px 0 !important;
+  padding: 0 !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > label {
+  grid-area: label !important;
+  align-self: end !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-weight: bold !important;
+  font-size: 1.05em !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields {
+  grid-area: field !important;
+  align-self: center !important;
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields > input[type="text"],
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .form-fields > select {
+  width: 180px !important;
+  max-width: 100% !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog .form-group > .notes {
+  grid-area: notes !important;
+  align-self: start !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0.95em !important;
+  line-height: 1.25 !important;
+  opacity: 0.85 !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 174, 94, 0.85) !important;
+  border-radius: 3px !important;
+  background-color: rgba(255, 174, 94, 0.3) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  flex: 0 0 20px !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"]:checked {
+  background-color: #ffae5e !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog input[type="checkbox"]:checked::after {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Pro";
+  font-weight: 900;
+  font-size: 13px;
+  color: #1b0e02;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

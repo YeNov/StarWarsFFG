@@ -24,7 +24,12 @@ export class DialogV2Compat {
     return this.options.jQuery ? $(element) : element;
   }
 
-  render(force = false) {
+  render(force = false, options = {}) {
+    if (Array.isArray(options.classes) && options.classes.length) {
+      const existing = Array.isArray(this.options.classes) ? this.options.classes : [];
+      this.options.classes = Array.from(new Set([...existing, ...options.classes]));
+    }
+    if (options.focus !== undefined) this.options.focus = options.focus;
     this._render(force);
     return this;
   }
@@ -48,7 +53,16 @@ export class DialogV2Compat {
     }
     dialog.addEventListener("render", () => window.setTimeout(() => this._activateLegacyButtons(), 0), { once: true });
 
-    dialog.render({ force: !!force });
+    await dialog.render({ force: !!force });
+    if (this.options.focus) {
+      dialog.bringToFront?.();
+      const root = dialog.element;
+      const defaultAction = this.data.default ?? this._buttonActions[0];
+      const target = root?.querySelector("[autofocus]")
+        ?? root?.querySelector("input:not([type='hidden']):not([type='button']):not([type='submit']), textarea, select")
+        ?? root?.querySelector(`[data-action="${defaultAction}"]`);
+      target?.focus?.();
+    }
     return this;
   }
 
