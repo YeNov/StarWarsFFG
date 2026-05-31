@@ -228,6 +228,7 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     this._activateCoreListeners(html);
     this.activateListeners(html);
     this._callLegacyRenderHook(html, context);
+    this._activateEditors();
   }
 
   _applyLegacyRootClasses(form, context = {}) {
@@ -388,6 +389,97 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
       html.find("img[data-edit]").on("click", this._onEditImage.bind(this));
       html.find("button.file-picker").on("click", this._activateFilePicker.bind(this));
     }
+  }
+
+  /**
+   * Wire the V1 `{{editor}}` helper's Edit button to mount a ProseMirror
+   * editor inline. V13's HandlebarsApplicationMixin does not auto-bind this;
+   * the V1 FormApplication did. The helper emits
+   * `.editor-content[data-edit="<name>"]` with a sibling `.editor-edit`
+   * anchor inside a `.editor` container.
+   */
+  _activateEditors() {
+    const root = this.element;
+    if (!root) return;
+    for (const content of root.querySelectorAll(".editor-content[data-edit]")) {
+      const name = content.dataset.edit;
+      if (!name) continue;
+      const containerEl = content.closest(".editor");
+      const button = containerEl?.querySelector(".editor-edit");
+      if (!button || button.dataset.editorBound) continue;
+      button.dataset.editorBound = "1";
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._activateEditor(name, content, containerEl, button);
+      });
+    }
+  }
+
+  async _activateEditor(name, contentEl, containerEl, buttonEl) {
+    if (this.editors[name]?.active) return;
+    const initial = foundry.utils.getProperty(this.document, name) ?? "";
+    const { ProseMirrorEditor } = foundry.applications.ux;
+
+    // Register a FormDataExtended-compatible entry BEFORE create() resolves.
+    // FormDataExtended iterates `editors` and, for each entry whose
+    // `options.engine === "prosemirror"`, serializes the live document out of
+    // `instance.view`. Omitting this shape causes both the editor instance
+    // AND the matching [data-edit] node to be skipped -- silently losing
+    // unsaved content on submit-on-close.
+    this.editors[name] = {
+      instance: null,
+      options: { engine: "prosemirror", target: name, button: true, owner: this.isEditable },
+      active: true,
+      button: buttonEl,
+      container: containerEl,
+    };
+
+    const editor = await ProseMirrorEditor.create(contentEl, initial, {
+      document: this.document,
+      fieldName: name,
+      relativeLinks: true,
+      plugins: {
+        menu: ProseMirror.ProseMirrorMenu.build(ProseMirror.defaultSchema, {
+          destroyOnSave: true,
+          onSave: () => this._saveEditor(name, { remove: true }),
+        }),
+        keyMaps: ProseMirror.ProseMirrorKeyMaps.build(ProseMirror.defaultSchema, {
+          onSave: () => this._saveEditor(name, { remove: true }),
+        }),
+      },
+    });
+
+    this.editors[name].instance = editor;
+    // The `prosemirror` class on the container is what the change-handler
+    // editor guard (_onChangeInput) looks for. Without it, every keystroke
+    // inside the editor bubbles a `change` to the form and triggers a full
+    // submit. V1 added the engine class to the .editor container on mount;
+    // mirror that here.
+    containerEl.classList.add("editor-active", "prosemirror");
+  }
+
+  async _saveEditor(name, { remove = true } = {}) {
+    const state = this.editors[name];
+    if (!state?.instance) return;
+    // Route through the normal submit pipeline so ItemHelpers.itemUpdate /
+    // ActorHelpers.updateActor run AE sync, talent propagation, attribute
+    // reshaping, and XP logging. FormDataExtended pulls the editor value out
+    // of state.instance via the engine="prosemirror" entry on this.editors.
+    //
+    // render: true so the sheet re-renders and the {{editor}} block redraws
+    // with the saved enriched content; otherwise _destroyEditor below tears
+    // down the editor and leaves ProseMirror teardown leftovers visible.
+    const event = new Event("submit", { cancelable: true });
+    await this._onSubmit(event, { preventClose: true, render: true });
+    if (remove) this._destroyEditor(name);
+  }
+
+  _destroyEditor(name) {
+    const state = this.editors[name];
+    if (!state) return;
+    try { state.instance?.destroy(); } catch (_e) { /* already torn down */ }
+    state.container?.classList.remove("editor-active", "prosemirror");
+    delete this.editors[name];
   }
 
   async _onEditImage(event) {
