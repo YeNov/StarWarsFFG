@@ -62,6 +62,12 @@ export default class ItemOptions {
   }
 
   handler(event) {
+    // The injected button is an <a href="#">; without preventDefault the
+    // browser navigates to the page URL with `#` appended and can scroll
+    // the page. stopPropagation keeps the click from bubbling into V13's
+    // window header handling.
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     const title = `${game.i18n.localize("SWFFG.ItemSheet")} ${game.i18n.localize("SWFFG.Options")}: ${this.data.item.name}`;
 
     new DialogV2Compat(
