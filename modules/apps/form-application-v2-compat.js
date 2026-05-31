@@ -120,6 +120,25 @@ export class FormApplicationV2Compat extends HandlebarsApplicationMixin(Applicat
     return initialized;
   }
 
+  /**
+   * Lower bound for interactive resize. Mirror of FFGDocumentSheetV2 so legacy
+   * FormApplication-style tools (RollBuilder, DestinyTracker, GroupManager,
+   * importers) cannot be dragged down to unusable dimensions.
+   */
+  static MIN_DIMENSIONS = { width: 300, height: 200 };
+
+  _minDimensions() {
+    return this.constructor.MIN_DIMENSIONS;
+  }
+
+  setPosition(position = {}) {
+    const min = this._minDimensions();
+    const clamped = { ...position };
+    if (typeof clamped.width === "number" && clamped.width < min.width) clamped.width = min.width;
+    if (typeof clamped.height === "number" && clamped.height < min.height) clamped.height = min.height;
+    return super.setPosition(clamped);
+  }
+
   get form() {
     return this.element?.querySelector("form") ?? super.form;
   }

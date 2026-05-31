@@ -252,6 +252,26 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
    */
   static LEGACY_HEADER_ACTIONS = new Set();
 
+  /**
+   * Lower bound for interactive resize. ApplicationV2's setPosition writes
+   * width/height unconditionally, so without this a user can drag the resize
+   * handle down to a few pixels and leave a sheet unusable. Subclasses with
+   * type-specific floors override `_minDimensions()`.
+   */
+  static MIN_DIMENSIONS = { width: 300, height: 200 };
+
+  _minDimensions() {
+    return this.constructor.MIN_DIMENSIONS;
+  }
+
+  setPosition(position = {}) {
+    const min = this._minDimensions();
+    const clamped = { ...position };
+    if (typeof clamped.width === "number" && clamped.width < min.width) clamped.width = min.width;
+    if (typeof clamped.height === "number" && clamped.height < min.height) clamped.height = min.height;
+    return super.setPosition(clamped);
+  }
+
   _projectLegacyHeaderControls() {
     const header = this.element.querySelector(":scope > .window-header");
     const dropdown = this.element.querySelector(":scope > menu.controls-dropdown");

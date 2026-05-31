@@ -45,6 +45,23 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     "full": 4
   }
 
+  /**
+   * Tree-grid item types (specialization / force power / signature ability)
+   * need a larger floor than the generic sheet minimum to keep the grid
+   * usable. Everything else inherits the base 300x200.
+   * @override
+   */
+  _minDimensions() {
+    switch (this.object?.type) {
+      case "specialization":
+      case "forcepower":
+      case "signatureability":
+        return { width: 700, height: 600 };
+      default:
+        return super._minDimensions();
+    }
+  }
+
   /** @override */
   async getData(options) {
     let data = super.getData(options);
