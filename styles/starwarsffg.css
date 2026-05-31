@@ -153,6 +153,28 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
   font-size: 0.9em;
 }
 
+/* V2 ApplicationV2 compat: V13 renders .window-resize-handle as a blank
+   16x16 square in the bottom-right corner. V1 painted a diagonal-arrow
+   glyph there so users could see the grip. Restore the glyph via a
+   pseudo-element on the V2 resize handle (also aliased as
+   .window-resizable-handle in document-sheet-v2-compat.js). The native
+   resize behavior is unaffected — V13 binds the handler on the handle
+   element regardless of pseudo-element children. */
+.starwarsffg.application.sheet > .window-resize-handle {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+.starwarsffg.application.sheet > .window-resize-handle::before {
+  content: "\f424"; /* fa-up-right-and-down-left-from-center */
+  font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free", "FontAwesome";
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
 /* V2 ApplicationV2 compat: V13's .form-group defaults to flex-row
    (label | form-fields | notes side-by-side). The legacy
    templates/dialogs/ffg-sheet-options.html template was authored
