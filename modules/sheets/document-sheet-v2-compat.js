@@ -240,6 +240,15 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     }
   }
 
+  /**
+   * Actions from V13's controls-dropdown that we mirror as inline,
+   * V1-style labeled links in the window header. Everything else stays
+   * inside the `⋮` dropdown — the user only wants Sheet Options (a custom
+   * link injected by ActorOptions/ItemOptions, not part of the dropdown)
+   * and Close visible inline.
+   */
+  static LEGACY_HEADER_ACTIONS = new Set(["close"]);
+
   _projectLegacyHeaderControls() {
     const header = this.element.querySelector(":scope > .window-header");
     const dropdown = this.element.querySelector(":scope > menu.controls-dropdown");
@@ -248,10 +257,11 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     header.querySelectorAll(":scope > .legacy-header-action").forEach((el) => el.remove());
 
     if (!dropdown) return;
+    const allowed = this.constructor.LEGACY_HEADER_ACTIONS;
     const sources = [
       ...dropdown.querySelectorAll(":scope > .header-control[data-action]"),
       ...header.querySelectorAll(":scope > button.header-control[data-action='close']"),
-    ];
+    ].filter((source) => allowed.has(source.dataset.action));
     if (!sources.length) return;
 
     const anchor = header.querySelector(":scope > [data-action='toggleControls']") ?? header.lastElementChild;
