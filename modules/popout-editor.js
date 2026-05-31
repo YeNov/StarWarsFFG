@@ -20,6 +20,17 @@ export default class PopoutEditor extends FormApplicationV2Compat {
   }
 
   /**
+   * Minimum window size. The editor toolbar (~440px of buttons) wraps to
+   * multiple rows in a narrow window and the editing area is unusably small;
+   * clamp to a size that keeps the toolbar on one row with a comfortable
+   * editing area. Enforced by FormApplicationV2Compat.setPosition.
+   * @override
+   */
+  _minDimensions() {
+    return { width: 720, height: 520 };
+  }
+
+  /**
    * Return a reference to the target attribute
    * @type {String}
    */
