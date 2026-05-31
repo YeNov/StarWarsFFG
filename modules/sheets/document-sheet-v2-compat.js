@@ -445,7 +445,12 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
   }
 
   async _activateEditor(name, contentEl, containerEl, buttonEl) {
-    if (this.editors[name]?.active) return;
+    // A live editor is already open for this field — nothing to do.
+    if (this.editors[name]?.instance?.view) return;
+    // A stale/half-open entry (e.g. a prior save that failed to mount) would
+    // otherwise permanently brick the edit button via the guard above. Clear
+    // it so this click can mount a fresh editor.
+    if (this.editors[name]) this._destroyEditor(name);
     const initial = foundry.utils.getProperty(this.document, name) ?? "";
     const { ProseMirrorEditor } = foundry.applications.ux;
 
@@ -468,8 +473,14 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
       fieldName: name,
       relativeLinks: true,
       plugins: {
+        // destroyOnSave:false -- our _saveEditor owns the teardown. If the menu
+        // destroyed the view on "Save and Close", it would race _saveEditor's
+        // _onSubmit, which reads the (now dead) view via FormDataExtended and
+        // saves empty, and would leave this.editors[name] stale (bricking the
+        // edit button). Letting our code destroy keeps the view alive until
+        // after the value is read and the document updated.
         menu: ProseMirror.ProseMirrorMenu.build(ProseMirror.defaultSchema, {
-          destroyOnSave: true,
+          destroyOnSave: false,
           onSave: () => this._saveEditor(name, { remove: true }),
         }),
         keyMaps: ProseMirror.ProseMirrorKeyMaps.build(ProseMirror.defaultSchema, {
@@ -485,22 +496,35 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     // submit. V1 added the engine class to the .editor container on mount;
     // mirror that here.
     containerEl.classList.add("editor-active", "prosemirror");
+    // Hide the "edit" pencil while editing: clicking it mid-edit re-enters
+    // _activateEditor and breaks the live view. Inline style so it wins over
+    // any theme CSS. The post-save re-render provides a fresh, visible button.
+    if (buttonEl) buttonEl.style.display = "none";
   }
 
   async _saveEditor(name, { remove = true } = {}) {
     const state = this.editors[name];
-    if (!state?.instance) return;
+    if (!state?.instance?.view || state._saving) return;
+    state._saving = true;
     // Route through the normal submit pipeline so ItemHelpers.itemUpdate /
     // ActorHelpers.updateActor run AE sync, talent propagation, attribute
     // reshaping, and XP logging. FormDataExtended pulls the editor value out
-    // of state.instance via the engine="prosemirror" entry on this.editors.
+    // of state.instance via the engine="prosemirror" entry on this.editors --
+    // the view is still alive here because the menu no longer destroys on save.
     //
-    // render: true so the sheet re-renders and the {{editor}} block redraws
-    // with the saved enriched content; otherwise _destroyEditor below tears
-    // down the editor and leaves ProseMirror teardown leftovers visible.
-    const event = new Event("submit", { cancelable: true });
-    await this._onSubmit(event, { preventClose: true, render: true });
-    if (remove) this._destroyEditor(name);
+    // Submit with render:false and re-render explicitly afterwards. We cannot
+    // rely on document.update's auto-render: if the content was unchanged the
+    // update is a no-op that fires no hook and no render, leaving the editor
+    // we just destroyed without its {{editor}} block restored (broken view).
+    // The explicit render runs in finally so the block is always rebuilt, even
+    // on an unchanged save or a failed submit.
+    try {
+      const event = new Event("submit", { cancelable: true });
+      await this._onSubmit(event, { preventClose: true, render: false });
+    } finally {
+      if (remove) this._destroyEditor(name);
+      this.render(true);
+    }
   }
 
   _destroyEditor(name) {
@@ -508,6 +532,10 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     if (!state) return;
     try { state.instance?.destroy(); } catch (_e) { /* already torn down */ }
     state.container?.classList.remove("editor-active", "prosemirror");
+    // Restore the edit button (hidden in _activateEditor). Harmless if this is
+    // the now-detached pre-re-render button; required if teardown happens
+    // without a re-render so the button doesn't stay hidden.
+    if (state.button) state.button.style.display = "";
     delete this.editors[name];
   }
 
