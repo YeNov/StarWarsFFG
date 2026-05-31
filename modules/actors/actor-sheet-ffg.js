@@ -384,6 +384,19 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       this._tabs[0].activate(item.data("tab"));
     });
 
+    // Skill career/group toggle: minion sheets recompute the displayed
+    // skill rank in _prepareMinionData based on `groupskill`. Without an
+    // explicit re-render after the submit, the rank input keeps showing
+    // the stale stored value and the toggle appears to "do nothing".
+    // (For character actors the toggle still just flips careerskill and a
+    // render keeps the UI consistent with the chip color.) Stop the event
+    // from bubbling to the form-level change handler so we don't run the
+    // default render:false submit on top of our render:true one.
+    html.find("input.careerskill-toggle").on("change", async (event) => {
+      event.stopPropagation();
+      await this._onSubmit(event, { render: true });
+    });
+
     html.find(".popout-editor").on("mouseover", (event) => {
       $(event.currentTarget).find(".popout-editor-button").show();
     });
