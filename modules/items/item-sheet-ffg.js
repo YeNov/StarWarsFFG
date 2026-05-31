@@ -1531,6 +1531,13 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const sourceIndex = $(event.currentTarget).data("index");
     if (action === "add") {
+      // Single-instance guard: a second click on `+` while an Add Source
+      // dialog is open should focus that dialog, not stack another. Tracked
+      // per-sheet so different items each get their own dialog.
+      if (this._addSourceDialog?.app?.rendered) {
+        this._addSourceDialog.app.bringToFront?.();
+        return;
+      }
       const addSource = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
         content: `
@@ -1557,13 +1564,25 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
         },
         default: "submit",
       });
+      this._addSourceDialog = addSource;
+      const wrappedClose = addSource.close.bind(addSource);
+      addSource.close = async (...args) => {
+        try { return await wrappedClose(...args); }
+        finally { if (this._addSourceDialog === addSource) this._addSourceDialog = null; }
+      };
       addSource.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      // V13 dialogs sometimes render with a stale z-index and land behind
+      // the parent sheet. Force them to the front after the next paint.
+      requestAnimationFrame(() => addSource.app?.bringToFront?.());
     } else if (action === "remove") {
       const sources = foundry.utils.deepClone(this.item.system.metadata.sources);
       sources.splice(sourceIndex, 1);
       await this.object.update({"system.metadata.sources": sources});
+      // Only render after a structural change; rendering on "add" too
+      // (when the dialog hasn't yet submitted) re-runs the sheet's
+      // setPosition pass and snaps the window back to its default size.
+      this.render(true);
     }
-    this.render(true);
   }
 
   async _handleTagControl(event) {
@@ -1572,6 +1591,10 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
     const action = $(event.currentTarget).data("action");
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
+      if (this._addTagDialog?.app?.rendered) {
+        this._addTagDialog.app.bringToFront?.();
+        return;
+      }
       const addTag = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
         content: `
@@ -1597,13 +1620,20 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
         },
         default: "submit",
       });
+      this._addTagDialog = addTag;
+      const wrappedClose = addTag.close.bind(addTag);
+      addTag.close = async (...args) => {
+        try { return await wrappedClose(...args); }
+        finally { if (this._addTagDialog === addTag) this._addTagDialog = null; }
+      };
       addTag.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      requestAnimationFrame(() => addTag.app?.bringToFront?.());
     } else if (action === "remove") {
       const tags = foundry.utils.deepClone(this.item.system.metadata.tags);
       tags.splice(tagIndex, 1);
       await this.object.update({"system.metadata.tags": tags});
+      this.render(true);
     }
-    this.render(true);
   }
 
   async _handleItemBuy(event) {
