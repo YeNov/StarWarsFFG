@@ -86,13 +86,27 @@ editor container and the edit button, but clicking the button does nothing,
 no editor state is registered, and `FormDataExtended` has no editor value to
 serialize at submit time.
 
-**Initial-design correction (P1 review):** the earlier draft of this spec
-named the wrong selector (`.editor[data-target]`) and the wrong save path
-(`ProseMirrorEditor.create` with `fieldName` auto-save). Neither exists.
-Use `.editor-content[data-edit]` for discovery and wire save explicitly.
+**Initial-design correction (P1 + P2 review, second pass):** earlier drafts
+got three things wrong:
 
-**Fix.** Add an `_activateEditors()` method to `FFGDocumentSheetV2` and call
-it from `_onRender` after `activateListeners(html)`:
+1. **Selector.** `.editor[data-target]` doesn't exist; the helper produces
+   `.editor-content[data-edit]`. (Fixed in revision 2.)
+2. **`this.editors` shape.** `FormDataExtended` expects each entry to be
+   `{ instance, options: { engine: "prosemirror" }, ... }`
+   (`form-data-extended.mjs:155`). The earlier `{ editor, name, contentEl, … }`
+   shape causes FormDataExtended to skip the entry — AND because the matching
+   `[data-edit]` is also skipped when `this.editors[name]` is truthy, the
+   editor's content is silently lost on submit-on-close.
+3. **Save path.** Direct `document.update({ [name]: value })` bypasses
+   `ItemHelpers.itemUpdate` (AE sync, talent-to-spec propagation, etc.) —
+   same class of bug D1 (P1) flagged. Editor save must route through
+   `_onSubmit` / `_updateObject`.
+4. **Namespace.** Foundry exposes the editor class as
+   `foundry.applications.ux.ProseMirrorEditor`; `ProseMirror.*` is the
+   namespace for `defaultSchema`, plugins, keymaps, DOM helpers. The first
+   revision called `ProseMirror.ProseMirrorEditor.create` (wrong).
+
+**Fix.** Add to `FFGDocumentSheetV2`:
 
 ```js
 _activateEditors() {
@@ -100,72 +114,96 @@ _activateEditors() {
   for (const content of root.querySelectorAll(".editor-content[data-edit]")) {
     const name = content.dataset.edit;
     if (!name) continue;
-    const editorContainer = content.closest(".editor");
-    const button = editorContainer?.querySelector(".editor-edit");
+    const containerEl = content.closest(".editor");
+    const button = containerEl?.querySelector(".editor-edit");
     if (!button || button.dataset.editorBound) continue;
     button.dataset.editorBound = "1";
     button.addEventListener("click", (event) => {
       event.preventDefault();
-      this._activateEditor(name, content, editorContainer, button);
+      this._activateEditor(name, content, containerEl, button);
     });
   }
 }
 
 async _activateEditor(name, contentEl, containerEl, buttonEl) {
-  if (this.editors[name]) return;
+  if (this.editors[name]?.active) return;
   const initial = foundry.utils.getProperty(this.document, name) ?? "";
-  // V13 ProseMirror is mounted via ProseMirrorEditor.create on a target
-  // element; we mount into the existing .editor-content div so the
-  // surrounding chrome stays in place.
-  const editor = await ProseMirror.ProseMirrorEditor.create(contentEl, initial, {
+  const { ProseMirrorEditor } = foundry.applications.ux;
+
+  // Pre-register an entry FormDataExtended will recognize. We populate
+  // `instance` after create() resolves; the `options.engine` field is the
+  // load-bearing key FormDataExtended reads.
+  this.editors[name] = {
+    instance: null,
+    options: { engine: "prosemirror", target: name, button: true, owner: this.isEditable },
+    active: true,
+    button: buttonEl,
+    container: containerEl,
+  };
+
+  const editor = await ProseMirrorEditor.create(contentEl, initial, {
     document: this.document,
     fieldName: name,
+    relativeLinks: true,
     plugins: {
-      // Install the keymaps plugin so Ctrl+S etc work.
+      menu: ProseMirror.ProseMirrorMenu.build(ProseMirror.defaultSchema, {
+        destroyOnSave: true,
+        onSave: () => this._saveEditor(name, { remove: true }),
+      }),
       keyMaps: ProseMirror.ProseMirrorKeyMaps.build(ProseMirror.defaultSchema, {
         onSave: () => this._saveEditor(name, { remove: true }),
       }),
     },
-    relativeLinks: true,
   });
-  this.editors[name] = { editor, name, contentEl, containerEl, buttonEl, active: true };
 
-  // Hide the edit button while the editor is active and expose save/cancel.
+  this.editors[name].instance = editor;
   containerEl.classList.add("editor-active");
-  this._renderEditorControls(this.editors[name]);
-}
-
-_renderEditorControls(state) {
-  // Reuses the V13 .editor-menu chrome; on click of save or cancel, call
-  // _saveEditor or _cancelEditor.
-  // …details fleshed out at implementation time once we see the real DOM
-  //   produced by the V13 helper on this server's Foundry build.
 }
 
 async _saveEditor(name, { remove = true } = {}) {
   const state = this.editors[name];
-  if (!state) return;
-  const value = ProseMirror.dom.serializeString(state.editor.view.state.doc.content);
-  await this.document.update({ [name]: value });
-  if (remove) this._closeEditor(name);
+  if (!state?.instance) return;
+  // Route through the normal submit pipeline so the legacy update helpers
+  // (ItemHelpers.itemUpdate / ActorHelpers.updateActor) run their AE sync,
+  // talent-to-spec propagation, attribute reshaping, and XP logging.
+  // FormDataExtended will read state.instance.view.state.doc value via the
+  // editor.options.engine === "prosemirror" entry in this.editors[name].
+  const event = new Event("submit", { cancelable: true });
+  await this._onSubmit(event, { preventClose: true });
+  if (remove) this._destroyEditor(name);
 }
 
-_closeEditor(name) {
+_destroyEditor(name) {
   const state = this.editors[name];
   if (!state) return;
-  state.editor.destroy();
-  state.containerEl.classList.remove("editor-active");
+  try { state.instance?.destroy(); } catch (_e) {}
+  state.container?.classList.remove("editor-active");
   delete this.editors[name];
 }
 ```
 
-The `_renderEditorControls` body and the exact `ProseMirror.dom.*`
-serializer call are placeholders that get pinned down on first
-implementation pass, when we can inspect the real V13 DOM in DevTools on
-the running server. The shape — discover via `.editor-content[data-edit]`,
-mount via `ProseMirror.ProseMirrorEditor.create`, save via explicit
-`document.update({ [name]: serialized })` — is the load-bearing design
-decision and is reviewer-confirmed.
+**Why submit-via-`_onSubmit` is correct.** `FormDataExtended` walks
+`this.editors`, and for each entry with `options.engine === "prosemirror"`
+it pulls the current document content out of `instance.view.state.doc`
+and merges it into the form data at the keyed field name. So a full form
+submit IS the right path — the editor's value joins the rest of the form,
+and `ItemHelpers.itemUpdate` / `ActorHelpers.updateActor` see it via
+`formData[name]` exactly like any other field.
+
+**Verification details.**
+
+- On submit-on-close (no explicit save), unsaved editor content should
+  still persist. Test: open biography, type, click ×. Reopen — content
+  there.
+- Cross-document propagation: edit a talent description on a talent
+  whose name appears in a specialization tree. After save, open the
+  specialization sheet — the talent's tooltip-description matches.
+  This validates that `ItemHelpers.itemUpdate`'s `clickfromparent`
+  propagation ran.
+- AE sync: open an item with active effects whose source field is in
+  the description (e.g. a weapon with a description-referenced
+  modifier). Edit description, save. Confirm AE rebuild fires (check
+  console for the `applyActiveEffectOnUpdate` debug log).
 
 Inherits to `ActorSheetV2Compat` and `ItemSheetV2Compat` automatically.
 
@@ -430,107 +468,182 @@ false })`. Two reviewer-flagged problems make that wrong:
    walks UP from the form and never matches. The bug exists today; the
    draft preserved it.
 
-**Revised fix.** Don't touch the submit pipeline shape. Keep the
-whole-form submit. Suppress the re-render at three points along the
-existing path:
+**Initial-design correction (P1 review, second pass):** the prior revision
+still failed in two ways:
+
+1. **Swallowed rapid clicks.** The `_submitting` early-return drops any
+   change that arrives while a previous submit is in-flight. For the
+   spec-tree multi-click checkbox bug, click 1 starts the await, click 2
+   toggles the DOM and fires change, `_onSubmit` early-returns, then the
+   auto-render from click 1's update redraws the DOM back to click 1's
+   state — click 2 disappears. That IS the user's bug; the prior fix
+   reproduced it.
+2. **Render flag never reaches the subclass overrides.** Both
+   `ActorSheetFFG._updateObject(event, formData)`
+   (`actor-sheet-ffg.js:1968`) and `ItemSheetFFG._updateObject(event,
+   formData)` (`item-sheet-ffg.js:1717`) declare only two parameters and
+   drop the third — `{ render }` passed by the base never arrives. The
+   fix has to update those override signatures explicitly.
+
+**Revised fix.** Two coordinated changes:
+
+#### D1.a — Coalesce concurrent submits
+
+Replace the `_submitting` early-return with a re-submit-after-completion
+pattern:
 
 ```js
-async _onChangeInput(event) {
-  // FIX the guard: currentTarget is the form, target is the actual input.
-  const input = event.target;
-  if (input?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
-
-  // existing color/range mirroring unchanged…
-
-  if (this.options.submitOnChange) return this._onSubmit(event);
-}
-
-async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false, render = false } = {}) {
-  // Default render to false here. The handful of call-sites that genuinely
-  // need a re-render (e.g. cross-field reactivity) pass { render: true }
-  // explicitly. Most don't — the auto-render hook will fire on
-  // document.update either way and our render() will swallow it via the
-  // existing _closing guard during close. We swallow it during change-
-  // driven updates by passing { render: false } down to the document.
+async _onSubmit(event, { updateData = null, preventClose = false, render = false } = {}) {
   event?.preventDefault?.();
-  if (!this.form || !this.isEditable || this._submitting) return false;
+  if (!this.form || !this.isEditable) return false;
+
+  // If a submit is already in-flight, mark that another submit is needed
+  // and return. The current submit's finally-block will pick up the flag
+  // and re-run with the now-current form state. This coalesces multiple
+  // rapid changes into "one submit per quiet period" instead of dropping
+  // them.
+  if (this._submitting) {
+    this._submitPending = { updateData, preventClose, render };
+    return true;
+  }
 
   this._submitting = true;
-  const formData = this._getSubmitData(updateData);
+  let formData;
   try {
-    await this._updateObject(event, formData, { render });
+    do {
+      this._submitPending = null;
+      formData = this._getSubmitData(updateData);
+      await this._updateObject(event, formData, { render });
+    } while (this._submitPending);
   } finally {
     this._submitting = false;
   }
 
-  if (this.options.closeOnSubmit && !preventClose) await this.close({ submit: false, force: true });
+  if (this.options.closeOnSubmit && !preventClose) {
+    await this.close({ submit: false, force: true });
+  }
   return formData;
-}
-
-async _updateObject(_event, formData, { render = false } = {}) {
-  // Subclasses (ActorSheetFFG, ItemSheetFFG) override this to route through
-  // ActorHelpers.updateActor / ItemHelpers.itemUpdate. We thread the render
-  // option down to document.update so the auto-rerender hook stays silent.
-  return this.document.update(formData, { render });
 }
 ```
 
-**Subclass changes.** `ActorHelpers.updateActor` and `ItemHelpers.itemUpdate`
-need a `{ render }` parameter forwarded to their internal `this.object.update(…)`
-call. Today both helpers call `await this.object.update(formData)` with no
-options object. We change to `await this.object.update(formData, { render })`
-where `render` defaults to `false`. The helpers' own explicit
-`this.render(true)` / `item.sheet.render(true)` calls (item-helpers.js:44, 76, 80)
-are AUDITED — most are present specifically to refresh after the auto-render
-was suppressed, and need to stay. The ones that are redundant with the
-auto-render get removed. This is line-by-line work done in the
-implementation plan, not pre-decided here.
+The loop re-reads `_getSubmitData()` each iteration, so the second pass
+captures whatever the user changed during the first pass's await.
+Pending requests carry their own `render` flag — if any pending request
+asked for a render, the final iteration renders.
 
-**Sub-issue mapping (unchanged from prior draft, fix mechanism updated):**
+`_onChangeInput` keeps its existing shape, just fixes the editor guard:
+
+```js
+_onChangeInput(event) {
+  // FIX: currentTarget is the form, target is the actual input.
+  const input = event.target;
+  if (input?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
+  // … existing color/range mirroring unchanged …
+  if (this.options.submitOnChange) return this._onSubmit(event);
+}
+```
+
+#### D1.b — Thread `{ render }` through subclass overrides
+
+Update both subclass signatures to accept and forward the third arg:
+
+```js
+// modules/actors/actor-sheet-ffg.js — ActorSheetFFG._updateObject
+async _updateObject(event, formData, { render = false } = {}) {
+  const actorUpdate = ActorHelpers.updateActor.bind(this);
+  this.sheetWidth = this.position.width;
+  this.sheetHeight = this.position.height;
+  await actorUpdate(event, formData, { render });
+}
+
+// modules/items/item-sheet-ffg.js — ItemSheetFFG._updateObject
+async _updateObject(event, formData, { render = false } = {}) {
+  if (this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
+  // … existing itemattachment array-key processing unchanged …
+  return ItemHelpers.itemUpdate.call(this, event, formData, { render });
+}
+```
+
+And the helpers themselves:
+
+```js
+// modules/helpers/item-helpers.js — ItemHelpers.itemUpdate
+static async itemUpdate(event, formData, { render = false } = {}) {
+  // … existing AE sync, attribute reshape, talent propagation …
+  await this.object.update(formData, { render });
+  // … existing post-update propagation …
+}
+
+// modules/helpers/actor-helpers.js — ActorHelpers.updateActor
+static async updateActor(event, formData, { render = false } = {}) {
+  // … existing AE handling, XP logging, migrateDataToSystem …
+  return await this.object.update(formData, { render });
+}
+```
+
+The helpers' own explicit `this.render(true)` / `item.sheet.render(true)`
+call-sites (`item-helpers.js:44`, `76`, `80`; equivalents in
+`actor-helpers.js`) are AUDITED line by line in the implementation plan.
+Each is classified:
+
+- **Keep** — fires after a structural change the auto-render wouldn't
+  redraw (e.g. talent propagation across docs needs each downstream
+  sheet to refresh).
+- **Remove** — was only compensating for the auto-render hook that
+  we're now suppressing. Redundant with the auto-render that fires
+  when `render: false` is NOT passed (i.e. on explicit save flows).
+
+**Sub-issue mapping (mechanism updated to reflect coalescing):**
 
 - **#2 weapon dropdown:** No re-render fires on `change` of a `<select>`,
   so the DOM swap mid-interaction goes away. The exact event that closes
-  the dropdown is confirmed by repro: most likely a `getData()`-triggered
-  position recalc that follows the suppressed render. If the dropdown
-  still closes after D1 lands, the investigation under E1 covers it.
-- **#4 multi-click checkbox:** Same — no re-render between clicks.
-  Document.update queues serially via the `_submitting` guard.
+  the dropdown is confirmed by repro; if dropdown still closes after D1
+  lands, the investigation under E1 covers it.
+- **#4 multi-click checkbox:** Clicks coalesce. Click 1 starts a submit;
+  click 2 sets `_submitPending`; the submit loop reads the post-click-2
+  form state on its second iteration. No clicks lost, no DOM redraw mid-
+  interaction (because both submits flow with `render: false`).
 - **#5 buy-talent button:** `_handleItemBuy` and `_buyHandleClick` call
-  `document.update` directly (not through our `_onSubmit`). Add an
-  explicit `{ render: false }` to those call-sites and let the buy
-  handler decide when to call `this.render()` once the transaction
-  completes. Audit `item-sheet-ffg.js:1432, 1469, 1578-1584` and the
-  related shared purchase flow (`item-sheet-ffg.js:1584` onwards).
+  `document.update` directly (not through our `_onSubmit`). Add explicit
+  `{ render: false }` to those call-sites and let the buy handler decide
+  when to call `this.render()` once the transaction completes. Audit
+  `item-sheet-ffg.js:1432, 1469, 1578-1584` and the related shared
+  purchase flow (`item-sheet-ffg.js:1584` onwards).
 - **#8 spec tree won't close:** Confirm every `this.render(true)`
   call-site in `item-sheet-ffg.js` routes through
   `FFGDocumentSheetV2.render` (which honours `_closing`). The existing
   `5fbc5147` and `7362a6e5` fixes assumed this; verify no subclass
   bypasses via `super.render` or by calling on a different object.
 
-**Risk assessment.** Lower than the prior draft because:
+**Risk assessment.**
 
-- Existing submit pipeline unchanged — `ItemHelpers.itemUpdate` and
+- Existing submit pipeline shape unchanged — `ItemHelpers.itemUpdate` and
   `ActorHelpers.updateActor` still run, AE sync still happens, talent
   propagation still happens, XP logging still happens.
-- Only difference is the `{ render: false }` flag threaded to the final
-  `document.update`. The legacy helpers' explicit `this.render(true)`
-  calls remain a controllable choice — we leave them where the flow
-  legitimately needs a redraw, remove them where they were compensating
-  for the now-suppressed auto-render.
-- Rollback path: drop the `{ render: false }` and revert the helpers'
-  signature — one revert commit.
+- New things:
+  1. Submit coalescing (D1.a) — replaces drop-on-busy with re-run-after-
+     completion. Edge case to test: a long-running submit followed by
+     dozens of rapid changes should produce exactly two submits (the
+     initial + one coalesced catch-up), not many.
+  2. `{ render }` threading (D1.b) — requires three signature changes
+     (`ItemSheetFFG._updateObject`, `ActorSheetFFG._updateObject`, plus
+     both helpers). Any subclass we miss falls back to the helper's
+     default `render: false`, which is safer than `render: true` (no
+     race) but might leave a sheet stale; the audit step catches this.
+- Rollback path: drop the `{ render: false }` parameter from helpers and
+  revert the override signatures. The coalescing change is independent —
+  if it causes a regression, the `_submitting` early-return can be
+  reinstated as a one-line revert without touching the render threading.
 
 **Rollout.**
 
-1. Land the `_onSubmit` / `_updateObject` change in
-   `FFGDocumentSheetV2` only. Thread `render: false`.
-2. Land the matching parameter in `ItemHelpers.itemUpdate` and
-   `ActorHelpers.updateActor`. Forward to `document.update`.
+1. Land D1.a coalescing in `FFGDocumentSheetV2._onSubmit` only.
+   Verify on a benign sheet (e.g. weapon — change name twice rapidly —
+   both updates land).
+2. Land D1.b override-signature changes and helper threading.
 3. Verify each sheet type still saves correctly (full list under prior
    handoff's smoke-pass).
-4. Audit the `this.render(true)` call-sites and remove any redundant
-   ones (those that fired only to compensate for the now-suppressed
-   auto-render).
+4. Audit the `this.render(true)` call-sites; classify and prune.
 5. Reproduce #2, #4, #5, #8 before AND after. Document.
 
 **Verification.** Reproduce each of #2, #4, #5, #8 on the running world at
@@ -607,13 +720,17 @@ This task delivers a sub-design document inline in the implementation plan
 
 ## Open questions to confirm before implementation
 
-1. **A1 ProseMirror API surface.** Pin the exact V13 calls during the
-   first implementation pass using DevTools on the running server:
-   - The serializer step (`ProseMirror.dom.serializeString(...)` is
-     placeholder — confirm the real symbol name).
-   - The keymap save handler (`ProseMirrorKeyMaps.build` signature).
-   - Whether to use `ProseMirror.ProseMirrorEditor.create` directly or
-     mount via the `<prose-mirror>` custom element exposed by V13.
+1. **A1 ProseMirror API surface.** Editor class is at
+   `foundry.applications.ux.ProseMirrorEditor`; `ProseMirror.*` holds
+   schema/plugins/keymaps/DOM helpers. Pin during first implementation
+   pass using DevTools on the running server:
+   - `ProseMirrorMenu.build` and `ProseMirrorKeyMaps.build` signatures
+     and whether they expect `defaultSchema` or `defaultPlugins`.
+   - Whether FormDataExtended's editor-discovery looks at the entry
+     keys we use (verify against `form-data-extended.mjs:155` on the
+     installed Foundry version).
+   - The exact CSS class added when an editor is active (so the
+     stylesheet hides the right button at the right time).
 2. **A2 dblclick diagnosis.** Confirm via the capture-phase console
    listener whether V13's built-in dblclick handler fires, before
    choosing a fix. Update the spec with the actual cause once known.
@@ -623,10 +740,16 @@ This task delivers a sub-design document inline in the implementation plan
    "needed for cross-field reactivity" (keep) vs "was compensating for
    the auto-render hook" (remove now that `{ render: false }` flows
    through). The implementation plan enumerates this list explicitly.
-4. **B1 min-dimension values.** The proposed minimums (300×200 generic,
+4. **D1 coalesce-loop bound.** Confirm during stress-test that the
+   re-submit-after-completion loop converges. A pathological case (a
+   user holding a key that fires `change` faster than the submit cycle)
+   should still settle. Add a max-iteration guard if the loop ever
+   exceeds, e.g., 8 passes — that signals a bug elsewhere, not a
+   user-recoverable state.
+5. **B1 min-dimension values.** The proposed minimums (300×200 generic,
    700×600 for tree-type items) are best-guess. Confirm during
    implementation that the layouts genuinely stay usable at those minima.
-5. **C2 target partial.** Confirm via repro which of the three candidate
+6. **C2 target partial.** Confirm via repro which of the three candidate
    partials (`ffg-modification.html`, `ffg-embedded-talent.html`,
    `ffg-embedded-upgrade.html`) the user is hitting. Fix that one first;
    apply the same pattern to the other two only if the user reports them.
