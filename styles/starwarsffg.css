@@ -154,6 +154,25 @@ body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-t
   min-height: 0;
 }
 
+/* V2 ApplicationV2: under V13 the window-content (form) is `display: flex;
+   flex-flow: column nowrap`. The various item sheets shipped a calc-based
+   height on `.sheet-body` (e.g. `height: calc(100% - 11.75rem)` on career,
+   `calc(100% - 21.1125rem)` on species, `calc(100% - 26.6125rem)` on
+   weapon, etc.) that assumed a fixed header height. V13's header chrome is
+   shaped differently, leaving the body either short with a gray strip
+   below or long with content overflowing past the sheet bounds.
+
+   Mirror the actor-sheet flex treatment: let the sheet body grow to fill
+   the remaining column space and scroll its own overflow instead of
+   leaking past the sheet. !important is required because the per-type
+   calc-height rules below use the same specificity. */
+body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
+}
+
 /* Defensive: force FA Solid font-weight in case an ancestor selector
    resets it to 400. */
 .starwarsffg .sheet-tabs i.fas,
