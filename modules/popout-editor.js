@@ -1,10 +1,11 @@
 import {migrateDataToSystem} from "./helpers/migration.js";
+import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
 
 /**
  * A specialized form used to pop out the editor.
- * @extends {FormApplication}
+ * @extends {FormApplicationV2Compat}
  */
-export default class PopoutEditor extends FormApplication {
+export default class PopoutEditor extends FormApplicationV2Compat {
   /** @override */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -16,6 +17,17 @@ export default class PopoutEditor extends FormApplication {
       height: 320,
       resizable:true,
     });
+  }
+
+  /**
+   * Minimum window size. The editor toolbar (~440px of buttons) wraps to
+   * multiple rows in a narrow window and the editing area is unusably small;
+   * clamp to a size that keeps the toolbar on one row with a comfortable
+   * editing area. Enforced by FormApplicationV2Compat.setPosition.
+   * @override
+   */
+  _minDimensions() {
+    return { width: 720, height: 520 };
   }
 
   /**
@@ -39,6 +51,51 @@ export default class PopoutEditor extends FormApplication {
   }
 
   /* -------------------------------------------- */
+
+  /** @override */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const el = this.element;
+    const form = el?.querySelector("form");
+    const sheetBody = el?.querySelector("section.sheet-body");
+    const pm = el?.querySelector("prose-mirror");
+
+    // Make the editor fill the window instead of leaving a gap below it. The
+    // sheet-body / prose-mirror were only taking content height; a theme
+    // stylesheet (mandar) sets their flex with !important and beats plain
+    // inline styles, so set our fill rules with priority "important" too.
+    if (form) { form.style.display = "flex"; form.style.flexDirection = "column"; }
+    if (sheetBody) {
+      sheetBody.style.setProperty("flex", "1 1 auto", "important");
+      sheetBody.style.setProperty("min-height", "0", "important");
+    }
+    if (pm) {
+      pm.style.setProperty("flex", "1 1 auto", "important");
+      pm.style.setProperty("min-height", "0", "important");
+      pm.style.setProperty("height", "auto", "important");
+    }
+
+    // The native <prose-mirror> element's save button dispatches a `save`
+    // event, but our compat form pipeline only listens for `change`, so the
+    // save button did nothing. Persist the value and close on save. The
+    // element fires `save` twice (menu button + keymap); _saveAndClose guards
+    // re-entry. Bind once per element.
+    if (pm && !pm.dataset.ffgSaveBound) {
+      pm.dataset.ffgSaveBound = "1";
+      pm.addEventListener("save", () => this._saveAndClose(pm.value));
+    }
+  }
+
+  async _saveAndClose(value) {
+    if (this._saving) return;
+    this._saving = true;
+    const updateData = {};
+    updateData[`${this.attribute}`] = value;
+    await this.object.update(migrateDataToSystem(updateData));
+    // submit:false -- the value is already persisted here, so skip the
+    // submit-on-close pass (which would re-read the form and double-update).
+    await this.close({ submit: false });
+  }
 
   /** @override */
   _updateObject(event, formData) {

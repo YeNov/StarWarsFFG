@@ -16,14 +16,14 @@
       .characteristic-label {
         background-color: $swffg-characteristic-color;
       }
-  
+
       .characteristic {
         border-radius: 50%;
         border: 5px double black;
 
         .characteristic-value {
           border-radius: 50%;
-          
+
           input:focus {
             border-radius: 50%;
           }

@@ -1,5 +1,7 @@
 import {xpLogEarn} from "./helpers/actor-helpers.js";
 import ActorHelpers from "./helpers/actor-helpers.js";
+import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
+import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
 
 const CanvasLayerClass = foundry?.canvas?.layers?.CanvasLayer || CanvasLayer;
 export class GroupManagerLayer extends CanvasLayerClass {
@@ -31,7 +33,7 @@ export class GroupManagerLayer extends CanvasLayerClass {
   /* -------------------------------------------- */
 }
 
-export class GroupManager extends FormApplication {
+export class GroupManager extends FormApplicationV2Compat {
   constructor(options) {
     super();
     this.obligations = [];
@@ -336,7 +338,7 @@ export class GroupManager extends FormApplication {
       id,
     });
 
-    new Dialog({
+    new DialogV2Compat({
       title: description,
       content,
       buttons: {
@@ -372,7 +374,7 @@ export class GroupManager extends FormApplication {
       id,
     });
 
-    new Dialog({
+    new DialogV2Compat({
       title: description,
       content,
       buttons: {

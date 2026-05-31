@@ -1,4 +1,6 @@
-export default class CrewSettings extends FormApplication {
+import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
+
+export default class CrewSettings extends FormApplicationV2Compat {
   /** @override */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {

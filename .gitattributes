@@ -1,0 +1,29 @@
+# Normalize line endings to LF on commit, regardless of the developer's
+# platform. Foundry serves these files directly to browsers and the V2
+# port has multiple Windows contributors; without this, files round-trip
+# between CRLF and LF and `git status` reports phantom modifications on
+# files no one has actually edited.
+* text=auto eol=lf
+
+# Binary asset types — keep as-is, never re-line-end.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.svg  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.tgz  binary
+*.7z   binary
+*.ttf  binary
+*.otf  binary
+*.woff  binary
+*.woff2 binary
+*.mp3  binary
+*.mp4  binary
+*.wav  binary
+*.ogg  binary
+*.webm binary

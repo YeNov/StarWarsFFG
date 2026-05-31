@@ -2,6 +2,27 @@
   font-family: "Roboto";
   src: url("../fonts/Roboto-Regular.ttf") format("truetype");
 }
+.starwarsffg.minimized,
+.application.starwarsffg.minimized {
+  width: max-content !important;
+  min-width: 200px !important;
+  max-width: 600px !important;
+  height: var(--header-height, 36px) !important;
+  max-height: var(--header-height, 36px) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.starwarsffg.minimized .window-resize-handle,
+.application.starwarsffg.minimized .window-resize-handle,
+.application.starwarsffg.minimized .window-resizable-handle {
+  display: none !important;
+}
+.starwarsffg.minimized > .window-content,
+.starwarsffg.minimized > form.window-content,
+.application.starwarsffg.minimized > .window-content,
+.application.starwarsffg.minimized > form.window-content {
+  display: none !important;
+}
 
 @font-face {
   font-family: "Elektra";
@@ -80,6 +101,92 @@ section {
 
 .window-app .window-resizable-handle {
   z-index: 99999;
+}
+
+.starwarsffg.application.sheet > form.window-content {
+  overflow: visible !important;
+}
+
+body.game .starwarsffg.application.sheet > form.window-content {
+  height: calc(100% - 30px);
+  min-height: 0;
+}
+
+body.game .starwarsffg.application.sheet > form.window-content > * {
+  flex: initial !important;
+}
+
+body.game .starwarsffg.application.sheet.actor > form.window-content.character > .sheet-body {
+  flex: 0 0 calc(100% - 15.75rem) !important;
+  height: calc(100% - 15.75rem) !important;
+}
+
+body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .sheet-body {
+  flex: 1 !important;
+}
+
+body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
+  flex: 0 0 calc(100% - 22rem) !important;
+  height: calc(100% - 22rem) !important;
+  min-height: 0;
+}
+
+body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
+}
+
+.starwarsffg.application.sheet nav.sheet-tabs {
+  top: 0.125rem;
+}
+
+.starwarsffg.application.sheet > .window-header .window-title {
+  font-size: var(--font-size-16);
+  line-height: 30px;
+}
+
+.starwarsffg.application.sheet input[type="checkbox"] {
+  -webkit-appearance: checkbox !important;
+  appearance: auto !important;
+  accent-color: #777;
+  color-scheme: light;
+}
+
+.starwarsffg.application.sheet input[type="checkbox"]::before,
+.starwarsffg.application.sheet input[type="checkbox"]::after {
+  content: unset !important;
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 6px;
+  padding: 0 2px;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1em;
+  white-space: nowrap;
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action:hover {
+  text-shadow: 0 0 6px var(--color-shadow-highlight, #ffae00);
+}
+
+.starwarsffg.application.sheet > .window-header > .legacy-header-action > i {
+  font-size: 1em;
+}
+
+.starwarsffg.application.sheet > .window-header button.header-control,
+.starwarsffg.application.sheet > .window-header button.header-control:hover,
+.starwarsffg.application.sheet > .window-header button.header-control:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  --button-text-color: inherit !important;
 }
 
 .hidden-content {
@@ -604,6 +711,12 @@ img {
   align-items: flex-start;
 }
 
+.starwarsffg .metadata-add-control {
+  margin-left: auto;
+  margin-right: 8px;
+  margin-top: 6px;
+}
+
 .starwarsffg.sheet.item .tab[data-tab].active {
   height: 100%;
 }
@@ -1005,11 +1118,17 @@ img {
 
 .starwarsffg .shadow-text {
   position: absolute;
-  bottom: 2%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 9px;
+  box-sizing: border-box;
   font-size: 9px;
-  left: 50%;
-  transform: translateX(-50%);
-  line-height: 1rem;
+  line-height: 1;
 }
 
 .starwarsffg .shadow-left {
@@ -4221,6 +4340,12 @@ img {
   box-shadow: none;
   background: transparent;
   position: absolute;
+  width: max-content !important;
+  height: max-content !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  box-sizing: content-box !important;
   /* Dropdown Button */
   /* Dropdown button on hover & focus */
   /* The container <div> - needed to position the dropdown content */
@@ -4233,6 +4358,12 @@ img {
 
 #destiny-tracker .window-content {
   background: transparent;
+  padding: 10px !important;
+  margin: 0 !important;
+  width: max-content !important;
+  height: max-content !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
 }
 
 #destiny-tracker header.window-header {
@@ -4684,6 +4815,40 @@ img {
   flex: 0 0 50px;
   display: flex;
   flex-direction: column;
+}
+
+.combat-sidebar li.combatant .roll {
+  display: block;
+  width: 40px;
+  height: var(--sidebar-item-height);
+  background: url(../../../icons/svg/d20.svg) no-repeat 50% 50%;
+  background-size: 32px;
+  margin: 0 0.5em;
+}
+
+.ffg-chat-actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.ffg-apply-crit,
+.ffg-apply-damage {
+  flex: 1 1 0;
+  font-size: 0.85em;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.ffg-apply-crit i.fas,
+.ffg-apply-damage i.fas {
+  margin-right: 4px;
+}
+
+.ffg-apply-crit[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .starwarsffg .resetMedical {

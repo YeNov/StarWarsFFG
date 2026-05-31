@@ -1,7 +1,8 @@
 /**
  * Extend the basic ActorSheet with some very simple modifications
- * @extends {ActorSheet}
+ * @extends {ActorSheetV2Compat}
  */
+import { ActorSheetV2Compat } from "../sheets/actor-sheet-v2-compat.js";
 import PopoutEditor from "../popout-editor.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import ActorOptions from "./actor-ffg-options.js";
@@ -22,9 +23,10 @@ import {
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 import {itemPillHover} from "../swffg-main.js";
 
-export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
+export class ActorSheetFFG extends ActorSheetV2Compat {
   constructor(...args) {
     super(...args);
     /**
@@ -99,7 +101,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
         const cost = await this.calcPurchasePrice(itemData);
         const availableXP = this.actor.system.experience.available;
         if (cost > 0 && cost < availableXP) {
-          new Dialog(
+          new DialogV2Compat(
           {
             title: game.i18n.localize("SWFFG.DragDrop.Title"),
             buttons: {
@@ -232,8 +234,12 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     };
 
     // Establish sheet width and height using either saved persistent values or default values defined in swffg-config.js
-    this.position.width = this.sheetWidth || CONFIG.FFG.sheets.defaultWidth[this.actor.type];
-    this.position.height = this.sheetHeight || CONFIG.FFG.sheets.defaultHeight[this.actor.type];
+    // Skip while minimized/minimizing -- otherwise this fights the V13 minimize
+    // collapse and snaps the sheet back to full size on the next render.
+    if (!this.minimized && !this._minimizing) {
+      this.position.width = this.sheetWidth || CONFIG.FFG.sheets.defaultWidth[this.actor.type];
+      this.position.height = this.sheetHeight || CONFIG.FFG.sheets.defaultHeight[this.actor.type];
+    }
 
     switch (this.actor.type) {
       case "character":
@@ -362,20 +368,51 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     // convert jquery element to HTMLElement for usage with Foundry calls
     const htmlElement = html.get(0);
 
-    // Activate tabs
-    let tabs = html.find(".tabs");
-    let initial = this._sheetTab;
-    new foundry.applications.ux.Tabs(tabs, {
-      initial: initial,
-      callback: (clicked) => {
-        this._sheetTab = clicked.data("tab");
-      },
-    });
+    // Tabs are bound by FFGDocumentSheetV2._activateCoreListeners using the
+    // defaultOptions.tabs config and the per-document _activeTabCache. Do not
+    // re-bind here -- a second Tabs controller on the same nav would race and
+    // immediately activate the default tab, defeating the cache.
 
     html.find(".alt-tab").click((ev) => {
       const item = $(ev.currentTarget);
       this._tabs[0].activate(item.data("tab"));
     });
+
+    // Skill career/group toggle: minion sheets recompute the displayed
+    // skill rank in _prepareMinionData based on `groupskill`. Without an
+    // explicit re-render after the submit, the rank input keeps showing
+    // the stale stored value and the toggle appears to "do nothing".
+    // (For character actors the toggle still just flips careerskill and a
+    // render keeps the UI consistent with the chip color.) Stop the event
+    // from bubbling to the form-level change handler so we don't run the
+    // default render:false submit on top of our render:true one.
+    html.find("input.careerskill-toggle").on("change", async (event) => {
+      event.stopPropagation();
+      await this._onSubmit(event, { render: true });
+    });
+
+    // Minion sheets compute several display fields in _prepareMinionData
+    // from raw inputs that the user edits directly:
+    //   unit_wounds.value + quantity.max -> stats.wounds.max
+    //   stats.wounds.value + unit_wounds.value -> quantity.value (alive)
+    //   quantity.value + groupskill -> skill.rank
+    // The default change pipeline submits with render: false, so editing
+    // any of those raw inputs persists the value but leaves the derived
+    // fields displaying their pre-edit numbers until the sheet is closed
+    // and reopened. Force render: true on change for these specific
+    // numeric/select inputs (text-typing inputs aren't in this list, so
+    // mid-typing DOM swaps remain prevented).
+    if (this.actor.type === "minion") {
+      const minionDerivedInputs = [
+        'input[name="data.unit_wounds.value"]',
+        'input[name="data.quantity.max"]',
+        'input[name="data.stats.wounds.value"]',
+      ].join(", ");
+      html.find(minionDerivedInputs).on("change", async (event) => {
+        event.stopPropagation();
+        await this._onSubmit(event, { render: true });
+      });
+    }
 
     html.find(".popout-editor").on("mouseover", (event) => {
       $(event.currentTarget).find(".popout-editor-button").show();
@@ -715,7 +752,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
       if (game.settings.get("starwarsffg", "HealingItemAction") === '0') {
           // prompt
           // show a prompt asking what the user wants to do
-          new Dialog(
+          new DialogV2Compat(
               {
                   title: game.i18n.localize("SWFFG.MedicalItemNameUseTitle"),
                   buttons: {
@@ -1001,7 +1038,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
         }
       );
 
-      new Dialog(
+      new DialogV2Compat(
         {
           title: game.i18n.localize("SWFFG.Crew.Title"),
           content: content,
@@ -1037,7 +1074,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
 
       const title = `${game.i18n.localize("SWFFG.TalentSource")} ${item.name}`;
 
-      new Dialog(
+      new DialogV2Compat(
         {
           title: title,
           content: {
@@ -1244,7 +1281,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
         }
 
         // actually show the dialog
-        await new Dialog(
+        await new DialogV2Compat(
           {
             title: game.i18n.localize("SWFFG.Crew.Roles.Gunner.Title"),
             content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Gunner.Description")}</p>`,
@@ -1305,7 +1342,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
           }
         }
         // actually show the dialog
-        await new Dialog(
+        await new DialogV2Compat(
           {
             title: game.i18n.localize("SWFFG.Crew.Roles.Weapon.Title"),
             content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Weapon.Description")}</p>`,
@@ -1448,7 +1485,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
       let newKey = document.createElement("div");
       newKey.innerHTML = `<input type="text" name="data.dutylist.${nk}.type" value="" style="display:none;"/><input class="attribute-value" type="text" name="data.dutylist.${nk}.magnitude" value="0" data-dtype="Number" placeholder="0"/>`;
       form.appendChild(newKey);
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     });
 
     html.find(".remove-duty").on("click", async (event) => {
@@ -1675,7 +1712,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
       label = CONFIG.FFG.skills[ability].label;
     }
 
-    new Dialog(
+    new DialogV2Compat(
       {
         title: `${game.i18n.localize("SWFFG.SkillCharacteristicDialogTitle")} ${game.i18n.localize(label)}`,
         content: {
@@ -1717,7 +1754,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
   _onCreateSkill(a) {
     const group = $(a).parent().data("type");
 
-    new Dialog(
+    new DialogV2Compat(
       {
         title: `${game.i18n.localize("SWFFG.SkillAddDialogTitle")}`,
         content: {
@@ -1784,7 +1821,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
       return;
     }
-    const dialog = new Dialog(
+    const dialog = new DialogV2Compat(
       {
         title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SkillRank.ConfirmTitle"),
         content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.SkillRank.Text", {cost: cost, skill: skill, old: curRank, new: curRank + 1}),
@@ -1860,7 +1897,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     CONFIG.logger.debug(`refunding ${mode} for ${purchaseId}`);
     const purchasedEffect = this.object.getEmbeddedCollection("ActiveEffect").find(ae => ae.name.includes(purchaseId));
     if (purchasedEffect) {
-      const dialog = new Dialog(
+      const dialog = new DialogV2Compat(
         {
           title: game.i18n.localize("SWFFG.Actors.Sheets.Refund.DialogTitle"),
           content: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Text"),
@@ -1957,18 +1994,18 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     var filter = a.id;
     $(a).prop("checked", true);
     filters.filter = filter;
-    await this._onSubmit(event);
+    await this._onSubmit(event, { render: true });
   }
   /* -------------------------------------------- */
 
   /** @override */
-  async _updateObject(event, formData) {
+  async _updateObject(event, formData, { render = false } = {}) {
     const actorUpdate = ActorHelpers.updateActor.bind(this);
     // Save persistent sheet height and width for future use.
     this.sheetWidth = this.position.width;
     this.sheetHeight = this.position.height;
 
-    await actorUpdate(event, formData);
+    await actorUpdate(event, formData, { render });
   }
 
   /**
@@ -2478,7 +2515,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
       return;
     }
 
-    const dialog = new Dialog(
+    const dialog = new DialogV2Compat(
     {
         title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.DialogTitle", {itemType: itemType}),
         content: content,
@@ -2552,7 +2589,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
       return;
     }
-    const dialog = new Dialog(
+    const dialog = new DialogV2Compat(
       {
         title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmTitle", {characteristic: characteristic}),
         content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmText", {cost: cost, level: characteristicValue + 1, characteristic: characteristic}),
@@ -2607,7 +2644,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     <input type="text" id="adjustReason" name="adjustReason" value="${game.i18n.localize("SWFFG.XP.Adjust.Window.Default")}" />
     `;
 
-    let d = new Dialog({
+    let d = new DialogV2Compat({
       title: game.i18n.localize("SWFFG.XP.Adjust.Window.Title"),
       content: content,
       buttons: {
@@ -2686,7 +2723,7 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     </div>
     `;
 
-    let d = new Dialog({
+    let d = new DialogV2Compat({
       title: game.i18n.localize("SWFFG.XP.Import.Title"),
       content: content,
       buttons: {
@@ -2735,12 +2772,12 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
   }
 
   /** @override **/
-  async _onSubmit(event) {
+  async _onSubmit(event, options = {}) {
     const formValid = event?.target?.form?.reportValidity();
     if (formValid === false) {
       return;
     }
-    return await super._onSubmit(event);
+    return await super._onSubmit(event, options);
   }
 
   /**
@@ -2755,7 +2792,16 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     const action = $(event.currentTarget).data("action");
     const sourceIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addSource = new Dialog({
+      if (this._addSourceDialogOpen) {
+        this._addSourceDialog?.app?.bringToFront?.();
+        return;
+      }
+      this._addSourceDialogOpen = true;
+      const releaseSourceLock = () => {
+        this._addSourceDialogOpen = false;
+        if (this._addSourceDialog === addSource) this._addSourceDialog = null;
+      };
+      const addSource = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</p>
@@ -2780,14 +2826,17 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
           },
         },
         default: "submit",
+        close: releaseSourceLock,
       });
+      this._addSourceDialog = addSource;
       addSource.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      requestAnimationFrame(() => addSource.app?.bringToFront?.());
     } else if (action === "remove") {
       const sources = foundry.utils.deepClone(this.object.system.metadata.sources);
       sources.splice(sourceIndex, 1);
       await this.object.update({"system.metadata.sources": sources});
+      this.render(true);
     }
-    this.render(true);
   }
 
   /**
@@ -2802,7 +2851,16 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
     const action = $(event.currentTarget).data("action");
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addTag = new Dialog({
+      if (this._addTagDialogOpen) {
+        this._addTagDialog?.app?.bringToFront?.();
+        return;
+      }
+      this._addTagDialogOpen = true;
+      const releaseTagLock = () => {
+        this._addTagDialogOpen = false;
+        if (this._addTagDialog === addTag) this._addTagDialog = null;
+      };
+      const addTag = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</p>
@@ -2826,14 +2884,17 @@ export class ActorSheetFFG extends foundry.appv1.sheets.ActorSheet {
           },
         },
         default: "submit",
+        close: releaseTagLock,
       });
+      this._addTagDialog = addTag;
       addTag.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      requestAnimationFrame(() => addTag.app?.bringToFront?.());
     } else if (action === "remove") {
       const tags = foundry.utils.deepClone(this.object.system.metadata.tags);
       tags.splice(tagIndex, 1);
       await this.object.update({"system.metadata.tags": tags});
+      this.render(true);
     }
-    this.render(true);
   }
 }
 

@@ -2,7 +2,7 @@ import ModifierHelpers from "./modifiers.js";
 import {migrateDataToSystem} from "./migration.js";
 
 export default class ActorHelpers {
-  static async updateActor(event, formData) {
+  static async updateActor(event, formData, { render = false } = {}) {
     formData = foundry.utils.expandObject(formData);
     const ownedItems = this.actor.items;
 
@@ -64,7 +64,7 @@ export default class ActorHelpers {
       await xpLogEarn(this.object, newXP - curXP, newXP, this.object?.system?.experience.total, "manual adjustment", "Self");
     }
 
-    return await this.object.update(formData);
+    return await this.object.update(formData, { render });
   }
 
   /**

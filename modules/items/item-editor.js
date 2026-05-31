@@ -1,7 +1,8 @@
 import ItemHelpers from "../helpers/item-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
+import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
 
-export class itemEditor extends FormApplication  {
+export class itemEditor extends FormApplicationV2Compat  {
   /*
   Known issues:
     - The title of the editor doesn't get updated when you update the name
@@ -19,7 +20,7 @@ export class itemEditor extends FormApplication  {
       super.defaultOptions,
       {
         title: `Embedded Item Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        //height: 720,
+        height: 600,
         width: 520,
         template: "systems/starwarsffg/templates/items/dialogs/ffg-embedded-itemattachment.html",
         closeOnSubmit: false,
@@ -42,7 +43,7 @@ export class itemEditor extends FormApplication  {
   /** @override */
   async getData(options) {
     // update the title since it isn't available when creating the application
-    this.options.title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
+    this._title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
     const data = await this._enrichData();
     let modifierChoices = CONFIG.FFG.allowableModifierChoices;
 
@@ -547,7 +548,7 @@ export class talentEditor extends itemEditor {
       super.defaultOptions,
       {
         title: `Embedded Talent Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        //height: 720,
+        height: 600,
         width: 520,
         closeOnSubmit: false,
         submitOnClose: true,
@@ -569,7 +570,7 @@ export class talentEditor extends itemEditor {
     /** @override */
   async getData(options) {
     // update the title since it isn't available when creating the application
-    this.options.title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
+    this._title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
 
     let activations = CONFIG.FFG.activations;
     let data = await this._enrichData();
@@ -761,7 +762,7 @@ export class forcePowerEditor extends itemEditor {
       super.defaultOptions,
       {
         title: `Embedded Force Power Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        //height: 720,
+        height: 600,
         width: 520,
         closeOnSubmit: false,
         submitOnClose: true,
@@ -783,7 +784,7 @@ export class forcePowerEditor extends itemEditor {
     /** @override */
   async getData(options) {
     // update the title since it isn't available when creating the application
-    this.options.title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
+    this._title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
 
     // build out the mod type and mod choices
     let modTypeChoices = CONFIG.FFG.allowableModifierTypes;

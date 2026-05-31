@@ -1,4 +1,13 @@
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
+
 export default class ItemOptions {
+  /**
+   * Per-item Sheet Options dialog instance, keyed by item uuid. Single-
+   * instance guard so a second click on Sheet Options focuses the existing
+   * dialog instead of stacking another one.
+   */
+  static _openDialogs = new Map();
+
   constructor(data, html) {
     this.data = data;
     this.options = {};
@@ -6,18 +15,76 @@ export default class ItemOptions {
   }
 
   init(html) {
-      const options = $(`.starwarsffg.sheet.item[data-appid='${this.data.appId}'] .ffg-sheet-options`);
-      if (options.length === 0) {
-        const button = $(`<a class="ffg-sheet-options"><i class="fas fa-wrench"></i>${game.i18n.localize("SWFFG.SheetOptions")}</a>`);
-        button.insertBefore(`.starwarsffg.sheet.item[data-appid='${this.data.appId}'] header a:first`);
-        button.on("click", this.handler.bind(this));
+    const root = this._findSheetRoot(html);
+    if (!root) {
+      // Diagnostic: silent failure here means the Sheet Options button never
+      // appears in the header. Most common cause is the sheet root not
+      // matching `.starwarsffg.sheet.item[data-appid=...]` (e.g. a subclass
+      // that strips one of the expected classes).
+      console.warn(`starwarsffg | ItemOptions.init: could not resolve sheet root for appId="${this.data.appId}"; Sheet Options button will not be injected.`);
+      return;
+    }
+    if (root.querySelector(":scope > .window-header > .ffg-sheet-options")) return;
+
+    const header = root.querySelector(":scope > .window-header");
+    if (!header) {
+      console.warn(`starwarsffg | ItemOptions.init: sheet root for appId="${this.data.appId}" has no :scope > .window-header; Sheet Options button will not be injected.`);
+      return;
+    }
+
+    const button = document.createElement("a");
+    button.href = "#";
+    button.classList.add("ffg-sheet-options");
+    if (root.classList.contains("application")) button.classList.add("legacy-header-action");
+    button.innerHTML = `<i class="fas fa-wrench"></i>${game.i18n.localize("SWFFG.SheetOptions")}`;
+    button.addEventListener("click", this.handler.bind(this));
+
+    const anchor = header.querySelector(":scope > a, :scope > button, :scope > [data-action]") ?? header.lastElementChild;
+    header.insertBefore(button, anchor);
+  }
+
+  _findSheetRoot(html) {
+    const appId = `${this.data.appId}`;
+    const candidates = [];
+    const addAncestors = (element) => {
+      for (let node = element; node && node !== document; node = node.parentElement) {
+        if (
+          node.dataset?.appid === appId
+          && node.classList?.contains("starwarsffg")
+          && node.classList.contains("sheet")
+          && node.classList.contains("item")
+        ) {
+          candidates.push(node);
+        }
       }
+    };
+
+    const sheetElement = this.data.element?.jquery ? this.data.element[0] : this.data.element;
+    const htmlElement = html?.jquery ? html[0] : html?.[0] ?? html;
+    addAncestors(sheetElement);
+    addAncestors(htmlElement);
+    candidates.push(...document.querySelectorAll(`.starwarsffg.sheet.item[data-appid="${appId}"]`));
+
+    return candidates.find((element) => element.querySelector(":scope > .window-header")) ?? candidates[0] ?? null;
   }
 
   handler(event) {
+    // The injected button is an <a href="#">; without preventDefault the
+    // browser navigates to the page URL with `#` appended and can scroll
+    // the page. stopPropagation keeps the click from bubbling into V13's
+    // window header handling.
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+
+    const openKey = this.data.item.uuid;
+    const existing = ItemOptions._openDialogs.get(openKey);
+    if (existing?.app?.rendered) {
+      existing.app.bringToFront?.();
+      return;
+    }
     const title = `${game.i18n.localize("SWFFG.ItemSheet")} ${game.i18n.localize("SWFFG.Options")}: ${this.data.item.name}`;
 
-    new Dialog(
+    const dialog = new DialogV2Compat(
       {
         title,
         content: {
@@ -67,7 +134,19 @@ export default class ItemOptions {
         classes: ["dialog", "starwarsffg"],
         template: "systems/starwarsffg/templates/dialogs/ffg-sheet-options.html",
       }
-    ).render(true);
+    );
+    ItemOptions._openDialogs.set(openKey, dialog);
+    const drop = () => {
+      if (ItemOptions._openDialogs.get(openKey) === dialog) {
+        ItemOptions._openDialogs.delete(openKey);
+      }
+    };
+    const wrappedClose = dialog.close.bind(dialog);
+    dialog.close = async (...args) => {
+      try { return await wrappedClose(...args); }
+      finally { drop(); }
+    };
+    dialog.render(true);
   }
 
   async register(optionName, options) {

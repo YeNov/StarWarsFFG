@@ -1,6 +1,7 @@
 import {get_dice_pool} from "./dice-helpers.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 /**
  * Capture a drag-and-drop event (used to capture adding crew members via a flag)
@@ -291,7 +292,7 @@ export async function selectRoles(vehicle, crew_member_id) {
     }
   );
 
-  new Dialog(
+  new DialogV2Compat(
     {
       title: game.i18n.localize("SWFFG.Crew.Title"),
       content: content,

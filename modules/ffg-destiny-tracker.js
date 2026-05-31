@@ -1,14 +1,15 @@
 import { GroupManager } from "./groupmanager-ffg.js";
+import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
 
 /**
  * A specialized form used to pop out the editor.
- * @extends {FormApplication}
+ * @extends {FormApplicationV2Compat}
  *
  * OPTIONS:
  *
  *
  */
-export default class DestinyTracker extends FormApplication {
+export default class DestinyTracker extends FormApplicationV2Compat {
   constructor(object={}, options={}) {
     super(object, options);
 
@@ -27,6 +28,18 @@ export default class DestinyTracker extends FormApplication {
       title: "Destiny Tracker",
       template: "systems/starwarsffg/templates/ffg-destiny-tracker.html",
     });
+  }
+
+  /**
+   * The destiny tracker is a small chrome widget, not a regular form. The base
+   * 300x200 minimum from FormApplicationV2Compat forces the application frame
+   * (and its backdrop-blur) to a rectangle much larger than the widget, leaving
+   * a visible blur halo around the icons. Allow the frame to shrink to the
+   * actual content size; the 10px gap around the widget is provided by CSS.
+   * @override
+   */
+  _minDimensions() {
+    return { width: 1, height: 1 };
   }
 
   /** @override */

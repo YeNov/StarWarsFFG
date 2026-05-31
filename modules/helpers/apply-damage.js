@@ -6,6 +6,7 @@
  * See docs/superpowers/specs/2026-05-24-apply-damage-chat-button-design.md
  */
 import { applyToTargetActor } from "./gm-bridge.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 export class ApplyDamage {
   /**
@@ -134,7 +135,7 @@ export class ApplyDamage {
     const weaponName = itemData.name || itemSystem.name || "weapon";
     const title = game.i18n.format("SWFFG.ApplyDamage.DialogTitle", { name: a.name });
 
-    new Dialog({
+    new DialogV2Compat({
       title,
       content,
       buttons: {

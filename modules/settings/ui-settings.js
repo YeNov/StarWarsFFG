@@ -1,4 +1,6 @@
-class ffgSettings extends FormApplication {
+import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
+
+class ffgSettings extends FormApplicationV2Compat {
   activateListeners(html) {
     super.activateListeners(html);
     html.find("button.filepicker").click(this._onFilePicker.bind(this));

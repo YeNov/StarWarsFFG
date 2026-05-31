@@ -1,4 +1,5 @@
 import PopoutEditor from "../popout-editor.js";
+import { ItemSheetV2Compat } from "../sheets/item-sheet-v2-compat.js";
 import Helpers from "../helpers/common.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import ItemHelpers from "../helpers/item-helpers.js";
@@ -10,13 +11,14 @@ import ActorHelpers, {xpLogSpend} from "../helpers/actor-helpers.js";
 import ItemOptions from "./item-ffg-options.js";
 import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
 import { canPurchaseNode } from "../helpers/talent-tree.js";
+import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
 /**
  * Extend the basic ItemSheet with some very simple modifications
- * @extends {ItemSheet}
+ * @extends {ItemSheetV2Compat}
  */
 
-export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
+export class ItemSheetFFG extends ItemSheetV2Compat {
   /** @override */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -41,6 +43,23 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     "double": 2,
     "triple": 3,
     "full": 4
+  }
+
+  /**
+   * Tree-grid item types (specialization / force power / signature ability)
+   * need a larger floor than the generic sheet minimum to keep the grid
+   * usable. Everything else inherits the base 300x200.
+   * @override
+   */
+  _minDimensions() {
+    switch (this.object?.type) {
+      case "specialization":
+      case "forcepower":
+      case "signatureability":
+        return { width: 700, height: 600 };
+      default:
+        return super._minDimensions();
+    }
   }
 
   /** @override */
@@ -204,7 +223,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
           this.position.height = 840;
         }
         data.isReadOnly = false;
-        if (!this.options.editable) {
+        if (!this.isEditable) {
           data.isEditing = false;
           data.isReadOnly = true;
         }
@@ -259,7 +278,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
           this.position.height = 1005;
         }
         data.isReadOnly = false;
-        if (!this.options.editable) {
+        if (!this.isEditable) {
           data.isEditing = false;
           data.isReadOnly = true;
         }
@@ -394,7 +413,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
           this.position.height = 545;
         }
         data.data.isReadOnly = false;
-        if (!this.options.editable) {
+        if (!this.isEditable) {
           data.data.isEditing = false;
           data.data.isReadOnly = true;
         }
@@ -667,14 +686,16 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
       $(event.currentTarget).parent().parent().children(".attributes-list").append(rendered);
       // re-bind listeners on the new elements
       this.activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
-      // submit the form to persist the change
-      this.submit();
+      // submit the form to persist the change. submit() throws in this compat
+      // layer (form handler is nulled), so use the manual pipeline; render to
+      // rebuild the attribute list from persisted data.
+      this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
     } else if (action === 'delete') {
       // check if this is a mod within a modification (has a parent .modification_title)
       const inModification = $(event.currentTarget).closest(".modification_title").length > 0;
       if (inModification) {
         $(event.currentTarget).parent().remove();
-        this.submit();
+        this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
       }
     }
   }
@@ -702,6 +723,23 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     html.find(".ffg-purchase").click(async (ev) => {
       if(this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
       await this._handleItemBuy(ev)
+    });
+
+    // Cross-field reactivity: toggling "Ranked" shows/hides the rank-count
+    // field via {{#if data.ranks.ranked}}. The generic change pipeline now
+    // submits with render:false (render-race fix), so request an explicit
+    // re-render for this one field. Coalesces with the pipeline's own submit.
+    html.find('[name="data.ranks.ranked"]').on("change", async (ev) => {
+      await this._onSubmit(ev, { render: true });
+    });
+
+    // Cross-field reactivity: toggling a talent/upgrade "islearned" checkbox
+    // changes which nodes are purchasable (the .ffg-purchase buy buttons) for
+    // this node AND its tree neighbours, via the canPurchase pass in getData.
+    // Under render:false the buy button would not reappear after un-learning a
+    // node, so re-render on change to recompute canPurchase across the tree.
+    html.find('input[name$=".islearned"]').on("change", async (ev) => {
+      await this._onSubmit(ev, { render: true });
     });
 
     html.find(".source-control").click(async (ev) => {
@@ -751,14 +789,10 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
       }
     }
 
-    // TODO: This is not needed in Foundry 0.6.0
-    // Activate tabs
-    let tabs = html.find(".tabs");
-    let initial = this._sheetTab;
-    new foundry.applications.ux.Tabs(tabs, {
-      initial: initial,
-      callback: (clicked) => (this._sheetTab = clicked.data("tab")),
-    });
+    // Tabs are bound by FFGDocumentSheetV2._activateCoreListeners using the
+    // defaultOptions.tabs config and the per-document _activeTabCache. Do not
+    // re-bind here; a second Tabs controller on the same nav races and snaps
+    // back to the default tab on the next render.
 
     html.find(".items .item, .header-description-block .item, .injuries .item").click(async (ev) => {
       const li = $(ev.currentTarget);
@@ -881,8 +915,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     }
 
     // Everything below here is only needed if the sheet is editable
-    if (this.object.flags.readonly) this.options.editable = false;
-    if (!this.options.editable) return;
+    if (!this.isEditable) return;
 
     // Standalone itemattachment modification controls
     if (this.object.type === "itemattachment") {
@@ -1171,7 +1204,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
       if (item) {
         const title = `${this.object.name} ${item.name}`;
 
-        new Dialog(
+        new DialogV2Compat(
           {
             title,
             content: {
@@ -1445,7 +1478,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
       editModeExited = true;
       await ActorHelpers.endEditMode(owner, AEState, true);
     };
-    new Dialog(
+    new DialogV2Compat(
       {
         title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.Talent.ConfirmTitle"),
         content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Talent.ConfirmText", {cost: cost, talent: talent}),
@@ -1459,7 +1492,10 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
                 const talentId = $(li).attr("id");
                 const input = $(`[name="data.talents.${talentId}.islearned"]`, this.element)[0];
                 input.checked = true;
-                await this.object.sheet.submit();
+                // ApplicationV2's submit() throws in this compat layer (the
+                // form handler is intentionally nulled); persist via the
+                // manual pipeline instead, rendering to reflect the purchase.
+                await this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
                 owner.update({system: {experience: {available: availableXP - cost}}});
                 await xpLogSpend(owner, `specialization ${baseName} talent ${talent}`, cost, availableXP - cost, totalXP);
               } finally {
@@ -1487,7 +1523,23 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     const action = $(event.currentTarget).data("action");
     const sourceIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addSource = new Dialog({
+      // Single-instance guard: a second click on `+` while an Add Source
+      // dialog is open should focus that dialog, not stack another. Tracked
+      // per-sheet so different items each get their own dialog. Use a sync
+      // flag set before any async hop -- DialogV2Compat.render is
+      // fire-and-forget and the dialog isn't `.app.rendered` until after the
+      // first render await resolves, so a fast double-click would otherwise
+      // slip through.
+      if (this._addSourceDialogOpen) {
+        this._addSourceDialog?.app?.bringToFront?.();
+        return;
+      }
+      this._addSourceDialogOpen = true;
+      const releaseSourceLock = () => {
+        this._addSourceDialogOpen = false;
+        if (this._addSourceDialog === addSource) this._addSourceDialog = null;
+      };
+      const addSource = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</p>
@@ -1512,14 +1564,22 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
           },
         },
         default: "submit",
+        close: releaseSourceLock,
       });
+      this._addSourceDialog = addSource;
       addSource.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      // V13 dialogs sometimes render with a stale z-index and land behind
+      // the parent sheet. Force them to the front after the next paint.
+      requestAnimationFrame(() => addSource.app?.bringToFront?.());
     } else if (action === "remove") {
       const sources = foundry.utils.deepClone(this.item.system.metadata.sources);
       sources.splice(sourceIndex, 1);
       await this.object.update({"system.metadata.sources": sources});
+      // Only render after a structural change; rendering on "add" too
+      // (when the dialog hasn't yet submitted) re-runs the sheet's
+      // setPosition pass and snaps the window back to its default size.
+      this.render(true);
     }
-    this.render(true);
   }
 
   async _handleTagControl(event) {
@@ -1528,7 +1588,16 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     const action = $(event.currentTarget).data("action");
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
-      const addTag = new Dialog({
+      if (this._addTagDialogOpen) {
+        this._addTagDialog?.app?.bringToFront?.();
+        return;
+      }
+      this._addTagDialogOpen = true;
+      const releaseTagLock = () => {
+        this._addTagDialogOpen = false;
+        if (this._addTagDialog === addTag) this._addTagDialog = null;
+      };
+      const addTag = new DialogV2Compat({
         title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
         content: `
           <p>${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</p>
@@ -1552,14 +1621,17 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
           },
         },
         default: "submit",
+        close: releaseTagLock,
       });
+      this._addTagDialog = addTag;
       addTag.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
+      requestAnimationFrame(() => addTag.app?.bringToFront?.());
     } else if (action === "remove") {
       const tags = foundry.utils.deepClone(this.item.system.metadata.tags);
       tags.splice(tagIndex, 1);
       await this.object.update({"system.metadata.tags": tags});
+      this.render(true);
     }
-    this.render(true);
   }
 
   async _handleItemBuy(event) {
@@ -1609,10 +1681,21 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
       return;
     }
 
-    new Dialog(
+    // Synchronous re-entry guard: a purchase dialog is already open (or being
+    // opened), so ignore this click. This flag is set BEFORE any await or
+    // dialog construction -- an earlier version closed the prior dialog with
+    // `await`, but that await yields to the event loop and lets a second fast
+    // click interleave and open its own window. A plain synchronous flag can't
+    // be raced: each click handler runs its sync portion to completion before
+    // the next runs. Cleared when the dialog closes (purchase / cancel / x).
+    if (this._purchaseDialogOpen) return;
+    this._purchaseDialogOpen = true;
+
+    const purchaseDialog = new DialogV2Compat(
       {
         title: game.i18n.localize(config.titleKey),
         content: game.i18n.format(config.contentKey, {cost: cost, upgrade: upgradeName}),
+        close: () => { this._purchaseDialogOpen = false; },
         buttons: {
           done: {
             icon: '<i class="fa-regular fa-circle-up"></i>',
@@ -1670,7 +1753,8 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
       {
         classes: ["dialog", "starwarsffg"],
       }
-    ).render(true);
+    );
+    purchaseDialog.render(true);
   }
 
   async _buyForcePowerUpgrade(event) {
@@ -1709,7 +1793,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
   /* -------------------------------------------- */
 
   /** @override */
-  _updateObject(event, formData) {
+  async _updateObject(event, formData, { render = false } = {}) {
     if(this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
 
     // For standalone itemattachments, process the itemmodifier array notation from the modifications tab
@@ -1732,7 +1816,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
     }
 
     const itemUpdate = ItemHelpers.itemUpdate.bind(this);
-    itemUpdate(event, formData);
+    await itemUpdate(event, formData, { render });
   }
 
   /**
@@ -1822,7 +1906,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
 
       $(".talent-grid").toggleClass("talent-disable-edit");
       $(".talent-uplink-connections").toggleClass("talent-disable-edit");
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     }
 
     if (action === "combine") {
@@ -1854,7 +1938,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         $(`input[name='data.upgrades.${nextNextKey}.visible']`).val("false");
         $(`input[name='data.upgrades.${nextNextNextKey}.visible']`).val("false");
       }
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     }
 
     if (action === "split") {
@@ -1875,7 +1959,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         $(`input[name='data.upgrades.${nextNextKey}.visible']`).val(true);
         $(`input[name='data.upgrades.${nextNextKey}.size']`).val("double");
       }
-      await this._onSubmit(event);
+      await this._onSubmit(event, { render: true });
     }
 
     if (action === "link-top") {
@@ -1885,7 +1969,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         const currentValue = $(`input[name='data.${itemType}.${key}.links-top-${linkid}']`).val() == "true";
         $(`input[name='data.${itemType}.${key}.links-top-${linkid}']`).val(!currentValue);
 
-        await this._onSubmit(event);
+        await this._onSubmit(event, { render: true });
       }
     }
 
@@ -1895,7 +1979,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         const currentValue = $(`input[name='data.${itemType}.${key}.links-right']`).val() == "true";
         $(`input[name='data.${itemType}.${key}.links-right']`).val(!currentValue);
 
-        await this._onSubmit(event);
+        await this._onSubmit(event, { render: true });
       }
     }
 
@@ -1917,7 +2001,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
         const inputElement = $(`input[name='data.uplink_nodes.${linkid}']`);
         const currentValue = inputElement.val() === "true";
         inputElement.val(!currentValue);
-        await this._onSubmit(event);
+        await this._onSubmit(event, { render: true });
       }
     }
   }
@@ -1949,7 +2033,7 @@ export class ItemSheetFFG extends foundry.appv1.sheets.ItemSheet {
   }
 
   _canDragStart(selector) {
-    return this.options.editable && this.object.isOwner;
+    return this.isEditable;
   }
 
   _canDragDrop(selector) {

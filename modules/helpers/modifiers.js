@@ -631,7 +631,7 @@ export default class ModifierHelpers {
           }
         }
       }
-      await inherentEffect.update({changes: inherentEffect.changes});
+      await inherentEffect.update({changes: inherentEffect.changes}, {render: false});
     }
     // some inherent effects are not in the `attribute` keyspace; make sure to get them as well
     if (inherentEffect && ["gear", "weapon", "armour"].includes(item.type)) {
@@ -684,7 +684,7 @@ export default class ModifierHelpers {
           }
         }
       }
-      await inherentEffect.update({changes: inherentEffect.changes});
+      await inherentEffect.update({changes: inherentEffect.changes}, {render: false});
     } else if (inherentEffect && ["shipattachment"].includes(item.type)) {
       const explodedMods = ModifierHelpers.explodeMod(
         "Vehicle Stat",
@@ -702,7 +702,7 @@ export default class ModifierHelpers {
           inherentEffect.changes[inherentEffectChangeIndex].value = formData.data.hardpoints.value * -1;
         }
       }
-      await inherentEffect.update({changes: inherentEffect.changes});
+      await inherentEffect.update({changes: inherentEffect.changes}, {render: false});
     }
 
 
@@ -743,7 +743,7 @@ export default class ModifierHelpers {
         if (match) {
           await match.update({
             changes: changes,
-          });
+          }, {render: false});
         } else if (k.startsWith("attr")) {
           // user-created active effects only - skip inherent effects like "brawn" on "species"
           // new entry
@@ -775,15 +775,15 @@ export default class ModifierHelpers {
           change.value = parseInt(newBrawn) + 5;
         }
       }
-      await itemEffect.update({changes: newChanges});
+      await itemEffect.update({changes: newChanges}, {render: false});
     }
 
     if (toCreate.length) {
-      await item.createEmbeddedDocuments("ActiveEffect", toCreate);
+      await item.createEmbeddedDocuments("ActiveEffect", toCreate, {render: false});
     }
 
     if (toDelete.length) {
-      await item.deleteEmbeddedDocuments("ActiveEffect", toDelete);
+      await item.deleteEmbeddedDocuments("ActiveEffect", toDelete, {render: false});
     }
 
     CONFIG.logger.debug("applyActiveEffectOnUpdate", toCreate, toDelete);
