@@ -734,6 +734,15 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       await this._onSubmit(ev, { render: true });
     });
 
+    // Cross-field reactivity: toggling a talent/upgrade "islearned" checkbox
+    // changes which nodes are purchasable (the .ffg-purchase buy buttons) for
+    // this node AND its tree neighbours, via the canPurchase pass in getData.
+    // Under render:false the buy button would not reappear after un-learning a
+    // node, so re-render on change to recompute canPurchase across the tree.
+    html.find('input[name$=".islearned"]').on("change", async (ev) => {
+      await this._onSubmit(ev, { render: true });
+    });
+
     html.find(".source-control").click(async (ev) => {
       await this._handleSourceControl(ev);
     });
