@@ -72,71 +72,109 @@ lowest-risk surface that unblocks the next:
 
 ### A1. ProseMirror editor activation — internal #1, user #2
 
-**Root cause.** V1's `FormApplication._render` walked the rendered HTML, found
-every `<div class="editor">` produced by the `{{editor}}` Handlebars helper,
-and called `this.activateEditor(name)` for each. That bound the "Edit" pencil
-button so clicking it mounted an actual ProseMirror instance and synced its
-value back to the form on save.
+**Root cause.** V1's `FormApplication._render` (`form-application-v1.mjs:394`)
+walked the rendered HTML, found every `.editor-content[data-edit]` produced by
+the `{{editor}}` helper (`fields.mjs:103` — `<div class="editor"><div class=
+"editor-content" data-edit="<name>">…</div><div class="editor-menu"><a class=
+"editor-edit">…</a></div></div>`), and registered an editor state record
+keyed by the data-edit attribute. Save was wired via the ProseMirror plugin
+chain that the V1 FormApplication installed (it pushes editor changes back
+through the form's submit pipeline, not via `fieldName`).
 
-The V2 compat shim never reimplemented this. The DOM still renders the editor
-container and the edit button, but clicking the button does nothing. The
-`{{editor}}` helper output is `<div class="editor prosemirror" data-engine=
-"prosemirror" data-target="<fieldName>">…<a class="editor-edit">…</a>…</div>`,
-and the `editors` map on the sheet stays empty, so `FormDataExtended` has no
-editor value to serialize at submit time either.
+The V2 compat shim never reimplemented any of this. The DOM still renders the
+editor container and the edit button, but clicking the button does nothing,
+no editor state is registered, and `FormDataExtended` has no editor value to
+serialize at submit time.
 
-**Fix.** Add an `_activateEditors(html)` method to `FFGDocumentSheetV2` and
-call it from `_onRender` after `activateListeners(html)`:
+**Initial-design correction (P1 review):** the earlier draft of this spec
+named the wrong selector (`.editor[data-target]`) and the wrong save path
+(`ProseMirrorEditor.create` with `fieldName` auto-save). Neither exists.
+Use `.editor-content[data-edit]` for discovery and wire save explicitly.
+
+**Fix.** Add an `_activateEditors()` method to `FFGDocumentSheetV2` and call
+it from `_onRender` after `activateListeners(html)`:
 
 ```js
-_activateEditors(html) {
+_activateEditors() {
   const root = this.element;
-  for (const div of root.querySelectorAll(".editor[data-engine='prosemirror']")) {
-    const name = div.dataset.target;
+  for (const content of root.querySelectorAll(".editor-content[data-edit]")) {
+    const name = content.dataset.edit;
     if (!name) continue;
-    const button = div.querySelector(".editor-edit");
+    const editorContainer = content.closest(".editor");
+    const button = editorContainer?.querySelector(".editor-edit");
     if (!button || button.dataset.editorBound) continue;
     button.dataset.editorBound = "1";
     button.addEventListener("click", (event) => {
       event.preventDefault();
-      this._activateEditor(name, div);
+      this._activateEditor(name, content, editorContainer, button);
     });
   }
 }
 
-async _activateEditor(name, container) {
-  if (this.editors[name]) return; // already active
+async _activateEditor(name, contentEl, containerEl, buttonEl) {
+  if (this.editors[name]) return;
   const initial = foundry.utils.getProperty(this.document, name) ?? "";
-  const editor = await foundry.applications.ux.ProseMirrorEditor.create(
-    container,
-    initial,
-    {
-      document: this.document,
-      fieldName: name,
-      collaborate: false,
-      relativeLinks: true,
+  // V13 ProseMirror is mounted via ProseMirrorEditor.create on a target
+  // element; we mount into the existing .editor-content div so the
+  // surrounding chrome stays in place.
+  const editor = await ProseMirror.ProseMirrorEditor.create(contentEl, initial, {
+    document: this.document,
+    fieldName: name,
+    plugins: {
+      // Install the keymaps plugin so Ctrl+S etc work.
+      keyMaps: ProseMirror.ProseMirrorKeyMaps.build(ProseMirror.defaultSchema, {
+        onSave: () => this._saveEditor(name, { remove: true }),
+      }),
     },
-  );
-  this.editors[name] = editor;
-  // ProseMirrorEditor.create renders its own save/cancel chrome. On save it
-  // calls document.update({ [fieldName]: value }) directly via fieldName.
-  // We only need to drop the reference on close so a re-render rebinds.
-  editor.options?.element?.addEventListener?.("editor:save", () => {
-    delete this.editors[name];
+    relativeLinks: true,
   });
-  editor.options?.element?.addEventListener?.("editor:cancel", () => {
-    delete this.editors[name];
-  });
+  this.editors[name] = { editor, name, contentEl, containerEl, buttonEl, active: true };
+
+  // Hide the edit button while the editor is active and expose save/cancel.
+  containerEl.classList.add("editor-active");
+  this._renderEditorControls(this.editors[name]);
+}
+
+_renderEditorControls(state) {
+  // Reuses the V13 .editor-menu chrome; on click of save or cancel, call
+  // _saveEditor or _cancelEditor.
+  // …details fleshed out at implementation time once we see the real DOM
+  //   produced by the V13 helper on this server's Foundry build.
+}
+
+async _saveEditor(name, { remove = true } = {}) {
+  const state = this.editors[name];
+  if (!state) return;
+  const value = ProseMirror.dom.serializeString(state.editor.view.state.doc.content);
+  await this.document.update({ [name]: value });
+  if (remove) this._closeEditor(name);
+}
+
+_closeEditor(name) {
+  const state = this.editors[name];
+  if (!state) return;
+  state.editor.destroy();
+  state.containerEl.classList.remove("editor-active");
+  delete this.editors[name];
 }
 ```
 
+The `_renderEditorControls` body and the exact `ProseMirror.dom.*`
+serializer call are placeholders that get pinned down on first
+implementation pass, when we can inspect the real V13 DOM in DevTools on
+the running server. The shape — discover via `.editor-content[data-edit]`,
+mount via `ProseMirror.ProseMirrorEditor.create`, save via explicit
+`document.update({ [name]: serialized })` — is the load-bearing design
+decision and is reviewer-confirmed.
+
 Inherits to `ActorSheetV2Compat` and `ItemSheetV2Compat` automatically.
 
-**Verification.** Open character sheet → Biography tab → click pencil → editor
-mounts inline → type text → click save → reload sheet, text persists. Repeat
-on a talent item's Description tab, a weapon's special description, and a
-specialization talent's per-cell `popout-editor` (which is a separate
-mechanism — see note below; A1 covers the `{{editor}}` helper specifically).
+**Verification.** Open character sheet → Biography tab → click pencil →
+editor mounts inline → type text → click save → reload sheet, text
+persists. Repeat on a talent item's Description tab, a weapon's special
+description, and a specialization talent's per-cell `popout-editor` (which
+is a separate mechanism — see note below; A1 covers the `{{editor}}`
+helper specifically).
 
 **Out-of-scope sub-issue.** The `<div class="popout-editor">` blocks used in
 the specialization grid (`templates/items/ffg-specialization-sheet.html:74`)
@@ -147,35 +185,54 @@ separate sub-task under Cluster E.
 
 ### A2. Window-header double-click to collapse — internal #2, user #1
 
-**Root cause.** V1's `Application._onToggleMinimize` bound a `dblclick`
-listener on `.window-header`. V13's ApplicationV2 dropped that affordance —
-collapse is only available via the `⋮` controls menu now. The "black" the
-user sees is the browser's default text-selection that triple-click leaves on
-the unhandled title text.
+**Initial-design correction (P1 review):** the earlier draft assumed V13
+dropped the dblclick handler entirely and proposed adding our own.
+Reviewer flagged that ApplicationV2 already binds `dblclick` on the header
+and toggles minimize/maximize (`application.mjs:1365`, `application.mjs:1600`).
+Adding another listener would double-toggle on every dblclick.
 
-**Fix.** In `FFGDocumentSheetV2._onRender`, after the existing header
-manipulation block (`_projectLegacyHeaderControls`):
+**Revised root cause (hypothesis, requires diagnosis).** Something in our
+compat shim is preventing V13's built-in handler from firing or from
+completing successfully. Candidates:
 
-```js
-const header = this.element.querySelector(":scope > .window-header");
-if (header && !header.dataset.dblclickBound) {
-  header.dataset.dblclickBound = "1";
-  header.addEventListener("dblclick", async (event) => {
-    if (event.target.closest("button, a, input, select, menu, .controls-dropdown")) return;
-    event.preventDefault();
-    if (this.minimized) await this.maximize();
-    else await this.minimize();
-  });
-}
-```
+1. `_projectLegacyHeaderControls` (`document-sheet-v2-compat.js:254`)
+   reshuffles header children. If V13's handler is bound to a specific
+   inner element rather than the header itself, our removal/insertion may
+   have detached it.
+2. The Sheet Options injector (`actor-ffg-options.js:38`,
+   `item-ffg-options.js:20`) adds an `<a class="ffg-sheet-options">` link
+   inside the header. If V13's dblclick handler requires `event.target`
+   to be the header text and our link captures it, the handler short-
+   circuits.
+3. CSS: V13's handler may guard on `event.defaultPrevented`. If another
+   listener (ours or a third-party module's) preventDefaults the first
+   click of the pair, dblclick never fires.
+4. The user-reported "black" suggests text-selection IS being made, which
+   means at least one of the two clicks is hitting an unhandled text node
+   — strong signal the inner-target hypothesis (#2) is the culprit.
 
-Mirror in `FormApplicationV2Compat._onRender` so RollBuilder, DestinyTracker,
-GroupManager etc. also get it.
+**Plan.** Diagnose first, fix after:
 
-**Verification.** Double-click the title bar of a character sheet → minimises
-to the dock. Double-click again → restores. Double-click the `⋮` button → no
-spurious minimise (the early-return on `closest("button, …")` blocks it).
-Double-click an inline `Sheet Options` link in the header → also no minimise.
+1. Open a sheet on the running server, attach a console listener:
+   `dom.querySelector(".window-header").addEventListener("dblclick",
+   (e) => console.log("dblclick fired", e.target), { capture: true });`
+2. Double-click the title bar. Confirm whether the V13 handler fires (it
+   does its own work after our capture-phase log).
+3. If V13's handler does not fire → step through `_projectLegacyHeaderControls`
+   and the Sheet Options injector to find what removed it.
+4. If V13's handler fires but doesn't minimize → check `this.minimized`
+   state after the call; look for our `_closing` guard or any other
+   render-blocking guard interfering.
+
+**Fix shape (post-diagnosis).** Most likely a one-line correction —
+restore the header element V13 binds to, OR make the Sheet Options link
+non-target via `pointer-events: none` on its enclosing wrapper but `auto`
+on the link itself, OR remove a stray `preventDefault` call. We do NOT
+add a duplicate dblclick listener.
+
+**Verification.** Double-click the title bar → minimizes (single toggle,
+not two). Repeat → restores. Confirm via console log that only V13's
+handler runs, not a duplicate of ours.
 
 ## Detailed design — Cluster B: Min-size enforcement
 
@@ -276,17 +333,43 @@ outside `.window-content`.
 
 ### C2. Modifier description textarea sizing — internal #5, user #8
 
-**Likely cause.** Either (a) the description input is a single-line `<input>`
-where it should be a flex-filling `<textarea>` (per the long-standing TODO
-comment at `modules/items/item-editor.js:9`), or (b) it IS a textarea but
-sized with a fixed height instead of `flex: 1 1 auto`.
+**Initial-design correction (P2 review):** earlier draft named
+`ffg-mod.html`, which contains modifier type/value controls, not the
+description field. The correct surface depends on which "modifier
+description" the user means; the three candidates each live in a different
+partial:
 
-**Fix.** In `templates/items/dialogs/ffg-mod.html` (or wherever the per-mod
-description renders), ensure the field is a `<textarea>` with class
-`modifier-description` and SCSS:
+| Partial | Line | Field shape today |
+|---|---|---|
+| `templates/items/dialogs/ffg-modification.html` | 10 | `<input type="text" name="system.itemmodifier[N].system.description">` |
+| `templates/items/dialogs/ffg-embedded-talent.html` | 16 | `<input type="text" name="description">` |
+| `templates/items/dialogs/ffg-embedded-upgrade.html` | 16 | `<input type="text" name="description">` |
+
+`ffg-embedded-itemmodifier.html` and `ffg-embedded-itemattachment.html`
+already use `{{editor}}` (ProseMirror) for their description fields, so
+they're covered by A1.
+
+**Repro first.** Open a specialization, click a talent's modifier-edit
+gear icon, confirm which of the three partials renders the cramped
+input. Apply the fix to whichever surface the user reproduces against
+first; the other two get the same fix in a follow-up commit if the user
+reports them.
+
+**Fix.** Replace the relevant `<input type="text">` with a `<textarea>`
+flex-filling its container. Example for `ffg-modification.html`:
+
+```hbs
+<textarea
+  class="modifier-description"
+  name="system.itemmodifier[{{number}}].system.description"
+  rows="4">{{ mod.system.description }}</textarea>
+```
+
+SCSS (scope to the dialog so it doesn't bleed into sheet bodies):
 
 ```scss
-.modifier-description {
+.flat_editor .modifier-description,
+.starwarsffg.sheet .modifier-description {
   flex: 1 1 auto;
   min-height: 8em;
   width: 100%;
@@ -294,12 +377,17 @@ description renders), ensure the field is a `<textarea>` with class
 }
 ```
 
-If the field is currently a popout-editor invocation (no inline editing),
-keep it that way and just make the rendered preview area flex-fill.
+**Side note on the V1 known-issue comment** at `modules/items/item-editor.js:9`
+("Modification descriptions are rendered in an input field, not a rich
+text editor"). This is the long-standing limitation the user is now
+running into. We're upgrading `<input>` → `<textarea>`, NOT to a
+ProseMirror editor, because the latter is a much larger change (state
+sync across multiple instances inside a single dialog, plus interactions
+with the embedded-item save semantics). Note that limitation for a
+future enhancement.
 
-**Verification.** Open a specialization modifier editor → description area
-fills available vertical space → typing scrolls inside the textarea, not the
-dialog.
+**Verification.** Open the editor → description area fills available
+vertical space → typing scrolls inside the textarea, not the dialog.
 
 ## Detailed design — Cluster D: Render-race
 
@@ -323,83 +411,127 @@ checkbox, click buy-button while a render is queued), the DOM swap lands in
 the middle and the second half of the interaction hits stale or unmounted
 nodes. The four user issues #2, #4, #5, #8 are all manifestations of this.
 
-### D1. Field-scoped change handler — internal #6/#7/#8/#9, user #3/#5/#6/#9
+### D1. Render-suppression on the existing whole-form submit path — internal #6/#7/#8/#9, user #3/#5/#6/#9
 
-**Fix.** Replace the "submit whole form on every change" model with a
-field-scoped update that does NOT re-render:
+**Initial-design correction (P1 + P2 review):** the earlier draft replaced
+the whole-form submit with `document.update({ [field]: value }, { render:
+false })`. Two reviewer-flagged problems make that wrong:
+
+1. **Skips legacy update wrappers.** `ItemHelpers.itemUpdate`
+   (`modules/helpers/item-helpers.js:4`) and `ActorHelpers.updateActor`
+   (`modules/helpers/actor-helpers.js:58`) do `data` → `system` migration,
+   AE syncing, free-form attribute reshaping (the `-=key` deletes), talent
+   propagation to specs/owned items, and XP-earn logging. Going direct to
+   `document.update` silently skips all of it. Templates also still emit
+   `name="data.foo"` paths that need `migrateDataToSystem`.
+2. **Broken editor guard.** The change listener is attached to the form
+   (`document-sheet-v2-compat.js:220`). `event.currentTarget` is therefore
+   the form, never an editor. The guard `target?.closest?.(".editor…")`
+   walks UP from the form and never matches. The bug exists today; the
+   draft preserved it.
+
+**Revised fix.** Don't touch the submit pipeline shape. Keep the
+whole-form submit. Suppress the re-render at three points along the
+existing path:
 
 ```js
 async _onChangeInput(event) {
-  const target = event.currentTarget;
-  if (target?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
-
+  // FIX the guard: currentTarget is the form, target is the actual input.
   const input = event.target;
+  if (input?.closest?.(".editor.prosemirror, .editor.tinymce")) return;
+
   // existing color/range mirroring unchanged…
 
-  if (!this.options.submitOnChange) return;
-
-  const field = input.name;
-  if (!field || !this.document) return;
-  const value = this._readFieldValue(input);
-  await this.document.update({ [field]: value }, { render: false });
-  // No re-render. Handlers that depend on cross-field reactivity (e.g.
-  // "ranks.ranked toggles a sibling visibility") call this.render(true)
-  // explicitly from their own listener.
+  if (this.options.submitOnChange) return this._onSubmit(event);
 }
 
-_readFieldValue(input) {
-  if (input.type === "checkbox") return input.checked;
-  if (input.type === "number" || input.dataset.dtype === "Number") return Number(input.value);
-  if (input.dataset.dtype === "Boolean") return input.value === "true";
-  return input.value;
+async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false, render = false } = {}) {
+  // Default render to false here. The handful of call-sites that genuinely
+  // need a re-render (e.g. cross-field reactivity) pass { render: true }
+  // explicitly. Most don't — the auto-render hook will fire on
+  // document.update either way and our render() will swallow it via the
+  // existing _closing guard during close. We swallow it during change-
+  // driven updates by passing { render: false } down to the document.
+  event?.preventDefault?.();
+  if (!this.form || !this.isEditable || this._submitting) return false;
+
+  this._submitting = true;
+  const formData = this._getSubmitData(updateData);
+  try {
+    await this._updateObject(event, formData, { render });
+  } finally {
+    this._submitting = false;
+  }
+
+  if (this.options.closeOnSubmit && !preventClose) await this.close({ submit: false, force: true });
+  return formData;
+}
+
+async _updateObject(_event, formData, { render = false } = {}) {
+  // Subclasses (ActorSheetFFG, ItemSheetFFG) override this to route through
+  // ActorHelpers.updateActor / ItemHelpers.itemUpdate. We thread the render
+  // option down to document.update so the auto-rerender hook stays silent.
+  return this.document.update(formData, { render });
 }
 ```
 
-**Sub-issue addressed per user item:**
+**Subclass changes.** `ActorHelpers.updateActor` and `ItemHelpers.itemUpdate`
+need a `{ render }` parameter forwarded to their internal `this.object.update(…)`
+call. Today both helpers call `await this.object.update(formData)` with no
+options object. We change to `await this.object.update(formData, { render })`
+where `render` defaults to `false`. The helpers' own explicit
+`this.render(true)` / `item.sheet.render(true)` calls (item-helpers.js:44, 76, 80)
+are AUDITED — most are present specifically to refresh after the auto-render
+was suppressed, and need to stay. The ones that are redundant with the
+auto-render get removed. This is line-by-line work done in the
+implementation plan, not pre-decided here.
 
-- **#2 weapon dropdown:** The change event on `<select>` no longer triggers a
-  re-render between mouseDown and mouseUp. Dropdown stays open through
-  selection. (Note: native `<select>` doesn't fire `change` until selection,
-  so the actual mechanism may be a *different* event causing the close — see
-  Investigation, below. The field-scoped fix removes the most likely cause;
-  if it doesn't fix #2, the investigation step finds the real culprit.)
+**Sub-issue mapping (unchanged from prior draft, fix mechanism updated):**
 
-- **#4 multi-click checkbox:** Each click sends one targeted `document.update`
-  serially; no DOM swap between clicks. The `_submitting` guard on the old
-  path was rejecting concurrent submits, which is why prior clicks sometimes
-  "didn't take" — they were swallowed. The new path queues per-field.
+- **#2 weapon dropdown:** No re-render fires on `change` of a `<select>`,
+  so the DOM swap mid-interaction goes away. The exact event that closes
+  the dropdown is confirmed by repro: most likely a `getData()`-triggered
+  position recalc that follows the suppressed render. If the dropdown
+  still closes after D1 lands, the investigation under E1 covers it.
+- **#4 multi-click checkbox:** Same — no re-render between clicks.
+  Document.update queues serially via the `_submitting` guard.
+- **#5 buy-talent button:** `_handleItemBuy` and `_buyHandleClick` call
+  `document.update` directly (not through our `_onSubmit`). Add an
+  explicit `{ render: false }` to those call-sites and let the buy
+  handler decide when to call `this.render()` once the transaction
+  completes. Audit `item-sheet-ffg.js:1432, 1469, 1578-1584` and the
+  related shared purchase flow (`item-sheet-ffg.js:1584` onwards).
+- **#8 spec tree won't close:** Confirm every `this.render(true)`
+  call-site in `item-sheet-ffg.js` routes through
+  `FFGDocumentSheetV2.render` (which honours `_closing`). The existing
+  `5fbc5147` and `7362a6e5` fixes assumed this; verify no subclass
+  bypasses via `super.render` or by calling on a different object.
 
-- **#5 buy-talent button:** Click handler in `item-sheet-ffg.js` calls
-  `_handleItemBuy` which itself runs `document.update`. Wrap it so it
-  honours the same "no auto-render" rule by passing `{ render: false }` on
-  its internal updates. Where the buy flow legitimately needs a re-render
-  (new talent purchased → new "Buy" buttons unlock), the handler explicitly
-  calls `this.render(false)` (re-render but don't force a fresh fetch) at
-  the end. Audit `_handleItemBuy`, `_buyHandleClick`, and the
-  specialization-upgrade branch (`item-sheet-ffg.js:1578-1584`).
+**Risk assessment.** Lower than the prior draft because:
 
-- **#8 spec tree won't close:** Subclass `_updateObject` overrides at
-  `item-sheet-ffg.js` and inside `item-editor.js` call `this.render(true)`
-  after `document.update`. The existing `_closing` guard on
-  `FFGDocumentSheetV2.render()` already swallows these, BUT only if the call
-  goes through the overridden `render`. Audit all explicit `this.render(true)`
-  call-sites in `item-sheet-ffg.js`; confirm they all route through
-  `FFGDocumentSheetV2.render`. If any bypass (e.g. `super.render` from a
-  subclass), add the `_closing` check inline or remove the explicit render.
+- Existing submit pipeline unchanged — `ItemHelpers.itemUpdate` and
+  `ActorHelpers.updateActor` still run, AE sync still happens, talent
+  propagation still happens, XP logging still happens.
+- Only difference is the `{ render: false }` flag threaded to the final
+  `document.update`. The legacy helpers' explicit `this.render(true)`
+  calls remain a controllable choice — we leave them where the flow
+  legitimately needs a redraw, remove them where they were compensating
+  for the now-suppressed auto-render.
+- Rollback path: drop the `{ render: false }` and revert the helpers'
+  signature — one revert commit.
 
-**Risk assessment.** This is the highest-blast-radius change. Rollout:
+**Rollout.**
 
-1. Land the new `_onChangeInput` in `FFGDocumentSheetV2` only. Existing
-   subclasses inherit automatically.
-2. Verify each sheet type still saves changes correctly: character, minion,
-   rival, nemesis, vehicle, weapon, armour, gear, talent, forcepower,
-   ability, itemmodifier, itemattachment, criticalinjury, specialization.
-3. Verify cross-field reactivity flows still work — toggling `ranks.ranked`
-   on a talent should still show the rank-input field. If broken, the
-   handler for that field needs an explicit `this.render(false)` added.
-4. If any sheet behaves badly, revert the change-handler swap for that
-   sheet by setting `submitOnChange: false` on it and falling back to the
-   old submit-whole-form behaviour wired to an explicit Save button.
+1. Land the `_onSubmit` / `_updateObject` change in
+   `FFGDocumentSheetV2` only. Thread `render: false`.
+2. Land the matching parameter in `ItemHelpers.itemUpdate` and
+   `ActorHelpers.updateActor`. Forward to `document.update`.
+3. Verify each sheet type still saves correctly (full list under prior
+   handoff's smoke-pass).
+4. Audit the `this.render(true)` call-sites and remove any redundant
+   ones (those that fired only to compensate for the now-suppressed
+   auto-render).
+5. Reproduce #2, #4, #5, #8 before AND after. Document.
 
 **Verification.** Reproduce each of #2, #4, #5, #8 on the running world at
 `http://192.168.1.7:30000/` before AND after the change. Document the
@@ -475,16 +607,26 @@ This task delivers a sub-design document inline in the implementation plan
 
 ## Open questions to confirm before implementation
 
-1. **A1 ProseMirror API surface.** Verify the exact V13 API for mounting a
-   ProseMirror editor inline into a `<div class="editor">` produced by the
-   `{{editor}}` Handlebars helper. The pseudo-code above uses
-   `foundry.applications.ux.ProseMirrorEditor.create(container, initial, opts)`;
-   the real API may differ slightly. If the editor element exposes a
-   `<prose-mirror>` custom element instead, switch to that path.
-2. **D1 cross-field reactivity.** Confirm by audit that no current sheet
-   handler depends on `_onChangeInput` triggering a full re-render. If any
-   do, list them explicitly in the implementation plan so each gets an
-   explicit `this.render(false)` added in its own listener.
-3. **B1 min-dimension values.** The proposed minimums (300×200 generic,
+1. **A1 ProseMirror API surface.** Pin the exact V13 calls during the
+   first implementation pass using DevTools on the running server:
+   - The serializer step (`ProseMirror.dom.serializeString(...)` is
+     placeholder — confirm the real symbol name).
+   - The keymap save handler (`ProseMirrorKeyMaps.build` signature).
+   - Whether to use `ProseMirror.ProseMirrorEditor.create` directly or
+     mount via the `<prose-mirror>` custom element exposed by V13.
+2. **A2 dblclick diagnosis.** Confirm via the capture-phase console
+   listener whether V13's built-in dblclick handler fires, before
+   choosing a fix. Update the spec with the actual cause once known.
+3. **D1 redundant-render audit.** Build a list of every `this.render(true)`
+   and `sheet.render(true)` call-site in `ItemHelpers`, `ActorHelpers`,
+   `item-sheet-ffg.js`, and `actor-sheet-ffg.js`. For each, decide:
+   "needed for cross-field reactivity" (keep) vs "was compensating for
+   the auto-render hook" (remove now that `{ render: false }` flows
+   through). The implementation plan enumerates this list explicitly.
+4. **B1 min-dimension values.** The proposed minimums (300×200 generic,
    700×600 for tree-type items) are best-guess. Confirm during
    implementation that the layouts genuinely stay usable at those minima.
+5. **C2 target partial.** Confirm via repro which of the three candidate
+   partials (`ffg-modification.html`, `ffg-embedded-talent.html`,
+   `ffg-embedded-upgrade.html`) the user is hitting. Fix that one first;
+   apply the same pattern to the other two only if the user reports them.
