@@ -1,5 +1,4 @@
 import ModifierHelpers from "./helpers/modifiers.js";
-import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
 
 /**
  * Handles all logic related to migrating the system to a new version, including sending notifications
@@ -416,19 +415,14 @@ async function migrateTo1907() {
 
 async function warnUnsupportedWorld() {
   const content = game.i18n.localize("SWFFG.Migrate.Unsupported.Text");
-  new DialogV2Compat(
-    {
-      title: game.i18n.localize("SWFFG.Migrate.Unsupported.Title"),
-      content: content,
-      buttons: {
-        ok: {
-          icon: '<i class="fas fa-exclamation"></i>',
-          label: game.i18n.localize("SWFFG.Migrate.Unsupported.Button"),
-        },
-      },
+  foundry.applications.api.DialogV2.prompt({
+    window: { title: game.i18n.localize("SWFFG.Migrate.Unsupported.Title") },
+    classes: ["dialog", "starwarsffg"],
+    content: content,
+    ok: {
+      icon: "fas fa-exclamation",
+      label: game.i18n.localize("SWFFG.Migrate.Unsupported.Button"),
     },
-    {
-      classes: ["dialog", "starwarsffg"],
-    }
-  ).render(true);
+    rejectClose: false,
+  });
 }

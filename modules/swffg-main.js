@@ -25,7 +25,6 @@ import { AdversarySheetFFGV2 } from "./actors/adversary-sheet-ffg-v2.js";
 import { DicePoolFFG, RollFFG } from "./dice-pool-ffg.js";
 import { GroupManager } from "./groupmanager-ffg.js";
 import PopoutEditor from "./popout-editor.js";
-import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
 
 import DiceHelpers from "./helpers/dice-helpers.js";
 import Helpers from "./helpers/common.js";
@@ -1151,19 +1150,16 @@ Hooks.once("ready", async () => {
   const isAlpha = game.system.version.includes("alpha");
 
   if (isAlpha && game.user.isGM) {
-    let d = new DialogV2Compat({
-      title: "Warning",
+    foundry.applications.api.DialogV2.prompt({
+      window: { title: "Warning" },
       content: "<p>This is an alpha release of the system.  It is not recommended for regular gameplay. <b>There will be bugs.</b> <br><br>Check Discord or the GitHub repo for the latest stable version.</p>",
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-check"></i>',
-          label: "I understand",
-          callback: () => console.log("Chose One") // leaving in case I get feedback to update a game setting to not show this on every load
-        }
+      ok: {
+        icon: "fas fa-check",
+        label: "I understand",
+        callback: () => console.log("Chose One"), // leaving in case I get feedback to update a game setting to not show this on every load
       },
-      default: "one",
+      rejectClose: false,
     });
-    d.render(true);
   }
 
   if ((isAlpha || isCurrentVersionNullOrBlank(currentVersion) || parseFloat(currentVersion) < parseFloat(game.system.version)) && game.user.isGM) {
