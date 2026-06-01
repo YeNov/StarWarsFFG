@@ -1,6 +1,6 @@
 # V2-Full Migration — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Each stage is independently revertable; finish a stage and merge to `V2-full` before starting the next.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Stages are **sequentially revertable, not independently revertable** — see the "Revert model" paragraph in the Architecture section. Finish a stage and merge to `V2-full` before starting the next.
 
 **Goal:** Retire every V1-compat bridge introduced by V2-port so the
 `starwarsffg` system runs on Foundry V13 ApplicationV2 with no compatibility
@@ -91,9 +91,12 @@ Two complementary layers:
    API of the affected helpers and assert observable state. Detailed shape
    in the "Focused regression harness" section below.
 
-The harness runs in CI on every stage's PR; the manual checklist runs once
-per stage at verification time (the live world at the same server the
-V2-port work used).
+By default both layers are manual: the per-stage checklist is signed off
+on the PR description, and the focused harness is opened in a live
+Foundry world (`tests/ffg-tests.js` panel) and the V2-migration suite
+run by hand. If the stretch Playwright workflow described in the
+"Focused regression harness" section ships, the harness layer upgrades
+to a PR-gated CI check; the checklist layer stays manual either way.
 
 ---
 
@@ -170,9 +173,25 @@ blocks come out together in Stage 5.
 },
 ```
 
-**Acceptance:** `npm run lint` passes with no warnings (existing importers
-allowlisted, no new importers can land); greps for compat imports return
-only files on the allowlist.
+**Acceptance (scoped to the compat-import guard only):** `npm run lint`
+produces zero `no-restricted-imports` errors and zero
+`no-restricted-imports` warnings — both for files on the allowlist
+(rule overridden off) and for any file not on it (would error if it
+tried to import compat). The repo already has substantial pre-existing
+lint debt (610 problems / 115 errors / 495 warnings as of `d7a0acdc`
+on this branch) that is **out of scope** for the migration; the
+acceptance is intentionally limited to the new rule. Use a scoped check
+like:
+
+```
+npm run lint 2>&1 | grep "no-restricted-imports" | wc -l   # expect 0
+```
+
+Greps for compat imports return only files on the allowlist.
+
+Baseline lint cleanup is a separate concern; if it lands first as an
+independent PR series, this scoping can be tightened to "the full lint
+run is clean" in a follow-up plan revision.
 
 - [ ] **Step 0.3: Land the focused regression harness**
 
@@ -296,11 +315,31 @@ dialog first (XP adjust, purchase, drop-talent, character creator entry, etc.);
 port in clusters: read-only confirms, then write actions, then the purchase /
 edit-mode dialogs. Verify each cluster live before moving on.
 
-- [ ] **Step 1.8: Delete `DialogV2Compat`**
+- [ ] **Step 1.8: Delete `DialogV2Compat` and shrink the allowlist**
 
-When grep for `DialogV2Compat` returns zero hits in `modules/`, delete
-`modules/apps/dialog-v2-compat.js` and remove its entries from the lint guard
-in Stage 0.2.
+When grep for `DialogV2Compat` returns zero hits in `modules/`:
+1. Delete `modules/apps/dialog-v2-compat.js`.
+2. In `eslint.config.mjs`, remove these 12 files from the
+   `no-restricted-imports`-off allowlist (they no longer import compat):
+   `modules/actors/actor-ffg-options.js`,
+   `modules/actors/actor-sheet-ffg.js`,
+   `modules/combat-ffg.js`,
+   `modules/groupmanager-ffg.js`,
+   `modules/helpers/apply-crit.js`,
+   `modules/helpers/apply-damage.js`,
+   `modules/helpers/character-creator.js`,
+   `modules/helpers/crew.js`,
+   `modules/items/item-ffg-options.js`,
+   `modules/items/item-sheet-ffg.js`,
+   `modules/swffg-main.js`,
+   `modules/swffg-migration.js`.
+   (Note: `actor-sheet-ffg.js` and `item-sheet-ffg.js` *also* import sheet
+   compat — they stay on the allowlist with the remaining patterns until
+   Stages 3.8 / 4.9 remove them.)
+3. Remove the `**/dialog-v2-compat.js` pattern from the restricted-imports
+   patterns list in the rule config.
+
+Verify `npm run lint 2>&1 | grep "no-restricted-imports" | wc -l` returns 0.
 
 **Acceptance:**
 - `grep -rn DialogV2Compat modules/` returns zero hits.
@@ -373,10 +412,26 @@ Per-class steps; each is a separate landing commit.
   editor. Verify save lifecycle (the editor was the source of the biography
   editor bug; do not regress).
 
-- [ ] **Step 2.9: Delete `FormApplicationV2Compat`**
+- [ ] **Step 2.9: Delete `FormApplicationV2Compat` and shrink the allowlist**
 
-When grep for the symbol returns zero hits, delete
-`modules/apps/form-application-v2-compat.js`.
+When grep for the symbol returns zero hits:
+1. Delete `modules/apps/form-application-v2-compat.js`.
+2. In `eslint.config.mjs`, remove these 10 files from the allowlist:
+   `modules/dice/roll-builder.js`,
+   `modules/ffg-destiny-tracker.js`,
+   `modules/groupmanager-ffg.js` (if its DialogV2Compat usage was already
+   cleared in Stage 1; otherwise it stays),
+   `modules/importer/skills-list-importer.js`,
+   `modules/importer/swa-importer.js`,
+   `modules/items/item-editor.js`,
+   `modules/popout-editor.js`,
+   `modules/popout-modifiers.js`,
+   `modules/settings/crew-settings.js`,
+   `modules/settings/ui-settings.js`.
+3. Remove the `**/form-application-v2-compat.js` pattern from the
+   restricted-imports patterns list.
+
+Verify `npm run lint 2>&1 | grep "no-restricted-imports" | wc -l` returns 0.
 
 **Acceptance:**
 - `grep -rn FormApplicationV2Compat modules/` returns zero hits.
@@ -476,7 +531,17 @@ Per-task steps:
     in existing worlds keeps resolving.
 
   Schedule removal of the alias for the release after V2-full lands.
-- [ ] **Step 3.8: Delete `item-sheet-v2-compat.js`**
+- [ ] **Step 3.8: Delete `item-sheet-v2-compat.js` and shrink the allowlist**
+
+  1. Delete `modules/sheets/item-sheet-v2-compat.js`.
+  2. In `eslint.config.mjs`, remove `modules/items/item-sheet-ffg.js`
+     from the allowlist if Stage 1 also cleared its DialogV2Compat
+     imports; otherwise it stays until Stage 1.8 also completes.
+  3. Remove `modules/items/item-sheet-ffg-v2.js` from the allowlist (the
+     collapsed alias does not import compat).
+  4. The `**/sheets/*-v2-compat.js` pattern stays in the restricted-imports
+     rule until Stage 4.9 also runs (`actor-sheet-v2-compat.js` /
+     `document-sheet-v2-compat.js` still exist).
 
 **Acceptance:**
 - `ItemSheetFFG` extends `HandlebarsApplicationMixin(DocumentSheetV2)`.
@@ -565,8 +630,22 @@ Per-task steps:
     resolving.
 
   Schedule removal of the aliases for the release after V2-full lands.
-- [ ] **Step 4.9: Delete `actor-sheet-v2-compat.js` and
-  `document-sheet-v2-compat.js`**
+- [ ] **Step 4.9: Delete `actor-sheet-v2-compat.js` /
+  `document-sheet-v2-compat.js` and shrink the allowlist**
+
+  1. Delete `modules/sheets/actor-sheet-v2-compat.js` and
+     `modules/sheets/document-sheet-v2-compat.js`.
+  2. In `eslint.config.mjs`, remove
+     `modules/actors/actor-sheet-ffg.js`,
+     `modules/actors/actor-sheet-ffg-v2.js`,
+     `modules/actors/adversary-sheet-ffg-v2.js`,
+     `modules/sheets/actor-sheet-v2-compat.js`,
+     `modules/sheets/item-sheet-v2-compat.js`,
+     and `modules/sheets/document-sheet-v2-compat.js` from the allowlist.
+  3. Remove the `**/sheets/*-v2-compat.js` pattern from the
+     restricted-imports patterns list.
+
+  Verify `npm run lint 2>&1 | grep "no-restricted-imports" | wc -l` returns 0.
 
 **Acceptance:**
 - `ActorSheetFFG` extends `HandlebarsApplicationMixin(DocumentSheetV2)`.
@@ -725,5 +804,15 @@ later stages can rely on it.
 - Native V2 character creator. The current `helpers/character-creator.js`
   is large; port at most as a `DialogV2.wait` flow, leave deeper
   refactor for later.
-- Test infrastructure. Existing `tests/talent-tree.test.js` covers pure
-  helpers and is unaffected. Adding sheet-behavior tests is out of scope.
+- Broader sheet-behavior test coverage. The plan adds exactly three
+  focused regression suites under `tests/v2-migration/` for dialog
+  close paths, sheet tab cache, and form submit coalesce — these are
+  *in scope* as tripwires for the high-risk behaviors named in the
+  risk register. Anything beyond that (full sheet-rendering tests,
+  fixture-driven actor/item suites, snapshot tests) is out of scope
+  for this plan.
+- New CI infrastructure. The default execution model for both the
+  per-stage checklist and the focused harness is manual / in-Foundry.
+  A Playwright-based PR-gating workflow is described as a stretch and
+  marked out of scope for the migration's critical path; if it lands
+  separately the harness acceptance can upgrade in a follow-up.
