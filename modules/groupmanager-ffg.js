@@ -58,6 +58,17 @@ export class GroupManager extends FormApplicationV2Compat {
     });
   }
 
+  /**
+   * Lower bound for interactive resize. The Player Characters table needs
+   * ~500px to show all columns (Name / Wounds / Strain / Soak / Combat / XP)
+   * without clipping; don't let the user drag the window narrower than that.
+   * Enforced by FormApplicationV2Compat.setPosition.
+   * @override
+   */
+  _minDimensions() {
+    return { width: 500, height: 200 };
+  }
+
   /* -------------------------------------------- */
 
   /**
