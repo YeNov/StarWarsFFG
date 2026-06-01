@@ -1,4 +1,4 @@
-import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
+const { DialogV2 } = foundry.applications.api;
 
 export default class ItemOptions {
   /**
@@ -68,7 +68,7 @@ export default class ItemOptions {
     return candidates.find((element) => element.querySelector(":scope > .window-header")) ?? candidates[0] ?? null;
   }
 
-  handler(event) {
+  async handler(event) {
     // The injected button is an <a href="#">; without preventDefault the
     // browser navigates to the page URL with `#` appended and can scroll
     // the page. stopPropagation keeps the click from bubbling into V13's
@@ -78,75 +78,74 @@ export default class ItemOptions {
 
     const openKey = this.data.item.uuid;
     const existing = ItemOptions._openDialogs.get(openKey);
-    if (existing?.app?.rendered) {
-      existing.app.bringToFront?.();
+    if (existing?.rendered) {
+      existing.bringToFront?.();
       return;
     }
     const title = `${game.i18n.localize("SWFFG.ItemSheet")} ${game.i18n.localize("SWFFG.Options")}: ${this.data.item.name}`;
 
-    const dialog = new DialogV2Compat(
-      {
-        title,
-        content: {
-          options: this.options,
-        },
-        buttons: {
-          one: {
-            icon: '<i class="fas fa-check"></i>',
-            label: game.i18n.localize("SWFFG.ButtonAccept"),
-            callback: async (html) => {
-              const controls = html.find("input, select");
-
-              let updateObject = {};
-
-              for (let i = 0; i < controls.length; i += 1) {
-                const control = controls[i];
-                let value;
-                if (control.dataset["dtype"] === "Boolean") {
-                  value = control.checked;
-                } else {
-                  value = control.value;
-                }
-
-                updateObject[control.name] = value;
-                this.options[control.id].value = value;
-              }
-
-              const item = await fromUuid(this.data.item.uuid);
-              if (!item) {
-                return ui.notifications.warn("Unable to find item");
-              }
-              for (const flag of Object.keys(updateObject)) {
-                await item.setFlag("starwarsffg", flag, updateObject[flag]);
-              }
-
-              this.data.object.update(updateObject);
-              this.data.object.sheet.render(true);
-            },
-          },
-          two: {
-            icon: '<i class="fas fa-times"></i>',
-            label: game.i18n.localize("SWFFG.Cancel"),
-          },
-        },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-        template: "systems/starwarsffg/templates/dialogs/ffg-sheet-options.html",
-      }
+    // Render the legacy options template ourselves; its `{{#each buttons}}`
+    // loop stays empty (no `buttons` in context) so DialogV2's native button
+    // bar is the only button row.
+    const content = await foundry.applications.handlebars.renderTemplate(
+      "systems/starwarsffg/templates/dialogs/ffg-sheet-options.html",
+      { content: { options: this.options } }
     );
+
+    const dialog = new DialogV2({
+      window: { title },
+      classes: ["dialog", "starwarsffg"],
+      content,
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
+          label: game.i18n.localize("SWFFG.ButtonAccept"),
+          default: true,
+          callback: async (event, button, dlg) => {
+            const controls = dlg.element.querySelectorAll("input, select");
+
+            let updateObject = {};
+
+            for (let i = 0; i < controls.length; i += 1) {
+              const control = controls[i];
+              let value;
+              if (control.dataset["dtype"] === "Boolean") {
+                value = control.checked;
+              } else {
+                value = control.value;
+              }
+
+              updateObject[control.name] = value;
+              this.options[control.id].value = value;
+            }
+
+            const item = await fromUuid(this.data.item.uuid);
+            if (!item) {
+              return ui.notifications.warn("Unable to find item");
+            }
+            for (const flag of Object.keys(updateObject)) {
+              await item.setFlag("starwarsffg", flag, updateObject[flag]);
+            }
+
+            this.data.object.update(updateObject);
+            this.data.object.sheet.render(true);
+          },
+        },
+        {
+          action: "two",
+          icon: "fas fa-times",
+          label: game.i18n.localize("SWFFG.Cancel"),
+        },
+      ],
+    });
     ItemOptions._openDialogs.set(openKey, dialog);
-    const drop = () => {
+    dialog.addEventListener("close", () => {
       if (ItemOptions._openDialogs.get(openKey) === dialog) {
         ItemOptions._openDialogs.delete(openKey);
       }
-    };
-    const wrappedClose = dialog.close.bind(dialog);
-    dialog.close = async (...args) => {
-      try { return await wrappedClose(...args); }
-      finally { drop(); }
-    };
-    dialog.render(true);
+    }, { once: true });
+    dialog.render({ force: true });
   }
 
   async register(optionName, options) {
