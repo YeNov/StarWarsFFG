@@ -1535,12 +1535,14 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       this._addSourceDialogOpen = true;
       const addSource = new DialogV2({
         window: { title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title") },
-        classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"],
+        classes: ["starwarsffg-dialog", "ffg-meta-dialog"],
         content: `
-          <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</p>
-          <input type="text" id="book" name="book" value="Force and Destiny Core Rulebook" autofocus>
-          <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Page")}:</p>
-          <input type="number" id="page" name="page" value="0">
+          <div class="ffg-meta-form">
+            <label for="book">${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</label>
+            <input type="text" id="book" name="book" value="Force and Destiny Core Rulebook" autofocus>
+            <label for="page">${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Page")}:</label>
+            <input type="number" id="page" name="page" value="0">
+          </div>
         `,
         buttons: [
           {
@@ -1597,10 +1599,12 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
       this._addTagDialogOpen = true;
       const addTag = new DialogV2({
         window: { title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title") },
-        classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"],
+        classes: ["starwarsffg-dialog", "ffg-meta-dialog"],
         content: `
-          <p>${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</p>
-          <input type="text" id="tag" name="tag" value="" autofocus>
+          <div class="ffg-meta-form">
+            <label for="tag">${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</label>
+            <input type="text" id="tag" name="tag" value="" autofocus>
+          </div>
         `,
         buttons: [
           {

@@ -1,0 +1,25 @@
+// Add Source / Add Tag dialogs (item metadata). Dark V13 dialog theme with
+// tight label/input pairs and a gap before the button row.
+.ffg-meta-dialog {
+  .ffg-meta-form {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font-size-14, 0.875rem);
+
+    label {
+      margin: 0;
+    }
+    // No gap between a label and its own input, but separate field groups.
+    label:not(:first-child) {
+      margin-top: 0.75rem;
+    }
+    input {
+      margin: 0;
+    }
+  }
+
+  // Vertical space between the last input and the Submit / Cancel buttons.
+  .form-footer {
+    margin-top: 1rem;
+  }
+}

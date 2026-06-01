@@ -3087,6 +3087,24 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   cursor: pointer;
 }
 
+.ffg-meta-dialog .ffg-meta-form {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-size-14, 0.875rem);
+}
+.ffg-meta-dialog .ffg-meta-form label {
+  margin: 0;
+}
+.ffg-meta-dialog .ffg-meta-form label:not(:first-child) {
+  margin-top: 0.75rem;
+}
+.ffg-meta-dialog .ffg-meta-form input {
+  margin: 0;
+}
+.ffg-meta-dialog .form-footer {
+  margin-top: 1rem;
+}
+
 .og-character-import {
   min-width: 96%;
 }
