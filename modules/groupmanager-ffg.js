@@ -1,7 +1,8 @@
 import {xpLogEarn} from "./helpers/actor-helpers.js";
 import ActorHelpers from "./helpers/actor-helpers.js";
 import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
-import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
+
+const { DialogV2 } = foundry.applications.api;
 
 const CanvasLayerClass = foundry?.canvas?.layers?.CanvasLayer || CanvasLayer;
 export class GroupManagerLayer extends CanvasLayerClass {
@@ -338,13 +339,15 @@ export class GroupManager extends FormApplicationV2Compat {
       id,
     });
 
-    new DialogV2Compat({
-      title: description,
+    DialogV2.wait({
+      window: { title: description },
       content,
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
           label: game.i18n.localize("SWFFG.GrantXP"),
+          default: true,
           callback: async () => {
             const state = await ActorHelpers.beginEditMode(character, true);
             const container = document.getElementById(id);
@@ -359,12 +362,14 @@ export class GroupManager extends FormApplicationV2Compat {
             ui.notifications.info(`Granted ${amount.value} XP to ${character.name}.`);
           },
         },
-        two: {
-          icon: '<i class="fas fa-times"></i>',
+        {
+          action: "two",
+          icon: "fas fa-times",
           label: game.i18n.localize("SWFFG.Cancel"),
         },
-      },
-    }).render(true);
+      ],
+      rejectClose: false,
+    });
   }
 
   async _bulkXP(characters) {
@@ -374,13 +379,15 @@ export class GroupManager extends FormApplicationV2Compat {
       id,
     });
 
-    new DialogV2Compat({
-      title: description,
+    DialogV2.wait({
+      window: { title: description },
       content,
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
           label: game.i18n.localize("SWFFG.GrantXP"),
+          default: true,
           callback: async () => {
             const container = document.getElementById(id);
             const amount = container.querySelector('input[name="amount"]');
@@ -398,12 +405,14 @@ export class GroupManager extends FormApplicationV2Compat {
             }
           },
         },
-        two: {
-          icon: '<i class="fas fa-times"></i>',
+        {
+          action: "two",
+          icon: "fas fa-times",
           label: game.i18n.localize("SWFFG.Cancel"),
         },
-      },
-    }).render(true);
+      ],
+      rejectClose: false,
+    });
   }
 }
 
