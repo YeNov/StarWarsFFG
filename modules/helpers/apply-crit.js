@@ -138,9 +138,10 @@ export class ApplyCrit {
     const title = game.i18n.format("SWFFG.ApplyCrit.DialogTitle", { name: a.name });
 
     const content = `
-      <div class="grid grid-3col" style="gap:16px;">
-        <div style="padding:4px 8px;">${modifierLabel}:
-          <input name="modifier" class="modifier" style="width:50%" type="text"
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="padding:4px 8px; display:flex; align-items:center; gap:8px;">
+          <label style="white-space:nowrap;">${modifierLabel}:</label>
+          <input name="modifier" class="modifier" style="flex:1 1 auto; min-width:0;" type="text"
                  value="${autoModifier}" data-dtype="String" />
         </div>
         <div style="padding:4px 8px; display:flex; align-items:center; gap:12px;">
@@ -152,8 +153,9 @@ export class ApplyCrit {
             <button type="button" class="vicious-plus" style="width:24px; height:22px; line-height:1; padding:0;">+</button>
           </span>
         </div>
-        <div style="padding:4px 8px;">
-          ${tableLabel}: <select class="crittable">${tableOptions}</select>
+        <div style="padding:4px 8px; display:flex; align-items:center; gap:8px;">
+          <label style="white-space:nowrap;">${tableLabel}:</label>
+          <select class="crittable" style="flex:1 1 auto; min-width:0;">${tableOptions}</select>
         </div>
       </div>
     `;
