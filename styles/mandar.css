@@ -3532,6 +3532,23 @@ img {
 
 .starwarsffg .group-manager .PC-list {
   margin: 20px 0;
+  overflow-x: auto;
+}
+
+.starwarsffg .group-manager .PC-list table {
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.starwarsffg .group-manager .PC-list th,
+.starwarsffg .group-manager .PC-list td {
+  padding: 0 0.375rem;
+}
+
+.starwarsffg .group-manager .PC-list input[type="text"] {
+  width: 3rem;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .starwarsffg .group-manager .initiative-mode {

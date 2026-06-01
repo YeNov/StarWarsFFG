@@ -50,7 +50,7 @@ export class GroupManager extends FormApplicationV2Compat {
       popOut: true,
       editable: game.user.isGM,
       resizable: true,
-      width: 330,
+      width: 500,
       height: 900,
       template: "systems/starwarsffg/templates/group-manager.html",
       id: "group-manager",
