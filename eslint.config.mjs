@@ -41,6 +41,29 @@ export default [
         },
       ],
       "import-x/extensions": ["warn", "always"],
+      // V2-full migration guard: the *-v2-compat modules are frozen and being
+      // removed stage by stage. This errors on any NEW importer. Existing
+      // importers are allowlisted in the override block below and removed from
+      // the allowlist as each stage clears them. See
+      // docs/superpowers/plans/2026-05-31-v2-full-migration.md.
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/dialog-v2-compat.js",
+                "**/form-application-v2-compat.js",
+                "**/document-sheet-v2-compat.js",
+                "**/actor-sheet-v2-compat.js",
+                "**/item-sheet-v2-compat.js",
+              ],
+              message:
+                "V2 compat modules are frozen (V2-full migration). Do not add new importers; use ApplicationV2 / DocumentSheetV2 / DialogV2 directly. See docs/superpowers/plans/2026-05-31-v2-full-migration.md.",
+            },
+          ],
+        },
+      ],
     },
     languageOptions: {
       parserOptions: {
@@ -124,6 +147,45 @@ export default [
         ui: "readonly",
         window: "readonly",
       },
+    },
+  },
+  {
+    // V2-full migration: existing importers of the frozen *-v2-compat modules.
+    // Each entry is removed as its stage clears the imports (Stages 1.8, 2.9,
+    // 3.8, 4.9). When this list empties the whole guard comes out in Stage 5.
+    // See docs/superpowers/plans/2026-05-31-v2-full-migration.md.
+    files: [
+      // DialogV2Compat importers (cleared in Stage 1.8)
+      "modules/actors/actor-ffg-options.js",
+      "modules/combat-ffg.js",
+      "modules/groupmanager-ffg.js",
+      "modules/helpers/apply-crit.js",
+      "modules/helpers/apply-damage.js",
+      "modules/helpers/character-creator.js",
+      "modules/helpers/crew.js",
+      "modules/items/item-ffg-options.js",
+      "modules/swffg-main.js",
+      "modules/swffg-migration.js",
+      // FormApplicationV2Compat importers (cleared in Stage 2.9)
+      "modules/dice/roll-builder.js",
+      "modules/ffg-destiny-tracker.js",
+      "modules/importer/skills-list-importer.js",
+      "modules/importer/swa-importer.js",
+      "modules/items/item-editor.js",
+      "modules/popout-editor.js",
+      "modules/popout-modifiers.js",
+      "modules/settings/crew-settings.js",
+      "modules/settings/ui-settings.js",
+      // Sheet importers — import both Dialog/Form compat and sheet compat;
+      // stay allowlisted until their sheet stage (3.8 / 4.9) also clears.
+      "modules/actors/actor-sheet-ffg.js",
+      "modules/items/item-sheet-ffg.js",
+      // Internal compat-to-compat imports (cleared in Stages 3.8 / 4.9)
+      "modules/sheets/actor-sheet-v2-compat.js",
+      "modules/sheets/item-sheet-v2-compat.js",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 ];

@@ -3,6 +3,11 @@ const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api
 /**
  * Compatibility base for porting the existing document sheets to Foundry's
  * ApplicationV2 framework without rewriting every legacy sheet handler at once.
+ *
+ * @deprecated FROZEN — being removed in the V2-full migration (Stages 3-4).
+ * Do not add new subclasses. Document sheets must extend
+ * HandlebarsApplicationMixin(DocumentSheetV2) directly. See
+ * docs/superpowers/plans/2026-05-31-v2-full-migration.md.
  */
 export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheetV2) {
   /**

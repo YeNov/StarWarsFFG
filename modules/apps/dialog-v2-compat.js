@@ -9,6 +9,11 @@ function normalizeIcon(icon) {
 /**
  * Minimal compatibility wrapper for legacy Dialog construction backed by
  * Foundry's DialogV2 implementation.
+ *
+ * @deprecated FROZEN — being removed in the V2-full migration (Stage 1).
+ * Do not add new importers. New code must call
+ * foundry.applications.api.DialogV2 directly. See
+ * docs/superpowers/plans/2026-05-31-v2-full-migration.md.
  */
 export class DialogV2Compat {
   constructor(data = {}, options = {}) {

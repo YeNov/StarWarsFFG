@@ -1,5 +1,10 @@
 import { FFGDocumentSheetV2 } from "./document-sheet-v2-compat.js";
 
+/**
+ * @deprecated FROZEN — being removed in the V2-full migration (Stage 4).
+ * Do not add new subclasses. See
+ * docs/superpowers/plans/2026-05-31-v2-full-migration.md.
+ */
 export class ActorSheetV2Compat extends FFGDocumentSheetV2 {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {

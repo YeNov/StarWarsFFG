@@ -3,6 +3,11 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /**
  * Compatibility base for legacy FormApplication-style tools running on
  * Foundry's ApplicationV2 framework.
+ *
+ * @deprecated FROZEN — being removed in the V2-full migration (Stage 2).
+ * Do not add new subclasses. New form-style apps must extend
+ * HandlebarsApplicationMixin(ApplicationV2) directly. See
+ * docs/superpowers/plans/2026-05-31-v2-full-migration.md.
  */
 export class FormApplicationV2Compat extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
