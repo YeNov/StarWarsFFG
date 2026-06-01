@@ -242,7 +242,31 @@ export class CombatFFG extends Combat {
 
       DialogV2.wait({
         window: { title },
+        classes: ["starwarsffg", "themed", "theme-light", "ffg-initiative-dialog"],
         content,
+        // The dice-pool +/- buttons were wired by an inline <script> in
+        // ffg-initiative.html. jQuery's .html() eval'd that under V1 Dialog,
+        // but DialogV2 injects content via innerHTML, which never runs inline
+        // scripts -- so the buttons were dead. Wire them here instead: left
+        // click increments, right click decrements, clamped to a minimum of 0.
+        render: (event, dialog) => {
+          const scope = dialog.element.querySelector(".addDicePool");
+          if (!scope) return;
+          for (const type of ["boost", "setback", "advantage", "success", "threat", "failure", "upgrades", "force"]) {
+            const input = scope.querySelector(`[name="${type}"]`);
+            if (!input) continue;
+            if (!input.value) input.value = "0";
+            input.addEventListener("click", (ev) => {
+              ev.preventDefault();
+              input.value = String((parseInt(input.value, 10) || 0) + 1);
+            });
+            input.addEventListener("contextmenu", (ev) => {
+              ev.preventDefault();
+              const cur = parseInt(input.value, 10) || 0;
+              if (cur > 0) input.value = String(cur - 1);
+            });
+          }
+        },
         buttons: [
           {
             action: "one",

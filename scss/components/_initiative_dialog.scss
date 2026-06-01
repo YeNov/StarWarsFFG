@@ -1,3 +1,10 @@
+.ffg-initiative-dialog {
+  .window-content {
+    background: #fff;
+    color: #1b1b1b;
+  }
+}
+
 .initiative-dialog {
   .pool-selector {
     font-size: 1rem;
@@ -5,12 +12,26 @@
     margin-bottom: 1rem;
   }
 
+  .addDicePool {
+    margin: 0.5rem auto;
+    border-collapse: collapse;
+  }
+
   .pool-additional {
+    text-align: center;
+    padding: 0.25rem 0.75rem;
+    white-space: nowrap;
+
     img {
       vertical-align: middle;
     }
     input {
       margin: 0 0.1875rem;
+      vertical-align: middle;
+    }
+    input[type="button"] {
+      min-width: 1.75rem;
+      cursor: pointer;
     }
   }
 }
