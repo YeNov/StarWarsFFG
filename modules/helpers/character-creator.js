@@ -1,9 +1,8 @@
 import ActorHelpers, {xpLogEarn, xpLogSpend} from "./actor-helpers.js";
 import DiceHelpers from "./dice-helpers.js";
 import {sortDataBy, addIfNotExist} from "../actors/actor-sheet-ffg.js";
-import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
+const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api
 
 export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) {
   // https://foundryvtt.wiki/en/development/api/applicationv2
@@ -1480,44 +1479,44 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   async showPurchaseConfirmation(itemType, content) {
-    const dialog = new DialogV2Compat(
-      {
-        title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.DialogTitle", {itemType: itemType}),
-        content: content,
-        buttons: {
-          done: {
-            icon: '<i class="fa-regular fa-circle-up"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
-            callback: async (purchaseWindow) => {
-              CONFIG.logger.debug(purchaseWindow);
-              const cost = $("#ffgPurchase option:selected", purchaseWindow).data("cost");
-              const selectedUuid = $("#ffgPurchase option:selected", purchaseWindow).data("source");
+    DialogV2.wait({
+      window: { title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.DialogTitle", {itemType: itemType}) },
+      classes: ["dialog", "starwarsffg"],
+      content: content,
+      buttons: [
+        {
+          action: "done",
+          icon: "fa-regular fa-circle-up",
+          label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
+          default: true,
+          callback: async (event, button, dialog) => {
+            const selected = dialog.element.querySelector("#ffgPurchase")?.selectedOptions?.[0];
+            const cost = Number(selected?.dataset.cost);
+            const selectedUuid = selected?.dataset.source;
 
-              CONFIG.logger.debug(cost, selectedUuid);
+            CONFIG.logger.debug(cost, selectedUuid);
 
-              const selectedItem = await fromUuid(selectedUuid);
-              if (!selectedItem) {
-                ui.notifications.warn("Unable to locate purchased specialization, sorry!");
-                return;
-              }
-              this.data.purchases.xp[itemType].push({
-                item: selectedItem,
-                cost: cost,
-              });
-              // rebuild the actor to apply the changes
-              await this.showCharacterStatusShim();
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-cancel"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
+            const selectedItem = await fromUuid(selectedUuid);
+            if (!selectedItem) {
+              ui.notifications.warn("Unable to locate purchased specialization, sorry!");
+              return;
+            }
+            this.data.purchases.xp[itemType].push({
+              item: selectedItem,
+              cost: cost,
+            });
+            // rebuild the actor to apply the changes
+            await this.showCharacterStatusShim();
           },
         },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-      }
-    ).render(true);
+        {
+          action: "cancel",
+          icon: "fas fa-cancel",
+          label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
+        },
+      ],
+      rejectClose: false,
+    });
   }
 
   calcXp() {

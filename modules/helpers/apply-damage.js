@@ -6,7 +6,8 @@
  * See docs/superpowers/specs/2026-05-24-apply-damage-chat-button-design.md
  */
 import { applyToTargetActor } from "./gm-bridge.js";
-import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
+
+const { DialogV2 } = foundry.applications.api;
 
 export class ApplyDamage {
   /**
@@ -135,17 +136,20 @@ export class ApplyDamage {
     const weaponName = itemData.name || itemSystem.name || "weapon";
     const title = game.i18n.format("SWFFG.ApplyDamage.DialogTitle", { name: a.name });
 
-    new DialogV2Compat({
-      title,
+    DialogV2.wait({
+      window: { title },
       content,
-      buttons: {
-        apply: {
-          icon: '<i class="fas fa-burst"></i>',
+      buttons: [
+        {
+          action: "apply",
+          icon: "fas fa-burst",
           label: applyLabel,
-          callback: async (html) => {
-            const damage = Math.max(0, parseInt(html.find('input[name="damage"]').val(), 10) || 0);
-            const pierce = Math.max(0, parseInt(html.find('input[name="pierce"]').val(), 10) || 0);
-            const pool = showRadio ? html.find('input[name="pool"]:checked').val() : "wounds";
+          default: true,
+          callback: async (event, button, dialog) => {
+            const root = dialog.element;
+            const damage = Math.max(0, parseInt(root.querySelector('input[name="damage"]')?.value, 10) || 0);
+            const pierce = Math.max(0, parseInt(root.querySelector('input[name="pierce"]')?.value, 10) || 0);
+            const pool = showRadio ? root.querySelector('input[name="pool"]:checked')?.value : "wounds";
             const path = pool === "strain" ? strainPath : woundPath;
             const poolLabel = pool === "strain" ? strainLabel : woundLabel;
             if (!path) {
@@ -210,12 +214,13 @@ export class ApplyDamage {
             }
           },
         },
-        cancel: {
-          icon: '<i class="fas fa-times"></i>',
+        {
+          action: "cancel",
+          icon: "fas fa-times",
           label: cancelLabel,
         },
-      },
-      default: "apply",
-    }).render(true);
+      ],
+      rejectClose: false,
+    });
   }
 }

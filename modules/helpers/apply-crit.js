@@ -7,7 +7,8 @@
  * See docs/superpowers/specs/2026-05-24-apply-crit-chat-button-design.md
  */
 import { applyToTargetActor } from "./gm-bridge.js";
-import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
+
+const { DialogV2 } = foundry.applications.api;
 
 export class ApplyCrit {
   /**
@@ -157,18 +158,21 @@ export class ApplyCrit {
       </div>
     `;
 
-    new DialogV2Compat({
-      title,
+    DialogV2.wait({
+      window: { title },
       content,
-      buttons: {
-        roll: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "roll",
+          icon: "fas fa-check",
           label: rollLabel,
-          callback: async (html) => {
-            const modifier = parseInt(html.find(".modifier").val(), 10) || 0;
-            const viciousRank = parseInt(html.find(".vicious-rank").text(), 10) || 0;
+          default: true,
+          callback: async (event, button, dialog) => {
+            const root = dialog.element;
+            const modifier = parseInt(root.querySelector(".modifier")?.value, 10) || 0;
+            const viciousRank = parseInt(root.querySelector(".vicious-rank")?.textContent, 10) || 0;
             const viciousMod = viciousRank * 10;
-            const tableId = html.find(".crittable").val();
+            const tableId = root.querySelector(".crittable")?.value;
 
             const table = game.tables.get(tableId);
             if (!table) {
@@ -201,25 +205,27 @@ export class ApplyCrit {
             }
           },
         },
-        cancel: {
-          icon: '<i class="fas fa-times"></i>',
+        {
+          action: "cancel",
+          icon: "fas fa-times",
           label: cancelLabel,
         },
-      },
-      default: "roll",
-      render: (html) => {
-        const rankEl = html.find(".vicious-rank");
-        html.find(".vicious-plus").on("click", (ev) => {
+      ],
+      render: (event, dialog) => {
+        const root = dialog.element;
+        const rankEl = root.querySelector(".vicious-rank");
+        root.querySelector(".vicious-plus")?.addEventListener("click", (ev) => {
           ev.preventDefault();
-          const cur = parseInt(rankEl.text(), 10) || 0;
-          rankEl.text(cur + 1);
+          const cur = parseInt(rankEl.textContent, 10) || 0;
+          rankEl.textContent = String(cur + 1);
         });
-        html.find(".vicious-minus").on("click", (ev) => {
+        root.querySelector(".vicious-minus")?.addEventListener("click", (ev) => {
           ev.preventDefault();
-          const cur = parseInt(rankEl.text(), 10) || 0;
-          rankEl.text(Math.max(0, cur - 1));
+          const cur = parseInt(rankEl.textContent, 10) || 0;
+          rankEl.textContent = String(Math.max(0, cur - 1));
         });
       },
-    }).render(true);
+      rejectClose: false,
+    });
   }
 }
