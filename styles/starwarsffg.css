@@ -3058,11 +3058,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   max-height: 24px;
 }
 
-.ffg-initiative-dialog .window-content {
-  background: #fff;
-  color: #1b1b1b;
-}
-
 .initiative-dialog .pool-selector {
   font-size: 1rem;
   text-align: center;
@@ -3070,11 +3065,14 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 }
 .initiative-dialog .addDicePool {
   margin: 0.5rem auto;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 0.375rem;
 }
 .initiative-dialog .pool-additional {
+  background: rgba(255, 255, 255, 0.5);
+  color: #1b1b1b;
   text-align: center;
-  padding: 0.25rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   white-space: nowrap;
 }
 .initiative-dialog .pool-additional img {

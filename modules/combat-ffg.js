@@ -223,6 +223,8 @@ export class CombatFFG extends Combat {
       }
 
       const diceSymbols = {
+        boost: await foundry.applications.ux.TextEditor.enrichHTML("[BO]"),
+        setback: await foundry.applications.ux.TextEditor.enrichHTML("[SE]"),
         advantage: await foundry.applications.ux.TextEditor.enrichHTML("[AD]"),
         success: await foundry.applications.ux.TextEditor.enrichHTML("[SU]"),
         threat: await foundry.applications.ux.TextEditor.enrichHTML("[TH]"),
@@ -242,7 +244,7 @@ export class CombatFFG extends Combat {
 
       DialogV2.wait({
         window: { title },
-        classes: ["starwarsffg", "themed", "theme-light", "ffg-initiative-dialog"],
+        classes: ["starwarsffg", "ffg-initiative-dialog"],
         content,
         // The dice-pool +/- buttons were wired by an inline <script> in
         // ffg-initiative.html. jQuery's .html() eval'd that under V1 Dialog,
