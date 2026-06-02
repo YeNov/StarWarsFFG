@@ -4833,6 +4833,12 @@ img {
   resize: vertical;
 }
 
+.starwarsffg.flat_editor .form-group:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .starwarsffg .flat_editor.modifications.active {
   overflow-x: hidden;
   overflow-y: auto;

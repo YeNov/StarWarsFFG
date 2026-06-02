@@ -1587,6 +1587,11 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   width: 100%;
   resize: vertical;
 }
+.starwarsffg.flat_editor .form-group:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .starwarsffg .tabs {
   height: 40px;
   border-top: 1px solid #aaa;
