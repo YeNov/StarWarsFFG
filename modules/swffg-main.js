@@ -1142,7 +1142,13 @@ Hooks.once("ready", async () => {
 
   // NOTE: the "currentVersion" will be updated in handleUpdate, preventing the code below from running in the future
   // this is intended to encourage migrating code to this file to clean up the main file
-  await handleUpdate();
+  // A migration failure must never abort the rest of this hook, which also renders
+  // the Destiny Tracker and registers crew roles, token controls, etc.
+  try {
+    await handleUpdate();
+  } catch (err) {
+    CONFIG.logger?.error?.("starwarsffg | handleUpdate() failed during ready; continuing", err);
+  }
 
   const currentVersion = game.settings.get("starwarsffg", "systemMigrationVersion");
 

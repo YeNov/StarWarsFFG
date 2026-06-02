@@ -5,6 +5,14 @@ import ModifierHelpers from "./helpers/modifiers.js";
  * @returns {Promise<void>}
  */
 export async function handleUpdate() {
+  // World migrations and the world-scoped `systemMigrationVersion` write below
+  // are GM-only. A non-GM client calling game.settings.set() on a world setting
+  // throws ("may not modify world-level setting"); because this is awaited at the
+  // top of the "ready" hook, that rejection would abort the entire hook -- and
+  // silently drop the Destiny Tracker and other ready-time UI for every player.
+  // The shared world setting is persisted once by the GM, so players never need
+  // to run this.
+  if (!game.user.isGM) return;
   const registeredVersion = game.settings.get("starwarsffg", "systemMigrationVersion");
   const runningVersion = game.system.version;
   if (registeredVersion !== runningVersion) {
