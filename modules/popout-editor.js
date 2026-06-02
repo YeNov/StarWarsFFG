@@ -109,15 +109,21 @@ export default class PopoutEditor extends HandlebarsApplicationMixin(Application
   async _onRender(context, options) {
     await super._onRender(context, options);
     const el = this.element;
-    const form = el?.querySelector("form");
+    // The `root` PARTS entry strips the template's wrapping <form>, injecting
+    // the sheet-body straight into .window-content -- so the flex container we
+    // own (and must keep filled) is the window-content itself.
+    const content = el?.querySelector(".window-content");
     const sheetBody = el?.querySelector("section.sheet-body");
     const pm = el?.querySelector("prose-mirror");
 
-    // Make the editor fill the window instead of leaving a gap below it. The
-    // sheet-body / prose-mirror were only taking content height; a theme
-    // stylesheet (mandar) sets their flex with !important and beats plain
-    // inline styles, so set our fill rules with priority "important" too.
-    if (form) { form.style.display = "flex"; form.style.flexDirection = "column"; }
+    // Make the editor fill the window instead of leaving a gap below it.
+    // sheet-body / prose-mirror otherwise take only their content height; the
+    // mandar theme sets flex with !important and beats plain inline styles, so
+    // set the column container and our fill rules with "important" too.
+    if (content) {
+      content.style.setProperty("display", "flex", "important");
+      content.style.setProperty("flex-direction", "column", "important");
+    }
     if (sheetBody) {
       sheetBody.style.setProperty("flex", "1 1 auto", "important");
       sheetBody.style.setProperty("min-height", "0", "important");
@@ -129,24 +135,12 @@ export default class PopoutEditor extends HandlebarsApplicationMixin(Application
     }
 
     // The native <prose-mirror> element's save button dispatches a `save`
-    // event -- the editor's real save path. Persist the value and close on
+    // event -- the editor's only save path. Persist the value and close on
     // save. The element fires `save` twice (menu button + keymap);
     // _saveAndClose guards re-entry. Bind once per element.
     if (pm && !pm.dataset.ffgSaveBound) {
       pm.dataset.ffgSaveBound = "1";
       pm.addEventListener("save", () => this._saveAndClose(pm.value));
-    }
-
-    // Fallback: a plain form submit (e.g. Enter in a non-editor field) routes
-    // through the same idempotent save, reading the authoritative prose-mirror
-    // value. Replaces the old _updateObject hook now that there is no compat
-    // form pipeline binding submit for us.
-    if (form && pm && !form.dataset.ffgSubmitBound) {
-      form.dataset.ffgSubmitBound = "1";
-      form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        this._saveAndClose(pm.value);
-      });
     }
   }
 
