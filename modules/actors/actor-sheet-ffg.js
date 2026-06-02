@@ -23,8 +23,9 @@ import {
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
-import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
 import {itemPillHover} from "../swffg-main.js";
+
+const { DialogV2 } = foundry.applications.api;
 
 export class ActorSheetFFG extends ActorSheetV2Compat {
   constructor(...args) {
@@ -101,14 +102,17 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
         const cost = await this.calcPurchasePrice(itemData);
         const availableXP = this.actor.system.experience.available;
         if (cost > 0 && cost < availableXP) {
-          new DialogV2Compat(
-          {
-            title: game.i18n.localize("SWFFG.DragDrop.Title"),
-            buttons: {
-              purchase: {
-                icon: '<i class="fas fa-hourglass"></i>',
+          DialogV2.wait({
+            window: { title: game.i18n.localize("SWFFG.DragDrop.Title") },
+            classes: ["dialog", "starwarsffg"],
+            content: "",
+            buttons: [
+              {
+                action: "purchase",
+                icon: "fas fa-hourglass",
                 label: game.i18n.localize("SWFFG.DragDrop.PurchaseItem"),
-                callback: async (that) => {
+                default: true,
+                callback: async () => {
                   if(!this.actor.verifyEditModeIsNotEnabled()) return false;
 
                   if (cost > 0) {
@@ -131,16 +135,14 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
                   }
                 },
               },
-              grant: {
-                icon: '<i class="fas fa-recycle"></i>',
+              {
+                action: "grant",
+                icon: "fas fa-recycle",
                 label: game.i18n.localize("SWFFG.DragDrop.GrantItem"),
               },
-            },
-          },
-          {
-            classes: ["dialog", "starwarsffg"],
-          }
-        ).render(true);
+            ],
+            rejectClose: false,
+          });
         }
       }
 
@@ -752,47 +754,48 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       if (game.settings.get("starwarsffg", "HealingItemAction") === '0') {
           // prompt
           // show a prompt asking what the user wants to do
-          new DialogV2Compat(
-              {
-                  title: game.i18n.localize("SWFFG.MedicalItemNameUseTitle"),
-                  buttons: {
-                      done: {
-                          icon: '<i class="fas fa-hourglass"></i>',
-                          label: game.i18n.localize("SWFFG.MedicalItemNameUseRest"),
-                          callback: (that) => {
-                              // rest
-                              let updateData = {};
-                              foundry.utils.setProperty(updateData, `system.stats.medical.uses`, 0);
-                              foundry.utils.setProperty(updateData, `system.stats.strain.value`, 0);
-                              foundry.utils.setProperty(updateData, `system.stats.wounds.value`, Math.max(0, this.object.system.stats.wounds.value - 1));
-                              this.object.update(updateData);
-                              ChatMessage.create({
-                                speaker: { alias: this.object.name },
-                                content: `<i>${game.i18n.localize("SWFFG.MedicalItemRest")}</i>`,
-                              });
-                          },
-                      },
-                      cancel: {
-                          icon: '<i class="fas fa-recycle"></i>',
-                          label: game.i18n.localize("SWFFG.MedicalItemNameUseReset"),
-                          callback: (that) => {
-                              // reset
-                              let updateData = {};
-                              foundry.utils.setProperty(updateData, `system.stats.medical.uses`, 0);
-                              this.object.update(updateData);
-                              const item_name = this.object?.flags?.starwarsffg?.config?.medicalItemName || game.i18n.localize("SWFFG.DefaultMedicalItemName");
-                              ChatMessage.create({
-                                speaker: { alias: this.object.name },
-                                content: `<i>${game.i18n.localize("SWFFG.MedicalItemResetStart")} ${item_name} ${game.i18n.localize("SWFFG.MedicalItemResetEnd")}</i>`,
-                              });
-                          },
+          DialogV2.wait({
+              window: { title: game.i18n.localize("SWFFG.MedicalItemNameUseTitle") },
+              classes: ["dialog", "starwarsffg"],
+              content: "",
+              buttons: [
+                  {
+                      action: "done",
+                      icon: "fas fa-hourglass",
+                      label: game.i18n.localize("SWFFG.MedicalItemNameUseRest"),
+                      default: true,
+                      callback: () => {
+                          // rest
+                          let updateData = {};
+                          foundry.utils.setProperty(updateData, `system.stats.medical.uses`, 0);
+                          foundry.utils.setProperty(updateData, `system.stats.strain.value`, 0);
+                          foundry.utils.setProperty(updateData, `system.stats.wounds.value`, Math.max(0, this.object.system.stats.wounds.value - 1));
+                          this.object.update(updateData);
+                          ChatMessage.create({
+                            speaker: { alias: this.object.name },
+                            content: `<i>${game.i18n.localize("SWFFG.MedicalItemRest")}</i>`,
+                          });
                       },
                   },
-              },
-              {
-                  classes: ["dialog", "starwarsffg"],
-              }
-          ).render(true);
+                  {
+                      action: "cancel",
+                      icon: "fas fa-recycle",
+                      label: game.i18n.localize("SWFFG.MedicalItemNameUseReset"),
+                      callback: () => {
+                          // reset
+                          let updateData = {};
+                          foundry.utils.setProperty(updateData, `system.stats.medical.uses`, 0);
+                          this.object.update(updateData);
+                          const item_name = this.object?.flags?.starwarsffg?.config?.medicalItemName || game.i18n.localize("SWFFG.DefaultMedicalItemName");
+                          ChatMessage.create({
+                            speaker: { alias: this.object.name },
+                            content: `<i>${game.i18n.localize("SWFFG.MedicalItemResetStart")} ${item_name} ${game.i18n.localize("SWFFG.MedicalItemResetEnd")}</i>`,
+                          });
+                      },
+                  },
+              ],
+              rejectClose: false,
+          });
       } else if (game.settings.get("starwarsffg", "HealingItemAction") === '1') {
         // rest
         let updateData = {};
@@ -1038,27 +1041,29 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
         }
       );
 
-      new DialogV2Compat(
-        {
-          title: game.i18n.localize("SWFFG.Crew.Title"),
-          content: content,
-          buttons: {
-            confirm: {
-              label: game.i18n.localize("SWFFG.Crew.Role.Update"),
-              callback: async (html) => {
-                if(!this.actor.verifyEditModeIsNotEnabled()) {
-                  return;
-                }
-                const newRoles = html.find('[name="select-many-things"]').val();
-                await updateRoles(actor, crew_member_id, newRoles);
+      DialogV2.wait({
+        window: { title: game.i18n.localize("SWFFG.Crew.Title") },
+        classes: ["dialog"],
+        content: content,
+        buttons: [
+          {
+            action: "confirm",
+            label: game.i18n.localize("SWFFG.Crew.Role.Update"),
+            default: true,
+            callback: async (event, button, dialog) => {
+              if(!this.actor.verifyEditModeIsNotEnabled()) {
+                return;
               }
-            }
-          }
-        },
-      ).render(true);
+              const newRoles = $(dialog.element).find('[name="select-many-things"]').val();
+              await updateRoles(actor, crew_member_id, newRoles);
+            },
+          },
+        ],
+        rejectClose: false,
+      });
     });
 
-    html.find(".item-info").click((ev) => {
+    html.find(".item-info").click(async (ev) => {
       if(!this.actor.verifyEditModeIsNotEnabled()) {
         return;
       }
@@ -1074,40 +1079,41 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
 
       const title = `${game.i18n.localize("SWFFG.TalentSource")} ${item.name}`;
 
-      new DialogV2Compat(
-        {
-          title: title,
-          content: {
-            source: item.source,
-          },
-          buttons: {
-            done: {
-              icon: '<i class="fas fa-check"></i>',
-              label: game.i18n.localize("SWFFG.ButtonAccept"),
-              callback: (html) => {
-                if(!this.actor.verifyEditModeIsNotEnabled()) {
-                  return;
-                }
-                const talentsToRemove = $(html).find("input[type='checkbox']:checked");
-                CONFIG.logger.debug(`Removing ${talentsToRemove.length} talents`);
+      const talentContent = await foundry.applications.handlebars.renderTemplate(
+        "systems/starwarsffg/templates/actors/dialogs/ffg-talent-selector.html",
+        { title, content: { source: item.source } }
+      );
+      DialogV2.wait({
+        window: { title },
+        classes: ["dialog", "starwarsffg"],
+        content: talentContent,
+        buttons: [
+          {
+            action: "done",
+            icon: "fas fa-check",
+            label: game.i18n.localize("SWFFG.ButtonAccept"),
+            default: true,
+            callback: (event, button, dialog) => {
+              if(!this.actor.verifyEditModeIsNotEnabled()) {
+                return;
+              }
+              const talentsToRemove = $(dialog.element).find("input[type='checkbox']:checked");
+              CONFIG.logger.debug(`Removing ${talentsToRemove.length} talents`);
 
-                for (let i = 0; i < talentsToRemove.length; i += 1) {
-                  const id = $(talentsToRemove[i]).val();
-                  this.actor.items.get(id)?.delete();
-                }
-              },
-            },
-            cancel: {
-              icon: '<i class="fas fa-times"></i>',
-              label: game.i18n.localize("SWFFG.Cancel"),
+              for (let i = 0; i < talentsToRemove.length; i += 1) {
+                const id = $(talentsToRemove[i]).val();
+                this.actor.items.get(id)?.delete();
+              }
             },
           },
-        },
-        {
-          classes: ["dialog", "starwarsffg"],
-          template: "systems/starwarsffg/templates/actors/dialogs/ffg-talent-selector.html",
-        }
-      ).render(true);
+          {
+            action: "cancel",
+            icon: "fas fa-times",
+            label: game.i18n.localize("SWFFG.Cancel"),
+          },
+        ],
+        rejectClose: false,
+      });
     });
 
     // Edit Gear Quantities
@@ -1281,13 +1287,21 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
         }
 
         // actually show the dialog
-        await new DialogV2Compat(
-          {
-            title: game.i18n.localize("SWFFG.Crew.Roles.Gunner.Title"),
-            content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Gunner.Description")}</p>`,
-            buttons: weapons,
-          },
-        ).render(true);
+        await DialogV2.wait({
+          window: { title: game.i18n.localize("SWFFG.Crew.Roles.Gunner.Title") },
+          classes: ["dialog"],
+          content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Gunner.Description")}</p>`,
+          // `weapons` is built as an object keyed by "weapon <n>"; map it to the
+          // native DialogV2 button array. The legacy per-button `<img>` icon is
+          // dropped (DialogV2 renders `icon` as a FontAwesome class only, so the
+          // portrait never displayed anyway); the weapon name stays as the label.
+          buttons: Object.entries(weapons).map(([action, button]) => ({
+            action: action.replace(/\s+/g, "-"),
+            label: button.label,
+            callback: button.callback,
+          })),
+          rejectClose: false,
+        });
       } else {
         // update the pool with actor information
         pool = get_dice_pool(crew_id, role_info[0].role_skill, pool);
@@ -1342,13 +1356,19 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
           }
         }
         // actually show the dialog
-        await new DialogV2Compat(
-          {
-            title: game.i18n.localize("SWFFG.Crew.Roles.Weapon.Title"),
-            content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Weapon.Description")}</p>`,
-            buttons: crewMembers,
-          },
-        ).render(true);
+        await DialogV2.wait({
+          window: { title: game.i18n.localize("SWFFG.Crew.Roles.Weapon.Title") },
+          classes: ["dialog"],
+          content: `<p>${game.i18n.localize("SWFFG.Crew.Roles.Weapon.Description")}</p>`,
+          // See the gunner dialog above: map the keyed `crewMembers` object to the
+          // native button array and drop the non-functional `<img>` icon.
+          buttons: Object.entries(crewMembers).map(([action, button]) => ({
+            action: action.replace(/\s+/g, "-"),
+            label: button.label,
+            callback: button.callback,
+          })),
+          rejectClose: false,
+        });
       } else {
         await this.vehicleCrewGunneryRoll(weapon, weaponSkill, crewGunners[0]);
       }
@@ -1703,7 +1723,7 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
    * Change skill characteristic
    * @param  {object} a - Event object
    */
-  _onChangeSkillCharacteristic(a) {
+  async _onChangeSkillCharacteristic(a) {
     //const a = event.currentTarget;
     const characteristic = $(a).data("characteristic");
     const ability = $(a).data("ability");
@@ -1712,95 +1732,98 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       label = CONFIG.FFG.skills[ability].label;
     }
 
-    new DialogV2Compat(
-      {
-        title: `${game.i18n.localize("SWFFG.SkillCharacteristicDialogTitle")} ${game.i18n.localize(label)}`,
-        content: {
-          options: CONFIG.FFG.characteristics,
-          char: characteristic,
-        },
-        buttons: {
-          one: {
-            icon: '<i class="fas fa-check"></i>',
-            label: game.i18n.localize("SWFFG.ButtonAccept"),
-            callback: (html) => {
-              let newCharacteristic = $(html).find("input[type='radio']:checked").val();
+    const title = `${game.i18n.localize("SWFFG.SkillCharacteristicDialogTitle")} ${game.i18n.localize(label)}`;
+    const content = await foundry.applications.handlebars.renderTemplate(
+      "systems/starwarsffg/templates/actors/dialogs/ffg-skill-characteristic-selector.html",
+      { title, content: { options: CONFIG.FFG.characteristics, char: characteristic } }
+    );
+    DialogV2.wait({
+      window: { title },
+      classes: ["dialog", "starwarsffg"],
+      content,
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
+          label: game.i18n.localize("SWFFG.ButtonAccept"),
+          default: true,
+          callback: (event, button, dialog) => {
+            let newCharacteristic = $(dialog.element).find("input[type='radio']:checked").val();
 
-              CONFIG.logger.debug(`Updating ${ability} Characteristic from ${characteristic} to ${newCharacteristic}`);
+            CONFIG.logger.debug(`Updating ${ability} Characteristic from ${characteristic} to ${newCharacteristic}`);
 
-              let updateData = {};
-              setProperty(updateData, `system.skills.${ability}.characteristic`, newCharacteristic);
+            let updateData = {};
+            setProperty(updateData, `system.skills.${ability}.characteristic`, newCharacteristic);
 
-              this.object.update(updateData);
-            },
+            this.object.update(updateData);
           },
-          two: {
-            icon: '<i class="fas fa-times"></i>',
-            label: game.i18n.localize("SWFFG.Cancel"),
-          },
         },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-        template: "systems/starwarsffg/templates/actors/dialogs/ffg-skill-characteristic-selector.html",
-      }
-    ).render(true);
+        {
+          action: "two",
+          icon: "fas fa-times",
+          label: game.i18n.localize("SWFFG.Cancel"),
+        },
+      ],
+      rejectClose: false,
+    });
   }
 
   /**
    * Create new one-off skill for this actor
    * @param  {object} a - Event object
    */
-  _onCreateSkill(a) {
+  async _onCreateSkill(a) {
     const group = $(a).parent().data("type");
 
-    new DialogV2Compat(
-      {
-        title: `${game.i18n.localize("SWFFG.SkillAddDialogTitle")}`,
-        content: {
-          options: CONFIG.FFG.characteristics,
-        },
-        buttons: {
-          one: {
-            icon: '<i class="fas fa-check"></i>',
-            label: game.i18n.localize("SWFFG.ButtonAccept"),
-            callback: (html) => {
-              const name = $(html).find("input[name='name']").val();
-              const characteristic = $(html).find("select[name='characteristic']").val();
+    const title = `${game.i18n.localize("SWFFG.SkillAddDialogTitle")}`;
+    const content = await foundry.applications.handlebars.renderTemplate(
+      "systems/starwarsffg/templates/actors/dialogs/ffg-skill-new.html",
+      { title, content: { options: CONFIG.FFG.characteristics } }
+    );
+    DialogV2.wait({
+      window: { title },
+      classes: ["dialog", "starwarsffg"],
+      content,
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
+          label: game.i18n.localize("SWFFG.ButtonAccept"),
+          default: true,
+          callback: (event, button, dialog) => {
+            const name = $(dialog.element).find("input[name='name']").val();
+            const characteristic = $(dialog.element).find("select[name='characteristic']").val();
 
-              let newSkill = {
-                value: name,
-                careerskill: false,
-                characteristic,
-                groupskill: false,
-                label: name,
-                max: game.settings.get("starwarsffg", "maxSkill"),
-                rank: 0,
-                type: group,
-                custom: true,
-                nontheme: true,
-              };
+            let newSkill = {
+              value: name,
+              careerskill: false,
+              characteristic,
+              groupskill: false,
+              label: name,
+              max: game.settings.get("starwarsffg", "maxSkill"),
+              rank: 0,
+              type: group,
+              custom: true,
+              nontheme: true,
+            };
 
-              if (name.trim().length > 0) {
-                CONFIG.logger.debug(`Creating new skill ${name} (${characteristic})`);
-                let updateData = {};
-                foundry.utils.setProperty(updateData, `system.skills.${name}`, newSkill);
+            if (name.trim().length > 0) {
+              CONFIG.logger.debug(`Creating new skill ${name} (${characteristic})`);
+              let updateData = {};
+              foundry.utils.setProperty(updateData, `system.skills.${name}`, newSkill);
 
-                this.object.update(updateData);
-              }
-            },
+              this.object.update(updateData);
+            }
           },
-          two: {
-            icon: '<i class="fas fa-times"></i>',
-            label: game.i18n.localize("SWFFG.Cancel"),
-          },
         },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-        template: "systems/starwarsffg/templates/actors/dialogs/ffg-skill-new.html",
-      }
-    ).render(true);
+        {
+          action: "two",
+          icon: "fas fa-times",
+          label: game.i18n.localize("SWFFG.Cancel"),
+        },
+      ],
+      rejectClose: false,
+    });
   }
 
   /**
@@ -1821,31 +1844,31 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
       return;
     }
-    const dialog = new DialogV2Compat(
-      {
-        title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SkillRank.ConfirmTitle"),
-        content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.SkillRank.Text", {cost: cost, skill: skill, old: curRank, new: curRank + 1}),
-        buttons: {
-          done: {
-            icon: '<i class="fa-regular fa-circle-up"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
-            callback: async (that) => {
-              if(!this.actor.verifyEditModeIsNotEnabled()) return;
+    DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SkillRank.ConfirmTitle") },
+      classes: ["dialog", "starwarsffg"],
+      content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.SkillRank.Text", {cost: cost, skill: skill, old: curRank, new: curRank + 1}),
+      buttons: [
+        {
+          action: "done",
+          icon: "fa-regular fa-circle-up",
+          label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
+          default: true,
+          callback: async () => {
+            if(!this.actor.verifyEditModeIsNotEnabled()) return;
 
-              const id = await this._spendXp(`system.skills.${skill}.rank`, 1, cost);
-              await xpLogSpend(game.actors.get(this.object.id), `skill rank ${skill} ${curRank} --> ${curRank + 1}`, cost, availableXP - cost, totalXP, id);
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-cancel"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
+            const id = await this._spendXp(`system.skills.${skill}.rank`, 1, cost);
+            await xpLogSpend(game.actors.get(this.object.id), `skill rank ${skill} ${curRank} --> ${curRank + 1}`, cost, availableXP - cost, totalXP, id);
           },
         },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-      }
-    ).render(true);
+        {
+          action: "cancel",
+          icon: "fas fa-cancel",
+          label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
+        },
+      ],
+      rejectClose: false,
+    });
   }
 
   /**
@@ -1897,15 +1920,17 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     CONFIG.logger.debug(`refunding ${mode} for ${purchaseId}`);
     const purchasedEffect = this.object.getEmbeddedCollection("ActiveEffect").find(ae => ae.name.includes(purchaseId));
     if (purchasedEffect) {
-      const dialog = new DialogV2Compat(
-        {
-          title: game.i18n.localize("SWFFG.Actors.Sheets.Refund.DialogTitle"),
-          content: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Text"),
-          buttons: {
-            done: {
-              icon: '<i class="fa-solid fa-check"></i>',
-              label: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Confirm"),
-              callback: async (that) => {
+      DialogV2.wait({
+        window: { title: game.i18n.localize("SWFFG.Actors.Sheets.Refund.DialogTitle") },
+        classes: ["dialog", "starwarsffg"],
+        content: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Text"),
+        buttons: [
+          {
+            action: "done",
+            icon: "fa-solid fa-check",
+            label: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Confirm"),
+            default: true,
+            callback: async () => {
                 if(!this.actor.verifyEditModeIsNotEnabled()) return;
 
                 await this.object.deleteEmbeddedDocuments("ActiveEffect", [purchasedEffect.id]);
@@ -1934,18 +1959,16 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
                 });
                 await this.object.setFlag("starwarsffg", "xpLog", logEntries);
                 CONFIG.logger.debug(`completed refund for ${purchaseId}!`);
-              },
-            },
-            cancel: {
-              icon: '<i class="fas fa-cancel"></i>',
-              label: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Cancel"),
             },
           },
-        },
-        {
-          classes: ["dialog", "starwarsffg"],
-        }
-      ).render(true);
+          {
+            action: "cancel",
+            icon: "fas fa-cancel",
+            label: game.i18n.localize("SWFFG.Actors.Sheets.Refund.Cancel"),
+          },
+        ],
+        rejectClose: false,
+      });
     } else {
       CONFIG.logger.warn(`Could not locate purchase with ID ${purchaseId}`);
     }
@@ -2515,20 +2538,22 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       return;
     }
 
-    const dialog = new DialogV2Compat(
-    {
-        title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.DialogTitle", {itemType: itemType}),
-        content: content,
-        buttons: {
-          done: {
-            icon: '<i class="fa-regular fa-circle-up"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
-            callback: async (that) => {
+    DialogV2.wait({
+      window: { title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.DialogTitle", {itemType: itemType}) },
+      classes: ["dialog", "starwarsffg"],
+      content: content,
+      buttons: [
+        {
+          action: "done",
+          icon: "fa-regular fa-circle-up",
+          label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
+          default: true,
+          callback: async (event, button, dialog) => {
               if(!this.actor.verifyEditModeIsNotEnabled()) return;
 
-              const cost = $("#ffgPurchase option:selected", that).data("cost");
-              const selected_id = $("#ffgPurchase option:selected", that).data("id");
-              const selected_source = $("#ffgPurchase option:selected", that).data("source");
+              const cost = $("#ffgPurchase option:selected", dialog.element).data("cost");
+              const selected_id = $("#ffgPurchase option:selected", dialog.element).data("id");
+              const selected_source = $("#ffgPurchase option:selected", dialog.element).data("source");
               if (cost > availableXP) {
                 ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
                 return;
@@ -2560,16 +2585,14 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
               await ActorHelpers.endEditMode(this.actor, AEState, true);
             },
           },
-          cancel: {
-            icon: '<i class="fas fa-cancel"></i>',
+          {
+            action: "cancel",
+            icon: "fas fa-cancel",
             label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
           },
-        },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-      }
-    ).render(true);
+        ],
+        rejectClose: false,
+      });
   }
 
   async _buyCharacteristicRank(characteristic) {
@@ -2589,32 +2612,32 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
       return;
     }
-    const dialog = new DialogV2Compat(
-      {
-        title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmTitle", {characteristic: characteristic}),
-        content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmText", {cost: cost, level: characteristicValue + 1, characteristic: characteristic}),
-        buttons: {
-          done: {
-            icon: '<i class="fa-regular fa-circle-up"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
-            callback: async (that) => {
-              if(!this.actor.verifyEditModeIsNotEnabled()) return;
+    DialogV2.wait({
+      window: { title: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmTitle", {characteristic: characteristic}) },
+      classes: ["dialog", "starwarsffg"],
+      content: game.i18n.format("SWFFG.Actors.Sheets.Purchase.Characteristic.ConfirmText", {cost: cost, level: characteristicValue + 1, characteristic: characteristic}),
+      buttons: [
+        {
+          action: "done",
+          icon: "fa-regular fa-circle-up",
+          label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
+          default: true,
+          callback: async () => {
+            if(!this.actor.verifyEditModeIsNotEnabled()) return;
 
-              const statusId = await this._spendXp(`system.characteristics.${characteristic}.value`, 1, cost);
-              await xpLogSpend(game.actors.get(this.object.id), `characteristic ${characteristic} level ${characteristicValue} --> ${characteristicValue + 1}`, cost, availableXP - cost, totalXP, statusId);
-              await this.render(true);
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-cancel"></i>',
-            label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
+            const statusId = await this._spendXp(`system.characteristics.${characteristic}.value`, 1, cost);
+            await xpLogSpend(game.actors.get(this.object.id), `characteristic ${characteristic} level ${characteristicValue} --> ${characteristicValue + 1}`, cost, availableXP - cost, totalXP, statusId);
+            await this.render(true);
           },
         },
-      },
-      {
-        classes: ["dialog", "starwarsffg"],
-      }
-    ).render(true);
+        {
+          action: "cancel",
+          icon: "fas fa-cancel",
+          label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
+        },
+      ],
+      rejectClose: false,
+    });
   }
 
   /**
@@ -2644,21 +2667,24 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     <input type="text" id="adjustReason" name="adjustReason" value="${game.i18n.localize("SWFFG.XP.Adjust.Window.Default")}" />
     `;
 
-    let d = new DialogV2Compat({
-      title: game.i18n.localize("SWFFG.XP.Adjust.Window.Title"),
+    DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.XP.Adjust.Window.Title") },
+      classes: ["dialog"],
       content: content,
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
           label: game.i18n.localize("SWFFG.XP.Adjust.Confirm"),
-          callback: async () => {
+          default: true,
+          callback: async (event, button, dialog) => {
             const availableXPToLog = foundry.utils.deepClone(parseInt(this.actor.system.experience.available));
             // Empty input -> parseInt("") -> NaN. Writing NaN to system.experience.available
             // / total corrupts the actor (every later XP read becomes NaN and propagates).
             // Default to 0 (effective no-op) so the dialog can never poison the XP fields.
-            const rawAdjust = parseInt($("#adjustAmount").val());
+            const rawAdjust = parseInt($(dialog.element).find("#adjustAmount").val());
             const adjustAmount = Number.isFinite(rawAdjust) ? rawAdjust : 0;
-            const adjustReason = foundry.utils.deepClone($("#adjustReason").val());
+            const adjustReason = foundry.utils.deepClone($(dialog.element).find("#adjustReason").val());
             const AEState = await ActorHelpers.beginEditMode(this.actor, true);
             // beginEditMode persisted disabled=true on every AE on the actor;
             // endEditMode MUST run even if the update or log step throws, otherwise
@@ -2682,14 +2708,14 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
             }
           },
         },
-        two: {
-          icon: '<i class="fas fa-times"></i>',
+        {
+          action: "two",
+          icon: "fas fa-times",
           label: "Cancel",
         },
-      },
-      default: "one",
+      ],
+      rejectClose: false,
     });
-    d.render(true);
   }
 
   async _xpExport(event) {
@@ -2723,15 +2749,18 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     </div>
     `;
 
-    let d = new DialogV2Compat({
-      title: game.i18n.localize("SWFFG.XP.Import.Title"),
+    DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.XP.Import.Title") },
+      classes: ["dialog"],
       content: content,
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
           label: game.i18n.localize("SWFFG.XP.Import.Title"),
-          callback: async () => {
-            const fileElement = $("#xpLogFile");
+          default: true,
+          callback: async (event, button, dialog) => {
+            const fileElement = $(dialog.element).find("#xpLogFile");
             const file = fileElement[0].files?.[0];
             const reader = new FileReader();
             reader.readAsText(file, 'UTF-8');
@@ -2745,14 +2774,14 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
             }
           },
         },
-        two: {
-          icon: '<i class="fas fa-times"></i>',
+        {
+          action: "two",
+          icon: "fas fa-times",
           label: "Cancel",
         },
-      },
-      default: "one",
+      ],
+      rejectClose: false,
     });
-    d.render(true);
   }
 
   debounceRender = foundry.utils.debounce(
@@ -2793,44 +2822,48 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     const sourceIndex = $(event.currentTarget).data("index");
     if (action === "add") {
       if (this._addSourceDialogOpen) {
-        this._addSourceDialog?.app?.bringToFront?.();
+        this._addSourceDialog?.bringToFront?.();
         return;
       }
       this._addSourceDialogOpen = true;
+      const addSource = new DialogV2({
+        window: { title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title") },
+        classes: ["starwarsffg-dialog", "ffg-meta-dialog"],
+        content: `
+          <div class="ffg-meta-form">
+            <label for="book">${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</label>
+            <input type="text" id="book" name="book" value="Force and Destiny Core Rulebook" autofocus>
+            <label for="page">${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Page")}:</label>
+            <input type="number" id="page" name="page" value="0">
+          </div>
+        `,
+        buttons: [
+          {
+            action: "submit",
+            icon: "fas fa-check",
+            label: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Submit"),
+            default: true,
+            callback: async (event, button, dialog) => {
+              const bookName = dialog.element.querySelector("#book").value;
+              const pageNum = dialog.element.querySelector("#page").value;
+              await this.object.update({"system.metadata.sources": [...this.object.system.metadata.sources, `${bookName} pg. ${pageNum}`]});
+            },
+          },
+          {
+            action: "cancel",
+            icon: "fas fa-x",
+            label: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Cancel"),
+          },
+        ],
+      });
       const releaseSourceLock = () => {
         this._addSourceDialogOpen = false;
         if (this._addSourceDialog === addSource) this._addSourceDialog = null;
       };
-      const addSource = new DialogV2Compat({
-        title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title"),
-        content: `
-          <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</p>
-          <input type="text" id="book" name="book" value="Force and Destiny Core Rulebook" autofocus>
-          <p>${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Page")}:</p>
-          <input type="number" id="page" name="page" value="0">
-        `,
-        buttons: {
-          submit: {
-            icon: '<i class="fas fa-check"></i>',
-            label: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Submit"),
-            callback: async (obj, event) => {
-              const jObj = $(obj);
-              const bookName = jObj.find("#book").val();
-              const pageNum = jObj.find("#page").val();
-              await this.object.update({"system.metadata.sources": [...this.object.system.metadata.sources, `${bookName} pg. ${pageNum}`]});
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-x"></i>',
-            label: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Cancel"),
-          },
-        },
-        default: "submit",
-        close: releaseSourceLock,
-      });
       this._addSourceDialog = addSource;
-      addSource.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
-      requestAnimationFrame(() => addSource.app?.bringToFront?.());
+      addSource.addEventListener("close", releaseSourceLock, { once: true });
+      addSource.render({ force: true });
+      requestAnimationFrame(() => addSource.bringToFront?.());
     } else if (action === "remove") {
       const sources = foundry.utils.deepClone(this.object.system.metadata.sources);
       sources.splice(sourceIndex, 1);
@@ -2852,43 +2885,47 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     const tagIndex = $(event.currentTarget).data("index");
     if (action === "add") {
       if (this._addTagDialogOpen) {
-        this._addTagDialog?.app?.bringToFront?.();
+        this._addTagDialog?.bringToFront?.();
         return;
       }
       this._addTagDialogOpen = true;
+      const addTag = new DialogV2({
+        window: { title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title") },
+        classes: ["starwarsffg-dialog", "ffg-meta-dialog"],
+        content: `
+          <div class="ffg-meta-form">
+            <label for="tag">${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</label>
+            <input type="text" id="tag" name="tag" value="" autofocus>
+          </div>
+        `,
+        buttons: [
+          {
+            action: "submit",
+            icon: "fas fa-check",
+            label: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Submit"),
+            default: true,
+            callback: async (event, button, dialog) => {
+              const tag = dialog.element.querySelector("#tag").value;
+              const updatedTags = this.object.system.metadata.tags || [];
+              updatedTags.push(tag);
+              await this.object.update({"system.metadata.tags": updatedTags});
+            },
+          },
+          {
+            action: "cancel",
+            icon: "fas fa-x",
+            label: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Cancel"),
+          },
+        ],
+      });
       const releaseTagLock = () => {
         this._addTagDialogOpen = false;
         if (this._addTagDialog === addTag) this._addTagDialog = null;
       };
-      const addTag = new DialogV2Compat({
-        title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title"),
-        content: `
-          <p>${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</p>
-          <input type="text" id="tag" name="tag" value="" autofocus>
-        `,
-        buttons: {
-          submit: {
-            icon: '<i class="fas fa-check"></i>',
-            label: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Submit"),
-            callback: async (obj, event) => {
-              const jObj = $(obj);
-              const tag = jObj.find("#tag").val();
-              const updatedTags = this.object.system.metadata.tags || [];
-              updatedTags.push(tag);
-              await this.object.update({"system.metadata.tags": updatedTags});
-            }
-          },
-          cancel: {
-            icon: '<i class="fas fa-x"></i>',
-            label: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Cancel"),
-          },
-        },
-        default: "submit",
-        close: releaseTagLock,
-      });
       this._addTagDialog = addTag;
-      addTag.render(true, {focus: true, classes: ["app", "window-app", "dialog", "themed", "theme-light", "starwarsffg-dialog"]});
-      requestAnimationFrame(() => addTag.app?.bringToFront?.());
+      addTag.addEventListener("close", releaseTagLock, { once: true });
+      addTag.render({ force: true });
+      requestAnimationFrame(() => addTag.bringToFront?.());
     } else if (action === "remove") {
       const tags = foundry.utils.deepClone(this.object.system.metadata.tags);
       tags.splice(tagIndex, 1);
