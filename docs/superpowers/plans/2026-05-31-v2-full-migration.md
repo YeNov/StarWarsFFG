@@ -394,25 +394,34 @@ export class RollBuilder extends HandlebarsApplicationMixin(ApplicationV2) {
 
 Per-class steps; each is a separate landing commit.
 
-- [ ] **Step 2.1: `popout-editor.js`** — Single-purpose ProseMirror editor
+- [x] **Step 2.1: `popout-editor.js`** — Single-purpose ProseMirror editor
   popout. Smallest surface. Use it as the migration template.
-- [ ] **Step 2.2: `popout-modifiers.js`** — Modifier-table popout. Verify
+- [x] **Step 2.2: `popout-modifiers.js`** — Modifier-table popout. Verify
   inline flex layout and scroll region still work after porting.
-- [ ] **Step 2.3: `ffg-destiny-tracker.js`** — Standalone chrome widget.
+- [x] **Step 2.3: `ffg-destiny-tracker.js`** — Standalone chrome widget.
   Re-verify the destiny-blur halo and 10px gap after migration.
-- [ ] **Step 2.4: `dice/roll-builder.js`** — Dice pool builder. Largest of
+- [x] **Step 2.4: `dice/roll-builder.js`** — Dice pool builder. Largest of
   this batch. Verify every roll path (skill, weapon, force, vehicle).
-- [ ] **Step 2.5: `groupmanager-ffg.js`** — Group manager root window.
+- [x] **Step 2.5: `groupmanager-ffg.js`** — Group manager root window.
   Verify member add/remove and destiny pool flows.
-- [ ] **Step 2.6: `settings/crew-settings.js`, `settings/ui-settings.js`** —
+- [x] **Step 2.6: `settings/crew-settings.js`, `settings/ui-settings.js`** —
   Game settings panels. Verify save/load round-trip.
-- [ ] **Step 2.7: `importer/skills-list-importer.js`, `importer/swa-importer.js`** —
+- [x] **Step 2.7: `importer/skills-list-importer.js`, `importer/swa-importer.js`** —
   Long-form import dialogs. Verify a full import for each.
-- [ ] **Step 2.8: `items/item-editor.js`** — Embedded talent/upgrade/force-power
+- [x] **Step 2.8: `items/item-editor.js`** — Embedded talent/upgrade/force-power
   editor. Verify save lifecycle (the editor was the source of the biography
   editor bug; do not regress).
 
-- [ ] **Step 2.9: Delete `FormApplicationV2Compat` and shrink the allowlist**
+> **Shared base note (decision during Stage 2.2):** the 6 form-pipeline
+> classes (popout-modifiers, groupmanager, the 2 settings groups, item-editor;
+> + future) extend a new purpose-built native base
+> `modules/apps/ffg-form-application.js` rather than each inlining the
+> `_onSubmit`/`_updateObject`/submitOnChange/submitOnClose/`_closing`/min-clamp
+> machinery. It is NOT a compat shim (no V1 bridging) and does not block the
+> `FormApplicationV2Compat` deletion. The non-form windows (popout-editor,
+> destiny-tracker, roll-builder, importers) extend `ApplicationV2` directly.
+
+- [x] **Step 2.9: Delete `FormApplicationV2Compat` and shrink the allowlist**
 
 When grep for the symbol returns zero hits:
 1. Delete `modules/apps/form-application-v2-compat.js`.
