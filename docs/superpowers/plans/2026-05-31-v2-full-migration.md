@@ -518,41 +518,76 @@ deprecated alias entry.
   guard, stale-entry cleanup, button hide/restore, finally-render), and the
   active-tab cache.
 
-Per-task steps:
+Per-task steps (all satisfied via the shared native base — see the
+implementation note below):
 
-- [ ] **Step 3.1: Native `defaultOptions` + `PARTS` migration**
-- [ ] **Step 3.2: `_prepareContext` rename and call-site fan-out**
-- [ ] **Step 3.3: Form handler migration (preserve submit coalesce)**
-- [ ] **Step 3.4: `_onRender` migration (drag/drop, drop-talent, purchase,
-  cross-field reactivity, modifier list, embedded editors)**
-- [ ] **Step 3.5: Active-tab cache reattachment**
-- [ ] **Step 3.6: Header projection / Sheet Options injection — port or
-  delete based on whether the V13 dropdown is acceptable**
-- [ ] **Step 3.7: Collapse `item-sheet-ffg-v2.js`** (default = collapse
-  with deprecated alias) — fold its option differences (`v2` class,
-  `scrollY: [".sheet-body", ".tab"]`, initial tab `"attributes"`) into
-  `ItemSheetFFG`, replace the file body with the alias
-  `export class ItemSheetFFGV2 extends ItemSheetFFG {}` plus a JSDoc
-  `@deprecated` block referencing this plan. Update `swffg-main.js:852-854`:
-  - Drop `makeDefault: true` from the V2 entry (V1 entry takes it).
-  - Update label `"Item Sheet v2"` → `"Item Sheet v2 (deprecated, use Item Sheet)"`.
-  - Keep the registration so `item.flags.core.sheetClass === "ffg.ItemSheetFFGV2"`
-    in existing worlds keeps resolving.
+- [x] **Step 3.1: Native `defaultOptions` + `PARTS` migration** — `ItemSheetFFG`
+  uses `static DEFAULT_OPTIONS`; `PARTS` + the dynamic per-type template live on
+  the base (`_configureRenderParts` reads `this.template`).
+- [x] **Step 3.2: `_prepareContext` rename and call-site fan-out** — the base
+  bridges native `_prepareContext` → `getData`, so the sheet keeps `getData`
+  (and the external caller `item-ffg.js:695` is undisturbed). The former
+  `ItemSheetV2Compat.getData` `data.item = data.document` line is folded in.
+- [x] **Step 3.3: Form handler migration (preserve submit coalesce)** — the
+  coalescing `_onSubmit` + manual submit/change listeners live on the base; the
+  native form pipeline is neutered (`form.handler = null`). Live-verified:
+  submit-on-change (document + `data.*`→`system.*`) and submit-on-close persist.
+- [x] **Step 3.4: `_onRender` migration** — the base bridges native `_onRender`
+  → `activateListeners(html)`, so the ~900-line listener body (drag/drop bind,
+  drop-talent, purchase, cross-field reactivity, modifier list, embedded
+  editors) is preserved unchanged. The DragDrop binds target
+  `form.editable.item-sheet-<type>`; both classes confirmed present.
+- [x] **Step 3.5: Active-tab cache reattachment** — `_activeTabCache` + Tabs
+  rebinding on the base.
+- [x] **Step 3.6: Header projection / Sheet Options injection** — ported on the
+  base (`_projectLegacyHeaderControls`); `ItemOptions` injects the Sheet Options
+  link via `data-appid` (now a unique per-document id, not the literal `"item"`).
+- [x] **Step 3.7: Collapse `item-sheet-ffg-v2.js`** (deprecated alias) — the
+  `v2` class, `scrollY`, and initial tab `"attributes"` moved into
+  `ItemSheetFFG.DEFAULT_OPTIONS`; the file body is now
+  `export class ItemSheetFFGV2 extends ItemSheetFFG {}` with an `@deprecated`
+  JSDoc. `swffg-main.js`: `ItemSheetFFG` is the real `makeDefault` `"Item Sheet"`;
+  `ItemSheetFFGV2` stays registered without `makeDefault` as
+  `"Item Sheet v2 (deprecated, use Item Sheet)"`. Live-verified the alias resolves
+  and renders identically.
+- [x] **Step 3.8: Delete `item-sheet-v2-compat.js` and shrink the allowlist** —
+  file deleted; `item-sheet-ffg.js` and `item-sheet-v2-compat.js` removed from
+  the allowlist and `**/item-sheet-v2-compat.js` removed from the restricted
+  pattern; the `**/document-sheet-v2-compat.js` + `**/actor-sheet-v2-compat.js`
+  patterns stay for Stage 4.9. (`item-sheet-ffg-v2.js` was never on the
+  allowlist — it imports `ItemSheetFFG`, not compat.) Also added `ProseMirror`
+  to the ESLint globals.
 
-  Schedule removal of the alias for the release after V2-full lands.
-- [ ] **Step 3.8: Delete `item-sheet-v2-compat.js` and shrink the allowlist**
+**Implementation note (deviation from the literal plan).** Rather than inlining
+the ~500 lines of machinery into `ItemSheetFFG` and extending `DocumentSheetV2`
+"directly" — which would duplicate it with the actor sheets — the machinery moved
+to a shared native base `modules/apps/ffg-document-sheet.js` (`FFGDocumentSheet`),
+mirroring the Stage 2 `FFGFormApplication` decision. So the realized chain is
+`ItemSheetFFG → FFGDocumentSheet → HandlebarsApplicationMixin(DocumentSheetV2)`.
+The base bridges native hooks to the legacy method names (`_prepareContext` →
+`getData`, `_onRender` → `activateListeners`), which is why Steps 3.2/3.4 are met
+without renaming the subclass methods or fanning out call sites. `FFGDocumentSheet`
+is the compat `FFGDocumentSheetV2` minus its V1-options shim (legacy
+`defaultOptions` getter, `_migrateConstructorParams`, legacyOptions mapping). The
+compat `FFGDocumentSheetV2` is left **byte-for-byte untouched** so the still-compat
+actor sheets are guaranteed unaffected; Stage 4 points them at `FFGDocumentSheet`
+and then deletes both compat files.
 
-  1. Delete `modules/sheets/item-sheet-v2-compat.js`.
-  2. In `eslint.config.mjs`, remove `modules/items/item-sheet-ffg.js`
-     from the allowlist if Stage 1 also cleared its DialogV2Compat
-     imports; otherwise it stays until Stage 1.8 also completes.
-  3. Remove `modules/items/item-sheet-ffg-v2.js` from the allowlist (the
-     collapsed alias does not import compat).
-  4. The `**/sheets/*-v2-compat.js` pattern stays in the restricted-imports
-     rule until Stage 4.9 also runs (`actor-sheet-v2-compat.js` /
-     `document-sheet-v2-compat.js` still exist).
+A latent crash was fixed in the base while here: native
+`DocumentSheetV2._toggleDisabled` (run on any non-editable sheet) does
+`form.querySelector(".window-content")`, but our content form element *is* the
+`.window-content` (tag:div + window.contentTag:form), so the lookup returned null
+and threw during render. `FFGDocumentSheet._toggleDisabled` falls back to the form
+itself. This pre-existing bug still affects locked/limited **actor** sheets via the
+untouched compat until Stage 4 carries the same fix.
 
 **Acceptance:**
+
+**Status: COMPLETE** (commit `d12758be`). Live-verified on core 13.351 under the
+live Mandar theme (`mandarBeskarAstromech.css`) as GM. 16 of the ~20 item types
+were exercised directly; `background`, `motivation`, `obligation`, and
+`homesteadupgrade` were not present in the world or available compendiums and use
+the generic `item-sheet-<type>` render path (low risk).
 - `ItemSheetFFG` extends `HandlebarsApplicationMixin(DocumentSheetV2)`.
 - `modules/sheets/item-sheet-v2-compat.js` does not exist.
 - Every item type (weapon, armour, gear, talent, specialization, force power,
