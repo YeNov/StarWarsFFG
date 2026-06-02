@@ -849,8 +849,13 @@ Hooks.once("init", async function () {
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet v1" });
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2" });
   foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { label: "Item Sheet v1" });
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { makeDefault: true, label: "Item Sheet v2" });
+  // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
+  // to the same native sheet. ItemSheetFFG is the real, default class;
+  // ItemSheetFFGV2 stays registered (no makeDefault) only as a deprecated alias
+  // so worlds with `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
+  // resolving. Drop the alias entry in the release after V2-full lands.
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
 
   // Add utilities to the global scope, this can be useful for macro makers
   window.DicePoolFFG = DicePoolFFG;

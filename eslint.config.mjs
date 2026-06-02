@@ -54,7 +54,6 @@ export default [
               group: [
                 "**/document-sheet-v2-compat.js",
                 "**/actor-sheet-v2-compat.js",
-                "**/item-sheet-v2-compat.js",
               ],
               message:
                 "V2 compat modules are frozen (V2-full migration). Do not add new importers; use ApplicationV2 / DocumentSheetV2 / DialogV2 directly. See docs/superpowers/plans/2026-05-31-v2-full-migration.md.",
@@ -113,6 +112,7 @@ export default [
         Macro: "readonly",
         Pause: "readonly",
         PIXI: "readonly",
+        ProseMirror: "readonly",
         Roll: "readonly",
         Ruler: "readonly",
         Scene: "readonly",
@@ -153,13 +153,11 @@ export default [
     // 3.8, 4.9). When this list empties the whole guard comes out in Stage 5.
     // See docs/superpowers/plans/2026-05-31-v2-full-migration.md.
     files: [
-      // Sheet importers — import their sheet-compat base; stay allowlisted
-      // until their sheet stage (3.8 / 4.9) clears.
+      // Sheet importer — imports its sheet-compat base; stays allowlisted
+      // until its sheet stage (4.9) clears.
       "modules/actors/actor-sheet-ffg.js",
-      "modules/items/item-sheet-ffg.js",
-      // Internal compat-to-compat imports (cleared in Stages 3.8 / 4.9)
+      // Internal compat-to-compat import (cleared in Stage 4.9)
       "modules/sheets/actor-sheet-v2-compat.js",
-      "modules/sheets/item-sheet-v2-compat.js",
     ],
     rules: {
       "no-restricted-imports": "off",

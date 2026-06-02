@@ -1,18 +1,17 @@
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
 
-export class ItemSheetFFGV2 extends ItemSheetFFG {
-  /** @override */
-  static get defaultOptions() {
-    const options = foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ["starwarsffg", "sheet", "item", "v2"],
-      scrollY: [".sheet-body", ".tab"],
-    });
-    options.tabs = [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "attributes" }];
-    return options;
-  }
-
-  getData() {
-    const data = super.getData();
-    return data;
-  }
-}
+/**
+ * @deprecated Collapsed alias of {@link ItemSheetFFG} (V2-full migration,
+ * Stage 3.7). The former V1/V2 item-sheet split is gone: both names now resolve
+ * to the same native ApplicationV2 sheet, and the `v2` class / `scrollY` /
+ * initial-tab differences that used to live here are folded into
+ * `ItemSheetFFG.DEFAULT_OPTIONS`.
+ *
+ * This empty alias is retained for ONE release so that existing worlds whose
+ * documents carry `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
+ * resolving without a data migration. Its registration in `swffg-main.js` is
+ * kept (without `makeDefault`) for the same reason. Remove both in the release
+ * after V2-full lands. See
+ * docs/superpowers/plans/2026-05-31-v2-full-migration.md.
+ */
+export class ItemSheetFFGV2 extends ItemSheetFFG {}

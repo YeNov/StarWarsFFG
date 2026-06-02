@@ -1,5 +1,5 @@
 import PopoutEditor from "../popout-editor.js";
-import { ItemSheetV2Compat } from "../sheets/item-sheet-v2-compat.js";
+import { FFGDocumentSheet } from "../apps/ffg-document-sheet.js";
 import Helpers from "../helpers/common.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import ItemHelpers from "../helpers/item-helpers.js";
@@ -15,26 +15,81 @@ import { canPurchaseNode } from "../helpers/talent-tree.js";
 const { DialogV2 } = foundry.applications.api;
 
 /**
- * Extend the basic ItemSheet with some very simple modifications
- * @extends {ItemSheetV2Compat}
+ * The system's Item sheet — native ApplicationV2 DocumentSheetV2 (via the
+ * shared FFGDocumentSheet base). Handles every FFG item type.
+ * @extends {FFGDocumentSheet}
  */
 
-export class ItemSheetFFG extends ItemSheetV2Compat {
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ["starwarsffg", "sheet", "item"],
-      tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "description" }],
-      scrollY: [".sheet-body", ".tab"],
-      action: null,
-      data: null,
-    });
-  }
+export class ItemSheetFFG extends FFGDocumentSheet {
+  static DEFAULT_OPTIONS = {
+    // `v2` is REQUIRED, not cosmetic: the served stylesheets key item-sheet
+    // layout off `.starwarsffg.sheet.item.v2` (weapon/armor/gear/talent/vehicle
+    // bodies, the tab strip, etc.). It was the makeDefault sheet pre-migration,
+    // so the collapsed sheet keeps the class to preserve appearance (Stage 3.7).
+    classes: ["starwarsffg", "sheet", "item", "v2"],
+    position: { width: 500 },
+    window: { resizable: true },
+    // V1-parity submit flags read by the manual submit pipeline in the base.
+    submitOnChange: true,
+    submitOnClose: true,
+    closeOnSubmit: false,
+    scrollY: [".sheet-body", ".tab"],
+    tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "attributes" }],
+    secrets: [{ parentSelector: ".editor" }],
+    baseApplication: "ItemSheet",
+    action: null,
+    data: null,
+  };
 
-  /** @override */
+  /**
+   * Per-item-type template. The root render part picks this up via the base's
+   * `_configureRenderParts` (which reads `this.template`).
+   * @override
+   */
   get template() {
     const path = "systems/starwarsffg/templates/items";
     return `${path}/ffg-${this.item.type}-sheet.html`;
+  }
+
+  /** Window title is just the item name (folded from ItemSheetV2Compat). @override */
+  get title() {
+    return this.item.name;
+  }
+
+  /** Alias for the underlying document (folded from ItemSheetV2Compat). */
+  get item() {
+    return this.object;
+  }
+
+  /** The owning actor, if this item is embedded (folded from ItemSheetV2Compat). */
+  get actor() {
+    return this.item.actor;
+  }
+
+  /** @override */
+  get isEditable() {
+    return super.isEditable && !this.item.flags?.readonly;
+  }
+
+  /**
+   * Per-type CSS hook applied to the inner form (e.g. `item-sheet-weapon`).
+   * Folded from the former ItemSheetV2Compat. A handful of types map to a
+   * shared/legacy class name rather than the default `item-sheet-<type>`.
+   * @override
+   */
+  _getLegacyRootClasses(context = {}) {
+    const classes = super._getLegacyRootClasses(context);
+    const sheetClass = {
+      armour: "item-sheet-armor",
+      shipweapon: "item-sheet-vehicle-weapon",
+      shipattachment: "item-sheet-vehicle-attachment",
+      itemmodifier: "item-sheet-modifiers",
+      ability: "item-sheet-talent",
+      criticaldamage: "item-sheet-criticalinjury",
+    }[this.item.type] ?? `item-sheet-${this.item.type}`;
+
+    classes.push(sheetClass);
+    return classes;
   }
 
   /* -------------------------------------------- */
@@ -66,6 +121,10 @@ export class ItemSheetFFG extends ItemSheetV2Compat {
   /** @override */
   async getData(options) {
     let data = super.getData(options);
+    // FFGDocumentSheet.getData returns { document, data, ... }; the item-sheet
+    // body below and the templates read `data.item` (folded from the former
+    // ItemSheetV2Compat.getData).
+    data.item = data.document;
     // this code was mostly written by Phind
     // removing a key from a dict in Foundry requires submitting it with a new key of `-=key` and a value of null
     // without explicitly replacing values, we end up duplicating entries instead of removing the one
