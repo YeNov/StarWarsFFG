@@ -4397,6 +4397,7 @@ img {
 
 #destiny-tracker {
   box-shadow: none;
+  border: none !important;
   background: transparent;
   position: absolute;
   width: max-content !important;
@@ -4417,6 +4418,7 @@ img {
 
 #destiny-tracker .window-content {
   background: transparent;
+  backdrop-filter: none !important;
   padding: 10px !important;
   margin: 0 !important;
   width: max-content !important;

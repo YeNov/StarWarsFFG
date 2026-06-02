@@ -218,6 +218,17 @@ export default class SettingsHelpers {
       },
     });
 
+    // Per-user remembered position of the floating Destiny Tracker widget.
+    // Client-scoped so every user keeps their own placement; updated when the
+    // widget is dragged and restored on render.
+    game.settings.register("starwarsffg", "destinyTrackerPosition", {
+      name: "Destiny Tracker Position",
+      scope: "client",
+      default: null,
+      config: false,
+      type: Object,
+    });
+
     // Register settings for UI Themes
     game.settings.register("starwarsffg", "ui-uitheme", {
       module: "starwarsffg",

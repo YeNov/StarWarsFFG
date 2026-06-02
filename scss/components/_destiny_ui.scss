@@ -1,7 +1,14 @@
 #destiny-tracker {
   box-shadow: none;
+  // No V13 app-frame border: the widget's only frame is the dark
+  // .swffg-destiny border below.
+  border: none !important;
   background: transparent;
   position: absolute;
+  // Position (left/top) is set in JS from a saved per-user setting or a
+  // lower-left default, and updated live while dragging. Intentionally no
+  // left/right/top/bottom here: a stylesheet rule would override the inline
+  // drag position and pin the widget in place.
   // Shrink the application frame (and its V13 backdrop-blur) to the visible
   // widget, instead of the default 300x200 minimum from FormApplicationV2Compat.
   // The 10px gap lives inside .window-content so the V13 border (drawn on
@@ -15,6 +22,8 @@
 
   .window-content {
     background: transparent;
+    // Drop the V13 translucent backdrop-blur frame; only the dark widget shows.
+    backdrop-filter: none !important;
     padding: 10px !important;
     margin: 0 !important;
     width: max-content !important;

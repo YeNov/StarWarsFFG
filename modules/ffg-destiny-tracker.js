@@ -48,13 +48,22 @@ export default class DestinyTracker extends FormApplicationV2Compat {
     let destinyPool = { light: game.settings.get("starwarsffg", "dPoolLight"), dark: game.settings.get("starwarsffg", "dPoolDark") };
     let destinyPoolLabel = { light: game.settings.get("starwarsffg", "destiny-pool-light"), dark: game.settings.get("starwarsffg", "destiny-pool-dark") };
 
-    const x = $(window).width();
-    const y = $(window).height();
-
-    this.position.left = x - window.screen.width;
-    this.position.top = y - 250;
-    //this.position.width = 150;
-    //this.position.height = 105;
+    // Restore this user's saved widget position, or default to the lower-left
+    // corner (above the players list). The old `innerWidth - screen.width`
+    // formula produced a negative left on any window narrower than the screen,
+    // rendering the widget off-screen. Clamp so at least a corner stays visible
+    // if the window shrank since the position was saved.
+    const vw = $(window).width() || 0;
+    const vh = $(window).height() || 0;
+    const saved = game.settings.get("starwarsffg", "destinyTrackerPosition");
+    let left = 10;
+    let top = vh - 300;
+    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+      left = saved.left;
+      top = saved.top;
+    }
+    this.position.left = Math.min(Math.max(0, left), Math.max(0, vw - 50));
+    this.position.top = Math.min(Math.max(0, top), Math.max(0, vh - 50));
 
     // filter menu based on role.
 
@@ -80,10 +89,8 @@ export default class DestinyTracker extends FormApplicationV2Compat {
 
   /** @override */
   activateListeners(html) {
-    const d = html.find("swffg-destiny-container")[0];
-    new foundry.applications.ux.Draggable(this, html, d, this.options.resizable);
-
-    $("#destiny-tracker").css({ bottom: "0px", right: "305px" });
+    // Make the widget draggable by its body and remember the position per-user.
+    this._setupDragging(html);
 
     // future functionality to allow multiple menu items to be passed in
 
@@ -112,6 +119,8 @@ export default class DestinyTracker extends FormApplicationV2Compat {
     });
 
     html.find(".destiny-points").click(async (event) => {
+      // Ignore the click that fires at the end of a drag (see _setupDragging).
+      if (this._suppressFlip) { this._suppressFlip = false; return; }
       const pointType = event.currentTarget.dataset.group;
       var typeName = null;
       const add = event.shiftKey;
@@ -264,6 +273,77 @@ export default class DestinyTracker extends FormApplicationV2Compat {
         }
       });
     }
+  }
+
+  /**
+   * Make the floating widget draggable by its body and persist the position
+   * per-user. The window header is hidden (this is a chrome widget), so V2's
+   * built-in header drag is unavailable. A custom pointer-drag is used so it can
+   * coexist with the flip-on-click handlers on the destiny points: a click flips
+   * a point, a drag (movement past a small threshold) moves the widget.
+   * @param {JQuery} html
+   */
+  _setupDragging(html) {
+    const root = this.element;
+    const handle = html.find(".swffg-destiny")[0];
+    if (!root || !handle) return;
+    // The widget body is pointer-events:none by default (so clicks fall through
+    // to the canvas); enable it on the drag handle so it can be grabbed.
+    handle.style.pointerEvents = "auto";
+    handle.style.cursor = "move";
+
+    let active = false;
+    let moved = false;
+    let sx = 0, sy = 0, startLeft = 0, startTop = 0;
+
+    const onDown = (event) => {
+      if (event.button !== 0) return;
+      active = true;
+      moved = false;
+      sx = event.clientX;
+      sy = event.clientY;
+      const r = root.getBoundingClientRect();
+      startLeft = r.left;
+      startTop = r.top;
+      try { handle.setPointerCapture(event.pointerId); } catch (e) { /* ignore */ }
+    };
+
+    const onMove = (event) => {
+      if (!active) return;
+      const dx = event.clientX - sx;
+      const dy = event.clientY - sy;
+      if (!moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) moved = true;
+      if (!moved) return;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const w = root.offsetWidth;
+      const h = root.offsetHeight;
+      const left = Math.min(Math.max(0, startLeft + dx), Math.max(0, vw - w));
+      const top = Math.min(Math.max(0, startTop + dy), Math.max(0, vh - h));
+      this.setPosition({ left, top });
+    };
+
+    const onUp = (event) => {
+      if (!active) return;
+      active = false;
+      try { handle.releasePointerCapture(event.pointerId); } catch (e) { /* ignore */ }
+      if (moved) {
+        // A click is synthesized at the end of a drag; suppress the next flip so
+        // dragging across a destiny point does not also flip it. Auto-clear in
+        // case the browser does not emit that click (large drags often do not).
+        this._suppressFlip = true;
+        setTimeout(() => { this._suppressFlip = false; }, 0);
+        game.settings.set("starwarsffg", "destinyTrackerPosition", {
+          left: this.position.left,
+          top: this.position.top,
+        });
+      }
+    };
+
+    handle.addEventListener("pointerdown", onDown);
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+    handle.addEventListener("pointercancel", onUp);
   }
 
   // Click event for Roll Destiny Chat Message

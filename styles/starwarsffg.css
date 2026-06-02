@@ -3119,6 +3119,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 
 #destiny-tracker {
   box-shadow: none;
+  border: none !important;
   background: transparent;
   position: absolute;
   width: -moz-max-content !important;
@@ -3141,6 +3142,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 }
 #destiny-tracker .window-content {
   background: transparent;
+  backdrop-filter: none !important;
   padding: 10px !important;
   margin: 0 !important;
   width: -moz-max-content !important;
