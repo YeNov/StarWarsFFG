@@ -237,8 +237,12 @@ span {
 // single-line input by default, which truncates anything longer than a few
 // words. Render it as a textarea that fills the available width and gives a
 // usable multi-line editing area.
-.flat_editor .modifier-description,
-.starwarsffg.sheet .modifier-description {
+// `&` is `.starwarsffg` here (this partial is imported under the .starwarsffg
+// wrapper in starwarsffg.scss). The V13 editor/sheet root carries both classes
+// on the SAME element (e.g. `.starwarsffg.flat_editor`), so these must be
+// compound selectors -- a descendant `.starwarsffg .flat_editor` never matches.
+&.flat_editor .modifier-description,
+&.sheet .modifier-description {
   flex: 1 1 auto;
   min-height: 8em;
   width: 100%;

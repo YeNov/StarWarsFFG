@@ -1580,8 +1580,8 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg .tox.tox-tinymce {
   height: 100% !important;
 }
-.starwarsffg .flat_editor .modifier-description,
-.starwarsffg .starwarsffg.sheet .modifier-description {
+.starwarsffg.flat_editor .modifier-description,
+.starwarsffg.sheet .modifier-description {
   flex: 1 1 auto;
   min-height: 8em;
   width: 100%;
