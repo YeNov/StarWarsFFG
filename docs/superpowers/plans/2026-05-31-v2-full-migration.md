@@ -273,49 +273,49 @@ Notable shape differences to honour at each call site:
 - Single-instance / re-entry guards stay but compare against a stored promise
   reference instead of a `.app.rendered` boolean.
 
-- [ ] **Step 1.1: Port the simple helpers**
+- [x] **Step 1.1: Port the simple helpers**
 
 `helpers/apply-crit.js`, `helpers/apply-damage.js`, `helpers/crew.js`,
 `helpers/character-creator.js`. Each has one call site, no complex form data
 processing. Convert to `DialogV2.wait` or `DialogV2.prompt`. Verify the chat
 buttons still work after each.
 
-- [ ] **Step 1.2: Port migration / startup dialogs**
+- [x] **Step 1.2: Port migration / startup dialogs**
 
 `swffg-main.js`, `swffg-migration.js`. These run on system init or one-shot
 flows; less interactive. Convert and smoke-test by reloading the world.
 
-- [ ] **Step 1.3: Port combat dialogs**
+- [x] **Step 1.3: Port combat dialogs**
 
 `combat-ffg.js` (4 sites). These include initiative roll / setup dialogs;
 verify each by starting a combat round.
 
-- [ ] **Step 1.4: Port group manager**
+- [x] **Step 1.4: Port group manager**
 
 `groupmanager-ffg.js` (2 sites). Verify by opening the group manager and
 exercising both dialogs.
 
-- [ ] **Step 1.5: Port Sheet Options dialogs**
+- [x] **Step 1.5: Port Sheet Options dialogs**
 
 `actors/actor-ffg-options.js`, `items/item-ffg-options.js`. The single-instance
 guards (`_openDialogs` Map) become `_activeDialogPromise` keyed by uuid. Verify
 clicking Sheet Options on actor + item, including rapid double-clicks.
 
-- [ ] **Step 1.6: Port item sheet dialogs**
+- [x] **Step 1.6: Port item sheet dialogs**
 
 `items/item-sheet-ffg.js` (5 sites): Add Source, Add Tag, plus three internal
 purchase / config dialogs. Preserve the sync `_addSourceDialogOpen` /
 `_addTagDialogOpen` flag pattern but compare against a promise resolution
 instead of `.app.rendered`.
 
-- [ ] **Step 1.7: Port actor sheet dialogs**
+- [x] **Step 1.7: Port actor sheet dialogs**
 
 `actors/actor-sheet-ffg.js` (16 sites). Largest single file. Catalogue each
 dialog first (XP adjust, purchase, drop-talent, character creator entry, etc.);
 port in clusters: read-only confirms, then write actions, then the purchase /
 edit-mode dialogs. Verify each cluster live before moving on.
 
-- [ ] **Step 1.8: Delete `DialogV2Compat` and shrink the allowlist**
+- [x] **Step 1.8: Delete `DialogV2Compat` and shrink the allowlist**
 
 When grep for `DialogV2Compat` returns zero hits in `modules/`:
 1. Delete `modules/apps/dialog-v2-compat.js`.
