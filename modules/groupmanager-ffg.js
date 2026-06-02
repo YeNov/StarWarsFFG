@@ -1,6 +1,6 @@
 import {xpLogEarn} from "./helpers/actor-helpers.js";
 import ActorHelpers from "./helpers/actor-helpers.js";
-import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
+import { FFGFormApplication } from "./apps/ffg-form-application.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -34,35 +34,53 @@ export class GroupManagerLayer extends CanvasLayerClass {
   /* -------------------------------------------- */
 }
 
-export class GroupManager extends FormApplicationV2Compat {
-  constructor(options) {
-    super();
+export class GroupManager extends FFGFormApplication {
+  constructor(object = {}, options = {}) {
+    super(object, options);
     this.obligations = [];
     this.duties = [];
   }
 
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ["starwarsffg", "form", "group-manager"],
-      closeOnSubmit: false,
-      submitOnChange: true,
-      submitOnClose: true,
-      popOut: true,
-      editable: game.user.isGM,
+  static DEFAULT_OPTIONS = {
+    id: "group-manager",
+    classes: ["starwarsffg", "form", "group-manager"],
+    window: {
+      title: "Group Manager",
       resizable: true,
+    },
+    position: {
       width: 500,
       height: 900,
+    },
+    form: {
+      submitOnChange: true,
+      closeOnSubmit: false,
+    },
+    submitOnClose: true,
+  };
+
+  static PARTS = {
+    content: {
+      root: true,
       template: "systems/starwarsffg/templates/group-manager.html",
-      id: "group-manager",
-      title: "Group Manager",
-    });
+    },
+  };
+
+  /**
+   * GM-only editable. Computed live -- it cannot live in the static
+   * DEFAULT_OPTIONS field, which is evaluated at class-definition time (module
+   * load), before `game.user` exists.
+   * @override
+   */
+  get isEditable() {
+    return game.user.isGM;
   }
 
   /**
    * Lower bound for interactive resize. The Player Characters table needs
    * ~500px to show all columns (Name / Wounds / Strain / Soak / Combat / XP)
    * without clipping; don't let the user drag the window narrower than that.
-   * Enforced by FormApplicationV2Compat.setPosition.
+   * Enforced by the base setPosition.
    * @override
    */
   _minDimensions() {
@@ -75,7 +93,7 @@ export class GroupManager extends FormApplicationV2Compat {
    * Obtain module metadata and merge it with game settings which track current module visibility
    * @return {Object}   The data provided to the template when rendering the form
    */
-  getData() {
+  async _prepareContext(_options) {
     const players = game.users.contents.filter((u) => (!u.isGM || game.settings.get("starwarsffg", "GMCharactersInGroupManager")) && u.active);
     if (players.length > 0) {
       players.connected = true;
@@ -131,7 +149,6 @@ export class GroupManager extends FormApplicationV2Compat {
     let obligations = this.obligations;
     players.hasDuty = this.duties?.length;
     let duties = this.duties;
-    if (!isGM) this.position.height = 470;
 
     const labels = {
       light: game.settings.get("starwarsffg", "destiny-pool-light"),
@@ -144,11 +161,15 @@ export class GroupManager extends FormApplicationV2Compat {
   /* -------------------------------------------- */
 
   /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const html = $(this.element);
+
+    // The PC table is shorter for non-GMs (no editable destiny/XP controls).
+    if (!game.user.isGM) this.setPosition({ height: 470 });
 
     // Everything below here is only needed if the sheet is editable
-    if (!this.options.editable) return;
+    if (!this.isEditable) return;
 
     // Flip destiny pool DARK to LIGHT
     html.find(".destiny-flip-dtl").click((ev) => {
