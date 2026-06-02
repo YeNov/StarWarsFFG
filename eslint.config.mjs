@@ -52,7 +52,6 @@ export default [
           patterns: [
             {
               group: [
-                "**/dialog-v2-compat.js",
                 "**/form-application-v2-compat.js",
                 "**/document-sheet-v2-compat.js",
                 "**/actor-sheet-v2-compat.js",
@@ -155,20 +154,10 @@ export default [
     // 3.8, 4.9). When this list empties the whole guard comes out in Stage 5.
     // See docs/superpowers/plans/2026-05-31-v2-full-migration.md.
     files: [
-      // DialogV2Compat importers (cleared in Stage 1.8)
-      "modules/actors/actor-ffg-options.js",
-      "modules/combat-ffg.js",
-      "modules/groupmanager-ffg.js",
-      "modules/helpers/apply-crit.js",
-      "modules/helpers/apply-damage.js",
-      "modules/helpers/character-creator.js",
-      "modules/helpers/crew.js",
-      "modules/items/item-ffg-options.js",
-      "modules/swffg-main.js",
-      "modules/swffg-migration.js",
       // FormApplicationV2Compat importers (cleared in Stage 2.9)
       "modules/dice/roll-builder.js",
       "modules/ffg-destiny-tracker.js",
+      "modules/groupmanager-ffg.js",
       "modules/importer/skills-list-importer.js",
       "modules/importer/swa-importer.js",
       "modules/items/item-editor.js",
@@ -176,8 +165,8 @@ export default [
       "modules/popout-modifiers.js",
       "modules/settings/crew-settings.js",
       "modules/settings/ui-settings.js",
-      // Sheet importers — import both Dialog/Form compat and sheet compat;
-      // stay allowlisted until their sheet stage (3.8 / 4.9) also clears.
+      // Sheet importers — import their sheet-compat base; stay allowlisted
+      // until their sheet stage (3.8 / 4.9) clears.
       "modules/actors/actor-sheet-ffg.js",
       "modules/items/item-sheet-ffg.js",
       // Internal compat-to-compat imports (cleared in Stages 3.8 / 4.9)
