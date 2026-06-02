@@ -1,33 +1,86 @@
 import {migrateDataToSystem} from "./helpers/migration.js";
-import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
+
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * A specialized form used to pop out the editor.
- * @extends {FormApplicationV2Compat}
+ * A specialized window used to pop out a ProseMirror editor for a document
+ * field. Saving is driven by the native <prose-mirror> `save` event; the
+ * caller positions/sizes the window via the legacy (object, options) call.
+ * @extends {ApplicationV2}
  */
-export default class PopoutEditor extends FormApplicationV2Compat {
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "popout-editor",
-      classes: ["starwarsffg", "sheet"],
+export default class PopoutEditor extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "popout-editor",
+    classes: ["starwarsffg", "sheet"],
+    tag: "div",
+    window: {
       title: "Pop-out Editor",
-      template: "systems/starwarsffg/templates/popout-editor.html",
+      resizable: true,
+    },
+    position: {
       width: 320,
       height: 320,
-      resizable:true,
+    },
+  };
+
+  static PARTS = {
+    content: {
+      root: true,
+      template: "systems/starwarsffg/templates/popout-editor.html",
+    },
+  };
+
+  /**
+   * @param {foundry.abstract.Document} object  The document whose field is edited.
+   * @param {object} [options]                  Legacy options: `name` (the field
+   *   path), `title`, and `width`/`height`/`left`/`top` position hints.
+   */
+  constructor(object = {}, options = {}) {
+    const { name, title, width, height, left, top, ...rest } = options;
+    super({
+      ...rest,
+      window: { ...(rest.window ?? {}), ...(title ? { title } : {}) },
+      position: {
+        ...(rest.position ?? {}),
+        ...(Number.isFinite(width) ? { width } : {}),
+        ...(Number.isFinite(height) ? { height } : {}),
+        ...(Number.isFinite(left) ? { left } : {}),
+        ...(Number.isFinite(top) ? { top } : {}),
+      },
     });
+    this.object = object;
+    this._name = name;
   }
 
   /**
    * Minimum window size. The editor toolbar (~440px of buttons) wraps to
    * multiple rows in a narrow window and the editing area is unusably small;
    * clamp to a size that keeps the toolbar on one row with a comfortable
-   * editing area. Enforced by FormApplicationV2Compat.setPosition.
-   * @override
+   * editing area. Enforced by setPosition below.
    */
   _minDimensions() {
     return { width: 720, height: 520 };
+  }
+
+  /** Track the minimize animation so setPosition doesn't fight the collapse. */
+  async minimize(...args) {
+    this._minimizing = true;
+    try {
+      return await super.minimize(...args);
+    } finally {
+      this._minimizing = false;
+    }
+  }
+
+  /** Clamp interactive resize to the editor's usable minimum. */
+  setPosition(position = {}) {
+    if (!this.element?.parentElement) return position;
+    if (this._minimizing || this.minimized) return super.setPosition(position);
+    const min = this._minDimensions();
+    const clamped = { ...position };
+    if (typeof clamped.width === "number" && clamped.width < min.width) clamped.width = min.width;
+    if (typeof clamped.height === "number" && clamped.height < min.height) clamped.height = min.height;
+    return super.setPosition(clamped);
   }
 
   /**
@@ -35,11 +88,11 @@ export default class PopoutEditor extends FormApplicationV2Compat {
    * @type {String}
    */
   get attribute() {
-    return this.options.name;
+    return this._name;
   }
 
   /** @override */
-  getData() {
+  async _prepareContext(_options) {
     // Get current value
     let attr = foundry.utils.getProperty(this.object.system, this.attribute.replace('data.', ''));
 
@@ -76,13 +129,24 @@ export default class PopoutEditor extends FormApplicationV2Compat {
     }
 
     // The native <prose-mirror> element's save button dispatches a `save`
-    // event, but our compat form pipeline only listens for `change`, so the
-    // save button did nothing. Persist the value and close on save. The
-    // element fires `save` twice (menu button + keymap); _saveAndClose guards
-    // re-entry. Bind once per element.
+    // event -- the editor's real save path. Persist the value and close on
+    // save. The element fires `save` twice (menu button + keymap);
+    // _saveAndClose guards re-entry. Bind once per element.
     if (pm && !pm.dataset.ffgSaveBound) {
       pm.dataset.ffgSaveBound = "1";
       pm.addEventListener("save", () => this._saveAndClose(pm.value));
+    }
+
+    // Fallback: a plain form submit (e.g. Enter in a non-editor field) routes
+    // through the same idempotent save, reading the authoritative prose-mirror
+    // value. Replaces the old _updateObject hook now that there is no compat
+    // form pipeline binding submit for us.
+    if (form && pm && !form.dataset.ffgSubmitBound) {
+      form.dataset.ffgSubmitBound = "1";
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        this._saveAndClose(pm.value);
+      });
     }
   }
 
@@ -92,22 +156,7 @@ export default class PopoutEditor extends FormApplicationV2Compat {
     const updateData = {};
     updateData[`${this.attribute}`] = value;
     await this.object.update(migrateDataToSystem(updateData));
-    // submit:false -- the value is already persisted here, so skip the
-    // submit-on-close pass (which would re-read the form and double-update).
-    await this.close({ submit: false });
-  }
-
-  /** @override */
-  _updateObject(event, formData) {
-    const updateData = {};
-    updateData[`${this.attribute}`] = formData.value;
-
-    // Update the object
-    this.object.update(
-        migrateDataToSystem(updateData)
-    );
-
-    this.close();
+    await this.close();
   }
 
   /**
