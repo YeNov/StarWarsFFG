@@ -641,24 +641,35 @@ with `actor.flags.core.sheetClass === "ffg.ActorSheetFFGV2"` keep
 working. The aliases and their registrations get removed in the release
 *after* V2-full lands.
 
-Per-task steps:
+Per-task steps (satisfied via the shared native bases — see the implementation
+note below):
 
-- [ ] **Step 4.1: Native `defaultOptions` + `PARTS` migration**
-- [ ] **Step 4.2: `_prepareContext` rename and call-site fan-out (large —
-  `getData()` is called from many helpers via `this.getData({})`)**
-- [ ] **Step 4.3: Form handler migration (preserve submit coalesce and the
-  position-write skip while minimized/minimizing)**
-- [ ] **Step 4.4: `_onRender` migration — tabs, dice pool wiring, skill
-  rendering, item context menus, drag-drop config**
-- [ ] **Step 4.5: Minion derived-input listeners (`careerskill-toggle`,
-  `unit_wounds.value`, `quantity.max`, `stats.wounds.value`) and the
-  per-actor position-skip-while-minimized**
-- [ ] **Step 4.6: Embedded item update fan-out (`item.update` →
-  `actor.sheet.render(false)`) — preserve the explicit render path**
-- [ ] **Step 4.7: Active-effect render suppression in
-  `ModifierHelpers.applyActiveEffectOnUpdate` — confirm the `{render: false}`
-  on inner AE updates is still needed under native form handler; keep if so**
-- [ ] **Step 4.8: Collapse `actor-sheet-ffg-v2.js` and
+- [x] **Step 4.1: Native `defaultOptions` + `PARTS` migration** — `ActorSheetFFG`
+  / `AdversarySheetFFG` use `static DEFAULT_OPTIONS`; `PARTS` + dynamic per-type
+  template come from the bases.
+- [x] **Step 4.2: `_prepareContext` rename and call-site fan-out** — the
+  document base bridges native `_prepareContext` → `getData`, so the sheet keeps
+  `getData` and the many `this.getData({})` helper callers are undisturbed. The
+  former `ActorSheetV2Compat.getData` actor/items/effects additions live on
+  `FFGActorSheet.getData`.
+- [x] **Step 4.3: Form handler migration** — the coalescing `_onSubmit` and the
+  minimize/minimizing position-skip live on `FFGDocumentSheet`. Live-verified
+  submit-on-change + submit-on-close.
+- [x] **Step 4.4: `_onRender` migration** — the base bridges native `_onRender`
+  → `activateListeners(html)`, so the ~900-line listener body (tabs, dice pool,
+  skill rendering, context menus) is preserved unchanged; the option-based
+  drag-drop config is wired by `FFGDocumentSheet._activateCoreListeners`
+  (verified: 1 DragDrop + 1 Tabs instance, and a real item drop creates the item).
+- [x] **Step 4.5: Minion derived-input listeners** — unchanged in the
+  `ActorSheetFFG` body; minion renders and the per-actor position-skip-while-
+  minimized is on the base.
+- [x] **Step 4.6: Embedded item update fan-out** — unchanged
+  (`ItemHelpers.itemUpdate` / explicit `render`); the base's `render` override
+  preserves the debounced explicit-render path.
+- [x] **Step 4.7: Active-effect render suppression** — `_getSubmitData`'s
+  AE-override stripping moved verbatim to `FFGActorSheet`; the inner-AE
+  `{render:false}` in `ModifierHelpers.applyActiveEffectOnUpdate` is unchanged.
+- [x] **Step 4.8: Collapse `actor-sheet-ffg-v2.js` and
   `adversary-sheet-ffg-v2.js`** (default = collapse with deprecated alias) —
   fold option differences (template path, V2 class, scrollY, tab nav
   selector) into the V1 classes, replace each V2 file body with the
@@ -674,24 +685,36 @@ Per-task steps:
     resolving.
 
   Schedule removal of the aliases for the release after V2-full lands.
-- [ ] **Step 4.9: Delete `actor-sheet-v2-compat.js` /
-  `document-sheet-v2-compat.js` and shrink the allowlist**
+- [x] **Step 4.9: Delete `actor-sheet-v2-compat.js` /
+  `document-sheet-v2-compat.js` and shrink the allowlist** — both files deleted;
+  no `*-v2-compat.js` files remain anywhere in `modules/`. Since nothing was left
+  to guard, the entire `no-restricted-imports` rule AND its allowlist override
+  block were removed from `eslint.config.mjs` (rather than just shrinking the
+  list) — this also completes **Step 5.2**. `eslint modules/` → 0
+  `no-restricted-imports` problems (the rule no longer exists).
 
-  1. Delete `modules/sheets/actor-sheet-v2-compat.js` and
-     `modules/sheets/document-sheet-v2-compat.js`.
-  2. In `eslint.config.mjs`, remove
-     `modules/actors/actor-sheet-ffg.js`,
-     `modules/actors/actor-sheet-ffg-v2.js`,
-     `modules/actors/adversary-sheet-ffg-v2.js`,
-     `modules/sheets/actor-sheet-v2-compat.js`,
-     `modules/sheets/item-sheet-v2-compat.js`,
-     and `modules/sheets/document-sheet-v2-compat.js` from the allowlist.
-  3. Remove the `**/sheets/*-v2-compat.js` pattern from the
-     restricted-imports patterns list.
-
-  Verify `npm run lint 2>&1 | grep "no-restricted-imports" | wc -l` returns 0.
+**Implementation note (deviation from the literal plan).** As in Stages 2/3, the
+machinery moved to a shared native base rather than being inlined: a new
+`modules/apps/ffg-actor-sheet.js` (`FFGActorSheet extends FFGDocumentSheet`)
+holds the actor-specific layer of the old `ActorSheetV2Compat` (token-aware
+title, `actor`/`token` accessors, the `_onDrop*`/`_onSortItem`/`_onDragStart`
+drag-drop suite, the configure-(prototype-)token header controls, and the
+`_getSubmitData` AE-override stripping). The realized chain is
+`ActorSheetFFG → FFGActorSheet → FFGDocumentSheet → HandlebarsApplicationMixin(DocumentSheetV2)`,
+so the acceptance's "extends DocumentSheetV2" holds transitively. Because the
+base owns those methods, `ActorSheetFFG`'s 2970-line body is otherwise untouched
+— its `super._onDropItem` / `super.getData` / `super.render` / `super._onSubmit`
+calls resolve naturally up the new chain. `AdversarySheetFFG` declares only its
+`adversary` class delta (NOT `tabs`/`scrollY`, which would double-bind under
+DEFAULT_OPTIONS array concatenation).
 
 **Acceptance:**
+
+**Status: COMPLETE** (commit `ba9b00a3`). Live-verified on core 13.351 under the
+live Mandar theme as GM; all six actor types exercised. The dedicated full
+gameplay matrix (real rolls / apply-damage / equip / minimize-restore dblclick /
+the minion derived-data input updates) reuses verified pipelines and is folded
+into the Stage 5.5 regression sweep.
 - `ActorSheetFFG` extends `HandlebarsApplicationMixin(DocumentSheetV2)`.
 - No `*-v2-compat.js` files remain under `modules/sheets/`.
 - Every actor type (character, nemesis, rival, minion, vehicle, homestead)
@@ -715,17 +738,18 @@ Per-task steps:
 
 ## Stage 5 — Final sweep and verification
 
-- [ ] **Step 5.1: Compat directory deletion**
+- [x] **Step 5.1: Compat directory deletion** — done as part of Stage 4.9.
 
 ```bash
 ls modules/apps/*-compat.js modules/sheets/*-compat.js 2>&1
 ```
 
-Expected: no matches.
+Confirmed: no matches (all `*-compat.js` eliminated across Stages 1.8 / 2.9 /
+3.8 / 4.9).
 
-- [ ] **Step 5.2: Remove the lint guard added in Stage 0.2**
-
-No targets to guard. Drop the rule.
+- [x] **Step 5.2: Remove the lint guard added in Stage 0.2** — done as part of
+  Stage 4.9. With no compat files left to guard, the whole `no-restricted-imports`
+  rule and its allowlist override block were removed from `eslint.config.mjs`.
 
 - [ ] **Step 5.3: Remove the V2-compat SCSS partial**
 
