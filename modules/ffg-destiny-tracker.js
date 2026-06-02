@@ -1,18 +1,23 @@
 import { GroupManager } from "./groupmanager-ffg.js";
-import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
+
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * A specialized form used to pop out the editor.
- * @extends {FormApplicationV2Compat}
+ * The floating Destiny Tracker chrome widget: shows the light/dark destiny
+ * pool, lets users flip points, and (for the GM) exposes the group-manager
+ * menu. A native ApplicationV2 -- not a form. It is draggable by its body and
+ * remembers its position per-user, and never closes via the UI.
  *
- * OPTIONS:
- *
- *
+ * Rendered exactly once at ready (`dTracker.render(true)` in swffg-main); the
+ * pool display is updated in place by the dPool settings' onChange (which
+ * rewrites #destinyLight/#destinyDark directly), not by re-rendering -- so the
+ * one-time _onRender binding of socket / chat hooks below does not accumulate.
+ * @extends {ApplicationV2}
  */
-export default class DestinyTracker extends FormApplicationV2Compat {
-  constructor(object={}, options={}) {
-    super(object, options);
-
+export default class DestinyTracker extends HandlebarsApplicationMixin(ApplicationV2) {
+  constructor(object = {}, options = {}) {
+    super(options);
+    this.object = object;
     this.destinyQueue = [];
     this.isRunningQueue = false;
     if (options?.menu) {
@@ -20,33 +25,55 @@ export default class DestinyTracker extends FormApplicationV2Compat {
     }
   }
 
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "destiny-tracker",
-      classes: ["starwarsffg"],
+  static DEFAULT_OPTIONS = {
+    id: "destiny-tracker",
+    classes: ["starwarsffg"],
+    tag: "div",
+    window: {
       title: "Destiny Tracker",
+    },
+  };
+
+  static PARTS = {
+    content: {
+      root: true,
       template: "systems/starwarsffg/templates/ffg-destiny-tracker.html",
-    });
-  }
+    },
+  };
 
   /**
-   * The destiny tracker is a small chrome widget, not a regular form. The base
-   * 300x200 minimum from FormApplicationV2Compat forces the application frame
-   * (and its backdrop-blur) to a rectangle much larger than the widget, leaving
-   * a visible blur halo around the icons. Allow the frame to shrink to the
-   * actual content size; the 10px gap around the widget is provided by CSS.
+   * Persistent chrome: the window header is hidden and the widget is never torn
+   * down during a session, so close is a no-op to keep stray calls from
+   * removing it. (Natively there is no 300x200 minimum to override anymore --
+   * the frame shrinks to the widget; CSS provides the 10px gap.)
    * @override
    */
-  _minDimensions() {
-    return { width: 1, height: 1 };
+  async close(_options = {}) {
+    return this;
   }
 
   /** @override */
-  getData() {
+  async _prepareContext(_options) {
     // Get current value
     let destinyPool = { light: game.settings.get("starwarsffg", "dPoolLight"), dark: game.settings.get("starwarsffg", "dPoolDark") };
     let destinyPoolLabel = { light: game.settings.get("starwarsffg", "destiny-pool-light"), dark: game.settings.get("starwarsffg", "destiny-pool-dark") };
+
+    // filter menu based on role.
+    const menu = this.menu.filter((m) => game.user.hasRole(m.minimumRole) || !m.minimumRole);
+
+    // Return data
+    return {
+      destinyPool,
+      destinyPoolLabel,
+      isGM: game.user.isGM,
+      menu,
+      theme: game.settings.get("starwarsffg", "dicetheme"),
+    };
+  }
+
+  /** @override */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
 
     // Restore this user's saved widget position, or default to the lower-left
     // corner (above the players list). The old `innerWidth - screen.width`
@@ -62,33 +89,15 @@ export default class DestinyTracker extends FormApplicationV2Compat {
       left = saved.left;
       top = saved.top;
     }
-    this.position.left = Math.min(Math.max(0, left), Math.max(0, vw - 50));
-    this.position.top = Math.min(Math.max(0, top), Math.max(0, vh - 50));
+    this.setPosition({
+      left: Math.min(Math.max(0, left), Math.max(0, vw - 50)),
+      top: Math.min(Math.max(0, top), Math.max(0, vh - 50)),
+    });
 
-    // filter menu based on role.
-
-    const menu = this.menu.filter((m) => game.user.hasRole(m.minimumRole) || !m.minimumRole);
-
-    // Return data
-    return {
-      destinyPool,
-      destinyPoolLabel,
-      isGM: game.user.isGM,
-      menu,
-      theme: game.settings.get("starwarsffg", "dicetheme"),
-    };
+    this._activateListeners($(this.element));
   }
 
-  /* -------------------------------------------- */
-
-  /** @override */
-  _updateObject(event, formData) {};
-
-  /** @override */
-  async close(options = {}) {};
-
-  /** @override */
-  activateListeners(html) {
+  _activateListeners(html) {
     // Make the widget draggable by its body and remember the position per-user.
     this._setupDragging(html);
 
