@@ -849,8 +849,8 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       }
     }
 
-    // Tabs are bound by FFGDocumentSheetV2._activateCoreListeners using the
-    // defaultOptions.tabs config and the per-document _activeTabCache. Do not
+    // Tabs are bound by FFGDocumentSheet._activateCoreListeners using the
+    // DEFAULT_OPTIONS.tabs config and the per-document _activeTabCache. Do not
     // re-bind here; a second Tabs controller on the same nav races and snaps
     // back to the default tab on the next render.
 

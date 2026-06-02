@@ -1,8 +1,9 @@
 /**
- * Extend the basic ActorSheet with some very simple modifications
- * @extends {ActorSheetV2Compat}
+ * The system's Actor sheet — native ApplicationV2 DocumentSheetV2 (via the
+ * shared FFGActorSheet → FFGDocumentSheet bases). Handles every FFG actor type.
+ * @extends {FFGActorSheet}
  */
-import { ActorSheetV2Compat } from "../sheets/actor-sheet-v2-compat.js";
+import { FFGActorSheet } from "../apps/ffg-actor-sheet.js";
 import PopoutEditor from "../popout-editor.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import ActorOptions from "./actor-ffg-options.js";
@@ -27,7 +28,7 @@ import {itemPillHover} from "../swffg-main.js";
 
 const { DialogV2 } = foundry.applications.api;
 
-export class ActorSheetFFG extends ActorSheetV2Compat {
+export class ActorSheetFFG extends FFGActorSheet {
   constructor(...args) {
     super(...args);
     /**
@@ -43,17 +44,17 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
 
   pools = new Map();
 
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ["starwarsffg", "sheet", "actor"],
-      template: "systems/starwarsffg/templates/actors/ffg-character-sheet.html",
-      width: 710,
-      height: 650,
-      tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "characteristics" }],
-      scrollY: [".tableWithHeader", ".tab", ".skillsGrid", ".skillsTablesGrid"],
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    // `v2` is REQUIRED, not cosmetic: the served stylesheets key actor-sheet
+    // layout off `.starwarsffg.sheet.actor.v2`. It was the makeDefault sheet
+    // pre-migration, so the collapsed sheet keeps the class to preserve
+    // appearance (Stage 4.8). Submit flags / dragDrop / secrets / resizable are
+    // inherited from FFGActorSheet; the per-type template comes from get template().
+    classes: ["starwarsffg", "sheet", "actor", "v2"],
+    position: { width: 710, height: 650 },
+    tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "characteristics" }],
+    scrollY: [".tableWithHeader", ".tab", ".skillsGrid", ".skillsTablesGrid"],
+  };
 
   /** @override */
   get template() {
@@ -370,8 +371,8 @@ export class ActorSheetFFG extends ActorSheetV2Compat {
     // convert jquery element to HTMLElement for usage with Foundry calls
     const htmlElement = html.get(0);
 
-    // Tabs are bound by FFGDocumentSheetV2._activateCoreListeners using the
-    // defaultOptions.tabs config and the per-document _activeTabCache. Do not
+    // Tabs are bound by FFGDocumentSheet._activateCoreListeners using the
+    // DEFAULT_OPTIONS.tabs config and the per-document _activeTabCache. Do not
     // re-bind here -- a second Tabs controller on the same nav would race and
     // immediately activate the default tab, defeating the cache.
 

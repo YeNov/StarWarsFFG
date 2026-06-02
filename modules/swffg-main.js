@@ -844,10 +844,16 @@ Hooks.once("init", async function () {
 
   // Register sheet application classes
   foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { label: "Actor Sheet v1" });
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { makeDefault: true, label: "Actor Sheet v2" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet v1" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2" });
+  // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
+  // to the same native sheet. ActorSheetFFG / AdversarySheetFFG are the real
+  // classes (ActorSheetFFG takes makeDefault); the V2 names stay registered
+  // without makeDefault only as deprecated aliases so worlds with
+  // `flags.core.sheetClass === "ffg.ActorSheetFFGV2"` / `"ffg.AdversarySheetFFGV2"`
+  // keep resolving. Drop the alias entries in the release after V2-full lands.
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { makeDefault: true, label: "Actor Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
   foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
   // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
   // to the same native sheet. ItemSheetFFG is the real, default class;
