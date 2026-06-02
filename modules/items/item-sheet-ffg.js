@@ -166,7 +166,12 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       data.item = foundry.utils.mergeObject(data.item, options.data); // some fields are read out of item, some are read out of data
     }
 
-    data.classType = this.constructor.name;
+    // The sheet templates branch on `contains classType "V2"` to render the V2
+    // layout (icon tab strip, refined panels, shown-by-default tabs). After the
+    // Stage 3 collapse the real class is `ItemSheetFFG` (no "V2" suffix), so
+    // carry the V2 marker explicitly — this IS the V2 sheet. Without it the
+    // templates fall back to the retired V1 layout (text tabs, etc.).
+    data.classType = this.constructor.name.includes("V2") ? this.constructor.name : `${this.constructor.name}V2`;
     CONFIG.logger.debug(`Getting Item Data ${this.object.name}`);
 
     data.dtypes = ["String", "Number", "Boolean"];

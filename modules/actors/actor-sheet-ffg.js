@@ -201,7 +201,12 @@ export class ActorSheetFFG extends FFGActorSheet {
   /** @override */
   async getData(options) {
     const data = await super.getData();
-    data.classType = this.constructor.name;
+    // The sheet templates branch on `contains classType "V2"` to render the V2
+    // layout (icon tab strip, refined panels, shown-by-default tabs). After the
+    // Stage 4 collapse the real classes are `ActorSheetFFG`/`AdversarySheetFFG`
+    // (no "V2" suffix), so carry the V2 marker explicitly — these ARE the V2
+    // sheets. Without it the templates fall back to the retired V1 layout.
+    data.classType = this.constructor.name.includes("V2") ? this.constructor.name : `${this.constructor.name}V2`;
 
     // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully) for 0.7.x
     const actorData = this.actor.toObject(false);

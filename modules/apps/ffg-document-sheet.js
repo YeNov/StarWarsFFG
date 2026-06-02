@@ -32,10 +32,14 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
 
   static DEFAULT_OPTIONS = {
     tag: "div",
-    // `themed`/`theme-*` are added by DocumentSheetV2._initializeApplicationOptions
-    // from the document's configured theme; `application` is added by
-    // ApplicationV2. We keep the V1-parity hooks `app`/`window-app`/`sheet`.
-    classes: ["app", "window-app", "sheet"],
+    // `app`/`window-app`/`sheet` are the V1-parity hooks; `application` is added
+    // by ApplicationV2. `themed`/`theme-light` are hardcoded to match the compat
+    // base (FFGDocumentSheetV2) exactly: the system has always shipped its sheets
+    // forced to V13 light theme. Letting DocumentSheetV2 derive the theme natively
+    // dropped both classes (no per-document theme is configured), which changed the
+    // V13 CSS variables the skin/layout depend on — a visual regression (notably
+    // the character/rival/nemesis tab-strip height). Keep them for identical output.
+    classes: ["app", "window-app", "sheet", "themed", "theme-light"],
     window: {
       contentTag: "form",
       contentClasses: [],
