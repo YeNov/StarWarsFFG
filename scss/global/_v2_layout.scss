@@ -87,10 +87,16 @@ body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .
   min-height: 0 !important;
 }
 
+// The talent header height is variable (image, ranked/force/conflict row, and
+// third-party injections like the enhancements module's "Associated Skills").
+// A hardcoded calc() guessed the header height and overflowed once the real
+// header exceeded it. Flex the body to fill what the natural-height header
+// leaves and scroll its own overflow (same as the generic item-body rule below).
 body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
-  flex: 0 0 calc(100% - 22rem) !important;
-  height: calc(100% - 22rem) !important;
-  min-height: 0;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
 }
 
 body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {

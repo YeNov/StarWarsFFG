@@ -47,6 +47,12 @@
     position: relative;
   }
 
+  .crit-label {
+    // Push Severity down so the d100 Roll's absolutely-positioned LOW/HIGH
+    // shadow panel has room to be read instead of being overlapped by this block.
+    padding-top: 1.5rem;
+  }
+
   .sheet-body {
     height: calc(100% - 19.375rem);
   }
