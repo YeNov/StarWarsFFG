@@ -2587,6 +2587,11 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg .item-sheet-criticalinjury .severity-block {
   position: relative;
 }
+.starwarsffg .item-sheet-criticalinjury .crit-label {
+  /* Push Severity down so the d100 Roll's absolutely-positioned LOW/HIGH
+     shadow panel has room to be read instead of being overlapped by this block. */
+  padding-top: 1.5rem;
+}
 .starwarsffg .item-sheet-criticalinjury .sheet-body {
   height: calc(100% - 19.375rem);
 }

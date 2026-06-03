@@ -2197,7 +2197,10 @@ img {
 }
 
 .starwarsffg .item-sheet-criticalinjury .crit-label {
-  padding-top: 5px;
+  /* Push Severity down so the d100 Roll's absolutely-positioned LOW/HIGH
+     shadow panel (.block-background-shadow protrudes ~0.95rem below the block)
+     has room to be read instead of being overlapped by this block. */
+  padding-top: 1.5rem;
 }
 
 .starwarsffg .item-sheet-talent .header-fields h1 input, .starwarsffg .item-sheet-gear .header-fields h1 input, .starwarsffg .item-sheet-weapon .header-fields h1 input, .starwarsffg .item-sheet-armor .header-fields h1 input, .starwarsffg .item-sheet-vehicle-weapon .header-fields h1 input, .starwarsffg .item-sheet-vehicle-attachment .header-fields h1 input, .starwarsffg .item-sheet-criticalinjury .header-fields h1 input {
