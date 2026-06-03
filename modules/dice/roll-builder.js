@@ -179,6 +179,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     });
 
     html.find(".btn").click(async (event) => {
+      // The Roll button is a <button> inside the template's <form>, so it
+      // defaults to type="submit". Under the V1 FormApplication that native
+      // submit is what closed the dialog (closeOnSubmit); the native
+      // ApplicationV2 port no longer wires form submission, so stop the
+      // default submit and close the dialog explicitly once the roll is sent.
+      event.preventDefault();
       // if sound was not passed search for sound dropdown value
       if (!this.roll.sound) {
         const sound = html.find(".sound-selection")?.[0]?.value;
@@ -289,6 +295,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         }
 
         ChatMessage.create(chatOptions);
+        await this.close();
       } else {
         if (this.roll.crew) {
           this.roll.item['crew'] = this.roll.crew
@@ -315,6 +322,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           AudioHelper.play({ src: this.roll.sound }, true);
         }
 
+        await this.close();
         return roll;
       }
     });
