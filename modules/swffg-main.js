@@ -1413,7 +1413,10 @@ Hooks.once("ready", async () => {
     return args;
   });
 
-  Hooks.on("closeItemSheetFFG", (item) => {
+  // The native V2 base fires close${documentName}Sheet (i.e. "closeItemSheet"),
+  // not the old class-name "closeItemSheetFFG". Arg 1 is the sheet app, so its
+  // .object is the closed item.
+  Hooks.on("closeItemSheet", (item) => {
     Hooks.call(`closeAssociatedTalent_${item.object._id}`, item);
   });
 

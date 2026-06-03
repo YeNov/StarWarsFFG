@@ -22,7 +22,7 @@ export class FFGActorSheet extends FFGDocumentSheet {
     submitOnClose: true,
     closeOnSubmit: false,
     baseApplication: "ActorSheet",
-    dragDrop: [{ dragSelector: ".item-list .item" }],
+    dragDrop: [{ dragSelector: ".items-list .item" }],
     secrets: [{ parentSelector: ".editor" }],
   };
 
