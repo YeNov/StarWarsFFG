@@ -1,3 +1,11 @@
+// Native ApplicationV2 layout rules for SWFFG windows and dialogs.
+//
+// Formerly _v2_compat.scss. After the V2-full migration (no compat shim layer
+// remains) these are NOT compatibility hacks — they are the permanent layout
+// the native V2 chrome requires: minimize sizing, sheet/group-manager overflow,
+// checkbox theming, header-control + resize-handle styling, and the Sheet
+// Options dialog grid. Renamed in Stage 5.3 to stop implying a compat bridge.
+
 .starwarsffg.minimized,
 .application.starwarsffg.minimized {
   width: max-content !important;

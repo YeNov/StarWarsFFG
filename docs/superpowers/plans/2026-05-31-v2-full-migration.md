@@ -751,7 +751,14 @@ Confirmed: no matches (all `*-compat.js` eliminated across Stages 1.8 / 2.9 /
   Stage 4.9. With no compat files left to guard, the whole `no-restricted-imports`
   rule and its allowlist override block were removed from `eslint.config.mjs`.
 
-- [ ] **Step 5.3: Remove the V2-compat SCSS partial**
+- [x] **Step 5.3: Remove the V2-compat SCSS partial** — DONE. All rules in it
+  are still needed under native V2 (they are layout, not shims), so the partial
+  was renamed `_v2_compat.scss` → `_v2_layout.scss` (git mv) with a header
+  comment, and the `@import` in `scss/starwarsffg.scss` updated. No rules pruned.
+  Deliberately **not** recompiled: per [[css-is-hand-maintained]] the compiled
+  `starwarsffg.css` + `mandar.css` are hand-maintained and SCSS has drifted, so
+  a recompile would regress fixes. The live rules already exist in the compiled
+  CSS.
 
 `scss/global/_v2_compat.scss` documents itself as the "compat block". If every
 rule in it is now still needed under native V2, rename the partial (e.g.
@@ -760,7 +767,14 @@ rules are no longer needed (e.g. the resize-handle pseudo-element if V13
 provides a glyph natively, or the header-control transparency override if
 the V13 default is acceptable), delete them.
 
-- [ ] **Step 5.4: Memory + handoff doc update**
+- [x] **Step 5.4: Memory + handoff doc update** — DONE for the live artifacts.
+  `memory/css-is-hand-maintained.md` rewritten to the final state (new
+  `_v2_layout.scss` name; resolved the stale "recompile reproduces the CSS"
+  claim → both compiled files are hand-maintained, do not recompile) and the
+  MEMORY.md index line updated. Historical session-handoff docs that mention
+  compat were left as-is intentionally: they are point-in-time records of when
+  compat existed, not forward-looking guidance, so rewriting them would falsify
+  history. No live/forward doc still implies the compat layer exists.
 
 Update `memory/css-is-hand-maintained.md` to reflect the final state (the V2
 rules now live in a permanently-named partial). Update any session-handoff

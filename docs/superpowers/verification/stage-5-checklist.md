@@ -10,13 +10,19 @@
       `eslint.config.mjs`; `npm run lint` no worse than the recorded baseline.
 
 ## SCSS
-- [ ] `scss/global/_v2_compat.scss` renamed (e.g. `_v2_layout.scss`) or its
-      no-longer-needed rules pruned; import in `scss/starwarsffg.scss` updated;
-      recompile reproduces `styles/starwarsffg.css`.
+- [x] `scss/global/_v2_compat.scss` renamed → `_v2_layout.scss` (git mv + header
+      comment); import in `scss/starwarsffg.scss` updated. No rules pruned — all
+      are still needed as native-V2 layout. Recompile **intentionally skipped**:
+      the compiled CSS is hand-maintained and SCSS has drifted (see
+      `memory/css-is-hand-maintained.md`); the rules already exist in the
+      committed `styles/starwarsffg.css`.
 
 ## Docs / memory
-- [ ] `memory/css-is-hand-maintained.md` updated to the final state.
-- [ ] Session-handoff docs mentioning compat updated.
+- [x] `memory/css-is-hand-maintained.md` rewritten to the final state (resolved
+      the stale "recompile reproduces the CSS" claim) + MEMORY.md index updated.
+- [~] Session-handoff docs mentioning compat: left as-is on purpose — they are
+      point-in-time records of when compat existed, not forward guidance. No
+      live/forward doc still implies the compat layer exists.
 
 ## Full regression
 - [ ] All three V2-migration suites green.
