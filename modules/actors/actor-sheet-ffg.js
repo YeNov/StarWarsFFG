@@ -2842,6 +2842,15 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   debounceRender = foundry.utils.debounce(
     (force, options) => {
+      // A close() that lands after a render was queued must win. Renders here
+      // are debounced (~100ms), so a trailing render scheduled by a field edit
+      // -- minion sheets force render:true on wounds/quantity edits -- fires
+      // after close() finished and reset its transient `_closing` flag, and
+      // would re-attach the sheet the user just closed (the "minion close
+      // button does nothing" bug). `_sheetClosed` is latched in close() and
+      // only cleared by a genuine (non-closing) render(), so a stray trailing
+      // render bails here.
+      if (this._sheetClosed) return;
       super.render(force, options);
     },
     100,
@@ -2853,7 +2862,20 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   /** @override **/
   render(force, options) {
+    // A real (re)open clears the closed latch. Auto-renders fired *during*
+    // close (document.update in submit-on-close) run while `_closing` is true
+    // and must NOT clear it, or they would reschedule a reopen.
+    if (!this._closing) this._sheetClosed = false;
     this.debounceRender(force, options);
+  }
+
+  /** @override **/
+  async close(options = {}) {
+    // Latch closed so any debounced render still in flight (or one scheduled by
+    // a close-time auto-render) cannot reopen the sheet. Cleared by the next
+    // genuine render() above.
+    this._sheetClosed = true;
+    return super.close(options);
   }
 
   /** @override **/
