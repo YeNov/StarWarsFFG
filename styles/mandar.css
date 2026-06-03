@@ -125,10 +125,20 @@ body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .
   flex: 1 !important;
 }
 
+/* The talent header height is variable: it depends on the image, the
+   ranked/force/conflict block row, AND third-party injections (the
+   enhancements module appends an "Associated Skills" block via renderItemSheet).
+   A hardcoded `calc(100% - 22rem)` body guessed that header height -- once the
+   real header exceeded 22rem, header + body overflowed form.window-content
+   (which is `overflow: visible`) and the modifier list spilled out the bottom
+   of the window instead of scrolling. Flex the body to fill whatever the
+   natural-height header leaves and scroll its own overflow (same as the generic
+   item-body rule below). */
 body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
-  flex: 0 0 calc(100% - 22rem) !important;
-  height: calc(100% - 22rem) !important;
-  min-height: 0;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
 }
 
 body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {
@@ -920,13 +930,11 @@ img {
   height: calc(100% - 20rem);
 }
 
-.starwarsffg.sheet .sheet-body.talent {
-  height: calc(100% - 26rem);
-}
-.starwarsffg.sheet.v2 .sheet-body.talent {
-  height: calc(100% - 22rem);
-}
-
+/* The talent body height is governed by the flexible rule near the top of this
+   file (`form.window-content.item-sheet-talent > .sheet-body.talent`). The old
+   fixed `calc(100% - Nrem)` rules that lived here were stale dead overrides --
+   a guessed header height spills the modifier list once the real header (image
+   + block row + injected "Associated Skills") exceeds the guess. */
 .starwarsffg.sheet .sheet-body.species {
   height: calc(100% - 24rem);
 }
@@ -1581,6 +1589,10 @@ img {
   text-align: center;
   display: flex;
   justify-content: center;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .starwarsffg .dice-pool-dialog .pool-value {
@@ -3693,6 +3705,22 @@ img {
 
 .starwarsffg .attributes .attribute-value.checkbox {
   text-align: center;
+}
+
+/* Modifier list (shared ffg-modifiers partial + the mod-edit dialogs): the
+   modtype/mod <select>s are flex children whose default `min-width: auto`
+   refuses to shrink below their longest option text, pushing the row past the
+   sheet's right edge on narrow item sheets (e.g. talent). Let every cell
+   shrink, and pin the value column to a compact fixed width so the two
+   dropdowns share the remaining room and stay column-aligned with the header. */
+.starwarsffg .attributes .attributes-header > *,
+.starwarsffg .attributes .attributes-list .attribute.flexrow > * {
+  min-width: 0;
+}
+
+.starwarsffg .attributes .attributes-header .attribute-value,
+.starwarsffg .attributes .attributes-list .attribute.flexrow > .modvalue {
+  flex: 0 0 3.5rem;
 }
 
 .starwarsffg .item-sheet-criticalinjury .sheet-header {

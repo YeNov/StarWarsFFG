@@ -113,6 +113,32 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       case "forcepower":
       case "signatureability":
         return { width: 700, height: 600 };
+      case "itemmodifier":
+        // The modifier sheet's header/type/rank/description panel breaks when
+        // dragged smaller than this -- the title overlaps the icon and the
+        // fields clip -- so give it a higher (taller) resize floor.
+        return { width: 300, height: 400 };
+      case "weapon":
+      case "armour":
+      case "gear":
+        // Vertical floor x3.5 (200 -> 700); width keeps the base 300 floor.
+        return { width: 300, height: 700 };
+      case "ability":
+        // Vertical floor x1.5 (200 -> 300); width keeps the base 300 floor.
+        return { width: 300, height: 300 };
+      case "talent":
+        // The talent header is tall: 124px image + name + activation + the
+        // three-across ranked/force/conflict block row + tab strip (plus any
+        // third-party header injection such as the enhancements module's
+        // "Associated Skills" block). The body flexes and scrolls below it, but
+        // the header still needs ~350-400px to render without being squished,
+        // so floor the window around that plus a usable body. The width floor
+        // (above the base 300) keeps the ranked/force/conflict block row
+        // readable.
+        return { width: 385, height: 500 };
+      case "itemattachment":
+        // Vertical floor x2 (200 -> 400); width keeps the base 300 floor.
+        return { width: 300, height: 400 };
       default:
         return super._minDimensions();
     }
@@ -237,8 +263,10 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         break;
       case "itemmodifier":
         if (setInitialSize) {
+          // Height opens at the 400 floor (see _minDimensions); the prior 350
+          // was below the new minimum and would just be clamped up on open.
           this.position.width = 450;
-          this.position.height = 350;
+          this.position.height = 400;
         }
         data.modTypeSelected = this.object.system.type;
         break;
