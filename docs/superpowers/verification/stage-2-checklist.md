@@ -3,6 +3,11 @@
 > Filled in across Stage 2. All boxes ticked before
 > `modules/apps/form-application-v2-compat.js` is deleted (`Step 2.9`).
 
+> **Stage 5.5 reconciliation (2026-06-03 — owner decision):** the per-class live
+> flows are ticked; the one remaining unticked box (the automated Form Submit
+> Coalesce suite) is a known, accepted gap — that path was exercised live, not
+> via the harness. Authoritative sign-off: `stage-5-checklist.md`.
+
 **Verification status (Stage 2 session):** each class was ported and
 live-verified on the running world (GM, core 13.351, Mandar theme),
 non-mutating (rendered + the key behavior probed via instance methods /

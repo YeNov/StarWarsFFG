@@ -4,6 +4,13 @@
 > deleted (`Step 3.8`); `ItemSheetFFG` now extends the shared native base
 > `FFGDocumentSheet` (`modules/apps/ffg-document-sheet.js`).
 
+> **Stage 5.5 reconciliation (2026-06-03 — owner decision):** the remaining
+> unticked boxes (purchase flow, embedded-item→actor re-render, the automated
+> suites) are accepted as **covered** by cumulative branch verification — the
+> handlers are unchanged and the underlying paths were live-verified across
+> Stages 1–4 and the bug-fix commit stream — not by an independent re-run, so
+> they are left unticked on purpose. Authoritative sign-off: `stage-5-checklist.md`.
+
 **Verification status:** ported and live-verified on the running world (GM,
 core 13.351, live Mandar theme `mandarBeskarAstromech.css`). Render tests were
 non-mutating (rendered + inspected, then closed with `{submit: false}` so

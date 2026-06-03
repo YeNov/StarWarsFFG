@@ -5,6 +5,14 @@
 > extends the shared native bases `FFGActorSheet → FFGDocumentSheet`
 > (`modules/apps/`).
 
+> **Stage 5.5 reconciliation (2026-06-03 — owner decision):** the remaining
+> unticked boxes (equip / roll / apply-damage, minion derived-field input,
+> owned-item→actor re-render, minimize-restore, the automated suite) are accepted
+> as **covered** by cumulative branch verification — the handler bodies are
+> unchanged and the base machinery was verified structurally in Stage 3 and live
+> across the bug-fix commit stream — not by an independent re-run, so they are
+> left unticked on purpose. Authoritative sign-off: `stage-5-checklist.md`.
+
 **Verification status:** ported and live-verified on the running world (GM,
 core 13.351, live Mandar theme `mandarBeskarAstromech.css`). Render tests were
 non-mutating (closed with `{submit:false}`). Write/drag tests used throwaway

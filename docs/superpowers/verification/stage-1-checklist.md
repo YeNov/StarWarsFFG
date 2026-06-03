@@ -4,6 +4,15 @@
 > PR (`Step 1.8`) description before `modules/apps/dialog-v2-compat.js` is
 > removed. Driven live in the running world (GM) + the V2-migration suite.
 
+> **Stage 5.5 reconciliation (2026-06-03 — owner decision):** the remaining
+> unticked live-gameplay boxes below are accepted as **covered** by cumulative
+> branch verification (the per-stage spot-checks here, the Stage 1–4 "COMPLETE"
+> acceptance, the live-verified bug-fix commit stream, and the 2026-06-03 GM UI
+> sweep), not by an independent single-sitting re-run — so they are left unticked
+> on purpose. The automated `tests/v2-migration` suite box is a known, accepted
+> gap (exercised live, not via the harness); the player (Andre) account was not
+> separately swept. Authoritative sign-off: `stage-5-checklist.md`.
+
 **Verification status (Stage 1.7/1.8 session):** all 16 actor-sheet sites
 ported and statically verified (node --check, eslint shows 0 new errors, 0
 `no-restricted-imports` problems, 0 `DialogV2Compat` references). Live,

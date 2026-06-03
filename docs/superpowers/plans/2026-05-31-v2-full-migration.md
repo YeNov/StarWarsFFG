@@ -780,7 +780,13 @@ Update `memory/css-is-hand-maintained.md` to reflect the final state (the V2
 rules now live in a permanently-named partial). Update any session-handoff
 docs that mention compat.
 
-- [ ] **Step 5.5: Full regression sweep**
+- [~] **Step 5.5: Full regression sweep** — SIGNED OFF AS COVERED (2026-06-03,
+  owner decision), not as an independent single-sitting re-run. Basis: the
+  per-stage live spot-checks, the Stage 1–4 "COMPLETE" acceptance, the
+  live-verified bug-fix commit stream, and the 2026-06-03 GM UI sweep. Known,
+  accepted gaps: the automated `tests/v2-migration` suites were not run (paths
+  exercised live instead) and the player (Andre) account was not separately
+  swept. See `docs/superpowers/verification/stage-5-checklist.md`.
 
 Repeat every verification listed in stages 1–4 in a single sitting. No
 console errors, no visible regressions vs the `V2-port` baseline at the head
