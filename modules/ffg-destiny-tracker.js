@@ -314,14 +314,25 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
       const r = root.getBoundingClientRect();
       startLeft = r.left;
       startTop = r.top;
-      try { handle.setPointerCapture(event.pointerId); } catch (e) { /* ignore */ }
+      // Do NOT setPointerCapture here. Capturing on pointerdown retargets the
+      // matching pointerup to this handle and suppresses the synthesized `click`
+      // on the actual child that was pressed -- so clicks on .destiny-points (the
+      // pool flip) and the group-manager menu links (.dropdown-content a) never
+      // fire their handlers. Capture is acquired lazily in onMove, only once an
+      // actual drag is detected, so a plain click is never swallowed.
     };
 
     const onMove = (event) => {
       if (!active) return;
       const dx = event.clientX - sx;
       const dy = event.clientY - sy;
-      if (!moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) moved = true;
+      if (!moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        moved = true;
+        // This is now a real drag: capture the pointer so movement keeps tracking
+        // even if it leaves the handle. (A plain click never reaches here, so its
+        // `click` event is left intact -- see onDown.)
+        try { handle.setPointerCapture(event.pointerId); } catch (e) { /* ignore */ }
+      }
       if (!moved) return;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
