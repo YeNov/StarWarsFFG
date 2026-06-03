@@ -58,6 +58,22 @@ export default class ActorOptions {
     if (root.classList.contains("application")) button.classList.add("legacy-header-action");
     button.innerHTML = `<i class="fas fa-wrench"></i>${game.i18n.localize("SWFFG.SheetOptions")}`;
     button.addEventListener("click", this.handler.bind(this));
+    // Stop the pointerdown from reaching V13's window-drag handler.
+    //
+    // The button lives in `.window-header`, which is ApplicationV2's drag
+    // handle. Core's `#onWindowDragStart` (a bubble-phase pointerdown listener
+    // on the header) only bails for `.header-control` elements; our injected
+    // `<a>` is not one, so it starts a drag and, on the first `pointermove`,
+    // calls `header.setPointerCapture()`. Pointer capture retargets the
+    // matching `pointerup` to the header and suppresses the synthesized `click`
+    // on the button -- so a press that includes ANY cursor movement (a normal,
+    // slightly-jittery mouse click) is swallowed and Sheet Options appears to
+    // need a second, stiller click. stopPropagation here keeps the header's
+    // drag-start from engaging for presses that begin on the button; V13's
+    // bring-to-front still fires (it is bound on the app root in the capture
+    // phase, before this bubble-phase listener), so clicking still raises the
+    // window. Mirrors the destiny-tracker pointer-capture fix (commit 97025d85).
+    button.addEventListener("pointerdown", (event) => event.stopPropagation());
 
     const anchor = header.querySelector(":scope > a, :scope > button, :scope > [data-action]") ?? header.lastElementChild;
     header.insertBefore(button, anchor);

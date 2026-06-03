@@ -349,6 +349,14 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
         event.stopPropagation();
         button?.click();
       });
+      // Keep the header's window-drag (ApplicationV2 `#onWindowDragStart`) from
+      // engaging on a press that begins on this link: a press with any cursor
+      // movement otherwise triggers `header.setPointerCapture()`, which eats the
+      // synthesized `click`. Same mechanism/fix as the Sheet Options button in
+      // actor-ffg-options.js / item-ffg-options.js. (LEGACY_HEADER_ACTIONS is
+      // empty today, so no links are projected -- this guards the path if it is
+      // ever populated.)
+      link.addEventListener("pointerdown", (event) => event.stopPropagation());
       header.insertBefore(link, anchor);
     }
   }

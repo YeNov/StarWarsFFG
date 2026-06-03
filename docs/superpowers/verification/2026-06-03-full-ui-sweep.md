@@ -147,6 +147,24 @@ sweep (they require specific in-sheet flows to instantiate).
   The legacy `.starwarsffg .group-manager` overflow rule was a dead selector after
   the V2 root-PART migration (wrapper `<form>` dropped). Live-verified the scrollbar
   appears only when content overflows and auto-hides when it fits. See §1d Finding B.
+- ✅ **Finding C — "Sheet Options" needs a second click (same pointer-capture class as §0)** —
+  FIXED in `modules/actors/actor-ffg-options.js` + `modules/items/item-ffg-options.js`.
+  **Root cause (confirmed live):** the injected `<a class="ffg-sheet-options">` lives in
+  `.window-header`, which is ApplicationV2's drag handle. Core's `#onWindowDragStart`
+  (`application.mjs:1532`) only bails for `.header-control` elements; our link isn't one,
+  so a press on it starts a window-drag and the first `pointermove` calls
+  `header.setPointerCapture()` (`application.mjs:1563`). Capture retargets `pointerup` to
+  the header and **suppresses the synthesized `click` on the link** — so any press with a
+  few px of cursor drift (a normal mouse click) is eaten; only a perfectly still click
+  works, hence "sometimes needs a second click." **Proof (live, GM, real mouse):** still
+  `left_click` → `{pointerdown:1, pointerup:1, click:1, headerGotCapture:0}`, dialog opens;
+  jittery `left_click_drag` (8px) → `{pointerdown:1, pointermove:2, headerGotCapture:1,
+  pointerup:0, click:0}`, **dialog does not open**. **Fix:** `button.addEventListener(
+  "pointerdown", e => e.stopPropagation())` so the header's bubble-phase drag-start never
+  engages for presses that begin on the button; V13's capture-phase bring-to-front still
+  fires. **After fix (real built code, reload-verified):** the same 8px jittery drag →
+  `{headerGotCapture:0, pointerup:1, click:1}`, dialog opens — on both actor (character)
+  and item (armour) sheets; dragging the window by its title still moves it (Δ confirmed).
 
 ---
 
