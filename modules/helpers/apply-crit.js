@@ -12,15 +12,26 @@ const { DialogV2 } = foundry.applications.api;
 
 export class ApplyCrit {
   /**
-   * Called from the renderChatMessageHTML hook. Computes crit eligibility from the
-   * roll's advantages/triumphs vs the weapon's critical rating, sets the
-   * disabled attribute and tooltip when ineligible, and binds the click handler.
+   * Called from the renderChatMessageHTML hook. Enforces visibility (button is
+   * removed for users who are neither GM nor the message author, matching Apply
+   * Damage), computes crit eligibility from the roll's advantages/triumphs vs the
+   * weapon's critical rating, sets the disabled attribute and tooltip when
+   * ineligible, and binds the click handler.
    * @param {ChatMessage} message — the live ChatMessage instance.
    * @param {jQuery} html — the rendered chat-message element wrapped in jQuery.
    */
   static bindChatMessage(message, html) {
     const button = html.find(".ffg-apply-crit")[0];
     if (!button) return;
+
+    // Visible to the attack's roller (message author) and GMs only. Non-owning
+    // clicks still forward to the active GM via gm-bridge, so this is a UI
+    // consistency gate (matching Apply Damage), not a permission boundary.
+    const authorId = message.author?.id ?? message.user;
+    if (game.user.id !== authorId && !game.user.isGM) {
+      button.remove();
+      return;
+    }
 
     const roll = message.rolls?.[0];
     const itemSystem = roll?.data?.system;

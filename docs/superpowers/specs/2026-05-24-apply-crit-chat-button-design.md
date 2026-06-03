@@ -57,7 +57,7 @@ Reused existing keys:
 ### Button placement and visibility
 
 - Rendered inside `{{#if ffg.success}}` in `roll-weapon-card.html`, beside the Apply Damage button in a shared `.ffg-chat-actions` wrapper.
-- Visible to **everyone** who can see the message (GM, message author, other players). No author-based gating — Foundry's actor permission system enforces the actor mutation.
+- Visible to the message **author (roller) and GMs only**, matching Apply Damage: the `renderChatMessage` hook removes the button when `game.user.id !== message.author?.id && !game.user.isGM`. (Originally specced as visible to everyone; unified to the Apply Damage gate on 2026-06-03 for UI consistency. Non-owning clicks still forward to the active GM via gm-bridge, so the gate is UI-only, not a permission boundary.)
 - The `renderChatMessage` hook computes eligibility from the chat data; when ineligible, the binder sets `button.disabled = true` and `button.title = localize("SWFFG.ApplyCrit.NotEligibleTooltip")`.
 - Eligibility: `(advantages >= critRating) || (triumphs > 0)`, where `critRating = system.crit.adjusted if non-zero else system.crit.value`, all read from `message.rolls[0].data`.
 
@@ -148,6 +148,6 @@ The math is internal to `show` (no separate exported pure function — out of sc
 10. Unlinked token actor — talents/crits read from token's local actor.
 11. No targets → warning, no dialog.
 12. No critical tables in world → warning, no dialog.
-13. Visibility — three users all see the button; public chat output visible to all.
+13. Visibility — button visible to the roller and GM only; a third (non-author, non-GM) player does not see it. Public chat output still visible to all.
 14. Re-apply — works repeatedly.
 15. Miss (0 successes) — neither button renders.
