@@ -44,7 +44,6 @@ import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
 import DataImporter from "./importer/data-importer.js";
-import PauseFFG from "./apps/pause-ffg.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
 import RollBuilderFFG from "./dice/roll-builder.js";
 import CrewSettings from "./settings/crew-settings.js";
@@ -129,9 +128,6 @@ Hooks.once("init", async function () {
 
   // TURN ON OR OFF HOOK DEBUGGING
   CONFIG.debug.hooks = false;
-
-  CONFIG.ui.pause = PauseFFG;
-
 
   // Enable debug messages in console
   game.settings.register("starwarsffg", "enableDebug", {
