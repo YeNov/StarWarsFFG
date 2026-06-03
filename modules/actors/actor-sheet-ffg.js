@@ -1122,6 +1122,56 @@ export class ActorSheetFFG extends FFGActorSheet {
       });
     });
 
+    // Delete a directly-added talent (one not granted by a specialization or
+    // species) after confirmation. Removes every underlying talent item so a
+    // merged/ranked talent is fully cleared, not just its first rank.
+    html.find(".item-talent-delete").click(async (ev) => {
+      if(!this.actor.verifyEditModeIsNotEnabled()) {
+        return;
+      }
+      ev.stopPropagation();
+      const li = $(ev.currentTarget).parents(".item");
+      const itemId = li.data("itemId");
+      const itemName = li.data("itemName");
+
+      const talent = this.actor.talentList.find((t) => {
+        if (itemId) return t.itemId === itemId;
+        return t.name === itemName;
+      });
+      if (!talent) return;
+
+      const talentItemIds = talent.source.filter((s) => s.type === "talent").map((s) => s.id);
+
+      const title = game.i18n.localize("SWFFG.DeleteTalent.Title");
+      DialogV2.wait({
+        window: { title },
+        classes: ["dialog", "starwarsffg"],
+        content: `<p>${game.i18n.format("SWFFG.DeleteTalent.Content", { name: talent.name })}</p>`,
+        buttons: [
+          {
+            action: "delete",
+            icon: "fas fa-trash",
+            label: game.i18n.localize("SWFFG.Delete"),
+            callback: async () => {
+              if(!this.actor.verifyEditModeIsNotEnabled()) {
+                return;
+              }
+              for (const id of talentItemIds) {
+                await this.actor.items.get(id)?.delete();
+              }
+            },
+          },
+          {
+            action: "cancel",
+            icon: "fas fa-times",
+            label: game.i18n.localize("SWFFG.Cancel"),
+            default: true,
+          },
+        ],
+        rejectClose: false,
+      });
+    });
+
     // Edit Gear Quantities
 
     html.find(".item-quantity .quantity.increase").click(async (ev) => {

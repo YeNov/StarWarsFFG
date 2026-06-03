@@ -400,6 +400,13 @@ export class ActorFFG extends Actor {
         return comparison;
       });
     }
+
+    // A talent shows the delete (bin) control only when it is purely directly
+    // added - i.e. every source is a standalone talent item, never granted by a
+    // specialization or species (those keep the info control instead).
+    globalTalentList.forEach((talent) => {
+      talent.canDelete = talent.source?.length > 0 && talent.source.every((s) => s.type === "talent");
+    });
     actorData.talentList = globalTalentList;
   }
 
@@ -516,6 +523,13 @@ export class ActorFFG extends Actor {
         return comparison;
       });
     }
+
+    // A talent shows the delete (bin) control only when it is purely directly
+    // added - i.e. every source is a standalone talent item, never granted by a
+    // specialization or species (those keep the info control instead).
+    globalTalentList.forEach((talent) => {
+      talent.canDelete = talent.source?.length > 0 && talent.source.every((s) => s.type === "talent");
+    });
 
     // enable talent sorting if global to true and sheet is set to inherit or sheet is set to true.
     if ((game.settings.get("starwarsffg", "talentSorting") && (!actorData.flags?.config?.talentSorting || actorData.flags?.config?.talentSorting === "0")) || actorData.flags?.config?.talentSorting === "1") {
