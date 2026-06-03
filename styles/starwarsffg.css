@@ -3341,3 +3341,10 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.starwarsffg .xp-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 0;
+}
