@@ -3530,6 +3530,15 @@ img {
   position: relative;
 }
 
+/* The group-manager template's <form> wrapper is dropped by the root PART, so
+   its content mounts directly inside form.window-content (core sets that to
+   overflow:hidden). Scroll the content vertically so a scrollbar appears
+   automatically only when the PC / obligation / duty lists overflow the
+   window; overflow-x stays hidden (the PC table scrolls on its own). */
+.starwarsffg.application.group-manager > form.window-content {
+  overflow-y: auto;
+}
+
 .starwarsffg .group-manager .PC-list {
   margin: 20px 0;
   overflow-x: auto;

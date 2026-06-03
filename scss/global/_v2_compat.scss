@@ -30,6 +30,16 @@
   overflow: visible !important;
 }
 
+// The group-manager template's <form> wrapper is dropped by the root PART, so
+// its content mounts directly inside form.window-content (V13 core sets that to
+// overflow:hidden). Scroll the content vertically so a scrollbar appears only
+// when the PC / obligation / duty lists overflow the window. overflow-x stays
+// hidden (the PC table scrolls on its own). The group manager is not a .sheet,
+// so the rule above does not cover it.
+.starwarsffg.application.group-manager > form.window-content {
+  overflow-y: auto;
+}
+
 .starwarsffg.application.sheet nav.sheet-tabs {
   top: 2px;
 }
