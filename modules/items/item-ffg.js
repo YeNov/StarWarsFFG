@@ -183,6 +183,34 @@ export class ItemFFG extends ItemBaseFFG {
     }
   }
 
+  /**
+   * Keep the modifier-adjusted encumbrance in step when the raw encumbrance
+   * value of a carried weapon/armour is edited.
+   *
+   * When auto-soak calculation is enabled, the owning actor sums
+   * `system.encumbrance.adjusted` for weapon/armour/shipweapon items (it reads
+   * the raw `.value` for gear). `.adjusted` is a derived value, but it is also a
+   * persisted field written by the hidden `encumbrance.adjusted` input on the
+   * weapon/armour sheets. On a value-only edit that hidden input re-submits its
+   * previously-rendered (stale) number, and the async `prepareData()` recompute
+   * lands too late to influence the actor's synchronous derived-data pass -- so
+   * the carried total never moves. Recompute `.adjusted` here from the incoming
+   * value, preserving any modifier/attachment delta, so the persisted value the
+   * actor reads is correct. (Gear needs no handling: it carries no hidden
+   * adjusted field and the actor reads its raw value directly.)
+   * @override
+   */
+  async _preUpdate(changed, options, user) {
+    const newValue = foundry.utils.getProperty(changed, "system.encumbrance.value");
+    if (newValue !== undefined && ["weapon", "shipweapon", "armour"].includes(this.type)) {
+      const oldValue = this.system.encumbrance?.value ?? 0;
+      const oldAdjusted = this.system.encumbrance?.adjusted ?? oldValue;
+      const modifierDelta = oldAdjusted - oldValue;
+      foundry.utils.setProperty(changed, "system.encumbrance.adjusted", parseInt(newValue, 10) + modifierDelta);
+    }
+    return super._preUpdate(changed, options, user);
+  }
+
   /** @override */
   async _onUpdate(changed, options, userId) {
     CONFIG.logger.debug("Performing _onUpdate of item");
