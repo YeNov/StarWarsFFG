@@ -733,6 +733,29 @@ export class ActorFFG extends Actor {
 
   /** @override **/
   applyActiveEffects() {
+    // Scale each item's modifiers by its quantity (e.g. carrying 2 of a gear item that grants
+    // +1 Encumbrance capacity should grant +2). The Active Effect persists the per-item value;
+    // we derive the scaled value here from the effect's source so that changing quantity updates
+    // the modifier without having to rewrite (and risk staling) the stored Active Effect.
+    for (const effect of this.allApplicableEffects()) {
+      const sourceItem = effect.parent;
+      // only item-sourced effects carry a quantity; skip the actor's own effects (e.g. statuses)
+      if (sourceItem?.documentName !== "Item") continue;
+      // equippable items (weapon/armour/shipweapon) are worn/wielded one at a time regardless of
+      // how many are carried, so their modifiers must not scale with quantity
+      if (sourceItem.system?.equippable) continue;
+      const quantity = parseInt(sourceItem.system?.quantity?.value, 10);
+      if (isNaN(quantity)) continue; // no quantity field (talents, species, ...) - never scale
+      for (let idx = 0; idx < effect.changes.length; idx++) {
+        const change = effect.changes[idx];
+        // always derive from the persisted (per-item) source value so repeated prepares stay
+        // idempotent and dropping the quantity back to 1 restores the base value
+        const baseValue = parseInt(effect._source?.changes?.[idx]?.value ?? change.value, 10);
+        if (isNaN(baseValue)) continue; // non-numeric grants (e.g. career-skill flag) don't scale
+        change.value = baseValue * quantity;
+      }
+    }
+
     // collect force pool modifications since it appears the stat value is without AEs active
     let maxForceRating = parseInt(this.system?.stats?.forcePool?.max);
     for (const effect of this.allApplicableEffects()) {
