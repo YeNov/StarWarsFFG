@@ -1,3 +1,5 @@
+import PopoutEditor from "../popout-editor.js";
+
 const { DocumentSheetV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
 /**
@@ -852,6 +854,36 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
       await this.object.update({"system.metadata.tags": tags});
       this.render(true);
     }
+  }
+
+  /** Minimum popout-editor window height; actor sheets override to a smaller floor. */
+  get _popoutEditorMinHeight() { return 400; }
+
+  _onPopoutEditor(event) {
+    event.preventDefault();
+    const a = event.currentTarget.parentElement;
+    const label = a.dataset.label;
+    const key = a.dataset.target;
+
+    const parent = $(a.parentElement);
+    const parentPosition = $(parent).offset();
+
+    const floor = this._popoutEditorMinHeight;
+    const windowHeight = parseInt($(parent).height(), 10) + 100 < floor ? floor : parseInt($(parent).height(), 10) + 100;
+    const windowWidth = parseInt($(parent).width(), 10) < 320 ? 320 : parseInt($(parent).width(), 10);
+    const windowLeft = parseInt(parentPosition.left, 10);
+    const windowTop = parseInt(parentPosition.top, 10);
+
+    const title = a.dataset.label ? `Editor for ${this.object.name}: ${label}` : `Editor for ${this.object.name}`;
+
+    new PopoutEditor(this.object, {
+      name: key,
+      title: title,
+      height: windowHeight,
+      width: windowWidth,
+      left: windowLeft,
+      top: windowTop,
+    }).render(true);
   }
 
   _canDragStart(_selector) {

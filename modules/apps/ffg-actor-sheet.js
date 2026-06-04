@@ -44,6 +44,9 @@ export class FFGActorSheet extends FFGDocumentSheet {
     return super.close(options);
   }
 
+  /** Actor popout editors use a smaller height floor than item sheets (base = 400). */
+  get _popoutEditorMinHeight() { return 200; }
+
   getData(options = {}) {
     const context = super.getData(options);
     context.actor = this.object;
