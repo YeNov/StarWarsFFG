@@ -402,12 +402,24 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     try {
       if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
         const event = new Event("submit", { cancelable: true });
-        await this._onSubmit(event, { preventClose: true, render: false });
+        try {
+          await this._onSubmit(event, { preventClose: true, render: false });
+        } catch (err) {
+          // A failed submit-on-close must NEVER trap the window open: the user
+          // clicked × and expects it to close. Log and continue to tear down
+          // (this matches Foundry's own close, which does not block on submit).
+          // This was the minion close-button bug: submit-on-close threw and the
+          // unguarded await aborted close() before super.close() ever ran.
+          console.error("starwarsffg | submit-on-close failed; closing anyway", err);
+        }
       }
       // Fire while the form is still in the DOM so legacy listeners can inspect it.
       const form = this.form;
       if (form) this._callLegacyCloseHook($(form));
       return await super.close(options);
+    } catch (err) {
+      console.error("starwarsffg | sheet failed to close (super.close threw)", err);
+      throw err;
     } finally {
       this._closing = false;
     }

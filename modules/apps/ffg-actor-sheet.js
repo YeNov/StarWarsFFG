@@ -107,7 +107,10 @@ export class FFGActorSheet extends FFGDocumentSheet {
 
   _getSubmitData(updateData = {}) {
     const data = super._getSubmitData(updateData);
-    const overrides = foundry.utils.flattenObject(this.actor.overrides);
+    // `overrides` can be undefined (no active effects applied yet); flattenObject
+    // throws on Object.keys(undefined), which would abort submit-on-close and
+    // leave the × button unable to close the sheet. Guard with {}.
+    const overrides = foundry.utils.flattenObject(this.actor.overrides ?? {});
     for (const k of Object.keys(overrides)) delete data[k];
     return data;
   }
