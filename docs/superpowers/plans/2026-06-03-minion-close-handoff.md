@@ -1,6 +1,30 @@
 # Minion sheet "close" (X) doesn't work — handoff (2026-06-03)
 
-**Status: OPEN / unsolved.** Continue tomorrow.
+**Status: RESOLVED** (commit `8021872d`, user-confirmed). Kept as a debugging record.
+
+## Resolution
+Confirmed hypothesis #1 below: `FFGDocumentSheet.close` ran submit-on-close
+(`_onSubmit`) with an **unguarded `await`** — when it threw, `super.close()`
+never ran and the × did nothing. The path was never exercised for actors (Stage 4
+always closed with `{submit:false}`).
+
+Fix (`8021872d`):
+- `FFGDocumentSheet.close`: wrap submit-on-close in try/catch so a failed submit
+  logs and the sheet still tears down (matches Foundry's own close); also
+  log+rethrow if `super.close` itself throws.
+- `FFGActorSheet._getSubmitData`: guard `this.actor.overrides ?? {}` —
+  `flattenObject(undefined)` throws on `Object.keys(undefined)`, the concrete
+  throw candidate (runs for every actor on submit-on-close).
+- Debounce reopen latch `6bc6c7f2` kept as a complementary guard.
+
+**Caveat:** if the console still logs `submit-on-close failed; closing anyway`,
+the × works but an underlying submit throw remains (edits-on-close won't save) —
+capture that error to fix the root. If no such line appears, the `overrides`
+guard was the complete fix.
+
+---
+
+_Original handoff notes (kept for context):_
 
 ## Symptom
 On the **minion** actor sheet, clicking the window header **X** does not close the
