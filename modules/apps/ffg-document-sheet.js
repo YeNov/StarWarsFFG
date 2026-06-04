@@ -1,4 +1,4 @@
-const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
+const { DocumentSheetV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
 /**
  * Native shared base for the system's document sheets (item sheets as of the
@@ -722,6 +722,136 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
 
   async _updateObject(_event, formData, { render = false } = {}) {
     return this.document.update(formData, { render });
+  }
+
+  /**
+   * Add/remove a source-book reference in `system.metadata.sources`. Shared by
+   * item and actor sheets (this.object is the document either way).
+   * @param event
+   */
+  async _handleSourceControl(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const action = $(event.currentTarget).data("action");
+    const sourceIndex = $(event.currentTarget).data("index");
+    if (action === "add") {
+      // Single-instance guard: a second click on `+` while an Add Source dialog
+      // is open focuses it instead of stacking another. Sync flag set before any
+      // async hop so a fast double-click can't slip through.
+      if (this._addSourceDialogOpen) {
+        this._addSourceDialog?.bringToFront?.();
+        return;
+      }
+      this._addSourceDialogOpen = true;
+      const addSource = new DialogV2({
+        window: { title: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Title") },
+        classes: ["starwarsffg-dialog", "ffg-meta-dialog"],
+        content: `
+          <div class="ffg-meta-form">
+            <label for="book">${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Book")} :</label>
+            <input type="text" id="book" name="book" value="Force and Destiny Core Rulebook" autofocus>
+            <label for="page">${game.i18n.localize("SWFFG.Meta.Sources.AddSource.Page")}:</label>
+            <input type="number" id="page" name="page" value="0">
+          </div>
+        `,
+        buttons: [
+          {
+            action: "submit",
+            icon: "fas fa-check",
+            label: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Submit"),
+            default: true,
+            callback: async (event, button, dialog) => {
+              const bookName = dialog.element.querySelector("#book").value;
+              const pageNum = dialog.element.querySelector("#page").value;
+              await this.object.update({"system.metadata.sources": [...this.object.system.metadata.sources, `${bookName} pg. ${pageNum}`]});
+            },
+          },
+          {
+            action: "cancel",
+            icon: "fas fa-x",
+            label: game.i18n.localize("SWFFG.Meta.Sources.AddSource.Cancel"),
+          },
+        ],
+      });
+      const releaseSourceLock = () => {
+        this._addSourceDialogOpen = false;
+        if (this._addSourceDialog === addSource) this._addSourceDialog = null;
+      };
+      this._addSourceDialog = addSource;
+      // Release the lock on any close path (submit, cancel, X, Esc all fire close).
+      addSource.addEventListener("close", releaseSourceLock, { once: true });
+      addSource.render({ force: true });
+      // V13 dialogs sometimes render behind the parent sheet; force to front next paint.
+      requestAnimationFrame(() => addSource.bringToFront?.());
+    } else if (action === "remove") {
+      const sources = foundry.utils.deepClone(this.object.system.metadata.sources);
+      sources.splice(sourceIndex, 1);
+      await this.object.update({"system.metadata.sources": sources});
+      // Only render after a structural change; rendering on "add" too (before the
+      // dialog submits) re-runs setPosition and snaps the window to default size.
+      this.render(true);
+    }
+  }
+
+  /**
+   * Add/remove a free-text tag in `system.metadata.tags`. Shared by item and
+   * actor sheets.
+   * @param event
+   */
+  async _handleTagControl(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const action = $(event.currentTarget).data("action");
+    const tagIndex = $(event.currentTarget).data("index");
+    if (action === "add") {
+      if (this._addTagDialogOpen) {
+        this._addTagDialog?.bringToFront?.();
+        return;
+      }
+      this._addTagDialogOpen = true;
+      const addTag = new DialogV2({
+        window: { title: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Title") },
+        classes: ["starwarsffg-dialog", "ffg-meta-dialog"],
+        content: `
+          <div class="ffg-meta-form">
+            <label for="tag">${game.i18n.localize("SWFFG.Meta.Tags.AddTag.Tag")} :</label>
+            <input type="text" id="tag" name="tag" value="" autofocus>
+          </div>
+        `,
+        buttons: [
+          {
+            action: "submit",
+            icon: "fas fa-check",
+            label: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Submit"),
+            default: true,
+            callback: async (event, button, dialog) => {
+              const tag = dialog.element.querySelector("#tag").value;
+              const updatedTags = this.object.system.metadata.tags || [];
+              updatedTags.push(tag);
+              await this.object.update({"system.metadata.tags": updatedTags});
+            },
+          },
+          {
+            action: "cancel",
+            icon: "fas fa-x",
+            label: game.i18n.localize("SWFFG.Meta.Tags.AddTag.Cancel"),
+          },
+        ],
+      });
+      const releaseTagLock = () => {
+        this._addTagDialogOpen = false;
+        if (this._addTagDialog === addTag) this._addTagDialog = null;
+      };
+      this._addTagDialog = addTag;
+      addTag.addEventListener("close", releaseTagLock, { once: true });
+      addTag.render({ force: true });
+      requestAnimationFrame(() => addTag.bringToFront?.());
+    } else if (action === "remove") {
+      const tags = foundry.utils.deepClone(this.object.system.metadata.tags);
+      tags.splice(tagIndex, 1);
+      await this.object.update({"system.metadata.tags": tags});
+      this.render(true);
+    }
   }
 
   _canDragStart(_selector) {

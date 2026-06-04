@@ -89,7 +89,8 @@ export default class Helpers {
     var result = {};
     for (const key in obj1) {
       if (obj2[key] != obj1[key]) result[key] = obj2[key];
-      if (typeof obj2[key] == "array" && typeof obj1[key] == "array") result[key] = this.diff(obj1[key], obj2[key]);
+      // NB: arrays are typeof "object", so the line below already recurses into
+      // them; a separate `== "array"` check is dead (typeof never returns that).
       if (typeof obj2[key] == "object" && typeof obj1[key] == "object") result[key] = this.diff(obj1[key], obj2[key]);
     }
     return result;
