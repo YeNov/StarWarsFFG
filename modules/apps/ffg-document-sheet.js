@@ -78,9 +78,6 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     this.appId = this.id;
     this._dragDrop = [];
     this._tabs = [];
-    this._searchFilters = [];
-    this._state = 0;
-    this._priorState = 0;
     this._submitting = false;
     this.editors = {};
     this._token = this.options.token ?? null;
@@ -659,7 +656,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
   }
 
   async _onSubmit(event, options = {}) {
-    let { updateData = null, preventClose = false, preventRender = false, render = false } = options;
+    let { updateData = null, preventClose = false, render = false } = options;
     event?.preventDefault?.();
     if (!this.form || !this.isEditable) return false;
 
@@ -677,8 +674,6 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     let formData;
     let currentRender = render;
     let currentPreventClose = preventClose;
-    const priorState = this._state;
-    if (preventRender) this._state = 1;
 
     let resolveFlush;
     let rejectFlush;
@@ -714,7 +709,6 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     } finally {
       this._submitting = false;
       this._submitInFlight = null;
-      if (preventRender) this._state = priorState;
     }
   }
 
@@ -724,16 +718,6 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     let data = fd.object;
     if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
     return foundry.utils.flattenObject(data);
-  }
-
-  _prepareSubmitData(_event, _form, formData, updateData) {
-    let data = foundry.utils.deepClone(formData.object);
-    if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
-    return foundry.utils.flattenObject(data);
-  }
-
-  async _processSubmitData(event, _form, submitData) {
-    return this._updateObject(event, submitData);
   }
 
   async _updateObject(_event, formData, { render = false } = {}) {

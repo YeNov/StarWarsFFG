@@ -999,7 +999,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     });
 
     if (this.object.type === "talent") {
-      if (!Hooks?.events[`closeAssociatedTalent_${this.object._id}`]?.length && (typeof this._submitting === "undefined" || this._priorState <= 0)) {
+      if (!Hooks?.events[`closeAssociatedTalent_${this.object._id}`]?.length) {
         Hooks.once(`closeAssociatedTalent_${this.object._id}`, (item) => {
           item.object.flags.clickfromparent = [];
           Hooks.off(`closeAssociatedTalent_${item.object._id}`);
