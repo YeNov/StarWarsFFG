@@ -1,7 +1,8 @@
 import {get_dice_pool} from "./dice-helpers.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
-import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
+
+const { DialogV2 } = foundry.applications.api;
 
 /**
  * Capture a drag-and-drop event (used to capture adding crew members via a flag)
@@ -292,19 +293,23 @@ export async function selectRoles(vehicle, crew_member_id) {
     }
   );
 
-  new DialogV2Compat(
-    {
-      title: game.i18n.localize("SWFFG.Crew.Title"),
-      content: content,
-      buttons: {
-        confirm: {
-          label: 'Update Roles',
-          callback: async (html) => {
-            const newRoles = html.find('[name="select-many-things"]').val();
-            await updateRoles(vehicle, crew_member_id, newRoles);
-          }
-        }
-      }
-    },
-  ).render(true);
+  DialogV2.wait({
+    window: { title: game.i18n.localize("SWFFG.Crew.Title") },
+    content: content,
+    buttons: [
+      {
+        action: "confirm",
+        label: "Update Roles",
+        default: true,
+        callback: async (event, button, dialog) => {
+          const select = dialog.element.querySelector('[name="select-many-things"]');
+          // Multi-select: mirror jQuery .val() returning an array of the
+          // selected option values.
+          const newRoles = select ? Array.from(select.selectedOptions).map((o) => o.value) : [];
+          await updateRoles(vehicle, crew_member_id, newRoles);
+        },
+      },
+    ],
+    rejectClose: false,
+  });
 }

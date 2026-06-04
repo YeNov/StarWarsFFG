@@ -1,12 +1,19 @@
-import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
+import { FFGFormApplication } from "../apps/ffg-form-application.js";
 
-class ffgSettings extends FormApplicationV2Compat {
-  activateListeners(html) {
-    super.activateListeners(html);
+class ffgSettings extends FFGFormApplication {
+  static DEFAULT_OPTIONS = {
+    form: {
+      closeOnSubmit: true,
+    },
+  };
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const html = $(this.element);
     html.find("button.filepicker").click(this._onFilePicker.bind(this));
   }
 
-  getData(acceptableSettings) {
+  _buildSettingsContext(acceptableSettings) {
     const canConfigure = game.user.can("SETTINGS_MODIFY");
     let includeSettings = [];
     for (const setting of game.settings.settings) {
@@ -65,37 +72,39 @@ class ffgSettings extends FormApplicationV2Compat {
 }
 
 export class rulesetSettings extends ffgSettings {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "ruleset-settings",
-      classes: ["starwarsffg", "ruleset-settings"],
-      title: `${game.i18n.localize("SWFFG.Settings.ruleset.Title")}`,
-      template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html",
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    id: "ruleset-settings",
+    classes: ["starwarsffg", "ruleset-settings"],
+    window: { title: "SWFFG.Settings.ruleset.Title" },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
     const includeSettingsNames = [
         "starwarsffg.dicetheme",
         "starwarsffg.vehicleRangeBand",
         "starwarsffg.skilltheme",
         "starwarsffg.enableForceDie",
     ];
-    return super.getData(includeSettingsNames);
+    return this._buildSettingsContext(includeSettingsNames);
   }
 }
 
 export class uiSettings extends ffgSettings {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "ui-settings",
-      classes: ["starwarsffg", "ui-settings"],
-      title: `${game.i18n.localize("SWFFG.Settings.ui.Title")}`,
-      template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html",
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    id: "ui-settings",
+    classes: ["starwarsffg", "ui-settings"],
+    window: { title: "SWFFG.Settings.ui.Title" },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
     const includeSettingsNames = [
       "starwarsffg.ui-uitheme",
       "starwarsffg.ui-pausedImage",
@@ -108,21 +117,22 @@ export class uiSettings extends ffgSettings {
       "starwarsffg.displaySimulation",
       "starwarsffg.rollSimulation",
     ];
-    return super.getData(includeSettingsNames);
+    return this._buildSettingsContext(includeSettingsNames);
   }
 }
 
 export class combatSettings extends ffgSettings {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "combat-settings",
-      classes: ["starwarsffg", "combat-settings"],
-      title: `${game.i18n.localize("SWFFG.Settings.combat.Title")}`,
-      template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html",
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    id: "combat-settings",
+    classes: ["starwarsffg", "combat-settings"],
+    window: { title: "SWFFG.Settings.combat.Title" },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
     const includeSettingsNames = [
       "starwarsffg.useGenericSlots",
       "starwarsffg.initiativeRule",
@@ -130,21 +140,22 @@ export class combatSettings extends ffgSettings {
       "starwarsffg.useDefense",
       "starwarsffg.additionalStatuses",
     ];
-    return super.getData(includeSettingsNames);
+    return this._buildSettingsContext(includeSettingsNames);
   }
 }
 
 export class actorSettings extends ffgSettings {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "actor-settings",
-      classes: ["starwarsffg", "actor-settings"],
-      title: `${game.i18n.localize("SWFFG.Settings.actor.Title")}`,
-      template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html",
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    id: "actor-settings",
+    classes: ["starwarsffg", "actor-settings"],
+    window: { title: "SWFFG.Settings.actor.Title" },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
     const includeSettingsNames = [
       "starwarsffg.enableSoakCalc",
       "starwarsffg.talentSorting",
@@ -158,21 +169,22 @@ export class actorSettings extends ffgSettings {
       "starwarsffg.consumeHealingItem",
       "starwarsffg.RivalTokenPrepend",
     ];
-    return super.getData(includeSettingsNames);
+    return this._buildSettingsContext(includeSettingsNames);
   }
 }
 
 export class xpSpendingSettings extends ffgSettings {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "xpSpending",
-      classes: ["starwarsffg", "xpSpending"],
-      title: `${game.i18n.localize("SWFFG.Settings.xpSpending.Title")}`,
-      template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html",
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    id: "xpSpending",
+    classes: ["starwarsffg", "xpSpending"],
+    window: { title: "SWFFG.Settings.xpSpending.Title" },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
     const includeSettingsNames = [
       "starwarsffg.specializationCompendiums",
       "starwarsffg.signatureAbilityCompendiums",
@@ -192,46 +204,48 @@ export class xpSpendingSettings extends ffgSettings {
       "starwarsffg.allowRestricted",
       "starwarsffg.defaultCredits",
     ];
-    return super.getData(includeSettingsNames);
+    return this._buildSettingsContext(includeSettingsNames);
   }
 }
 
 export class localizationSettings extends ffgSettings {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "localization",
-      classes: ["starwarsffg", "localization"],
-      title: `${game.i18n.localize("SWFFG.Settings.localization.Title")}`,
-      template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html",
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    id: "localization",
+    classes: ["starwarsffg", "localization"],
+    window: { title: "SWFFG.Settings.localization.Title" },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
     const includeSettingsNames = [
       "starwarsffg.skillSorting",
       "starwarsffg.destiny-pool-light",
       "starwarsffg.destiny-pool-dark",
     ];
-    return super.getData(includeSettingsNames);
+    return this._buildSettingsContext(includeSettingsNames);
   }
 }
 
 export class groupManagerSettings extends ffgSettings {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "group-manager",
-      classes: ["starwarsffg", "group-manager"],
-      title: `${game.i18n.localize("SWFFG.Settings.groupManager.Title")}`,
-      template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html",
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    id: "group-manager-settings",
+    classes: ["starwarsffg", "group-manager"],
+    window: { title: "SWFFG.Settings.groupManager.Title" },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
     const includeSettingsNames = [
       "starwarsffg.pcListMode",
       "starwarsffg.privateTriggers",
       "starwarsffg.GMCharactersInGroupManager"
     ];
-    return super.getData(includeSettingsNames);
+    return this._buildSettingsContext(includeSettingsNames);
   }
 }

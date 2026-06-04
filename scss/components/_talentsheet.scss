@@ -28,20 +28,10 @@
     }
   }
 
-  .sheet-body {
-    height: calc(100% - 20.3125rem);
-  }
+  // Talent body height is governed by the flexible rule in _v2_layout.scss
+  // (form.window-content.item-sheet-talent > .sheet-body.talent). The old fixed
+  // calc() overrides here were stale dead weight: a guessed header height
+  // spilled the modifier list once the real header (image + block row +
+  // injected "Associated Skills") exceeded the guess.
 
-}
-
-&.sheet {
-  &.item {
-    &.v2 {
-      .item-sheet-talent {
-        .sheet-body {
-          height: calc(100% - 19.3125rem);
-        }
-      }
-    }
-  }
 }

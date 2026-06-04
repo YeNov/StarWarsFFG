@@ -12,20 +12,26 @@ export class AdversarySheetFFG extends ActorSheetFFG {
     return `${path}/ffg-adversary-sheet.html`;
   }
 
-  /** @override */
-  static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
-      classes: ["starwarsffg", "sheet", "actor", "adversary"],
-      template: "systems/starwarsffg/templates/actors/ffg-adversary-sheet.html",
-      width: 710,
-      height: 650,
-      tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "characteristics" }],
-      scrollY: [".tableWithHeader", ".tab", ".skillsGrid", ".skillsTablesGrid"],
-    });
-  }
+  // Only the adversary-specific delta from ActorSheetFFG. `position`, `tabs`,
+  // and `scrollY` are inherited and intentionally NOT re-declared: DEFAULT_OPTIONS
+  // arrays concatenate across the inheritance chain, so re-declaring `tabs` would
+  // bind two Tabs instances. The per-type template comes from get template().
+  static DEFAULT_OPTIONS = {
+    classes: ["starwarsffg", "sheet", "actor", "adversary", "v2"],
+  };
 
-  getData() {
-    const data = super.getData();
+  /**
+   * @override
+   * NOTE: `getData` MUST be async and MUST await `super.getData()` — the parent
+   * `ActorSheetFFG.getData` is async (returns a Promise). Previously this method
+   * was sync and did `const data = super.getData()` (no await), so `data` was a
+   * Promise: the un-awaited `_updateSpecialization(data)` rejected with
+   * "Cannot read properties of undefined (reading 'slice')" (data.talentList),
+   * and the `data.limited` / `data.items` tweaks were written onto the Promise
+   * wrapper and silently lost.
+   */
+  async getData() {
+    const data = await super.getData();
     switch (this.actor.type) {
       case "character":
         this.position.width = 595;
@@ -36,7 +42,7 @@ export class AdversarySheetFFG extends ActorSheetFFG {
 
         // we need to update all specialization talents with the latest talent information
         if (!this.actor.flags.starwarsffg?.loaded) {
-          super._updateSpecialization(data);
+          await super._updateSpecialization(data);
         }
 
         break;

@@ -1,21 +1,30 @@
-import { FFGDocumentSheetV2 } from "./document-sheet-v2-compat.js";
+import { FFGDocumentSheet } from "./ffg-document-sheet.js";
 
-export class ActorSheetV2Compat extends FFGDocumentSheetV2 {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      height: 720,
-      width: 800,
-      template: "templates/sheets/actor-sheet.html",
-      closeOnSubmit: false,
-      submitOnClose: true,
-      submitOnChange: true,
-      resizable: true,
-      baseApplication: "ActorSheet",
-      dragDrop: [{ dragSelector: ".item-list .item" }],
-      secrets: [{ parentSelector: ".editor" }],
-      token: null,
-    });
-  }
+/**
+ * Native shared base for the system's actor sheets (`ActorSheetFFG` and its
+ * `AdversarySheetFFG` variant) on top of the document-sheet base
+ * `FFGDocumentSheet`. Adds the actor-specific machinery: token-aware title,
+ * the `actor`/`token` accessors, the item/effect/actor/folder drag-drop suite
+ * (`_onDrop*` / `_onSortItem` / `_onDragStart`), the configure-(prototype-)token
+ * header controls, and the `_getSubmitData` AE-override stripping. The
+ * `dragDrop` selector here is wired by `FFGDocumentSheet._activateCoreListeners`.
+ *
+ * Subclasses provide their data via `getData()` and listeners via
+ * `activateListeners(html)` (bridged to native `_prepareContext`/`_onRender` by
+ * the base). See docs/superpowers/plans/2026-05-31-v2-full-migration.md.
+ */
+export class FFGActorSheet extends FFGDocumentSheet {
+  static DEFAULT_OPTIONS = {
+    position: { width: 800, height: 720 },
+    window: { resizable: true },
+    // V1-parity submit flags read by the manual submit pipeline in the base.
+    submitOnChange: true,
+    submitOnClose: true,
+    closeOnSubmit: false,
+    baseApplication: "ActorSheet",
+    dragDrop: [{ dragSelector: ".items-list .item" }],
+    secrets: [{ parentSelector: ".editor" }],
+  };
 
   get title() {
     if (!this.actor.isToken) return this.actor.name;
@@ -98,7 +107,10 @@ export class ActorSheetV2Compat extends FFGDocumentSheetV2 {
 
   _getSubmitData(updateData = {}) {
     const data = super._getSubmitData(updateData);
-    const overrides = foundry.utils.flattenObject(this.actor.overrides);
+    // `overrides` can be undefined (no active effects applied yet); flattenObject
+    // throws on Object.keys(undefined), which would abort submit-on-close and
+    // leave the × button unable to close the sheet. Guard with {}.
+    const overrides = foundry.utils.flattenObject(this.actor.overrides ?? {});
     for (const k of Object.keys(overrides)) delete data[k];
     return data;
   }

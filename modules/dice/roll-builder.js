@@ -1,8 +1,9 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
 import { DicePoolFFG } from "./pool.js";
-import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
 
-export default class RollBuilderFFG extends FormApplicationV2Compat {
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+export default class RollBuilderFFG extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(rollData, rollDicePool, rollDescription, rollSkillName, rollItem, rollAdditionalFlavor, rollSound) {
     super();
     this.roll = {
@@ -49,16 +50,24 @@ export default class RollBuilderFFG extends FormApplicationV2Compat {
     }
   }
 
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "roll-builder",
-      classes: ["starwarsffg", "roll-builder-dialog"],
-      template: "systems/starwarsffg/templates/dice/roll-options-ffg.html",
+  static DEFAULT_OPTIONS = {
+    id: "roll-builder",
+    classes: ["starwarsffg", "roll-builder-dialog"],
+    tag: "div",
+    window: {
+      resizable: true,
+    },
+    position: {
       width: 350,
-      resizable: true
-    });
-  }
+    },
+  };
+
+  static PARTS = {
+    content: {
+      root: true,
+      template: "systems/starwarsffg/templates/dice/roll-options-ffg.html",
+    },
+  };
 
   /** @override */
   get title() {
@@ -66,7 +75,7 @@ export default class RollBuilderFFG extends FormApplicationV2Compat {
   }
 
   /** @override */
-  async getData() {
+  async _prepareContext(_options) {
     //get all possible sounds
     let sounds = [];
     const diceSymbols = {
@@ -152,8 +161,9 @@ export default class RollBuilderFFG extends FormApplicationV2Compat {
   }
 
   /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const html = $(this.element);
 
     this._initializeInputs(html);
     this._activateInputs(html);
@@ -169,6 +179,12 @@ export default class RollBuilderFFG extends FormApplicationV2Compat {
     });
 
     html.find(".btn").click(async (event) => {
+      // The Roll button is a <button> inside the template's <form>, so it
+      // defaults to type="submit". Under the V1 FormApplication that native
+      // submit is what closed the dialog (closeOnSubmit); the native
+      // ApplicationV2 port no longer wires form submission, so stop the
+      // default submit and close the dialog explicitly once the roll is sent.
+      event.preventDefault();
       // if sound was not passed search for sound dropdown value
       if (!this.roll.sound) {
         const sound = html.find(".sound-selection")?.[0]?.value;
@@ -279,6 +295,7 @@ export default class RollBuilderFFG extends FormApplicationV2Compat {
         }
 
         ChatMessage.create(chatOptions);
+        await this.close();
       } else {
         if (this.roll.crew) {
           this.roll.item['crew'] = this.roll.crew
@@ -305,6 +322,7 @@ export default class RollBuilderFFG extends FormApplicationV2Compat {
           AudioHelper.play({ src: this.roll.sound }, true);
         }
 
+        await this.close();
         return roll;
       }
     });
@@ -463,8 +481,6 @@ export default class RollBuilderFFG extends FormApplicationV2Compat {
       this._updatePreview(html);
     });
   }
-
-  _updateObject() {}
 
   /** @override */
   async close(options) {

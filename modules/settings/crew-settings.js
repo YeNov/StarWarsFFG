@@ -1,19 +1,29 @@
-import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
+import { FFGFormApplication } from "../apps/ffg-form-application.js";
 
-export default class CrewSettings extends FormApplicationV2Compat {
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "data-importer",
-      classes: ["starwarsffg", "data-import"],
-      title: `${game.i18n.localize("SWFFG.UISettingsLabel")}`,
-      height: 265,
+export default class CrewSettings extends FFGFormApplication {
+  static DEFAULT_OPTIONS = {
+    id: "data-importer",
+    classes: ["starwarsffg", "data-import"],
+    window: {
+      title: "SWFFG.UISettingsLabel",
       resizable: true,
-      template: "systems/starwarsffg/templates/dialogs/crew-settings.html"
-    });
-  }
+    },
+    position: {
+      height: 265,
+    },
+    form: {
+      closeOnSubmit: true,
+    },
+  };
 
-  getData(options) {
+  static PARTS = {
+    content: {
+      root: true,
+      template: "systems/starwarsffg/templates/dialogs/crew-settings.html",
+    },
+  };
+
+  async _prepareContext(_options) {
     const gs = game.settings;
     const canConfigure = game.user.can("SETTINGS_MODIFY");
 
@@ -53,8 +63,9 @@ export default class CrewSettings extends FormApplicationV2Compat {
     };
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const html = $(this.element);
     html.find('button[name="reset"]').click(this._onResetDefaults.bind(this));
   }
 

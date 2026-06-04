@@ -3,6 +3,10 @@
     margin-top: 10px;
     min-height: 54px;
     text-align: center;
+    padding: 4px;
+    border-radius: 4px;
+    // half-transparent backing so the black setback die stays visible on dark themes
+    background-color: rgba(255, 255, 255, 0.5);
   }
   .pool-value {
     border: 1px solid black;

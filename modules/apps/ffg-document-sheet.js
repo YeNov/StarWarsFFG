@@ -1,10 +1,24 @@
 const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * Compatibility base for porting the existing document sheets to Foundry's
- * ApplicationV2 framework without rewriting every legacy sheet handler at once.
+ * Native shared base for the system's document sheets (item sheets as of the
+ * V2-full migration Stage 3; actor sheets join in Stage 4). Extends Foundry's
+ * ApplicationV2 `DocumentSheetV2` directly — no V1 compatibility shim.
+ *
+ * Provides the system-wide sheet machinery on top of `DocumentSheetV2`:
+ *   - submit coalescing (`_onSubmit`) with change-stream batching,
+ *   - the inline ProseMirror editor lifecycle (`_activateEditor` / `_saveEditor`),
+ *   - a per-document active-tab cache, drag/drop wiring, header-control
+ *     projection, dblclick-to-minimize, and the interactive-resize floor.
+ *
+ * Subclasses provide their data via `getData()` (bridged to native
+ * `_prepareContext`) and their listeners via `activateListeners(html)` (bridged
+ * to native `_onRender`). The native V2 form pipeline is intentionally neutered
+ * (`form.handler = null`); submission flows through the manual `_onSubmit` so
+ * the V1 submit-on-change / submit-on-close semantics and the coalescing loop
+ * are preserved. See docs/superpowers/plans/2026-05-31-v2-full-migration.md.
  */
-export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheetV2) {
+export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
   /**
    * Per-document active-tab cache keyed by `${appName}:${documentUuid}`. Used
    * to persist the active sheet tab across close-and-reopen within a single
@@ -18,16 +32,38 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
 
   static DEFAULT_OPTIONS = {
     tag: "div",
+    // `app`/`window-app`/`sheet` are the V1-parity hooks; `application` is added
+    // by ApplicationV2. `themed`/`theme-light` are hardcoded to match the compat
+    // base (FFGDocumentSheetV2) exactly: the system has always shipped its sheets
+    // forced to V13 light theme. Letting DocumentSheetV2 derive the theme natively
+    // dropped both classes (no per-document theme is configured), which changed the
+    // V13 CSS variables the skin/layout depend on — a visual regression (notably
+    // the character/rival/nemesis tab-strip height). Keep them for identical output.
     classes: ["app", "window-app", "sheet", "themed", "theme-light"],
     window: {
       contentTag: "form",
       contentClasses: [],
       resizable: true,
     },
+    // The native V2 form pipeline is neutered (`handler: null`) so the manual
+    // `_onSubmit` is the single submission path; see _initializeApplicationOptions.
+    // The *top-level* submit flags below are the V1-parity options the manual
+    // pipeline reads via `this.options.*` — distinct from the nested `form.*`
+    // framework flags. Subclasses set their own values.
     form: {
+      handler: null,
       submitOnChange: false,
       closeOnSubmit: false,
     },
+    editable: true,
+    submitOnChange: false,
+    submitOnClose: false,
+    closeOnSubmit: false,
+    sheetConfig: true,
+    scrollY: [],
+    tabs: [],
+    dragDrop: [],
+    secrets: [],
   };
 
   static PARTS = {
@@ -36,58 +72,6 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
       template: "",
     },
   };
-
-  static get defaultOptions() {
-    return {
-      width: null,
-      height: null,
-      top: null,
-      left: null,
-      scale: null,
-      popOut: true,
-      minimizable: true,
-      resizable: false,
-      id: "",
-      classes: ["sheet"],
-      dragDrop: [],
-      tabs: [],
-      filters: [],
-      title: "",
-      template: null,
-      scrollY: [],
-      closeOnSubmit: false,
-      editable: true,
-      sheetConfig: true,
-      submitOnChange: true,
-      submitOnClose: true,
-      secrets: [],
-    };
-  }
-
-  static _migrateConstructorParams(first, rest) {
-    if ((first instanceof Object) && (first.document instanceof foundry.abstract.Document)) {
-      return first;
-    }
-
-    if (!(first instanceof foundry.abstract.Document)) {
-      throw new Error("A DocumentSheetV2 application must be provided a Document instance.");
-    }
-
-    const legacyOptions = rest.find((option) => option && (foundry.utils.getType(option) === "Object")) ?? {};
-    const options = {
-      document: first,
-      legacyOptions,
-    };
-
-    if (typeof legacyOptions.title === "string") options.window = { title: legacyOptions.title };
-    const positionKeys = ["top", "left", "width", "height", "scale", "zIndex"];
-    options.position = positionKeys.reduce((position, key) => {
-      if (legacyOptions[key] !== undefined) position[key] = legacyOptions[key];
-      return position;
-    }, {});
-
-    return options;
-  }
 
   constructor(...args) {
     super(...args);
@@ -102,49 +86,16 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     this._token = this.options.token ?? null;
   }
 
+  /**
+   * Neuter V2's native form pipeline. Submission is handled manually by
+   * `_onChangeInput` / `_onSubmit` to preserve V1 submit-on-change /
+   * submit-on-close semantics and the submit-coalescing in `_onSubmit`.
+   * Setting `handler: null` removes DocumentSheetV2's own form handler so the
+   * manual submit listener bound in `_onRender` is the only submit path. We do
+   * this defensively in addition to the DEFAULT_OPTIONS `form.handler: null`.
+   */
   _initializeApplicationOptions(options) {
     const initialized = super._initializeApplicationOptions(options);
-    const legacyOptions = foundry.utils.mergeObject(
-      foundry.utils.deepClone(this.constructor.defaultOptions),
-      options?.legacyOptions ?? {},
-      { inplace: false },
-    );
-
-    initialized.legacyOptions = legacyOptions;
-    initialized.editable = legacyOptions.editable !== false;
-    initialized.closeOnSubmit = legacyOptions.closeOnSubmit;
-    initialized.submitOnChange = legacyOptions.submitOnChange;
-    initialized.submitOnClose = legacyOptions.submitOnClose;
-    initialized.sheetConfig = legacyOptions.sheetConfig;
-    initialized.dragDrop = legacyOptions.dragDrop ?? [];
-    initialized.tabs = legacyOptions.tabs ?? [];
-    initialized.filters = legacyOptions.filters ?? [];
-    initialized.scrollY = legacyOptions.scrollY ?? [];
-    initialized.template = legacyOptions.template;
-    initialized.token = legacyOptions.token ?? null;
-    if (legacyOptions.id) initialized.id = legacyOptions.id;
-
-    initialized.classes.push(...(legacyOptions.classes ?? []));
-    initialized.classes = Array.from(new Set(initialized.classes));
-
-    initialized.window.resizable = legacyOptions.resizable ?? initialized.window.resizable;
-    if (legacyOptions.title) initialized.window.title = legacyOptions.title;
-
-    for (const key of ["width", "height", "top", "left", "scale", "zIndex"]) {
-      if (legacyOptions[key] !== null && legacyOptions[key] !== undefined) {
-        initialized.position[key] = legacyOptions[key];
-      }
-    }
-
-    // V2's form pipeline is intentionally and unconditionally disabled here;
-    // submission is handled manually by _onChangeInput / _onSubmit to match
-    // V1 semantics. Do not add `legacyOptions.submitOnChange ?? …` plumbing
-    // elsewhere — it would be dead code (overwritten here) and signals an
-    // intent we don't actually support. The `closeOnSubmit` semantics that
-    // legacy callers expect are preserved via `this.options.closeOnSubmit`
-    // (set earlier from legacyOptions) which the manual `_onSubmit` reads;
-    // the `form.closeOnSubmit` sub-object here is V2 framework state that
-    // does nothing once `handler: null` neuters the pipeline.
     initialized.form = {
       ...initialized.form,
       submitOnChange: false,
@@ -164,6 +115,36 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
 
   get isEditable() {
     return (this.options.editable !== false) && super.isEditable;
+  }
+
+  /**
+   * Disable/enable all form fields for non-editable sheets.
+   *
+   * DocumentSheetV2 calls this from `_onRender` whenever `!isEditable` (e.g. a
+   * locked-compendium item, a limited-permission item, or `flags.readonly`).
+   * The native implementation computes its content element as
+   * `form.querySelector(".window-content")`, which assumes the form is a *child*
+   * of `.window-content`. In our layout the content form element *is* the
+   * `.window-content` (tag:"div" + window.contentTag:"form"), so that lookup
+   * returns null and the native method throws on `contentEl.querySelectorAll`.
+   * Override to fall back to the form itself. Without this, opening any
+   * non-editable item/actor sheet crashes during render.
+   * @override
+   */
+  _toggleDisabled(disabled) {
+    const form = this.form;
+    if (!form) return;
+    const framed = this.options.window.frame;
+    for (const element of form.elements) {
+      if (!framed || element.closest(".window-content")) element.disabled = disabled;
+    }
+    const contentEl = (framed ? form.querySelector(".window-content") : form) ?? form;
+    for (const input of contentEl.querySelectorAll("input[type=image]")) {
+      input.disabled = disabled;
+    }
+    for (const img of contentEl.querySelectorAll("img[data-edit]")) {
+      img.classList.toggle("disabled", disabled);
+    }
   }
 
   get _activeTabCacheKey() {
@@ -368,6 +349,14 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
         event.stopPropagation();
         button?.click();
       });
+      // Keep the header's window-drag (ApplicationV2 `#onWindowDragStart`) from
+      // engaging on a press that begins on this link: a press with any cursor
+      // movement otherwise triggers `header.setPointerCapture()`, which eats the
+      // synthesized `click`. Same mechanism/fix as the Sheet Options button in
+      // actor-ffg-options.js / item-ffg-options.js. (LEGACY_HEADER_ACTIONS is
+      // empty today, so no links are projected -- this guards the path if it is
+      // ever populated.)
+      link.addEventListener("pointerdown", (event) => event.stopPropagation());
       header.insertBefore(link, anchor);
     }
   }
@@ -413,12 +402,24 @@ export class FFGDocumentSheetV2 extends HandlebarsApplicationMixin(DocumentSheet
     try {
       if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
         const event = new Event("submit", { cancelable: true });
-        await this._onSubmit(event, { preventClose: true, render: false });
+        try {
+          await this._onSubmit(event, { preventClose: true, render: false });
+        } catch (err) {
+          // A failed submit-on-close must NEVER trap the window open: the user
+          // clicked × and expects it to close. Log and continue to tear down
+          // (this matches Foundry's own close, which does not block on submit).
+          // This was the minion close-button bug: submit-on-close threw and the
+          // unguarded await aborted close() before super.close() ever ran.
+          console.error("starwarsffg | submit-on-close failed; closing anyway", err);
+        }
       }
       // Fire while the form is still in the DOM so legacy listeners can inspect it.
       const form = this.form;
       if (form) this._callLegacyCloseHook($(form));
       return await super.close(options);
+    } catch (err) {
+      console.error("starwarsffg | sheet failed to close (super.close threw)", err);
+      throw err;
     } finally {
       this._closing = false;
     }

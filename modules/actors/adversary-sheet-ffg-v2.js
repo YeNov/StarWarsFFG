@@ -1,25 +1,16 @@
 import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
 
-export class AdversarySheetFFGV2 extends AdversarySheetFFG {
-  constructor(...args) {
-    super(...args);
-  }
-
-  /** @override */
-  get template() {
-    const path = "systems/starwarsffg/templates/actors";
-    return `${path}/ffg-adversary-sheet.html`;
-  }
-
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ["starwarsffg", "sheet", "actor", "adversary", "v2"],
-      template: "systems/starwarsffg/templates/actors/ffg-adversary-sheet.html",
-      width: 710,
-      height: 650,
-      tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "characteristics" }],
-      scrollY: [".tableWithHeader", ".tab", ".skillsGrid", ".skillsTablesGrid"],
-    });
-  }
-}
+/**
+ * @deprecated Collapsed alias of {@link AdversarySheetFFG} (V2-full migration,
+ * Stage 4.8). The former V1/V2 adversary-sheet split is gone: both names now
+ * resolve to the same native ApplicationV2 sheet, and the `v2` class / template /
+ * dimensions that used to live here are folded into
+ * `AdversarySheetFFG.DEFAULT_OPTIONS` (+ its inherited `ActorSheetFFG` options).
+ *
+ * This empty alias is retained for ONE release so worlds whose actors carry
+ * `flags.core.sheetClass === "ffg.AdversarySheetFFGV2"` keep resolving without a
+ * data migration. Its registration in `swffg-main.js` is kept (without
+ * `makeDefault`) for the same reason. Remove both in the release after V2-full
+ * lands. See docs/superpowers/plans/2026-05-31-v2-full-migration.md.
+ */
+export class AdversarySheetFFGV2 extends AdversarySheetFFG {}

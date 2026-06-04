@@ -1,8 +1,8 @@
 import ItemHelpers from "../helpers/item-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
-import { FormApplicationV2Compat } from "../apps/form-application-v2-compat.js";
+import { FFGFormApplication } from "../apps/ffg-form-application.js";
 
-export class itemEditor extends FormApplicationV2Compat  {
+export class itemEditor extends FFGFormApplication {
   /*
   Known issues:
     - The title of the editor doesn't get updated when you update the name
@@ -12,26 +12,58 @@ export class itemEditor extends FormApplicationV2Compat  {
   constructor(data) {
     super();
     this.data = data;
+    // appId mirrors the V1 field some handlers still reference.
+    this.appId = this.id;
+    // The header title is dynamic (current + parent item). Set it up front so
+    // it is available before the frame header renders; _prepareContext refreshes
+    // it on re-render.
+    this._title = game.i18n.format("SWFFG.Items.Popout.Title", {
+      currentItem: data.clickedObject.name,
+      parentItem: data.sourceObject.name,
+    });
+  }
+
+  static DEFAULT_OPTIONS = {
+    classes: ["starwarsffg", "flat_editor"],
+    tag: "div",
+    window: {
+      title: "Embedded Item Editor",
+      contentTag: "form",
+      resizable: true,
+    },
+    position: {
+      width: 520,
+      height: 600,
+    },
+    form: {
+      submitOnChange: true,
+      closeOnSubmit: false,
+    },
+    submitOnClose: true,
+  };
+
+  static PARTS = {
+    content: { root: true, template: "" },
+  };
+
+  /**
+   * Render the type-specific template (ffg-embedded-<type>.html) as the root
+   * part, preserving the modifier list's scroll position across re-renders.
+   * @override
+   */
+  _configureRenderParts(_options) {
+    return {
+      content: {
+        root: true,
+        template: this.template,
+        scrollable: [".modification_container"],
+      },
+    };
   }
 
   /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(
-      super.defaultOptions,
-      {
-        title: `Embedded Item Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        height: 600,
-        width: 520,
-        template: "systems/starwarsffg/templates/items/dialogs/ffg-embedded-itemattachment.html",
-        closeOnSubmit: false,
-        submitOnClose: true,
-        submitOnChange: true,
-        resizable: true,
-        classes: ["starwarsffg", "flat_editor", "sheet"],
-        tabs: [{ navSelector: ".tabs", contentSelector: ".content", initial: "tab1"}],
-        scrollY: [".modification_container"],
-      }
-    );
+  get title() {
+    return this._title ?? game.i18n.localize(this.options.window.title);
   }
 
   /** @override */
@@ -41,8 +73,8 @@ export class itemEditor extends FormApplicationV2Compat  {
   }
 
   /** @override */
-  async getData(options) {
-    // update the title since it isn't available when creating the application
+  async _prepareContext(_options) {
+    // refresh the dynamic title on (re-)render
     this._title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
     const data = await this._enrichData();
     let modifierChoices = CONFIG.FFG.allowableModifierChoices;
@@ -78,8 +110,24 @@ export class itemEditor extends FormApplicationV2Compat  {
   }
 
   /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    this._setupTabs();
+    this._activateListeners($(this.form));
+  }
+
+  /** Bind the BASICS / BASE MODS tab navigation, remembering the active tab. */
+  _setupTabs() {
+    if (!this.element) return;
+    new foundry.applications.ux.Tabs({
+      navSelector: ".tabs",
+      contentSelector: ".content",
+      initial: this._activeTab ?? "tab1",
+      callback: (_event, _tabs, active) => { this._activeTab = active; },
+    }).bind(this.element);
+  }
+
+  _activateListeners(html) {
     html.find('[name="system.type"]').on("change", this._updateType.bind(this));
     html.find(".flat_editor.dropdown").on("change", this._updateDropdown.bind(this));
     html.find(".flat_editor.add-mod").on("click", this._modControl.bind(this));
@@ -93,7 +141,7 @@ export class itemEditor extends FormApplicationV2Compat  {
         permissions: { dragstart: this._canDragStart.bind(this), drop: this._canDragDrop.bind(this) },
         callbacks: { drop: this.onDropMod.bind(this) },
       });
-      dragDrop.bind($(`[data-appid="${this.appId}"]`)[0]);
+      dragDrop.bind(this.element);
     }
   }
 
@@ -175,7 +223,7 @@ export class itemEditor extends FormApplicationV2Compat  {
 
       $(event.currentTarget).parent().parent().children(".attributes-list").append(rendered);
       // update the listeners, so we catch events on these new entries
-      this.activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
+      this._activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
       // submit the changes so it gets saved even if the user reloads without closing the editor
       await this._updateObject(undefined, this._getSubmitData());
     } else if (action === 'delete') {
@@ -224,7 +272,7 @@ export class itemEditor extends FormApplicationV2Compat  {
       );
       $(event.currentTarget).parent().children('.modification_container').append(rendered);
       // update the listeners, so we catch events on these new entries
-      this.activateListeners($(event.currentTarget).parent().children('.modification_container'));
+      this._activateListeners($(event.currentTarget).parent().children('.modification_container'));
       // submit the changes so it gets saved even if the user reloads without closing the editor
       await this._updateObject(undefined, this._getSubmitData());
     } else if (action === 'delete') {
@@ -542,24 +590,11 @@ export class talentEditor extends itemEditor {
     Known issues:
     - The description rich text editor doesn't appear to work
   */
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(
-      super.defaultOptions,
-      {
-        title: `Embedded Talent Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        height: 600,
-        width: 520,
-        closeOnSubmit: false,
-        submitOnClose: true,
-        submitOnChange: true,
-        resizable: true,
-        classes: ["starwarsffg", "flat_editor"],
-        tabs: [{ navSelector: ".tabs", contentSelector: ".content", initial: "tab1"}],
-        scrollY: [".modification_container"],
-      }
-    );
-  }
+  static DEFAULT_OPTIONS = {
+    window: {
+      title: "Embedded Talent Editor",
+    },
+  };
 
   /** @override */
   get template() {
@@ -568,8 +603,8 @@ export class talentEditor extends itemEditor {
   }
 
     /** @override */
-  async getData(options) {
-    // update the title since it isn't available when creating the application
+  async _prepareContext(_options) {
+    // refresh the dynamic title on (re-)render
     this._title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
 
     let activations = CONFIG.FFG.activations;
@@ -630,7 +665,7 @@ export class talentEditor extends itemEditor {
 
       $(event.currentTarget).parent().parent().children(".attributes-list").append(rendered);
       // update the listeners, so we catch events on these new entries
-      this.activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
+      this._activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
       // submit the changes so it gets saved even if the user reloads without closing the editor
       await this._updateObject(undefined, this._getSubmitData());
     } else if (action === 'delete') {
@@ -756,24 +791,11 @@ export class forcePowerEditor extends itemEditor {
     Known issues:
     - The description rich text editor doesn't appear to work
   */
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(
-      super.defaultOptions,
-      {
-        title: `Embedded Force Power Editor`, // should not be seen by anyone, as it is dynamically set on getData()
-        height: 600,
-        width: 520,
-        closeOnSubmit: false,
-        submitOnClose: true,
-        submitOnChange: true,
-        resizable: true,
-        classes: ["starwarsffg", "flat_editor"],
-        tabs: [{ navSelector: ".tabs", contentSelector: ".content", initial: "tab1"}],
-        scrollY: [".modification_container"],
-      }
-    );
-  }
+  static DEFAULT_OPTIONS = {
+    window: {
+      title: "Embedded Force Power Editor",
+    },
+  };
 
   /** @override */
   get template() {
@@ -782,8 +804,8 @@ export class forcePowerEditor extends itemEditor {
   }
 
     /** @override */
-  async getData(options) {
-    // update the title since it isn't available when creating the application
+  async _prepareContext(_options) {
+    // refresh the dynamic title on (re-)render
     this._title = game.i18n.format("SWFFG.Items.Popout.Title", {currentItem: this.data.clickedObject.name, parentItem: this.data.sourceObject.name});
 
     // build out the mod type and mod choices
@@ -849,7 +871,7 @@ export class forcePowerEditor extends itemEditor {
 
       $(event.currentTarget).parent().parent().children(".attributes-list").append(rendered);
       // update the listeners, so we catch events on these new entries
-      this.activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
+      this._activateListeners($(event.currentTarget).parent().parent().children(".attributes-list"));
       // submit the changes so it gets saved even if the user reloads without closing the editor
       await this._updateObject(undefined, this._getSubmitData());
     } else if (action === 'delete') {

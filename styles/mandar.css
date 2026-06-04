@@ -125,10 +125,20 @@ body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .
   flex: 1 !important;
 }
 
+/* The talent header height is variable: it depends on the image, the
+   ranked/force/conflict block row, AND third-party injections (the
+   enhancements module appends an "Associated Skills" block via renderItemSheet).
+   A hardcoded `calc(100% - 22rem)` body guessed that header height -- once the
+   real header exceeded 22rem, header + body overflowed form.window-content
+   (which is `overflow: visible`) and the modifier list spilled out the bottom
+   of the window instead of scrolling. Flex the body to fill whatever the
+   natural-height header leaves and scroll its own overflow (same as the generic
+   item-body rule below). */
 body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
-  flex: 0 0 calc(100% - 22rem) !important;
-  height: calc(100% - 22rem) !important;
-  min-height: 0;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
 }
 
 body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-body {
@@ -920,13 +930,11 @@ img {
   height: calc(100% - 20rem);
 }
 
-.starwarsffg.sheet .sheet-body.talent {
-  height: calc(100% - 26rem);
-}
-.starwarsffg.sheet.v2 .sheet-body.talent {
-  height: calc(100% - 22rem);
-}
-
+/* The talent body height is governed by the flexible rule near the top of this
+   file (`form.window-content.item-sheet-talent > .sheet-body.talent`). The old
+   fixed `calc(100% - Nrem)` rules that lived here were stale dead overrides --
+   a guessed header height spills the modifier list once the real header (image
+   + block row + injected "Associated Skills") exceeds the guess. */
 .starwarsffg.sheet .sheet-body.species {
   height: calc(100% - 24rem);
 }
@@ -1581,6 +1589,10 @@ img {
   text-align: center;
   display: flex;
   justify-content: center;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .starwarsffg .dice-pool-dialog .pool-value {
@@ -2197,7 +2209,10 @@ img {
 }
 
 .starwarsffg .item-sheet-criticalinjury .crit-label {
-  padding-top: 5px;
+  /* Push Severity down so the d100 Roll's absolutely-positioned LOW/HIGH
+     shadow panel (.block-background-shadow protrudes ~0.95rem below the block)
+     has room to be read instead of being overlapped by this block. */
+  padding-top: 1.5rem;
 }
 
 .starwarsffg .item-sheet-talent .header-fields h1 input, .starwarsffg .item-sheet-gear .header-fields h1 input, .starwarsffg .item-sheet-weapon .header-fields h1 input, .starwarsffg .item-sheet-armor .header-fields h1 input, .starwarsffg .item-sheet-vehicle-weapon .header-fields h1 input, .starwarsffg .item-sheet-vehicle-attachment .header-fields h1 input, .starwarsffg .item-sheet-criticalinjury .header-fields h1 input {
@@ -2737,6 +2752,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 3px 0;
 }
 
 .chat-msg-tooltip {
@@ -3530,8 +3546,34 @@ img {
   position: relative;
 }
 
+/* The group-manager template's <form> wrapper is dropped by the root PART, so
+   its content mounts directly inside form.window-content (core sets that to
+   overflow:hidden). Scroll the content vertically so a scrollbar appears
+   automatically only when the PC / obligation / duty lists overflow the
+   window; overflow-x stays hidden (the PC table scrolls on its own). */
+.starwarsffg.application.group-manager > form.window-content {
+  overflow-y: auto;
+}
+
 .starwarsffg .group-manager .PC-list {
   margin: 20px 0;
+  overflow-x: auto;
+}
+
+.starwarsffg .group-manager .PC-list table {
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.starwarsffg .group-manager .PC-list th,
+.starwarsffg .group-manager .PC-list td {
+  padding: 0 0.375rem;
+}
+
+.starwarsffg .group-manager .PC-list input[type="text"] {
+  width: 3rem;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .starwarsffg .group-manager .initiative-mode {
@@ -3663,6 +3705,22 @@ img {
 
 .starwarsffg .attributes .attribute-value.checkbox {
   text-align: center;
+}
+
+/* Modifier list (shared ffg-modifiers partial + the mod-edit dialogs): the
+   modtype/mod <select>s are flex children whose default `min-width: auto`
+   refuses to shrink below their longest option text, pushing the row past the
+   sheet's right edge on narrow item sheets (e.g. talent). Let every cell
+   shrink, and pin the value column to a compact fixed width so the two
+   dropdowns share the remaining room and stay column-aligned with the header. */
+.starwarsffg .attributes .attributes-header > *,
+.starwarsffg .attributes .attributes-list .attribute.flexrow > * {
+  min-width: 0;
+}
+
+.starwarsffg .attributes .attributes-header .attribute-value,
+.starwarsffg .attributes .attributes-list .attribute.flexrow > .modvalue {
+  flex: 0 0 3.5rem;
 }
 
 .starwarsffg .item-sheet-criticalinjury .sheet-header {
@@ -4314,12 +4372,54 @@ img {
   margin-bottom: 1rem;
 }
 
+.initiative-dialog .addDicePool {
+  margin: 0.5rem auto;
+  border-collapse: separate;
+  border-spacing: 0 0.375rem;
+}
+
+.initiative-dialog .pool-additional {
+  background: rgba(255, 255, 255, 0.5);
+  color: #1b1b1b;
+  text-align: center;
+  padding: 0.375rem 0.75rem;
+  white-space: nowrap;
+}
+
 .initiative-dialog .pool-additional img {
   vertical-align: middle;
 }
 
 .initiative-dialog .pool-additional input {
   margin: 0 0.1875rem;
+  vertical-align: middle;
+}
+
+.initiative-dialog .pool-additional input[type="button"] {
+  min-width: 1.75rem;
+  cursor: pointer;
+}
+
+.ffg-meta-dialog .ffg-meta-form {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-size-14, 0.875rem);
+}
+
+.ffg-meta-dialog .ffg-meta-form label {
+  margin: 0;
+}
+
+.ffg-meta-dialog .ffg-meta-form label:not(:first-child) {
+  margin-top: 0.75rem;
+}
+
+.ffg-meta-dialog .ffg-meta-form input {
+  margin: 0;
+}
+
+.ffg-meta-dialog .form-footer {
+  margin-top: 1rem;
 }
 
 .og-character-import {
@@ -4338,6 +4438,7 @@ img {
 
 #destiny-tracker {
   box-shadow: none;
+  border: none !important;
   background: transparent;
   position: absolute;
   width: max-content !important;
@@ -4358,6 +4459,7 @@ img {
 
 #destiny-tracker .window-content {
   background: transparent;
+  backdrop-filter: none !important;
   padding: 10px !important;
   margin: 0 !important;
   width: max-content !important;
@@ -4762,6 +4864,20 @@ img {
 .starwarsffg.flat_editor .modification_header {
   border-left: 2px solid var(--color-underline-header);
   padding-left: 5px;
+}
+
+.starwarsffg.flat_editor .modifier-description,
+.starwarsffg.sheet .modifier-description {
+  flex: 1 1 auto;
+  min-height: 8em;
+  width: 100%;
+  resize: vertical;
+}
+
+.starwarsffg.flat_editor .form-group:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .starwarsffg .flat_editor.modifications.active {

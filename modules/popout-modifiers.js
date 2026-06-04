@@ -1,38 +1,40 @@
-/**
- * A specialized form used to pop out the editor.
- * @extends {FormApplicationV2Compat}
- */
-
 import ModifierHelpers from "./helpers/modifiers.js";
-import { FormApplicationV2Compat } from "./apps/form-application-v2-compat.js";
+import { FFGFormApplication } from "./apps/ffg-form-application.js";
 
-export default class PopoutModifiers extends FormApplicationV2Compat {
-  /** @override */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "popout-modifiers",
-      classes: ["starwarsffg", "sheet"],
+/**
+ * Pop-out window for editing an item / upgrade / talent's modifier (attribute)
+ * list. Live-edits: each change submits and re-renders, and closing flushes a
+ * final submit (submitOnClose).
+ * @extends {FFGFormApplication}
+ */
+export default class PopoutModifiers extends FFGFormApplication {
+  static DEFAULT_OPTIONS = {
+    id: "popout-modifiers",
+    classes: ["starwarsffg", "sheet"],
+    window: {
       title: "Pop-out Modifiers",
-      template: "systems/starwarsffg/templates/items/dialogs/ffg-popout-modifiers.html",
-      closeOnSubmit: false,
-      submitOnClose: true,
-      submitOnChange: true,
       resizable: true,
+    },
+    position: {
       width: 320,
       height: 320,
-    });
-  }
+    },
+    form: {
+      submitOnChange: true,
+      closeOnSubmit: false,
+    },
+    submitOnClose: true,
+  };
 
-  /**
-   * Return a reference to the target attribute
-   * @type {String}
-   */
-  get attribute() {
-    return this.options.name;
-  }
+  static PARTS = {
+    content: {
+      root: true,
+      template: "systems/starwarsffg/templates/items/dialogs/ffg-popout-modifiers.html",
+    },
+  };
 
   /** @override */
-  getData() {
+  async _prepareContext(_options) {
     const data = {
       data: this.object.system,
       modTypeSelected: "all",
@@ -58,30 +60,28 @@ export default class PopoutModifiers extends FormApplicationV2Compat {
   /** @override */
   async _onRender(context, options) {
     await super._onRender(context, options);
-    // Constrain the (potentially long) modifier list to scroll within the
-    // window instead of overflowing the frame. Applied as inline styles so it
-    // is immune to theme stylesheets (mandar) winning the cascade. The form is
-    // the flex window-content; make it a column and let the .attributes list
-    // take the remaining height and scroll, keeping the buttons row pinned.
-    const form = this.element?.querySelector("form");
-    const attributes = form?.querySelector(":scope > .attributes");
-    if (form && attributes) {
-      form.style.display = "flex";
-      form.style.flexDirection = "column";
-      attributes.style.flex = "1 1 auto";
-      attributes.style.minHeight = "0";
-      attributes.style.overflowY = "auto";
+    // window-content is the <form> (contentTag); the `root` PARTS entry strips
+    // the template's own <form>, so `.attributes` is a direct child of
+    // window-content. Constrain the (potentially long) modifier list to scroll
+    // within the window instead of overflowing the frame -- a flex column so
+    // the list takes the remaining height. Inline + !important so the mandar
+    // theme can't win the cascade and reintroduce overflow.
+    const content = this.element?.querySelector(".window-content");
+    const attributes = content?.querySelector(":scope > .attributes");
+    if (content && attributes) {
+      content.style.setProperty("display", "flex", "important");
+      content.style.setProperty("flex-direction", "column", "important");
+      attributes.style.setProperty("flex", "1 1 auto", "important");
+      attributes.style.setProperty("min-height", "0", "important");
+      attributes.style.setProperty("overflow-y", "auto", "important");
     }
-  }
 
-  /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
-
-    if (!this.options.editable) return;
-
-    //html.find(".attributes .attribute-control").on("click", () => { alert("here")});
-    html.find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
+    if (this.isEditable && content) {
+      // Delegated add/remove modifier-row controls. `.attributes` is re-created
+      // on every render, so (re)bind here. onClickAttributeControl reads
+      // `this.form` and calls `this._onSubmit` -- both provided by the base.
+      $(content).find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
+    }
   }
 
   /* -------------------------------------------- */

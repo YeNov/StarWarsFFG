@@ -92,6 +92,7 @@ export default [
         Macro: "readonly",
         Pause: "readonly",
         PIXI: "readonly",
+        ProseMirror: "readonly",
         Roll: "readonly",
         Ruler: "readonly",
         Scene: "readonly",

@@ -7,6 +7,25 @@
   text-align: center;
   .PC-list {
     margin: 20px 0;
+    // Long character names + default-width text inputs push the PC table
+    // wider than the (narrow) Group Manager window, clipping the rightmost
+    // columns (Soak / Combat / XP). Constrain the numeric inputs so the
+    // table fits, and let the container scroll horizontally as a safety net.
+    overflow-x: auto;
+
+    table {
+      margin: 0 auto;
+      max-width: 100%;
+    }
+    th,
+    td {
+      padding: 0 0.375rem;
+    }
+    input[type="text"] {
+      width: 3rem;
+      text-align: center;
+      box-sizing: border-box;
+    }
   }
   .initiative-mode {
     width: 100%;

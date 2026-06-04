@@ -1,6 +1,7 @@
 import {DicePoolFFG, RollFFG} from "./dice-pool-ffg.js";
 import PopoutEditor from "./popout-editor.js";
-import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
+
+const { DialogV2 } = foundry.applications.api;
 
 /**
  * Extend the base Combat entity.
@@ -86,8 +87,8 @@ export class CombatFFG extends Combat {
   async addInitiativeSlot() {
     // ask the user which disposition and initiative they would like, so we can add a generic slot
 
-    let slotDialog = new DialogV2Compat({
-      title: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Title"),
+    DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Title") },
       content: `
         <p>${game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Initiative")} :</p>
         <input type="number" id="initiative" name="initiative" value="0">
@@ -96,25 +97,27 @@ export class CombatFFG extends Combat {
         <label><input type="radio" id="neutral" name="disposition" value="neutral">${game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Neutral")}</label>
         <label><input type="radio" id="enemy" name="disposition" value="enemy">${game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Enemy")}</label>
       `,
-      buttons: {
-        submit: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "submit",
+          icon: "fas fa-check",
           label: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Submit"),
-          callback: async (obj, event) => {
-            const jObj = $(obj);
+          default: true,
+          callback: async (event, button, dialog) => {
+            const root = dialog.element;
             let disposition = undefined;
-            if (jObj.find("#friendly")[0].checked) {
+            if (root.querySelector("#friendly").checked) {
               disposition = CONST.TOKEN_DISPOSITIONS["FRIENDLY"];
-            } else if (jObj.find("#neutral")[0].checked) {
+            } else if (root.querySelector("#neutral").checked) {
               disposition = CONST.TOKEN_DISPOSITIONS["NEUTRAL"];
-            } else if (jObj.find("#enemy")[0].checked) {
+            } else if (root.querySelector("#enemy").checked) {
               disposition = CONST.TOKEN_DISPOSITIONS["HOSTILE"];
             }
             if (disposition === undefined) {
               ui.notifications.warn("You must select a disposition");
               return;
             }
-            const initiative = jObj.find("#initiative")[0].value;
+            const initiative = root.querySelector("#initiative").value;
             if (initiative === "") {
               ui.notifications.warn("You must provide an initiative value");
               return;
@@ -123,12 +126,11 @@ export class CombatFFG extends Combat {
             await this.addExtraSlot(this.round, disposition, parseInt(initiative));
             this.setupTurns();
             game.socket.emit("system.starwarsffg", {event: "trackerRender", combatId: this.id});
-          }
-        }
-      },
-      default: "submit",
+          },
+        },
+      ],
+      rejectClose: false,
     });
-    slotDialog.render(true);
   }
 
   debounceRender = foundry.utils.debounce(() => {
@@ -221,6 +223,8 @@ export class CombatFFG extends Combat {
       }
 
       const diceSymbols = {
+        boost: await foundry.applications.ux.TextEditor.enrichHTML("[BO]"),
+        setback: await foundry.applications.ux.TextEditor.enrichHTML("[SE]"),
         advantage: await foundry.applications.ux.TextEditor.enrichHTML("[AD]"),
         success: await foundry.applications.ux.TextEditor.enrichHTML("[SU]"),
         threat: await foundry.applications.ux.TextEditor.enrichHTML("[TH]"),
@@ -238,13 +242,39 @@ export class CombatFFG extends Combat {
         diceSymbols,
       });
 
-      new DialogV2Compat({
-        title,
+      DialogV2.wait({
+        window: { title },
+        classes: ["starwarsffg", "ffg-initiative-dialog"],
         content,
-        buttons: {
-          one: {
-            icon: '<i class="fas fa-check"></i>',
+        // The dice-pool +/- buttons were wired by an inline <script> in
+        // ffg-initiative.html. jQuery's .html() eval'd that under V1 Dialog,
+        // but DialogV2 injects content via innerHTML, which never runs inline
+        // scripts -- so the buttons were dead. Wire them here instead: left
+        // click increments, right click decrements, clamped to a minimum of 0.
+        render: (event, dialog) => {
+          const scope = dialog.element.querySelector(".addDicePool");
+          if (!scope) return;
+          for (const type of ["boost", "setback", "advantage", "success", "threat", "failure", "upgrades", "force"]) {
+            const input = scope.querySelector(`[name="${type}"]`);
+            if (!input) continue;
+            if (!input.value) input.value = "0";
+            input.addEventListener("click", (ev) => {
+              ev.preventDefault();
+              input.value = String((parseInt(input.value, 10) || 0) + 1);
+            });
+            input.addEventListener("contextmenu", (ev) => {
+              ev.preventDefault();
+              const cur = parseInt(input.value, 10) || 0;
+              if (cur > 0) input.value = String(cur - 1);
+            });
+          }
+        },
+        buttons: [
+          {
+            action: "one",
+            icon: "fas fa-check",
             label: game.i18n.localize("SWFFG.InitiativeRoll"),
+            default: true,
             callback: async () => {
               const container = document.getElementById(id);
               const currentId = initiative.combatant?.id;
@@ -330,12 +360,14 @@ export class CombatFFG extends Combat {
               resolve(initiative);
             },
           },
-          two: {
-            icon: '<i class="fas fa-times"></i>',
+          {
+            action: "two",
+            icon: "fas fa-times",
             label: game.i18n.localize("SWFFG.Cancel"),
           },
-        },
-      }).render(true);
+        ],
+        rejectClose: false,
+      });
     });
 
     return await promise;
@@ -416,28 +448,33 @@ export class CombatFFG extends Combat {
 
     let action = game.settings.get("starwarsffg", "removeCombatantAction")
     if (action === "prompt") {
-      new DialogV2Compat({
-        title: game.i18n.localize("SWFFG.CombatantRemoval.Title"),
+      DialogV2.wait({
+        window: { title: game.i18n.localize("SWFFG.CombatantRemoval.Title") },
         content: game.i18n.localize("SWFFG.CombatantRemoval.Body"),
-        buttons: {
-          one: {
+        buttons: [
+          {
+            action: "one",
             label: game.i18n.localize("SWFFG.CombatantRemoval.CombatantOnly"),
+            default: true,
             callback: async () => {
               await this.doRemoval(combatant, "combatant_only");
             },
           },
-          two: {
+          {
+            action: "two",
             label: game.i18n.localize("SWFFG.CombatantRemoval.LastSlot"),
             callback: async () => {
               await this.doRemoval(combatant, "last_slot");
             },
           },
-          three: {
-            icon: '<i class="fas fa-times"></i>',
+          {
+            action: "three",
+            icon: "fas fa-times",
             label: game.i18n.localize("SWFFG.Cancel"),
           },
-        },
-      }).render(true);
+        ],
+        rejectClose: false,
+      });
     } else {
       await this.doRemoval(combatant, action);
     }
@@ -664,31 +701,31 @@ export class CombatFFG extends Combat {
     const slotId = el.getAttribute("data-alt-id");
     const combatant = this.combatants.get(slotId);
     const currentInitiative = combatant.initiative;
-    const updateDialog = new DialogV2Compat({
-      title: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Title"),
+    DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Title") },
       content: `
         <p>${game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Initiative")} :</p>
         <input type="number" id="initiative" name="initiative" value="${currentInitiative}">
       `,
-      buttons: {
-        submit: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "submit",
+          icon: "fas fa-check",
           label: game.i18n.localize("SWFFG.Combats.Slots.Dialog.Labels.Submit"),
-          callback: async (obj, event) => {
-            const jObj = $(obj);
-            const initiative = +jObj.find("#initiative")[0].value;
+          default: true,
+          callback: async (event, button, dialog) => {
+            const initiative = +dialog.element.querySelector("#initiative").value;
             if (initiative === "") {
               ui.notifications.warn("You must provide an initiative value");
               return;
             }
             await combatant.update({initiative: initiative});
             game.socket.emit("system.starwarsffg", {event: "trackerRender", combatId: this.id});
-          }
-        }
-      },
-      default: "submit",
+          },
+        },
+      ],
+      rejectClose: false,
     });
-    updateDialog.render(true);
   }
 
   async removeCombatant(el) {

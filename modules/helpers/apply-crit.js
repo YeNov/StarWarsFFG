@@ -7,19 +7,31 @@
  * See docs/superpowers/specs/2026-05-24-apply-crit-chat-button-design.md
  */
 import { applyToTargetActor } from "./gm-bridge.js";
-import { DialogV2Compat } from "../apps/dialog-v2-compat.js";
+
+const { DialogV2 } = foundry.applications.api;
 
 export class ApplyCrit {
   /**
-   * Called from the renderChatMessageHTML hook. Computes crit eligibility from the
-   * roll's advantages/triumphs vs the weapon's critical rating, sets the
-   * disabled attribute and tooltip when ineligible, and binds the click handler.
+   * Called from the renderChatMessageHTML hook. Enforces visibility (button is
+   * removed for users who are neither GM nor the message author, matching Apply
+   * Damage), computes crit eligibility from the roll's advantages/triumphs vs the
+   * weapon's critical rating, sets the disabled attribute and tooltip when
+   * ineligible, and binds the click handler.
    * @param {ChatMessage} message — the live ChatMessage instance.
    * @param {jQuery} html — the rendered chat-message element wrapped in jQuery.
    */
   static bindChatMessage(message, html) {
     const button = html.find(".ffg-apply-crit")[0];
     if (!button) return;
+
+    // Visible to the attack's roller (message author) and GMs only. Non-owning
+    // clicks still forward to the active GM via gm-bridge, so this is a UI
+    // consistency gate (matching Apply Damage), not a permission boundary.
+    const authorId = message.author?.id ?? message.user;
+    if (game.user.id !== authorId && !game.user.isGM) {
+      button.remove();
+      return;
+    }
 
     const roll = message.rolls?.[0];
     const itemSystem = roll?.data?.system;
@@ -137,9 +149,10 @@ export class ApplyCrit {
     const title = game.i18n.format("SWFFG.ApplyCrit.DialogTitle", { name: a.name });
 
     const content = `
-      <div class="grid grid-3col" style="gap:16px;">
-        <div style="padding:4px 8px;">${modifierLabel}:
-          <input name="modifier" class="modifier" style="width:50%" type="text"
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="padding:4px 8px; display:flex; align-items:center; gap:8px;">
+          <label style="white-space:nowrap;">${modifierLabel}:</label>
+          <input name="modifier" class="modifier" style="flex:1 1 auto; min-width:0;" type="text"
                  value="${autoModifier}" data-dtype="String" />
         </div>
         <div style="padding:4px 8px; display:flex; align-items:center; gap:12px;">
@@ -151,24 +164,28 @@ export class ApplyCrit {
             <button type="button" class="vicious-plus" style="width:24px; height:22px; line-height:1; padding:0;">+</button>
           </span>
         </div>
-        <div style="padding:4px 8px;">
-          ${tableLabel}: <select class="crittable">${tableOptions}</select>
+        <div style="padding:4px 8px; display:flex; align-items:center; gap:8px;">
+          <label style="white-space:nowrap;">${tableLabel}:</label>
+          <select class="crittable" style="flex:1 1 auto; min-width:0;">${tableOptions}</select>
         </div>
       </div>
     `;
 
-    new DialogV2Compat({
-      title,
+    DialogV2.wait({
+      window: { title },
       content,
-      buttons: {
-        roll: {
-          icon: '<i class="fas fa-check"></i>',
+      buttons: [
+        {
+          action: "roll",
+          icon: "fas fa-check",
           label: rollLabel,
-          callback: async (html) => {
-            const modifier = parseInt(html.find(".modifier").val(), 10) || 0;
-            const viciousRank = parseInt(html.find(".vicious-rank").text(), 10) || 0;
+          default: true,
+          callback: async (event, button, dialog) => {
+            const root = dialog.element;
+            const modifier = parseInt(root.querySelector(".modifier")?.value, 10) || 0;
+            const viciousRank = parseInt(root.querySelector(".vicious-rank")?.textContent, 10) || 0;
             const viciousMod = viciousRank * 10;
-            const tableId = html.find(".crittable").val();
+            const tableId = root.querySelector(".crittable")?.value;
 
             const table = game.tables.get(tableId);
             if (!table) {
@@ -201,25 +218,27 @@ export class ApplyCrit {
             }
           },
         },
-        cancel: {
-          icon: '<i class="fas fa-times"></i>',
+        {
+          action: "cancel",
+          icon: "fas fa-times",
           label: cancelLabel,
         },
-      },
-      default: "roll",
-      render: (html) => {
-        const rankEl = html.find(".vicious-rank");
-        html.find(".vicious-plus").on("click", (ev) => {
+      ],
+      render: (event, dialog) => {
+        const root = dialog.element;
+        const rankEl = root.querySelector(".vicious-rank");
+        root.querySelector(".vicious-plus")?.addEventListener("click", (ev) => {
           ev.preventDefault();
-          const cur = parseInt(rankEl.text(), 10) || 0;
-          rankEl.text(cur + 1);
+          const cur = parseInt(rankEl.textContent, 10) || 0;
+          rankEl.textContent = String(cur + 1);
         });
-        html.find(".vicious-minus").on("click", (ev) => {
+        root.querySelector(".vicious-minus")?.addEventListener("click", (ev) => {
           ev.preventDefault();
-          const cur = parseInt(rankEl.text(), 10) || 0;
-          rankEl.text(Math.max(0, cur - 1));
+          const cur = parseInt(rankEl.textContent, 10) || 0;
+          rankEl.textContent = String(Math.max(0, cur - 1));
         });
       },
-    }).render(true);
+      rejectClose: false,
+    });
   }
 }

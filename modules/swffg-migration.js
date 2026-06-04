@@ -1,11 +1,18 @@
 import ModifierHelpers from "./helpers/modifiers.js";
-import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
 
 /**
  * Handles all logic related to migrating the system to a new version, including sending notifications
  * @returns {Promise<void>}
  */
 export async function handleUpdate() {
+  // World migrations and the world-scoped `systemMigrationVersion` write below
+  // are GM-only. A non-GM client calling game.settings.set() on a world setting
+  // throws ("may not modify world-level setting"); because this is awaited at the
+  // top of the "ready" hook, that rejection would abort the entire hook -- and
+  // silently drop the Destiny Tracker and other ready-time UI for every player.
+  // The shared world setting is persisted once by the GM, so players never need
+  // to run this.
+  if (!game.user.isGM) return;
   const registeredVersion = game.settings.get("starwarsffg", "systemMigrationVersion");
   const runningVersion = game.system.version;
   if (registeredVersion !== runningVersion) {
@@ -416,19 +423,14 @@ async function migrateTo1907() {
 
 async function warnUnsupportedWorld() {
   const content = game.i18n.localize("SWFFG.Migrate.Unsupported.Text");
-  new DialogV2Compat(
-    {
-      title: game.i18n.localize("SWFFG.Migrate.Unsupported.Title"),
-      content: content,
-      buttons: {
-        ok: {
-          icon: '<i class="fas fa-exclamation"></i>',
-          label: game.i18n.localize("SWFFG.Migrate.Unsupported.Button"),
-        },
-      },
+  foundry.applications.api.DialogV2.prompt({
+    window: { title: game.i18n.localize("SWFFG.Migrate.Unsupported.Title") },
+    classes: ["dialog", "starwarsffg"],
+    content: content,
+    ok: {
+      icon: "fas fa-exclamation",
+      label: game.i18n.localize("SWFFG.Migrate.Unsupported.Button"),
     },
-    {
-      classes: ["dialog", "starwarsffg"],
-    }
-  ).render(true);
+    rejectClose: false,
+  });
 }

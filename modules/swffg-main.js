@@ -25,7 +25,6 @@ import { AdversarySheetFFGV2 } from "./actors/adversary-sheet-ffg-v2.js";
 import { DicePoolFFG, RollFFG } from "./dice-pool-ffg.js";
 import { GroupManager } from "./groupmanager-ffg.js";
 import PopoutEditor from "./popout-editor.js";
-import { DialogV2Compat } from "./apps/dialog-v2-compat.js";
 
 import DiceHelpers from "./helpers/dice-helpers.js";
 import Helpers from "./helpers/common.js";
@@ -45,7 +44,6 @@ import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
 import DataImporter from "./importer/data-importer.js";
-import PauseFFG from "./apps/pause-ffg.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
 import RollBuilderFFG from "./dice/roll-builder.js";
 import CrewSettings from "./settings/crew-settings.js";
@@ -130,9 +128,6 @@ Hooks.once("init", async function () {
 
   // TURN ON OR OFF HOOK DEBUGGING
   CONFIG.debug.hooks = false;
-
-  CONFIG.ui.pause = PauseFFG;
-
 
   // Enable debug messages in console
   game.settings.register("starwarsffg", "enableDebug", {
@@ -845,13 +840,24 @@ Hooks.once("init", async function () {
 
   // Register sheet application classes
   foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { label: "Actor Sheet v1" });
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { makeDefault: true, label: "Actor Sheet v2" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet v1" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2" });
+  // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
+  // to the same native sheet. ActorSheetFFG / AdversarySheetFFG are the real
+  // classes (ActorSheetFFG takes makeDefault); the V2 names stay registered
+  // without makeDefault only as deprecated aliases so worlds with
+  // `flags.core.sheetClass === "ffg.ActorSheetFFGV2"` / `"ffg.AdversarySheetFFGV2"`
+  // keep resolving. Drop the alias entries in the release after V2-full lands.
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { makeDefault: true, label: "Actor Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
   foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { label: "Item Sheet v1" });
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { makeDefault: true, label: "Item Sheet v2" });
+  // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
+  // to the same native sheet. ItemSheetFFG is the real, default class;
+  // ItemSheetFFGV2 stays registered (no makeDefault) only as a deprecated alias
+  // so worlds with `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
+  // resolving. Drop the alias entry in the release after V2-full lands.
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
 
   // Add utilities to the global scope, this can be useful for macro makers
   window.DicePoolFFG = DicePoolFFG;
@@ -1143,7 +1149,13 @@ Hooks.once("ready", async () => {
 
   // NOTE: the "currentVersion" will be updated in handleUpdate, preventing the code below from running in the future
   // this is intended to encourage migrating code to this file to clean up the main file
-  await handleUpdate();
+  // A migration failure must never abort the rest of this hook, which also renders
+  // the Destiny Tracker and registers crew roles, token controls, etc.
+  try {
+    await handleUpdate();
+  } catch (err) {
+    CONFIG.logger?.error?.("starwarsffg | handleUpdate() failed during ready; continuing", err);
+  }
 
   const currentVersion = game.settings.get("starwarsffg", "systemMigrationVersion");
 
@@ -1151,19 +1163,16 @@ Hooks.once("ready", async () => {
   const isAlpha = game.system.version.includes("alpha");
 
   if (isAlpha && game.user.isGM) {
-    let d = new DialogV2Compat({
-      title: "Warning",
+    foundry.applications.api.DialogV2.prompt({
+      window: { title: "Warning" },
       content: "<p>This is an alpha release of the system.  It is not recommended for regular gameplay. <b>There will be bugs.</b> <br><br>Check Discord or the GitHub repo for the latest stable version.</p>",
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-check"></i>',
-          label: "I understand",
-          callback: () => console.log("Chose One") // leaving in case I get feedback to update a game setting to not show this on every load
-        }
+      ok: {
+        icon: "fas fa-check",
+        label: "I understand",
+        callback: () => console.log("Chose One"), // leaving in case I get feedback to update a game setting to not show this on every load
       },
-      default: "one",
+      rejectClose: false,
     });
-    d.render(true);
   }
 
   if ((isAlpha || isCurrentVersionNullOrBlank(currentVersion) || parseFloat(currentVersion) < parseFloat(game.system.version)) && game.user.isGM) {
@@ -1404,7 +1413,10 @@ Hooks.once("ready", async () => {
     return args;
   });
 
-  Hooks.on("closeItemSheetFFG", (item) => {
+  // The native V2 base fires close${documentName}Sheet (i.e. "closeItemSheet"),
+  // not the old class-name "closeItemSheetFFG". Arg 1 is the sheet app, so its
+  // .object is the closed item.
+  Hooks.on("closeItemSheet", (item) => {
     Hooks.call(`closeAssociatedTalent_${item.object._id}`, item);
   });
 
