@@ -406,6 +406,12 @@ export class ActorFFG extends Actor {
     // specialization or species (those keep the info control instead).
     globalTalentList.forEach((talent) => {
       talent.canDelete = talent.source?.length > 0 && talent.source.every((s) => s.type === "talent");
+      // Minion talents are always standalone talent items (minions have no
+      // specializations/species to grant talents), so each is directly added.
+      // Flag it so the Talents tab renders the edit pencil — ffg-talents.html
+      // gates `.item-edit` on `isDirectlyAdded`. _prepareCharacterData sets this;
+      // _prepareMinionData was missing it, so minion talents weren't editable.
+      talent.isDirectlyAdded = true;
     });
     actorData.talentList = globalTalentList;
   }
