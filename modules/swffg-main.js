@@ -1907,6 +1907,38 @@ Hooks.on("renderGamePause", function (_application, element, _context, _options)
   }
 });
 
+// Persist DialogV2 window positions across open/close cycles.
+// Foundry core hardcodes positions for some dialogs (e.g. Flush Chat Log), so
+// we restore saved positions via setTimeout to run after Foundry's own setPosition call.
+(function () {
+  const STORAGE_KEY = "swffg.dialogPositions";
+
+  function loadPositions() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); }
+    catch { return {}; }
+  }
+
+  Hooks.on("renderDialogV2", (app) => {
+    const title = app.options?.window?.title;
+    if (!title) return;
+    const saved = loadPositions()[title];
+    if (!saved) return;
+    setTimeout(() => {
+      try { app.setPosition({ left: saved.left, top: saved.top }); } catch { /* dialog already closed */ }
+    }, 0);
+  });
+
+  Hooks.on("closeDialogV2", (app) => {
+    const title = app.options?.window?.title;
+    if (!title) return;
+    const pos = app.position;
+    if (pos?.left == null || pos?.top == null) return;
+    const positions = loadPositions();
+    positions[title] = { left: pos.left, top: pos.top };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+  });
+}());
+
 async function registerCrewRoles() {
   const defaultArrayCrewRoles = [
     {

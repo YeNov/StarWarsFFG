@@ -9,8 +9,11 @@ export default class ActorHelpers {
     // as of Foundry v10, saving an editor only submits the single entry for that editor
     if (Object.keys(formData).length > 1) {
       if (this.object.type === "minion") {
-        Object.keys(formData?.data?.skills).forEach((skill) => {
-          if (!formData.data.skills[skill].groupskill && this.object.system.skills[skill].groupskill) {
+        // Skills are disabled (excluded from FormData) when the sheet is not in edit mode,
+        // so formData.data.skills may be undefined. Guard to avoid a TypeError that would
+        // abort the save and silently discard wounds/quantity changes on close.
+        Object.keys(formData?.data?.skills ?? {}).forEach((skill) => {
+          if (!formData.data.skills[skill].groupskill && this.object.system.skills[skill]?.groupskill) {
             // this is a minion group with a group skill being removed - reduce the rank by one (since we added 1 when it was checked)
             formData.data.skills[skill].rank -= this.object.system.quantity.value;
           }
