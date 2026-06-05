@@ -1313,6 +1313,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   text-align: center;
   background: none;
   width: 100%;
+  color: #000;
 }
 .starwarsffg .dice-pool-dialog .pool-text {
   text-align: left;
