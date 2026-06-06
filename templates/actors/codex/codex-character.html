@@ -139,6 +139,11 @@
       </div></div>
     </div>
     {{#if (eq actor.type "character")}}
+    <div class="cdx-bio-stats">
+      <div class="cdx-bstat"><span class="cdx-bstat-k">{{localize "SWFFG.DescriptionObligation"}}</span><input type="text" name="data.obligation.value" value="{{data.obligation.value}}" data-dtype="Number" /></div>
+      <div class="cdx-bstat"><span class="cdx-bstat-k">{{localize "SWFFG.DescriptionMorality"}}</span><input type="text" name="data.morality.value" value="{{data.morality.value}}" data-dtype="Number" /></div>
+      <div class="cdx-bstat"><span class="cdx-bstat-k">{{localize "SWFFG.DescriptionConflict"}}</span><input type="text" name="data.conflict.value" value="{{data.conflict.value}}" data-dtype="Number" /></div>
+    </div>
     <div class="cdx-panel">
       <div class="cdx-panel-head">{{localize "SWFFG.DescriptionObligation"}} / {{localize "SWFFG.DescriptionMorality"}}</div>
       <table class="cdx-table">
