@@ -434,8 +434,16 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         for (let i = 0; i < dice.length; i += 2) pairs.push(dice.slice(i, i + 2));
         ctx.cdxDef[key] = { value: v, mode: v <= 0 ? "dash" : (v > 4 ? "digit" : "dice"), pairs };
       }
+      // Larger of the two dice counts — both rows use it to flip single-row ⇄
+      // collapsed at the SAME width (so they switch together, never one of each).
+      const poolMax = Math.max(
+        ctx.cdxDef.melee.mode === "dice" ? ctx.cdxDef.melee.value : 0,
+        ctx.cdxDef.ranged.mode === "dice" ? ctx.cdxDef.ranged.value : 0,
+      );
+      ctx.cdxDef.melee.poolMax = poolMax;
+      ctx.cdxDef.ranged.poolMax = poolMax;
     } catch (e) {
-      ctx.cdxDef = { melee: { value: 0, mode: "dash", pairs: [] }, ranged: { value: 0, mode: "dash", pairs: [] } };
+      ctx.cdxDef = { melee: { value: 0, mode: "dash", pairs: [], poolMax: 0 }, ranged: { value: 0, mode: "dash", pairs: [], poolMax: 0 } };
     }
     // Force-chip alignment colour: cdxAlign = effective (baseline + Morality
     // hysteresis), cdxAlignStored = the manually-set baseline (for the selector).

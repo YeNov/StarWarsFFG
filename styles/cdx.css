@@ -316,7 +316,7 @@
    narrow two-column block (see .cdx-def-dice); the MELEE/RANGED label keeps its
    full natural width and never compacts. Character/nemesis/adversary only (no such
    panel on the minion template). */
-.cdx .cdx-def-rows { flex:1; min-width:0; display:flex; flex-direction:column; }
+.cdx .cdx-def-rows { flex:1; min-width:0; display:flex; flex-direction:column; container-type:inline-size; }
 .cdx .cdx-def-row { flex:1; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 9px; }
 .cdx .cdx-def-row + .cdx-def-row { border-top:1px solid var(--cdx-line); }
 /* flex:0 0 auto → the label is exactly its own (nowrap) width and never grows or
@@ -341,11 +341,15 @@
    right-aligns every line, so the right-most die lands at the same X on every row
    regardless of count (the container's right edge is pinned by the row's
    space-between). */
-/* Fixed two-column width so MELEE and RANGED ALWAYS collapse the same way
-   regardless of their (differing) dice counts or the panel width — 2 → row, 3 →
-   pyramid, 4 → 2×2 — all right-anchored to the same X. (A flexible width let the
-   two rows wrap at different panel widths, so they could misalign.) */
+/* Compact two-column block by default (2 → row, 3 → pyramid, 4 → 2×2), right-
+   anchored. Both rows carry the SAME data-def-max (the larger of the two dice
+   counts), so the container queries below flip BOTH to a single line at the same
+   panel width — in line when there's room, collapsed together when not. */
 .cdx .cdx-def-dice { width:37px; flex:none; display:flex; flex-wrap:wrap-reverse; justify-content:flex-end; align-content:center; gap:3px; }
+@container (min-width:90px)  { .cdx .cdx-def-dice[data-def-max="1"] { width:auto; flex-wrap:nowrap; } }
+@container (min-width:110px) { .cdx .cdx-def-dice[data-def-max="2"] { width:auto; flex-wrap:nowrap; } }
+@container (min-width:130px) { .cdx .cdx-def-dice[data-def-max="3"] { width:auto; flex-wrap:nowrap; } }
+@container (min-width:150px) { .cdx .cdx-def-dice[data-def-max="4"] { width:auto; flex-wrap:nowrap; } }
 /* Dice are grouped in unbreakable pairs (getData), so the wrap can only happen
    between pairs — 4 dice wrap to 2×2, never 3+1; 3 wrap to a 2+1 pyramid. */
 .cdx .cdx-die-pair { display:inline-flex; flex:none; gap:3px; }
