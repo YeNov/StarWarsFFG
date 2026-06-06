@@ -220,6 +220,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // Weapon-card dice pools (skill roll preview) — render for viewers too.
     this._cdxWeaponPools(root);
 
+    // Equip toggle: consume clicks on the whole button so they never leak to the
+    // card's expand handler. (Clicking the button box outside the glyph used to
+    // also expand the card, since the stock handler only skips icon/rollable targets.)
+    root.querySelectorAll(".cdx-equip").forEach((el) => {
+      el.addEventListener("click", (ev) => ev.stopPropagation());
+    });
+
     // Force powers / signature abilities (Talents tab): clicking the card should
     // expand inline details, NOT open the item's tree. The stock `.items .item`
     // handler opens the sheet for these types; intercept in the capture phase so
