@@ -19,7 +19,7 @@
         {{/unless}}{{/unless}}
         {{#unless limited}}
         {{#if (eq actor.type "character")}}
-        <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="specialization" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.Specialization"}}"></i>{{#each_when actor.items "type" "specialization"}}<span class="cdx-pill spec item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{/each_when}}</span>
+        <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="specialization" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.Specialization"}}"></i><span class="cdx-stack cdx-spec-stack{{#if (gt cdxSpecCount 1)}} cdx-collapsible{{/if}}" title="{{localize "SWFFG.Specializations"}}">{{#each_when actor.items "type" "specialization"}}<span class="cdx-pill spec item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{/each_when}}{{#if (gt cdxSpecCount 1)}}<span class="cdx-stack-more">+{{cdxSpecExtra}}</span>{{/if}}</span></span>
         {{/if}}
         {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
         <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="forcepower" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.ForcePower"}}"></i>{{#each_when actor.items "type" "forcepower"}}<span class="cdx-pill force item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{/each_when}}</span>

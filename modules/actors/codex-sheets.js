@@ -105,13 +105,18 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       }
     }
 
-    if (!this.options.editable) return;
-    // Strain recovery (post-encounter): zero out strain.
-    root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
-      btn.addEventListener("click", async (ev) => {
-        ev.preventDefault();
-        await this.actor.update({ "system.stats.strain.value": 0 });
+    // Collapsible pill stacks (e.g. specializations) — click to unwrap/collapse.
+    root.querySelectorAll(".cdx-stack.cdx-collapsible").forEach((stack) => {
+      stack.addEventListener("click", (ev) => {
+        if (ev.target.closest(".item-delete, .ffg-purchase")) return;
+        stack.classList.toggle("open");
       });
+    });
+
+    if (!this.options.editable) return;
+    // Strain recovery — open the token-action-hud-ffgsw post-encounter utility.
+    root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
+      btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
     });
     // Wounds / strain steppers (−/+), clamped to [0, threshold].
     root.querySelectorAll(".cdx-step").forEach((btn) => {
@@ -137,6 +142,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     const ctx = await super.getData(options);
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
+      const specs = this.actor?.items?.filter((i) => i.type === "specialization").length ?? 0;
+      ctx.cdxSpecCount = specs;
+      ctx.cdxSpecExtra = Math.max(0, specs - 1);
     } catch (e) { ctx.cdxCritCount = 0; }
     ctx.cdxTracks = {};
     try {
@@ -193,6 +201,35 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       });
     } catch (e) { return; }
     if (choice && CDX_SCHEMES.includes(choice)) await this.actor.setFlag("starwarsffg", "scheme", choice);
+  }
+
+  /**
+   * Open the token-action-hud-ffgsw "Post-Encounter strain recovery" utility (the
+   * Cool/Discipline dice-pool dialog) for this actor. That macro operates on the
+   * controlled token, so we select this actor's token first, then run the module's
+   * own macro script. Falls back to a plain strain reset if the module isn't
+   * active, and warns if the actor has no token on the canvas.
+   */
+  async _cdxStrainRecovery() {
+    const MOD = "token-action-hud-ffgsw";
+    if (!game.modules.get(MOD)?.active) {
+      return this.actor.update({ "system.stats.strain.value": 0 });
+    }
+    const token = this.actor.getActiveTokens?.()?.[0]
+      ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === this.actor.id);
+    if (!token) {
+      ui.notifications?.warn(`Select ${this.actor.name}'s token on the canvas to use strain recovery.`);
+      return;
+    }
+    token.control({ releaseOthers: true });
+    try {
+      const command = await fetch(`modules/${MOD}/content/macros/strainRecovery.js`).then((r) => (r.ok ? r.text() : null));
+      if (!command) throw new Error("strainRecovery macro not found");
+      await new Macro({ name: "Strain Recovery", type: "script", command, img: "icons/svg/regen.svg" }).execute();
+    } catch (e) {
+      console.error("starwarsffg | Codex strain recovery failed", e);
+      ui.notifications?.error("Strain recovery utility failed to run.");
+    }
   }
 };
 
