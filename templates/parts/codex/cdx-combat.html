@@ -1,7 +1,7 @@
 {{!-- Codex weapon + armour cards. Keeps .items/.item/.toggle-equipped/.item-*
      hooks; centered DAM/CRIT/RANGE/ENC (armour: SOAK/DEF/HP/ENC). --}}
 <div class="cdx-cards items">
-  <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsWeapons"}}</span><span class="item-add weapon"><i class="far fa-plus-square"></i></span></div>
+  <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsWeapons"}}</span>{{#unless (eq actor.type "minion")}}<span class="cdx-head-enc"><span class="cdx-ge-k">{{localize "SWFFG.Encumbrance"}}</span> <span class="cdx-ge-v">{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</span></span>{{/unless}}<span class="item-add weapon"><i class="far fa-plus-square"></i></span></div>
   {{#each items as |item id|}} {{#iff item.type '==' 'weapon'}}
   <div class="item cdx-card weapon {{#unless item.system.equippable.equipped}}off{{/unless}}" data-item-id="{{item._id}}" data-ability="{{item.system.skill.value}}">
     <div class="cdx-card-main">

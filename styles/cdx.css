@@ -481,9 +481,9 @@
 .cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:10px; }
 .cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; }
 .cdx .cdx-card.gear .cdx-qty-v { font-family:"Orbitron"; font-weight:900; font-size:17px; line-height:1; color:var(--cdx-accent); min-width:16px; text-align:center; }
-/* Total encumbrance in the GEAR section header (top of the tab), pushed to the
-   right next to the add (+) button. */
-.cdx .cdx-gear-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
+/* Total encumbrance in a section header (top of the Gear / Combat tabs), pushed
+   to the right next to the add (+) button. */
+.cdx .cdx-head-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
 .cdx .cdx-ge-k { color:var(--cdx-dim); }
 .cdx .cdx-ge-v { color:var(--cdx-ink); }
 
