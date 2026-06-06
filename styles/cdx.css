@@ -302,21 +302,23 @@
 .cdx .cdx-def-rows { flex:1; min-width:0; display:flex; flex-direction:column; }
 .cdx .cdx-def-row { flex:1; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 9px; }
 .cdx .cdx-def-row + .cdx-def-row { border-top:1px solid var(--cdx-line); }
-/* No min-width:0 here on purpose: the flex item keeps its default min-width:auto
-   (= the full word, since it's nowrap), so the label never shrinks/ellipses. */
-.cdx .cdx-def-row > span { flex:1; white-space:nowrap; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
+/* flex:0 0 auto → the label is exactly its own (nowrap) width and never grows or
+   shrinks, so MELEE/RANGED never compacts; the dice block yields space instead. */
+.cdx .cdx-def-row > span { flex:0 0 auto; white-space:nowrap; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
 /* Edit-mode plain borderless numbers (like Soak) — shown only while edit mode is
    on; the locked view shows the setback dice below instead. */
 .cdx .cdx-def-row input { width:1.5em; flex:none; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:22px; color:var(--cdx-ink); padding:0; }
-/* Locked-view defence values: setback dice in a fixed-width column so the label
-   never shifts with how many dice show. Setback dice are black rounded squares
-   (the rulebook glyph); filled with currentColor (= --cdx-ink) so they stay
-   legible on light AND dark schemes — a literal #000 would vanish on the dark scheme. */
-/* Dice arranged in at most two columns so the block stays narrow (the label
-   never has to compact): 1 → single, 2 → a row, 3 → a pyramid (apex up — the
-   lone die wraps onto the cross-start line, which wrap-reverse renders on top),
-   4 → a 2×2 square. ~37px = 2×16px dice + 3px gap + a hair of slack. */
-.cdx .cdx-def-dice { width:37px; flex:none; display:flex; flex-wrap:wrap-reverse; justify-content:center; align-content:center; gap:3px; }
+/* Locked-view defence values. Setback dice are black rounded squares (the
+   rulebook glyph), filled with currentColor (= --cdx-ink) so they stay legible on
+   light AND dark schemes — a literal #000 would vanish on the dark scheme. */
+/* Dice stay in a single right-anchored row while they fit; only when the row is
+   too narrow does the block shrink and wrap into a compact form — 3 → a pyramid
+   (apex up, since wrap-reverse renders the wrapped line on top), 4 → a 2×2 square.
+   flex:0 1 auto → basis is the single-row (max-content) width, so it never grows
+   past one row but shrinks (→ wraps) once the label needs the space. min-width:0
+   lets it shrink below that basis to trigger the wrap; justify-content:center
+   keeps the wrapped pyramid/square symmetric. */
+.cdx .cdx-def-dice { flex:0 1 auto; min-width:0; display:flex; flex-wrap:wrap-reverse; justify-content:center; align-content:center; gap:3px; }
 .cdx .cdx-die-setback { width:16px; height:16px; flex:none; color:var(--cdx-ink); }
 .cdx .cdx-def-digit { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; color:var(--cdx-ink); }
 .cdx .cdx-def-dash { font-family:"Orbitron"; font-weight:700; font-size:18px; line-height:1; color:var(--cdx-dim); }
