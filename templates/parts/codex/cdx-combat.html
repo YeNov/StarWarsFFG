@@ -5,7 +5,10 @@
   {{#each items as |item id|}} {{#iff item.type '==' 'weapon'}}
   <div class="item cdx-card weapon {{#unless item.system.equippable.equipped}}off{{/unless}}" data-item-id="{{item._id}}" data-ability="{{item.system.skill.value}}">
     <div class="cdx-card-main">
-      <div class="skill-label rollable roll-button starwarsffg item-rollable cdx-card-icon" style="background-image:url('{{item.img}}')"></div>
+      {{!-- The roll icon must sit 3 levels deep in .item so DiceHelpers.rollSkill
+            (row = target.parentElement.parentElement; row.parentElement === .item)
+            resolves the weapon and attaches it to the roll. --}}
+      <div class="cdx-card-rollwrap"><div class="skill-label rollable roll-button starwarsffg item-rollable cdx-card-icon" style="background-image:url('{{item.img}}')"></div></div>
       <a class="toggle-equipped cdx-equip {{#if item.system.equippable.equipped}}active{{/if}}" data-item-id="{{item._id}}" title="{{localize "SWFFG.Equipped"}}"><i class="fas fa-fist-raised"></i></a>
       <div class="cdx-card-title">{{item.name}}</div>
     </div>

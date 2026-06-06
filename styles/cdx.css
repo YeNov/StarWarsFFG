@@ -398,6 +398,8 @@
 .cdx .cdx-card.off { opacity:.65; }
 .cdx .cdx-card-main { display:flex; align-items:center; gap:5px; min-width:0; }
 .cdx .cdx-card-icon { width:75px; height:75px; flex:none; border-radius:6px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
+/* Transparent wrapper purely for DOM depth (weapon roll resolution) — shrink-wraps the icon. */
+.cdx .cdx-card-rollwrap { flex:none; display:flex; }
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .cdx .cdx-equip.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
 .cdx .cdx-card-title { font-family:"Orbitron"; font-weight:700; font-size:14px; color:var(--cdx-ink); }
