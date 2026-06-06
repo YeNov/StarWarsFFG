@@ -21,6 +21,7 @@
  */
 import { ActorSheetFFG } from "./actor-sheet-ffg.js";
 import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
+import { CdxPillStack } from "./cdx-pill-stack.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
@@ -69,6 +70,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     this._cdxActivate(html);
   }
 
+  /** @override — drop the pill-stack's document listener when the sheet closes. */
+  async close(options = {}) {
+    this._cdxPillStack?.destroy();
+    this._cdxPillStack = null;
+    return super.close(options);
+  }
+
   _cdxActivate(html) {
     const root = html?.[0] ?? this.form ?? this.element;
     if (!root) return;
@@ -105,12 +113,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       }
     }
 
-    // Collapsible pill stacks (e.g. specializations) — click to unwrap/collapse.
-    root.querySelectorAll(".cdx-stack.cdx-collapsible").forEach((stack) => {
-      stack.addEventListener("click", (ev) => {
-        if (ev.target.closest(".item-delete, .ffg-purchase")) return;
-        stack.classList.toggle("open");
-      });
+    // Collapsible pill stacks (specializations, force powers, signature
+    // abilities, …): a reusable widget owns the click handling — first click
+    // expands, a click on a pill opens that item's tree, a click anywhere else
+    // collapses — and consumes every click so none leaks to the sheet beneath.
+    this._cdxPillStack?.destroy();
+    this._cdxPillStack = new CdxPillStack(root, {
+      onActivate: (id) => { this.actor?.items?.get(id)?.sheet?.render(true); },
+      onDelete: (id) => {
+        if (this.actor?.verifyEditModeIsNotEnabled?.() === false) return;
+        this.actor?.items?.get(id)?.delete();
+      },
     });
 
     if (!this.options.editable) return;
