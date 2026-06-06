@@ -284,18 +284,34 @@
 
 /* Defence card — big Soak on the left, Melee/Ranged stacked on the right. */
 .cdx .cdx-stat.cdx-def { flex:1.15; }
+/* Character/nemesis/adversary derived row (the one holding the .cdx-def card):
+   Wounds · Strain · Defence carry equal weight. Scoped via :has(.cdx-def) so the
+   minion's 5-block row (whose defence block has no .cdx-def class) is untouched. */
+.cdx .cdx-derived:has(.cdx-def) .cdx-stat { flex:1; }
 .cdx .cdx-stat-head span > i { margin-right:5px; opacity:.9; font-size:10px; }
 .cdx .cdx-def-body { flex:1; display:flex; align-items:stretch; }
-.cdx .cdx-def-soak { flex:0 0 auto; min-width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:4px 7px; border-right:1px solid var(--cdx-line); }
-.cdx .cdx-def-soak input { width:1.4em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-ink); padding:0; }
-.cdx .cdx-def-soak span { font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); }
-.cdx .cdx-def-rows { flex:1; min-width:0; display:flex; flex-direction:column; }
+.cdx .cdx-def-soak { flex:1; min-width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:4px 7px; border-right:1px solid var(--cdx-line); }
+.cdx .cdx-def-soak input, .cdx .cdx-def-soak-v { text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-ink); padding:0; }
+.cdx .cdx-def-soak input { width:1.4em; }
+.cdx .cdx-def-soak-k { font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); }
+/* Right panel fixed at 147px (10px pad ×2 + ~40px label + gap + 4×16px dice +
+   3×3px gaps); applies on character/nemesis/adversary only (this panel doesn't
+   exist on the minion template). */
+.cdx .cdx-def-rows { flex:none; width:147px; display:flex; flex-direction:column; }
 .cdx .cdx-def-row { flex:1; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 9px; }
 .cdx .cdx-def-row + .cdx-def-row { border-top:1px solid var(--cdx-line); }
-.cdx .cdx-def-row > span { font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
-/* Plain borderless numbers (like Soak) — editable only in edit mode via the
-   `disabled` binding on the inputs. */
+.cdx .cdx-def-row > span { flex:1; white-space:nowrap; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
+/* Edit-mode plain borderless numbers (like Soak) — shown only while edit mode is
+   on; the locked view shows the setback dice below instead. */
 .cdx .cdx-def-row input { width:1.5em; flex:none; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:22px; color:var(--cdx-ink); padding:0; }
+/* Locked-view defence values: setback dice in a fixed-width column so the label
+   never shifts with how many dice show. Setback dice are black rounded squares
+   (the rulebook glyph); filled with currentColor (= --cdx-ink) so they stay
+   legible on light AND dark schemes — a literal #000 would vanish on the dark scheme. */
+.cdx .cdx-def-dice { width:77px; flex:none; display:flex; align-items:center; justify-content:flex-end; gap:3px; }
+.cdx .cdx-die-setback { width:16px; height:16px; flex:none; color:var(--cdx-ink); }
+.cdx .cdx-def-digit { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; color:var(--cdx-ink); }
+.cdx .cdx-def-dash { font-family:"Orbitron"; font-weight:700; font-size:18px; line-height:1; color:var(--cdx-dim); }
 
 /* Wounds/strain steppers + damage track */
 .cdx .cdx-stepline { display:flex; align-items:center; gap:7px; }

@@ -301,6 +301,22 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         ctx.cdxCharAbbr[id] = String(c?.label ?? id).slice(0, 2) + ".";
       }
     } catch (e) { /* leave empty */ }
+    // Defence melee/ranged → setback-die render data for the locked (display)
+    // view. 0 → em-dash, 1–4 → that many black setback dice, 5+ → a plain digit
+    // (rules-illegal but shown rather than dropped). Built with an explicit
+    // for-loop on purpose: Array.from({length}).map can drop items under some
+    // transpilers. In edit mode the template shows plain number inputs instead.
+    ctx.cdxDef = {};
+    try {
+      for (const key of ["melee", "ranged"]) {
+        const v = Math.max(0, Math.trunc(Number(this.actor?.system?.stats?.defence?.[key]) || 0));
+        const dice = [];
+        if (v >= 1 && v <= 4) for (let i = 0; i < v; i++) dice.push(i);
+        ctx.cdxDef[key] = { value: v, mode: v <= 0 ? "dash" : (v > 4 ? "digit" : "dice"), dice };
+      }
+    } catch (e) {
+      ctx.cdxDef = { melee: { value: 0, mode: "dash", dice: [] }, ranged: { value: 0, mode: "dash", dice: [] } };
+    }
     return ctx;
   }
 

@@ -82,12 +82,18 @@
       <div class="cdx-stat-head"><span><i class="fas fa-shield"></i>{{localize "SWFFG.Defense"}}</span></div>
       <div class="cdx-def-body">
         <div class="cdx-def-soak">
-          <input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} />
-          <span>{{localize "SWFFG.Soak"}}</span>
+          {{#if disabled}}<span class="cdx-def-soak-v">{{data.stats.soak.value}}</span>{{else}}<input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" />{{/if}}
+          <span class="cdx-def-soak-k">{{localize "SWFFG.Soak"}}</span>
         </div>
         <div class="cdx-def-rows">
-          <div class="cdx-def-row"><span>{{localize "SWFFG.DefenseMelee"}}</span><input type="text" name="data.stats.defence.melee" value="{{data.stats.defence.melee}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
-          <div class="cdx-def-row"><span>{{localize "SWFFG.DefenseRanged"}}</span><input type="text" name="data.stats.defence.ranged" value="{{data.stats.defence.ranged}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
+          <div class="cdx-def-row">
+            <span class="cdx-def-label">{{localize "SWFFG.DefenseMelee"}}</span>
+            {{#if disabled}}<div class="cdx-def-dice">{{#if (eq cdxDef.melee.mode "dash")}}<span class="cdx-def-dash">—</span>{{else if (eq cdxDef.melee.mode "digit")}}<span class="cdx-def-digit">{{cdxDef.melee.value}}</span>{{else}}{{#each cdxDef.melee.dice}}<svg width="16" height="16" viewBox="0 0 24 24" class="cdx-die-setback"><rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor"/></svg>{{/each}}{{/if}}</div>{{else}}<input type="text" name="data.stats.defence.melee" value="{{data.stats.defence.melee}}" data-dtype="Number" />{{/if}}
+          </div>
+          <div class="cdx-def-row">
+            <span class="cdx-def-label">{{localize "SWFFG.DefenseRanged"}}</span>
+            {{#if disabled}}<div class="cdx-def-dice">{{#if (eq cdxDef.ranged.mode "dash")}}<span class="cdx-def-dash">—</span>{{else if (eq cdxDef.ranged.mode "digit")}}<span class="cdx-def-digit">{{cdxDef.ranged.value}}</span>{{else}}{{#each cdxDef.ranged.dice}}<svg width="16" height="16" viewBox="0 0 24 24" class="cdx-die-setback"><rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor"/></svg>{{/each}}{{/if}}</div>{{else}}<input type="text" name="data.stats.defence.ranged" value="{{data.stats.defence.ranged}}" data-dtype="Number" />{{/if}}
+          </div>
         </div>
       </div>
     </div>
