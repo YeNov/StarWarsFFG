@@ -359,10 +359,15 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const v = Math.max(0, Math.trunc(Number(this.actor?.system?.stats?.defence?.[key]) || 0));
         const dice = [];
         if (v >= 1 && v <= 4) for (let i = 0; i < v; i++) dice.push(i);
-        ctx.cdxDef[key] = { value: v, mode: v <= 0 ? "dash" : (v > 4 ? "digit" : "dice"), dice };
+        // Group dice into unbreakable pairs so the layout can only wrap at pair
+        // boundaries: 4 → 2×2 (never 3+1), 3 → 2+1 pyramid. A single row still
+        // shows when there's room (the whole block stays on one line).
+        const pairs = [];
+        for (let i = 0; i < dice.length; i += 2) pairs.push(dice.slice(i, i + 2));
+        ctx.cdxDef[key] = { value: v, mode: v <= 0 ? "dash" : (v > 4 ? "digit" : "dice"), pairs };
       }
     } catch (e) {
-      ctx.cdxDef = { melee: { value: 0, mode: "dash", dice: [] }, ranged: { value: 0, mode: "dash", dice: [] } };
+      ctx.cdxDef = { melee: { value: 0, mode: "dash", pairs: [] }, ranged: { value: 0, mode: "dash", pairs: [] } };
     }
     // Force-chip alignment colour: cdxAlign = effective (baseline + Morality
     // hysteresis), cdxAlignStored = the manually-set baseline (for the selector).
