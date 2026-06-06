@@ -42,17 +42,30 @@ export class CdxPillStack {
     this.onActivate = onActivate;
     this.onDelete = onDelete;
     this._onClick = this._onClick.bind(this);
+    this._onMouseDown = this._onMouseDown.bind(this);
 
     this._stacks = root ? [...root.querySelectorAll(".cdx-stack.cdx-collapsible")] : [];
     // One capture listener on the sheet root. Capture so it runs before the
     // pills' own bubble-phase handlers; rooted on the sheet so clicks in other
     // windows never reach it (and so can't collapse us).
-    if (root) root.addEventListener("click", this._onClick, true);
+    if (root) {
+      root.addEventListener("click", this._onClick, true);
+      // Selectable text swallows the `click` event when a press creates a text
+      // selection — and `<input>` fields (a characteristic's number, …) stay
+      // user-selectable even though Foundry sets `user-select:none` on the rest
+      // of the sheet. A click on such a field would never reach _onClick to
+      // collapse the stack, so suppress that selection at mousedown while a
+      // stack is open and the click then reliably fires.
+      root.addEventListener("mousedown", this._onMouseDown, true);
+    }
   }
 
-  /** Detach the listener. Safe to call repeatedly. */
+  /** Detach the listeners. Safe to call repeatedly. */
   destroy() {
-    if (this.root) this.root.removeEventListener("click", this._onClick, true);
+    if (this.root) {
+      this.root.removeEventListener("click", this._onClick, true);
+      this.root.removeEventListener("mousedown", this._onMouseDown, true);
+    }
     this._stacks = [];
   }
 
@@ -64,6 +77,22 @@ export class CdxPillStack {
   _consume(ev) {
     ev.preventDefault();
     ev.stopPropagation();
+  }
+
+  /**
+   * While a stack is open (or when pressing on a collapsed stack), suppress the
+   * browser's text-selection so the `click` that follows is actually delivered —
+   * a press that selects text otherwise swallows the click, which is why a click
+   * on a selectable `<input>` (a characteristic's number, …) would fail to
+   * collapse the stack. We ONLY preventDefault here; propagation is left intact
+   * so the click still reaches _onClick, which does the real work + consuming.
+   * Primary button only, so right/middle-click (context menu) is untouched.
+   */
+  _onMouseDown(ev) {
+    if (ev.button !== 0) return;
+    if (this._openStack() || ev.target.closest?.(".cdx-stack.cdx-collapsible")) {
+      ev.preventDefault();
+    }
   }
 
   _onClick(ev) {
