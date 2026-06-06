@@ -220,6 +220,22 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // Weapon-card dice pools (skill roll preview) — render for viewers too.
     this._cdxWeaponPools(root);
 
+    // Force powers / signature abilities (Talents tab): clicking the card should
+    // expand inline details, NOT open the item's tree. The stock `.items .item`
+    // handler opens the sheet for these types; intercept in the capture phase so
+    // we beat that bubble handler. Control clicks (edit/delete/roll) pass through;
+    // clicks inside an already-open detail block don't toggle it shut.
+    root.addEventListener("click", (ev) => {
+      const card = ev.target.closest?.(".cdx-talent[data-item-id]");
+      if (!card || ev.target.closest(".item-control")) return;
+      const item = this.actor?.items?.get(card.dataset.itemId);
+      if (!item || !["forcepower", "signatureability"].includes(item.type)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (ev.target.closest(".item-details")) return;
+      this._itemDisplayDetails(item, { preventDefault() {}, currentTarget: card });
+    }, true);
+
     if (!this.options.editable) return;
     this._cdxWireCredits(root);
     // Alignment selector (bio) → write the Codex alignment flag; the chip recolours

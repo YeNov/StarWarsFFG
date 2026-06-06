@@ -465,6 +465,11 @@
 .cdx .cdx-tal-name { font-family:"Orbitron"; font-weight:700; font-size:12px; }
 .cdx .cdx-tal-act { font-size:8px; letter-spacing:.5px; text-transform:uppercase; opacity:.85; }
 .cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; }
+/* Inline details when a force-power / signature card is expanded (click to open). */
+.cdx .cdx-talent.expanded { overflow:visible; }
+.cdx .cdx-talent .item-details { padding:8px 10px; font-size:12px; line-height:1.4; color:var(--cdx-ink); border-top:1px solid var(--cdx-line); background:var(--cdx-paper); }
+.cdx .cdx-talent .item-details .item-properties { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.cdx .cdx-talent .item-details .tag { font-size:10px; padding:1px 6px; border:1px solid var(--cdx-line); border-radius:10px; color:var(--cdx-dim); }
 .cdx .cdx-sub { margin-top:10px; }
 
 /* ---- Gear — reuses the weapon/armour .cdx-card chrome; only the quantity
