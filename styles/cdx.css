@@ -544,7 +544,7 @@
 .cdx .cdx-pane.effects .attribute { border:none; padding:0; text-align:left; }
 .cdx .cdx-pane.effects .block-background { background:transparent; clip-path:none; padding:0; margin:0; }
 .cdx .cdx-pane.effects .block-title { display:none; }
-.cdx .cdx-pane.effects table { width:100%; border-collapse:collapse; }
-.cdx .cdx-pane.effects th { text-align:left; font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); padding:4px 6px; border-bottom:1px solid var(--cdx-line); }
-.cdx .cdx-pane.effects td { padding:4px 6px; font-size:12px; border-bottom:1px solid var(--cdx-line); }
+.cdx .cdx-pane.effects table { width:100%; border-collapse:collapse; background:var(--cdx-paper2); }
+.cdx .cdx-pane.effects th { background:var(--cdx-accent); color:#fff; text-align:left; font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 6px; }
+.cdx .cdx-pane.effects td { background:var(--cdx-paper2); padding:4px 6px; font-size:12px; border-bottom:1px solid var(--cdx-line); }
 .cdx .cdx-pane.effects .expand-icon { cursor:pointer; width:20px; text-align:center; }
