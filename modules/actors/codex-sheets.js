@@ -311,11 +311,10 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 
   /**
-   * Core ammo chip on expanded weapon cards: the −/+ steppers adjust the weapon's
-   * own system.ammo magazine. Writes use {render:false} + an optimistic DOM update
+   * Ammo chip on expanded weapon cards: the −/+ steppers adjust the weapon's
+   * system.ammo magazine. Writes use {render:false} + an optimistic DOM update
    * so a +/- doesn't collapse the expanded card; the persisted value is correct
-   * even if a render still occurs. (Loadable / "special" ammo is owned by the
-   * ffg-star-wars-enhancements module — see docs/handoff-codex-special-ammo.md.)
+   * even if a render still occurs.
    */
   _cdxWireAmmo(root) {
     // Swallow clicks inside the chip so they don't toggle the card's expand state.
@@ -404,10 +403,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       ctx.cdxAlignStored = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
       ctx.cdxAlign = cdxEffectiveAlignment(stored, this.actor?.system?.morality?.value);
     } catch (e) { ctx.cdxAlignStored = "neutral"; ctx.cdxAlign = "neutral"; }
-    // Ammo chip on expanded weapon cards — CORE ammo only (system.ammo, gated by
-    // the item's config.enableAmmo flag). Loadable / "special" ammo is owned by
-    // the ffg-star-wars-enhancements module, which injects its own selector into
-    // the .cdx-ammo chip on render — see docs/handoff-codex-special-ammo.md.
+    // Ammo chip on expanded weapon cards (system.ammo, gated by the item's
+    // config.enableAmmo flag). cdxAmmo is keyed by weapon _id.
     ctx.cdxAmmo = {};
     try {
       for (const item of (this.actor?.items ?? [])) {

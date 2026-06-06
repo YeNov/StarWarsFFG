@@ -19,8 +19,6 @@
       <div class="cdx-statcol"><span class="cdx-sc-k">ENC</span><span class="cdx-sc-v">{{item.system.encumbrance.value}}</span></div>
     </div>
     <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control item-edit" title="Edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="Delete"><i class="fas fa-trash"></i></a></span></div>
-    {{!-- Core ammo chip (system.ammo). Loadable/special ammo is injected here by
-          the ffg-star-wars-enhancements module — see docs/handoff-codex-special-ammo.md --}}
     {{#with (lookup ../cdxAmmo item._id)}}
     <div class="cdx-ammo" data-weapon-id="{{item._id}}">
       <span class="cdx-ammo-k">{{localize "SWFFG.Ammo"}}</span>
