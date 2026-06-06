@@ -561,8 +561,11 @@
 }
 .cdx .cdx-pane.effects *, .cdx .cdx-pane.attributes *, .cdx .cdx-sub * { color:var(--cdx-ink); }
 /* Effects table is full-bleed (no pane padding) so the accent header reaches the
-   edges — otherwise the pane's light padding shows beside the header. */
-.cdx .cdx-pane.effects { padding:0; overflow:hidden; }
+   edges. NOTE: do NOT use overflow:hidden here — the pane is a flex item, and any
+   non-visible overflow sets its min-height to 0, letting it collapse and clip the
+   table body (rows vanish). Square the corners instead so the full-bleed table
+   has no rounded-corner gap. */
+.cdx .cdx-pane.effects { padding:0; border-radius:0; }
 /* Active Effects tab: the stock partial centres/constrains its content and shows a
    redundant "Active Effects" title. Make the content full-width and drop the title. */
 .cdx .cdx-pane.effects .resource,
