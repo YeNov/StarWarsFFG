@@ -1,7 +1,7 @@
 {{!-- Codex gear list — same card styling as weapons/armour. Keeps the
      .item/.item-quantity/.quantity/.item-* hooks. --}}
 <div class="cdx-gear items">
-  <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsGear"}}</span><span class="item-add gear"><i class="far fa-plus-square"></i></span></div>
+  <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsGear"}}</span>{{#unless (eq actor.type "minion")}}<span class="cdx-gear-enc"><span class="cdx-ge-k">{{localize "SWFFG.Encumbrance"}}</span> <span class="cdx-ge-v">{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</span></span>{{/unless}}<span class="item-add gear"><i class="far fa-plus-square"></i></span></div>
   {{#each items as |item id|}} {{#iff item.type '==' 'gear'}}
   <div class="item cdx-card gear" data-item-id="{{item._id}}">
     <div class="cdx-card-main">
@@ -16,9 +16,3 @@
   </div>
   {{/iff}} {{/each}}
 </div>
-{{#unless (eq actor.type "minion")}}
-<div class="cdx-gear-summary">
-  <div class="cdx-gs-item"><span class="cdx-gs-k">{{localize "SWFFG.Encumbrance"}}</span><span class="cdx-gs-v">{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</span></div>
-  <div class="cdx-gs-item"><span class="cdx-gs-v brass">{{data.stats.credits.value}}</span></div>
-</div>
-{{/unless}}

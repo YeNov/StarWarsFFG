@@ -481,11 +481,11 @@
 .cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:10px; }
 .cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; }
 .cdx .cdx-card.gear .cdx-qty-v { font-family:"Orbitron"; font-weight:900; font-size:17px; line-height:1; color:var(--cdx-accent); min-width:16px; text-align:center; }
-.cdx .cdx-gear-summary { display:flex; align-items:flex-end; justify-content:flex-end; gap:24px; margin-top:10px; }
-.cdx .cdx-gs-item { display:flex; flex-direction:column; align-items:flex-start; }
-.cdx .cdx-gs-k { font-size:8.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); }
-.cdx .cdx-gs-v { font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }
-.cdx .cdx-gear-summary .brass { font-family:"Orbitron"; font-weight:700; font-size:13px; }
+/* Total encumbrance in the GEAR section header (top of the tab), pushed to the
+   right next to the add (+) button. */
+.cdx .cdx-gear-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
+.cdx .cdx-ge-k { color:var(--cdx-dim); }
+.cdx .cdx-ge-v { color:var(--cdx-ink); }
 
 /* ---- Bio / panels / tables ---- */
 .cdx .cdx-bio-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:10px; margin-bottom:10px; }
