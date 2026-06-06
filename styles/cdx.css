@@ -101,13 +101,35 @@
 }
 .cdx .cdx-pills { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
 .cdx .cdx-pillgroup { display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
-/* Collapsible pill stack (specializations): collapsed shows the first pill + a
-   "+N" badge; click to unwrap all (toggled in codex-sheets.js). */
-.cdx .cdx-stack { display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
+/* ---- Collapsible pill stack (specializations) — mirrors the prototype PillStack.
+   A VERTICAL stack of notched pills, NOT a horizontal row.
+   Collapsed: every pill but the top is pulled up (margin) so only an ~8px strip
+   peeks out behind the one above — a stacked-cards look — and the top pill shows
+   a "+N" badge while the rest stay hidden behind it. Open (click toggles `.open`
+   in codex-sheets.js): the pills separate into a vertical list with small gaps.
+   The first pill must paint ON TOP of the ones behind it, so z-index descends in
+   DOM order (capped — specs rarely exceed a handful). */
+.cdx .cdx-stack { position:relative; display:flex; flex-direction:column; align-items:stretch; width:max-content; min-width:130px; max-width:240px; }
 .cdx .cdx-stack.cdx-collapsible { cursor:pointer; }
-.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:not(:first-of-type) { display:none; }
-.cdx .cdx-stack.cdx-collapsible.open .cdx-stack-more { display:none; }
-.cdx .cdx-stack-more { font-family:"Orbitron"; font-weight:800; font-size:8px; letter-spacing:.5px; color:rgba(255,255,255,.85); padding:0 2px; }
+.cdx .cdx-stack .cdx-pill { position:relative; width:100%; height:22px; box-sizing:border-box; margin-top:5px; background:rgba(0,0,0,.4); box-shadow:0 -1px 0 rgba(255,255,255,.4) inset; }
+.cdx .cdx-stack .cdx-pill:first-child { margin-top:0; }
+.cdx .cdx-stack .cdx-pill:nth-child(1){z-index:12} .cdx .cdx-stack .cdx-pill:nth-child(2){z-index:11}
+.cdx .cdx-stack .cdx-pill:nth-child(3){z-index:10} .cdx .cdx-stack .cdx-pill:nth-child(4){z-index:9}
+.cdx .cdx-stack .cdx-pill:nth-child(5){z-index:8}  .cdx .cdx-stack .cdx-pill:nth-child(6){z-index:7}
+.cdx .cdx-stack .cdx-pill:nth-child(7){z-index:6}  .cdx .cdx-stack .cdx-pill:nth-child(n+8){z-index:5}
+/* Collapsed: overlap into a peeking stack (8px peek = 22px pill − 14px pull).
+   The pills are translucent, so hide the lower labels (and delete icons) — only
+   the top pill shows its name + the "+N" badge; the rest read as bare cards. */
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill { margin-top:-14px; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:first-child { margin-top:0; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:not(:first-child) { color:transparent; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill .item-delete { display:none; }
+/* "+N" badge: only when collapsed, pinned to the top pill's right edge. */
+.cdx .cdx-stack-more { display:none; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-stack-more {
+  display:flex; align-items:center; position:absolute; top:0; right:10px; height:22px; z-index:13; pointer-events:none;
+  font-family:"Orbitron"; font-weight:800; font-size:9px; letter-spacing:.5px; color:rgba(255,255,255,.9);
+}
 .cdx .cdx-pill {
   font-family:"Orbitron"; font-weight:500; font-size:10px; letter-spacing:.5px; text-transform:uppercase;
   background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.26); color:var(--cdx-head-ink);
