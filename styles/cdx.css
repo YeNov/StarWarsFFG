@@ -401,8 +401,13 @@
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .cdx .cdx-equip.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
 .cdx .cdx-card-title { font-family:"Orbitron"; font-weight:700; font-size:14px; color:var(--cdx-ink); }
-.cdx .cdx-statcols { display:flex; }
+.cdx .cdx-statcols { display:flex; gap:6px; }
 .cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
+/* 3rd column holds the RANGE word ("Engaged", "Extreme", …) — far wider than a
+   number — so give it room to stop it overflowing into ENC. Applies to the armour
+   card's 3rd column (HP) too, keeping weapon/armour columns aligned. The flex gap
+   above adds the breathing room between columns (notably RANGE → ENC). */
+.cdx .cdx-statcol:nth-child(3) { width:84px; }
 .cdx .cdx-sc-k { display:block; font-size:8.5px; letter-spacing:1px; color:var(--cdx-dim); }
 .cdx .cdx-sc-v { display:block; font-family:"Orbitron"; font-weight:900; font-size:17px; color:var(--cdx-accent); white-space:nowrap; }
 .cdx .cdx-card-ctl { display:flex; gap:8px; color:var(--cdx-dim); }
