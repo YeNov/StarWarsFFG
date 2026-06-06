@@ -463,8 +463,10 @@
 .cdx .cdx-talent { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; cursor:pointer; }
 .cdx .cdx-tal-head { background:var(--cdx-accent); color:#fff; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
 .cdx .cdx-tal-name { font-family:"Orbitron"; font-weight:700; font-size:12px; }
-.cdx .cdx-tal-act { font-size:8px; letter-spacing:.5px; text-transform:uppercase; opacity:.85; }
-.cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; }
+/* Activation label now lives on the controls line (left); margin-right:auto pushes
+   the edit/delete/info controls to the right. */
+.cdx .cdx-tal-act { margin-right:auto; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; align-items:center; }
 /* Inline details when a force-power / signature card is expanded (click to open). */
 .cdx .cdx-talent.expanded { overflow:visible; }
 .cdx .cdx-talent .item-details { padding:8px 10px; font-size:12px; line-height:1.4; color:var(--cdx-ink); border-top:1px solid var(--cdx-line); background:var(--cdx-paper); }

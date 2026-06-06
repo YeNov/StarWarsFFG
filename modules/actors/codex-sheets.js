@@ -450,6 +450,14 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         };
       }
     } catch (e) { ctx.cdxAmmo = {}; }
+    // Short talent activation labels (shown on the talent card's controls line).
+    // "Active (Incidental, Out of Turn)" → "Active (OOT)"; others kept as-is.
+    try {
+      for (const t of (ctx.talentList ?? [])) {
+        const act = (t && typeof t.activation === "object") ? (t.activation?.value ?? "") : (t?.activation ?? "");
+        t.cdxAct = /out of turn/i.test(String(act)) ? "Active (OOT)" : String(act);
+      }
+    } catch (e) { /* leave talentList untouched */ }
     return ctx;
   }
 
