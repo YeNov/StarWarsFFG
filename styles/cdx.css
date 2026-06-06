@@ -465,6 +465,8 @@
 
 /* ---- Injuries ---- */
 .cdx .cdx-injury { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; margin-bottom:7px; }
+/* Expanded description spans the full card width (not just the name column). */
+.cdx .cdx-injury .item-details { grid-column:1 / -1; }
 .cdx .cdx-inj-name { font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }
 /* Difficulty/severity dice in a horizontal row (the images are otherwise stacked
    vertically by the global img rules). Applies to every crit chip via .cdx-inj-sev. */
