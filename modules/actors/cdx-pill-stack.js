@@ -3,32 +3,36 @@
  *
  * A pill stack (specializations, force powers, signature abilities, …) shows its
  * members as a vertical stack of notched pills (styling lives in cdx.css under
- * `.cdx-stack`). This class owns the INTERACTION. Every click it handles is
- * CONSUMED in the capture phase (preventDefault + stopPropagation), so it can
- * never leak through to the stock sheet handlers or the canvas underneath — the
- * pills carry `.item` / `.item-delete`, which the base sheet also listens for, and
- * an open stack overlaps the sheet body, so swallowing the click is essential.
+ * `.cdx-stack`). This class owns the INTERACTION:
  *
  *   collapsed + click anywhere on the stack    → expand it
- *   expanded  + click a pill                   → onActivate(itemId)  (open its tree)
- *   expanded  + click a pill's `.item-delete`  → onDelete(itemId)
- *   expanded  + click anywhere else             → just collapse
+ *   expanded  + click a pill                   → onActivate(id): open its tree
+ *                                                (the stack STAYS open)
+ *   expanded  + click a pill's `.item-delete`  → onDelete(id), then collapse
+ *   expanded  + click elsewhere on the sheet    → collapse
  *
- * One instance wires every `.cdx-stack.cdx-collapsible` under a root element. It
- * keeps a single document-level capture listener alive for the root's lifetime;
- * that listener is a no-op while nothing is open (so ordinary clicks pass
- * straight through) and only engages — consuming the click — once a stack is
- * open. Call {@link CdxPillStack#destroy} on sheet re-render and close so the
- * document listener never outlives its DOM.
+ * Scope — the single capture listener lives on the sheet ROOT, not the document.
+ * That has two important consequences:
+ *  - Every click it handles is consumed (preventDefault + stopPropagation) in the
+ *    capture phase, so it never leaks to the stock `.item` / `.item-delete`
+ *    handlers the pills also carry, nor to the sheet content an open stack
+ *    overlaps.
+ *  - It never sees clicks in OTHER windows (e.g. the tree we just opened) or on
+ *    the canvas, so those cannot collapse the stack. The collapse-on-click-
+ *    elsewhere therefore only fires while the user is interacting with this
+ *    sheet — opening and browsing a tree leaves the stack open.
  *
- * The class is deliberately document-agnostic: it resolves a pill to an id via
- * `data-item-id` and hands that id to the caller's `onActivate` / `onDelete`, so
- * the same widget drives specs, force powers, signature abilities — anything
- * rendered as a `.cdx-stack.cdx-collapsible` of `.cdx-pill[data-item-id]`.
+ * The listener is bound per render and dies with its root; {@link #destroy} (on
+ * re-render and close) detaches it belt-and-suspenders.
+ *
+ * The class is document-agnostic — it resolves a pill via `data-item-id` and
+ * hands the id to the caller's `onActivate` / `onDelete` — so the same widget
+ * drives specs, force powers, signature abilities: anything rendered as a
+ * `.cdx-stack.cdx-collapsible` of `.cdx-pill[data-item-id]`.
  */
 export class CdxPillStack {
   /**
-   * @param {HTMLElement} root  container scanned for `.cdx-stack.cdx-collapsible`
+   * @param {HTMLElement} root  the sheet root scanned for `.cdx-stack.cdx-collapsible`
    * @param {object} [opts]
    * @param {(id: string) => void} [opts.onActivate]  open a pill item's window
    * @param {(id: string) => void} [opts.onDelete]    remove a pill item
@@ -37,22 +41,18 @@ export class CdxPillStack {
     this.root = root;
     this.onActivate = onActivate;
     this.onDelete = onDelete;
-    this._onExpand = this._onExpand.bind(this);
-    this._onDocClick = this._onDocClick.bind(this);
+    this._onClick = this._onClick.bind(this);
 
     this._stacks = root ? [...root.querySelectorAll(".cdx-stack.cdx-collapsible")] : [];
-    // Capture on each stack: turns the collapsed→expanded transition before the
-    // pill's own `.item` open handler (bubble phase) can fire.
-    for (const s of this._stacks) s.addEventListener("click", this._onExpand, true);
-    // One capture listener for the whole document. Cheap to leave attached: it
-    // returns immediately unless one of our stacks is open.
-    document.addEventListener("click", this._onDocClick, true);
+    // One capture listener on the sheet root. Capture so it runs before the
+    // pills' own bubble-phase handlers; rooted on the sheet so clicks in other
+    // windows never reach it (and so can't collapse us).
+    if (root) root.addEventListener("click", this._onClick, true);
   }
 
-  /** Detach every listener. Safe to call repeatedly. */
+  /** Detach the listener. Safe to call repeatedly. */
   destroy() {
-    for (const s of this._stacks) s.removeEventListener("click", this._onExpand, true);
-    document.removeEventListener("click", this._onDocClick, true);
+    if (this.root) this.root.removeEventListener("click", this._onClick, true);
     this._stacks = [];
   }
 
@@ -66,39 +66,27 @@ export class CdxPillStack {
     ev.stopPropagation();
   }
 
-  /**
-   * Collapsed → expand. Only reached while collapsed: once a stack is open the
-   * document listener fires first (capture, higher in the tree) and consumes the
-   * click, so this never runs for an open stack.
-   */
-  _onExpand(ev) {
-    const stack = ev.currentTarget;
-    if (stack.classList.contains("open")) return;
-    this._consume(ev);
-    // One open at a time — collapse any sibling stack first.
-    const other = this._openStack();
-    if (other && other !== stack) other.classList.remove("open");
-    stack.classList.add("open");
-  }
-
-  /**
-   * While a stack is open, the next click ANYWHERE is ours: consume it and route
-   * it. A click on a pill activates (or deletes) that item; a click anywhere else
-   * (including elsewhere on the sheet, or outside it) simply collapses. Either
-   * way the click is swallowed so it does not also trigger whatever it landed on.
-   */
-  _onDocClick(ev) {
-    const stack = this._openStack();
-    if (!stack) return; // nothing open → let the click through untouched
-    this._consume(ev);
-    const pill = stack.contains(ev.target) ? ev.target.closest(".cdx-pill") : null;
-    if (pill) {
-      const id = pill.dataset.itemId;
-      if (id) {
-        if (ev.target.closest(".item-delete")) this.onDelete?.(id);
-        else this.onActivate?.(id);
+  _onClick(ev) {
+    const open = this._openStack();
+    if (open) {
+      // A stack is open: this click is ours to handle and swallow.
+      this._consume(ev);
+      const pill = open.contains(ev.target) ? ev.target.closest(".cdx-pill") : null;
+      const id = pill?.dataset.itemId;
+      if (id && ev.target.closest(".item-delete")) {
+        this.onDelete?.(id); // delete → fall through and collapse
+      } else if (id) {
+        this.onActivate?.(id); // open the tree and LEAVE the stack open
+        return;
       }
+      open.classList.remove("open"); // delete, or a click elsewhere on the sheet
+      return;
     }
-    stack.classList.remove("open");
+    // Nothing open: expand if the click landed on one of our collapsed stacks.
+    const stack = ev.target.closest?.(".cdx-stack.cdx-collapsible");
+    if (stack && this._stacks.includes(stack)) {
+      this._consume(ev);
+      stack.classList.add("open");
+    }
   }
 }
