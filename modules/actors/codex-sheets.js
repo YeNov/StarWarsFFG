@@ -74,6 +74,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   async close(options = {}) {
     this._cdxPillStack?.destroy();
     this._cdxPillStack = null;
+    this._cdxXpBuy = false; // never persist XP-buy mode across reopenings
     return super.close(options);
   }
 
@@ -124,6 +125,22 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         if (this.actor?.verifyEditModeIsNotEnabled?.() === false) return;
         this.actor?.items?.get(id)?.delete();
       },
+    });
+
+    // XP-buy mode: clicking the XP chip reveals every purchase affordance (skill
+    // upgrades, characteristic/talent/spec/force/signature buys); otherwise they
+    // are hidden (see `.cdx-xpbuy` in cdx.css). The flag is TRANSIENT — held on
+    // the instance, re-applied on re-render, and reset in close() — so it never
+    // persists across reopenings and always starts hidden.
+    (form ?? root).classList.toggle("cdx-xpbuy", !!this._cdxXpBuy);
+    root.querySelectorAll(".cdx-xp").forEach((chip) => {
+      chip.classList.toggle("active", !!this._cdxXpBuy);
+      chip.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        this._cdxXpBuy = !this._cdxXpBuy;
+        (form ?? root).classList.toggle("cdx-xpbuy", this._cdxXpBuy);
+        chip.classList.toggle("active", this._cdxXpBuy);
+      });
     });
 
     if (!this.options.editable) return;

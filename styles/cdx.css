@@ -195,6 +195,22 @@
 .cdx .cdx-chip-label.brass { background:var(--cdx-brass); }
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
+/* ---- XP-buy mode ----
+   The XP chip toggles a transient "buy mode" class on the form (.cdx-xpbuy, set
+   in codex-sheets.js — never persisted). Until it's on, the purchase affordances
+   are hidden: the standalone buy icons (skill upgrade, spec/force/signature "+")
+   are <i> elements and hidden outright, while the dual-purpose triggers (the
+   characteristic label, the Talents header) stay visible but only act as buy
+   buttons in buy mode. */
+.cdx .cdx-xp { cursor:pointer; }
+.cdx .cdx-xp.active { box-shadow:inset 0 0 0 2px var(--cdx-accent); background:rgba(255,255,255,.1); }
+.cdx i.ffg-purchase { display:none; }
+.cdx .cdx-xpbuy i.ffg-purchase { display:inline-flex; }
+.cdx .cdx-chip-label.ffg-purchase, .cdx .cdx-cards-head .ffg-purchase { pointer-events:none; }
+.cdx .cdx-xpbuy .cdx-chip-label.ffg-purchase, .cdx .cdx-xpbuy .cdx-cards-head .ffg-purchase { pointer-events:auto; cursor:pointer; }
+.cdx .cdx-xpbuy .cdx-chip-label.ffg-purchase { box-shadow:inset 0 0 0 1px var(--cdx-accent); }
+.cdx .cdx-xpbuy .cdx-cards-head .ffg-purchase { color:var(--cdx-accent); }
+
 /* ---- Derived stat blocks ---- */
 .cdx .cdx-derived { display:flex; flex-wrap:nowrap; gap:6px; align-items:stretch; }
 .cdx .cdx-stat { flex:1; min-width:0; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; display:flex; flex-direction:column; }
