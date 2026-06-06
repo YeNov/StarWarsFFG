@@ -321,7 +321,11 @@
 .cdx .cdx-def-row + .cdx-def-row { border-top:1px solid var(--cdx-line); }
 /* flex:0 0 auto → the label is exactly its own (nowrap) width and never grows or
    shrinks, so MELEE/RANGED never compacts; the dice block yields space instead. */
-.cdx .cdx-def-row > span { flex:0 0 auto; white-space:nowrap; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
+/* Fixed label width (>= the longest label, "RANGED") so MELEE and RANGED leave
+   the SAME room for their dice — otherwise MELEE's shorter label gives its dice
+   extra space and it stays a row while RANGED collapses. Equal space → both
+   collapse to the same stair/square together. */
+.cdx .cdx-def-row > span { flex:0 0 48px; white-space:nowrap; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
 /* Edit-mode plain borderless numbers (like Soak) — shown only while edit mode is
    on; the locked view shows the setback dice below instead. */
 .cdx .cdx-def-row input { width:1.5em; flex:none; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:22px; color:var(--cdx-ink); padding:0; }
