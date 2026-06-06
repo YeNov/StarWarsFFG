@@ -540,6 +540,9 @@
   background:var(--cdx-paper2); color:var(--cdx-ink); padding:8px; border:1px solid var(--cdx-line); border-radius:4px;
 }
 .cdx .cdx-pane.effects *, .cdx .cdx-pane.attributes *, .cdx .cdx-sub * { color:var(--cdx-ink); }
+/* Effects table is full-bleed (no pane padding) so the accent header reaches the
+   edges — otherwise the pane's light padding shows beside the header. */
+.cdx .cdx-pane.effects { padding:0; overflow:hidden; }
 /* Active Effects tab: the stock partial centres/constrains its content and shows a
    redundant "Active Effects" title. Make the content full-width and drop the title. */
 .cdx .cdx-pane.effects .resource,
