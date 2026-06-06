@@ -508,10 +508,10 @@
 .cdx .add-obligation, .cdx .add-motivation, .cdx .add-background { color:#fff; cursor:pointer; }
 
 /* ---- XP ---- */
-.cdx .cdx-xp-totals { display:flex; gap:6px; align-items:center; margin-bottom:10px; }
-.cdx .cdx-xp-totals .cdx-stat { flex:1; }
-.cdx .cdx-xp-totals .cdx-stat-body input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:24px; color:var(--cdx-ink); }
-.cdx .cdx-xp-ctl { display:flex; gap:14px; font-size:16px; color:var(--cdx-accent); padding:0 10px; }
+.cdx .cdx-xp-totals { display:flex; margin-bottom:10px; }
+.cdx .cdx-xp-chip { flex:none; width:240px; }
+.cdx .cdx-xp-chip .cdx-thresh input { width:2.8em; }
+.cdx .cdx-xp-ctl { display:flex; justify-content:center; gap:14px; font-size:16px; color:var(--cdx-accent); padding:0 10px; margin-top:8px; }
 .cdx .cdx-xp-ctl a { cursor:pointer; }
 .cdx .cdx-xp-log { max-height:340px; overflow-y:auto; }
 .cdx .cdx-xp-entry { font-size:11.5px; padding:4px 8px; border-bottom:1px solid var(--cdx-line); color:var(--cdx-ink); }

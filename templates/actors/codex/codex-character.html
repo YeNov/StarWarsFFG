@@ -163,9 +163,13 @@
   {{#if (eq actor.type "character")}}
   <section class="cdx-pane xp" data-tab="xp">
     <div class="cdx-xp-totals">
-      <div class="cdx-stat"><div class="cdx-stat-head"><span>{{localize "SWFFG.DescriptionXPAvailable"}}</span></div><div class="cdx-stat-body"><input type="text" name="data.experience.available" value="{{data.experience.available}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div></div>
-      <div class="cdx-stat"><div class="cdx-stat-head"><span>{{localize "SWFFG.DescriptionXPTotal"}}</span></div><div class="cdx-stat-body"><input type="text" name="data.experience.total" value="{{data.experience.total}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div></div>
-      <div class="cdx-xp-ctl"><a class="fa-solid fa-eraser xp-adjustment" title="{{localize "SWFFG.XP.Adjust.Title"}}"></a><a class="fa-solid fa-floppy-disk xp-export" title="{{localize "SWFFG.XP.Export.Title"}}"></a><a class="fa-solid fa-file-import xp-import" title="{{localize "SWFFG.XP.Import.Title"}}"></a></div>
+      <div class="cdx-stat cdx-xp-chip">
+        <div class="cdx-stat-head"><span>{{localize "SWFFG.DescriptionXPAvailable"}} / {{localize "SWFFG.DescriptionXPTotal"}} XP</span></div>
+        <div class="cdx-stat-body">
+          <div class="cdx-thresh"><input type="text" name="data.experience.available" value="{{data.experience.available}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span class="cdx-slash">/</span><input type="text" name="data.experience.total" value="{{data.experience.total}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
+          <div class="cdx-xp-ctl"><a class="fa-solid fa-eraser xp-adjustment" title="{{localize "SWFFG.XP.Adjust.Title"}}"></a><a class="fa-solid fa-floppy-disk xp-export" title="{{localize "SWFFG.XP.Export.Title"}}"></a><a class="fa-solid fa-file-import xp-import" title="{{localize "SWFFG.XP.Import.Title"}}"></a></div>
+        </div>
+      </div>
     </div>
     <div class="cdx-xp-log">
       {{#each xpLog as |entry|}}<div class="cdx-xp-entry {{entry.action}}">{{entry.date}}: {{entry.action}} <b>{{entry.description}}</b> for {{entry.xp.cost}} xp ({{entry.xp.available}} avail, {{entry.xp.total}} total){{#if (or (eq entry.action "purchased") (eq entry.action "adjusted"))}} <a class="xp refund" title="Refund" data-id="{{entry.id}}"><i class="fa-solid fa-rotate-left"></i></a>{{/if}}</div>{{/each}}
