@@ -323,13 +323,15 @@
    rulebook glyph), filled with currentColor (= --cdx-ink) so they stay legible on
    light AND dark schemes — a literal #000 would vanish on the dark scheme. */
 /* Dice stay in a single right-anchored row while they fit; only when the row is
-   too narrow does the block shrink and wrap into a compact form — 3 → a pyramid
-   (apex up, since wrap-reverse renders the wrapped line on top), 4 → a 2×2 square.
+   too narrow does the block shrink and wrap into a compact form — 3 → 2+1, 4 →
+   2×2 (extra/lone row on top, since wrap-reverse renders the wrapped line above).
    flex:0 1 auto → basis is the single-row (max-content) width, so it never grows
    past one row but shrinks (→ wraps) once the label needs the space. min-width:0
-   lets it shrink below that basis to trigger the wrap; justify-content:center
-   keeps the wrapped pyramid/square symmetric. */
-.cdx .cdx-def-dice { flex:0 1 auto; min-width:0; display:flex; flex-wrap:wrap-reverse; justify-content:center; align-content:center; gap:3px; }
+   lets it shrink below that basis to trigger the wrap. justify-content:flex-end
+   right-aligns every line, so the right-most die lands at the same X on every row
+   regardless of count (the container's right edge is pinned by the row's
+   space-between). */
+.cdx .cdx-def-dice { flex:0 1 auto; min-width:0; display:flex; flex-wrap:wrap-reverse; justify-content:flex-end; align-content:center; gap:3px; }
 /* Dice are grouped in unbreakable pairs (getData), so the wrap can only happen
    between pairs — 4 dice wrap to 2×2, never 3+1; 3 wrap to a 2+1 pyramid. */
 .cdx .cdx-die-pair { display:inline-flex; flex:none; gap:3px; }
