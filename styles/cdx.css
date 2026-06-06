@@ -181,7 +181,7 @@
 .cdx .cdx-credits-wrap:hover .cdx-cr-change { transform:translateY(-50%); opacity:1; pointer-events:auto; }
 .cdx .cdx-credits-wrap.editing .cdx-cr-change { display:none; }
 .cdx .cdx-cr-editor {
-  display:none; position:absolute; top:50%; right:100%; transform:translateY(-50%); margin-right:6px; z-index:8;
+  display:none; position:absolute; top:50%; right:100%; transform:translateY(-50%); margin-right:6px; z-index:20;
   align-items:center; gap:4px; padding:5px 6px; white-space:nowrap;
   background:var(--cdx-paper2); border:1px solid var(--cdx-accent); border-radius:5px; box-shadow:0 4px 14px rgba(0,0,0,.45);
 }
