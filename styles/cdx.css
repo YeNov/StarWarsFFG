@@ -274,7 +274,11 @@
    aligned at any window width. Names ellipsis and dice never wrap, so row heights
    are fixed (no reflow/misalignment on shrink). Columns wrap-to-stack when narrow. */
 .cdx .cdx-skills { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
-.cdx .cdx-skill-col { flex:1 1 270px; min-width:0; display:grid; grid-template-columns:minmax(0,1fr) 26px 34px max-content; align-content:start; }
+/* The CS (career-skill) column is dropped while edit mode is off — the left
+   career highlight already marks career skills. Its 26px subgrid track and the
+   cells return in edit mode (.cdx-editmode on the form). */
+.cdx .cdx-skill-col { flex:1 1 270px; min-width:0; display:grid; grid-template-columns:minmax(0,1fr) 34px max-content; align-content:start; }
+.cdx .cdx-editmode .cdx-skill-col { grid-template-columns:minmax(0,1fr) 26px 34px max-content; }
 .cdx .cdx-sk-head, .cdx .cdx-sk-row { grid-column:1 / -1; display:grid; grid-template-columns:subgrid; align-items:center; }
 .cdx .cdx-sk-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; margin-top:6px; }
 .cdx .cdx-sk-head > * { padding:4px 6px; }
@@ -285,7 +289,8 @@
 .cdx .cdx-sk-head .cdx-sk-name { color:#fff; font-size:8.5px; }
 .cdx .cdx-sk-char { font-size:10px; color:var(--cdx-dim); font-style:normal; margin-left:3px; }
 .cdx .cdx-sk-name .ffg-purchase { color:var(--cdx-career-line); cursor:pointer; font-size:12px; margin-right:2px; }
-.cdx .cdx-sk-c { text-align:center; }
+.cdx .cdx-sk-c { text-align:center; display:none; }
+.cdx .cdx-editmode .cdx-sk-c { display:block; }
 .cdx .cdx-sk-c .careerskill-toggle { accent-color:var(--cdx-career-line); }
 .cdx .cdx-sk-rank { text-align:center; }
 .cdx .cdx-sk-rank input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }

@@ -112,6 +112,15 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       form.style.setProperty("overflow-x", "hidden", "important");
     }
 
+    // Reflect FFG edit mode as a class so view-only chrome can hide itself when
+    // editing is off — e.g. the career-skill ("CS") column, which is redundant
+    // with the left career highlight. Mirrors data.disabled in the base getData.
+    const editOn = !!(
+      this.actor?.getFlag?.("starwarsffg", "config.enableEditMode") &&
+      this.actor?.getFlag?.("starwarsffg", "config.editModeActor") === game.user?.id
+    );
+    (form ?? root).classList.toggle("cdx-editmode", editOn);
+
     // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
     root.querySelectorAll(".cdx-tab").forEach((btn) => {
       btn.addEventListener("click", (ev) => {
