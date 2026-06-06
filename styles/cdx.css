@@ -517,7 +517,7 @@
 
 /* ---- XP ---- */
 .cdx .cdx-xp-totals { display:flex; margin-bottom:10px; }
-.cdx .cdx-xp-chip { flex:none; width:240px; }
+.cdx .cdx-xp-chip { flex:1; min-width:0; }
 .cdx .cdx-xp-chip .cdx-thresh input { width:2.8em; }
 .cdx .cdx-xp-ctl { display:flex; justify-content:center; gap:14px; font-size:16px; color:var(--cdx-accent); padding:0 10px; margin-top:8px; }
 .cdx .cdx-xp-ctl a { cursor:pointer; }
