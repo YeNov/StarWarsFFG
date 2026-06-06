@@ -3,7 +3,7 @@
 <div class="cdx-cards items">
   <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsWeapons"}}</span>{{#unless (eq actor.type "minion")}}<span class="cdx-head-enc"><span class="cdx-ge-k">{{localize "SWFFG.Encumbrance"}}</span> <span class="cdx-ge-v">{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</span></span>{{/unless}}<span class="item-add weapon"><i class="far fa-plus-square"></i></span></div>
   {{#each items as |item id|}} {{#iff item.type '==' 'weapon'}}
-  <div class="item cdx-card weapon {{#unless item.system.equippable.equipped}}off{{/unless}}" data-item-id="{{item._id}}" data-ability="{{item.system.skill.value}}">
+  <div class="item cdx-card weapon {{#unless item.system.equippable.equipped}}off{{/unless}}{{#if item.system.rarity.isrestricted}} cdx-restricted{{/if}}" data-item-id="{{item._id}}" data-ability="{{item.system.skill.value}}">
     <div class="cdx-card-main">
       {{!-- The roll icon must sit 3 levels deep in .item so DiceHelpers.rollSkill
             (row = target.parentElement.parentElement; row.parentElement === .item)
@@ -35,7 +35,7 @@
 
   <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsArmor"}}</span><span class="item-add armour"><i class="far fa-plus-square"></i></span></div>
   {{#each items as |item id|}} {{#iff item.type '==' 'armour'}}
-  <div class="item cdx-card armour {{#unless item.system.equippable.equipped}}off{{/unless}}" data-item-id="{{item._id}}">
+  <div class="item cdx-card armour {{#unless item.system.equippable.equipped}}off{{/unless}}{{#if item.system.rarity.isrestricted}} cdx-restricted{{/if}}" data-item-id="{{item._id}}">
     <div class="cdx-card-main">
       <div class="item-rollable cdx-card-icon" style="background-image:url('{{item.img}}')"></div>
       <a class="toggle-equipped cdx-equip {{#if item.system.equippable.equipped}}active{{/if}}" data-item-id="{{item._id}}" title="{{localize "SWFFG.Equipped"}}"><i class="fas fa-shield-alt"></i></a>

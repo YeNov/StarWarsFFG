@@ -403,6 +403,8 @@
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .cdx .cdx-equip.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
 .cdx .cdx-card-title { font-family:"Orbitron"; font-weight:700; font-size:14px; color:var(--cdx-ink); }
+/* Restricted items (rarity.isrestricted) — name in red. */
+.cdx .cdx-card.cdx-restricted .cdx-card-title { color:#cf2e2e; }
 /* Weapon identity column: name + combat-skill line with the actor's dice pool. */
 .cdx .cdx-card-id { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
 .cdx .cdx-wpn-skill { display:flex; flex-wrap:wrap; align-items:center; gap:2px 5px; min-width:0; }
