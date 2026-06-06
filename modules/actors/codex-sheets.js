@@ -176,6 +176,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     });
 
     if (!this.options.editable) return;
+    this._cdxWireCredits(root);
     // Strain recovery — open the token-action-hud-ffgsw post-encounter utility.
     root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
       btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
@@ -193,6 +194,44 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
         await this.actor.update({ [`system.stats.${stat}.value`]: val });
       });
+    });
+  }
+
+  /**
+   * In-place credits editor: the "Change" tab on the CR chip opens a small +/-
+   * panel. + and − are a mutually-exclusive toggle (selecting one deselects the
+   * other); Confirm adds or subtracts the entered amount from the actor's
+   * credits, Cancel/Escape dismiss. Transient (no flag), re-wired each render.
+   */
+  _cdxWireCredits(root) {
+    const wrap = root.querySelector(".cdx-credits-wrap");
+    if (!wrap) return;
+    const amount = wrap.querySelector(".cdx-cr-amount");
+    const ops = [...wrap.querySelectorAll(".cdx-cr-op")];
+    const setOp = (b) => ops.forEach((x) => x.classList.toggle("active", x === b));
+    const close = () => wrap.classList.remove("editing");
+    const open = () => {
+      wrap.classList.add("editing");
+      if (amount) amount.value = "";
+      setOp(ops.find((b) => b.dataset.op === "add") ?? ops[0]);
+      setTimeout(() => amount?.focus(), 0);
+    };
+    const commit = async () => {
+      const op = wrap.querySelector(".cdx-cr-op.active")?.dataset.op ?? "add";
+      const delta = parseInt(String(amount?.value ?? "").replace(/[^\d]/g, ""), 10) || 0;
+      close();
+      if (!delta) return;
+      const cur = parseInt(String(this.actor?.system?.stats?.credits?.value ?? "0").replace(/[^\d-]/g, ""), 10) || 0;
+      const next = Math.max(0, op === "sub" ? cur - delta : cur + delta);
+      try { await this.actor?.update({ "system.stats.credits.value": String(next) }); } catch (e) { /* no permission */ }
+    };
+    wrap.querySelector(".cdx-cr-change")?.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); open(); });
+    ops.forEach((b) => b.addEventListener("click", (ev) => { ev.preventDefault(); setOp(b); amount?.focus(); }));
+    wrap.querySelector(".cdx-cr-cancel")?.addEventListener("click", (ev) => { ev.preventDefault(); close(); });
+    wrap.querySelector(".cdx-cr-confirm")?.addEventListener("click", (ev) => { ev.preventDefault(); commit(); });
+    amount?.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); commit(); }
+      else if (ev.key === "Escape") { ev.preventDefault(); close(); }
     });
   }
 
