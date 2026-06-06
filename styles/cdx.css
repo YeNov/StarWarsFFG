@@ -446,11 +446,12 @@
 .cdx .cdx-desc-grid { display:grid; grid-template-columns:auto 1fr; gap:5px 8px; padding:8px 10px; align-items:center; }
 .cdx .cdx-desc-grid label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-desc-grid input, .cdx .cdx-desc-grid select { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
-/* Obligation / Morality / Conflict — three equal-width stat chips. */
+/* Obligation / Morality / Conflict — equal-width chips reusing the .cdx-panel
+   blue-header styling of the other bio panels. */
 .cdx .cdx-bio-stats { display:flex; gap:10px; margin-bottom:10px; }
-.cdx .cdx-bstat { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:8px 10px; }
-.cdx .cdx-bstat-k { font-family:"Orbitron"; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); }
-.cdx .cdx-bstat input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:24px; color:var(--cdx-ink); padding:0; }
+.cdx .cdx-bio-stats .cdx-panel { flex:1; min-width:0; margin-bottom:0; }
+.cdx .cdx-bstat-body { padding:8px 10px; text-align:center; }
+.cdx .cdx-bstat-body input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:24px; color:var(--cdx-ink); padding:0; }
 .cdx .cdx-table { width:100%; border-collapse:collapse; }
 .cdx .cdx-table th { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 8px; text-align:left; }
 .cdx .cdx-table td { padding:5px 8px; border-bottom:1px solid var(--cdx-line); font-size:12px; }
