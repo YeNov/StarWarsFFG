@@ -73,6 +73,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     const root = html?.[0] ?? this.form ?? this.element;
     if (!root) return;
 
+    // mandar forces `overflow: visible !important` on the content <form> (it
+    // scrolls its own .sheet-body, which our bespoke layout doesn't have). A
+    // CSS override can't reliably win that !important battle, so set it inline
+    // (inline !important beats any stylesheet rule) — this makes the form the
+    // scroll container so the body stops overflowing the window.
+    const form = this.form;
+    if (form) {
+      form.style.setProperty("overflow-y", "auto", "important");
+      form.style.setProperty("overflow-x", "hidden", "important");
+    }
+
     // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
     root.querySelectorAll(".cdx-tab").forEach((btn) => {
       btn.addEventListener("click", (ev) => {

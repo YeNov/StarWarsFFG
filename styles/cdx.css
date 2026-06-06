@@ -63,6 +63,10 @@
   display:flex; flex-direction:column; min-height:0; overflow-y:auto !important; overflow-x:hidden;
 }
 .cdx .cdx-sheet { display:contents; }
+/* NB: mandar forces `overflow: visible !important` on the content form (it
+   scrolls its own .sheet-body, which our bespoke layout lacks). A stylesheet
+   override can't reliably win that, so the scroll is set inline with !important
+   in codex-sheets.js (_cdxActivate) instead. */
 /* Scope generic field styling to the CONTENT form only — NOT the window header,
    whose control buttons rely on the Font Awesome font-family for their glyphs
    (a global `.cdx button{font-family:inherit}` was wiping the header icons). */
@@ -165,7 +169,7 @@
 .cdx .cdx-rest { width:20px; height:18px; border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.12); color:#fff; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
 .cdx .cdx-stat-body { padding:6px 8px 7px; text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center; }
 .cdx .cdx-thresh { display:flex; align-items:baseline; justify-content:center; gap:2px; }
-.cdx .cdx-thresh input { width:1.6em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:26px; color:var(--cdx-ink); }
+.cdx .cdx-thresh input { width:2.2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:26px; color:var(--cdx-ink); padding:0; }
 .cdx .cdx-stat.enc .cdx-thresh input[disabled], .cdx .cdx-thresh input[disabled] { color:var(--cdx-ink); opacity:.9; }
 .cdx .cdx-stat-sub { display:flex; justify-content:space-between; gap:8px; margin-top:3px; padding:0 4px; }
 .cdx .cdx-stat-sub span { font-size:8px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-dim); }
