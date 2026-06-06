@@ -45,21 +45,6 @@
   </header>
 
   {{#unless limited}}
-  {{!-- Characteristics + Soak + Force --}}
-  <div class="cdx-chiprow">
-    {{#each data.characteristics as |characteristic id|}}
-    <div class="cdx-chip" data-ability="{{id}}">
-      <div class="cdx-chip-box"><input type="number" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" max="{{ ../maxAttribute }}" {{#if ../disabled}}disabled{{/if}} /></div>
-      <div class="cdx-chip-label ffg-purchase" data-buy-action="characteristic" data-buy-characteristic="{{id}}"><span class="cdx-cl-full">{{characteristic.label}}</span><span class="cdx-cl-abbr">{{lookup ../cdxCharAbbr id}}</span></div>
-    </div>
-    {{/each}}
-    {{!-- Soak now lives in the Defence card below. --}}
-    {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
-    <div class="cdx-chip-div"></div>
-    <div class="cdx-chip derived cdx-align-{{cdxAlign}}"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.Force"}}</div></div>
-    {{/if}}
-  </div>
-
   {{!-- Derived: Wounds / Strain / Defence / Encumbrance --}}
   <div class="cdx-derived">
     <div class="cdx-stat wounds wide">
@@ -111,7 +96,22 @@
     <button type="button" class="cdx-tab" data-tab="effects">{{localize "SWFFG.TabEffects"}}</button>
   </nav>
 
-  <section class="cdx-pane active" data-tab="skills">{{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}</section>
+  <section class="cdx-pane active" data-tab="skills">
+    {{!-- Characteristics (Brawn … Force) belong exclusively to the Skills tab. --}}
+    <div class="cdx-chiprow">
+      {{#each data.characteristics as |characteristic id|}}
+      <div class="cdx-chip" data-ability="{{id}}">
+        <div class="cdx-chip-box"><input type="number" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" max="{{ ../maxAttribute }}" {{#if ../disabled}}disabled{{/if}} /></div>
+        <div class="cdx-chip-label ffg-purchase" data-buy-action="characteristic" data-buy-characteristic="{{id}}"><span class="cdx-cl-full">{{characteristic.label}}</span><span class="cdx-cl-abbr">{{lookup ../cdxCharAbbr id}}</span></div>
+      </div>
+      {{/each}}
+      {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+      <div class="cdx-chip-div"></div>
+      <div class="cdx-chip derived cdx-align-{{cdxAlign}}"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.Force"}}</div></div>
+      {{/if}}
+    </div>
+    {{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}
+  </section>
   <section class="cdx-pane" data-tab="combat">{{> "systems/starwarsffg/templates/parts/codex/cdx-combat.html"}}</section>
   <section class="cdx-pane injuries" data-tab="injuries">{{> "systems/starwarsffg/templates/parts/codex/cdx-injuries.html"}}</section>
   <section class="cdx-pane talents items" data-tab="talents">{{> "systems/starwarsffg/templates/parts/codex/cdx-talents.html"}}</section>
