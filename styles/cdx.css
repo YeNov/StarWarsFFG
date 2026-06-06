@@ -456,7 +456,7 @@
 .cdx .cdx-fp-k { font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#5b4bb3; }
 .cdx .cdx-forcepool input { width:2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); }
 .cdx .cdx-fp-s { font-size:9px; color:var(--cdx-dim); margin-left:auto; }
-.cdx .cdx-talents { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cdx .cdx-talents { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; }
 /* Abilities / signature-ability sub-lists reuse the talent grid; space them off the block above. */
 .cdx .cdx-talents.cdx-tlist { margin-top:12px; }
 .cdx .cdx-cards-head { grid-column:1/-1; }
