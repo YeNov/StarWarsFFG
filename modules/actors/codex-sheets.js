@@ -200,15 +200,19 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     const ctx = await super.getData(options);
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
-      // Specializations ordered by acquisition — the one bought FIRST (oldest
-      // createdTime) comes first in the array, so it renders as the first pill
-      // and paints on TOP of the stack. A null createdTime (e.g. a spec carried
-      // over by a duplicated actor) sorts oldest; sort then id break exact ties.
-      const specItems = (this.actor?.items?.filter((i) => i.type === "specialization") ?? [])
+      // Header pill stacks (specializations / force powers / signature abilities):
+      // same shape, all driven by CdxPillStack. Ordered by acquisition — the one
+      // bought FIRST (oldest createdTime) comes first → first pill → top of stack.
+      // A null createdTime (e.g. carried over by a duplicated actor) sorts oldest;
+      // sort then id break exact ties.
+      const cdxStack = (type) => (this.actor?.items?.filter((i) => i.type === type) ?? [])
         .sort((a, b) => ((a._stats?.createdTime ?? 0) - (b._stats?.createdTime ?? 0)) || (a.sort - b.sort) || a._id.localeCompare(b._id));
-      ctx.cdxSpecs = specItems;
-      ctx.cdxSpecCount = specItems.length;
-      ctx.cdxSpecExtra = Math.max(0, specItems.length - 1);
+      const specItems = cdxStack("specialization");
+      ctx.cdxSpecs = specItems; ctx.cdxSpecCount = specItems.length; ctx.cdxSpecExtra = Math.max(0, specItems.length - 1);
+      const forceItems = cdxStack("forcepower");
+      ctx.cdxForcePowers = forceItems; ctx.cdxForceCount = forceItems.length; ctx.cdxForceExtra = Math.max(0, forceItems.length - 1);
+      const sigItems = cdxStack("signatureability");
+      ctx.cdxSigs = sigItems; ctx.cdxSigCount = sigItems.length; ctx.cdxSigExtra = Math.max(0, sigItems.length - 1);
     } catch (e) { ctx.cdxCritCount = 0; }
     ctx.cdxTracks = {};
     try {

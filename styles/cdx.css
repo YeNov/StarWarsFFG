@@ -136,6 +136,7 @@
   padding:3px 10px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; clip-path:var(--cdx-clip); cursor:pointer;
 }
 .cdx .cdx-pill.force { background:#5b4bb3; border-color:rgba(255,255,255,.45); }
+.cdx .cdx-pill.sig { background:#2c7a86; border-color:rgba(255,255,255,.45); }
 .cdx .cdx-pill .item-delete { opacity:.55; font-size:9px; cursor:pointer; }
 .cdx .cdx-pill .item-delete:hover { opacity:1; }
 .cdx .cdx-pill-add { color:rgba(255,255,255,.8); font-size:12px; cursor:pointer; }
