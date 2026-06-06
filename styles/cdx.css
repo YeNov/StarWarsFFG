@@ -207,24 +207,29 @@
 .cdx .cdx-pane { display:none; }
 .cdx .cdx-pane.active { display:block; }
 
-/* ---- Skills ---- */
-.cdx .cdx-skills { display:flex; gap:10px; align-items:flex-start; }
-.cdx .cdx-skill-col { flex:1; min-width:0; }
-.cdx .cdx-sk-head, .cdx .cdx-sk-row { display:grid; grid-template-columns:1fr 22px 42px 1.1fr; align-items:center; }
+/* ---- Skills ----
+   Each column is ONE grid; every header/row uses `grid-template-columns: subgrid`
+   so they all share the SAME tracks → the CS/RANK/ROLL columns stay vertically
+   aligned at any window width. Names ellipsis and dice never wrap, so row heights
+   are fixed (no reflow/misalignment on shrink). Columns wrap-to-stack when narrow. */
+.cdx .cdx-skills { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
+.cdx .cdx-skill-col { flex:1 1 270px; min-width:0; display:grid; grid-template-columns:minmax(0,1fr) 26px 34px max-content; align-content:start; }
+.cdx .cdx-sk-head, .cdx .cdx-sk-row { grid-column:1 / -1; display:grid; grid-template-columns:subgrid; align-items:center; }
 .cdx .cdx-sk-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; margin-top:6px; }
-.cdx .cdx-sk-head span { padding:4px 6px; }
-.cdx .cdx-sk-head .cdx-sk-c, .cdx .cdx-sk-head .cdx-sk-rank { text-align:center; padding:4px 2px; }
-.cdx .cdx-sk-row { background:var(--cdx-paper); border-bottom:1px solid var(--cdx-line); border-left:3px solid transparent; min-height:24px; }
-.cdx .cdx-sk-row:has(.careerskill-toggle:checked) { background:var(--cdx-career); border-left-color:var(--cdx-career-line); }
-.cdx .cdx-sk-name { font-size:13px; color:var(--cdx-ink); padding:2px 6px; display:flex; align-items:baseline; gap:4px; }
+.cdx .cdx-sk-head > * { padding:4px 6px; }
+.cdx .cdx-sk-head .cdx-sk-c, .cdx .cdx-sk-head .cdx-sk-rank, .cdx .cdx-sk-head .cdx-sk-pool { text-align:center; padding:4px 2px; }
+.cdx .cdx-sk-row { background:var(--cdx-paper); border-bottom:1px solid var(--cdx-line); min-height:26px; }
+.cdx .cdx-sk-row:has(.careerskill-toggle:checked) { background:var(--cdx-career); box-shadow:inset 3px 0 0 var(--cdx-career-line); }
+.cdx .cdx-sk-name { font-size:15px; color:var(--cdx-ink); padding:2px 6px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cdx .cdx-sk-head .cdx-sk-name { color:#fff; font-size:8.5px; }
-.cdx .cdx-sk-char { font-size:9px; color:var(--cdx-dim); font-style:normal; }
-.cdx .cdx-sk-name .ffg-purchase { color:var(--cdx-career-line); cursor:pointer; font-size:11px; }
+.cdx .cdx-sk-char { font-size:10px; color:var(--cdx-dim); font-style:normal; margin-left:3px; }
+.cdx .cdx-sk-name .ffg-purchase { color:var(--cdx-career-line); cursor:pointer; font-size:12px; margin-right:2px; }
 .cdx .cdx-sk-c { text-align:center; }
 .cdx .cdx-sk-c .careerskill-toggle { accent-color:var(--cdx-career-line); }
-.cdx .cdx-sk-rank input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:700; font-size:12px; color:var(--cdx-ink); }
-.cdx .cdx-sk-pool { padding:2px 6px; }
-.cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; flex-wrap:wrap; gap:1px; }
+.cdx .cdx-sk-rank { text-align:center; }
+.cdx .cdx-sk-rank input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }
+.cdx .cdx-sk-pool { padding:2px 6px; white-space:nowrap; }
+.cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; flex-wrap:nowrap; gap:1px; }
 .cdx .cdx-sk-pool img { width:18px; height:18px; }
 
 /* ---- Combat cards (weapon + armour) ---- */
