@@ -531,3 +531,16 @@
   background:var(--cdx-paper2); color:var(--cdx-ink); padding:8px; border:1px solid var(--cdx-line); border-radius:4px;
 }
 .cdx .cdx-pane.effects *, .cdx .cdx-pane.attributes *, .cdx .cdx-sub * { color:var(--cdx-ink); }
+/* Active Effects tab: the stock partial centres/constrains its content and shows a
+   redundant "Active Effects" title. Make the content full-width and drop the title. */
+.cdx .cdx-pane.effects .resource,
+.cdx .cdx-pane.effects .attribute,
+.cdx .cdx-pane.effects .block-background,
+.cdx .cdx-pane.effects .block-attribute { display:block; width:100%; max-width:none; box-sizing:border-box; }
+.cdx .cdx-pane.effects .attribute { border:none; padding:0; text-align:left; }
+.cdx .cdx-pane.effects .block-background { background:transparent; clip-path:none; padding:0; margin:0; }
+.cdx .cdx-pane.effects .block-title { display:none; }
+.cdx .cdx-pane.effects table { width:100%; border-collapse:collapse; }
+.cdx .cdx-pane.effects th { text-align:left; font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); padding:4px 6px; border-bottom:1px solid var(--cdx-line); }
+.cdx .cdx-pane.effects td { padding:4px 6px; font-size:12px; border-bottom:1px solid var(--cdx-line); }
+.cdx .cdx-pane.effects .expand-icon { cursor:pointer; width:20px; text-align:center; }
