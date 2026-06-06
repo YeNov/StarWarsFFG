@@ -279,7 +279,11 @@ Hooks.once("init", async function () {
   // styles only bespoke `.cdx-*` classes, so it neither depends on nor is
   // overridden by the active theme. (system.json `styles` is unreliable here —
   // the default mandar theme disables system styles at init.)
-  $("head").append('<link href="systems/starwarsffg/styles/cdx.css" rel="stylesheet" type="text/css" media="all">');
+  // ?v=<timestamp> busts the browser cache so edits to cdx.css load on a plain
+  // reload — the <link> was otherwise cached forever by its fixed URL, which is
+  // why CSS changes "didn't apply". TODO: switch the buster to the system
+  // version (game.system.version) for release so the file caches between bumps.
+  $("head").append(`<link href="systems/starwarsffg/styles/cdx.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
 
   /**
    * Register default XP spend notification
