@@ -47,9 +47,9 @@
       <div class="cdx-chip-label ffg-purchase" data-buy-action="characteristic" data-buy-characteristic="{{id}}">{{characteristic.label}}</div>
     </div>
     {{/each}}
-    <div class="cdx-chip-div"></div>
-    <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.Soak"}}</div></div>
+    {{!-- Soak now lives in the Defence card below. --}}
     {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+    <div class="cdx-chip-div"></div>
     <div class="cdx-chip derived"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.Force"}}</div></div>
     {{/if}}
   </div>
@@ -72,13 +72,18 @@
     </div>
     {{/if}}
     {{/unless}}
-    <div class="cdx-stat defence">
-      <div class="cdx-stat-head"><span>{{localize "SWFFG.Defense"}}</span></div>
-      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.defence.ranged" value="{{data.stats.defence.ranged}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span class="cdx-slash">/</span><input type="text" name="data.stats.defence.melee" value="{{data.stats.defence.melee}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.DefenseRanged"}}</span><span>{{localize "SWFFG.DefenseMelee"}}</span></div></div>
-    </div>
-    <div class="cdx-stat enc">
-      <div class="cdx-stat-head"><span>{{localize "SWFFG.Encumbrance"}}</span></div>
-      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.encumbrance.value" value="{{data.stats.encumbrance.value}}" data-dtype="Number" disabled /><span class="cdx-slash">/</span><input type="text" name="data.stats.encumbrance.max" value="{{data.stats.encumbrance.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div>
+    <div class="cdx-stat defence cdx-def">
+      <div class="cdx-stat-head"><span><i class="fas fa-shield"></i>{{localize "SWFFG.Defense"}}</span></div>
+      <div class="cdx-def-body">
+        <div class="cdx-def-soak">
+          <input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} />
+          <span>{{localize "SWFFG.Soak"}}</span>
+        </div>
+        <div class="cdx-def-rows">
+          <div class="cdx-def-row"><span>{{localize "SWFFG.DefenseMelee"}}</span><input type="text" name="data.stats.defence.melee" value="{{data.stats.defence.melee}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
+          <div class="cdx-def-row"><span>{{localize "SWFFG.DefenseRanged"}}</span><input type="text" name="data.stats.defence.ranged" value="{{data.stats.defence.ranged}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
+        </div>
+      </div>
     </div>
   </div>
 

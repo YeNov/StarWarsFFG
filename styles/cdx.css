@@ -199,13 +199,26 @@
 .cdx .cdx-stat-body { padding:6px 8px 7px; text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center; }
 .cdx .cdx-thresh { display:flex; align-items:baseline; justify-content:center; gap:2px; }
 .cdx .cdx-thresh input { width:2.2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:26px; color:var(--cdx-ink); padding:0; }
-.cdx .cdx-stat.enc .cdx-thresh input[disabled], .cdx .cdx-thresh input[disabled] { color:var(--cdx-ink); opacity:.9; }
+.cdx .cdx-thresh input[disabled] { color:var(--cdx-ink); opacity:.9; }
 .cdx .cdx-stat-sub { display:flex; justify-content:space-between; gap:8px; margin-top:3px; padding:0 4px; }
 .cdx .cdx-stat-sub span { font-size:8px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-heal { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:6px; padding-top:6px; border-top:1px solid var(--cdx-line); }
 .cdx .cdx-heal-k { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-heal-v { font-family:"Orbitron"; font-weight:900; font-size:13px; color:var(--cdx-ink); }
 .cdx .cdx-heal .medical { color:var(--cdx-accent); cursor:pointer; }
+
+/* Defence card — big Soak on the left, Melee/Ranged stacked on the right. */
+.cdx .cdx-stat.cdx-def { flex:1.15; }
+.cdx .cdx-stat-head span > i { margin-right:5px; opacity:.9; font-size:10px; }
+.cdx .cdx-def-body { flex:1; display:flex; align-items:stretch; }
+.cdx .cdx-def-soak { flex:0 0 auto; min-width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:4px 7px; border-right:1px solid var(--cdx-line); }
+.cdx .cdx-def-soak input { width:1.4em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-ink); padding:0; }
+.cdx .cdx-def-soak span { font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-def-rows { flex:1; min-width:0; display:flex; flex-direction:column; }
+.cdx .cdx-def-row { flex:1; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 9px; }
+.cdx .cdx-def-row + .cdx-def-row { border-top:1px solid var(--cdx-line); }
+.cdx .cdx-def-row > span { font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-def-row input { width:2em; flex:none; text-align:center; background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; font-family:"Orbitron"; font-weight:900; font-size:14px; color:var(--cdx-ink); padding:2px 0; }
 
 /* Wounds/strain steppers + damage track */
 .cdx .cdx-stepline { display:flex; align-items:center; gap:7px; }
