@@ -36,7 +36,7 @@
       <div class="cdx-square cdx-xp"><span class="cdx-sq-k">XP</span><span class="cdx-sq-v">{{data.experience.available}}</span><span class="cdx-sq-s">of {{data.experience.total}}</span></div>
       {{/if}}
       <div class="cdx-credits-wrap">
-        <div class="cdx-square cdx-credits"><span class="cdx-sq-k">CR</span><input class="cdx-sq-input" type="text" name="data.stats.credits.value" value="{{data.stats.credits.value}}" data-dtype="String" /></div>
+        <div class="cdx-square cdx-credits"><span class="cdx-sq-k">CR</span><input class="cdx-sq-input" type="text" inputmode="numeric" value="{{data.stats.credits.value}}" /></div>
         <button type="button" class="cdx-cr-change">Change</button>
         <div class="cdx-cr-editor"><button type="button" class="cdx-cr-op active" data-op="add" title="Add"><i class="fas fa-plus"></i></button><button type="button" class="cdx-cr-op" data-op="sub" title="Subtract"><i class="fas fa-minus"></i></button><input type="text" class="cdx-cr-amount" inputmode="numeric" placeholder="0" /><button type="button" class="cdx-cr-confirm" title="Confirm"><i class="fas fa-check"></i></button><button type="button" class="cdx-cr-cancel" title="Cancel"><i class="fas fa-times"></i></button></div>
       </div>

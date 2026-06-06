@@ -210,6 +210,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     const ops = [...wrap.querySelectorAll(".cdx-cr-op")];
     const setOp = (b) => ops.forEach((x) => x.classList.toggle("active", x === b));
     const close = () => wrap.classList.remove("editing");
+    // Stored credits as a plain integer, and a thousands-separated render of one.
+    const curCredits = () => parseInt(String(this.actor?.system?.stats?.credits?.value ?? "0").replace(/[^\d]/g, ""), 10) || 0;
+    const fmt = (v) => (parseInt(String(v).replace(/[^\d]/g, ""), 10) || 0).toLocaleString("en-US");
     const open = () => {
       wrap.classList.add("editing");
       if (amount) amount.value = "";
@@ -221,10 +224,34 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       const delta = parseInt(String(amount?.value ?? "").replace(/[^\d]/g, ""), 10) || 0;
       close();
       if (!delta) return;
-      const cur = parseInt(String(this.actor?.system?.stats?.credits?.value ?? "0").replace(/[^\d-]/g, ""), 10) || 0;
-      const next = Math.max(0, op === "sub" ? cur - delta : cur + delta);
+      const next = Math.max(0, op === "sub" ? curCredits() - delta : curCredits() + delta);
       try { await this.actor?.update({ "system.stats.credits.value": String(next) }); } catch (e) { /* no permission */ }
     };
+    // Main credits field — display with thousands-separating commas; show raw
+    // digits while editing, reformat + persist on commit. The input is NOT
+    // Foundry-bound (no name=), so the comma'd string can never round-trip into
+    // the stored value when a neighbouring field triggers a form submit.
+    const field = wrap.querySelector(".cdx-sq-input");
+    if (field) {
+      field.value = fmt(curCredits());
+      field.addEventListener("focus", () => { field.value = String(curCredits()); setTimeout(() => field.select(), 0); });
+      field.addEventListener("input", () => {
+        const caret = field.selectionStart;
+        const stripped = field.value.replace(/[^\d]/g, "");
+        if (stripped !== field.value) { field.value = stripped; try { field.setSelectionRange(caret - 1, caret - 1); } catch (e) { /* noop */ } }
+      });
+      field.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") { ev.preventDefault(); field.blur(); }
+        else if (ev.key === "Escape") { ev.preventDefault(); field.value = String(curCredits()); field.blur(); }
+      });
+      field.addEventListener("blur", async () => {
+        const n = parseInt(field.value.replace(/[^\d]/g, ""), 10) || 0;
+        field.value = fmt(n);
+        if (n !== curCredits()) { try { await this.actor?.update({ "system.stats.credits.value": String(n) }); } catch (e) { /* no permission */ } }
+      });
+    }
+    // Amount field (the +/- panel) — digits only too.
+    amount?.addEventListener("input", () => { const c = amount.selectionStart; const s = amount.value.replace(/[^\d]/g, ""); if (s !== amount.value) { amount.value = s; try { amount.setSelectionRange(c - 1, c - 1); } catch (e) { /* noop */ } } });
     wrap.querySelector(".cdx-cr-change")?.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); open(); });
     ops.forEach((b) => b.addEventListener("click", (ev) => { ev.preventDefault(); setOp(b); amount?.focus(); }));
     wrap.querySelector(".cdx-cr-cancel")?.addEventListener("click", (ev) => { ev.preventDefault(); close(); });
