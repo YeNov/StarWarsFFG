@@ -50,7 +50,7 @@
     <div class="cdx-chip-div"></div>
     <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.Soak"}}</div></div>
     {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
-    <div class="cdx-chip derived"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.ForceRating"}}</div></div>
+    <div class="cdx-chip derived"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.Force"}}</div></div>
     {{/if}}
   </div>
 
