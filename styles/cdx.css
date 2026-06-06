@@ -478,8 +478,12 @@
    stepper inside its stat column is gear-specific. ---- */
 .cdx .cdx-card-icon img { width:100%; height:100%; object-fit:cover; border-radius:6px; }
 .cdx .cdx-card.gear .cdx-statcol { width:84px; }
-.cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:12px; }
-.cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; position:relative; top:1px; }
+.cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:14px; }
+/* position:static neutralises the stock .quantity rule (position:absolute +
+   left/right:25%), which pulled the +/- toward the digit and "smashed" them so the
+   flex gap had no visible effect. With static, the gap spaces them properly;
+   translateY keeps the 1px-down nudge (top: needs positioning, which we drop). */
+.cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; position:static; transform:translateY(1px); }
 .cdx .cdx-card.gear .cdx-qty-v { font-family:"Orbitron"; font-weight:900; font-size:17px; line-height:1; color:var(--cdx-accent); min-width:16px; text-align:center; }
 /* Dark scheme: the accent (dark red) is too low-contrast against the near-black
    weapon/armour/gear cards, so render the stat labels/values, the qty +/- and the
