@@ -18,7 +18,7 @@
 </div>
 {{#unless (eq actor.type "minion")}}
 <div class="cdx-gear-summary">
-  <span>{{localize "SWFFG.Encumbrance"}}: <b>{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</b></span>
-  <span>{{localize "SWFFG.DescriptionCredits"}}: <b class="brass">{{data.stats.credits.value}}</b></span>
+  <div class="cdx-gs-item"><span class="cdx-gs-k">{{localize "SWFFG.Encumbrance"}}</span><span class="cdx-gs-v">{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</span></div>
+  <div class="cdx-gs-item"><span class="cdx-gs-v brass">{{data.stats.credits.value}}</span></div>
 </div>
 {{/unless}}
