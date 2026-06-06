@@ -142,9 +142,15 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     const ctx = await super.getData(options);
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
-      const specs = this.actor?.items?.filter((i) => i.type === "specialization").length ?? 0;
-      ctx.cdxSpecCount = specs;
-      ctx.cdxSpecExtra = Math.max(0, specs - 1);
+      // Specializations ordered by acquisition — the one bought FIRST (oldest
+      // createdTime) comes first in the array, so it renders as the first pill
+      // and paints on TOP of the stack. A null createdTime (e.g. a spec carried
+      // over by a duplicated actor) sorts oldest; sort then id break exact ties.
+      const specItems = (this.actor?.items?.filter((i) => i.type === "specialization") ?? [])
+        .sort((a, b) => ((a._stats?.createdTime ?? 0) - (b._stats?.createdTime ?? 0)) || (a.sort - b.sort) || a._id.localeCompare(b._id));
+      ctx.cdxSpecs = specItems;
+      ctx.cdxSpecCount = specItems.length;
+      ctx.cdxSpecExtra = Math.max(0, specItems.length - 1);
     } catch (e) { ctx.cdxCritCount = 0; }
     ctx.cdxTracks = {};
     try {
