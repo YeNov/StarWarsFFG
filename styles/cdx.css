@@ -1,0 +1,287 @@
+/* ============================================================================
+   CODEX II — self-contained sheet styles. Everything is scoped under `.cdx`
+   (the outer ApplicationV2 window <div>) and targets only bespoke `.cdx-*`
+   classes, so it neither depends on nor conflicts with the active UI theme
+   (mandar). The palette is a PER-ACTOR flag applied as `scheme-*` on the
+   content <form>; vars are declared there and inherited by all content.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("../fonts/Orbitron-VariableFont_wght.woff2") format("woff2");
+  font-weight: 400 900; font-style: normal; font-display: swap;
+}
+
+/* ---- Palettes (per-actor scheme on the content form) ---- */
+.cdx form, .cdx form.scheme-republic {
+  --cdx-bg:#cdd4dc; --cdx-stripe:rgba(20,40,70,.05);
+  --cdx-paper:#e9edf2; --cdx-paper2:#f5f7fa; --cdx-ink:#16202b; --cdx-dim:#5d6b78; --cdx-line:#b9c3cd;
+  --cdx-accent:#1f4e8c; --cdx-accent2:#16407a; --cdx-brown:#2a5fa0; --cdx-brass:#b9892f;
+  --cdx-career:#e6eefb; --cdx-career-line:#3a78c0; --cdx-track:#c2ccd6;
+  --cdx-chip-label:#16202b; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#2a649f,#1b4474); --cdx-head-ink:#fff;
+  --cdx-notch:9px;
+}
+.cdx form.scheme-empire {
+  --cdx-bg:#c8c9cc; --cdx-stripe:rgba(0,0,0,.05);
+  --cdx-paper:#e5e6e8; --cdx-paper2:#f1f1f3; --cdx-ink:#14151a; --cdx-dim:#5d5f66; --cdx-line:#b4b5ba;
+  --cdx-accent:#1b1c21; --cdx-accent2:#2b2c32; --cdx-brown:#7c1411; --cdx-brass:#7d8086;
+  --cdx-career:#e9e9ec; --cdx-career-line:#9a1f1b; --cdx-track:#bcbdc2;
+  --cdx-chip-label:#000; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#26272c,#131418); --cdx-head-ink:#fff;
+}
+.cdx form.scheme-dark {
+  --cdx-bg:#0e0b0b; --cdx-stripe:rgba(255,255,255,.02);
+  --cdx-paper:#1a1413; --cdx-paper2:#221917; --cdx-ink:#ece4df; --cdx-dim:#9a8e88; --cdx-line:#3a2c29;
+  --cdx-accent:#8a1714; --cdx-accent2:#5d1110; --cdx-brown:#6e2a22; --cdx-brass:#c8a24a;
+  --cdx-career:rgba(200,162,74,.12); --cdx-career-line:#c8a24a; --cdx-track:#3a2c29;
+  --cdx-chip-label:#000; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#6e1411,#380a09); --cdx-head-ink:#fff;
+}
+.cdx form.scheme-light {
+  --cdx-bg:#dde6ec; --cdx-stripe:rgba(47,111,158,.045);
+  --cdx-paper:#f3f7fa; --cdx-paper2:#fff; --cdx-ink:#1b2a33; --cdx-dim:#5f7079; --cdx-line:#c5d2db;
+  --cdx-accent:#2f6f9e; --cdx-accent2:#245880; --cdx-brown:#3a86b5; --cdx-brass:#b0902c;
+  --cdx-career:#e4f1f8; --cdx-career-line:#4a9bc8; --cdx-track:#cad9e2;
+  --cdx-chip-label:#1b2a33; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#56a0c4,#2f6f9e); --cdx-head-ink:#fff;
+}
+.cdx form.scheme-mercenary {
+  --cdx-bg:#c9bdac; --cdx-stripe:rgba(60,40,20,.05);
+  --cdx-paper:#e6dccb; --cdx-paper2:#f1ebdd; --cdx-ink:#241c12; --cdx-dim:#6e6047; --cdx-line:#bcae95;
+  --cdx-accent:#7a4a22; --cdx-accent2:#5e3818; --cdx-brown:#8a5a2a; --cdx-brass:#b07a30;
+  --cdx-career:#efe2c8; --cdx-career-line:#b07a30; --cdx-track:#cdbfa3;
+  --cdx-chip-label:#241c12; --cdx-chip-ink:#f1ebdd; --cdx-head:linear-gradient(180deg,#3b4148,#22262b); --cdx-head-ink:#f1ebdd;
+}
+.cdx form {
+  --cdx-clip:polygon(0% var(--cdx-notch),var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% calc(100% - var(--cdx-notch)),calc(100% - var(--cdx-notch)) 100%,var(--cdx-notch) 100%,0% calc(100% - var(--cdx-notch)));
+  --cdx-clip-top:polygon(0% 0%,var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% 100%,0% 100%);
+}
+
+/* ---- Shell ---- (!important: mandar paints a parchment background-image on
+   .window-content with higher specificity) */
+.cdx > form.window-content {
+  background-color:var(--cdx-bg) !important;
+  background-image:repeating-linear-gradient(135deg,var(--cdx-stripe) 0 12px,transparent 12px 24px) !important;
+  color:var(--cdx-ink); font-family:"Signika",sans-serif; padding:12px; gap:9px;
+  display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+}
+.cdx .cdx-sheet { display:contents; }
+/* mandar forces `button { display:block; width:100% }` inside sheets — undo it
+   for our inline controls so flex rows lay out horizontally. */
+.cdx button.cdx-tab, .cdx button.cdx-scheme-btn { display:inline-flex; align-items:center; width:auto; flex:0 0 auto; appearance:none; line-height:1; }
+.cdx input, .cdx select, .cdx button { font-family:inherit; color:var(--cdx-ink); }
+.cdx input:focus { outline:none; box-shadow:0 0 4px var(--cdx-accent); }
+.cdx .brass { color:var(--cdx-brass); }
+.cdx .cdx-slash { color:var(--cdx-dim); font-weight:700; padding:0 2px; }
+
+/* ---- Scheme strip ---- */
+.cdx .cdx-scheme-strip { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.cdx .cdx-scheme-label { font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-scheme-btn {
+  font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase;
+  padding:3px 10px; border:1px solid transparent; border-radius:2px; background:transparent; color:var(--cdx-dim); cursor:pointer;
+}
+.cdx .cdx-scheme-btn:hover { color:var(--cdx-ink); border-color:var(--cdx-line); }
+
+/* ---- Header ---- */
+.cdx .cdx-header {
+  display:flex; gap:14px; align-items:center; padding:14px;
+  background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip);
+}
+.cdx .cdx-portrait { flex:none; }
+.cdx .cdx-portrait .profile-img { width:96px; height:84px; object-fit:cover; border:2px solid rgba(255,255,255,.35); border-radius:6px; cursor:pointer; }
+.cdx .cdx-identity { flex:1; min-width:0; display:flex; flex-direction:column; gap:9px; }
+.cdx .cdx-name {
+  font-family:"Orbitron"; font-weight:900; font-size:26px; letter-spacing:1px; text-transform:uppercase; line-height:1;
+  color:var(--cdx-head-ink); background:transparent; border:none; width:100%; padding:0;
+}
+.cdx .cdx-pills { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+.cdx .cdx-pillgroup { display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.cdx .cdx-pill {
+  font-family:"Orbitron"; font-weight:500; font-size:10px; letter-spacing:.5px; text-transform:uppercase;
+  background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.26); color:var(--cdx-head-ink);
+  padding:3px 10px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; clip-path:var(--cdx-clip); cursor:pointer;
+}
+.cdx .cdx-pill.force { background:#5b4bb3; border-color:rgba(255,255,255,.45); }
+.cdx .cdx-pill .item-delete { opacity:.55; font-size:9px; cursor:pointer; }
+.cdx .cdx-pill .item-delete:hover { opacity:1; }
+.cdx .cdx-pill-add { color:rgba(255,255,255,.8); font-size:12px; cursor:pointer; }
+.cdx .cdx-drag { font-size:10px; font-style:italic; opacity:.7; }
+
+.cdx .cdx-header-stats { flex:none; display:flex; gap:7px; align-items:stretch; }
+.cdx .cdx-square {
+  width:74px; padding:7px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; background:rgba(0,0,0,.28); clip-path:var(--cdx-clip); color:var(--cdx-head-ink);
+}
+.cdx .cdx-square.cdx-credits { background:var(--cdx-brass); color:var(--cdx-chip-label); }
+.cdx .cdx-sq-k { font-family:"Orbitron"; font-size:8.5px; font-weight:700; letter-spacing:1.5px; opacity:.75; text-transform:uppercase; }
+.cdx .cdx-sq-v { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1.05; }
+.cdx .cdx-sq-s { font-family:"Orbitron"; font-size:8px; opacity:.6; }
+.cdx .cdx-sq-input { font-family:"Orbitron"; font-weight:900; font-size:17px; text-align:center; background:transparent; border:none; width:100%; color:inherit; }
+
+/* ---- Vehicle ---- */
+.cdx .cdx-shields { flex:none; }
+.cdx .cdx-shield-row { display:flex; gap:5px; }
+.cdx .cdx-shield { display:flex; flex-direction:column; align-items:center; width:54px; background:rgba(0,0,0,.28); clip-path:var(--cdx-clip); padding:5px 3px; color:var(--cdx-head-ink); }
+.cdx .cdx-shield input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-head-ink); }
+.cdx .cdx-shield span { font-family:"Orbitron"; font-size:7.5px; letter-spacing:.5px; text-transform:uppercase; opacity:.75; }
+.cdx .cdx-vehicle-info { display:grid; grid-template-columns:auto 1fr auto 1fr; gap:6px 10px; align-items:center; padding:10px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); margin-bottom:10px; }
+.cdx .cdx-vehicle-info label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-vehicle-info input[type=text] { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); width:100%; }
+
+/* ---- Minion kill buttons ---- */
+.cdx .cdx-minion-kill { flex:none; display:flex; gap:6px; align-items:center; }
+.cdx .cdx-killbtn { width:34px; height:34px; border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.12); color:var(--cdx-head-ink); border-radius:5px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; justify-content:center; }
+.cdx .cdx-killbtn:hover { background:rgba(255,255,255,.25); }
+
+/* ---- Chip row (characteristics + soak + force) ---- */
+.cdx .cdx-chiprow { display:flex; gap:6px; align-items:center; }
+.cdx .cdx-chip { flex:1; display:flex; flex-direction:column; align-items:center; min-width:0; }
+.cdx .cdx-chip-box {
+  width:100%; max-width:84px; aspect-ratio:1/1; border-radius:13px; border:4px double var(--cdx-ink);
+  background:var(--cdx-paper2); display:flex; align-items:center; justify-content:center; box-shadow:inset 0 2px 6px rgba(0,0,0,.12);
+}
+.cdx .cdx-chip.derived .cdx-chip-box { border:3px solid var(--cdx-brass); }
+.cdx .cdx-chip-box input, .cdx .cdx-chip-box.static {
+  width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; color:var(--cdx-ink);
+}
+.cdx .cdx-chip-box.static { display:flex; align-items:center; justify-content:center; }
+.cdx .cdx-chip-label {
+  margin-top:-9px; z-index:2; background:var(--cdx-chip-label); color:var(--cdx-chip-ink);
+  font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase;
+  padding:3px 11px; white-space:nowrap; clip-path:var(--cdx-clip); cursor:pointer;
+}
+.cdx .cdx-chip-label.brass { background:var(--cdx-brass); }
+.cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
+
+/* ---- Derived stat blocks ---- */
+.cdx .cdx-derived { display:flex; flex-wrap:nowrap; gap:6px; align-items:stretch; }
+.cdx .cdx-stat { flex:1; min-width:0; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; display:flex; flex-direction:column; }
+.cdx .cdx-stat.wide { flex:1.4; }
+.cdx .cdx-stat-head {
+  background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:1.2px;
+  text-transform:uppercase; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; clip-path:var(--cdx-clip-top);
+}
+.cdx .cdx-rest { width:20px; height:18px; border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.12); color:#fff; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
+.cdx .cdx-stat-body { padding:6px 8px 7px; text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.cdx .cdx-thresh { display:flex; align-items:baseline; justify-content:center; gap:2px; }
+.cdx .cdx-thresh input { width:1.6em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:26px; color:var(--cdx-ink); }
+.cdx .cdx-stat.enc .cdx-thresh input[disabled], .cdx .cdx-thresh input[disabled] { color:var(--cdx-ink); opacity:.9; }
+.cdx .cdx-stat-sub { display:flex; justify-content:space-between; gap:8px; margin-top:3px; padding:0 4px; }
+.cdx .cdx-stat-sub span { font-size:8px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-heal { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:6px; padding-top:6px; border-top:1px solid var(--cdx-line); }
+.cdx .cdx-heal-k { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-heal-v { font-family:"Orbitron"; font-weight:900; font-size:13px; color:var(--cdx-ink); }
+.cdx .cdx-heal .medical { color:var(--cdx-accent); cursor:pointer; }
+
+/* ---- Tabs ---- */
+.cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
+.cdx .cdx-tab {
+  border:none; background:transparent; cursor:pointer; padding:6px 14px;
+  font-family:"Orbitron"; font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim);
+}
+.cdx .cdx-tab:hover { color:var(--cdx-accent); }
+.cdx .cdx-tab.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+.cdx .cdx-pane { display:none; }
+.cdx .cdx-pane.active { display:block; }
+
+/* ---- Skills ---- */
+.cdx .cdx-skills { display:flex; gap:10px; align-items:flex-start; }
+.cdx .cdx-skill-col { flex:1; min-width:0; }
+.cdx .cdx-sk-head, .cdx .cdx-sk-row { display:grid; grid-template-columns:1fr 22px 42px 1.1fr; align-items:center; }
+.cdx .cdx-sk-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; margin-top:6px; }
+.cdx .cdx-sk-head span { padding:4px 6px; }
+.cdx .cdx-sk-head .cdx-sk-c, .cdx .cdx-sk-head .cdx-sk-rank { text-align:center; padding:4px 2px; }
+.cdx .cdx-sk-row { background:var(--cdx-paper); border-bottom:1px solid var(--cdx-line); border-left:3px solid transparent; min-height:24px; }
+.cdx .cdx-sk-row:has(.careerskill-toggle:checked) { background:var(--cdx-career); border-left-color:var(--cdx-career-line); }
+.cdx .cdx-sk-name { font-size:11px; color:var(--cdx-ink); padding:2px 6px; display:flex; align-items:baseline; gap:4px; }
+.cdx .cdx-sk-char { font-size:8px; color:var(--cdx-dim); font-style:normal; }
+.cdx .cdx-sk-name .ffg-purchase { color:var(--cdx-career-line); cursor:pointer; font-size:10px; }
+.cdx .cdx-sk-c { text-align:center; }
+.cdx .cdx-sk-c .careerskill-toggle { accent-color:var(--cdx-career-line); }
+.cdx .cdx-sk-rank input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:700; font-size:12px; color:var(--cdx-ink); }
+.cdx .cdx-sk-pool { padding:2px 6px; }
+.cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; }
+
+/* ---- Combat cards (weapon + armour) ---- */
+.cdx .cdx-cards-head { display:flex; align-items:center; justify-content:space-between; font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin:10px 0 8px; }
+.cdx .cdx-cards-head .item-add { cursor:pointer; color:var(--cdx-accent); }
+.cdx .cdx-card { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 12px; margin-bottom:7px; display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; cursor:pointer; }
+.cdx .cdx-card.off { opacity:.65; }
+.cdx .cdx-card-main { display:flex; align-items:center; gap:10px; min-width:0; }
+.cdx .cdx-card-icon { width:42px; height:42px; flex:none; border-radius:6px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
+.cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.cdx .cdx-equip.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
+.cdx .cdx-card-title { font-family:"Orbitron"; font-weight:700; font-size:14px; color:var(--cdx-ink); }
+.cdx .cdx-statcols { display:flex; }
+.cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
+.cdx .cdx-sc-k { display:block; font-size:8.5px; letter-spacing:1px; color:var(--cdx-dim); }
+.cdx .cdx-sc-v { display:block; font-family:"Orbitron"; font-weight:900; font-size:17px; color:var(--cdx-accent); white-space:nowrap; }
+.cdx .cdx-card-ctl { display:flex; gap:8px; color:var(--cdx-dim); }
+.cdx .cdx-card-ctl a { color:var(--cdx-dim); cursor:pointer; }
+
+/* ---- Injuries ---- */
+.cdx .cdx-injury { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; margin-bottom:7px; }
+.cdx .cdx-inj-name { font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }
+.cdx .cdx-sev-img { height:16px; }
+
+/* ---- Talents ---- */
+.cdx .cdx-forcepool { display:flex; align-items:center; gap:6px; margin-bottom:10px; padding:6px 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-career-line); clip-path:var(--cdx-clip); }
+.cdx .cdx-fp-k { font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#5b4bb3; }
+.cdx .cdx-forcepool input { width:2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); }
+.cdx .cdx-fp-s { font-size:9px; color:var(--cdx-dim); margin-left:auto; }
+.cdx .cdx-talents { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cdx .cdx-cards-head { grid-column:1/-1; }
+.cdx .cdx-talent { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; cursor:pointer; }
+.cdx .cdx-tal-head { background:var(--cdx-accent); color:#fff; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.cdx .cdx-tal-name { font-family:"Orbitron"; font-weight:700; font-size:12px; }
+.cdx .cdx-tal-act { font-size:8px; letter-spacing:.5px; text-transform:uppercase; opacity:.85; }
+.cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; }
+.cdx .cdx-sub { margin-top:10px; }
+
+/* ---- Gear ---- */
+.cdx .cdx-gear-head, .cdx .cdx-gear-row { display:grid; grid-template-columns:1fr 80px 50px 50px; align-items:center; gap:6px; }
+.cdx .cdx-gear-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:5px 10px; clip-path:var(--cdx-clip); }
+.cdx .cdx-gear-head span { text-align:center; }
+.cdx .cdx-gear-head span:first-child { text-align:left; }
+.cdx .cdx-gear-head .item-add { cursor:pointer; }
+.cdx .cdx-gear-row { background:var(--cdx-paper2); border-bottom:1px solid var(--cdx-line); padding:6px 10px; cursor:pointer; }
+.cdx .cdx-gear-row:nth-child(odd) { background:var(--cdx-paper); }
+.cdx .cdx-gear-name { display:flex; align-items:center; gap:9px; font-size:12.5px; }
+.cdx .cdx-gear-icon { width:30px; height:30px; flex:none; border-radius:4px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
+.cdx .cdx-gear-icon img { width:100%; height:100%; object-fit:cover; border-radius:4px; }
+.cdx .cdx-qty { display:flex; align-items:center; justify-content:center; gap:6px; }
+.cdx .cdx-qty .quantity { cursor:pointer; color:var(--cdx-accent); }
+.cdx .cdx-qty-v { font-family:"Orbitron"; font-weight:700; font-size:13px; min-width:14px; text-align:center; }
+.cdx .cdx-gear-enc { text-align:center; color:var(--cdx-dim); font-size:12px; }
+.cdx .cdx-gear-summary { display:flex; justify-content:flex-end; gap:24px; margin-top:10px; font-size:11.5px; color:var(--cdx-dim); }
+.cdx .cdx-gear-summary b { color:var(--cdx-ink); }
+.cdx .cdx-gear-summary .brass { font-family:"Orbitron"; font-size:13px; }
+
+/* ---- Bio / panels / tables ---- */
+.cdx .cdx-bio-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:10px; margin-bottom:10px; }
+.cdx .cdx-panel { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; margin-bottom:10px; }
+.cdx .cdx-panel-head { background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
+.cdx .cdx-bio-editor { padding:8px 10px; min-height:120px; font-size:13px; line-height:1.5; }
+.cdx .cdx-desc-grid { display:grid; grid-template-columns:auto 1fr; gap:5px 8px; padding:8px 10px; align-items:center; }
+.cdx .cdx-desc-grid label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-desc-grid input { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
+.cdx .cdx-table { width:100%; border-collapse:collapse; }
+.cdx .cdx-table th { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 8px; text-align:left; }
+.cdx .cdx-table td { padding:5px 8px; border-bottom:1px solid var(--cdx-line); font-size:12px; }
+.cdx .cdx-tbl-ctl a { color:var(--cdx-dim); cursor:pointer; margin-left:6px; }
+.cdx .add-obligation, .cdx .add-motivation, .cdx .add-background { color:#fff; cursor:pointer; }
+
+/* ---- XP ---- */
+.cdx .cdx-xp-totals { display:flex; gap:6px; align-items:center; margin-bottom:10px; }
+.cdx .cdx-xp-totals .cdx-stat { flex:1; }
+.cdx .cdx-xp-totals .cdx-stat-body input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:24px; color:var(--cdx-ink); }
+.cdx .cdx-xp-ctl { display:flex; gap:14px; font-size:16px; color:var(--cdx-accent); padding:0 10px; }
+.cdx .cdx-xp-ctl a { cursor:pointer; }
+.cdx .cdx-xp-log { max-height:340px; overflow-y:auto; }
+.cdx .cdx-xp-entry { font-size:11.5px; padding:4px 8px; border-bottom:1px solid var(--cdx-line); color:var(--cdx-ink); }
+.cdx .cdx-xp-entry .refund { color:var(--cdx-accent); cursor:pointer; }
+
+/* ---- Reused stock partials (effects / mods / abilities / force powers) ----
+   These keep mandar's markup; just give them a readable card and ink colour. */
+.cdx .cdx-pane.effects, .cdx .cdx-pane.attributes, .cdx .cdx-sub {
+  background:var(--cdx-paper2); color:var(--cdx-ink); padding:8px; border:1px solid var(--cdx-line); border-radius:4px;
+}
+.cdx .cdx-pane.effects *, .cdx .cdx-pane.attributes *, .cdx .cdx-sub * { color:var(--cdx-ink); }

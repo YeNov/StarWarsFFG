@@ -1,0 +1,28 @@
+{{!-- Codex skills grid. Reused by character/rival/nemesis (careerskill) and
+     minion (groupskill). Keeps the .skill hook + data-attrs + .dice-pool node
+     that DiceHelpers.addSkillDicePool fills, and the careerskill-toggle/rank
+     inputs the listeners bind to. --}}
+<div class="cdx-skills">
+  {{#each data.skilllist as |skillcolumn|}}
+  <div class="cdx-skill-col">
+    {{#each this as |skill|}}
+      {{#if (eq skill.id "header")}}
+      <div class="cdx-sk-head"><span class="cdx-sk-name">{{skill.label}}</span><span class="cdx-sk-c">{{#if (eq ../../actor.type "minion")}}{{localize "SWFFG.SkillsGS"}}{{else}}{{localize "SWFFG.SkillsCS"}}{{/if}}</span><span class="cdx-sk-rank">{{localize "SWFFG.SkillsRank"}}</span><span class="cdx-sk-pool">{{localize "SWFFG.SkillsRoll"}}</span></div>
+      {{else}}
+      <div class="skill cdx-sk-row" data-ability="{{skill.name}}" data-skilltype="{{skill.type}}" data-characteristic="{{skill.characteristic}}" data-custom="{{ skill.custom }}" draggable="true">
+        <span class="cdx-sk-name">{{#if (eq ../../actor.type "character")}}<i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="skill" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.SkilLRank"}}"></i>{{/if}}{{#if skill.useForInitiative}}*{{/if}}{{skill.label}} {{#with (lookup ../../this.FFG.characteristics [characteristic])~}}<em class="cdx-sk-char">{{localize abrev}}</em>{{/with}}</span>
+        <span class="cdx-sk-c">
+          {{#if (eq ../../actor.type "minion")}}
+          <input class="careerskill-toggle" type="checkbox" name="data.skills.{{skill.name}}.groupskill" data-dtype="Boolean" {{checked skill.groupskill}} {{#if ../../disabled}}disabled{{/if}}/>
+          {{else}}
+          <input class="careerskill-toggle" type="checkbox" name="data.skills.{{skill.name}}.careerskill" data-dtype="Boolean" {{checked skill.careerskill}} {{#if ../../disabled}}disabled{{/if}}/>
+          {{/if}}
+        </span>
+        <span class="cdx-sk-rank"><input class="careerskill-rank" name="data.skills.{{skill.name}}.rank" value="{{skill.rank}}" type="text" data-dtype="Number" placeholder="0" {{#if ../../disabled}}disabled{{/if}}/></span>
+        <span class="cdx-sk-pool"><span class="roll-button dice-pool"></span></span>
+      </div>
+      {{/if}}
+    {{/each}}
+  </div>
+  {{/each}}
+</div>

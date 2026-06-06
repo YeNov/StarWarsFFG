@@ -1,0 +1,21 @@
+{{!-- Codex gear list. Keeps .item/.item-quantity/.item-* hooks. --}}
+<div class="cdx-gear items">
+  <div class="cdx-gear-head"><span>{{localize "SWFFG.ItemsGear"}}</span><span class="cdx-gh-qty">{{localize "SWFFG.ItemsQuantity"}}</span><span class="cdx-gh-enc">{{localize "SWFFG.ItemsEncum"}}</span><span class="item-add gear"><i class="far fa-plus-square"></i></span></div>
+  {{#each items as |item id|}} {{#iff item.type '==' 'gear'}}
+  <div class="item cdx-gear-row" data-item-id="{{item._id}}">
+    <div class="cdx-gear-name">
+      {{#iff item.flags.starwarsffg.config.medicalType '>' '0'}}<div class="starwarsffg item-medical cdx-gear-icon" data-medical-type="{{item.flags.starwarsffg.config.medicalType}}"><img src="{{item.img}}" /></div>{{else}}<div class="item-rollable cdx-gear-icon" style="background-image:url('{{item.img}}')"></div>{{/iff}}
+      <span>{{item.name}}</span>
+    </div>
+    <div class="item-quantity cdx-qty"><span class="quantity decrease"><i class="far fa-minus-square"></i></span><span class="cdx-qty-v">{{item.system.quantity.value}}</span><span class="quantity increase"><i class="far fa-plus-square"></i></span></div>
+    <div class="cdx-gear-enc">{{item.system.encumbrance.value}}</div>
+    <div class="cdx-card-ctl item-controls"><a class="item-control item-edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete"><i class="fas fa-trash"></i></a></div>
+  </div>
+  {{/iff}} {{/each}}
+</div>
+{{#unless (eq actor.type "minion")}}
+<div class="cdx-gear-summary">
+  <span>{{localize "SWFFG.Encumbrance"}}: <b>{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</b></span>
+  <span>{{localize "SWFFG.DescriptionCredits"}}: <b class="brass">{{data.stats.credits.value}}</b></span>
+</div>
+{{/unless}}

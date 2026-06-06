@@ -1,0 +1,83 @@
+{{!--
+  CODEX II — vehicle. Bespoke header/stats (shields, armour/silhouette/handling,
+  speed/hull/system-strain/encumbrance); reuses the stock vehicle partials for
+  the complex Components / Crew / Cargo lists (they keep their own hooks).
+--}}
+<form class="cdx-sheet vehicle" autocomplete="off">
+  <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
+
+  {{> "systems/starwarsffg/templates/parts/codex/cdx-scheme.html"}}
+
+  <header class="cdx-header cdx-vehicle-header">
+    <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
+    <div class="cdx-identity">
+      <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.VehicleName'}}" data-dtype="String" />
+      <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.vehicle" }}</span></div>
+    </div>
+    {{#unless limited}}
+    <div class="cdx-shields">
+      <div class="cdx-shield-row">
+        <div class="cdx-shield"><input type="text" name="data.stats.shields.fore" value="{{data.stats.shields.fore}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefenseFore"}}</span></div>
+        <div class="cdx-shield"><input type="text" name="data.stats.shields.aft" value="{{data.stats.shields.aft}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefenseAft"}}</span></div>
+        <div class="cdx-shield"><input type="text" name="data.stats.shields.port" value="{{data.stats.shields.port}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefensePort"}}</span></div>
+        <div class="cdx-shield"><input type="text" name="data.stats.shields.starboard" value="{{data.stats.shields.starboard}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefenseStarboard"}}</span></div>
+      </div>
+    </div>
+    {{/unless}}
+  </header>
+
+  {{#unless limited}}
+  {{!-- Armour / Silhouette / Handling --}}
+  <div class="cdx-chiprow">
+    <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.armour.value" value="{{data.stats.armour.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.VehicleArmor"}}</div></div>
+    <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.silhouette.value" value="{{data.stats.silhouette.value}}" data-dtype="Number" pattern="^(10|[0-9])$" /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleSilhouette"}}</div></div>
+    <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.handling.value" value="{{data.stats.handling.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleHandling"}}</div></div>
+  </div>
+
+  {{!-- Speed / Hull / System Strain / Encumbrance --}}
+  <div class="cdx-derived">
+    <div class="cdx-stat"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleSpeed"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.speed.value" value="{{data.stats.speed.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.speed.max" value="{{data.stats.speed.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
+    <div class="cdx-stat wounds wide"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullTrauma"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.hullTrauma.value" value="{{data.stats.hullTrauma.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.hullTrauma.max" value="{{data.stats.hullTrauma.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
+    <div class="cdx-stat strain wide"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullStrain"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.systemStrain.value" value="{{data.stats.systemStrain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.systemStrain.max" value="{{data.stats.systemStrain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
+    <div class="cdx-stat enc"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleEncumbranceCapacity"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.encumbrance.value" value="{{data.stats.encumbrance.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.encumbrance.max" value="{{data.stats.encumbrance.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
+  </div>
+
+  {{!-- Tabs --}}
+  <nav class="cdx-tabstrip">
+    <button type="button" class="cdx-tab active" data-tab="components">{{localize "SWFFG.VehicleTabComponents"}}</button>
+    <button type="button" class="cdx-tab" data-tab="crew">{{localize "SWFFG.VehicleTabCrew"}}</button>
+    <button type="button" class="cdx-tab" data-tab="cargo">{{localize "SWFFG.VehicleTabCargo"}}</button>
+    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.VehicleTabDescription"}}</button>
+    <button type="button" class="cdx-tab" data-tab="damage">{{localize "SWFFG.CriticalDamage"}}</button>
+    <button type="button" class="cdx-tab" data-tab="effects">{{localize "SWFFG.TabEffects"}}</button>
+  </nav>
+
+  <section class="cdx-pane active" data-tab="components"><div class="cdx-sub">{{> "systems/starwarsffg/templates/parts/actor/ffg-vehicle-weapon-attachments.html"}}</div></section>
+
+  <section class="cdx-pane" data-tab="crew">
+    <div class="cdx-vehicle-info">
+      {{#if (or (eq actor.flags.starwarsffg.config.enableHyperdrive undefined) (eq actor.flags.starwarsffg.config.enableHyperdrive true))}}
+      <label>{{localize "SWFFG.HyperdrivePrimary"}}</label><input type="text" name="data.stats.hyperdrive.value" value="{{data.stats.hyperdrive.value}}" data-dtype="Number" />
+      <label>{{localize "SWFFG.HyperdriveBackup"}}</label><input type="text" name="data.stats.hyperdrive.backup" value="{{data.stats.hyperdrive.backup}}" data-dtype="Number" />
+      {{/if}}
+      <label>{{localize "SWFFG.VehicleHardPoints"}}</label><input type="text" name="data.stats.customizationHardPoints.value" value="{{data.stats.customizationHardPoints.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} />
+      <label>{{localize "SWFFG.VehiclePassengerCapacity"}}</label><input type="text" name="data.stats.passengerCapacity.value" value="{{data.stats.passengerCapacity.value}}" data-dtype="Number" />
+      <label>{{localize "SWFFG.ConsumablesAmount"}}</label><input type="text" name="data.stats.consumables.value" value="{{data.stats.consumables.value}}" data-dtype="Number" />
+      <label>{{localize "SWFFG.ConsumablesDuration"}}</label><input type="text" name="data.stats.consumables.duration" value="{{data.stats.consumables.duration}}" data-dtype="String" />
+      <label>{{localize "SWFFG.VehicleNavicomputer"}}</label><input type="checkbox" name="data.stats.navicomputer.value" data-dtype="Boolean" {{checked data.stats.navicomputer.value}} />
+      <label>Space Vehicle</label><input type="checkbox" name="data.spaceShip" data-dtype="Boolean" {{checked data.spaceShip}} />
+    </div>
+    <div class="cdx-sub">{{> "systems/starwarsffg/templates/parts/actor/ffg-vehicle-crew.html"}}</div>
+  </section>
+
+  <section class="cdx-pane" data-tab="cargo"><div class="cdx-sub">{{> "systems/starwarsffg/templates/parts/actor/ffg-vehicle-cargo.html"}}</div></section>
+
+  <section class="cdx-pane bio" data-tab="bio">
+    <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.VehicleTabDescription"}}</div><div class="cdx-bio-editor">{{editor data.enrichedBio target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
+  </section>
+
+  <section class="cdx-pane injuries" data-tab="damage"><div class="cdx-sub">{{> "systems/starwarsffg/templates/parts/actor/ffg-criticalinjury.html" type="criticaldamage"}}</div></section>
+
+  <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
+  {{/unless}}
+</form>

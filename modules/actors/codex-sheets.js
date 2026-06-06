@@ -1,0 +1,132 @@
+/**
+ * CODEX II — ground-up bespoke sheets.
+ *
+ * These sheets KEEP all behaviour from the stock sheet classes (equip, quantity,
+ * rest/heal, XP purchase, dice pools, drag-drop — everything in ActorSheetFFG /
+ * AdversarySheetFFG) and only swap the VIEW: bespoke `.cdx-*` markup + a
+ * self-contained styles/cdx.css that never reuses a mandar-styled class. The
+ * three contracts the new templates must honour are the input `name=` paths,
+ * the listener-hook classes/`data-` attributes, and the render guards.
+ *
+ * Insulation from the active theme (mandar.css), learned the hard way:
+ *  - We DROP the actor-type legacy class (`character`/`minion`/…) from the
+ *    content <form>, so mandar's `form.window-content.character …` structural
+ *    rules (fixed sheet-body height, etc.) simply do not match us. Our own
+ *    container layout lives under `.cdx` in cdx.css.
+ *  - Tabs are ours (`.cdx-tab` / `.cdx-pane`, toggled in JS below) instead of
+ *    `nav.sheet-tabs`, so mandar's absolute side-pinned tab-strip rule never
+ *    applies.
+ *  - The palette is a PER-ACTOR flag (`flags.starwarsffg.scheme`) applied as a
+ *    `scheme-*` class on the form; an in-sheet strip writes it.
+ */
+import { ActorSheetFFG } from "./actor-sheet-ffg.js";
+import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
+
+export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
+const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
+
+/**
+ * Shared Codex behaviour, mixed onto whichever stock sheet base a given actor
+ * type uses. Applied to ActorSheetFFG and AdversarySheetFFG below.
+ */
+export const CodexSchemeMixin = (Base) => class extends Base {
+  // Concatenated onto the base's classes by ApplicationV2 → the OUTER window
+  // <div> ends up `…actor v2 cdx`. `cdx` is our CSS scope.
+  static DEFAULT_OPTIONS = {
+    classes: ["cdx"],
+  };
+
+  /** The per-actor palette, defaulting to republic. */
+  _cdxScheme() {
+    const s = this.actor?.getFlag?.("starwarsffg", "scheme");
+    return CDX_SCHEMES.includes(s) ? s : "republic";
+  }
+
+  /**
+   * Replace (not extend) the legacy root classes: return ONLY the palette
+   * class. Deliberately does NOT call super — that would re-add the actor-type
+   * class (`character`/…) and let mandar's structural form rules match us. The
+   * editable/locked classes are still applied by the base _applyLegacyRootClasses.
+   * @override
+   */
+  _getLegacyRootClasses(_context = {}) {
+    return [`scheme-${this._cdxScheme()}`];
+  }
+
+  /**
+   * Strip stale `scheme-*` before super re-adds the current one (the base only
+   * ever ADDS classes), so switching palettes doesn't accumulate them.
+   * @override
+   */
+  _applyLegacyRootClasses(form, context = {}) {
+    for (const s of CDX_SCHEMES) form.classList.remove(`scheme-${s}`);
+    super._applyLegacyRootClasses(form, context);
+  }
+
+  /** @override — add the Codex-only listeners on top of the stock ones. */
+  activateListeners(html) {
+    super.activateListeners(html);
+    this._cdxActivate(html);
+  }
+
+  _cdxActivate(html) {
+    const root = html?.[0] ?? this.form ?? this.element;
+    if (!root) return;
+
+    // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
+    root.querySelectorAll(".cdx-tab").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        const tab = ev.currentTarget.dataset.tab;
+        if (!tab) return;
+        root.querySelectorAll(".cdx-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+        root.querySelectorAll(".cdx-pane").forEach((p) => p.classList.toggle("active", p.dataset.tab === tab));
+        // remember the active tab across re-renders (e.g. on a scheme change)
+        this._cdxTab = tab;
+      });
+    });
+    // Restore the remembered tab after a re-render.
+    if (this._cdxTab) {
+      const has = root.querySelector(`.cdx-tab[data-tab="${this._cdxTab}"]`);
+      if (has) {
+        root.querySelectorAll(".cdx-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === this._cdxTab));
+        root.querySelectorAll(".cdx-pane").forEach((p) => p.classList.toggle("active", p.dataset.tab === this._cdxTab));
+      }
+    }
+
+    if (!this.options.editable) return;
+    // Per-actor scheme strip.
+    root.querySelectorAll(".cdx-scheme-btn").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const scheme = ev.currentTarget.dataset.scheme;
+        if (CDX_SCHEMES.includes(scheme)) await this.actor.setFlag("starwarsffg", "scheme", scheme);
+      });
+    });
+  }
+};
+
+/** Codex sheet for character / rival / nemesis / minion / vehicle. */
+export class CodexActorSheet extends CodexSchemeMixin(ActorSheetFFG) {
+  /** @override */
+  get template() {
+    const t = this.actor.type;
+    const name = ["character", "rival", "nemesis"].includes(t) ? "character" : t;
+    return `${CDX_TEMPLATES}/codex-${name}.html`;
+  }
+}
+
+/**
+ * Codex Adversary sheet — the system's "Adversary Sheet" is a character-type
+ * actor sheet (used to build NPCs for compendium export), structurally the same
+ * as the character sheet, so it reuses codex-character.html. We keep it as a
+ * separate selectable class so a GM can pick it via the ⚙ Sheet picker; it
+ * inherits AdversarySheetFFG's adversary-specific getData (sizing, specialization
+ * refresh).
+ */
+export class CodexAdversarySheet extends CodexSchemeMixin(AdversarySheetFFG) {
+  /** @override */
+  get template() {
+    return `${CDX_TEMPLATES}/codex-character.html`;
+  }
+}

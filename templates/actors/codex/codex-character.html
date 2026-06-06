@@ -1,0 +1,151 @@
+{{!--
+  CODEX II — character (also rival/nemesis via guards). Bespoke .cdx-* markup,
+  styled by styles/cdx.css. Behaviour comes from CodexActorSheet (extends
+  ActorSheetFFG). Honours the input name= paths, listener-hook classes, and
+  render guards. Tabs are bespoke (.cdx-tab/.cdx-pane, toggled in codex-sheets.js).
+--}}
+<form class="cdx-sheet" autocomplete="off">
+  <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
+
+  {{> "systems/starwarsffg/templates/parts/codex/cdx-scheme.html"}}
+
+  {{!-- Header --}}
+  <header class="cdx-header">
+    <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
+    <div class="cdx-identity">
+      <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+      <div class="cdx-pills">
+        {{#each_when actor.items "type" "species"}}<span class="cdx-pill species item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{else}}<span class="cdx-drag">{{localize "SWFFG.DragNotes"}}</span>{{/each_when}}
+        {{#unless (eq actor.type "rival")}}{{#unless (eq actor.type "nemesis")}}
+        {{#each_when actor.items "type" "career"}}<span class="cdx-pill career item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{else}}<span class="cdx-drag">{{localize "SWFFG.DragNotes"}}</span>{{/each_when}}
+        {{/unless}}{{/unless}}
+        {{#unless limited}}
+        {{#if (eq actor.type "character")}}
+        <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="specialization" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.Specialization"}}"></i>{{#each_when actor.items "type" "specialization"}}<span class="cdx-pill spec item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{/each_when}}</span>
+        {{/if}}
+        {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+        <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="forcepower" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.ForcePower"}}"></i>{{#each_when actor.items "type" "forcepower"}}<span class="cdx-pill force item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{/each_when}}</span>
+        {{/if}}
+        {{#if (eq actor.type "character")}}
+        <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="signatureability" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.SignatureAbility"}}"></i>{{#each_when actor.items "type" "signatureability"}}<span class="cdx-pill sig item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{/each_when}}</span>
+        {{/if}}
+        {{/unless}}
+      </div>
+    </div>
+    <div class="cdx-header-stats">
+      {{#if (eq actor.type "character")}}
+      <div class="cdx-square cdx-xp"><span class="cdx-sq-k">XP</span><span class="cdx-sq-v">{{data.experience.available}}</span><span class="cdx-sq-s">of {{data.experience.total}}</span></div>
+      {{/if}}
+      <div class="cdx-square cdx-credits"><span class="cdx-sq-k">CR</span><input class="cdx-sq-input" type="text" name="data.stats.credits.value" value="{{data.stats.credits.value}}" data-dtype="String" /><span class="cdx-sq-s">{{localize "SWFFG.DescriptionCredits"}}</span></div>
+    </div>
+  </header>
+
+  {{#unless limited}}
+  {{!-- Characteristics + Soak + Force --}}
+  <div class="cdx-chiprow">
+    {{#each data.characteristics as |characteristic id|}}
+    <div class="cdx-chip" data-ability="{{id}}">
+      <div class="cdx-chip-box"><input type="number" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" max="{{ ../maxAttribute }}" {{#if ../disabled}}disabled{{/if}} /></div>
+      <div class="cdx-chip-label ffg-purchase" data-buy-action="characteristic" data-buy-characteristic="{{id}}">{{characteristic.label}}</div>
+    </div>
+    {{/each}}
+    <div class="cdx-chip-div"></div>
+    <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.Soak"}}</div></div>
+    {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+    <div class="cdx-chip derived"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.ForceRating"}}</div></div>
+    {{/if}}
+  </div>
+
+  {{!-- Derived: Wounds / Strain / Defence / Encumbrance --}}
+  <div class="cdx-derived">
+    <div class="cdx-stat wounds wide">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Wounds"}}</span><button type="button" class="resetMedical cdx-rest" title="{{localize "SWFFG.Rest"}}"><i class="fas fa-bed"></i></button></div>
+      <div class="cdx-stat-body">
+        <div class="cdx-thresh"><input type="text" name="data.stats.wounds.value" value="{{data.stats.wounds.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.wounds.max" value="{{data.stats.wounds.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
+        <div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div>
+        <div class="cdx-heal"><span class="cdx-heal-k">{{localize "SWFFG.Healing"}}</span><i class="fas fa-minus-circle medical"></i><span class="cdx-heal-v">{{#if (ne data.stats.medical.uses undefined)}}{{data.stats.medical.uses}}{{else}}0{{/if}}/5</span><i class="fas fa-plus-circle medical"></i></div>
+      </div>
+    </div>
+    {{#unless (eq actor.type "rival")}}
+    {{#if (or (eq actor.flags.starwarsffg.config.enableStrainThreshold undefined) (eq actor.flags.starwarsffg.config.enableStrainThreshold true))}}
+    <div class="cdx-stat strain wide">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Strain"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.strain.value" value="{{data.stats.strain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.strain.max" value="{{data.stats.strain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div>
+    </div>
+    {{/if}}
+    {{/unless}}
+    <div class="cdx-stat defence">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Defense"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.defence.ranged" value="{{data.stats.defence.ranged}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span class="cdx-slash">/</span><input type="text" name="data.stats.defence.melee" value="{{data.stats.defence.melee}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.DefenseRanged"}}</span><span>{{localize "SWFFG.DefenseMelee"}}</span></div></div>
+    </div>
+    <div class="cdx-stat enc">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Encumbrance"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.encumbrance.value" value="{{data.stats.encumbrance.value}}" data-dtype="Number" disabled /><span class="cdx-slash">/</span><input type="text" name="data.stats.encumbrance.max" value="{{data.stats.encumbrance.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div>
+    </div>
+  </div>
+
+  {{!-- Tabs --}}
+  <nav class="cdx-tabstrip">
+    <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.TabCharacteristics"}}</button>
+    <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.ItemsWeapons"}}</button>
+    <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.TabCrits"}}</button>
+    <button type="button" class="cdx-tab" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
+    <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.TabGear"}}</button>
+    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.TabBiography"}}</button>
+    {{#if (eq actor.type "character")}}<button type="button" class="cdx-tab" data-tab="xp">{{localize "SWFFG.TabXpLog"}}</button>{{/if}}
+    <button type="button" class="cdx-tab" data-tab="effects">{{localize "SWFFG.TabEffects"}}</button>
+    <button type="button" class="cdx-tab" data-tab="mods">{{localize "SWFFG.TabModifiers"}}</button>
+  </nav>
+
+  <section class="cdx-pane active" data-tab="skills">{{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}</section>
+  <section class="cdx-pane" data-tab="combat">{{> "systems/starwarsffg/templates/parts/codex/cdx-combat.html"}}</section>
+  <section class="cdx-pane injuries" data-tab="injuries">{{> "systems/starwarsffg/templates/parts/codex/cdx-injuries.html"}}</section>
+  <section class="cdx-pane talents items" data-tab="talents">{{> "systems/starwarsffg/templates/parts/codex/cdx-talents.html"}}</section>
+  <section class="cdx-pane gear" data-tab="gear">{{> "systems/starwarsffg/templates/parts/codex/cdx-gear.html"}}</section>
+
+  {{!-- Bio --}}
+  <section class="cdx-pane bio" data-tab="bio">
+    <div class="cdx-bio-grid">
+      <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.TabBiography"}}</div><div class="cdx-bio-editor">{{editor (or data.enrichedBio data.biography) target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
+      <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.Characteristics"}}</div><div class="cdx-desc-grid">
+        <label>{{localize "SWFFG.Gender"}}</label><input type="text" name="data.general.gender" value="{{data.general.gender}}" data-dtype="String" />
+        <label>{{localize "SWFFG.Age"}}</label><input type="text" name="data.general.age" value="{{data.general.age}}" data-dtype="String" />
+        <label>{{localize "SWFFG.Height"}}</label><input type="text" name="data.general.height" value="{{data.general.height}}" data-dtype="String" />
+        <label>{{localize "SWFFG.Build"}}</label><input type="text" name="data.general.build" value="{{data.general.build}}" data-dtype="String" />
+        <label>{{localize "SWFFG.Hair"}}</label><input type="text" name="data.general.hair" value="{{data.general.hair}}" data-dtype="String" />
+        <label>{{localize "SWFFG.Eyes"}}</label><input type="text" name="data.general.eyes" value="{{data.general.eyes}}" data-dtype="String" />
+      </div></div>
+    </div>
+    {{#if (eq actor.type "character")}}
+    <div class="cdx-panel">
+      <div class="cdx-panel-head">{{localize "SWFFG.DescriptionObligation"}} / {{localize "SWFFG.DescriptionMorality"}}</div>
+      <table class="cdx-table">
+        <thead><tr><th>{{localize "SWFFG.MotivationName"}}</th><th>{{localize "SWFFG.MotivationMagnitude"}}</th><th>{{localize "SWFFG.MotivationDescription"}}</th><th><a class="add-obligation"><i class="far fa-plus-square"></i></a></th></tr></thead>
+        <tbody>
+        {{#each items as |item|}}{{#if (or (eq item.type "duty")(eq item.type "obligation")(eq item.type "morality"))}}
+          <tr><td>{{item.name}}</td><td>{{#if (eq item.system.type "morality")}}{{item.system.subtype}}{{else}}{{item.system.magnitude}}{{/if}}</td><td>{{{item.system.renderedDesc}}}</td><td class="cdx-tbl-ctl"><a class="edit-item" data-id="{{id}}"><i class="fas fa-edit"></i></a><a class="remove-item" data-id="{{id}}"><i class="fas fa-trash"></i></a></td></tr>
+        {{/if}}{{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{/if}}
+  </section>
+
+  {{!-- XP log (character only) --}}
+  {{#if (eq actor.type "character")}}
+  <section class="cdx-pane xp" data-tab="xp">
+    <div class="cdx-xp-totals">
+      <div class="cdx-stat"><div class="cdx-stat-head"><span>{{localize "SWFFG.DescriptionXPAvailable"}}</span></div><div class="cdx-stat-body"><input type="text" name="data.experience.available" value="{{data.experience.available}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div></div>
+      <div class="cdx-stat"><div class="cdx-stat-head"><span>{{localize "SWFFG.DescriptionXPTotal"}}</span></div><div class="cdx-stat-body"><input type="text" name="data.experience.total" value="{{data.experience.total}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div></div>
+      <div class="cdx-xp-ctl"><a class="fa-solid fa-eraser xp-adjustment" title="{{localize "SWFFG.XP.Adjust.Title"}}"></a><a class="fa-solid fa-floppy-disk xp-export" title="{{localize "SWFFG.XP.Export.Title"}}"></a><a class="fa-solid fa-file-import xp-import" title="{{localize "SWFFG.XP.Import.Title"}}"></a></div>
+    </div>
+    <div class="cdx-xp-log">
+      {{#each xpLog as |entry|}}<div class="cdx-xp-entry {{entry.action}}">{{entry.date}}: {{entry.action}} <b>{{entry.description}}</b> for {{entry.xp.cost}} xp ({{entry.xp.available}} avail, {{entry.xp.total}} total){{#if (or (eq entry.action "purchased") (eq entry.action "adjusted"))}} <a class="xp refund" title="Refund" data-id="{{entry.id}}"><i class="fa-solid fa-rotate-left"></i></a>{{/if}}</div>{{/each}}
+    </div>
+  </section>
+  {{/if}}
+
+  <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
+  <section class="cdx-pane attributes" data-tab="mods">{{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}</section>
+  {{/unless}}
+</form>

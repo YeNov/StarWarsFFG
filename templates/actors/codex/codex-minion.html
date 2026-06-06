@@ -1,0 +1,83 @@
+{{!--
+  CODEX II — minion. Bespoke .cdx-* markup; behaviour from CodexActorSheet.
+  Minion specifics: group Quantity (max/alive), per-unit wounds, Kill buttons,
+  no strain/force/credits. Skills use `groupskill` (handled inside cdx-skills).
+--}}
+<form class="cdx-sheet minion" autocomplete="off">
+  <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
+
+  {{> "systems/starwarsffg/templates/parts/codex/cdx-scheme.html"}}
+
+  <header class="cdx-header">
+    <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
+    <div class="cdx-identity">
+      <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.MinionName'}}" data-dtype="String" />
+      <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.minion" }}</span></div>
+    </div>
+    {{#unless limited}}
+    <div class="cdx-minion-kill">
+      <button type="button" class="minion-control kill-minion cdx-killbtn" title="{{localize "SWFFG.Actors.Sheets.Token.KillMinion.KillMinion"}}"><i class="fa-solid fa-skull-crossbones"></i></button>
+      <button type="button" class="minion-control kill-group cdx-killbtn" title="{{localize "SWFFG.Actors.Sheets.Token.KillMinion.KillGroup"}}"><i class="fa-solid fa-users-slash"></i></button>
+    </div>
+    {{/unless}}
+  </header>
+
+  {{#unless limited}}
+  {{!-- Minion stat row: Quantity / Wounds / Unit wounds / Soak / Defence --}}
+  <div class="cdx-derived">
+    <div class="cdx-stat">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.MinionQuantity"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.quantity.value" value="{{data.quantity.value}}" data-dtype="Number" disabled /><span class="cdx-slash">/</span><input type="text" name="data.quantity.max" value="{{data.quantity.max}}" data-dtype="Number" /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.MinionQuantityAlive"}}</span><span>{{localize "SWFFG.MinionQuantityMax"}}</span></div></div>
+    </div>
+    <div class="cdx-stat wounds wide">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Wounds"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.wounds.value" value="{{data.stats.wounds.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.wounds.max" value="{{data.stats.wounds.max}}" data-dtype="Number" disabled /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div>
+    </div>
+    <div class="cdx-stat">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.MinionUnitWounds"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.unit_wounds.value" value="{{data.unit_wounds.value}}" data-dtype="Number" /></div></div>
+    </div>
+    <div class="cdx-stat">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Soak"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div></div>
+    </div>
+    <div class="cdx-stat defence">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Defense"}}</span></div>
+      <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.defence.ranged" value="{{data.stats.defence.ranged}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span class="cdx-slash">/</span><input type="text" name="data.stats.defence.melee" value="{{data.stats.defence.melee}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.DefenseRanged"}}</span><span>{{localize "SWFFG.DefenseMelee"}}</span></div></div>
+    </div>
+  </div>
+
+  {{!-- Characteristics --}}
+  <div class="cdx-chiprow">
+    {{#each data.characteristics as |characteristic id|}}
+    <div class="cdx-chip" data-ability="{{id}}">
+      <div class="cdx-chip-box"><input type="text" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" pattern="[1-7]" {{#if ../disabled}}disabled{{/if}} /></div>
+      <div class="cdx-chip-label">{{characteristic.label}}</div>
+    </div>
+    {{/each}}
+  </div>
+
+  {{!-- Tabs --}}
+  <nav class="cdx-tabstrip">
+    <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.TabCharacteristics"}}</button>
+    <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.ItemsWeapons"}}</button>
+    <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.TabGear"}}</button>
+    <button type="button" class="cdx-tab" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
+    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.TabBiography"}}</button>
+    <button type="button" class="cdx-tab" data-tab="effects">{{localize "SWFFG.TabEffects"}}</button>
+    <button type="button" class="cdx-tab" data-tab="mods">{{localize "SWFFG.TabModifiers"}}</button>
+  </nav>
+
+  <section class="cdx-pane active" data-tab="skills">{{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}</section>
+  <section class="cdx-pane" data-tab="combat">{{> "systems/starwarsffg/templates/parts/codex/cdx-combat.html"}}</section>
+  <section class="cdx-pane gear" data-tab="gear">{{> "systems/starwarsffg/templates/parts/codex/cdx-gear.html"}}</section>
+  <section class="cdx-pane talents items" data-tab="talents">{{> "systems/starwarsffg/templates/parts/codex/cdx-talents.html"}}</section>
+
+  <section class="cdx-pane bio" data-tab="bio">
+    <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.TabBiography"}}</div><div class="cdx-bio-editor">{{editor data.biography target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
+  </section>
+
+  <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
+  <section class="cdx-pane attributes" data-tab="mods">{{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}</section>
+  {{/unless}}
+</form>

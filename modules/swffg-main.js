@@ -22,6 +22,7 @@ import { ActorSheetFFG } from "./actors/actor-sheet-ffg.js";
 import { ActorSheetFFGV2 } from "./actors/actor-sheet-ffg-v2.js";
 import { AdversarySheetFFG } from "./actors/adversary-sheet-ffg.js";
 import { AdversarySheetFFGV2 } from "./actors/adversary-sheet-ffg-v2.js";
+import { CodexActorSheet, CodexAdversarySheet } from "./actors/codex-sheets.js";
 import { DicePoolFFG, RollFFG } from "./dice-pool-ffg.js";
 import { GroupManager } from "./groupmanager-ffg.js";
 import PopoutEditor from "./popout-editor.js";
@@ -251,7 +252,7 @@ Hooks.once("init", async function () {
   };
 
   // Load character templates so that dynamic skills lists work correctly
-  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html"]);
+  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html"]);
 
   SettingsHelpers.initLevelSettings();
 
@@ -272,6 +273,13 @@ Hooks.once("init", async function () {
       $('link[href*="styles/starwarsffg.css"]').prop("disabled", false);
     }
   }
+
+  // CODEX II stylesheet — appended LAST in <head>, after whichever UI theme link
+  // was added above. Fully self-contained: everything is scoped under `.cdx` and
+  // styles only bespoke `.cdx-*` classes, so it neither depends on nor is
+  // overridden by the active theme. (system.json `styles` is unreliable here —
+  // the default mandar theme disables system styles at init.)
+  $("head").append('<link href="systems/starwarsffg/styles/cdx.css" rel="stylesheet" type="text/css" media="all">');
 
   /**
    * Register default XP spend notification
@@ -850,6 +858,12 @@ Hooks.once("init", async function () {
   foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
+  // CODEX II — bespoke, opt-in sheets selected per-actor via the ⚙ Sheet picker.
+  // Stock sheets stay registered as the default; Codex never takes makeDefault.
+  // Register a type only once its codex-<type>.html template exists. Widened as
+  // each type lands (character first).
+  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: ["character", "rival", "nemesis", "minion", "vehicle"], label: "Codex II Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", CodexAdversarySheet, { types: ["character"], label: "Codex II Adversary Sheet" });
   foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
   // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
   // to the same native sheet. ItemSheetFFG is the real, default class;
