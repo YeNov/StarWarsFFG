@@ -1,4 +1,8 @@
 {
+  "SWFFG.Codex.Alignment": "Alignment",
+  "SWFFG.Codex.AlignmentNeutral": "Neutral",
+  "SWFFG.Codex.AlignmentGood": "Good",
+  "SWFFG.Codex.AlignmentEvil": "Evil",
   "TYPES.Actor.character": "Character",
   "TYPES.Actor.nemesis": "Nemesis",
   "TYPES.Actor.rival": "Rival",

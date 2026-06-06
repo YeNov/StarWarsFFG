@@ -27,6 +27,47 @@ export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
 /**
+ * Codex alignment — drives the Force chip's background colour (neutral=white,
+ * good=blue, evil=red). A per-actor flag `flags.starwarsffg.codexAlignment` ∈
+ * {neutral, good, evil} is the manually-set baseline; the *effective* alignment
+ * applies Morality with hysteresis:
+ *   - neutral: stays neutral while Morality ∈ [30,70]; ≥71 → good, ≤29 → evil
+ *   - good:    stays good until Morality drops to ≤29 → evil
+ *   - evil:    stays evil until Morality reaches ≥71 → good
+ * Morality of 0 / unset is treated as "not tracked" (template default is 0), so
+ * the baseline is returned unchanged — a Force user who doesn't use the Morality
+ * system isn't painted evil. A genuinely evil 0-Morality actor can be set
+ * "evil" by hand.
+ */
+export const CDX_ALIGNMENTS = ["neutral", "good", "evil"];
+export function cdxEffectiveAlignment(stored, moralityRaw) {
+  const s = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
+  if (moralityRaw === null || moralityRaw === undefined || moralityRaw === "") return s;
+  const m = Number(moralityRaw) || 0;
+  if (m <= 0) return s; // 0 / untracked → keep the baseline
+  if (s === "good") return m <= 29 ? "evil" : "good";
+  if (s === "evil") return m >= 71 ? "good" : "evil";
+  return m >= 71 ? "good" : (m <= 29 ? "evil" : "neutral");
+}
+
+// Persist alignment transitions: when an actor's Morality crosses a boundary,
+// commit the new alignment to the flag so the state is sticky (true hysteresis)
+// instead of being recomputed from the baseline every time. Only the user who
+// made the change writes (no multi-client races); only actors that already carry
+// the flag (i.e. configured via a Codex sheet) are touched; the follow-up
+// setFlag carries no Morality delta so it can't re-trigger this.
+Hooks.on("updateActor", async (actor, changed, options, userId) => {
+  try {
+    if (userId !== game.user?.id) return;
+    if (!foundry.utils.hasProperty(changed, "system.morality.value")) return;
+    const current = actor.getFlag("starwarsffg", "codexAlignment");
+    if (current === undefined) return;
+    const next = cdxEffectiveAlignment(current, actor.system?.morality?.value);
+    if (next !== current) await actor.setFlag("starwarsffg", "codexAlignment", next);
+  } catch (e) { /* never let a hook break actor updates */ }
+});
+
+/**
  * Shared Codex behaviour, mixed onto whichever stock sheet base a given actor
  * type uses. Applied to ActorSheetFFG and AdversarySheetFFG below.
  */
@@ -177,6 +218,12 @@ export const CodexSchemeMixin = (Base) => class extends Base {
 
     if (!this.options.editable) return;
     this._cdxWireCredits(root);
+    // Alignment selector (bio) → write the Codex alignment flag; the chip recolours
+    // on the resulting re-render.
+    root.querySelector(".cdx-align-select")?.addEventListener("change", (ev) => {
+      const v = ev.currentTarget.value;
+      if (CDX_ALIGNMENTS.includes(v)) this.actor?.setFlag("starwarsffg", "codexAlignment", v);
+    });
     // Strain recovery — open the token-action-hud-ffgsw post-encounter utility.
     root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
       btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
@@ -317,6 +364,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     } catch (e) {
       ctx.cdxDef = { melee: { value: 0, mode: "dash", dice: [] }, ranged: { value: 0, mode: "dash", dice: [] } };
     }
+    // Force-chip alignment colour: cdxAlign = effective (baseline + Morality
+    // hysteresis), cdxAlignStored = the manually-set baseline (for the selector).
+    try {
+      const stored = this.actor?.getFlag("starwarsffg", "codexAlignment") ?? "neutral";
+      ctx.cdxAlignStored = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
+      ctx.cdxAlign = cdxEffectiveAlignment(stored, this.actor?.system?.morality?.value);
+    } catch (e) { ctx.cdxAlignStored = "neutral"; ctx.cdxAlign = "neutral"; }
     return ctx;
   }
 

@@ -56,7 +56,7 @@
     {{!-- Soak now lives in the Defence card below. --}}
     {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
     <div class="cdx-chip-div"></div>
-    <div class="cdx-chip derived"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.Force"}}</div></div>
+    <div class="cdx-chip derived cdx-align-{{cdxAlign}}"><div class="cdx-chip-box static">{{data.stats.forcePool.max}}</div><div class="cdx-chip-label brass">{{localize "SWFFG.Force"}}</div></div>
     {{/if}}
   </div>
 
@@ -129,6 +129,13 @@
         <label>{{localize "SWFFG.Build"}}</label><input type="text" name="data.general.build" value="{{data.general.build}}" data-dtype="String" />
         <label>{{localize "SWFFG.Hair"}}</label><input type="text" name="data.general.hair" value="{{data.general.hair}}" data-dtype="String" />
         <label>{{localize "SWFFG.Eyes"}}</label><input type="text" name="data.general.eyes" value="{{data.general.eyes}}" data-dtype="String" />
+        {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+        <label>{{localize "SWFFG.Codex.Alignment"}}</label><select class="cdx-align-select">
+          <option value="neutral" {{#if (eq cdxAlignStored "neutral")}}selected{{/if}}>{{localize "SWFFG.Codex.AlignmentNeutral"}}</option>
+          <option value="good" {{#if (eq cdxAlignStored "good")}}selected{{/if}}>{{localize "SWFFG.Codex.AlignmentGood"}}</option>
+          <option value="evil" {{#if (eq cdxAlignStored "evil")}}selected{{/if}}>{{localize "SWFFG.Codex.AlignmentEvil"}}</option>
+        </select>
+        {{/if}}
       </div></div>
     </div>
     {{#if (eq actor.type "character")}}

@@ -243,6 +243,14 @@
   padding:3px 11px; white-space:nowrap; clip-path:var(--cdx-clip); cursor:pointer;
 }
 .cdx .cdx-chip-label.brass { background:var(--cdx-brass); }
+/* Force chip background by Morality alignment (neutral=white, good=blue, evil=red).
+   Only ever visible when the Force chip itself renders (force enabled). The pool
+   number flips to white on the saturated good/evil backgrounds for contrast. */
+.cdx .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:#ffffff; }
+.cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box { background:#1f5fb3; }
+.cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box { background:#b3261e; }
+.cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box.static,
+.cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box.static { color:#fff; }
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
 /* ---- XP-buy mode ----
@@ -437,7 +445,7 @@
 .cdx .cdx-bio-editor { padding:8px 10px; min-height:120px; font-size:13px; line-height:1.5; }
 .cdx .cdx-desc-grid { display:grid; grid-template-columns:auto 1fr; gap:5px 8px; padding:8px 10px; align-items:center; }
 .cdx .cdx-desc-grid label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
-.cdx .cdx-desc-grid input { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
+.cdx .cdx-desc-grid input, .cdx .cdx-desc-grid select { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
 .cdx .cdx-table { width:100%; border-collapse:collapse; }
 .cdx .cdx-table th { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 8px; text-align:left; }
 .cdx .cdx-table td { padding:5px 8px; border-bottom:1px solid var(--cdx-line); font-size:12px; }
