@@ -9,9 +9,10 @@
 
   {{!-- Header --}}
   <header class="cdx-header">
+    <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+    <div class="cdx-header-main">
     <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
     <div class="cdx-identity">
-      <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
       <div class="cdx-pills">
         {{#each_when actor.items "type" "species"}}<span class="cdx-pill species item" data-item-id="{{item._id}}">{{item.name}}<i class="fas fa-times item-delete"></i></span>{{else}}<span class="cdx-drag">{{localize "SWFFG.DragNotes"}}</span>{{/each_when}}
         {{#unless (eq actor.type "rival")}}{{#unless (eq actor.type "nemesis")}}
@@ -35,6 +36,7 @@
       <div class="cdx-square cdx-xp"><span class="cdx-sq-k">XP</span><span class="cdx-sq-v">{{data.experience.available}}</span><span class="cdx-sq-s">of {{data.experience.total}}</span></div>
       {{/if}}
       <div class="cdx-square cdx-credits"><span class="cdx-sq-k">CR</span><input class="cdx-sq-input" type="text" name="data.stats.credits.value" value="{{data.stats.credits.value}}" data-dtype="String" /><span class="cdx-sq-s">{{localize "SWFFG.DescriptionCredits"}}</span></div>
+    </div>
     </div>
   </header>
 
