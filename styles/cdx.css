@@ -218,7 +218,9 @@
 .cdx .cdx-def-row { flex:1; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 9px; }
 .cdx .cdx-def-row + .cdx-def-row { border-top:1px solid var(--cdx-line); }
 .cdx .cdx-def-row > span { font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
-.cdx .cdx-def-row input { width:2em; flex:none; text-align:center; background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; font-family:"Orbitron"; font-weight:900; font-size:14px; color:var(--cdx-ink); padding:2px 0; }
+/* Plain borderless numbers (like Soak) — editable only in edit mode via the
+   `disabled` binding on the inputs. */
+.cdx .cdx-def-row input { width:1.5em; flex:none; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:22px; color:var(--cdx-ink); padding:0; }
 
 /* Wounds/strain steppers + damage track */
 .cdx .cdx-stepline { display:flex; align-items:center; gap:7px; }
