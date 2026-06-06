@@ -160,9 +160,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // are hidden (see `.cdx-xpbuy` in cdx.css). The flag is TRANSIENT — held on
     // the instance, re-applied on re-render, and reset in close() — so it never
     // persists across reopenings and always starts hidden.
+    // Edit mode and buy mode are mutually exclusive (purchases are blocked while
+    // editing): edit mode forces buy mode off and makes the XP chip inert.
+    if (editOn) this._cdxXpBuy = false;
     (form ?? root).classList.toggle("cdx-xpbuy", !!this._cdxXpBuy);
     root.querySelectorAll(".cdx-xp").forEach((chip) => {
       chip.classList.toggle("active", !!this._cdxXpBuy);
+      if (editOn) return; // XP chip is not clickable while edit mode is on
       chip.addEventListener("click", (ev) => {
         ev.preventDefault();
         this._cdxXpBuy = !this._cdxXpBuy;
