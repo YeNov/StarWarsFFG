@@ -493,6 +493,11 @@
 .cdx form.scheme-dark .cdx-card.gear .cdx-qty-v,
 .cdx form.scheme-dark .cdx-card.gear .cdx-qty .quantity,
 .cdx form.scheme-dark .cdx-card .cdx-card-ctl a { color:#fff; }
+/* Dark scheme: expanded item details read low-contrast in --cdx-ink (cream) —
+   force the description text and the quality / other pills to pure white. */
+.cdx form.scheme-dark .item-details,
+.cdx form.scheme-dark .item-details .tag,
+.cdx form.scheme-dark .item-details .item-pill { color:#fff; }
 /* Total encumbrance in a section header (top of the Gear / Combat tabs), pushed
    to the right next to the add (+) button. */
 .cdx .cdx-head-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
