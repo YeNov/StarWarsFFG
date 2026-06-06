@@ -411,6 +411,12 @@
 .cdx .cdx-sc-k { display:block; font-size:8.5px; letter-spacing:1px; color:var(--cdx-dim); }
 .cdx .cdx-sc-v { display:block; font-family:"Orbitron"; font-weight:900; font-size:17px; color:var(--cdx-accent); white-space:nowrap; }
 .cdx .cdx-card-ctl { display:flex; gap:8px; color:var(--cdx-dim); }
+/* On item CARDS (weapon/armour/gear) the controls carry a phantom label
+   (.cdx-sc-k with &nbsp;) so their icons sit on the same line as the stat-column
+   VALUES (which are pushed down by their own labels) — not at the card's vertical
+   centre. Injuries/talents keep the plain row above. */
+.cdx .cdx-card .cdx-card-ctl { flex-direction:column; align-items:center; gap:0; }
+.cdx .cdx-card .cdx-card-ctl-icons { display:flex; gap:8px; }
 .cdx .cdx-card-ctl a { color:var(--cdx-dim); cursor:pointer; }
 /* Ammo chip — only on an EXPANDED weapon card, placed in row 2's right columns
    (the description/.item-details takes the left column). Hidden otherwise. */
@@ -446,9 +452,9 @@
 /* ---- Gear — reuses the weapon/armour .cdx-card chrome; only the quantity
    stepper inside its stat column is gear-specific. ---- */
 .cdx .cdx-card-icon img { width:100%; height:100%; object-fit:cover; border-radius:6px; }
-.cdx .cdx-card.gear .cdx-statcol { width:76px; }
-.cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:8px; }
-.cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; cursor:pointer; color:var(--cdx-accent); font-size:14px; }
+.cdx .cdx-card.gear .cdx-statcol { width:84px; }
+.cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:10px; }
+.cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; }
 .cdx .cdx-card.gear .cdx-qty-v { font-family:"Orbitron"; font-weight:900; font-size:17px; line-height:1; color:var(--cdx-accent); min-width:16px; text-align:center; }
 .cdx .cdx-gear-summary { display:flex; justify-content:flex-end; gap:24px; margin-top:10px; font-size:11.5px; color:var(--cdx-dim); }
 .cdx .cdx-gear-summary b { color:var(--cdx-ink); }
