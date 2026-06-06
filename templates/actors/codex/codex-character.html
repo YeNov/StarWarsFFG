@@ -101,15 +101,14 @@
 
   {{!-- Tabs --}}
   <nav class="cdx-tabstrip">
-    <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.TabCharacteristics"}}</button>
-    <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.ItemsWeapons"}}</button>
-    <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.TabCrits"}}{{#if cdxCritCount}}<span class="cdx-tab-badge">{{cdxCritCount}}</span>{{/if}}</button>
+    <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.Codex.TabSkills"}}</button>
+    <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.Codex.TabCombat"}}</button>
+    <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.Codex.TabGear"}}</button>
+    <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.Codex.TabCrits"}}{{#if cdxCritCount}}<span class="cdx-tab-badge">{{cdxCritCount}}</span>{{/if}}</button>
     <button type="button" class="cdx-tab" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
-    <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.TabGear"}}</button>
-    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.TabBiography"}}</button>
-    {{#if (eq actor.type "character")}}<button type="button" class="cdx-tab" data-tab="xp">{{localize "SWFFG.TabXpLog"}}</button>{{/if}}
+    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.Codex.TabBio"}}</button>
+    {{#if (eq actor.type "character")}}<button type="button" class="cdx-tab" data-tab="xp">{{localize "SWFFG.Codex.TabXp"}}</button>{{/if}}
     <button type="button" class="cdx-tab" data-tab="effects">{{localize "SWFFG.TabEffects"}}</button>
-    <button type="button" class="cdx-tab" data-tab="mods">{{localize "SWFFG.TabModifiers"}}</button>
   </nav>
 
   <section class="cdx-pane active" data-tab="skills">{{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}</section>
@@ -175,6 +174,5 @@
   {{/if}}
 
   <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
-  <section class="cdx-pane attributes" data-tab="mods">{{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}</section>
   {{/unless}}
 </form>

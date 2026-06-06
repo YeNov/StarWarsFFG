@@ -1,4 +1,10 @@
 {
+  "SWFFG.Codex.TabSkills": "Skills",
+  "SWFFG.Codex.TabCombat": "Combat",
+  "SWFFG.Codex.TabGear": "Gear",
+  "SWFFG.Codex.TabCrits": "Crits",
+  "SWFFG.Codex.TabBio": "Bio",
+  "SWFFG.Codex.TabXp": "XP",
   "SWFFG.Codex.Alignment": "Alignment",
   "SWFFG.Codex.AlignmentNeutral": "Neutral",
   "SWFFG.Codex.AlignmentGood": "Good",

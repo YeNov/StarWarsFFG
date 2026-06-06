@@ -349,7 +349,7 @@
 }
 .cdx .cdx-tab:hover { color:var(--cdx-accent); }
 .cdx .cdx-tab.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
-.cdx .cdx-tab-badge { display:inline-flex; align-items:center; justify-content:center; min-width:15px; height:15px; padding:0 3px; margin-left:5px; border-radius:8px; background:#a51f17; color:#fff; font-family:"Orbitron"; font-size:8.5px; font-weight:900; }
+.cdx .cdx-tab-badge { display:inline-flex; align-items:center; justify-content:center; min-width:13px; height:13px; padding:0 2px; margin-left:2px; border-radius:7px; background:#a51f17; color:#fff; font-family:"Orbitron"; font-size:8px; font-weight:900; }
 .cdx .cdx-pane { display:none; }
 .cdx .cdx-pane.active { display:block; }
 
