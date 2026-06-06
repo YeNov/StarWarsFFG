@@ -173,6 +173,15 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         ctx.cdxTracks[stat] = this._cdxTrack(Number(s.value) || 0, Number(s.max) || 0);
       }
     } catch (e) { /* leave tracks empty */ }
+    // First-two-letters + dot abbreviation per characteristic (e.g. "WILLPOWER"
+    // → "WI."), shown by the chip label when the window is too narrow for the
+    // full word. A single dot — NOT an ellipsis.
+    ctx.cdxCharAbbr = {};
+    try {
+      for (const [id, c] of Object.entries(ctx.data?.characteristics ?? {})) {
+        ctx.cdxCharAbbr[id] = String(c?.label ?? id).slice(0, 2) + ".";
+      }
+    } catch (e) { /* leave empty */ }
     return ctx;
   }
 

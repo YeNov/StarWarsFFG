@@ -44,7 +44,7 @@
     {{#each data.characteristics as |characteristic id|}}
     <div class="cdx-chip" data-ability="{{id}}">
       <div class="cdx-chip-box"><input type="number" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" max="{{ ../maxAttribute }}" {{#if ../disabled}}disabled{{/if}} /></div>
-      <div class="cdx-chip-label ffg-purchase" data-buy-action="characteristic" data-buy-characteristic="{{id}}">{{characteristic.label}}</div>
+      <div class="cdx-chip-label ffg-purchase" data-buy-action="characteristic" data-buy-characteristic="{{id}}"><span class="cdx-cl-full">{{characteristic.label}}</span><span class="cdx-cl-abbr">{{lookup ../cdxCharAbbr id}}</span></div>
     </div>
     {{/each}}
     {{!-- Soak now lives in the Defence card below. --}}
