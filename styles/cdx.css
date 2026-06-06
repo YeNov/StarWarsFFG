@@ -174,6 +174,16 @@
 .cdx .cdx-heal-v { font-family:"Orbitron"; font-weight:900; font-size:13px; color:var(--cdx-ink); }
 .cdx .cdx-heal .medical { color:var(--cdx-accent); cursor:pointer; }
 
+/* Wounds/strain steppers + damage track */
+.cdx .cdx-stepline { display:flex; align-items:center; gap:7px; }
+.cdx .cdx-stepline-mid { flex:1; min-width:0; }
+.cdx .cdx-step { width:24px; height:24px; flex:none; border:1px solid var(--cdx-line); background:transparent; color:var(--cdx-dim); border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; padding:0; }
+.cdx .cdx-step:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
+.cdx .cdx-track { display:flex; gap:2px; margin-top:6px; justify-content:center; }
+.cdx .cdx-track.bar { display:block; height:9px; background:var(--cdx-track); border-radius:2px; overflow:hidden; }
+.cdx .cdx-track .cdx-track-fill { height:100%; }
+.cdx .cdx-pip { flex:1 1 0; max-width:12px; height:9px; border-radius:1px; background:var(--cdx-track); }
+
 /* ---- Tabs ---- */
 .cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
 .cdx .cdx-tab {

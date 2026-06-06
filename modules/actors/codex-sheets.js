@@ -102,15 +102,51 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         await this.actor.update({ "system.stats.strain.value": 0 });
       });
     });
+    // Wounds / strain steppers (−/+), clamped to [0, threshold].
+    root.querySelectorAll(".cdx-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const stat = ev.currentTarget.dataset.stat;
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const s = this.actor?.system?.stats?.[stat];
+        if (!s) return;
+        const max = Number(s.max);
+        let val = (Number(s.value) || 0) + dir;
+        val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
+        await this.actor.update({ [`system.stats.${stat}.value`]: val });
+      });
+    });
   }
 
-  /** Expose the crit-injury count for the Injuries tab badge. @override */
+  /**
+   * Expose the crit-injury count (Injuries tab badge) and the wound/strain
+   * damage tracks (the colored pip bars next to the steppers). @override
+   */
   async getData(options) {
-    const data = await super.getData(options);
+    const ctx = await super.getData(options);
     try {
-      data.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
-    } catch (e) { data.cdxCritCount = 0; }
-    return data;
+      ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
+    } catch (e) { ctx.cdxCritCount = 0; }
+    ctx.cdxTracks = {};
+    try {
+      for (const stat of ["wounds", "strain"]) {
+        const s = this.actor?.system?.stats?.[stat];
+        if (!s || s.max == null) continue;
+        ctx.cdxTracks[stat] = this._cdxTrack(Number(s.value) || 0, Number(s.max) || 0);
+      }
+    } catch (e) { /* leave tracks empty */ }
+    return ctx;
+  }
+
+  /** Build a damage track: pips for small thresholds, a bar for large ones.
+   *  Colour escalates green → amber → red as current nears threshold. */
+  _cdxTrack(cur, max) {
+    const ratio = max > 0 ? cur / max : 0;
+    const color = ratio >= 0.8 ? "#a51f17" : ratio >= 0.5 ? "#c8902e" : "#3f7d3a";
+    if (max <= 0 || max >= 20) return { useBar: true, color, pct: Math.max(0, Math.min(100, Math.round(ratio * 100))) };
+    const pips = [];
+    for (let i = 0; i < max; i++) pips.push(i < cur);
+    return { useBar: false, color, pips };
   }
 
   /**
