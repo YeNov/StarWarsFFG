@@ -481,6 +481,14 @@
 .cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:10px; }
 .cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; }
 .cdx .cdx-card.gear .cdx-qty-v { font-family:"Orbitron"; font-weight:900; font-size:17px; line-height:1; color:var(--cdx-accent); min-width:16px; text-align:center; }
+/* Dark scheme: the accent (dark red) is too low-contrast against the near-black
+   weapon/armour/gear cards, so render the stat labels/values, the qty +/- and the
+   edit/delete controls in white. */
+.cdx form.scheme-dark .cdx-card .cdx-sc-k,
+.cdx form.scheme-dark .cdx-card .cdx-sc-v,
+.cdx form.scheme-dark .cdx-card.gear .cdx-qty-v,
+.cdx form.scheme-dark .cdx-card.gear .cdx-qty .quantity,
+.cdx form.scheme-dark .cdx-card .cdx-card-ctl a { color:#fff; }
 /* Total encumbrance in a section header (top of the Gear / Combat tabs), pushed
    to the right next to the add (+) button. */
 .cdx .cdx-head-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
