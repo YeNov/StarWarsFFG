@@ -78,6 +78,25 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     return super.close(options);
   }
 
+  /**
+   * @override — fix skill-rank purchase for the Codex markup. The stock _buyCore
+   * resolves the skill row by walking a FIXED three parents up from the clicked
+   * icon (event.target.parentElement ×3); our bespoke skills grid nests the icon
+   * one level shallower, so that walk overshoots the row (lands on the column)
+   * and _buySkillRank gets no data-ability — the buy silently fails. Resolve the
+   * row by data-ability instead, which is nesting-independent. Every other buy
+   * action is untouched and defers to super.
+   */
+  async _buyCore(event) {
+    if (event?.target?.dataset?.buyAction === "skill") {
+      if (this.actor?.verifyEditModeIsNotEnabled?.() === false) return;
+      const row = event.target.closest?.("[data-ability]");
+      if (row) await this._buySkillRank(row);
+      return;
+    }
+    return super._buyCore(event);
+  }
+
   _cdxActivate(html) {
     const root = html?.[0] ?? this.form ?? this.element;
     if (!root) return;
