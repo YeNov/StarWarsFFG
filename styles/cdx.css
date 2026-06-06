@@ -168,15 +168,15 @@
 .cdx .cdx-credits-wrap .cdx-square { width:100%; position:relative; z-index:2; }
 .cdx .cdx-cr-change {
   position:absolute; left:0; right:0; top:100%; z-index:1; margin-top:-3px;
-  transform:translateY(-100%); opacity:0; pointer-events:none;
+  transform:translateY(-50%); opacity:0; pointer-events:none;
   transition:transform .18s ease, opacity .18s ease;
-  padding:7px 0 5px; cursor:pointer;
+  padding:11px 0 2px; cursor:pointer;
   background:rgba(185,137,47,.5);                                   /* half-transparent body (fallback) */
   background:color-mix(in srgb, var(--cdx-brass) 50%, transparent);
   border:2px solid var(--cdx-brass);                                /* solid outline, same colour */
   clip-path:polygon(0 0, 100% 0, 100% calc(100% - var(--cdx-notch)), calc(100% - var(--cdx-notch)) 100%, var(--cdx-notch) 100%, 0 calc(100% - var(--cdx-notch)));
   color:var(--cdx-chip-label);
-  font-family:"Orbitron"; font-weight:700; font-size:8px; letter-spacing:1.5px; text-transform:uppercase;
+  font-family:"Orbitron"; font-weight:900; font-size:8px; letter-spacing:1.5px; text-transform:uppercase;
 }
 .cdx .cdx-credits-wrap:hover .cdx-cr-change { transform:translateY(0); opacity:1; pointer-events:auto; }
 .cdx .cdx-credits-wrap.editing .cdx-cr-change { display:none; }
