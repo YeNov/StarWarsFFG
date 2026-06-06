@@ -21,6 +21,28 @@
   </div>
   {{/each}}
 </div>
-<div class="cdx-sub">{{> "systems/starwarsffg/templates/parts/actor/ffg-abilities.html"}}</div>
+{{!-- Abilities — codex card style, matching the talents above. --}}
+{{#contains items "type" "ability"}}
+<div class="cdx-talents cdx-tlist">
+  <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsAbility"}}</span></div>
+  {{#each items as |item id|}} {{#iff item.type '==' 'ability'}}
+  <div class="item cdx-talent" data-item-id="{{item._id}}">
+    <div class="cdx-tal-head"><span class="cdx-tal-name">{{item.name}}</span></div>
+    <div class="cdx-card-ctl item-controls"><a class="item-control item-edit" title="Edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="Delete"><i class="fas fa-trash"></i></a></div>
+  </div>
+  {{/iff}} {{/each}}
+</div>
+{{/contains}}
 <div class="cdx-sub">{{> "systems/starwarsffg/templates/parts/actor/ffg-forcepowers.html"}}</div>
-<div class="cdx-sub">{{> "systems/starwarsffg/templates/parts/actor/ffg-signatureability.html"}}</div>
+{{!-- Signature abilities — codex card style, matching the talents above. --}}
+{{#contains items "type" "signatureability"}}
+<div class="cdx-talents cdx-tlist">
+  <div class="cdx-cards-head"><span>{{localize "SWFFG.SignatureAbility"}}</span></div>
+  {{#each items as |item id|}} {{#iff item.type '==' 'signatureability'}}
+  <div class="item cdx-talent" data-item-id="{{item._id}}">
+    <div class="cdx-tal-head"><span class="cdx-tal-name">{{item.name}}</span></div>
+    <div class="cdx-card-ctl item-controls"><a class="item-control item-edit" title="Edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="Delete"><i class="fas fa-trash"></i></a></div>
+  </div>
+  {{/iff}} {{/each}}
+</div>
+{{/contains}}

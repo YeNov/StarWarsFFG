@@ -457,6 +457,8 @@
 .cdx .cdx-forcepool input { width:2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); }
 .cdx .cdx-fp-s { font-size:9px; color:var(--cdx-dim); margin-left:auto; }
 .cdx .cdx-talents { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+/* Abilities / signature-ability sub-lists reuse the talent grid; space them off the block above. */
+.cdx .cdx-talents.cdx-tlist { margin-top:12px; }
 .cdx .cdx-cards-head { grid-column:1/-1; }
 .cdx .cdx-talent { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; cursor:pointer; }
 .cdx .cdx-tal-head { background:var(--cdx-accent); color:#fff; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
