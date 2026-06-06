@@ -149,9 +149,10 @@
 .cdx .cdx-drag { font-size:10px; font-style:italic; opacity:.7; }
 
 .cdx .cdx-header-stats { flex:none; display:flex; flex-direction:column; gap:7px; align-items:stretch; }
-/* XP + CR side by side while the header is wide enough; stack vertically when the
-   sheet shrinks (the header is the inline-size container). */
-@container (min-width:520px) {
+/* XP + CR side by side only when the header is wide enough that the middle pill
+   column still has room; otherwise stack them vertically (the header is the
+   inline-size container). */
+@container (min-width:680px) {
   .cdx .cdx-header-stats { flex-direction:row; align-items:flex-start; }
 }
 .cdx .cdx-square {
