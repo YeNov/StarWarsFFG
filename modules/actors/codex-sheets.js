@@ -95,14 +95,57 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     }
 
     if (!this.options.editable) return;
-    // Per-actor scheme strip.
-    root.querySelectorAll(".cdx-scheme-btn").forEach((btn) => {
+    // Strain recovery (post-encounter): zero out strain.
+    root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();
-        const scheme = ev.currentTarget.dataset.scheme;
-        if (CDX_SCHEMES.includes(scheme)) await this.actor.setFlag("starwarsffg", "scheme", scheme);
+        await this.actor.update({ "system.stats.strain.value": 0 });
       });
     });
+  }
+
+  /** Expose the crit-injury count for the Injuries tab badge. @override */
+  async getData(options) {
+    const data = await super.getData(options);
+    try {
+      data.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
+    } catch (e) { data.cdxCritCount = 0; }
+    return data;
+  }
+
+  /**
+   * Surface the per-actor scheme picker in the window-header controls menu (the
+   * ⋮ dropdown), rather than as an in-sheet button strip.
+   * @override
+   */
+  _getHeaderControls() {
+    const controls = super._getHeaderControls();
+    controls.push({
+      action: "cdxScheme",
+      icon: "fa-solid fa-palette",
+      label: "Scheme",
+      onClick: () => this._cdxPickScheme(),
+    });
+    return controls;
+  }
+
+  /** Small DialogV2 to choose one of the five palettes; writes the actor flag. */
+  async _cdxPickScheme() {
+    const current = this._cdxScheme();
+    const buttons = CDX_SCHEMES.map((s) => ({
+      action: s,
+      label: s.charAt(0).toUpperCase() + s.slice(1) + (s === current ? " ✓" : ""),
+    }));
+    let choice;
+    try {
+      choice = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Codex II — Scheme" },
+        content: `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${this.actor.name}</b>:</p>`,
+        buttons,
+        rejectClose: false,
+      });
+    } catch (e) { return; }
+    if (choice && CDX_SCHEMES.includes(choice)) await this.actor.setFlag("starwarsffg", "scheme", choice);
   }
 };
 

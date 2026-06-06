@@ -60,14 +60,17 @@
   background-color:var(--cdx-bg) !important;
   background-image:repeating-linear-gradient(135deg,var(--cdx-stripe) 0 12px,transparent 12px 24px) !important;
   color:var(--cdx-ink); font-family:"Signika",sans-serif; padding:12px; gap:9px;
-  display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+  display:flex; flex-direction:column; min-height:0; overflow-y:auto !important; overflow-x:hidden;
 }
 .cdx .cdx-sheet { display:contents; }
+/* Scope generic field styling to the CONTENT form only — NOT the window header,
+   whose control buttons rely on the Font Awesome font-family for their glyphs
+   (a global `.cdx button{font-family:inherit}` was wiping the header icons). */
+.cdx form input, .cdx form select, .cdx form button { font-family:inherit; color:var(--cdx-ink); }
+.cdx form input:focus { outline:none; box-shadow:0 0 4px var(--cdx-accent); }
 /* mandar forces `button { display:block; width:100% }` inside sheets — undo it
-   for our inline controls so flex rows lay out horizontally. */
-.cdx button.cdx-tab, .cdx button.cdx-scheme-btn { display:inline-flex; align-items:center; width:auto; flex:0 0 auto; appearance:none; line-height:1; }
-.cdx input, .cdx select, .cdx button { font-family:inherit; color:var(--cdx-ink); }
-.cdx input:focus { outline:none; box-shadow:0 0 4px var(--cdx-accent); }
+   for our inline tab controls so the flex row lays out horizontally. */
+.cdx form button.cdx-tab { display:inline-flex; align-items:center; width:auto; flex:0 0 auto; appearance:none; line-height:1; }
 .cdx .brass { color:var(--cdx-brass); }
 .cdx .cdx-slash { color:var(--cdx-dim); font-weight:700; padding:0 2px; }
 
@@ -179,6 +182,7 @@
 }
 .cdx .cdx-tab:hover { color:var(--cdx-accent); }
 .cdx .cdx-tab.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+.cdx .cdx-tab-badge { display:inline-flex; align-items:center; justify-content:center; min-width:15px; height:15px; padding:0 3px; margin-left:5px; border-radius:8px; background:#a51f17; color:#fff; font-family:"Orbitron"; font-size:8.5px; font-weight:900; }
 .cdx .cdx-pane { display:none; }
 .cdx .cdx-pane.active { display:block; }
 

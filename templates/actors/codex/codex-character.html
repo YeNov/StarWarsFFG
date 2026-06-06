@@ -7,8 +7,6 @@
 <form class="cdx-sheet" autocomplete="off">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
-  {{> "systems/starwarsffg/templates/parts/codex/cdx-scheme.html"}}
-
   {{!-- Header --}}
   <header class="cdx-header">
     <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
@@ -59,17 +57,17 @@
   {{!-- Derived: Wounds / Strain / Defence / Encumbrance --}}
   <div class="cdx-derived">
     <div class="cdx-stat wounds wide">
-      <div class="cdx-stat-head"><span>{{localize "SWFFG.Wounds"}}</span><button type="button" class="resetMedical cdx-rest" title="{{localize "SWFFG.Rest"}}"><i class="fas fa-bed"></i></button></div>
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Wounds"}}</span><button type="button" class="resetMedical cdx-rest" title="Rest"><i class="fas fa-bed"></i></button></div>
       <div class="cdx-stat-body">
         <div class="cdx-thresh"><input type="text" name="data.stats.wounds.value" value="{{data.stats.wounds.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.wounds.max" value="{{data.stats.wounds.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
         <div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div>
-        <div class="cdx-heal"><span class="cdx-heal-k">{{localize "SWFFG.Healing"}}</span><i class="fas fa-minus-circle medical"></i><span class="cdx-heal-v">{{#if (ne data.stats.medical.uses undefined)}}{{data.stats.medical.uses}}{{else}}0{{/if}}/5</span><i class="fas fa-plus-circle medical"></i></div>
+        <div class="cdx-heal"><span class="cdx-heal-k">{{#if (ne actor.flags.starwarsffg.config.medicalItemName undefined)}}{{actor.flags.starwarsffg.config.medicalItemName}}{{else}}{{localize "SWFFG.DefaultMedicalItemName"}}{{/if}}</span><i class="fas fa-minus-circle medical"></i><span class="cdx-heal-v">{{#if (ne data.stats.medical.uses undefined)}}{{data.stats.medical.uses}}{{else}}0{{/if}}/5</span><i class="fas fa-plus-circle medical"></i></div>
       </div>
     </div>
     {{#unless (eq actor.type "rival")}}
     {{#if (or (eq actor.flags.starwarsffg.config.enableStrainThreshold undefined) (eq actor.flags.starwarsffg.config.enableStrainThreshold true))}}
     <div class="cdx-stat strain wide">
-      <div class="cdx-stat-head"><span>{{localize "SWFFG.Strain"}}</span></div>
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Strain"}}</span><button type="button" class="cdx-strain-rest cdx-rest" title="Recover all strain"><i class="fas fa-rotate-left"></i></button></div>
       <div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.strain.value" value="{{data.stats.strain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.strain.max" value="{{data.stats.strain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div>
     </div>
     {{/if}}
@@ -88,7 +86,7 @@
   <nav class="cdx-tabstrip">
     <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.TabCharacteristics"}}</button>
     <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.ItemsWeapons"}}</button>
-    <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.TabCrits"}}</button>
+    <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.TabCrits"}}{{#if cdxCritCount}}<span class="cdx-tab-badge">{{cdxCritCount}}</span>{{/if}}</button>
     <button type="button" class="cdx-tab" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
     <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.TabGear"}}</button>
     <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.TabBiography"}}</button>
