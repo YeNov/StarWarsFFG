@@ -1933,12 +1933,27 @@ Hooks.on("renderGamePause", function (_application, element, _context, _options)
   }
 
   Hooks.on("renderDialogV2", (app) => {
+    const el = app.element;
+    if (!el) return;
     const title = app.options?.window?.title;
-    if (!title) return;
-    const saved = loadPositions()[title];
-    if (!saved) return;
+    const saved = title ? loadPositions()[title] : null;
+    // EVERY DialogV2 first paints at the top-left corner (0,0) before Foundry
+    // (or our saved-position restore) moves it to its real spot — that
+    // paint-then-move is the visible "spawn then jump". Render hooks run
+    // synchronously before the browser's first paint, so make the window
+    // transparent here to swallow the (0,0) frame, then apply any saved
+    // position and reveal it together in the next task (atomic w.r.t. painting,
+    // so no intermediate frame is ever shown). Notes:
+    //  - opacity (not visibility/display) keeps the dialog focusable, so
+    //    Foundry's autofocus — which already ran in _onRender, before this hook
+    //    — is not blurred by the hide.
+    //  - the reveal lives in the setTimeout, never gated on requestAnimationFrame,
+    //    so a throttled/background tab can't strand the dialog invisible.
+    const prevOpacity = el.style.opacity;
+    el.style.opacity = "0";
     setTimeout(() => {
-      try { app.setPosition({ left: saved.left, top: saved.top }); } catch { /* dialog already closed */ }
+      if (saved) { try { app.setPosition({ left: saved.left, top: saved.top }); } catch { /* dialog already closed */ } }
+      el.style.opacity = prevOpacity;
     }, 0);
   });
 
