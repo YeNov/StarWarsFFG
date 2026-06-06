@@ -311,15 +311,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 
   /**
-   * Ammo chip on expanded weapon cards. The −/+ steppers adjust the live
-   * magazine: the core system.ammo, or — when a special ammo is loaded — the
-   * selected ammo gear item's magazine (ffg-star-wars-enhancements `ammo-data`
-   * flag). The dropdown writes the weapon's selected special ammo. Writes use
-   * {render:false} + an optimistic DOM update so a +/- doesn't collapse the
-   * expanded card; the persisted value is correct even if a render still occurs.
+   * Core ammo chip on expanded weapon cards: the −/+ steppers adjust the weapon's
+   * own system.ammo magazine. Writes use {render:false} + an optimistic DOM update
+   * so a +/- doesn't collapse the expanded card; the persisted value is correct
+   * even if a render still occurs. (Loadable / "special" ammo is owned by the
+   * ffg-star-wars-enhancements module — see docs/handoff-codex-special-ammo.md.)
    */
   _cdxWireAmmo(root) {
-    const MOD = "ffg-star-wars-enhancements";
     // Swallow clicks inside the chip so they don't toggle the card's expand state.
     root.querySelectorAll(".cdx-ammo").forEach((chip) => {
       chip.addEventListener("click", (ev) => ev.stopPropagation());
@@ -328,44 +326,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault(); ev.stopPropagation();
         const chip = ev.currentTarget.closest(".cdx-ammo"); if (!chip) return;
-        const dir = Number(ev.currentTarget.dataset.dir) || 0;
-        const clamp = (n, mx) => Math.max(0, mx ? Math.min(mx, n) : n);
-        let cur, mx;
-        if (chip.dataset.ammoTarget === "special") {
-          const ammoItem = this.actor?.items?.get(chip.dataset.ammoItem); if (!ammoItem) return;
-          const d = ammoItem.getFlag(MOD, "ammo-data") || {};
-          mx = Number(d.ammoMax) || 0;
-          cur = clamp((Number(d.ammoCurrent) || 0) + dir, mx);
-          try { await ammoItem.update({ [`flags.${MOD}.ammo-data`]: { ...d, ammoCurrent: cur } }, { render: false }); } catch (e) { return; }
-        } else {
-          const w = this.actor?.items?.get(chip.dataset.weaponId); if (!w) return;
-          mx = Number(w.system?.ammo?.max) || 0;
-          cur = clamp((Number(w.system?.ammo?.value) || 0) + dir, mx);
-          try { await w.update({ "system.ammo.value": cur }, { render: false }); } catch (e) { return; }
-        }
-        const cEl = chip.querySelector(".cdx-ammo-count"); if (cEl) cEl.textContent = `${cur}/${mx}`;
-      });
-    });
-    root.querySelectorAll(".cdx-ammo-select").forEach((sel) => {
-      sel.addEventListener("change", async (ev) => {
-        ev.stopPropagation();
-        const chip = ev.currentTarget.closest(".cdx-ammo"); if (!chip) return;
         const w = this.actor?.items?.get(chip.dataset.weaponId); if (!w) return;
-        const newId = ev.currentTarget.value;
-        const prev = w.getFlag(MOD, "special-ammo") || {};
-        try { await w.update({ [`flags.${MOD}.special-ammo`]: { ...prev, selectedAmmo: newId } }, { render: false }); } catch (e) { return; }
-        // Re-point the chip's count at the new source: special magazine, else core.
-        let target = "core", current = Number(w.system?.ammo?.value) || 0, mx = Number(w.system?.ammo?.max) || 0, ammoItemId = "";
-        if (newId) {
-          const ammoItem = this.actor?.items?.get(newId);
-          const d = ammoItem?.getFlag(MOD, "ammo-data");
-          if (ammoItem && d) { target = "special"; current = Number(d.ammoCurrent) || 0; mx = Number(d.ammoMax) || 0; ammoItemId = ammoItem.id; }
-        }
-        chip.dataset.ammoTarget = target;
-        chip.dataset.ammoItem = ammoItemId;
-        const hasCount = target === "special" || !!w.getFlag("starwarsffg", "config.enableAmmo");
-        chip.classList.toggle("cdx-ammo-nocount", !hasCount);
-        const cEl = chip.querySelector(".cdx-ammo-count"); if (cEl) cEl.textContent = `${current}/${mx}`;
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const mx = Number(w.system?.ammo?.max) || 0;
+        let cur = (Number(w.system?.ammo?.value) || 0) + dir;
+        cur = Math.max(0, mx ? Math.min(mx, cur) : cur);
+        try { await w.update({ "system.ammo.value": cur }, { render: false }); } catch (e) { return; }
+        const cEl = chip.querySelector(".cdx-ammo-count"); if (cEl) cEl.textContent = `${cur}/${mx}`;
       });
     });
   }
@@ -437,46 +404,19 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       ctx.cdxAlignStored = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
       ctx.cdxAlign = cdxEffectiveAlignment(stored, this.actor?.system?.morality?.value);
     } catch (e) { ctx.cdxAlignStored = "neutral"; ctx.cdxAlign = "neutral"; }
-    // Ammo chip on expanded weapon cards. Two sources: the core system ammo
-    // (system.ammo, gated by the item's config.enableAmmo flag) and the
-    // ffg-star-wars-enhancements "special ammo" module (a selected ammo gear item
-    // with its own magazine). Count = the selected special ammo's magazine when
-    // one is loaded, else the core system.ammo. cdxAmmo is keyed by weapon _id.
+    // Ammo chip on expanded weapon cards — CORE ammo only (system.ammo, gated by
+    // the item's config.enableAmmo flag). Loadable / "special" ammo is owned by
+    // the ffg-star-wars-enhancements module, which injects its own selector into
+    // the .cdx-ammo chip on render — see docs/handoff-codex-special-ammo.md.
     ctx.cdxAmmo = {};
     try {
-      const MOD = "ffg-star-wars-enhancements";
-      let specialOn = false;
-      if (game.modules?.get(MOD)?.active) {
-        try { specialOn = !!game.settings.get(MOD, "special-ammo-enable"); } catch (e) { specialOn = false; }
-      }
       for (const item of (this.actor?.items ?? [])) {
         if (item.type !== "weapon") continue;
-        const core = !!item.getFlag("starwarsffg", "config.enableAmmo");
-        const sa = specialOn ? (item.getFlag(MOD, "special-ammo") || {}) : {};
-        const special = !!sa.hasSpecialAmmo;
-        if (!core && !special) continue;
-        let options = [];
-        let selectedAmmo = sa.selectedAmmo || "";
-        if (special) {
-          const allowed = String(sa.ammoFilter || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-          options = (this.actor?.items ?? []).filter((it) => it.type === "gear"
-            && it.getFlag(MOD, "ammo-data")?.canBeUsedAsAmmo
-            && allowed.includes(String(it.name).toLowerCase()))
-            .map((it) => ({ id: it.id, name: it.name, selected: it.id === selectedAmmo }));
-          if (selectedAmmo && !options.some((o) => o.id === selectedAmmo)) selectedAmmo = "";
-        }
-        // Count source: special magazine if a valid special ammo is loaded, else core.
-        let target = "core";
-        let current = Number(item.system?.ammo?.value) || 0;
-        let max = Number(item.system?.ammo?.max) || 0;
-        let ammoItemId = "";
-        let hasCount = core;
-        if (special && selectedAmmo) {
-          const ammoItem = this.actor?.items?.get(selectedAmmo);
-          const d = ammoItem?.getFlag(MOD, "ammo-data");
-          if (ammoItem && d) { target = "special"; current = Number(d.ammoCurrent) || 0; max = Number(d.ammoMax) || 0; ammoItemId = ammoItem.id; hasCount = true; }
-        }
-        ctx.cdxAmmo[item._id] = { core, special, hasCount, target, current, max, ammoItemId, selectedAmmo, options };
+        if (!item.getFlag("starwarsffg", "config.enableAmmo")) continue;
+        ctx.cdxAmmo[item._id] = {
+          current: Number(item.system?.ammo?.value) || 0,
+          max: Number(item.system?.ammo?.max) || 0,
+        };
       }
     } catch (e) { ctx.cdxAmmo = {}; }
     return ctx;
