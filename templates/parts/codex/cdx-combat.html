@@ -10,7 +10,12 @@
             resolves the weapon and attaches it to the roll. --}}
       <div class="cdx-card-rollwrap"><div class="skill-label rollable roll-button starwarsffg item-rollable cdx-card-icon" style="background-image:url('{{item.img}}')"></div></div>
       <a class="toggle-equipped cdx-equip {{#if item.system.equippable.equipped}}active{{/if}}" data-item-id="{{item._id}}" title="{{localize "SWFFG.Equipped"}}"><i class="fas fa-fist-raised"></i></a>
-      <div class="cdx-card-title">{{item.name}}</div>
+      <div class="cdx-card-id">
+        <div class="cdx-card-title">{{item.name}}</div>
+        {{!-- Required combat skill + the actor's dice pool for it. data-ability lets
+              DiceHelpers.addSkillDicePool (wired in _cdxActivate) fill the .roll-button. --}}
+        <div class="cdx-wpn-skill" data-ability="{{item.system.skill.value}}"><span class="cdx-wpn-skill-k">{{item.system.skill.value}}</span><span class="cdx-wpn-skill-dot">·</span><span class="roll-button dice-pool cdx-wpn-pool"></span></div>
+      </div>
     </div>
     <div class="cdx-statcols">
       <div class="cdx-statcol"><span class="cdx-sc-k">DAM</span><span class="cdx-sc-v">{{item.system.damage.value}}{{#if (and (ne item.system.damage.value item.system.damage.adjusted) (or (gt item.system.damage.adjusted.length 0) (gt item.system.damage.adjusted 0)))}} ({{item.system.damage.adjusted}}){{/if}}</span></div>

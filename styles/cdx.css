@@ -403,6 +403,13 @@
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .cdx .cdx-equip.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
 .cdx .cdx-card-title { font-family:"Orbitron"; font-weight:700; font-size:14px; color:var(--cdx-ink); }
+/* Weapon identity column: name + combat-skill line with the actor's dice pool. */
+.cdx .cdx-card-id { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.cdx .cdx-wpn-skill { display:flex; align-items:center; gap:5px; min-width:0; }
+.cdx .cdx-wpn-skill-k { font-size:12.5px; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-wpn-skill-dot { color:var(--cdx-dim); }
+.cdx .cdx-wpn-pool { display:inline-flex; align-items:center; gap:2px; line-height:0; pointer-events:none; }
+.cdx .cdx-wpn-pool img { width:18px; height:18px; border:none; vertical-align:middle; }
 .cdx .cdx-statcols { display:flex; gap:6px; }
 .cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
 /* 3rd column holds the RANGE word ("Engaged", "Extreme", …) — far wider than a

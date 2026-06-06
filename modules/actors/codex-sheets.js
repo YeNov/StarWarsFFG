@@ -22,6 +22,7 @@
 import { ActorSheetFFG } from "./actor-sheet-ffg.js";
 import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
 import { CdxPillStack } from "./cdx-pill-stack.js";
+import DiceHelpers from "../helpers/dice-helpers.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
@@ -216,6 +217,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       });
     });
 
+    // Weapon-card dice pools (skill roll preview) — render for viewers too.
+    this._cdxWeaponPools(root);
+
     if (!this.options.editable) return;
     this._cdxWireCredits(root);
     // Alignment selector (bio) → write the Codex alignment flag; the chip recolours
@@ -334,6 +338,20 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const cEl = chip.querySelector(".cdx-ammo-count"); if (cEl) cEl.textContent = `${cur}/${mx}`;
       });
     });
+  }
+
+  /**
+   * Fill each weapon card's dice-pool node with the actor's pool for that weapon's
+   * combat skill, reusing the same DiceHelpers.addSkillDicePool the Skills tab uses
+   * (so it's the real, full pool). The .roll-button node is display-only here
+   * (pointer-events:none in CSS) — the weapon icon is the roll trigger.
+   */
+  async _cdxWeaponPools(root) {
+    const nodes = root.querySelectorAll(".cdx-wpn-skill[data-ability]");
+    if (!nodes.length) return;
+    let data;
+    try { data = await this.getData({}); } catch (e) { return; }
+    nodes.forEach((elem) => { try { DiceHelpers.addSkillDicePool(data, elem); } catch (e) { /* skip this weapon */ } });
   }
 
   /**
