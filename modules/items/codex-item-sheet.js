@@ -110,6 +110,29 @@ export class CodexItemSheet extends ItemSheetFFG {
       form.style.setProperty("overflow-x", "hidden", "important");
     }
     const root = html?.[0] ?? form;
+
+    // Bespoke tab switching — same as the codex actor sheets (.cdx-tab buttons /
+    // .cdx-pane sections, toggled in JS). The stock native Tabs controller keyed
+    // off .sheet-tabs doesn't apply here: we use .cdx-tabstrip so the item tabs
+    // match the character sheet. Remember the active tab across re-renders (e.g.
+    // a scheme change re-renders the whole sheet).
+    if (root) {
+      root.querySelectorAll(".cdx-tab").forEach((btn) => {
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          const tab = ev.currentTarget.dataset.tab;
+          if (!tab) return;
+          root.querySelectorAll(".cdx-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+          root.querySelectorAll(".cdx-pane").forEach((p) => p.classList.toggle("active", p.dataset.tab === tab));
+          this._cdxTab = tab;
+        });
+      });
+      if (this._cdxTab && root.querySelector(`.cdx-tab[data-tab="${this._cdxTab}"]`)) {
+        root.querySelectorAll(".cdx-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === this._cdxTab));
+        root.querySelectorAll(".cdx-pane").forEach((p) => p.classList.toggle("active", p.dataset.tab === this._cdxTab));
+      }
+    }
+
     root?.querySelectorAll?.(".cdx-restrict-btn").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();

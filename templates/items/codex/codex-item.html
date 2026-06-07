@@ -2,8 +2,8 @@
   Codex II — generic item frame. Used by the simpler item types (ability, crit
   injury/damage, obligation, motivation, background, ship attachment, homestead
   upgrade): a codex header + the standard Description / Modifiers / Sources / Tags
-  tabs. Tabs stay native — .sheet-tabs nav + .sheet-body .tab panes drive the
-  base's Foundry Tabs controller; only the chrome is restyled.
+  tabs. Tabs use the bespoke Codex system (.cdx-tabstrip buttons / .cdx-pane
+  sections, switched in CodexItemSheet) — the same as the character sheet.
 --}}
 <form class="cdx-sheet cdx-item" autocomplete="off">
   <header class="cdx-item-header">
@@ -16,25 +16,25 @@
     </div>
   </header>
 
-  {{> "systems/starwarsffg/templates/parts/shared/ffg-tabs.html" displayLimited=true limited=limited items=(array
-    (object tab="description" label="SWFFG.TabDescription" icon="far fa-file-alt" cls=classType)
-    (object tab="attributes" label="SWFFG.TabModifiers" icon="fas fa-cog" cls=classType)
-    (object tab="sources" label="SWFFG.TabSources" icon="fa-light fa-book-open-cover" cls=classType)
-    (object tab="tags" label="SWFFG.TabTags" icon="fa-sharp fa-regular fa-tags" cls=classType)
-  )}}
+  <nav class="cdx-tabstrip">
+    <button type="button" class="cdx-tab active" data-tab="description">{{localize "SWFFG.TabDescription"}}</button>
+    <button type="button" class="cdx-tab" data-tab="attributes">{{localize "SWFFG.TabModifiers"}}</button>
+    <button type="button" class="cdx-tab" data-tab="sources">{{localize "SWFFG.TabSources"}}</button>
+    <button type="button" class="cdx-tab" data-tab="tags">{{localize "SWFFG.TabTags"}}</button>
+  </nav>
 
-  <section class="sheet-body cdx-item-body">
-    <div class="tab" data-group="primary" data-tab="description">
+  <div class="cdx-item-body">
+    <section class="cdx-pane active cdx-bio-editor" data-tab="description">
       {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
-    </div>
-    <div class="tab attributes" data-group="primary" data-tab="attributes">
+    </section>
+    <section class="cdx-pane" data-tab="attributes">
       {{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}
-    </div>
-    <div class="tab sources" data-group="primary" data-tab="sources">
+    </section>
+    <section class="cdx-pane" data-tab="sources">
       {{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}
-    </div>
-    <div class="tab tags" data-group="primary" data-tab="tags">
+    </section>
+    <section class="cdx-pane" data-tab="tags">
       {{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}
-    </div>
-  </section>
+    </section>
+  </div>
 </form>
