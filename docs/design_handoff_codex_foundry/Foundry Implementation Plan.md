@@ -193,12 +193,12 @@ Either way, scope everything under `.starwarsffg.sheet.actor.codex` (the new Sta
 **Full actor-type inventory (decide in or out of scope explicitly):**
 | Type / template | Status |
 |---|---|
-| `character` | In scope (primary) |
-| `nemesis`, `rival` | In scope |
-| `minion` | In scope (no strain/healing) |
-| `vehicle` | In scope |
-| `homestead` (`ffg-homestead-sheet.html`) | **Decide** — exists in repo; not in original prototype. Recommend out of scope for v1. |
-| **Adversary sheet** (`AdversarySheetFFG`, registered for `character` type via `ffg-adversary-sheet.html`) | **Decide** — it's a *separate registered sheet* for character actors, not an actor type. If a GM has it selected, our character reskin won't apply unless we also style this template. Recommend out of scope for v1, but note it so it isn't a surprise. |
+| `character` | ✅ **Done** — `codex-character.html` (primary) |
+| `nemesis`, `rival` | ✅ **Done** — share `codex-character.html` via type guards |
+| `minion` | ✅ **Done** — `codex-minion.html` (group strength + combined wound pool; no strain/healing) |
+| `vehicle` | ✅ **Done** — `codex-vehicle.html` (header, chips, 4-zone defence, systems, tabs, new-style item cards) |
+| `homestead` (`ffg-homestead-sheet.html`) | Out of scope (v1) — exists in repo; not in the prototype. |
+| **Adversary sheet** (`AdversarySheetFFG`) | ✅ **Done** — `CodexAdversarySheet` (compact reskin). |
 
 ---
 
