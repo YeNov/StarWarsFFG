@@ -256,7 +256,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
       btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
     });
-    // Wounds / strain steppers (−/+), clamped to [0, threshold].
+    // Wounds / strain steppers (−/+). Floored at 0 but NOT capped at the
+    // threshold — current wounds/strain may exceed the threshold (that's the
+    // incapacitated/overburdened state), so the only bound is the lower one.
     root.querySelectorAll(".cdx-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();
@@ -264,9 +266,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const dir = Number(ev.currentTarget.dataset.dir) || 0;
         const s = this.actor?.system?.stats?.[stat];
         if (!s) return;
-        const max = Number(s.max);
-        let val = (Number(s.value) || 0) + dir;
-        val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
+        const val = Math.max(0, (Number(s.value) || 0) + dir);
         await this.actor.update({ [`system.stats.${stat}.value`]: val });
       });
     });
