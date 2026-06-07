@@ -133,6 +133,24 @@ export class CodexItemSheet extends ItemSheetFFG {
       }
     }
 
+    // Live header subtitle "{skill} - {characteristic}" (weapon Special tab). The
+    // selects submit render:false, so reflect the choice into the header without
+    // waiting for a re-render.
+    const sub = root?.querySelector?.(".cdx-isub");
+    if (sub) {
+      const skillSel = root.querySelector('select[name="data.skill.value"]');
+      const charSel = root.querySelector('select[name="data.characteristic.value"]');
+      const none = game.i18n?.localize?.("SWFFG.None");
+      const optText = (sel) => (sel && sel.selectedIndex >= 0 ? (sel.options[sel.selectedIndex]?.text ?? "") : "").trim();
+      const sync = () => {
+        const parts = [optText(skillSel), optText(charSel)].filter((p) => p && p !== none);
+        sub.textContent = parts.join(" - ");
+        sub.style.display = parts.length ? "" : "none";
+      };
+      skillSel?.addEventListener("change", sync);
+      charSel?.addEventListener("change", sync);
+    }
+
     root?.querySelectorAll?.(".cdx-restrict-btn").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();

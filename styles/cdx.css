@@ -973,28 +973,10 @@
 .cdx .cdx-status-pill option { color:#111; text-transform:none; letter-spacing:normal; }
 .cdx .cdx-ihead .cdx-status::after { content:"\25BE"; font-size:8px; line-height:1; color:var(--cdx-head-ink); opacity:.7; pointer-events:none; }
 
-/* ---- Special / Configuration tab: stock ffg-block rows as Codex fields ----
-   The Special tab (weapon) reuses the shared ffg-block partial for skill /
-   characteristic / ammo / special. Restyle those blocks — label + control — into
-   the Codex notched-panel look without touching the partial. */
-.cdx .cdx-item-body .resource { margin:0 0 8px; }
-.cdx .cdx-item-body .resource .attribute { display:block; }
-.cdx .cdx-item-body .resource .block-background { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:8px 11px; }
-.cdx .cdx-item-body .resource .block-title { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--cdx-brown); margin-bottom:5px; text-align:left; }
-.cdx .cdx-item-body .resource .block-attribute { display:block; }
-.cdx .cdx-item-body .resource select,
-.cdx .cdx-item-body .resource input[type=text],
-.cdx .cdx-item-body .resource input[type=number] {
-  width:100%; box-sizing:border-box; background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px;
-  color:var(--cdx-ink); font-family:"Orbitron"; font-weight:700; font-size:13px; padding:5px 8px; text-align:center; text-align-last:center;
-}
-.cdx .cdx-item-body .resource select option { color:#111; }
-/* split block (Ammo): two inputs side by side with their shadow labels below */
-.cdx .cdx-item-body .resource.split .block-attribute { display:flex; gap:6px; }
-.cdx .cdx-item-body .resource.split .block-value { flex:1; }
-.cdx .cdx-item-body .resource .block-background-shadow { display:flex; justify-content:space-between; padding:3px 4px 0; }
-.cdx .cdx-item-body .resource .block-background-shadow .shadow-text { font-family:"Orbitron"; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
-/* PopoutEditor (Special text) */
-.cdx .cdx-item-body .resource .popout-editor { position:relative; min-height:40px; background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:6px 9px; color:var(--cdx-ink); font-size:13px; line-height:1.4; cursor:text; }
-.cdx .cdx-item-body .resource .popout-editor-button { position:absolute; top:5px; right:7px; color:var(--cdx-dim); cursor:pointer; }
-.cdx .cdx-item-body .resource .popout-editor-button:hover { color:var(--cdx-accent); }
+/* ---- Weapon Special tab ----
+   Skill / Characteristic / Ammo are bespoke .cdx-istat blocks (identical to the
+   header stat chips), and Special is an inline editor block (like the bio/desc
+   editor). Just give the selects/inputs a usable height inside the blocks. */
+.cdx .cdx-istats-special .cdx-istat-v,
+.cdx .cdx-istats-special .cdx-istat-sel { min-height:34px; }
+.cdx .cdx-ispecial { margin-top:8px; }

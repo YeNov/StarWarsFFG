@@ -15,7 +15,7 @@
       </div>
     </div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
-    {{#if data.skill.value}}<div class="cdx-isub">{{data.skill.value}}</div>{{/if}}
+    <div class="cdx-isub"{{#unless data.skill.value}} style="display:none"{{/unless}}>{{data.skill.value}}{{#if data.characteristic.value}} - {{localize (lookup (lookup this.FFG.characteristics data.characteristic.value) "label")}}{{/if}}</div>
   </div>
 
   <div class="cdx-iwmain">
@@ -51,12 +51,18 @@
 
   <div class="cdx-item-body weapon">
     <section class="cdx-pane active" data-tab="configuration">
-      {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.ItemWeaponSkill" type="Dropdown" name="data.skill.value" value=data.skill.value options=this.FFG.skills)}}
-      {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.ModTypeCharacteristic" type="Dropdown" name="data.characteristic.value" value=data.characteristic.value options=this.FFG.characteristics)}}
-      {{#if (eq item.flags.starwarsffg.config.enableAmmo true)}}
-      {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="split" title="SWFFG.Ammo" fields=(array (object name="data.ammo.max" value=data.ammo.max type="Number" label="SWFFG.Threshold" disabled=disabled) (object name="data.ammo.value" value=data.ammo.value type="Number" label="SWFFG.Current")))}}
-      {{/if}}
-      {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.ItemWeaponSpecial" type="PopoutEditor" name="data.special.value" value=data.enrichedSpecial)}}
+      <div class="cdx-istats cdx-istats-special">
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ModTypeCharacteristic"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.characteristic.value">{{#selectFfg data.characteristic.value}}<option value="">{{localize "SWFFG.None"}}</option>{{#each this.FFG.characteristics as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+        {{#if (eq item.flags.starwarsffg.config.enableAmmo true)}}
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Threshold"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.max" value="{{data.ammo.max}}" autocomplete="off" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Current"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.value" value="{{data.ammo.value}}" autocomplete="off" /></div>
+        {{/if}}
+      </div>
+      <div class="cdx-idesc cdx-ispecial">
+        <div class="cdx-idesc-head">{{localize "SWFFG.ItemWeaponSpecial"}}</div>
+        {{editor data.enrichedSpecial target="system.special.value" button=true owner=owner editable=editable engine="prosemirror"}}
+      </div>
     </section>
     <section class="cdx-pane" data-tab="qualities">{{> "systems/starwarsffg/templates/parts/ffg-mods.html"}}</section>
     <section class="cdx-pane" data-tab="attachments">{{> "systems/starwarsffg/templates/parts/ffg-attachments.html"}}</section>
