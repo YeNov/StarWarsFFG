@@ -491,10 +491,12 @@
 .cdx .cdx-veh-radar { position:absolute; inset:30%; display:flex; align-items:center; justify-content:center; }
 .cdx .cdx-veh-radar-img { max-width:100%; max-height:100%; object-fit:contain; opacity:.85; cursor:pointer; border-radius:4px; }
 .cdx .cdx-zone { position:absolute; }
-.cdx .cdx-zone.fore { top:-6px; left:50%; transform:translateX(-50%); }
-.cdx .cdx-zone.aft  { bottom:-6px; left:50%; transform:translateX(-50%); }
-.cdx .cdx-zone.port { left:-6px; top:50%; transform:translateY(-50%); }
-.cdx .cdx-zone.stbd { right:-6px; top:50%; transform:translateY(-50%); }
+/* Inset from the radar edges so the chips' side steppers stay inside the panel
+   (the panel clips overflow) instead of being cut off at the left/right edge. */
+.cdx .cdx-zone.fore { top:12px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.aft  { bottom:12px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.port { left:14px; top:50%; transform:translateY(-50%); }
+.cdx .cdx-zone.stbd { right:14px; top:50%; transform:translateY(-50%); }
 /* Each zone is a compact ratio-chip (same component as Force/Speed): the box is
    shrunk to fit the radar, the steppers scaled down, and the label is the
    brown zone pill. */
