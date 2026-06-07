@@ -7,21 +7,41 @@
 --}}
 <form class="cdx-sheet cdx-item cdx-item-shipweapon" autocomplete="off">
   <div class="cdx-ihead">
-    <div class="cdx-ipill">{{cdxTypeLabel}}</div>
+    <div class="cdx-ihead-top">
+      <div class="cdx-ipill">{{cdxTypeLabel}}</div>
+      <div class="cdx-status" title="{{localize 'SWFFG.ItemWeaponStatus'}}">
+        <i class="fas fa-wrench cdx-status-ic"></i>
+        <select class="cdx-status-pill" name="data.status">{{#each cdxConditions as |c|}}<option value="{{c.value}}" {{#if c.current}}selected{{/if}}>{{c.label}}</option>{{/each}}</select>
+      </div>
+    </div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
     <div class="cdx-isub"{{#unless data.skill.value}} style="display:none"{{/unless}}>{{data.skill.value}}</div>
   </div>
 
   <div class="cdx-iwmain">
     <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
-    <div class="cdx-istats cdx-istats-weapon">
-      <div class="cdx-istat"><span class="cdx-istat-k">Damage</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.damage.value" value="{{data.damage.value}}" data-dtype="Number" />{{#if (ne data.damage.adjusted data.damage.value)}}<span class="cdx-istat-adj {{#if (gt data.damage.adjusted data.damage.value)}}better{{else}}worse{{/if}}">({{data.damage.adjusted}})</span>{{/if}}</div></div>
-      <div class="cdx-istat"><span class="cdx-istat-k">Crit</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.crit.value" value="{{data.crit.value}}" data-dtype="Number" />{{#if (ne data.crit.adjusted data.crit.value)}}<span class="cdx-istat-adj {{#if (lt data.crit.adjusted data.crit.value)}}better{{else}}worse{{/if}}">({{data.crit.adjusted}})</span>{{/if}}</div></div>
-      <div class="cdx-istat"><span class="cdx-istat-k">Range</span><select class="cdx-istat-v cdx-istat-sel" name="data.range.value">{{#selectFfg data.range.value}}{{#each this.FFG.vehicle_ranges as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
-      <div class="cdx-istat wide"><span class="cdx-istat-k">Encum</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" />{{#if (ne data.encumbrance.adjusted data.encumbrance.value)}}<span class="cdx-istat-adj {{#if (lt data.encumbrance.adjusted data.encumbrance.value)}}better{{else}}worse{{/if}}">({{data.encumbrance.adjusted}})</span>{{/if}}</div></div>
-      <div class="cdx-istat wide"><span class="cdx-istat-k">HP</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" />{{#if (ne data.hardpoints.current data.hardpoints.value)}}<span class="cdx-istat-adj {{#if (gt data.hardpoints.current data.hardpoints.value)}}better{{else}}worse{{/if}}">({{data.hardpoints.current}})</span>{{/if}}</div></div>
-      <div class="cdx-istat wide"><span class="cdx-istat-k">Price</span><input class="cdx-istat-v cdx-price" type="text" value="{{data.price.value}}" autocomplete="off" /></div>
-      <div class="cdx-istat wide{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><div class="cdx-istat-rwrap"><input class="cdx-istat-v cdx-rv-in cdx-num" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /><button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></div></div>
+    <div class="cdx-sw-main">
+      <div class="cdx-istats cdx-istats-weapon">
+        <div class="cdx-istat"><span class="cdx-istat-k">Damage</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.damage.value" value="{{data.damage.value}}" data-dtype="Number" />{{#if (ne data.damage.adjusted data.damage.value)}}<span class="cdx-istat-adj {{#if (gt data.damage.adjusted data.damage.value)}}better{{else}}worse{{/if}}">({{data.damage.adjusted}})</span>{{/if}}</div></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">Crit</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.crit.value" value="{{data.crit.value}}" data-dtype="Number" />{{#if (ne data.crit.adjusted data.crit.value)}}<span class="cdx-istat-adj {{#if (lt data.crit.adjusted data.crit.value)}}better{{else}}worse{{/if}}">({{data.crit.adjusted}})</span>{{/if}}</div></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">Range</span><select class="cdx-istat-v cdx-istat-sel" name="data.range.value">{{#selectFfg data.range.value}}{{#each this.FFG.vehicle_ranges as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+        <div class="cdx-istat wide"><span class="cdx-istat-k">Encum</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" />{{#if (ne data.encumbrance.adjusted data.encumbrance.value)}}<span class="cdx-istat-adj {{#if (lt data.encumbrance.adjusted data.encumbrance.value)}}better{{else}}worse{{/if}}">({{data.encumbrance.adjusted}})</span>{{/if}}</div></div>
+        <div class="cdx-istat wide"><span class="cdx-istat-k">HP</span><div class="cdx-istat-vwrap"><input class="cdx-istat-v cdx-num" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" />{{#if (ne data.hardpoints.current data.hardpoints.value)}}<span class="cdx-istat-adj {{#if (gt data.hardpoints.current data.hardpoints.value)}}better{{else}}worse{{/if}}">({{data.hardpoints.current}})</span>{{/if}}</div></div>
+        <div class="cdx-istat wide"><span class="cdx-istat-k">Price</span><input class="cdx-istat-v cdx-price" type="text" value="{{data.price.value}}" autocomplete="off" /></div>
+        <div class="cdx-istat wide{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><div class="cdx-istat-rwrap"><input class="cdx-istat-v cdx-rv-in cdx-num" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /><button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></div></div>
+      </div>
+      <div class="cdx-istat cdx-sw-skill"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+      <div class="cdx-panel cdx-arc-panel">
+        <div class="cdx-idesc-head">{{localize "SWFFG.VehicleTabFiringArc"}}</div>
+        <div class="cdx-arc-grid">
+          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.fore" data-dtype="Boolean" {{checked data.firingarc.fore}} /><span>{{localize "SWFFG.VehicleFiringArcForward"}}</span></label>
+          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.aft" data-dtype="Boolean" {{checked data.firingarc.aft}} /><span>{{localize "SWFFG.VehicleFiringArcAft"}}</span></label>
+          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.port" data-dtype="Boolean" {{checked data.firingarc.port}} /><span>{{localize "SWFFG.VehicleFiringArcPort"}}</span></label>
+          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.starboard" data-dtype="Boolean" {{checked data.firingarc.starboard}} /><span>{{localize "SWFFG.VehicleFiringArcStarboard"}}</span></label>
+          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.dorsal" data-dtype="Boolean" {{checked data.firingarc.dorsal}} /><span>{{localize "SWFFG.VehicleFiringArcDorsal"}}</span></label>
+          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.ventral" data-dtype="Boolean" {{checked data.firingarc.ventral}} /><span>{{localize "SWFFG.VehicleFiringArcVentral"}}</span></label>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -45,20 +65,6 @@
 
   <div class="cdx-item-body shipweapon">
     <section class="cdx-pane" data-tab="configuration">
-      <div class="cdx-istats cdx-istats-special">
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
-      </div>
-      <div class="cdx-panel cdx-arc-panel">
-        <div class="cdx-idesc-head">{{localize "SWFFG.VehicleTabFiringArc"}}</div>
-        <div class="cdx-arc-grid">
-          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.fore" data-dtype="Boolean" {{checked data.firingarc.fore}} /><span>{{localize "SWFFG.VehicleFiringArcForward"}}</span></label>
-          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.aft" data-dtype="Boolean" {{checked data.firingarc.aft}} /><span>{{localize "SWFFG.VehicleFiringArcAft"}}</span></label>
-          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.port" data-dtype="Boolean" {{checked data.firingarc.port}} /><span>{{localize "SWFFG.VehicleFiringArcPort"}}</span></label>
-          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.starboard" data-dtype="Boolean" {{checked data.firingarc.starboard}} /><span>{{localize "SWFFG.VehicleFiringArcStarboard"}}</span></label>
-          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.dorsal" data-dtype="Boolean" {{checked data.firingarc.dorsal}} /><span>{{localize "SWFFG.VehicleFiringArcDorsal"}}</span></label>
-          <label class="cdx-arc"><input type="checkbox" name="data.firingarc.ventral" data-dtype="Boolean" {{checked data.firingarc.ventral}} /><span>{{localize "SWFFG.VehicleFiringArcVentral"}}</span></label>
-        </div>
-      </div>
       <div class="cdx-idesc cdx-ispecial">
         <div class="cdx-idesc-head">{{localize "SWFFG.ItemWeaponSpecial"}}</div>
         {{editor data.enrichedSpecial target="system.special.value" button=true owner=owner editable=editable engine="prosemirror"}}
