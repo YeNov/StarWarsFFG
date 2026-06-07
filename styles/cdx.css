@@ -455,6 +455,57 @@
 .cdx .cdx-wound-seg { flex:0 0 auto; width:14px; height:11px; border-radius:2px; background:var(--cdx-track); }
 .cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
 
+/* ============================ Vehicle sheet ============================ */
+/* Dark slate header (scheme-independent), HP + Rarity badges on the right. */
+.cdx .cdx-header.cdx-veh-header { background:linear-gradient(180deg,#3e4756,#262c36); color:#fff; }
+.cdx .cdx-veh-header .cdx-name { color:#fff; }
+.cdx .cdx-veh-badges { flex:none; display:flex; gap:8px; align-items:stretch; }
+.cdx .cdx-veh-badge {
+  min-width:74px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  padding:6px 12px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.18); clip-path:var(--cdx-clip);
+}
+.cdx .cdx-veh-badge.brass { background:var(--cdx-brass); color:#1a1205; border-color:rgba(0,0,0,.25); }
+.cdx .cdx-vb-k { font-family:"Orbitron"; font-size:8.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; opacity:.75; }
+.cdx .cdx-vb-v { font-family:"Orbitron"; font-weight:900; font-size:20px; line-height:1.05; }
+.cdx .cdx-vb-s { font-family:"Orbitron"; font-size:8px; opacity:.7; text-transform:lowercase; }
+
+/* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
+.cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }
+.cdx .cdx-veh-left { flex:2; min-width:0; display:flex; flex-direction:column; gap:9px; }
+.cdx .cdx-veh-main .cdx-derived { flex:none; }
+/* "max N" sub-label tucked under a characteristic chip's box (e.g. Speed). */
+.cdx .cdx-chip-sub { margin-top:2px; font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+
+/* Systems: dotted-leader key/value rows in two columns. */
+.cdx .cdx-veh-systems { margin-bottom:0; flex:1; }
+.cdx .cdx-veh-sysgrid { display:grid; grid-template-columns:1fr 1fr; gap:2px 22px; padding:9px 12px; }
+.cdx .cdx-sysrow { display:flex; align-items:baseline; gap:6px; min-width:0; padding:3px 0; border-bottom:1px dotted var(--cdx-line); }
+.cdx .cdx-sys-k { font-family:"Orbitron"; font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-sys-v { flex:1; min-width:0; text-align:right; font-weight:700; font-size:13px; color:var(--cdx-ink); }
+.cdx .cdx-sys-v input[type=text] { width:3.4em; text-align:right; background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:1px 4px; color:var(--cdx-ink); }
+
+/* Defence — 4-zone radar: concentric rings, a top-view image at the centre,
+   and a shield value box pinned at each cardinal point (Fore/Aft/Port/Stbd). */
+.cdx .cdx-veh-defence { flex:1; min-width:228px; display:flex; flex-direction:column; }
+.cdx .cdx-veh-zones {
+  position:relative; aspect-ratio:1/1; width:100%; max-width:320px; margin:auto; align-self:center; padding:30px;
+  background:repeating-radial-gradient(circle at 50% 50%, var(--cdx-line) 0 1px, transparent 1px 9%);
+  border-radius:50%;
+}
+.cdx .cdx-veh-radar { position:absolute; inset:30%; display:flex; align-items:center; justify-content:center; }
+.cdx .cdx-veh-radar-img { max-width:100%; max-height:100%; object-fit:contain; opacity:.85; cursor:pointer; border-radius:4px; }
+.cdx .cdx-zone { position:absolute; display:flex; flex-direction:column; align-items:center; gap:3px; }
+.cdx .cdx-zone.fore { top:-2px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.aft  { bottom:-2px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.port { left:-2px; top:50%; transform:translateY(-50%); }
+.cdx .cdx-zone.stbd { right:-2px; top:50%; transform:translateY(-50%); }
+.cdx .cdx-zone-v, .cdx .cdx-zone input {
+  width:40px; height:40px; box-sizing:border-box; display:flex; align-items:center; justify-content:center;
+  background:var(--cdx-paper2); border:3px solid var(--cdx-ink); border-radius:9px; text-align:center;
+  font-family:"Orbitron"; font-weight:900; font-size:20px; color:var(--cdx-ink); padding:0;
+}
+.cdx .cdx-zone-k { font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#fff; background:var(--cdx-brown); padding:2px 7px; clip-path:var(--cdx-clip); }
+
 /* ---- Tabs ---- */
 .cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
 .cdx .cdx-tab {

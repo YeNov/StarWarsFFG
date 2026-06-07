@@ -563,6 +563,26 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         ctx.cdxMinionWoundHint = game.i18n.format("SWFFG.Codex.WoundsSuffered", { n: unit });
       } catch (e) { ctx.cdxMinionGroups = []; }
     }
+    // Vehicle derived data: hull/strain damage tracks, hardpoints used (sum of
+    // attachment hardpoints), crew count, and a compact cost string.
+    if (this.actor?.type === "vehicle") {
+      try {
+        const s = this.actor.system?.stats ?? {};
+        ctx.cdxVehTracks = {
+          hull: this._cdxTrack(Number(s.hullTrauma?.value) || 0, Number(s.hullTrauma?.max) || 0),
+          strain: this._cdxTrack(Number(s.systemStrain?.value) || 0, Number(s.systemStrain?.max) || 0),
+        };
+        let hpUsed = 0, crew = 0;
+        for (const it of (this.actor.items ?? [])) {
+          if (it.type === "shipattachment") hpUsed += Number(it.system?.hardpoints?.value) || 0;
+          if (it.type === "shipcrew") crew += 1;
+        }
+        ctx.cdxVehHpUsed = hpUsed;
+        ctx.cdxVehCrewCount = crew;
+        const cost = Number(s.cost?.value) || 0;
+        ctx.cdxVehCost = cost >= 1000 ? `${(cost / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })}k` : String(cost);
+      } catch (e) { ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0"; }
+    }
     return ctx;
   }
 

@@ -6,38 +6,79 @@
 <form class="cdx-sheet vehicle" autocomplete="off">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
-  <header class="cdx-header cdx-vehicle-header">
+  {{!-- Dark slate header: portrait · identity (name, type pills) · HP + Rarity badges. --}}
+  <header class="cdx-header cdx-veh-header">
     <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
     <div class="cdx-identity">
       <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.VehicleName'}}" data-dtype="String" />
-      <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.vehicle" }}</span></div>
+      <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.vehicle" }}</span>{{#if data.spaceShip}}<span class="cdx-pill">Starship</span>{{/if}}</div>
     </div>
     {{#unless limited}}
-    <div class="cdx-shields">
-      <div class="cdx-shield-row">
-        <div class="cdx-shield"><input type="text" name="data.stats.shields.fore" value="{{data.stats.shields.fore}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefenseFore"}}</span></div>
-        <div class="cdx-shield"><input type="text" name="data.stats.shields.aft" value="{{data.stats.shields.aft}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefenseAft"}}</span></div>
-        <div class="cdx-shield"><input type="text" name="data.stats.shields.port" value="{{data.stats.shields.port}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefensePort"}}</span></div>
-        <div class="cdx-shield"><input type="text" name="data.stats.shields.starboard" value="{{data.stats.shields.starboard}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /><span>{{localize "SWFFG.VehicleDefenseStarboard"}}</span></div>
-      </div>
+    <div class="cdx-veh-badges">
+      <div class="cdx-veh-badge"><span class="cdx-vb-k">HP</span><span class="cdx-vb-v">{{cdxVehHpUsed}}/{{data.stats.customizationHardPoints.value}}</span><span class="cdx-vb-s">hardpoints</span></div>
+      <div class="cdx-veh-badge brass"><span class="cdx-vb-k">Rarity</span><span class="cdx-vb-v">{{data.stats.rarity.value}}</span><span class="cdx-vb-s">cost {{cdxVehCost}}</span></div>
     </div>
     {{/unless}}
   </header>
 
   {{#unless limited}}
-  {{!-- Armour / Silhouette / Handling --}}
-  <div class="cdx-chiprow">
-    <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.armour.value" value="{{data.stats.armour.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.VehicleArmor"}}</div></div>
-    <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.silhouette.value" value="{{data.stats.silhouette.value}}" data-dtype="Number" pattern="^(10|[0-9])$" /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleSilhouette"}}</div></div>
-    <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.handling.value" value="{{data.stats.handling.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleHandling"}}</div></div>
-  </div>
+  <div class="cdx-veh-main">
+    <div class="cdx-veh-left">
+      {{!-- Silhouette · Speed · Handling · Armour --}}
+      <div class="cdx-chiprow">
+        <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.silhouette.value" value="{{data.stats.silhouette.value}}" data-dtype="Number" pattern="^(10|[0-9])$" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleSilhouette"}}</div></div>
+        <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.speed.value" value="{{data.stats.speed.value}}" data-dtype="Number" /></div><div class="cdx-chip-sub">max {{data.stats.speed.max}}</div><div class="cdx-chip-label">{{localize "SWFFG.VehicleSpeed"}}</div></div>
+        <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.handling.value" value="{{data.stats.handling.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleHandling"}}</div></div>
+        <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.armour.value" value="{{data.stats.armour.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.VehicleArmor"}}</div></div>
+      </div>
 
-  {{!-- Speed / Hull / System Strain / Encumbrance --}}
-  <div class="cdx-derived">
-    <div class="cdx-stat"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleSpeed"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.speed.value" value="{{data.stats.speed.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.speed.max" value="{{data.stats.speed.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
-    <div class="cdx-stat wounds wide"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullTrauma"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.hullTrauma.value" value="{{data.stats.hullTrauma.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.hullTrauma.max" value="{{data.stats.hullTrauma.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
-    <div class="cdx-stat strain wide"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullStrain"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.systemStrain.value" value="{{data.stats.systemStrain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.systemStrain.max" value="{{data.stats.systemStrain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
-    <div class="cdx-stat enc"><div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleEncumbranceCapacity"}}</span></div><div class="cdx-stat-body"><div class="cdx-thresh"><input type="text" name="data.stats.encumbrance.value" value="{{data.stats.encumbrance.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.encumbrance.max" value="{{data.stats.encumbrance.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div></div>
+      {{!-- Hull Trauma · System Strain --}}
+      <div class="cdx-derived">
+        <div class="cdx-stat wounds wide">
+          <div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullTrauma"}}</span></div>
+          <div class="cdx-stat-body">
+            <div class="cdx-thresh"><input type="text" name="data.stats.hullTrauma.value" value="{{data.stats.hullTrauma.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.hullTrauma.max" value="{{data.stats.hullTrauma.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
+            {{#with cdxVehTracks.hull}}{{#if useBar}}<div class="cdx-track bar"><div class="cdx-track-fill" style="width:{{pct}}%;background:{{color}}"></div></div>{{else}}<div class="cdx-track pips">{{#each pips}}<span class="cdx-pip{{#if this}} on{{/if}}"{{#if this}} style="background:{{../color}}"{{/if}}></span>{{/each}}</div>{{/if}}{{/with}}
+            <div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div>
+          </div>
+        </div>
+        <div class="cdx-stat strain wide">
+          <div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullStrain"}}</span></div>
+          <div class="cdx-stat-body">
+            <div class="cdx-thresh"><input type="text" name="data.stats.systemStrain.value" value="{{data.stats.systemStrain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.systemStrain.max" value="{{data.stats.systemStrain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
+            {{#with cdxVehTracks.strain}}{{#if useBar}}<div class="cdx-track bar"><div class="cdx-track-fill" style="width:{{pct}}%;background:{{color}}"></div></div>{{else}}<div class="cdx-track pips">{{#each pips}}<span class="cdx-pip{{#if this}} on{{/if}}"{{#if this}} style="background:{{../color}}"{{/if}}></span>{{/each}}</div>{{/if}}{{/with}}
+            <div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div>
+          </div>
+        </div>
+      </div>
+
+      {{!-- Systems panel (key/value; values editable in edit mode) --}}
+      <div class="cdx-panel cdx-veh-systems">
+        <div class="cdx-panel-head">Systems</div>
+        <div class="cdx-veh-sysgrid">
+          {{#if (or (eq actor.flags.starwarsffg.config.enableHyperdrive undefined) (eq actor.flags.starwarsffg.config.enableHyperdrive true))}}
+          <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.Hyperdrive"}}</span><span class="cdx-sys-v">{{#if disabled}}Class {{data.stats.hyperdrive.value}} (backup {{data.stats.hyperdrive.backup}}){{else}}<input type="text" name="data.stats.hyperdrive.value" value="{{data.stats.hyperdrive.value}}" data-dtype="Number" /> / <input type="text" name="data.stats.hyperdrive.backup" value="{{data.stats.hyperdrive.backup}}" data-dtype="Number" />{{/if}}</span></div>
+          {{/if}}
+          <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.VehicleSensorRange"}}</span><span class="cdx-sys-v">{{#if disabled}}{{data.stats.sensorRange.value}}{{else}}<input type="text" name="data.stats.sensorRange.value" value="{{data.stats.sensorRange.value}}" data-dtype="String" />{{/if}}</span></div>
+          <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.Consumables"}}</span><span class="cdx-sys-v">{{#if disabled}}{{data.stats.consumables.value}} {{data.stats.consumables.duration}}{{else}}<input type="text" name="data.stats.consumables.value" value="{{data.stats.consumables.value}}" data-dtype="Number" /> <input type="text" name="data.stats.consumables.duration" value="{{data.stats.consumables.duration}}" data-dtype="String" />{{/if}}</span></div>
+          <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.VehicleNavicomputer"}}</span><span class="cdx-sys-v">{{#if disabled}}{{#if data.stats.navicomputer.value}}Yes{{else}}No{{/if}}{{else}}<input type="checkbox" name="data.stats.navicomputer.value" data-dtype="Boolean" {{checked data.stats.navicomputer.value}} />{{/if}}</span></div>
+          <div class="cdx-sysrow"><span class="cdx-sys-k">Crew</span><span class="cdx-sys-v">{{cdxVehCrewCount}}</span></div>
+          <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.VehiclePassengerCapacity"}}</span><span class="cdx-sys-v">{{#if disabled}}{{data.stats.passengerCapacity.value}}{{else}}<input type="text" name="data.stats.passengerCapacity.value" value="{{data.stats.passengerCapacity.value}}" data-dtype="Number" />{{/if}}</span></div>
+        </div>
+      </div>
+    </div>
+
+    {{!-- Defence: 4-zone shield diagram (Fore/Aft/Port/Starboard around a top-view image) --}}
+    <div class="cdx-panel cdx-veh-defence">
+      <div class="cdx-panel-head">Defence · 4-Zone</div>
+      <div class="cdx-veh-zones">
+        <div class="cdx-veh-radar"><img class="cdx-veh-radar-img" src="{{data.silhouetteImage}}" data-edit="system.silhouetteImage" title="Top view" /></div>
+        <div class="cdx-zone fore">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.fore}}</span>{{else}}<input type="text" name="data.stats.shields.fore" value="{{data.stats.shields.fore}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefenseFore"}}</span></div>
+        <div class="cdx-zone aft">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.aft}}</span>{{else}}<input type="text" name="data.stats.shields.aft" value="{{data.stats.shields.aft}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefenseAft"}}</span></div>
+        <div class="cdx-zone port">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.port}}</span>{{else}}<input type="text" name="data.stats.shields.port" value="{{data.stats.shields.port}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefensePort"}}</span></div>
+        <div class="cdx-zone stbd">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.starboard}}</span>{{else}}<input type="text" name="data.stats.shields.starboard" value="{{data.stats.shields.starboard}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefenseStarboard"}}</span></div>
+      </div>
+    </div>
   </div>
 
   {{!-- Tabs --}}
