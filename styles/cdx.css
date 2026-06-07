@@ -19,6 +19,7 @@
   --cdx-accent:#1f4e8c; --cdx-accent2:#16407a; --cdx-brown:#2a5fa0; --cdx-brass:#b9892f;
   --cdx-career:#e6eefb; --cdx-career-line:#3a78c0; --cdx-track:#c2ccd6;
   --cdx-chip-label:#16202b; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#2a649f,#1b4474); --cdx-head-ink:#fff;
+  --cdx-warn:#c2570a;
   --cdx-notch:9px;
 }
 .cdx form.scheme-empire {
@@ -27,6 +28,7 @@
   --cdx-accent:#1b1c21; --cdx-accent2:#2b2c32; --cdx-brown:#7c1411; --cdx-brass:#7d8086;
   --cdx-career:#e9e9ec; --cdx-career-line:#9a1f1b; --cdx-track:#bcbdc2;
   --cdx-chip-label:#000; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#26272c,#131418); --cdx-head-ink:#fff;
+  --cdx-warn:#c0271d;
 }
 .cdx form.scheme-dark {
   --cdx-bg:#0e0b0b; --cdx-stripe:rgba(255,255,255,.02);
@@ -34,6 +36,7 @@
   --cdx-accent:#8a1714; --cdx-accent2:#5d1110; --cdx-brown:#6e2a22; --cdx-brass:#c8a24a;
   --cdx-career:rgba(200,162,74,.12); --cdx-career-line:#c8a24a; --cdx-track:#3a2c29;
   --cdx-chip-label:#000; --cdx-chip-ink276:#fff; --cdx-head:linear-gradient(180deg,#6e1411,#380a09); --cdx-head-ink:#fff;
+  --cdx-warn:#f5b820;
 }
 .cdx form.scheme-light {
   --cdx-bg:#dde6ec; --cdx-stripe:rgba(47,111,158,.045);
@@ -41,6 +44,7 @@
   --cdx-accent:#2f6f9e; --cdx-accent2:#245880; --cdx-brown:#3a86b5; --cdx-brass:#b0902c;
   --cdx-career:#e4f1f8; --cdx-career-line:#4a9bc8; --cdx-track:#cad9e2;
   --cdx-chip-label:#1b2a33; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#56a0c4,#2f6f9e); --cdx-head-ink:#fff;
+  --cdx-warn:#bf5a00;
 }
 .cdx form.scheme-mercenary {
   --cdx-bg:#c9bdac; --cdx-stripe:rgba(60,40,20,.05);
@@ -48,6 +52,7 @@
   --cdx-accent:#7a4a22; --cdx-accent2:#5e3818; --cdx-brown:#8a5a2a; --cdx-brass:#b07a30;
   --cdx-career:#efe2c8; --cdx-career-line:#b07a30; --cdx-track:#cdbfa3;
   --cdx-chip-label:#241c12; --cdx-chip-ink:#f1ebdd; --cdx-head:linear-gradient(180deg,#3b4148,#22262b); --cdx-head-ink:#f1ebdd;
+  --cdx-warn:#9a3c08;
 }
 .cdx form {
   --cdx-clip:polygon(0% var(--cdx-notch),var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% calc(100% - var(--cdx-notch)),calc(100% - var(--cdx-notch)) 100%,var(--cdx-notch) 100%,0% calc(100% - var(--cdx-notch)));
@@ -699,11 +704,14 @@
 .cdx .cdx-ge-v { color:var(--cdx-ink); }
 /* Over-encumbered: current load exceeds the threshold. */
 .cdx .cdx-ge-v.over { color:#cf2e2e; font-weight:900; }
-/* Pulsing warning triangle to the left of the label when over the threshold. */
-.cdx .cdx-enc-warn { color:#f0b41e; font-size:12px; line-height:1; animation:cdx-enc-pulse 1.1s ease-in-out infinite; }
+/* Pulsing warning triangle to the left of the label when over the threshold.
+   --cdx-warn is scheme-aware (deep/saturated on the light schemes, bright amber
+   on dark) so it keeps contrast everywhere; the glow tracks it via currentColor.
+   The blink fades all the way to 0 to grab attention. */
+.cdx .cdx-enc-warn { color:var(--cdx-warn); font-size:12px; line-height:1; animation:cdx-enc-pulse 1.15s ease-in-out infinite; }
 @keyframes cdx-enc-pulse {
-  0%, 100% { opacity:1; text-shadow:0 0 4px rgba(240,180,30,.85), 0 0 8px rgba(240,180,30,.5); }
-  50%      { opacity:.6; text-shadow:0 0 9px rgba(240,180,30,1), 0 0 16px rgba(240,180,30,.75); }
+  0%, 100% { opacity:1; text-shadow:0 0 5px currentColor, 0 0 10px currentColor; }
+  50%      { opacity:0; text-shadow:none; }
 }
 
 /* ---- Bio / panels / tables ---- */
