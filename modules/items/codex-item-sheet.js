@@ -117,5 +117,21 @@ export class CodexItemSheet extends ItemSheetFFG {
         await this.item.update({ "system.rarity.isrestricted": !this.item.system?.rarity?.isrestricted });
       });
     });
+    // Digits-only fields (Damage/Crit/Encum/HP/Price/Rarity/Qty/Soak/Defence):
+    // strip any non-digit on input so the field can only ever hold an integer.
+    root?.querySelectorAll?.("input.cdx-num").forEach((inp) => {
+      inp.setAttribute("inputmode", "numeric");
+      inp.addEventListener("input", () => {
+        const cleaned = inp.value.replace(/[^0-9]/g, "");
+        if (cleaned !== inp.value) {
+          const pos = inp.selectionStart;
+          inp.value = cleaned;
+          try { inp.setSelectionRange(pos - 1, pos - 1); } catch (e) {}
+        }
+      });
+      inp.addEventListener("keypress", (ev) => {
+        if (ev.key.length === 1 && !/[0-9]/.test(ev.key)) ev.preventDefault();
+      });
+    });
   }
 }
