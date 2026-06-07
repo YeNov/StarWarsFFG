@@ -391,15 +391,14 @@
 .cdx .cdx-minion-top { display:flex; gap:6px; align-items:stretch; }
 .cdx .cdx-minion-top .cdx-gs { flex:4; }
 .cdx .cdx-minion-top .cdx-minion-def { flex:1.15; min-width:150px; }
-/* Compact body — the group-strength panel is a single content row, so it stays
-   short; the minion defence block (below) is trimmed to match so the whole top
-   row isn't dragged tall. */
-.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:12px; padding:6px 12px; }
+/* The group-strength body is a single content row; it stretches to match the
+   (taller) defence block beside it, with its content vertically centred. */
+.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:12px; padding:8px 12px; }
 .cdx .cdx-gs-counter { flex:none; gap:8px; }
-.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; }
+.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; }
 .cdx .cdx-gs-cur { color:var(--cdx-ink); }
 .cdx .cdx-gs-max { color:var(--cdx-dim); }
-.cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; color:var(--cdx-dim); padding:0; }
+.cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-dim); padding:0; }
 /* Single line; the label takes the slack between the counter and Wipe Out, so
    the button is pushed hard right. */
 .cdx .cdx-gs-label { flex:1; min-width:0; white-space:nowrap; font-size:13px; color:var(--cdx-dim); }
@@ -413,10 +412,6 @@
 }
 .cdx .cdx-wipeout:hover { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
 .cdx .cdx-wipeout > i { font-size:11px; }
-/* Trim the minion defence block so it doesn't tower over the compact group
-   strength beside it (the character/nemesis defence stays unchanged). */
-.cdx .cdx-minion-def .cdx-def-soak input, .cdx .cdx-minion-def .cdx-def-soak-v { font-size:24px; }
-.cdx .cdx-minion-def .cdx-def-row { padding:2px 9px; }
 
 /* Combined wound pool — full-width panel below the top row. flex:none is
    REQUIRED: .cdx-stat carries flex:1 + overflow:hidden(→min-height:0); as a
@@ -434,9 +429,12 @@
    groups than within. Filled = wounds suffered (left-to-right). Filled colour is
    --cdx-ink so it stays visible on light AND dark schemes (a literal black would
    vanish on the dark scheme). */
-.cdx .cdx-wound-track { display:flex; gap:4px; align-items:center; margin-top:10px; }
-.cdx .cdx-member-group { display:flex; gap:2px; flex:1; }
-.cdx .cdx-wound-seg { flex:1 1 0; max-width:16px; height:11px; border-radius:2px; background:var(--cdx-track); }
+/* Each member is a bordered box of unit_wounds segments; 3px between the boxes.
+   The row wraps when the boxes no longer fit (segments have a min-width, so a
+   box can't shrink indefinitely — once the row is full it wraps to the next). */
+.cdx .cdx-wound-track { display:flex; flex-wrap:wrap; gap:3px; align-items:center; margin-top:10px; }
+.cdx .cdx-member-group { display:flex; gap:2px; flex:1 1 auto; padding:2px; border:1px solid var(--cdx-line); border-radius:3px; }
+.cdx .cdx-wound-seg { flex:1 1 0; min-width:11px; max-width:18px; height:11px; border-radius:2px; background:var(--cdx-track); }
 .cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
 
 /* ---- Tabs ---- */
