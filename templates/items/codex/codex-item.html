@@ -6,15 +6,17 @@
   sections, switched in CodexItemSheet) — the same as the character sheet.
 --}}
 <form class="cdx-sheet cdx-item" autocomplete="off">
-  <header class="cdx-item-header">
+  <div class="cdx-ihead">
+    <div class="cdx-ipill">{{cdxTypeLabel}}</div>
+    <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
+
+  <div class="cdx-iwmain">
     <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
-    <div class="cdx-item-id">
-      <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
-      {{#if data.itemmodifier.length}}
-      <div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div>
-      {{/if}}
-    </div>
-  </header>
+    {{#if data.itemmodifier.length}}
+    <div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div>
+    {{/if}}
+  </div>
 
   <nav class="cdx-tabstrip">
     <button type="button" class="cdx-tab active" data-tab="description">{{localize "SWFFG.TabDescription"}}</button>

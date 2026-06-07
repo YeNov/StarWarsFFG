@@ -66,6 +66,9 @@ export class CodexItemSheet extends ItemSheetFFG {
   /** @override — add the condition/status track model (weapon/armour). */
   async getData(options) {
     const ctx = await super.getData(options);
+    // Localized item-type name for the header type pill (shared by every codex
+    // item template via the general .cdx-ihead header).
+    try { ctx.cdxTypeLabel = game.i18n.localize(`TYPES.Item.${this.item?.type}`); } catch (e) { ctx.cdxTypeLabel = ""; }
     try {
       const cur = Math.max(0, CODEX_STATUS.indexOf(ctx?.data?.status ?? "None"));
       ctx.cdxConditions = CODEX_STATUS.map((value, i) => ({

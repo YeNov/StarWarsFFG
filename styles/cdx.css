@@ -1017,12 +1017,11 @@
 .cdx .cdx-istats-special .cdx-istat-k { color:#fff; }
 .cdx .cdx-ispecial { margin-top:8px; }
 
-/* ---- Critical injury / damage ---- avatar with the name centred below it,
-   then the d100 Low/High block (XP-style: header bar + slash-separated values)
-   with the Severity block stacked underneath. */
-.cdx .cdx-crit-header { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:9px; }
-.cdx .cdx-crit-header .cdx-item-name { text-align:center; }
-.cdx .cdx-crit-stats { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+/* ---- Critical injury / damage ---- standard .cdx-ihead header (type pill +
+   name), then the avatar beside the stacked d100 Low/High (XP-style block) and
+   Severity blocks. */
+.cdx .cdx-item-crit .cdx-item-img { width:150px; height:150px; }
+.cdx .cdx-crit-stats { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
 .cdx .cdx-crit-stats .cdx-stat { flex:none; }
 .cdx .cdx-crit-sev .cdx-istat-sel { min-height:30px; font-size:18px; }
 
