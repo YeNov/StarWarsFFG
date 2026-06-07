@@ -303,9 +303,16 @@ export async function selectRoles(vehicle, crew_member_id) {
         default: true,
         callback: async (event, button, dialog) => {
           const select = dialog.element.querySelector('[name="select-many-things"]');
-          // Multi-select: mirror jQuery .val() returning an array of the
-          // selected option values.
-          const newRoles = select ? Array.from(select.selectedOptions).map((o) => o.value) : [];
+          // The template uses Foundry's <multi-select> custom element, which has
+          // NO native .selectedOptions — it exposes the chosen values as an array
+          // via .value. Reading .selectedOptions threw (Array.from(undefined)),
+          // which aborted this callback so the dialog never closed and no crew
+          // role was written. Use .value, falling back to a native multiselect.
+          let newRoles = [];
+          if (select) {
+            if (Array.isArray(select.value)) newRoles = select.value;
+            else if (select.selectedOptions) newRoles = Array.from(select.selectedOptions).map((o) => o.value);
+          }
           await updateRoles(vehicle, crew_member_id, newRoles);
         },
       },
