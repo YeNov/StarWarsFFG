@@ -535,10 +535,16 @@ export class itemEditor extends FFGFormApplication {
             }
           }
 
-          // merge the existing data in so we end up with all fields present
+          // merge the existing data in so we end up with all fields present.
+          // performDeletions:true APPLIES the `-=key` deletion markers (v12+
+          // defaults this to false) — otherwise they linger in the merged
+          // attributes as `{"-=attr...": null}`, and the next render iterates
+          // that null entry into ffg-mod.html, throwing "Cannot convert
+          // undefined or null to object" and closing the editor window.
           attachment = foundry.utils.mergeObject(
             attachment,
             formData,
+            { performDeletions: true },
           );
           // pull the updated data back into our local record of what it should look like
           this.data.clickedObject = attachment;
@@ -567,9 +573,12 @@ export class itemEditor extends FFGFormApplication {
             }
           }
           // merge the existing data in so we end up with all fields present
+          // (performDeletions:true applies `-=key` markers — see the attachment
+          // branch above; otherwise the lingering null entry crashes re-render).
           modifier = foundry.utils.mergeObject(
             modifier,
             formData,
+            { performDeletions: true },
           );
           // pull the updated data back into our local record of what it should look like
           this.data.clickedObject = modifier;
