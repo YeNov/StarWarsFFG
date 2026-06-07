@@ -182,37 +182,7 @@ export class CodexItemSheet extends ItemSheetFFG {
         if (this.isEditable && n !== curPrice()) { try { await this.item.update({ "system.price.value": n }); } catch (e) {} }
       });
     });
-    // HP (hard points) — display "occupied / total"; editing changes only the
-    // total. `system.hardpoints.adjusted` is the REMAINING hardpoints (total
-    // minus what attachments consume), so occupied = value - adjusted. Like
-    // Price, the field is unbound (no name=): show the composite at rest, the
-    // raw total while editing, persist the total to hardpoints.value on commit.
-    const hpTotal = () => parseInt(String(this.item?.system?.hardpoints?.value ?? "0").replace(/[^\d]/g, ""), 10) || 0;
-    const hpUsed = () => {
-      const adj = Number(this.item?.system?.hardpoints?.adjusted);
-      const rem = Number.isFinite(adj) ? adj : hpTotal();
-      return Math.max(0, hpTotal() - rem);
-    };
-    const hpDisplay = () => `${hpUsed()}/${hpTotal()}`;
-    root?.querySelectorAll?.("input.cdx-hp").forEach((field) => {
-      field.value = hpDisplay();
-      field.addEventListener("focus", () => { field.value = String(hpTotal()); setTimeout(() => field.select(), 0); });
-      field.addEventListener("input", () => {
-        const caret = field.selectionStart;
-        const stripped = field.value.replace(/[^\d]/g, "");
-        if (stripped !== field.value) { field.value = stripped; try { field.setSelectionRange(caret - 1, caret - 1); } catch (e) {} }
-      });
-      field.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") { ev.preventDefault(); field.blur(); }
-        else if (ev.key === "Escape") { ev.preventDefault(); field.value = String(hpTotal()); field.blur(); }
-      });
-      field.addEventListener("blur", async () => {
-        const n = parseInt(field.value.replace(/[^\d]/g, ""), 10) || 0;
-        if (this.isEditable && n !== hpTotal()) { try { await this.item.update({ "system.hardpoints.value": n }); } catch (e) {} }
-        field.value = hpDisplay();
-      });
-    });
-    // Digits-only fields (Damage/Crit/Encum/Rarity/Qty/Soak/Defence):
+    // Digits-only fields (Damage/Crit/Encum/HP/Rarity/Qty/Soak/Defence):
     // strip any non-digit on input so the field can only ever hold an integer.
     root?.querySelectorAll?.("input.cdx-num").forEach((inp) => {
       inp.setAttribute("inputmode", "numeric");
