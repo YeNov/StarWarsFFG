@@ -867,7 +867,8 @@ Hooks.once("init", async function () {
   // Stock sheets stay registered as the default; Codex never takes makeDefault.
   // Register a type only once its codex-<type>.html template exists. Widened as
   // each type lands (character first).
-  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: ["character", "rival", "nemesis", "minion", "vehicle"], label: "Codex II Sheet" });
+  const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
+  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: CODEX_ACTOR_TYPES, label: "Codex II Sheet" });
   foundry.documents.collections.Actors.registerSheet("ffg", CodexAdversarySheet, { types: ["character"], label: "Codex II Adversary Sheet" });
   foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
   // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
@@ -880,10 +881,20 @@ Hooks.once("init", async function () {
   // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Detailed
   // templates: weapon/armour/gear/talent; a generic Codex frame covers the other
   // simple types. Complex tree/config types keep the stock sheet (not listed).
+  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
   foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
-    types: ["weapon", "armour", "gear", "talent", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"],
+    types: CODEX_ITEM_TYPES,
     label: "Codex II Item Sheet",
   });
+
+  // Stash the Codex sheet classes + the types they cover so the document
+  // classes' _getSheetClass() (ActorFFG/ItemFFG) can route to them when the
+  // client `defaultSheetTheme` setting selects "codex" — without importing the
+  // sheet classes into the document modules (which would form an import cycle).
+  CONFIG.FFG.codexSheets = {
+    actor: { cls: CodexActorSheet, types: CODEX_ACTOR_TYPES },
+    item: { cls: CodexItemSheet, types: CODEX_ITEM_TYPES },
+  };
 
   // Add utilities to the global scope, this can be useful for macro makers
   window.DicePoolFFG = DicePoolFFG;

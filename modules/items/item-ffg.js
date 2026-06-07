@@ -11,6 +11,25 @@ import ItemHelpers from "../helpers/item-helpers.js";
  * @extends {Item}
  */
 export class ItemFFG extends ItemBaseFFG {
+  /**
+   * Route to the Codex II item sheet when the client `defaultSheetTheme` setting
+   * selects it — unless this item has an explicit per-document sheet
+   * (flags.core.sheetClass, set via the ⚙ Sheet picker, always wins) or its type
+   * isn't covered by Codex (complex tree/config types keep the stock sheet). The
+   * Codex class + covered types live on CONFIG.FFG.codexSheets to avoid a
+   * document↔sheet import cycle. @override
+   */
+  _getSheetClass() {
+    try {
+      const codex = CONFIG.FFG?.codexSheets?.item;
+      if (codex && !this.getFlag("core", "sheetClass") && codex.types.includes(this.type)
+        && game.settings.get("starwarsffg", "defaultSheetTheme") === "codex") {
+        return codex.cls;
+      }
+    } catch (e) { /* settings not ready yet, etc. — fall back to the default */ }
+    return super._getSheetClass();
+  }
+
   /** @override **/
   async _preCreate(data, operation, user) {
     const defaultImages = {

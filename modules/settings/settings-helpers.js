@@ -246,6 +246,25 @@ export default class SettingsHelpers {
       },
     });
 
+    // Default sheet theme — client-scoped (per world, local to each user). Picks
+    // which sheet style new/unconfigured documents open with. Documents that have
+    // an explicit per-document sheet (chosen via the ⚙ Sheet button, stored in
+    // flags.core.sheetClass) always keep that choice; this only changes the
+    // default. Resolved in ActorFFG/ItemFFG._getSheetClass.
+    game.settings.register("starwarsffg", "defaultSheetTheme", {
+      name: "Default Sheet Theme",
+      hint: "Which sheet style to use by default. Stored locally per client (so each player can choose their own). Documents with an explicitly chosen sheet keep that choice. Reloads on change.",
+      scope: "client",
+      config: true,
+      default: "default",
+      type: String,
+      choices: {
+        default: "Default (system sheets)",
+        codex: "Codex II",
+      },
+      onChange: this.debouncedReload,
+    });
+
     // Register setting for token healthy
     game.settings.register("starwarsffg", "ui-token-healthy", {
       name: game.i18n.localize("SWFFG.Settings.Tokens.Bar.Healthy.Name"),
