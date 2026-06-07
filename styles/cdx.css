@@ -393,12 +393,18 @@
 .cdx .cdx-minion-top .cdx-minion-def { flex:1; min-width:150px; }
 /* The group-strength body is a single content row; it stretches to match the
    (taller) defence block beside it, with its content vertically centred. */
-.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:12px; padding:8px 12px; }
+.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:12px; padding:8px 12px; container-type:inline-size; }
 /* Counter + label share a wrapping sub-box so that, when the panel is too narrow
    to fit them side by side, the label drops onto its own line UNDER the counter
    instead of overflowing into the Wipe Out button. Wipe Out stays outside this
    box, anchored at the right of the row. */
 .cdx .cdx-gs-main { flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
+/* When the body is too narrow to keep the counter and label side by side, stack
+   them as a centred column so the label sits centred directly under the 4/4. */
+@container (max-width:390px) {
+  .cdx .cdx-gs-main { flex-direction:column; flex-wrap:nowrap; align-items:center; gap:2px; }
+  .cdx .cdx-gs-label { flex:0 1 auto; text-align:center; }
+}
 .cdx .cdx-gs-counter { flex:none; gap:8px; }
 .cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; }
 .cdx .cdx-gs-cur { color:var(--cdx-ink); }
