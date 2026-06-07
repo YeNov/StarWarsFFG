@@ -21,7 +21,7 @@
         <div class="cdx-istat wide"><span class="cdx-istat-k">Encum</span><input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
         <div class="cdx-istat wide"><span class="cdx-istat-k">HP</span><input class="cdx-istat-v" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" /></div>
         <div class="cdx-istat wide"><span class="cdx-istat-k">Price</span><input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" /></div>
-        <div class="cdx-istat wide{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat wide{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><div class="cdx-istat-rwrap"><input class="cdx-istat-v cdx-rv-in" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /><button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></div></div>
       </div>
     </div>
 

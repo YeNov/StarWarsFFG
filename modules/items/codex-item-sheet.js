@@ -99,8 +99,9 @@ export class CodexItemSheet extends ItemSheetFFG {
     if (choice && CDX_SCHEMES.includes(choice)) await this.item.setFlag("starwarsffg", "scheme", choice);
   }
 
-  /** @override — keep every stock listener; just make the form the scroll
-   *  container (mandar forces overflow:visible !important on it). */
+  /** @override — keep every stock listener; make the form the scroll container
+   *  (mandar forces overflow:visible !important on it) and wire the inline rarity
+   *  "(R)" Restricted toggle. */
   activateListeners(html) {
     super.activateListeners(html);
     const form = this.form;
@@ -108,5 +109,13 @@ export class CodexItemSheet extends ItemSheetFFG {
       form.style.setProperty("overflow-y", "auto", "important");
       form.style.setProperty("overflow-x", "hidden", "important");
     }
+    const root = html?.[0] ?? form;
+    root?.querySelectorAll?.(".cdx-restrict-btn").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        if (!this.isEditable) return;
+        await this.item.update({ "system.rarity.isrestricted": !this.item.system?.rarity?.isrestricted });
+      });
+    });
   }
 }
