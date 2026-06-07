@@ -11,17 +11,17 @@
   </div>
 
   <div class="cdx-istats cdx-istats-talent">
-    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentTier"}}</span><input class="cdx-istat-v" type="text" name="data.tier" value="{{data.tier}}" data-dtype="Number" /></div>
-    <div class="cdx-istat wide"><span class="cdx-istat-k">{{localize "SWFFG.TalentsActivation"}}</span><select class="cdx-istat-sel" name="data.activation.value">{{selectOptions this.FFG.activations selected=data.activation.value valueAttr="value" labelAttr="label" localize=true}}</select></div>
+    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentTier"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.tier}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.tier" value="{{data.tier}}" data-dtype="Number" />{{/if}}</div>
+    <div class="cdx-istat wide"><span class="cdx-istat-k">{{localize "SWFFG.TalentsActivation"}}</span>{{#if cdxILock}}<span class="cdx-istat-v cdx-istat-vtext">{{data.activation.value}}</span>{{else}}<select class="cdx-istat-sel" name="data.activation.value">{{selectOptions this.FFG.activations selected=data.activation.value valueAttr="value" labelAttr="label" localize=true}}</select>{{/if}}</div>
     {{#if data.ranks.ranked}}
-    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentsRank"}}</span><input class="cdx-istat-v" type="text" name="data.ranks.current" value="{{data.ranks.current}}" data-dtype="Number" /></div>
+    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentsRank"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.ranks.current}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.ranks.current" value="{{data.ranks.current}}" data-dtype="Number" />{{/if}}</div>
     {{/if}}
   </div>
 
   <div class="cdx-ichecks">
-    <label class="cdx-icheck2{{#if data.ranks.ranked}} on{{/if}}"><input type="checkbox" name="data.ranks.ranked" data-dtype="Boolean" {{checked data.ranks.ranked}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.ItemTalentRanked"}}</span></label>
-    <label class="cdx-icheck2{{#if data.isForceTalent}} on{{/if}}"><input type="checkbox" name="data.isForceTalent" data-dtype="Boolean" {{checked data.isForceTalent}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.TalentsForce"}}</span></label>
-    <label class="cdx-icheck2 danger{{#if data.isConflictTalent}} on{{/if}}"><input type="checkbox" name="data.isConflictTalent" data-dtype="Boolean" {{checked data.isConflictTalent}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.TalentsConflict"}}</span></label>
+    <label class="cdx-icheck2"><input type="checkbox" name="data.ranks.ranked" data-dtype="Boolean" {{checked data.ranks.ranked}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.ItemTalentRanked"}}</span></label>
+    <label class="cdx-icheck2"><input type="checkbox" name="data.isForceTalent" data-dtype="Boolean" {{checked data.isForceTalent}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.TalentsForce"}}</span></label>
+    <label class="cdx-icheck2 danger"><input type="checkbox" name="data.isConflictTalent" data-dtype="Boolean" {{checked data.isConflictTalent}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.TalentsConflict"}}</span></label>
   </div>
 
   <div class="cdx-idesc">

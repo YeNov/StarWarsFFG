@@ -856,19 +856,25 @@
 .cdx .cdx-istats-talent { display:flex; gap:6px; }
 .cdx .cdx-istats-talent .cdx-istat { flex:1; }
 .cdx .cdx-istats-talent .cdx-istat.wide { flex:2; }
-.cdx .cdx-istat-sel { width:100%; box-sizing:border-box; text-align:center; text-align-last:center; appearance:none; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:16px; color:var(--cdx-ink); padding:6px 6px; cursor:pointer; }
+.cdx .cdx-istat-sel { width:100%; box-sizing:border-box; text-align:center; text-align-last:center; appearance:none; background:transparent; border:none; font-family:"Orbitron"; font-weight:700; font-size:13px; line-height:1.3; height:auto; color:var(--cdx-ink); padding:7px 8px; cursor:pointer; }
 .cdx .cdx-istat-sel option { color:#111; }
+/* Locked-mode text value (e.g. activation label) — smaller than the big numeric
+   value and allowed to wrap so long labels aren't clipped. */
+.cdx .cdx-istat-vtext { font-family:"Orbitron"; font-weight:700; font-size:13px; line-height:1.2; color:var(--cdx-ink); text-align:center; padding:7px 8px; white-space:normal; }
 /* Toggle cards: paper when off, career-tinted when on; conflict goes red. */
 .cdx .cdx-ichecks { display:flex; gap:6px; margin:8px 0; }
 .cdx .cdx-icheck2 { flex:1; min-width:0; display:flex; align-items:center; gap:10px; cursor:pointer; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; }
 .cdx .cdx-icheck2 input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
 .cdx .cdx-ick-box { width:18px; height:18px; flex:none; box-sizing:border-box; border:2px solid var(--cdx-dim); border-radius:3px; display:flex; align-items:center; justify-content:center; }
-.cdx .cdx-icheck2.on .cdx-ick-box { background:var(--cdx-accent); border-color:var(--cdx-accent); }
-.cdx .cdx-icheck2.on .cdx-ick-box::after { content:"\2713"; color:#fff; font-size:12px; font-weight:900; line-height:1; }
-.cdx .cdx-icheck2.on { background:var(--cdx-career); border-color:var(--cdx-career-line); }
-.cdx .cdx-icheck2.danger.on { background:#8a1714; border-color:#c0392b; color:#fff; }
-.cdx .cdx-icheck2.danger.on .cdx-ick-box { background:#c0392b; border-color:#c0392b; }
-.cdx .cdx-ick-lbl { font-family:"Orbitron"; font-weight:700; font-size:10.5px; letter-spacing:.5px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* Drive the toggled look from the live :checked state (via :has) so clicking a
+   box updates instantly — the sheet submits render:false, so an .on class set in
+   the template would otherwise go stale until the next full re-render. */
+.cdx .cdx-icheck2:has(input:checked) .cdx-ick-box { background:var(--cdx-accent); border-color:var(--cdx-accent); }
+.cdx .cdx-icheck2:has(input:checked) .cdx-ick-box::after { content:"\2713"; color:#fff; font-size:12px; font-weight:900; line-height:1; }
+.cdx .cdx-icheck2:has(input:checked) { background:var(--cdx-career); border-color:var(--cdx-career-line); }
+.cdx .cdx-icheck2.danger:has(input:checked) { background:#8a1714; border-color:#c0392b; color:#fff; }
+.cdx .cdx-icheck2.danger:has(input:checked) .cdx-ick-box { background:#c0392b; border-color:#c0392b; }
+.cdx .cdx-ick-lbl { font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:.3px; text-transform:uppercase; line-height:1.1; }
 
 /* Rarity "(R)" toggle button — locked-mode shortcut to flip Restricted. Same font
    as the rarity value (inherits); goes red with the value when restricted. */
