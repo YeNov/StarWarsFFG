@@ -791,9 +791,13 @@
 /* 2-column grid → Encum/Qty over Price/Rarity; keeps the 2+2 shape when shrunk
    instead of stretching one box per row. */
 .cdx .cdx-istats { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; }
-.cdx .cdx-istat { min-width:0; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
-.cdx .cdx-istat-k { display:block; background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; }
-.cdx .cdx-istat-v { width:100%; box-sizing:border-box; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); padding:5px 6px; }
+/* Flex column so the value fills the box below the header and centres — no empty
+   strip ("footer") below a short input, and the activation <select> never clips. */
+.cdx .cdx-istat { display:flex; flex-direction:column; min-width:0; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+.cdx .cdx-istat-k { flex:none; background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; }
+.cdx .cdx-istat-v { flex:1; width:100%; box-sizing:border-box; text-align:center; background:transparent; border:none; outline:none; box-shadow:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); padding:6px; }
+/* span values (e.g. weapon Range) centre via flex; inputs centre via text-align. */
+.cdx span.cdx-istat-v, .cdx .cdx-istat-vtext { display:flex; align-items:center; justify-content:center; }
 .cdx .cdx-istat.cdx-restricted .cdx-istat-v { color:#cf2e2e; }
 .cdx .cdx-icheck { display:inline-flex; align-items:center; gap:7px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; }
 /* Quality pills — the item's qualities (data.itemmodifier), name + rank. */
@@ -856,7 +860,7 @@
 .cdx .cdx-istats-talent { display:flex; gap:6px; }
 .cdx .cdx-istats-talent .cdx-istat { flex:1; }
 .cdx .cdx-istats-talent .cdx-istat.wide { flex:2; }
-.cdx .cdx-istat-sel { width:100%; box-sizing:border-box; text-align:center; text-align-last:center; appearance:none; background:transparent; border:none; font-family:"Orbitron"; font-weight:700; font-size:13px; line-height:1.3; height:auto; color:var(--cdx-ink); padding:7px 8px; cursor:pointer; }
+.cdx .cdx-istat-sel { flex:1; width:100%; box-sizing:border-box; text-align:center; text-align-last:center; appearance:none; background:transparent; border:none; outline:none; box-shadow:none; font-family:"Orbitron"; font-weight:700; font-size:13px; line-height:1.3; color:var(--cdx-ink); padding:6px 8px; cursor:pointer; }
 .cdx .cdx-istat-sel option { color:#111; }
 /* Locked-mode text value (e.g. activation label) — smaller than the big numeric
    value and allowed to wrap so long labels aren't clipped. */

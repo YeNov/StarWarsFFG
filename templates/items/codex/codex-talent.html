@@ -11,10 +11,10 @@
   </div>
 
   <div class="cdx-istats cdx-istats-talent">
-    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentTier"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.tier}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.tier" value="{{data.tier}}" data-dtype="Number" />{{/if}}</div>
-    <div class="cdx-istat wide"><span class="cdx-istat-k">{{localize "SWFFG.TalentsActivation"}}</span>{{#if cdxILock}}<span class="cdx-istat-v cdx-istat-vtext">{{data.activation.value}}</span>{{else}}<select class="cdx-istat-sel" name="data.activation.value">{{selectOptions this.FFG.activations selected=data.activation.value valueAttr="value" labelAttr="label" localize=true}}</select>{{/if}}</div>
+    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentTier"}}</span><input class="cdx-istat-v" type="text" name="data.tier" value="{{data.tier}}" data-dtype="Number" /></div>
+    <div class="cdx-istat wide"><span class="cdx-istat-k">{{localize "SWFFG.TalentsActivation"}}</span><select class="cdx-istat-sel" name="data.activation.value">{{selectOptions this.FFG.activations selected=data.activation.value valueAttr="value" labelAttr="label" localize=true}}</select></div>
     {{#if data.ranks.ranked}}
-    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentsRank"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.ranks.current}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.ranks.current" value="{{data.ranks.current}}" data-dtype="Number" />{{/if}}</div>
+    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentsRank"}}</span><input class="cdx-istat-v" type="text" name="data.ranks.current" value="{{data.ranks.current}}" data-dtype="Number" /></div>
     {{/if}}
   </div>
 

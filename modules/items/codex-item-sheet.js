@@ -61,7 +61,7 @@ export class CodexItemSheet extends ItemSheetFFG {
     return CODEX_DETAILED.has(type) ? `${base}/codex-${type}.html` : `${base}/codex-item.html`;
   }
 
-  /** @override — condition/status track model + the transient edit-mode flags. */
+  /** @override — add the condition/status track model (weapon/armour). */
   async getData(options) {
     const ctx = await super.getData(options);
     try {
@@ -73,25 +73,13 @@ export class CodexItemSheet extends ItemSheetFFG {
         filled: i >= 1 && i <= cur, // Minor..current shade in as a progress track
       }));
     } catch (e) { ctx.cdxConditions = []; }
-    // Transient edit mode: stat blocks are display-only until toggled on. The
-    // owner must still be able to edit (isEditable); a non-owner is always locked.
-    ctx.cdxIEdit = !!this._cdxIEdit && this.isEditable;
-    ctx.cdxILock = !ctx.cdxIEdit;
     return ctx;
   }
 
-  /** Scheme picker + an edit-mode toggle in the window header controls. @override */
+  /** Add a scheme picker to the window header controls. @override */
   _getHeaderControls() {
     const controls = super._getHeaderControls();
     controls.push({ action: "cdxScheme", icon: "fa-solid fa-palette", label: "Scheme", onClick: () => this._cdxPickScheme() });
-    if (this.isEditable) {
-      controls.push({
-        action: "cdxEdit",
-        icon: "fa-solid fa-pen-to-square",
-        label: "Codex Edit Mode",
-        onClick: () => { this._cdxIEdit = !this._cdxIEdit; this.render(); },
-      });
-    }
     return controls;
   }
 
@@ -111,9 +99,8 @@ export class CodexItemSheet extends ItemSheetFFG {
     if (choice && CDX_SCHEMES.includes(choice)) await this.item.setFlag("starwarsffg", "scheme", choice);
   }
 
-  /** @override — keep every stock listener; make the form the scroll container
-   *  (mandar forces overflow:visible !important on it) and wire the locked-mode
-   *  rarity "(R)" toggle button. */
+  /** @override — keep every stock listener; just make the form the scroll
+   *  container (mandar forces overflow:visible !important on it). */
   activateListeners(html) {
     super.activateListeners(html);
     const form = this.form;
@@ -121,19 +108,5 @@ export class CodexItemSheet extends ItemSheetFFG {
       form.style.setProperty("overflow-y", "auto", "important");
       form.style.setProperty("overflow-x", "hidden", "important");
     }
-    const root = html?.[0] ?? form;
-    root?.querySelectorAll?.(".cdx-restrict-btn").forEach((btn) => {
-      btn.addEventListener("click", async (ev) => {
-        ev.preventDefault();
-        if (!this.isEditable) return;
-        await this.item.update({ "system.rarity.isrestricted": !this.item.system?.rarity?.isrestricted });
-      });
-    });
-  }
-
-  /** Edit mode is transient — never persist it across reopenings. @override */
-  async close(options = {}) {
-    this._cdxIEdit = false;
-    return super.close(options);
   }
 }
