@@ -994,6 +994,6 @@
    stock weapon sheet's positive/negative logic. */
 .cdx .cdx-istat-vwrap { flex:1; width:100%; position:relative; display:flex; align-items:center; }
 .cdx .cdx-istat-vwrap .cdx-istat-v { flex:1; min-width:0; }
-.cdx .cdx-istat-adj { position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-family:"Orbitron"; font-weight:700; font-size:11px; line-height:1; white-space:nowrap; }
+.cdx .cdx-istat-adj { position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-family:"Orbitron"; font-weight:900; font-size:18px; line-height:1; white-space:nowrap; }
 .cdx .cdx-istat-adj.better { color:#1f9d3a; }
 .cdx .cdx-istat-adj.worse { color:#cf2e2e; }
