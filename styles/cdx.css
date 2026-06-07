@@ -591,6 +591,11 @@
    (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
 .cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
 .cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
+/* Pin the controls to the LAST grid column so the edit/delete buttons line up at
+   the right edge on every row. Cards with statcols have 3 children (controls land
+   in col3 naturally); cards without (crew) have 2, so the controls would auto-place
+   in col2 and leave a gapped empty col3 — shifting them ~11px left. Force col3. */
+.cdx .cdx-card > .cdx-card-ctl { grid-column: 3; }
 .cdx .cdx-statcols { display:flex; gap:6px; }
 .cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
 /* 3rd column holds the RANGE word ("Engaged", "Extreme", …) — far wider than a
