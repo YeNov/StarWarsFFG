@@ -303,7 +303,11 @@
 .cdx .cdx-xpbuy i.ffg-purchase { display:inline-flex; }
 .cdx .cdx-chip-label.ffg-purchase, .cdx .cdx-cards-head .ffg-purchase { pointer-events:none; }
 .cdx .cdx-xpbuy .cdx-chip-label.ffg-purchase, .cdx .cdx-xpbuy .cdx-cards-head .ffg-purchase { pointer-events:auto; cursor:pointer; }
-.cdx .cdx-xpbuy .cdx-chip-label.ffg-purchase { box-shadow:inset 0 0 0 1px var(--cdx-accent); }
+/* The chip-label is a dark pill in every scheme, so an --cdx-accent outline only
+   stood out on the dark scheme (red on black); other schemes' accents are mid-
+   tones with poor contrast on the dark pill. Use --cdx-brass (bright/gold in
+   every palette) at 2px so the buyable highlight reads in all schemes. */
+.cdx .cdx-xpbuy .cdx-chip-label.ffg-purchase { box-shadow:inset 0 0 0 2px var(--cdx-brass); }
 .cdx .cdx-xpbuy .cdx-cards-head .ffg-purchase { color:var(--cdx-accent); }
 
 /* ---- Derived stat blocks ---- */
