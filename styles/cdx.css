@@ -918,13 +918,15 @@
 .cdx .cdx-item-body .talent-list,
 .cdx .cdx-item-body .talent-list .items-list { list-style:none; margin:0; padding:0; }
 .cdx .cdx-item-body .talent-list { margin-bottom:10px; }
-.cdx .cdx-item-body .talents-header {
+/* Higher specificity (+ .talent-list) to beat mandar's stock header, which
+   paints a solid #490c0b red bar — drop the bar, keep just a label + underline. */
+.cdx .cdx-item-body .talent-list .talents-header {
   display:flex; align-items:center; gap:8px; margin:10px 0 8px; padding:0 0 4px;
-  border-bottom:2px solid var(--cdx-accent);
+  background:none; border:none; border-bottom:2px solid var(--cdx-accent); text-align:left;
   font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown);
 }
-.cdx .cdx-item-body .talents-header .header-name { flex:1; min-width:0; }
-.cdx .cdx-item-body .talents-header > div:not(.header-name) { flex:none; font-size:8.5px; letter-spacing:.8px; color:var(--cdx-dim); }
+.cdx .cdx-item-body .talent-list .talents-header .header-name { flex:1; min-width:0; text-align:left; }
+.cdx .cdx-item-body .talent-list .talents-header > div:not(.header-name) { flex:none; font-size:8.5px; letter-spacing:.8px; color:var(--cdx-dim); }
 /* Card row */
 .cdx .cdx-item-body .item.force-power {
   display:flex; align-items:center; gap:10px;
@@ -942,9 +944,14 @@
   font-family:"Orbitron"; font-weight:700; font-size:11px; color:var(--cdx-dim); white-space:nowrap;
 }
 .cdx .cdx-item-body .item.force-power .fa-circle-question { color:var(--cdx-dim); font-size:11px; }
-/* Edit / delete controls */
-.cdx .cdx-item-body .item-controls { flex:none; display:flex; align-items:center; gap:9px; }
-.cdx .cdx-item-body .item-controls .item-control { width:auto; color:var(--cdx-dim); cursor:pointer; font-size:12px; line-height:1; }
+/* Edit / delete controls. Higher specificity (+ .talent-list) to beat mandar's
+   `.item-controls { width:20px }`, which clips the "(from attachment)" label that
+   takes the controls' place for qualities inherited from an attachment. */
+.cdx .cdx-item-body .talent-list .item-controls {
+  width:auto; flex:none; margin:0; display:flex; align-items:center; gap:9px;
+  font-family:"Orbitron"; font-weight:600; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); white-space:nowrap;
+}
+.cdx .cdx-item-body .item-controls .item-control { width:auto; padding:0; color:var(--cdx-dim); cursor:pointer; font-size:12px; line-height:1; }
 .cdx .cdx-item-body .item-controls .item-control:hover { color:var(--cdx-accent); }
 .cdx .cdx-item-body .item-controls .item-delete:hover { color:#cf2e2e; }
 /* Empty-state "drag & drop" text (qualities partial emits a bare text node). */
