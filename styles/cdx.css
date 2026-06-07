@@ -699,6 +699,12 @@
 .cdx .cdx-ge-v { color:var(--cdx-ink); }
 /* Over-encumbered: current load exceeds the threshold. */
 .cdx .cdx-ge-v.over { color:#cf2e2e; font-weight:900; }
+/* Pulsing warning triangle to the left of the label when over the threshold. */
+.cdx .cdx-enc-warn { color:#f0b41e; font-size:12px; line-height:1; animation:cdx-enc-pulse 1.1s ease-in-out infinite; }
+@keyframes cdx-enc-pulse {
+  0%, 100% { opacity:1; text-shadow:0 0 4px rgba(240,180,30,.85), 0 0 8px rgba(240,180,30,.5); }
+  50%      { opacity:.6; text-shadow:0 0 9px rgba(240,180,30,1), 0 0 16px rgba(240,180,30,.75); }
+}
 
 /* ---- Bio / panels / tables ---- */
 .cdx .cdx-bio-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:10px; margin-bottom:10px; }
