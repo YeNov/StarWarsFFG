@@ -980,3 +980,16 @@
 .cdx .cdx-istats-special .cdx-istat-v,
 .cdx .cdx-istats-special .cdx-istat-sel { min-height:34px; }
 .cdx .cdx-ispecial { margin-top:8px; }
+
+/* ---- Adjusted value badge (Damage/Crit/Encum) ----
+   Show "{value} ({adjusted})" when an attachment/quality changes the stat. The
+   base value stays the centred editable input; the derived adjusted sits as a
+   small badge at the right edge (same pattern as the rarity (R) button). Green
+   when the adjustment is better, red when worse — direction is decided in the
+   template (damage: higher=better; crit/encum: lower=better), mirroring the
+   stock weapon sheet's positive/negative logic. */
+.cdx .cdx-istat-vwrap { flex:1; width:100%; position:relative; display:flex; align-items:center; }
+.cdx .cdx-istat-vwrap .cdx-istat-v { flex:1; min-width:0; }
+.cdx .cdx-istat-adj { position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-family:"Orbitron"; font-weight:700; font-size:11px; line-height:1; white-space:nowrap; }
+.cdx .cdx-istat-adj.better { color:#1f9d3a; }
+.cdx .cdx-istat-adj.worse { color:#cf2e2e; }
