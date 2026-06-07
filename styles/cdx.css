@@ -1018,11 +1018,13 @@
 .cdx .cdx-ispecial { margin-top:8px; }
 
 /* ---- Critical injury / damage ---- avatar with the name centred below it,
-   then a d100 Low / High / Severity stat row. */
+   then the d100 Low/High block (XP-style: header bar + slash-separated values)
+   with the Severity block stacked underneath. */
 .cdx .cdx-crit-header { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:9px; }
 .cdx .cdx-crit-header .cdx-item-name { text-align:center; }
-.cdx .cdx-istats-crit { grid-template-columns:repeat(3, minmax(0, 1fr)); }
-.cdx .cdx-istats-crit .cdx-istat-v, .cdx .cdx-istats-crit .cdx-istat-sel { min-height:34px; }
+.cdx .cdx-crit-stats { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+.cdx .cdx-crit-stats .cdx-stat { flex:none; }
+.cdx .cdx-crit-sev .cdx-istat-sel { min-height:30px; font-size:18px; }
 
 /* ---- Adjusted value badge (Damage/Crit/Encum) ----
    Show "{value} ({adjusted})" when an attachment/quality changes the stat. The

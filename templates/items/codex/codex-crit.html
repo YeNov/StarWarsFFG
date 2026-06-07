@@ -9,10 +9,19 @@
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
   </header>
 
-  <div class="cdx-istats cdx-istats-crit">
-    <div class="cdx-istat"><span class="cdx-istat-k">d100 Low</span><input class="cdx-istat-v cdx-num" type="text" name="data.min" value="{{data.min}}" data-dtype="Number" /></div>
-    <div class="cdx-istat"><span class="cdx-istat-k">d100 High</span><input class="cdx-istat-v cdx-num" type="text" name="data.max" value="{{data.max}}" data-dtype="Number" /></div>
-    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Severity"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.severity">{{#selectFfg data.severity}}{{#each this.FFG.difficulty as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+  <div class="cdx-crit-stats">
+    <div class="cdx-stat cdx-xp-chip">
+      <div class="cdx-stat-head"><span>d100 Low / High</span></div>
+      <div class="cdx-stat-body">
+        <div class="cdx-thresh"><input class="cdx-num" type="text" name="data.min" value="{{data.min}}" data-dtype="Number" /><span class="cdx-slash">/</span><input class="cdx-num" type="text" name="data.max" value="{{data.max}}" data-dtype="Number" /></div>
+      </div>
+    </div>
+    <div class="cdx-stat cdx-crit-sev">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Severity"}}</span></div>
+      <div class="cdx-stat-body">
+        <select class="cdx-istat-sel" name="data.severity">{{#selectFfg data.severity}}{{#each this.FFG.difficulty as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select>
+      </div>
+    </div>
   </div>
 
   <div class="cdx-idesc">
