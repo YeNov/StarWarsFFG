@@ -253,7 +253,7 @@ Hooks.once("init", async function () {
   };
 
   // Load character templates so that dynamic skills lists work correctly
-  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html"]);
+  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html"]);
 
   SettingsHelpers.initLevelSettings();
 

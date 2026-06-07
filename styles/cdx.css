@@ -851,3 +851,21 @@
 /* Qualities block label (pills reuse .cdx-iquals / .cdx-iqual). */
 .cdx .cdx-qual-wrap { margin-top:6px; }
 .cdx .cdx-qual-k { display:block; font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin-bottom:4px; }
+
+/* ---- Talent item sheet: Tier/Activation/Rank row + checkbox cards ---- */
+.cdx .cdx-istats-talent { display:flex; gap:6px; }
+.cdx .cdx-istats-talent .cdx-istat { flex:1; }
+.cdx .cdx-istats-talent .cdx-istat.wide { flex:2; }
+.cdx .cdx-istat-sel { width:100%; box-sizing:border-box; text-align:center; text-align-last:center; appearance:none; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:16px; color:var(--cdx-ink); padding:6px 6px; cursor:pointer; }
+.cdx .cdx-istat-sel option { color:#111; }
+/* Toggle cards: paper when off, career-tinted when on; conflict goes red. */
+.cdx .cdx-ichecks { display:flex; gap:6px; margin:8px 0; }
+.cdx .cdx-icheck2 { flex:1; min-width:0; display:flex; align-items:center; gap:10px; cursor:pointer; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; }
+.cdx .cdx-icheck2 input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
+.cdx .cdx-ick-box { width:18px; height:18px; flex:none; box-sizing:border-box; border:2px solid var(--cdx-dim); border-radius:3px; display:flex; align-items:center; justify-content:center; }
+.cdx .cdx-icheck2.on .cdx-ick-box { background:var(--cdx-accent); border-color:var(--cdx-accent); }
+.cdx .cdx-icheck2.on .cdx-ick-box::after { content:"\2713"; color:#fff; font-size:12px; font-weight:900; line-height:1; }
+.cdx .cdx-icheck2.on { background:var(--cdx-career); border-color:var(--cdx-career-line); }
+.cdx .cdx-icheck2.danger.on { background:#8a1714; border-color:#c0392b; color:#fff; }
+.cdx .cdx-icheck2.danger.on .cdx-ick-box { background:#c0392b; border-color:#c0392b; }
+.cdx .cdx-ick-lbl { font-family:"Orbitron"; font-weight:700; font-size:10.5px; letter-spacing:.5px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

@@ -1,0 +1,43 @@
+{{!--
+  Codex II — talent item (no image). Header bar (type pill + name + subtitle) ·
+  Tier / Activation / Rank row (1:2:1; Rank hidden unless ranked) · Ranked /
+  Force Talent / Conflict checkbox cards · inline description · editing tabs.
+--}}
+<form class="cdx-sheet cdx-item cdx-item-talent" autocomplete="off">
+  <div class="cdx-ihead">
+    <div class="cdx-ipill">{{localize "TYPES.Item.talent"}}</div>
+    <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+    <div class="cdx-isub">{{localize "TYPES.Item.talent"}} · {{data.activation.value}}{{#if data.tier}} · {{localize "SWFFG.TalentTier"}} {{data.tier}}{{/if}}</div>
+  </div>
+
+  <div class="cdx-istats cdx-istats-talent">
+    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentTier"}}</span><input class="cdx-istat-v" type="text" name="data.tier" value="{{data.tier}}" data-dtype="Number" /></div>
+    <div class="cdx-istat wide"><span class="cdx-istat-k">{{localize "SWFFG.TalentsActivation"}}</span><select class="cdx-istat-sel" name="data.activation.value">{{selectOptions this.FFG.activations selected=data.activation.value valueAttr="value" labelAttr="label" localize=true}}</select></div>
+    {{#if data.ranks.ranked}}
+    <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.TalentsRank"}}</span><input class="cdx-istat-v" type="text" name="data.ranks.current" value="{{data.ranks.current}}" data-dtype="Number" /></div>
+    {{/if}}
+  </div>
+
+  <div class="cdx-ichecks">
+    <label class="cdx-icheck2{{#if data.ranks.ranked}} on{{/if}}"><input type="checkbox" name="data.ranks.ranked" data-dtype="Boolean" {{checked data.ranks.ranked}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.ItemTalentRanked"}}</span></label>
+    <label class="cdx-icheck2{{#if data.isForceTalent}} on{{/if}}"><input type="checkbox" name="data.isForceTalent" data-dtype="Boolean" {{checked data.isForceTalent}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.TalentsForce"}}</span></label>
+    <label class="cdx-icheck2 danger{{#if data.isConflictTalent}} on{{/if}}"><input type="checkbox" name="data.isConflictTalent" data-dtype="Boolean" {{checked data.isConflictTalent}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.TalentsConflict"}}</span></label>
+  </div>
+
+  <div class="cdx-idesc">
+    <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
+    {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
+
+  {{> "systems/starwarsffg/templates/parts/shared/ffg-tabs.html" displayLimited=true limited=limited items=(array
+    (object tab="attributes" label="SWFFG.TabModifiers" icon="fas fa-cog" cls=classType)
+    (object tab="sources" label="SWFFG.TabSources" icon="fa-light fa-book-open-cover" cls=classType)
+    (object tab="tags" label="SWFFG.TabTags" icon="fa-sharp fa-regular fa-tags" cls=classType)
+  )}}
+
+  <section class="sheet-body cdx-item-body">
+    <div class="tab attributes" data-group="primary" data-tab="attributes">{{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}</div>
+    <div class="tab sources" data-group="primary" data-tab="sources">{{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}</div>
+    <div class="tab tags" data-group="primary" data-tab="tags">{{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}</div>
+  </section>
+</form>
