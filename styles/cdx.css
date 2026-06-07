@@ -492,17 +492,19 @@
 }
 .cdx .cdx-veh-radar { position:absolute; inset:30%; display:flex; align-items:center; justify-content:center; }
 .cdx .cdx-veh-radar-img { max-width:100%; max-height:100%; object-fit:contain; opacity:.85; cursor:pointer; border-radius:4px; }
-.cdx .cdx-zone { position:absolute; display:flex; flex-direction:column; align-items:center; gap:3px; }
-.cdx .cdx-zone.fore { top:-2px; left:50%; transform:translateX(-50%); }
-.cdx .cdx-zone.aft  { bottom:-2px; left:50%; transform:translateX(-50%); }
-.cdx .cdx-zone.port { left:-2px; top:50%; transform:translateY(-50%); }
-.cdx .cdx-zone.stbd { right:-2px; top:50%; transform:translateY(-50%); }
-.cdx .cdx-zone-v, .cdx .cdx-zone input {
-  width:40px; height:40px; box-sizing:border-box; display:flex; align-items:center; justify-content:center;
-  background:var(--cdx-paper2); border:3px solid var(--cdx-ink); border-radius:9px; text-align:center;
-  font-family:"Orbitron"; font-weight:900; font-size:20px; color:var(--cdx-ink); padding:0;
-}
-.cdx .cdx-zone-k { font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#fff; background:var(--cdx-brown); padding:2px 7px; clip-path:var(--cdx-clip); }
+.cdx .cdx-zone { position:absolute; }
+.cdx .cdx-zone.fore { top:-6px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.aft  { bottom:-6px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.port { left:-6px; top:50%; transform:translateY(-50%); }
+.cdx .cdx-zone.stbd { right:-6px; top:50%; transform:translateY(-50%); }
+/* Each zone is a compact ratio-chip (same component as Force/Speed): the box is
+   shrunk to fit the radar, the steppers scaled down, and the label is the
+   brown zone pill. */
+.cdx .cdx-veh-zones .cdx-chip { width:50px; flex:none; gap:0; }
+.cdx .cdx-veh-zones .cdx-chip-box { max-width:50px; border-radius:9px; }
+.cdx .cdx-veh-zones .cdx-ratio-c { font-size:19px; }
+.cdx .cdx-veh-zones .cdx-ratio-step { width:15px; height:15px; border-width:2px; font-size:6px; }
+.cdx .cdx-veh-zones .cdx-chip-label { background:var(--cdx-brown); color:#fff; margin-top:3px; }
 
 /* ---- Tabs ---- */
 .cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
@@ -569,10 +571,10 @@
 /* Wraps within the identity column so the pool never spills into the DAM column. */
 .cdx .cdx-wpn-pool { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px; min-width:0; line-height:0; pointer-events:none; }
 .cdx .cdx-wpn-pool img { width:16px; height:16px; border:none; vertical-align:middle; }
-/* Crew-card roll pool: a VERTICAL stack of dice at the skills-tab glyph size
-   (18px). renderPreview emits 36px imgs inline, so override here. */
-.cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:column; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
-.cdx .cdx-card.crew .dice-pool img { width:18px; height:18px; border:none; }
+/* Crew-card roll pool: a HORIZONTAL row of dice at the skills-tab glyph size
+   (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
+.cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
+.cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
 .cdx .cdx-statcols { display:flex; gap:6px; }
 .cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
 /* 3rd column holds the RANGE word ("Engaged", "Extreme", …) — far wider than a

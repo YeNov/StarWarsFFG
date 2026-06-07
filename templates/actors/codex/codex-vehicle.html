@@ -73,10 +73,10 @@
       <div class="cdx-panel-head">Defence · 4-Zone</div>
       <div class="cdx-veh-zones">
         <div class="cdx-veh-radar"><img class="cdx-veh-radar-img" src="{{data.silhouetteImage}}" data-edit="system.silhouetteImage" title="Top view" /></div>
-        <div class="cdx-zone fore">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.fore}}</span>{{else}}<input type="text" name="data.stats.shields.fore" value="{{data.stats.shields.fore}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefenseFore"}}</span></div>
-        <div class="cdx-zone aft">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.aft}}</span>{{else}}<input type="text" name="data.stats.shields.aft" value="{{data.stats.shields.aft}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefenseAft"}}</span></div>
-        <div class="cdx-zone port">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.port}}</span>{{else}}<input type="text" name="data.stats.shields.port" value="{{data.stats.shields.port}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefensePort"}}</span></div>
-        <div class="cdx-zone stbd">{{#if disabled}}<span class="cdx-zone-v">{{data.stats.shields.starboard}}</span>{{else}}<input type="text" name="data.stats.shields.starboard" value="{{data.stats.shields.starboard}}" data-dtype="Number" />{{/if}}<span class="cdx-zone-k">{{localize "SWFFG.VehicleDefenseStarboard"}}</span></div>
+        <div class="cdx-zone fore">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.fore path="stats.shields.fore" label=(localize "SWFFG.VehicleDefenseFore") noMax=true noClamp=true disabled=disabled}}</div>
+        <div class="cdx-zone aft">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.aft path="stats.shields.aft" label=(localize "SWFFG.VehicleDefenseAft") noMax=true noClamp=true disabled=disabled}}</div>
+        <div class="cdx-zone port">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.port path="stats.shields.port" label=(localize "SWFFG.VehicleDefensePort") noMax=true noClamp=true disabled=disabled}}</div>
+        <div class="cdx-zone stbd">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.starboard path="stats.shields.starboard" label=(localize "SWFFG.VehicleDefenseStarboard") noMax=true noClamp=true disabled=disabled}}</div>
       </div>
     </div>
   </div>
