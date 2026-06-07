@@ -53,7 +53,7 @@
     <section class="cdx-pane" data-tab="configuration">
       <div class="cdx-istats cdx-istats-special">
         <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ModTypeCharacteristic"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.characteristic.value">{{#selectFfg data.characteristic.value}}<option value="">{{localize "SWFFG.None"}}</option>{{#each this.FFG.characteristics as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ModTypeCharacteristic"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.characteristic.value">{{#selectFfg data.characteristic.value}}<option value="">None</option>{{#each this.FFG.characteristics as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
         {{#if (eq item.flags.starwarsffg.config.enableAmmo true)}}
         <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Threshold"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.max" value="{{data.ammo.max}}" autocomplete="off" /></div>
         <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Current"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.value" value="{{data.ammo.value}}" autocomplete="off" /></div>

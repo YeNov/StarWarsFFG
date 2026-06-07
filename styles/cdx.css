@@ -830,14 +830,17 @@
 .cdx .cdx-item-gear .cdx-item-img { width:200px; height:200px; }
 .cdx .cdx-item-weapon .cdx-item-img, .cdx .cdx-item-armour .cdx-item-img { width:150px; height:150px; }
 .cdx .cdx-iwmain .cdx-istats { flex:1; min-width:0; }
-/* Inline description (always visible) — brown section label + the editor. */
-.cdx .cdx-idesc { margin:8px 0; }
-.cdx .cdx-idesc-head { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin-bottom:5px; }
-.cdx .cdx-idesc, .cdx .cdx-idesc * { color:var(--cdx-ink); }
-/* View mode: rendered description sizes to content. Edit mode: give the active
-   editor a definite height so the global `.editor{height:100%}` chain resolves
-   and the editor occupies real space in flow — pushing the tabs/modifiers DOWN
-   instead of the editing panel overlapping them. (Mirrors .cdx-bio-editor.) */
+/* Description / Special (always-visible) — styled like the actor biography
+   panel: a brown header BAR with white text + a bordered body holding the
+   editor. The body text uses --cdx-ink (scoped to the editor, NOT the head, so
+   the white header survives). */
+.cdx .cdx-idesc { margin:8px 0 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+.cdx .cdx-idesc-head { background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
+.cdx .cdx-idesc > .editor { padding:8px 10px; color:var(--cdx-ink); font-size:13px; line-height:1.5; min-height:90px; }
+.cdx .cdx-idesc > .editor * { color:var(--cdx-ink); }
+/* View mode: rendered description sizes to content (min 90px). Edit mode: give
+   the active editor a definite height so the global `.editor{height:100%}` chain
+   resolves and it occupies real space in flow (mirrors .cdx-bio-editor). */
 .cdx .cdx-idesc > .editor { height:auto; }
 .cdx .cdx-idesc > .editor:has(.tox-tinymce), .cdx .cdx-idesc > .editor:has(.ProseMirror) { height:300px; }
 /* Weapon: Damage/Crit/Range across the top (span 2 of 6), then 2-up rows below. */
@@ -979,6 +982,7 @@
    editor). Just give the selects/inputs a usable height inside the blocks. */
 .cdx .cdx-istats-special .cdx-istat-v,
 .cdx .cdx-istats-special .cdx-istat-sel { min-height:34px; }
+.cdx .cdx-istats-special .cdx-istat-k { color:#fff; }
 .cdx .cdx-ispecial { margin-top:8px; }
 
 /* ---- Adjusted value badge (Damage/Crit/Encum) ----
