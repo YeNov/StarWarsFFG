@@ -1061,11 +1061,27 @@
    shell paints the parchment background. These rules restyle the editor's own
    structure (nav.tabs / section.content / .form-group) — scoped to .cdx.cdx-embed so
    no other Codex sheet is affected. Tab show/hide stays with Foundry's Tabs. */
-.cdx.cdx-embed .tabs { display:flex; flex-wrap:wrap; gap:2px; border:none; border-bottom:2px solid var(--cdx-accent); margin-bottom:10px; padding:0; }
-.cdx.cdx-embed .tabs .item { flex:none; border:none; background:transparent; padding:6px 14px; font-family:"Orbitron"; font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; }
-.cdx.cdx-embed .tabs .item:hover { color:var(--cdx-accent); }
-.cdx.cdx-embed .tabs .item.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+/* The DocumentSheet shell (.cdx > form.window-content) reshapes content for the
+   bespoke sheets; the embedded editor is a `.flat_editor` FormApplication with
+   its OWN flex layout, so neutralise the shell's structural props here and keep
+   only the parchment background — restoring the editor's native column layout. */
+.cdx.cdx-embed > form.window-content { padding:9px !important; gap:0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; height:100% !important; min-height:0; }
+/* Tabs: a horizontal row. mandar sets `.tabs .item { width:100% }`, which (with a
+   flex item) stacks them vertically and overlaps the content — pin width:auto and
+   strip the absolute/vertical `.v2 .tabs` positioning. */
+.cdx.cdx-embed nav.tabs { display:flex !important; flex-direction:row !important; flex-wrap:wrap; position:static !important; inset:auto !important; width:auto !important; gap:2px; border:none; border-bottom:2px solid var(--cdx-accent); margin:0 0 9px; padding:0; }
+.cdx.cdx-embed nav.tabs .item { width:auto !important; height:auto !important; flex:0 0 auto !important; position:static !important; margin:0; border:none; background:transparent; color:var(--cdx-dim); text-shadow:none; clip-path:none; padding:6px 14px; font-family:"Orbitron"; font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+.cdx.cdx-embed nav.tabs .item:hover { background:transparent; color:var(--cdx-accent); }
+.cdx.cdx-embed nav.tabs .item.active { height:auto !important; background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+/* Content fills the area BELOW the tabs; the active tab scrolls. */
+.cdx.cdx-embed section.content { flex:1; min-height:0; display:flex; flex-direction:column; }
+.cdx.cdx-embed section.content > .tab.active { flex:1; min-height:0; overflow-y:auto; padding-right:2px; }
 .cdx.cdx-embed .form-group { display:flex; flex-direction:column; gap:3px; margin-bottom:9px; }
+/* Description form-group (the only one with an editor) → a bordered panel with a
+   header bar, matching the other Codex description blocks. */
+.cdx.cdx-embed .form-group:has(> .editor), .cdx.cdx-embed .form-group:has(> .editor-content) { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; gap:0; padding:0; }
+.cdx.cdx-embed .form-group:has(> .editor) > label, .cdx.cdx-embed .form-group:has(> .editor-content) > label { background:var(--cdx-accent); color:#fff; padding:5px 10px; margin:0; }
+.cdx.cdx-embed .form-group > .editor, .cdx.cdx-embed .form-group > .editor-content { padding:8px 10px; min-height:80px; color:var(--cdx-ink); }
 .cdx.cdx-embed .form-group > label { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); display:flex; align-items:center; gap:4px; }
 .cdx.cdx-embed input[type=text], .cdx.cdx-embed input[type=number], .cdx.cdx-embed select {
   width:100%; box-sizing:border-box; background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px;
