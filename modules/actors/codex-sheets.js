@@ -28,12 +28,13 @@ import { killMinionGroup } from "../helpers/minions.js";
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
-/** The client-configured default Codex colour scheme (Settings → Codex II
- *  Default Colour Scheme), used when a document has no per-document scheme flag.
- *  Falls back to republic if the setting isn't registered yet. */
+/** The default Codex colour scheme, derived from the Default Sheet Theme setting
+ *  (value `codex-<scheme>`), used when a document has no per-document scheme flag.
+ *  Falls back to republic (also covers the legacy bare "codex" value). */
 export function cdxDefaultScheme() {
   try {
-    const s = game.settings.get("starwarsffg", "codexDefaultScheme");
+    const t = String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "");
+    const s = t.startsWith("codex-") ? t.slice("codex-".length) : null;
     return CDX_SCHEMES.includes(s) ? s : "republic";
   } catch (e) { return "republic"; }
 }

@@ -19,7 +19,7 @@ export class ActorFFG extends Actor {
     try {
       const codex = CONFIG.FFG?.codexSheets?.actor;
       if (codex && !this.getFlag("core", "sheetClass") && codex.types.includes(this.type)
-        && game.settings.get("starwarsffg", "defaultSheetTheme") === "codex") {
+        && String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "").startsWith("codex")) {
         return codex.cls;
       }
     } catch (e) { /* settings not ready yet, etc. — fall back to the default */ }

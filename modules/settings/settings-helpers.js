@@ -247,40 +247,25 @@ export default class SettingsHelpers {
     });
 
     // Default sheet theme — client-scoped (per world, local to each user). Picks
-    // which sheet style new/unconfigured documents open with. Documents that have
-    // an explicit per-document sheet (chosen via the ⚙ Sheet button, stored in
-    // flags.core.sheetClass) always keep that choice; this only changes the
-    // default. Resolved in ActorFFG/ItemFFG._getSheetClass.
+    // which sheet style new/unconfigured documents open with, AND (for the Codex
+    // options) the default colour scheme: the value is `codex-<scheme>`, so one
+    // selector sets both theme + scheme. Documents with an explicit per-document
+    // sheet (the ⚙ Sheet button, flags.core.sheetClass) or scheme flag keep their
+    // own choice. Resolved in ActorFFG/ItemFFG._getSheetClass + cdxDefaultScheme.
     game.settings.register("starwarsffg", "defaultSheetTheme", {
       name: "Default Sheet Theme",
-      hint: "Which sheet style to use by default. Stored locally per client (so each player can choose their own). Documents with an explicitly chosen sheet keep that choice. Reloads on change.",
+      hint: "Which sheet style (and Codex II colour scheme) to use by default. Stored locally per client. Documents with an explicitly chosen sheet/scheme keep that choice. Reloads on change.",
       scope: "client",
       config: true,
       default: "default",
       type: String,
       choices: {
         default: "Default (system sheets)",
-        codex: "Codex II",
-      },
-      onChange: this.debouncedReload,
-    });
-
-    // Default Codex colour scheme — used when a document has no per-document
-    // scheme flag. Only meaningful when the Default Sheet Theme is Codex II.
-    // Client-scoped like the theme so each player picks their own.
-    game.settings.register("starwarsffg", "codexDefaultScheme", {
-      name: "Codex II — Default Colour Scheme",
-      hint: "The Codex II palette to use for documents that don't have a scheme of their own. Applies only when Default Sheet Theme is Codex II. Stored locally per client. Reloads on change.",
-      scope: "client",
-      config: true,
-      default: "republic",
-      type: String,
-      choices: {
-        republic: "Republic",
-        empire: "Empire",
-        dark: "Dark",
-        light: "Light",
-        mercenary: "Mercenary",
+        "codex-republic": "Codex II — Republic",
+        "codex-empire": "Codex II — Empire",
+        "codex-dark": "Codex II — Dark",
+        "codex-light": "Codex II — Light",
+        "codex-mercenary": "Codex II — Mercenary",
       },
       onChange: this.debouncedReload,
     });
