@@ -848,6 +848,7 @@
 .cdx .cdx-iwmain { display:flex; gap:12px; align-items:flex-start; margin-bottom:8px; }
 .cdx .cdx-item-gear .cdx-item-img { width:200px; height:200px; }
 .cdx .cdx-item-weapon .cdx-item-img, .cdx .cdx-item-armour .cdx-item-img { width:150px; height:150px; }
+.cdx .cdx-item-attachment .cdx-item-img, .cdx .cdx-item-shipattachment .cdx-item-img { width:130px; height:130px; }
 .cdx .cdx-iwmain .cdx-istats { flex:1; min-width:0; }
 /* Description / Special (always-visible) — styled like the actor biography
    panel: a brown header BAR with white text + a bordered body holding the

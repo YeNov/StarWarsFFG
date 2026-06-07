@@ -1,0 +1,58 @@
+{{!--
+  Codex II — item attachment (weapon/armour attachment). Header pill · name ·
+  image + stat grid (HP required / Encum / Price / Rarity). Inline description.
+  Tabs: Modifications (the editable modification list — MARKUP KEPT VERBATIM so
+  the standalone-attachment handlers in item-sheet-ffg bind) · Base Mods · Config
+  (type + restricted) · Sources · Tags.
+--}}
+<form class="cdx-sheet cdx-item cdx-item-attachment" autocomplete="off">
+  <div class="cdx-ihead">
+    <div class="cdx-ipill">{{cdxTypeLabel}}</div>
+    <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
+
+  <div class="cdx-iwmain">
+    <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
+    <div class="cdx-istats">
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponHardPoints"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" /></div>
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponEncumbrance"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponPrice"}}</span><input class="cdx-istat-v cdx-price" type="text" value="{{data.price.value}}" autocomplete="off" /></div>
+      <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponRarity"}}</span><div class="cdx-istat-rwrap"><input class="cdx-istat-v cdx-rv-in cdx-num" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /><button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></div></div>
+    </div>
+  </div>
+
+  <div class="cdx-idesc">
+    <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
+    {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
+
+  <nav class="cdx-tabstrip">
+    <button type="button" class="cdx-tab active" data-tab="modifications">{{localize "SWFFG.Items.Popout.Tabs.Modifications"}}</button>
+    <button type="button" class="cdx-tab" data-tab="attributes">{{localize "SWFFG.TabBaseModifiers"}}</button>
+    <button type="button" class="cdx-tab" data-tab="configuration">{{localize "SWFFG.TabConfiguration"}}</button>
+    <button type="button" class="cdx-tab" data-tab="sources">{{localize "SWFFG.TabSources"}}</button>
+    <button type="button" class="cdx-tab" data-tab="tags">{{localize "SWFFG.TabTags"}}</button>
+  </nav>
+
+  <div class="cdx-item-body itemattachment">
+    {{!-- Modifications: keep the stock markup (.modification_container + .add-modification) so item-sheet-ffg's standalone-attachment handlers work. --}}
+    <section class="cdx-pane active flat_editor modifications" data-tab="modifications">
+      <div class="modification_container">
+        {{#each data.itemmodifier as |mod id|}}
+          {{> "systems/starwarsffg/templates/items/dialogs/ffg-modification.html" (object mod=mod id=id number=@index modifierTypes=../modifierTypes modifierChoices=../modifierChoices direct=false attachmentType=../data.type) }}
+        {{/each }}
+      </div>
+      <button type="button" class="flat_editor add-modification" data-action="create">{{ localize "SWFFG.Items.Popout.Buttons.Modification.Add" }}</button>
+    </section>
+    <section class="cdx-pane" data-tab="attributes">
+      <div class="attachments items">{{> "systems/starwarsffg/templates/parts/ffg-mods.html"}}</div>
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}
+    </section>
+    <section class="cdx-pane" data-tab="configuration">
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.Type" type="Dropdown" name="data.type" value=data.type options=this.FFG.itemmodifier_types)}}
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.IsRestricted" type="Boolean" name="data.rarity.isrestricted" value=data.rarity.isrestricted)}}
+    </section>
+    <section class="cdx-pane" data-tab="sources">{{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}</section>
+    <section class="cdx-pane" data-tab="tags">{{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}</section>
+  </div>
+</form>
