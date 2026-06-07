@@ -16,7 +16,7 @@
   handler (.cdx-ratio-step) drives any ratio chip.
 --}}
 <div class="cdx-chip derived cdx-ratio {{variant}}{{#if ratioBg}} cdx-ratio-hot{{/if}}{{#if align}} cdx-align-{{align}}{{/if}}">
-  <div class="cdx-chip-box static"{{#if ratioBg}} style="background:color-mix(in srgb, #e8451c {{ratioPct}}%, #ffffff)"{{/if}}>
+  <div class="cdx-chip-box static"{{#if ratioBg}} style="background:color-mix(in srgb, #e8451c {{ratioPct}}%, var(--cdx-paper2))"{{/if}}>
     <button type="button" class="cdx-ratio-step minus" data-dir="-1" data-cdx-path="system.{{path}}"{{#unless noClamp}} data-cdx-max="{{maxValue}}"{{/unless}} title="{{label}}"><i class="fas fa-minus"></i></button>
     {{#if disabled}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}{{#if lockCur}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}<input class="cdx-ratio-c" type="text" name="data.{{path}}" value="{{cur}}" data-dtype="Number" />{{/if}}{{/if}}
     {{#unless noMax}}<span class="cdx-ratio-t">of {{#if disabled}}{{maxValue}}{{else}}{{#if lockMax}}{{maxValue}}{{else}}<input class="cdx-ratio-m" type="text" name="data.{{maxPath}}" value="{{maxValue}}" data-dtype="Number" />{{/if}}{{/if}}</span>{{/unless}}

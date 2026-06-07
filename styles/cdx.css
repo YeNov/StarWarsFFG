@@ -279,9 +279,9 @@
 .cdx .cdx-ratio-step.plus { right:0; transform:translate(calc(50% + 2px),-50%); }
 .cdx .cdx-ratio-step:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
 .cdx .cdx-ratio-step i { transform:translateX(1.5px); }
-/* Ratio-bg variant (Speed): the box is tinted white→red-orange inline by ratio,
-   so pin the value/label text dark for contrast regardless of the scheme. */
-.cdx .cdx-chip.cdx-ratio-hot .cdx-chip-box.static { color:#16202b; }
+/* Ratio-bg variant (Speed): the box ramps from the scheme's chip background
+   (paper2) to red-orange, so the value text follows var(--cdx-ink) (the default)
+   for per-scheme contrast — no hardcoded colour. */
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
 /* ---- XP-buy mode ----
