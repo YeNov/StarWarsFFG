@@ -11,7 +11,7 @@
   <header class="cdx-header cdx-veh-header">
     <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
     <div class="cdx-identity">
-      <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.VehicleName'}}" data-dtype="String" />
+      <textarea class="cdx-name cdx-veh-name" name="name" rows="2" placeholder="{{localize 'SWFFG.VehicleName'}}" data-dtype="String">{{actor.name}}</textarea>
       <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.vehicle" }}</span>{{#if data.spaceShip}}<span class="cdx-pill">Starship</span>{{/if}}</div>
     </div>
   </header>
@@ -83,8 +83,8 @@
     <button type="button" class="cdx-tab" data-tab="damage">Critical Hits{{#if cdxVehCritCount}}<span class="cdx-tab-badge">{{cdxVehCritCount}}</span>{{/if}}</button>
     <button type="button" class="cdx-tab" data-tab="crew">{{localize "SWFFG.VehicleTabCrew"}}</button>
     <button type="button" class="cdx-tab" data-tab="cargo">{{localize "SWFFG.VehicleTabCargo"}}</button>
-    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.VehicleTabDescription"}}</button>
-    <button type="button" class="cdx-tab" data-tab="effects">{{localize "SWFFG.TabEffects"}}</button>
+    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.Codex.TabBio"}}</button>
+    <button type="button" class="cdx-tab" data-tab="effects">AEs</button>
   </nav>
 
   {{!-- Weapon systems --}}

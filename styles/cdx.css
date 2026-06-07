@@ -106,6 +106,10 @@
   font-family:"Orbitron"; font-weight:900; font-size:26px; letter-spacing:1px; text-transform:uppercase; line-height:1;
   color:var(--cdx-head-ink); background:transparent; border:none; width:100%; padding:0;
 }
+/* Vehicle name is a <textarea> so a long name wraps to a 2nd line instead of
+   being clipped (vehicles only). field-sizing grows it to fit (1–2 lines) where
+   supported; otherwise rows="2" reserves two lines. Capped at two lines. */
+.cdx textarea.cdx-veh-name { resize:none; overflow:hidden; box-sizing:border-box; line-height:1.05; field-sizing:content; max-height:2.2em; }
 .cdx .cdx-pills { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
 .cdx .cdx-pillgroup { display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
 /* ---- Collapsible pill stack (specializations) — mirrors the prototype PillStack.
@@ -505,6 +509,13 @@
 .cdx .cdx-veh-zones .cdx-ratio-c { font-size:19px; }
 .cdx .cdx-veh-zones .cdx-ratio-step { width:15px; height:15px; border-width:2px; font-size:6px; }
 .cdx .cdx-veh-zones .cdx-chip-label { background:var(--cdx-brown); color:#fff; margin-top:3px; }
+/* Zone chips: white box, black outline, black value + black-outlined steppers. */
+.cdx .cdx-veh-zones .cdx-chip-box { background:#ffffff; border:2px solid #111111; color:#111111; }
+.cdx .cdx-veh-zones .cdx-ratio-step { background:#ffffff; border-color:#111111; color:#111111; }
+/* Speed chip: silhouette-style double thin black outline (instead of the brass
+   derived border); steppers + text pinned dark to read on the white→orange box. */
+.cdx .cdx-chip.cdx-ratio-hot .cdx-chip-box { border:4px double #16202b; }
+.cdx .cdx-chip.cdx-ratio-hot .cdx-ratio-step { border-color:#16202b; color:#16202b; }
 
 /* ---- Tabs ---- */
 .cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
@@ -551,7 +562,12 @@
 /* ---- Combat cards (weapon + armour) ---- */
 .cdx .cdx-cards-head { display:flex; align-items:center; justify-content:space-between; font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin:10px 0 8px; }
 .cdx .cdx-cards-head .item-add { cursor:pointer; color:var(--cdx-accent); }
-.cdx .cdx-card { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:5px; margin-bottom:7px; display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; cursor:pointer; }
+.cdx .cdx-card { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:5px 6px 5px 13px; margin-bottom:7px; display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; cursor:pointer; }
+/* Uniform (generous) left margin for every item row: a bigger card-left padding
+   plus zeroing any stray margin on the icon/roll wrappers (the .skill-label roll
+   icons on weapons/crew otherwise inherit a mandar margin that gear/attachments
+   lack, so the rows didn't line up). */
+.cdx .cdx-card .cdx-card-rollwrap, .cdx .cdx-card .cdx-card-icon { margin:0; }
 .cdx .cdx-card.off { opacity:.65; }
 .cdx .cdx-card-main { display:flex; align-items:center; gap:5px; min-width:0; }
 .cdx .cdx-card-icon { width:75px; height:75px; flex:none; border-radius:6px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
