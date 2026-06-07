@@ -1020,7 +1020,18 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     // Add or Remove Attribute
     html.find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
 
-    // Swap value input between checkbox and number when modtype changes
+    // When the modifier TYPE changes, (a) swap the value input between
+    // checkbox/number and (b) repopulate the sibling "Modifier" dropdown to the
+    // new type's option set. (b) used to happen implicitly: the change pipeline
+    // re-rendered the sheet, rebuilding the <select> from modifierChoices server-
+    // side. The render-race fix switched that pipeline to render:false, so the
+    // dropdown now goes stale until the sheet is reopened. Rebuild it in-place.
+    //
+    // This delegated handler is bound on `.attributes` (a descendant of the
+    // form), so it runs during bubbling BEFORE the form's own change listener
+    // fires _onSubmit -> the repopulated select's new value is already in the DOM
+    // when _getSubmitData reads it, and the corrected `.mod` is persisted in the
+    // same submit. No manual submit needed here.
     html.find(".attributes").on("change", ".flat_editor.dropdown.modtype", (event) => {
       const new_value = event.currentTarget.value;
       const valueName = event.currentTarget.name.replace(/\.modtype$/, '.value');
@@ -1029,6 +1040,14 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         $valueInput.replaceWith(`<input name="${valueName}" type="checkbox" class="modvalue" data-attr-key="${$valueInput.data('attr-key')}">`);
       } else if ($valueInput.attr('type') === 'checkbox') {
         $valueInput.replaceWith(`<input name="${valueName}" type="number" class="modvalue" value="0" data-attr-key="${$valueInput.data('attr-key')}">`);
+      }
+      const chosenConfig = CONFIG.FFG.allowableModifierChoices[new_value];
+      if (chosenConfig) {
+        let modHtml = '';
+        Object.keys(chosenConfig).forEach((choice) => {
+          modHtml += `<option value="${chosenConfig[choice]['value']}">${game.i18n.localize(chosenConfig[choice]['label'])}</option>`;
+        });
+        $(event.currentTarget).parent().find(".flat_editor.dropdown.mod").html(modHtml);
       }
     });
 
