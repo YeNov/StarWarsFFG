@@ -952,3 +952,16 @@
   display:block; padding:8px 4px; text-align:center;
   font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim);
 }
+
+/* ---- Item header: type pill + status pill row (weapon/armour) ----
+   The condition track moved out of the body into a header pill. It's a native
+   <select> (so it persists via the normal form submit) dressed as a pill, with
+   a FIXED width sized for the longest label ("Undamaged") so picking a status
+   never reflows the header row. Sits on var(--cdx-head); uses the header ink. */
+.cdx .cdx-ihead-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.cdx .cdx-ihead .cdx-status { display:inline-flex; align-items:center; gap:6px; flex:none; background:rgba(0,0,0,.32); border:1px solid rgba(255,255,255,.22); clip-path:var(--cdx-clip); padding:3px 9px; }
+.cdx .cdx-status-ic { font-size:9px; line-height:1; color:var(--cdx-head-ink); opacity:.8; }
+.cdx .cdx-status-pill { appearance:none; -webkit-appearance:none; width:86px; flex:none; padding:0; background:transparent; border:none; outline:none; box-shadow:none; cursor:pointer; text-align:center; text-align-last:center; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--cdx-head-ink); }
+.cdx .cdx-status-pill:hover { color:#fff; }
+.cdx .cdx-status-pill option { color:#111; text-transform:none; letter-spacing:normal; }
+.cdx .cdx-ihead .cdx-status::after { content:"\25BE"; font-size:8px; line-height:1; color:var(--cdx-head-ink); opacity:.7; pointer-events:none; }
