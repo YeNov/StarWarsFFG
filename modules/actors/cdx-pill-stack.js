@@ -5,6 +5,8 @@
  * members as a vertical stack of notched pills (styling lives in cdx.css under
  * `.cdx-stack`). This class owns the INTERACTION:
  *
+ *   single pill (not collapsible) + click pill → onActivate(id): open its tree
+ *   single pill + click `.item-delete`         → onDelete(id)
  *   collapsed + click anywhere on the stack    → expand it
  *   expanded  + click a pill                   → onActivate(id): open its tree
  *                                                (the stack STAYS open)
@@ -28,7 +30,8 @@
  * The class is document-agnostic — it resolves a pill via `data-item-id` and
  * hands the id to the caller's `onActivate` / `onDelete` — so the same widget
  * drives specs, force powers, signature abilities: anything rendered as a
- * `.cdx-stack.cdx-collapsible` of `.cdx-pill[data-item-id]`.
+ * `.cdx-stack` of `.cdx-pill[data-item-id]` (the `.cdx-collapsible` modifier is
+ * added only when there are 2+ pills to stack).
  */
 export class CdxPillStack {
   /**
@@ -44,7 +47,11 @@ export class CdxPillStack {
     this._onClick = this._onClick.bind(this);
     this._onMouseDown = this._onMouseDown.bind(this);
 
-    this._stacks = root ? [...root.querySelectorAll(".cdx-stack.cdx-collapsible")] : [];
+    // All pill stacks, collapsible (2+ pills) or not (a single pill renders as a
+    // plain `.cdx-stack` with no `.cdx-collapsible`). We manage both so a lone
+    // pill opens its tree directly instead of pointlessly toggling an empty
+    // expand/collapse on a stack with nothing to reveal.
+    this._stacks = root ? [...root.querySelectorAll(".cdx-stack")] : [];
     // One capture listener on the sheet root. Capture so it runs before the
     // pills' own bubble-phase handlers; rooted on the sheet so clicks in other
     // windows never reach it (and so can't collapse us).
@@ -90,7 +97,7 @@ export class CdxPillStack {
    */
   _onMouseDown(ev) {
     if (ev.button !== 0) return;
-    if (this._openStack() || ev.target.closest?.(".cdx-stack.cdx-collapsible")) {
+    if (this._openStack() || ev.target.closest?.(".cdx-stack")) {
       ev.preventDefault();
     }
   }
@@ -111,11 +118,23 @@ export class CdxPillStack {
       open.classList.remove("open"); // delete, or a click elsewhere on the sheet
       return;
     }
-    // Nothing open: expand if the click landed on one of our collapsed stacks.
-    const stack = ev.target.closest?.(".cdx-stack.cdx-collapsible");
+    // Nothing open: the click landed on one of our stacks.
+    const stack = ev.target.closest?.(".cdx-stack");
     if (stack && this._stacks.includes(stack)) {
       this._consume(ev);
-      stack.classList.add("open");
+      // A single-pill stack is NOT collapsible (no `.cdx-collapsible`) — there is
+      // nothing to expand, so route the click straight to that lone pill: its
+      // delete-X removes it, anything else opens its tree (as if it had been
+      // clicked while expanded).
+      const pills = stack.querySelectorAll(".cdx-pill");
+      if (pills.length === 1) {
+        const id = pills[0].dataset.itemId;
+        if (id && ev.target.closest(".item-delete")) this.onDelete?.(id);
+        else if (id) this.onActivate?.(id);
+        return;
+      }
+      // Multi-pill: only collapsible stacks expand (single/empty never do).
+      if (stack.classList.contains("cdx-collapsible")) stack.classList.add("open");
     }
   }
 }

@@ -18,8 +18,11 @@
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
 import { CDX_SCHEMES } from "../actors/codex-sheets.js";
 
-/** Types with a bespoke codex template; everything else uses codex-item.html. */
-const CODEX_DETAILED = new Set(["weapon", "armour", "gear", "talent"]);
+/** Types with a bespoke codex template; everything else uses codex-item.html.
+ *  Only list a type once its `codex-<type>.html` actually exists — a missing
+ *  file throws ENOENT when the sheet renders. weapon/armour/talent are still
+ *  pending, so they fall back to the generic frame for now. */
+const CODEX_DETAILED = new Set(["gear"]);
 
 export class CodexItemSheet extends ItemSheetFFG {
   // Concatenated onto the base classes → the OUTER window <div> ends up

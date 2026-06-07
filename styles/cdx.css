@@ -781,14 +781,17 @@
    recolour text + form fields so they read on the codex paper. */
 .cdx .cdx-item-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:9px; }
 .cdx .cdx-item-img { width:84px; height:84px; flex:none; object-fit:contain; background:rgba(0,0,0,.18); border:2px solid var(--cdx-line); border-radius:6px; cursor:pointer; }
+.cdx .cdx-item-gear .cdx-item-img { width:210px; height:210px; }
 .cdx .cdx-item-id { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
 .cdx .cdx-item-name { font-family:"Orbitron"; font-weight:900; font-size:20px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-ink); background:transparent; border:none; border-bottom:1px solid var(--cdx-line); width:100%; padding:0 0 3px; }
 .cdx .cdx-item .cdx-item-header > .cdx-item-name { } /* generic frame: name sits beside the image */
 .cdx .cdx-item:not(.cdx-item-gear) .cdx-item-header { align-items:center; }
 
 /* Stat boxes: notched box · brown header label · big value (the prototype look). */
-.cdx .cdx-istats { display:flex; flex-wrap:wrap; gap:6px; }
-.cdx .cdx-istat { flex:1 1 auto; min-width:74px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+/* 2-column grid → Encum/Qty over Price/Rarity; keeps the 2+2 shape when shrunk
+   instead of stretching one box per row. */
+.cdx .cdx-istats { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; }
+.cdx .cdx-istat { min-width:0; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
 .cdx .cdx-istat-k { display:block; background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; }
 .cdx .cdx-istat-v { width:100%; box-sizing:border-box; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); padding:5px 6px; }
 .cdx .cdx-istat.cdx-restricted .cdx-istat-v { color:#cf2e2e; }
