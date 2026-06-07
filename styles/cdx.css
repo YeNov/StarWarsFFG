@@ -1017,6 +1017,13 @@
 .cdx .cdx-istats-special .cdx-istat-k { color:#fff; }
 .cdx .cdx-ispecial { margin-top:8px; }
 
+/* Ship weapon Special tab: lone Skill block spans full width; firing-arc grid. */
+.cdx .cdx-item-shipweapon .cdx-istats-special { grid-template-columns:1fr; }
+.cdx .cdx-arc-panel { margin:8px 0; }
+.cdx .cdx-arc-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:7px 10px; padding:9px 11px; }
+.cdx .cdx-arc { display:flex; align-items:center; gap:6px; cursor:pointer; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-ink); }
+.cdx .cdx-arc input { accent-color:var(--cdx-accent); width:14px; height:14px; flex:none; margin:0; }
+
 /* ---- Critical injury / damage ---- standard .cdx-ihead header (type pill +
    name), then the avatar beside the stacked d100 Low/High (XP-style block) and
    Severity blocks. */

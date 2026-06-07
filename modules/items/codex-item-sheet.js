@@ -60,6 +60,7 @@ export class CodexItemSheet extends ItemSheetFFG {
     const type = this.item?.type;
     // Critical injury + critical damage share one template (same data model).
     if (type === "criticalinjury" || type === "criticaldamage") return `${base}/codex-crit.html`;
+    if (type === "shipweapon") return `${base}/codex-shipweapon.html`;
     return CODEX_DETAILED.has(type) ? `${base}/codex-${type}.html` : `${base}/codex-item.html`;
   }
 
