@@ -389,8 +389,8 @@
 /* ---- Minion: Group Strength + Combined Wound Pool ---- */
 /* Top row: Group Strength takes the lion's share, Defence sits beside it. */
 .cdx .cdx-minion-top { display:flex; gap:6px; align-items:stretch; }
-.cdx .cdx-minion-top .cdx-gs { flex:4; }
-.cdx .cdx-minion-top .cdx-minion-def { flex:1.15; min-width:150px; }
+.cdx .cdx-minion-top .cdx-gs { flex:2; }
+.cdx .cdx-minion-top .cdx-minion-def { flex:1; min-width:150px; }
 /* The group-strength body is a single content row; it stretches to match the
    (taller) defence block beside it, with its content vertically centred. */
 .cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:12px; padding:8px 12px; }
