@@ -21,7 +21,7 @@
         <div class="cdx-istat"><span class="cdx-istat-k">Soak</span><input class="cdx-istat-v cdx-num" type="text" name="data.soak.value" value="{{data.soak.value}}" data-dtype="Number" /></div>
         <div class="cdx-istat"><span class="cdx-istat-k">Defence</span><input class="cdx-istat-v cdx-num" type="text" name="data.defence.value" value="{{data.defence.value}}" data-dtype="Number" /></div>
         <div class="cdx-istat"><span class="cdx-istat-k">Encum</span><input class="cdx-istat-v cdx-num" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
-        <div class="cdx-istat"><span class="cdx-istat-k">HP</span><input class="cdx-istat-v cdx-num" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">HP</span><input class="cdx-istat-v cdx-hp" type="text" value="{{data.hardpoints.value}}" autocomplete="off" title="Occupied / total hard points" /></div>
         <div class="cdx-istat"><span class="cdx-istat-k">Price</span><input class="cdx-istat-v cdx-price" type="text" value="{{data.price.value}}" autocomplete="off" /></div>
         <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><div class="cdx-istat-rwrap"><input class="cdx-istat-v cdx-rv-in cdx-num" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /><button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></div></div>
       </div>
