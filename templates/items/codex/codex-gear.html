@@ -1,49 +1,51 @@
 {{!--
-  Codex II — gear item. Header carries the codex stat boxes (Encumbrance /
-  Quantity / Price / Rarity) + a Restricted toggle; body keeps the native tabs.
+  Codex II — gear item. Scheme-coloured header bar (type pill + name) · image +
+  stat grid (Quantity/Encum/Price/Rarity) · quality pills · Restricted · inline
+  description. Editing tabs (Modifiers/Sources/Tags) below.
 --}}
 <form class="cdx-sheet cdx-item cdx-item-gear" autocomplete="off">
-  <header class="cdx-item-header">
+  <div class="cdx-ihead">
+    <div class="cdx-ipill">{{localize "TYPES.Item.gear"}}</div>
+    <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
+
+  <div class="cdx-iwmain">
     <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
-    <div class="cdx-item-id">
-      <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
-      <div class="cdx-istats">
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponEncumbrance"}}</span><input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponQuantity"}}</span><input class="cdx-istat-v" type="text" name="data.quantity.value" value="{{data.quantity.value}}" data-dtype="Number" /></div>
-        {{#if (or (eq item.flags.starwarsffg.config.enablePrice undefined) (eq item.flags.starwarsffg.config.enablePrice true))}}
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponPrice"}}</span><input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" /></div>
-        {{/if}}
-        {{#if (or (eq item.flags.starwarsffg.config.enableRarity undefined) (eq item.flags.starwarsffg.config.enableRarity true))}}
-        <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponRarity"}}</span><input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /></div>
-        {{/if}}
-      </div>
-      {{#if data.itemmodifier.length}}
-      <div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div>
+    <div class="cdx-istats">
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponQuantity"}}</span><input class="cdx-istat-v" type="text" name="data.quantity.value" value="{{data.quantity.value}}" data-dtype="Number" /></div>
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponEncumbrance"}}</span><input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
+      {{#if (or (eq item.flags.starwarsffg.config.enablePrice undefined) (eq item.flags.starwarsffg.config.enablePrice true))}}
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponPrice"}}</span><input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" /></div>
       {{/if}}
-      <label class="cdx-icheck"><input type="checkbox" name="data.rarity.isrestricted" data-dtype="Boolean" {{checked data.rarity.isrestricted}} /><span>{{localize "SWFFG.IsRestricted"}}</span></label>
+      {{#if (or (eq item.flags.starwarsffg.config.enableRarity undefined) (eq item.flags.starwarsffg.config.enableRarity true))}}
+      <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponRarity"}}</span><input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /></div>
+      {{/if}}
     </div>
-  </header>
+  </div>
+
+  {{#if data.itemmodifier.length}}
+  <div class="cdx-qual-wrap"><span class="cdx-qual-k">Qualities</span><div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div></div>
+  {{/if}}
+
+  <label class="cdx-icheck"><input type="checkbox" name="data.rarity.isrestricted" data-dtype="Boolean" {{checked data.rarity.isrestricted}} /><span>{{localize "SWFFG.IsRestricted"}}</span></label>
+
+  <div class="cdx-idesc">
+    <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
+    {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
 
   {{> "systems/starwarsffg/templates/parts/shared/ffg-tabs.html" displayLimited=true limited=limited items=(array
-    (object tab="description" label="SWFFG.TabDescription" icon="far fa-file-alt" cls=classType)
     (object tab="attributes" label="SWFFG.TabModifiers" icon="fas fa-cog" cls=classType)
     (object tab="sources" label="SWFFG.TabSources" icon="fa-light fa-book-open-cover" cls=classType)
     (object tab="tags" label="SWFFG.TabTags" icon="fa-sharp fa-regular fa-tags" cls=classType)
   )}}
 
   <section class="sheet-body cdx-item-body">
-    <div class="tab" data-group="primary" data-tab="description">
-      {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
-    </div>
     <div class="tab attributes" data-group="primary" data-tab="attributes">
       <div class="attachments items">{{> "systems/starwarsffg/templates/parts/ffg-qualities-attachments-mods.html"}}</div>
       {{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}
     </div>
-    <div class="tab sources" data-group="primary" data-tab="sources">
-      {{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}
-    </div>
-    <div class="tab tags" data-group="primary" data-tab="tags">
-      {{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}
-    </div>
+    <div class="tab sources" data-group="primary" data-tab="sources">{{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}</div>
+    <div class="tab tags" data-group="primary" data-tab="tags">{{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}</div>
   </section>
 </form>
