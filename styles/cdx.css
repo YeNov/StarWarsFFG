@@ -273,8 +273,8 @@
   border:3px solid var(--cdx-brass); border-radius:50%; background:var(--cdx-paper2); color:var(--cdx-ink);
   display:inline-flex; align-items:center; justify-content:center; font-size:8px; line-height:1; cursor:pointer;
 }
-.cdx .cdx-force-step.minus { left:0; transform:translate(-50%,-50%); }
-.cdx .cdx-force-step.plus { right:0; transform:translate(50%,-50%); }
+.cdx .cdx-force-step.minus { left:0; transform:translate(calc(-50% - 3px),-50%); }
+.cdx .cdx-force-step.plus { right:0; transform:translate(calc(50% + 3px),-50%); }
 .cdx .cdx-force-step:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
