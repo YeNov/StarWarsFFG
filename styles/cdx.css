@@ -1103,6 +1103,13 @@
 .cdx.cdx-embed .editor.prosemirror .editor-container { background:var(--cdx-paper); }
 .cdx.cdx-embed .editor-content.ProseMirror { background:var(--cdx-paper); color:var(--cdx-ink); padding:6px 8px; min-height:90px; }
 .cdx.cdx-embed .editor-content.ProseMirror * { color:var(--cdx-ink); }
+/* The ProseMirror menu bar (and its dark dropdown popups) sit on a dark surface —
+   force the icons/labels light so they're visible. Scoped to the menubar only,
+   NOT the .editor-content above, so the editable text stays ink-on-paper. */
+.cdx.cdx-embed .editor.prosemirror menu,
+.cdx.cdx-embed .editor.prosemirror menu *,
+.cdx.cdx-embed .editor.prosemirror .editor-menu,
+.cdx.cdx-embed .editor.prosemirror .editor-menu * { color:#ececef; }
 .cdx.cdx-embed .form-group > label { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); display:flex; align-items:center; gap:4px; }
 .cdx.cdx-embed input[type=text], .cdx.cdx-embed input[type=number], .cdx.cdx-embed select {
   width:100%; box-sizing:border-box; background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px;
