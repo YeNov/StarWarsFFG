@@ -148,6 +148,16 @@ export class itemEditor extends FFGFormApplication {
   }
 
   _activateListeners(html) {
+    // Description edit toggle: show the rendered description; the pencil reveals
+    // the editable textarea. On blur the form submit re-renders back to the
+    // rendered view (the textarea defaults to display:none).
+    html.find(".cdx-desc-toggle").on("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const g = $(ev.currentTarget).closest(".cdx-desc-group");
+      g.find(".cdx-desc-rendered").hide();
+      g.find(".cdx-desc-raw").show().trigger("focus");
+    });
     html.find('[name="system.type"]').on("change", this._updateType.bind(this));
     html.find(".flat_editor.dropdown").on("change", this._updateDropdown.bind(this));
     html.find(".flat_editor.add-mod").on("click", this._modControl.bind(this));
