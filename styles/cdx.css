@@ -276,7 +276,7 @@
 .cdx .cdx-force-step.minus { left:0; transform:translate(calc(-50% - 2px),-50%); }
 .cdx .cdx-force-step.plus { right:0; transform:translate(calc(50% + 2px),-50%); }
 .cdx .cdx-force-step:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
-.cdx .cdx-force-step i { transform:translateX(1px); }
+.cdx .cdx-force-step i { transform:translateX(1.5px); }
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
 /* ---- XP-buy mode ----
