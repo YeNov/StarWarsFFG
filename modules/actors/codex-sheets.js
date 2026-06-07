@@ -288,24 +288,27 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       });
     });
     // Minion Group-Strength steppers (members alive ±1). Alive count is DERIVED
-    // from wounds (system prepareData), so we can't write it directly — instead
-    // snap wounds.value to the canonical minimum for the target alive count:
-    //   killed = qmax − alive;  wounds = killed<=0 ? 0 : killed×unit + 1
-    // (+1 crosses the member's threshold; matches the system's alive formula).
+    // from wounds (system prepareData), so we adjust wounds instead. Kill (−)
+    // adds a FULL member's worth of wounds (unit_wounds), and revive (+) removes
+    // one — this preserves the partial damage on the current member (it "moves"
+    // onto the next block) rather than snapping to a clean member boundary.
+    //   e.g. 3/member, 2 applied, − → 5 wounds = 1 dead + the 2 carried over.
+    // Clamped to [0, qmax·unit + 1] (the latter = whole group dead, matching
+    // killMinionGroup; one past wounds.max because the system's alive formula
+    // needs the extra point to drop the final member).
     root.querySelectorAll(".cdx-gs-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();
-        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const dir = Number(ev.currentTarget.dataset.dir) || 0; // −1 kill, +1 revive
         const sys = this.actor?.system;
         if (!sys) return;
         const unit = Math.max(1, Math.trunc(Number(sys.unit_wounds?.value) || 1));
         const qmax = Math.max(0, Math.trunc(Number(sys.quantity?.max) || 0));
-        const alive = Math.max(0, Math.min(qmax, Math.trunc(Number(sys.quantity?.value) || 0)));
-        const target = Math.max(0, Math.min(qmax, alive + dir));
-        if (target === alive) return;
-        const killed = qmax - target;
-        const wounds = killed <= 0 ? 0 : killed * unit + 1;
-        await this.actor.update({ "system.stats.wounds.value": wounds });
+        const cur = Math.max(0, Math.trunc(Number(sys.stats?.wounds?.value) || 0));
+        const ceiling = qmax * unit + 1;
+        const next = Math.max(0, Math.min(ceiling, cur - dir * unit));
+        if (next === cur) return;
+        await this.actor.update({ "system.stats.wounds.value": next });
       });
     });
     // Wipe Out — eliminate the whole group (wounds → max+1 ⇒ alive 0).
