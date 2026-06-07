@@ -12,13 +12,13 @@
   <div class="cdx-iwmain">
     <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
     <div class="cdx-istats">
-      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponQuantity"}}</span><input class="cdx-istat-v" type="text" name="data.quantity.value" value="{{data.quantity.value}}" data-dtype="Number" /></div>
-      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponEncumbrance"}}</span><input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponQuantity"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.quantity.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.quantity.value" value="{{data.quantity.value}}" data-dtype="Number" />{{/if}}</div>
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponEncumbrance"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.encumbrance.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" />{{/if}}</div>
       {{#if (or (eq item.flags.starwarsffg.config.enablePrice undefined) (eq item.flags.starwarsffg.config.enablePrice true))}}
-      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponPrice"}}</span><input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" /></div>
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponPrice"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.price.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" />{{/if}}</div>
       {{/if}}
       {{#if (or (eq item.flags.starwarsffg.config.enableRarity undefined) (eq item.flags.starwarsffg.config.enableRarity true))}}
-      <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponRarity"}}</span><input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /></div>
+      <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponRarity"}}</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.rarity.value}}<button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></span>{{else}}<input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" />{{/if}}</div>
       {{/if}}
     </div>
   </div>
@@ -27,7 +27,7 @@
   <div class="cdx-qual-wrap"><span class="cdx-qual-k">Qualities</span><div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div></div>
   {{/if}}
 
-  <label class="cdx-icheck"><input type="checkbox" name="data.rarity.isrestricted" data-dtype="Boolean" {{checked data.rarity.isrestricted}} /><span>{{localize "SWFFG.IsRestricted"}}</span></label>
+  {{#if cdxIEdit}}<label class="cdx-icheck"><input type="checkbox" name="data.rarity.isrestricted" data-dtype="Boolean" {{checked data.rarity.isrestricted}} /><span>{{localize "SWFFG.IsRestricted"}}</span></label>{{/if}}
 
   <div class="cdx-idesc">
     <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>

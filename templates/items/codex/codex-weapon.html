@@ -15,13 +15,13 @@
   <div class="cdx-iwmain">
       <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
       <div class="cdx-istats cdx-istats-weapon">
-        <div class="cdx-istat"><span class="cdx-istat-k">Damage</span><input class="cdx-istat-v" type="text" name="data.damage.value" value="{{data.damage.value}}" data-dtype="Number" /></div>
-        <div class="cdx-istat"><span class="cdx-istat-k">Crit</span><input class="cdx-istat-v" type="text" name="data.crit.value" value="{{data.crit.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">Damage</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.damage.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.damage.value" value="{{data.damage.value}}" data-dtype="Number" />{{/if}}</div>
+        <div class="cdx-istat"><span class="cdx-istat-k">Crit</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.crit.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.crit.value" value="{{data.crit.value}}" data-dtype="Number" />{{/if}}</div>
         <div class="cdx-istat"><span class="cdx-istat-k">Range</span><span class="cdx-istat-v">{{localize data.range.label}}</span></div>
-        <div class="cdx-istat wide"><span class="cdx-istat-k">Encum</span><input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
-        <div class="cdx-istat wide"><span class="cdx-istat-k">HP</span><input class="cdx-istat-v" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" /></div>
-        <div class="cdx-istat wide"><span class="cdx-istat-k">Price</span><input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" /></div>
-        <div class="cdx-istat wide{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat wide"><span class="cdx-istat-k">Encum</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.encumbrance.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" />{{/if}}</div>
+        <div class="cdx-istat wide"><span class="cdx-istat-k">HP</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.hardpoints.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" />{{/if}}</div>
+        <div class="cdx-istat wide"><span class="cdx-istat-k">Price</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.price.value}}</span>{{else}}<input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" />{{/if}}</div>
+        <div class="cdx-istat wide{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span>{{#if cdxILock}}<span class="cdx-istat-v">{{data.rarity.value}}<button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></span>{{else}}<input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" />{{/if}}</div>
       </div>
     </div>
 
