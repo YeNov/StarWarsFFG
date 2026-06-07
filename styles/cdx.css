@@ -812,3 +812,32 @@
 .cdx .cdx-item-body input[type=text], .cdx .cdx-item-body input[type=number], .cdx .cdx-item-body select, .cdx .cdx-item-body textarea {
   background:var(--cdx-paper); border:1px solid var(--cdx-line); color:var(--cdx-ink); border-radius:3px; padding:2px 5px;
 }
+
+/* ---- Weapon / armour item sheets: header block, condition track, qualities ---- */
+.cdx .cdx-iwhead { display:flex; flex-direction:column; gap:6px; margin-bottom:9px; }
+.cdx .cdx-ipill { align-self:flex-start; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1.5px; text-transform:uppercase; color:#fff; background:var(--cdx-accent); padding:3px 11px; clip-path:var(--cdx-clip); }
+.cdx .cdx-isub { font-family:"Orbitron"; font-weight:600; font-size:10px; letter-spacing:.5px; color:var(--cdx-dim); }
+.cdx .cdx-iwmain { display:flex; gap:12px; align-items:flex-start; }
+.cdx .cdx-item-weapon .cdx-item-img, .cdx .cdx-item-armour .cdx-item-img { width:150px; height:150px; }
+.cdx .cdx-iwmain .cdx-istats { flex:1; min-width:0; }
+/* Weapon: Damage/Crit/Range across the top (span 2 of 6), then 2-up rows below. */
+.cdx .cdx-istats-weapon { grid-template-columns:repeat(6, minmax(0, 1fr)); }
+.cdx .cdx-istats-weapon .cdx-istat { grid-column:span 2; }
+.cdx .cdx-istats-weapon .cdx-istat.wide { grid-column:span 3; }
+
+/* Condition (status) track: 4 segments, Minor..current shaded. Radios drive it. */
+.cdx .cdx-cond-wrap { margin-top:2px; }
+.cdx .cdx-cond-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; }
+.cdx .cdx-cond-head > span:first-child { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); }
+.cdx .cdx-cond-cur { font-family:"Orbitron"; font-weight:700; font-size:11px; color:var(--cdx-accent); }
+.cdx .cdx-cond { display:flex; gap:4px; }
+.cdx .cdx-cond-seg { flex:1; display:flex; flex-direction:column; gap:3px; cursor:pointer; text-align:center; }
+.cdx .cdx-cond-seg input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
+.cdx .cdx-cond-bar { height:9px; border-radius:2px; border:1px solid var(--cdx-line); background:var(--cdx-track); }
+.cdx .cdx-cond-seg.filled .cdx-cond-bar { background:var(--cdx-accent); border-color:var(--cdx-accent); }
+.cdx .cdx-cond-lbl { font-family:"Orbitron"; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-cond-seg.current .cdx-cond-lbl { color:var(--cdx-ink); font-weight:700; }
+
+/* Qualities block label (pills reuse .cdx-iquals / .cdx-iqual). */
+.cdx .cdx-qual-wrap { margin-top:6px; }
+.cdx .cdx-qual-k { display:block; font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin-bottom:4px; }

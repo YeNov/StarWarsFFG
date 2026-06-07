@@ -20,9 +20,12 @@ import { CDX_SCHEMES } from "../actors/codex-sheets.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
- *  file throws ENOENT when the sheet renders. weapon/armour/talent are still
- *  pending, so they fall back to the generic frame for now. */
-const CODEX_DETAILED = new Set(["gear"]);
+ *  file throws ENOENT when the sheet renders. (talent still pending.) */
+const CODEX_DETAILED = new Set(["gear", "weapon", "armour"]);
+
+/** data.status values ↔ condition-track labels (None = Undamaged). */
+const CODEX_STATUS = ["None", "Minor", "Moderate", "Major"];
+const CODEX_STATUS_LABELS = ["Undamaged", "Minor", "Moderate", "Major"];
 
 export class CodexItemSheet extends ItemSheetFFG {
   // Concatenated onto the base classes → the OUTER window <div> ends up
@@ -56,6 +59,21 @@ export class CodexItemSheet extends ItemSheetFFG {
     const base = "systems/starwarsffg/templates/items/codex";
     const type = this.item?.type;
     return CODEX_DETAILED.has(type) ? `${base}/codex-${type}.html` : `${base}/codex-item.html`;
+  }
+
+  /** @override — add the condition/status track model (weapon/armour). */
+  async getData(options) {
+    const ctx = await super.getData(options);
+    try {
+      const cur = Math.max(0, CODEX_STATUS.indexOf(ctx?.data?.status ?? "None"));
+      ctx.cdxConditions = CODEX_STATUS.map((value, i) => ({
+        value,
+        label: CODEX_STATUS_LABELS[i],
+        current: i === cur,
+        filled: i >= 1 && i <= cur, // Minor..current shade in as a progress track
+      }));
+    } catch (e) { ctx.cdxConditions = []; }
+    return ctx;
   }
 
   /** Add a scheme picker to the window header controls. @override */

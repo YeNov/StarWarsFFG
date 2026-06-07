@@ -1,0 +1,62 @@
+{{!--
+  Codex II — armour item. Header: type pill · name · image + stat grid (Soak/
+  Defence/Encum/HP/Price/Rarity, 2-col) · condition track · quality pills.
+  Tabs: Description · Configuration (restricted) · Modifiers · Sources · Tags.
+--}}
+<form class="cdx-sheet cdx-item cdx-item-armour" autocomplete="off">
+  <header class="cdx-iwhead">
+    <div class="cdx-ipill">{{localize "TYPES.Item.armour"}}</div>
+    <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+
+    <div class="cdx-iwmain">
+      <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
+      <div class="cdx-istats">
+        <div class="cdx-istat"><span class="cdx-istat-k">Soak</span><input class="cdx-istat-v" type="text" name="data.soak.value" value="{{data.soak.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">Defence</span><input class="cdx-istat-v" type="text" name="data.defence.value" value="{{data.defence.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">Encum</span><input class="cdx-istat-v" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">HP</span><input class="cdx-istat-v" type="text" name="data.hardpoints.value" value="{{data.hardpoints.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">Price</span><input class="cdx-istat-v" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" /></div>
+        <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /></div>
+      </div>
+    </div>
+
+    <div class="cdx-cond-wrap">
+      <div class="cdx-cond-head"><span>{{localize "SWFFG.ItemWeaponStatus"}}</span>{{#each cdxConditions as |c|}}{{#if c.current}}<span class="cdx-cond-cur">{{c.label}}</span>{{/if}}{{/each}}</div>
+      <div class="cdx-cond">
+        {{#each cdxConditions as |c|}}
+        <label class="cdx-cond-seg{{#if c.filled}} filled{{/if}}{{#if c.current}} current{{/if}}">
+          <input type="radio" name="data.status" value="{{c.value}}" {{#if c.current}}checked{{/if}} />
+          <span class="cdx-cond-bar"></span><span class="cdx-cond-lbl">{{c.label}}</span>
+        </label>
+        {{/each}}
+      </div>
+    </div>
+
+    {{#if data.itemmodifier.length}}
+    <div class="cdx-qual-wrap"><span class="cdx-qual-k">Qualities</span><div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div></div>
+    {{/if}}
+  </header>
+
+  {{> "systems/starwarsffg/templates/parts/shared/ffg-tabs.html" displayLimited=true limited=limited items=(array
+    (object tab="description" label="SWFFG.TabDescription" icon="far fa-file-alt" cls=classType)
+    (object tab="configuration" label="SWFFG.TabConfiguration" icon="fa-solid fa-wrench" cls=classType)
+    (object tab="attributes" label="SWFFG.TabModifiers" icon="fa-solid fa-cog" cls=classType)
+    (object tab="sources" label="SWFFG.TabSources" icon="fa-light fa-book-open-cover" cls=classType)
+    (object tab="tags" label="SWFFG.TabTags" icon="fa-sharp fa-regular fa-tags" cls=classType)
+  )}}
+
+  <section class="sheet-body cdx-item-body armour">
+    <div class="tab" data-group="primary" data-tab="description">
+      {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+    </div>
+    <div class="tab configuration" data-group="primary" data-tab="configuration">
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.IsRestricted" type="Boolean" name="data.rarity.isrestricted" value=data.rarity.isrestricted)}}
+    </div>
+    <div class="tab attributes" data-group="primary" data-tab="attributes">
+      <div class="attachments items">{{> "systems/starwarsffg/templates/parts/ffg-qualities-attachments-mods.html"}}</div>
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}
+    </div>
+    <div class="tab sources" data-group="primary" data-tab="sources">{{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}</div>
+    <div class="tab tags" data-group="primary" data-tab="tags">{{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}</div>
+  </section>
+</form>
