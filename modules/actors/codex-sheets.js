@@ -28,6 +28,16 @@ import { killMinionGroup } from "../helpers/minions.js";
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
+/** The client-configured default Codex colour scheme (Settings → Codex II
+ *  Default Colour Scheme), used when a document has no per-document scheme flag.
+ *  Falls back to republic if the setting isn't registered yet. */
+export function cdxDefaultScheme() {
+  try {
+    const s = game.settings.get("starwarsffg", "codexDefaultScheme");
+    return CDX_SCHEMES.includes(s) ? s : "republic";
+  } catch (e) { return "republic"; }
+}
+
 /**
  * Codex alignment — drives the Force chip's background colour (neutral=white,
  * good=blue, evil=red). A per-actor flag `flags.starwarsffg.codexAlignment` ∈
@@ -83,7 +93,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   /** The per-actor palette, defaulting to republic. */
   _cdxScheme() {
     const s = this.actor?.getFlag?.("starwarsffg", "scheme");
-    return CDX_SCHEMES.includes(s) ? s : "republic";
+    return CDX_SCHEMES.includes(s) ? s : cdxDefaultScheme();
   }
 
   /**

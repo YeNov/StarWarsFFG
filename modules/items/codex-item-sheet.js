@@ -16,7 +16,7 @@
  * markup (and the shared modifiers/sources/tags partials) and only restyle it.
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
-import { CDX_SCHEMES } from "../actors/codex-sheets.js";
+import { CDX_SCHEMES, cdxDefaultScheme } from "../actors/codex-sheets.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -38,7 +38,7 @@ export class CodexItemSheet extends ItemSheetFFG {
   _cdxScheme() {
     const s = this.item?.getFlag?.("starwarsffg", "scheme")
       ?? this.item?.actor?.getFlag?.("starwarsffg", "scheme");
-    return CDX_SCHEMES.includes(s) ? s : "republic";
+    return CDX_SCHEMES.includes(s) ? s : cdxDefaultScheme();
   }
 
   /** Replace the legacy root classes with ONLY the palette class (mirrors the

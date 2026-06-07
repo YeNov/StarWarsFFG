@@ -265,6 +265,26 @@ export default class SettingsHelpers {
       onChange: this.debouncedReload,
     });
 
+    // Default Codex colour scheme — used when a document has no per-document
+    // scheme flag. Only meaningful when the Default Sheet Theme is Codex II.
+    // Client-scoped like the theme so each player picks their own.
+    game.settings.register("starwarsffg", "codexDefaultScheme", {
+      name: "Codex II — Default Colour Scheme",
+      hint: "The Codex II palette to use for documents that don't have a scheme of their own. Applies only when Default Sheet Theme is Codex II. Stored locally per client. Reloads on change.",
+      scope: "client",
+      config: true,
+      default: "republic",
+      type: String,
+      choices: {
+        republic: "Republic",
+        empire: "Empire",
+        dark: "Dark",
+        light: "Light",
+        mercenary: "Mercenary",
+      },
+      onChange: this.debouncedReload,
+    });
+
     // Register setting for token healthy
     game.settings.register("starwarsffg", "ui-token-healthy", {
       name: game.i18n.localize("SWFFG.Settings.Tokens.Bar.Healthy.Name"),

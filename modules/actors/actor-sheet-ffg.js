@@ -2338,7 +2338,11 @@ export class ActorSheetFFG extends FFGActorSheet {
   async _buyCore(event) {
     if(!this.actor.verifyEditModeIsNotEnabled()) return;
 
-    const action = $(event.target).data("buy-action");
+    // Read from currentTarget (the bound .ffg-purchase element that carries the
+    // data-* attrs), NOT event.target — clicking a label with child spans (e.g.
+    // the codex characteristic chip's full/abbr label) lands on a child that has
+    // no data-buy-action, which previously made the purchase silently bail.
+    const action = $(event.currentTarget).data("buy-action");
     const template = "systems/starwarsffg/templates/dialogs/ffg-confirm-purchase.html";
     let content;
     const availableXP = this.object.system.experience.available;
@@ -2557,7 +2561,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       itemType = game.i18n.localize("TYPES.Item.talent");
       content = await foundry.applications.handlebars.renderTemplate(template, { selectableItems, itemType: itemType, itemCategory: "talent" });
     } else if (action === "characteristic") {
-      const characteristic = $(event.target).data("buy-characteristic");
+      const characteristic = $(event.currentTarget).data("buy-characteristic");
       await this._buyCharacteristicRank(characteristic);
       return;
     } else if (action === "skill") {
