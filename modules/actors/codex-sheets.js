@@ -315,6 +315,26 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         await killMinionGroup(this.actor);
       });
     });
+    // Minion config inputs — group size (quantity.max) and wounds-per-member
+    // (unit_wounds.value). These drive DERIVED values (wounds.max, alive count,
+    // the wound-pool track), so they need an explicit, re-rendering write:
+    //  • The generic change pipeline submits with render:false, so the combined
+    //    wound pool never updated in place after an edit.
+    //  • Worse, leaving edit mode triggers its own re-render that could race the
+    //    in-flight render:false submit, leaving the typed value seemingly lost.
+    // Persist via an explicit system path (no reliance on the data.* alias) and
+    // let actor.update re-render (default), so the pool updates live and the
+    // value survives leaving edit mode. stopPropagation keeps the generic form
+    // submit from also firing for this field and racing us.
+    root.querySelectorAll('input[name="data.quantity.max"], input[name="data.unit_wounds.value"]').forEach((input) => {
+      input.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        const raw = parseInt(String(ev.currentTarget.value).replace(/[^\d-]/g, ""), 10);
+        const val = Math.max(0, Number.isFinite(raw) ? raw : 0);
+        const path = ev.currentTarget.name === "data.quantity.max" ? "system.quantity.max" : "system.unit_wounds.value";
+        await this.actor.update({ [path]: val });
+      });
+    });
   }
 
   /**
