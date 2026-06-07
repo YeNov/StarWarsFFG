@@ -147,6 +147,13 @@
 .cdx .cdx-pill .item-delete:hover { opacity:1; }
 .cdx .cdx-pill-add { color:rgba(255,255,255,.8); font-size:12px; cursor:pointer; }
 .cdx .cdx-drag { font-size:10px; font-style:italic; opacity:.7; }
+/* "Buy <thing>" placeholder for an empty spec/force/signature block — only an
+   affordance while XP-buy mode is on (.cdx-xpbuy). The .cdx-drag-shaped text
+   doubles as the purchase trigger (ffg-purchase + data-buy-action). The empty-
+   state "Assign Species/Career" placeholders use plain .cdx-drag and stay on. */
+.cdx .cdx-buy { display:none; cursor:pointer; }
+.cdx .cdx-xpbuy .cdx-buy { display:inline; }
+.cdx .cdx-xpbuy .cdx-buy:hover { opacity:1; text-decoration:underline; }
 
 .cdx .cdx-header-stats { flex:none; display:flex; flex-direction:column; gap:7px; align-items:stretch; }
 /* XP + CR side by side only when the header is wide enough that the middle pill
