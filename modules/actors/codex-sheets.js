@@ -584,6 +584,10 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         ctx.cdxVehCritCount = crit;
         const cost = Number(s.cost?.value) || 0;
         ctx.cdxVehCost = cost >= 1000 ? `${(cost / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })}k` : String(cost);
+        // Speed-chip background ramp: white at 0, red-orange at full speed.
+        const spMax = Number(s.speed?.max) || 0;
+        const spVal = Number(s.speed?.value) || 0;
+        ctx.cdxVehSpeedPct = spMax > 0 ? Math.max(0, Math.min(100, Math.round((spVal / spMax) * 100))) : 0;
       } catch (e) { ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0"; }
     }
     return ctx;
