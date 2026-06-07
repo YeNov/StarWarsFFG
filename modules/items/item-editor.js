@@ -21,6 +21,19 @@ export class itemEditor extends FFGFormApplication {
       currentItem: data.clickedObject.name,
       parentItem: data.sourceObject.name,
     });
+    // Codex skin — applied ONLY when the host item's resolved sheet is the Codex
+    // item sheet (so a stock-sheet weapon keeps the stock embedded editor). The
+    // Codex class is read from CONFIG.FFG.codexSheets (set at registration) to
+    // avoid importing the sheet module here. Scheme follows the host item/actor.
+    try {
+      const codexCls = CONFIG.FFG?.codexSheets?.item?.cls;
+      this._cdx = !!(codexCls && data.sourceObject?._getSheetClass?.() === codexCls);
+      if (this._cdx) {
+        const SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
+        const s = data.sourceObject?.getFlag?.("starwarsffg", "scheme") ?? data.sourceObject?.actor?.getFlag?.("starwarsffg", "scheme");
+        this._cdxScheme = SCHEMES.includes(s) ? s : "republic";
+      }
+    } catch (e) { this._cdx = false; }
   }
 
   static DEFAULT_OPTIONS = {
@@ -112,6 +125,13 @@ export class itemEditor extends FFGFormApplication {
   /** @override */
   async _onRender(context, options) {
     await super._onRender(context, options);
+    // Apply the Codex scope when the host uses a Codex sheet: `cdx` (+ `cdx-embed`)
+    // on the window so the palette vars resolve and the editor is skinned, and
+    // the scheme class on the content form.
+    if (this._cdx && this.element) {
+      this.element.classList.add("cdx", "cdx-embed");
+      this.form?.classList?.add(`scheme-${this._cdxScheme}`);
+    }
     this._setupTabs();
     this._activateListeners($(this.form));
   }

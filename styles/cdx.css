@@ -1053,3 +1053,25 @@
 .cdx .cdx-istat-adj { position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-family:"Orbitron"; font-weight:900; font-size:18px; line-height:1; white-space:nowrap; }
 .cdx .cdx-istat-adj.better { color:#1f9d3a; }
 .cdx .cdx-istat-adj.worse { color:#cf2e2e; }
+
+/* ---- Embedded item editor (itemEditor), Codex skin ----
+   Only applied when the host item resolves to a Codex sheet: item-editor.js adds
+   `cdx cdx-embed` to the window + the scheme class to the content form, so the
+   palette vars resolve via `.cdx form.scheme-*` and the `.cdx > form.window-content`
+   shell paints the parchment background. These rules restyle the editor's own
+   structure (nav.tabs / section.content / .form-group) — scoped to .cdx.cdx-embed so
+   no other Codex sheet is affected. Tab show/hide stays with Foundry's Tabs. */
+.cdx.cdx-embed .tabs { display:flex; flex-wrap:wrap; gap:2px; border:none; border-bottom:2px solid var(--cdx-accent); margin-bottom:10px; padding:0; }
+.cdx.cdx-embed .tabs .item { flex:none; border:none; background:transparent; padding:6px 14px; font-family:"Orbitron"; font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; }
+.cdx.cdx-embed .tabs .item:hover { color:var(--cdx-accent); }
+.cdx.cdx-embed .tabs .item.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+.cdx.cdx-embed .form-group { display:flex; flex-direction:column; gap:3px; margin-bottom:9px; }
+.cdx.cdx-embed .form-group > label { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); display:flex; align-items:center; gap:4px; }
+.cdx.cdx-embed input[type=text], .cdx.cdx-embed input[type=number], .cdx.cdx-embed select {
+  width:100%; box-sizing:border-box; background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px;
+  color:var(--cdx-ink); font-family:"Orbitron"; font-weight:700; font-size:13px; padding:5px 8px;
+}
+.cdx.cdx-embed select option { color:#111; }
+.cdx.cdx-embed input[type=checkbox] { accent-color:var(--cdx-accent); width:16px; height:16px; }
+.cdx.cdx-embed .attributes-header, .cdx.cdx-embed .mod_container .attributes-header { font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-brown); }
+.cdx.cdx-embed .add-mod, .cdx.cdx-embed .add-modification { color:var(--cdx-accent); width:auto; }
