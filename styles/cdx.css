@@ -513,7 +513,7 @@
    in every scheme except Dark (near-white there). Needs > specificity than the
    .derived brass border to win. Box/value keep the scheme paper2/ink defaults so
    a near-white outline stays visible on the dark-scheme dark box. */
-.cdx .cdx-veh-zones .cdx-chip.derived .cdx-chip-box { border-color:var(--cdx-ink); }
+.cdx .cdx-veh-zones .cdx-chip.derived .cdx-chip-box { border:1.5px solid var(--cdx-ink); }
 .cdx .cdx-veh-zones .cdx-ratio-step { border-color:var(--cdx-ink); }
 /* Speed chip: same rule — the double outline + steppers follow var(--cdx-ink).
    The value text stays pinned dark since its box is the light white→orange ramp. */

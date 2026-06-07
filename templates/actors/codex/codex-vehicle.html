@@ -24,7 +24,7 @@
         <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.silhouette.value" value="{{data.stats.silhouette.value}}" data-dtype="Number" pattern="^(10|[0-9])$" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleSilhouette"}}</div></div>
         {{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.speed.value maxValue=data.stats.speed.max path="stats.speed.value" maxPath="stats.speed.max" label=(localize "SWFFG.VehicleSpeed") ratioBg=true ratioPct=cdxVehSpeedPct noClamp=true disabled=disabled}}
         <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.handling.value" value="{{data.stats.handling.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleHandling"}}</div></div>
-        <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.armour.value" value="{{data.stats.armour.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.VehicleArmor"}}</div></div>
+        <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.armour.value" value="{{data.stats.armour.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleArmor"}}</div></div>
       </div>
 
       {{!-- Hull Trauma · System Strain --}}
