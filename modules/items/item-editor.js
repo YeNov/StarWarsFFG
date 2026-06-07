@@ -214,6 +214,11 @@ export class itemEditor extends FFGFormApplication {
    * @param event
    */
   async _modControl(event) {
+    // The control is an <a data-action="create|delete">; stop the click here so
+    // it doesn't bubble to ApplicationV2's [data-action] dispatcher / the form,
+    // which (on delete) was closing the editor window.
+    event.preventDefault();
+    event.stopPropagation();
     let action = event.currentTarget.getAttribute('data-action');
     if (action === 'create') {
       const nk = new Date().getTime();
@@ -275,6 +280,10 @@ export class itemEditor extends FFGFormApplication {
    * @param event
    */
   async _modificationControl(event) {
+    // Stop the <a data-action="delete"> click from bubbling to ApplicationV2's
+    // [data-action] dispatcher / the form, which was closing the editor window.
+    event.preventDefault();
+    event.stopPropagation();
     if(this.actor && !this.data.sourceObject.parent?.verifyEditModeIsNotEnabled()) return;
 
     let action = event.currentTarget.getAttribute('data-action');
@@ -866,6 +875,11 @@ export class forcePowerEditor extends itemEditor {
    * @param event
    */
   async _modControl(event) {
+    // The control is an <a data-action="create|delete">; stop the click here so
+    // it doesn't bubble to ApplicationV2's [data-action] dispatcher / the form,
+    // which (on delete) was closing the editor window.
+    event.preventDefault();
+    event.stopPropagation();
     let action = event.currentTarget.getAttribute('data-action');
     if (action === 'create') {
       const nk = new Date().getTime();
