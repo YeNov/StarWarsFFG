@@ -448,9 +448,11 @@
 /* Each member is a bordered box of unit_wounds segments; 3px between the boxes.
    The row wraps when the boxes no longer fit (segments have a min-width, so a
    box can't shrink indefinitely — once the row is full it wraps to the next). */
-.cdx .cdx-wound-track { display:flex; flex-wrap:wrap; gap:3px; align-items:center; margin-top:10px; }
-.cdx .cdx-member-group { display:flex; gap:2px; flex:1 1 auto; padding:2px; border:1px solid var(--cdx-line); border-radius:3px; }
-.cdx .cdx-wound-seg { flex:1 1 0; min-width:11px; max-width:18px; height:11px; border-radius:2px; background:var(--cdx-track); }
+.cdx .cdx-wound-track { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-start; margin-top:10px; }
+/* flex:0 0 auto → each box is exactly as wide as its segments (the border hugs
+   them, no empty filler), left-anchored, 10px apart, wrapping when out of room. */
+.cdx .cdx-member-group { display:flex; gap:2px; flex:0 0 auto; padding:2px; border:1px solid var(--cdx-line); border-radius:3px; }
+.cdx .cdx-wound-seg { flex:0 0 auto; width:14px; height:11px; border-radius:2px; background:var(--cdx-track); }
 .cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
 
 /* ---- Tabs ---- */
