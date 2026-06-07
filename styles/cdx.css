@@ -388,6 +388,11 @@
 
 /* ---- Minion: Group Strength + Combined Wound Pool ---- */
 /* Top row: Group Strength takes the lion's share, Defence sits beside it. */
+/* Persistent stats wrapper: a plain block, pinned (flex:none) as a child of the
+   column-flex form so it never shrinks. Its children (top row + wound pool) lay
+   out in normal block flow, so the wound pool can't be collapsed by the form's
+   flex distribution the way a direct flex-item .cdx-stat would be. */
+.cdx .cdx-minion-stats { flex:none; }
 .cdx .cdx-minion-top { display:flex; gap:6px; align-items:stretch; }
 .cdx .cdx-minion-top .cdx-gs { flex:2; }
 .cdx .cdx-minion-top .cdx-minion-def { flex:1; min-width:150px; }

@@ -15,6 +15,11 @@
   </header>
 
   {{#unless limited}}
+  {{!-- Persistent minion stats (always visible, above the tabs). Wrapped in a
+       plain block so the wound pool is block-flow, NOT a flex item of the
+       column-flex form — otherwise it gets squeezed to 0 height whenever the
+       active tab's pane is tall enough to overflow the sheet. --}}
+  <div class="cdx-minion-stats">
   {{!-- Top row: Group Strength (members alive/max + Wipe Out) · Defence (Soak +
        Melee/Ranged setback dice, identical to the character/nemesis block). --}}
   <div class="cdx-minion-top">
@@ -69,6 +74,7 @@
       </div>
     </div>
   </div>
+  </div>{{!-- /cdx-minion-stats --}}
 
   {{!-- Tabs — same names/order/list as the character/nemesis sheet (no XP). --}}
   <nav class="cdx-tabstrip">
