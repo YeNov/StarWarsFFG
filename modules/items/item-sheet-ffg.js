@@ -916,7 +916,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     // Toggle attachment and mod details (not actually force powers, but we are reusing it!)
       html.find(".expand-desc").click(async (ev) => {
         ev.stopPropagation();
-        if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable")) {
+        if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable") && !$(ev.target).closest(".item-control").length) {
           CONFIG.logger.debug("Caught attachment or mod description click");
           // expand or shrink the description
           const li = $(ev.currentTarget);
@@ -955,7 +955,11 @@ export class ItemSheetFFG extends FFGDocumentSheet {
 
           await this._itemDisplayDesc(desc, ev);
         } else {
-          if (!$(ev.target).hasClass("fa-trash")) {
+          // Edit only when the click is within the edit control (icon OR its
+          // <a> wrapper) — clicking the anchor padding used to fall through to
+          // the expand branch (nothing happened), and delete clicks must not
+          // open the editor.
+          if ($(ev.target).closest(".item-edit").length) {
             // edit the item
             CONFIG.logger.debug("Caught mod or attachment edit request");
             // pull the item which the edit is on

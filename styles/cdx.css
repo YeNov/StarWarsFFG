@@ -973,10 +973,20 @@
 .cdx .cdx-item-body .talent-list .talents-header > div:not(.header-name) { flex:none; font-size:8.5px; letter-spacing:.8px; color:var(--cdx-dim); }
 /* Card row */
 .cdx .cdx-item-body .item.force-power {
-  display:flex; align-items:center; gap:10px;
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
   background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip);
   padding:7px 10px 7px 13px; margin-bottom:6px; cursor:pointer;
 }
+/* Expanded description (`_itemDisplayDesc` appends `.item-details` inside the
+   flex card). Force it onto its own full-width line BELOW the row instead of
+   sitting inline and clipping. */
+.cdx .cdx-item-body .item.force-power .item-details {
+  flex:0 0 100%; width:100%; margin-top:5px; padding-top:7px; border-top:1px dotted var(--cdx-line);
+  font-size:12px; line-height:1.45; color:var(--cdx-dim); white-space:normal; cursor:default;
+}
+.cdx .cdx-item-body .item.force-power .item-details * { color:var(--cdx-dim); }
+.cdx .cdx-item-body .item.force-power .item-details .statt,
+.cdx .cdx-item-body .item.force-power .item-details .stat { font-weight:700; color:var(--cdx-ink); margin-right:8px; }
 .cdx .cdx-item-body .item.force-power .item-name {
   flex:1; min-width:0; font-size:14px; color:var(--cdx-ink);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
