@@ -165,6 +165,14 @@ export class itemEditor extends FFGFormApplication {
     }
   }
 
+  /** DragDrop permission hooks. itemEditor extends FFGFormApplication (not the
+   *  sheet classes that define these), so without them `this._canDragStart.bind`
+   *  on the attachment DragDrop above throws a TypeError — which aborted
+   *  _onRender and left the attachment editor window un-draggable (qualities,
+   *  which skip the DragDrop, were unaffected). */
+  _canDragStart(_selector) { return true; }
+  _canDragDrop(_selector) { return true; }
+
   async onDropMod(event) {
     CONFIG.logger.debug("caught mod drag-and-drop");
     if (this.data.clickedObject.type !== "itemattachment") {
