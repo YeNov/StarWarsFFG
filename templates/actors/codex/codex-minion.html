@@ -12,12 +12,6 @@
       <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.MinionName'}}" data-dtype="String" />
       <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.minion" }}</span></div>
     </div>
-    {{#unless limited}}
-    <div class="cdx-minion-kill">
-      <button type="button" class="minion-control kill-minion cdx-killbtn" title="{{localize "SWFFG.Actors.Sheets.Token.KillMinion.KillMinion"}}"><i class="fa-solid fa-skull-crossbones"></i></button>
-      <button type="button" class="minion-control kill-group cdx-killbtn" title="{{localize "SWFFG.Actors.Sheets.Token.KillMinion.KillGroup"}}"><i class="fa-solid fa-users-slash"></i></button>
-    </div>
-    {{/unless}}
   </header>
 
   {{#unless limited}}

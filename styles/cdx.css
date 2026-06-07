@@ -225,11 +225,6 @@
 .cdx .cdx-vehicle-info label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-vehicle-info input[type=text] { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); width:100%; }
 
-/* ---- Minion kill buttons ---- */
-.cdx .cdx-minion-kill { flex:none; display:flex; gap:6px; align-items:center; }
-.cdx .cdx-killbtn { width:34px; height:34px; border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.12); color:var(--cdx-head-ink); border-radius:5px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; justify-content:center; }
-.cdx .cdx-killbtn:hover { background:rgba(255,255,255,.25); }
-
 /* ---- Chip row (characteristics + soak + force) ---- */
 .cdx .cdx-chiprow { display:flex; gap:6px; align-items:center; }
 /* Characteristics row now lives at the top of the Skills pane — space it off the
