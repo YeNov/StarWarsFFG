@@ -23,6 +23,7 @@ import { ActorSheetFFG } from "./actor-sheet-ffg.js";
 import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
 import { CdxPillStack } from "./cdx-pill-stack.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
+import { killMinionGroup } from "../helpers/minions.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
@@ -286,6 +287,34 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         await this.actor.update({ "system.stats.forcePool.value": val });
       });
     });
+    // Minion Group-Strength steppers (members alive ±1). Alive count is DERIVED
+    // from wounds (system prepareData), so we can't write it directly — instead
+    // snap wounds.value to the canonical minimum for the target alive count:
+    //   killed = qmax − alive;  wounds = killed<=0 ? 0 : killed×unit + 1
+    // (+1 crosses the member's threshold; matches the system's alive formula).
+    root.querySelectorAll(".cdx-gs-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const sys = this.actor?.system;
+        if (!sys) return;
+        const unit = Math.max(1, Math.trunc(Number(sys.unit_wounds?.value) || 1));
+        const qmax = Math.max(0, Math.trunc(Number(sys.quantity?.max) || 0));
+        const alive = Math.max(0, Math.min(qmax, Math.trunc(Number(sys.quantity?.value) || 0)));
+        const target = Math.max(0, Math.min(qmax, alive + dir));
+        if (target === alive) return;
+        const killed = qmax - target;
+        const wounds = killed <= 0 ? 0 : killed * unit + 1;
+        await this.actor.update({ "system.stats.wounds.value": wounds });
+      });
+    });
+    // Wipe Out — eliminate the whole group (wounds → max+1 ⇒ alive 0).
+    root.querySelectorAll(".cdx-wipeout").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        await killMinionGroup(this.actor);
+      });
+    });
   }
 
   /**
@@ -489,6 +518,28 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         t.cdxAct = /out of turn/i.test(String(act)) ? "Active (OOT)" : String(act);
       }
     } catch (e) { /* leave talentList untouched */ }
+    // Minion combined-wound-pool track: a grid of member groups, each
+    // `unit_wounds` segments wide, filled left-to-right by total wounds suffered.
+    // Precomputed here (booleans) rather than via Handlebars arithmetic helpers,
+    // which aren't all available. The system already derives quantity.value
+    // (alive) and stats.wounds.max (= unit_wounds × quantity.max) from wounds.
+    if (this.actor?.type === "minion") {
+      try {
+        const unit = Math.max(1, Math.trunc(Number(this.actor.system?.unit_wounds?.value) || 1));
+        const qmax = Math.max(0, Math.trunc(Number(this.actor.system?.quantity?.max) || 0));
+        const woundsVal = Math.max(0, Math.trunc(Number(this.actor.system?.stats?.wounds?.value) || 0));
+        const groups = [];
+        for (let g = 0; g < qmax; g++) {
+          const seg = [];
+          for (let s = 0; s < unit; s++) seg.push((g * unit + s) < woundsVal);
+          groups.push(seg);
+        }
+        ctx.cdxMinionGroups = groups;
+        // Pre-format the hint here (game.i18n.format is reliable; the {{localize}}
+        // Handlebars helper's hash-format support is version-dependent).
+        ctx.cdxMinionWoundHint = game.i18n.format("SWFFG.Codex.WoundsSuffered", { n: unit });
+      } catch (e) { ctx.cdxMinionGroups = []; }
+    }
     return ctx;
   }
 

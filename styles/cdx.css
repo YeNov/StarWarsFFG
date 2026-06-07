@@ -391,6 +391,44 @@
 .cdx .cdx-track .cdx-track-fill { height:100%; }
 .cdx .cdx-pip { flex:1 1 0; max-width:12px; height:9px; border-radius:1px; background:var(--cdx-track); }
 
+/* ---- Minion: Group Strength + Combined Wound Pool ---- */
+/* Top row: Group Strength takes the lion's share, Defence sits beside it. */
+.cdx .cdx-minion-top { display:flex; gap:6px; align-items:stretch; }
+.cdx .cdx-minion-top .cdx-gs { flex:4; }
+.cdx .cdx-minion-top .cdx-minion-def { flex:1.15; min-width:150px; }
+.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:14px; padding:8px 12px; }
+.cdx .cdx-gs-counter { flex:none; gap:9px; }
+.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; }
+.cdx .cdx-gs-cur { color:var(--cdx-ink); }
+.cdx .cdx-gs-max { color:var(--cdx-dim); }
+.cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-dim); padding:0; }
+.cdx .cdx-gs-label { flex:1; min-width:0; font-size:13px; color:var(--cdx-dim); }
+.cdx .cdx-wipeout {
+  flex:none; display:inline-flex; align-items:center; gap:8px; padding:6px 16px; cursor:pointer;
+  background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip);
+  font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-ink);
+}
+.cdx .cdx-wipeout:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
+.cdx .cdx-wipeout > i { font-size:13px; }
+
+/* Combined wound pool — full-width panel below the top row. */
+.cdx .cdx-wp { margin-top:6px; }
+.cdx .cdx-wp-unit-in { width:1.6em; text-align:center; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); border-radius:2px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; color:#fff; padding:0 2px; }
+.cdx .cdx-wp-body { padding:8px 12px 12px; }
+.cdx .cdx-wp-counter { gap:9px; }
+.cdx .cdx-wp-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; }
+.cdx .cdx-wp-cur { color:var(--cdx-ink); }
+.cdx .cdx-wp-max { color:var(--cdx-dim); }
+.cdx .cdx-wp-label { flex:1; min-width:0; font-size:13px; color:var(--cdx-dim); }
+/* The track: each member is a group of unit_wounds segments; a wider gap between
+   groups than within. Filled = wounds suffered (left-to-right). Filled colour is
+   --cdx-ink so it stays visible on light AND dark schemes (a literal black would
+   vanish on the dark scheme). */
+.cdx .cdx-wound-track { display:flex; gap:4px; align-items:center; margin-top:10px; }
+.cdx .cdx-member-group { display:flex; gap:2px; flex:1; }
+.cdx .cdx-wound-seg { flex:1 1 0; max-width:16px; height:11px; border-radius:2px; background:var(--cdx-track); }
+.cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
+
 /* ---- Tabs ---- */
 .cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
 .cdx .cdx-tab {
