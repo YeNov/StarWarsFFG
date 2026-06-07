@@ -902,3 +902,53 @@
 /* Talent: taller stat boxes; the activation select is the clickable block. */
 .cdx .cdx-istats-talent .cdx-istat-v, .cdx .cdx-istats-talent .cdx-istat-sel { min-height:36px; }
 .cdx .cdx-istats-talent .cdx-istat-sel { font-size:15px; }
+
+/* ---- Qualities / Attachments lists (item sheets) ----
+   The stock ffg-mods / qualities-attachments partials are kept VERBATIM — their
+   DOM is load-bearing: the edit/delete handlers walk control → parent → parent
+   to the data-carrying <li>, and drag-drop targets `.item.force-power`. We only
+   restyle them into Codex cards. Shared markup in both partials:
+     ul.talent-list > li.talents-header.flexrow          (section head)
+                    > ul.items-list
+                        > li.item.force-power.expand-desc (a card row)
+                            > .item-name
+                            > <ranks count | hardpoints text>
+                            > .item-controls > a.item-edit, a.item-delete
+   Scoped to .cdx-item-body so actor-sheet talent lists are untouched. */
+.cdx .cdx-item-body .talent-list,
+.cdx .cdx-item-body .talent-list .items-list { list-style:none; margin:0; padding:0; }
+.cdx .cdx-item-body .talent-list { margin-bottom:10px; }
+.cdx .cdx-item-body .talents-header {
+  display:flex; align-items:center; gap:8px; margin:10px 0 8px; padding:0 0 4px;
+  border-bottom:2px solid var(--cdx-accent);
+  font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown);
+}
+.cdx .cdx-item-body .talents-header .header-name { flex:1; min-width:0; }
+.cdx .cdx-item-body .talents-header > div:not(.header-name) { flex:none; font-size:8.5px; letter-spacing:.8px; color:var(--cdx-dim); }
+/* Card row */
+.cdx .cdx-item-body .item.force-power {
+  display:flex; align-items:center; gap:10px;
+  background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip);
+  padding:7px 10px 7px 13px; margin-bottom:6px; cursor:pointer;
+}
+.cdx .cdx-item-body .item.force-power .item-name {
+  flex:1; min-width:0; font-size:14px; color:var(--cdx-ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cdx .cdx-item-body .item.force-power .item-name .restricted { color:#cf2e2e; }
+/* Middle column — ranks count (qualities) or "Hardpoints: N" (attachments). */
+.cdx .cdx-item-body .item.force-power > div:not(.item-name):not(.item-controls) {
+  flex:none; display:flex; align-items:center; gap:4px;
+  font-family:"Orbitron"; font-weight:700; font-size:11px; color:var(--cdx-dim); white-space:nowrap;
+}
+.cdx .cdx-item-body .item.force-power .fa-circle-question { color:var(--cdx-dim); font-size:11px; }
+/* Edit / delete controls */
+.cdx .cdx-item-body .item-controls { flex:none; display:flex; align-items:center; gap:9px; }
+.cdx .cdx-item-body .item-controls .item-control { width:auto; color:var(--cdx-dim); cursor:pointer; font-size:12px; line-height:1; }
+.cdx .cdx-item-body .item-controls .item-control:hover { color:var(--cdx-accent); }
+.cdx .cdx-item-body .item-controls .item-delete:hover { color:#cf2e2e; }
+/* Empty-state "drag & drop" text (qualities partial emits a bare text node). */
+.cdx .cdx-item-body .talent-list > .items-list:not(:has(li)) {
+  display:block; padding:8px 4px; text-align:center;
+  font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim);
+}
