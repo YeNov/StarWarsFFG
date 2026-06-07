@@ -17,6 +17,9 @@
         <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponRarity"}}</span><input class="cdx-istat-v" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /></div>
         {{/if}}
       </div>
+      {{#if data.itemmodifier.length}}
+      <div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div>
+      {{/if}}
       <label class="cdx-icheck"><input type="checkbox" name="data.rarity.isrestricted" data-dtype="Boolean" {{checked data.rarity.isrestricted}} /><span>{{localize "SWFFG.IsRestricted"}}</span></label>
     </div>
   </header>

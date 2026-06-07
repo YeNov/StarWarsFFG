@@ -796,6 +796,9 @@
 .cdx .cdx-istat-v { width:100%; box-sizing:border-box; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); padding:5px 6px; }
 .cdx .cdx-istat.cdx-restricted .cdx-istat-v { color:#cf2e2e; }
 .cdx .cdx-icheck { display:inline-flex; align-items:center; gap:7px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; }
+/* Quality pills — the item's qualities (data.itemmodifier), name + rank. */
+.cdx .cdx-iquals { display:flex; flex-wrap:wrap; gap:5px; }
+.cdx .cdx-iqual { font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-ink); background:var(--cdx-career); border:1px solid var(--cdx-career-line); border-radius:10px; padding:2px 9px; white-space:nowrap; }
 
 /* Native tab strip (.sheet-tabs) → codex tab look; only the active .tab shows. */
 .cdx .sheet-tabs { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); margin-bottom:8px; padding:0; }

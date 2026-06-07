@@ -8,7 +8,12 @@
 <form class="cdx-sheet cdx-item" autocomplete="off">
   <header class="cdx-item-header">
     <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
-    <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+    <div class="cdx-item-id">
+      <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+      {{#if data.itemmodifier.length}}
+      <div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div>
+      {{/if}}
+    </div>
   </header>
 
   {{> "systems/starwarsffg/templates/parts/shared/ffg-tabs.html" displayLimited=true limited=limited items=(array
