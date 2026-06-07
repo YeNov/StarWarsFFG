@@ -169,7 +169,7 @@
   {{!-- Cargo (any non-ship item; gear-card style like the character sheet) --}}
   <section class="cdx-pane gear" data-tab="cargo">
     <div class="cdx-gear items">
-      <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipCargoHold"}}</span><span class="item-add gear"><i class="far fa-plus-square"></i></span></div>
+      <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipCargoHold"}}</span><span class="cdx-head-enc"><span class="cdx-ge-k">{{localize "SWFFG.Encumbrance"}}</span> <span class="cdx-ge-v">{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</span></span><span class="item-add gear"><i class="far fa-plus-square"></i></span></div>
       {{#each items as |item id|}} {{#if (and (ne item.type "shipweapon") (ne item.type "shipattachment") (ne item.type "talent") (ne item.type "criticalinjury") (ne item.type "criticaldamage"))}}
       <div class="item cdx-card gear{{#if item.system.rarity.isrestricted}} cdx-restricted{{/if}}" data-item-id="{{item._id}}">
         <div class="cdx-card-main">
