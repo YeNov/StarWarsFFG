@@ -703,6 +703,18 @@
 .cdx .cdx-panel { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; margin-bottom:10px; }
 .cdx .cdx-panel-head { background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
 .cdx .cdx-bio-editor { padding:8px 10px; min-height:120px; font-size:13px; line-height:1.5; }
+/* In edit mode the global `.editor{height:100%}` / `.tox-tinymce{height:100%}`
+   rules resolve against this block, which has only a min-height (no definite
+   height) — so 100% collapses to ~0 and the edit surface disappears while the
+   toolbar still shows. Give the container a definite height ONLY while an editor
+   is active (TinyMCE or ProseMirror) so the chain resolves, and fill it. */
+.cdx .cdx-bio-editor:has(.tox-tinymce),
+.cdx .cdx-bio-editor:has(.ProseMirror) { height:320px; }
+.cdx .cdx-bio-editor:has(.tox-tinymce) > .editor,
+.cdx .cdx-bio-editor:has(.ProseMirror) > .editor { width:100%; height:100%; }
+/* View mode: override the global `.editor{height:100%}` so the rendered bio
+   grows with its content instead of being clipped by `.cdx-panel{overflow:hidden}`. */
+.cdx .cdx-bio-editor > .editor { height:auto; }
 .cdx .cdx-desc-grid { display:grid; grid-template-columns:auto 1fr; gap:5px 8px; padding:8px 10px; align-items:center; }
 .cdx .cdx-desc-grid label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-desc-grid input, .cdx .cdx-desc-grid select { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
