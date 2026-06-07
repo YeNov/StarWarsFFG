@@ -99,7 +99,8 @@
 .cdx .cdx-header:has(.cdx-header-main) { flex-direction:column; align-items:stretch; gap:10px; }
 .cdx .cdx-header-main { display:flex; gap:14px; align-items:center; }
 .cdx .cdx-portrait { flex:none; }
-.cdx .cdx-portrait .profile-img { width:clamp(100px, 30cqw, 150px); aspect-ratio:1/1; object-fit:cover; border:2px solid rgba(255,255,255,.35); border-radius:6px; cursor:pointer; }
+/* contain (not cover): show the WHOLE avatar inside the box, never cropped. */
+.cdx .cdx-portrait .profile-img { width:clamp(100px, 30cqw, 150px); aspect-ratio:1/1; object-fit:contain; background:rgba(0,0,0,.18); border:2px solid rgba(255,255,255,.35); border-radius:6px; cursor:pointer; }
 .cdx .cdx-identity { flex:1; min-width:0; display:flex; flex-direction:column; gap:9px; }
 .cdx .cdx-name {
   font-family:"Orbitron"; font-weight:900; font-size:26px; letter-spacing:1px; text-transform:uppercase; line-height:1;
@@ -454,18 +455,15 @@
 .cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
 
 /* ============================ Vehicle sheet ============================ */
-/* Dark slate header (scheme-independent), HP + Rarity badges on the right. */
+/* Dark slate header (scheme-independent). */
 .cdx .cdx-header.cdx-veh-header { background:linear-gradient(180deg,#3e4756,#262c36); color:#fff; }
 .cdx .cdx-veh-header .cdx-name { color:#fff; }
-.cdx .cdx-veh-badges { flex:none; display:flex; gap:8px; align-items:stretch; }
-.cdx .cdx-veh-badge {
-  min-width:74px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
-  padding:6px 12px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.18); clip-path:var(--cdx-clip);
-}
-.cdx .cdx-veh-badge.brass { background:var(--cdx-brass); color:#1a1205; border-color:rgba(0,0,0,.25); }
-.cdx .cdx-vb-k { font-family:"Orbitron"; font-size:8.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; opacity:.75; }
-.cdx .cdx-vb-v { font-family:"Orbitron"; font-weight:900; font-size:20px; line-height:1.05; }
-.cdx .cdx-vb-s { font-family:"Orbitron"; font-size:8px; opacity:.7; text-transform:lowercase; }
+/* Rarity/cost — a single bronze panel in the Bio tab (was a header badge). */
+.cdx .cdx-veh-rarity { display:flex; align-items:baseline; flex-wrap:wrap; gap:5px 8px; padding:9px 14px; margin-bottom:10px; background:var(--cdx-brass); color:#1a1205; clip-path:var(--cdx-clip); }
+.cdx .cdx-vr-k { font-family:"Orbitron"; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
+.cdx .cdx-vr-k:not(:first-child) { margin-left:14px; }
+.cdx .cdx-vr-v { font-family:"Orbitron"; font-weight:900; font-size:18px; }
+.cdx .cdx-vr-in { width:4em; background:rgba(255,255,255,.35); border:1px solid rgba(0,0,0,.25); border-radius:3px; font-family:"Orbitron"; font-weight:900; font-size:15px; color:#1a1205; padding:1px 4px; }
 
 /* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
 .cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }

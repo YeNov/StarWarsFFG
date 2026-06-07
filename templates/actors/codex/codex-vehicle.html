@@ -6,19 +6,14 @@
 <form class="cdx-sheet vehicle" autocomplete="off">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
-  {{!-- Dark slate header: portrait · identity (name, type pills) · HP + Rarity badges. --}}
+  {{!-- Dark slate header: portrait · identity (name, type pills). Hardpoints moved
+       to the Attachments tab; rarity/cost moved to a panel in the Bio tab. --}}
   <header class="cdx-header cdx-veh-header">
     <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
     <div class="cdx-identity">
       <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.VehicleName'}}" data-dtype="String" />
       <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.vehicle" }}</span>{{#if data.spaceShip}}<span class="cdx-pill">Starship</span>{{/if}}</div>
     </div>
-    {{#unless limited}}
-    <div class="cdx-veh-badges">
-      <div class="cdx-veh-badge"><span class="cdx-vb-k">HP</span><span class="cdx-vb-v">{{cdxVehHpUsed}}/{{data.stats.customizationHardPoints.value}}</span><span class="cdx-vb-s">hardpoints</span></div>
-      <div class="cdx-veh-badge brass"><span class="cdx-vb-k">Rarity</span><span class="cdx-vb-v">{{data.stats.rarity.value}}</span><span class="cdx-vb-s">cost {{cdxVehCost}}</span></div>
-    </div>
-    {{/unless}}
   </header>
 
   {{#unless limited}}
@@ -119,7 +114,7 @@
   {{!-- Attachments --}}
   <section class="cdx-pane items" data-tab="attachments">
     <div class="cdx-cards">
-      <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipAttachments"}}</span><span class="item-add shipattachment"><i class="far fa-plus-square"></i></span></div>
+      <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipAttachments"}}</span><span class="cdx-head-enc"><span class="cdx-ge-k">{{localize "SWFFG.VehicleHardPoints"}}</span> <span class="cdx-ge-v">{{cdxVehHpUsed}} / {{data.stats.customizationHardPoints.value}}</span></span><span class="item-add shipattachment"><i class="far fa-plus-square"></i></span></div>
       {{#each items as |item id|}} {{#iff item.type '==' 'shipattachment'}}
       <div class="item cdx-card gear" data-item-id="{{item._id}}">
         <div class="cdx-card-main">
@@ -185,6 +180,10 @@
   </section>
 
   <section class="cdx-pane bio" data-tab="bio">
+    <div class="cdx-veh-rarity">
+      <span class="cdx-vr-k">Rarity</span>{{#if disabled}}<span class="cdx-vr-v">{{data.stats.rarity.value}}</span>{{else}}<input class="cdx-vr-in" type="text" name="data.stats.rarity.value" value="{{data.stats.rarity.value}}" data-dtype="Number" />{{/if}}
+      <span class="cdx-vr-k">Cost</span>{{#if disabled}}<span class="cdx-vr-v">{{cdxVehCost}}</span>{{else}}<input class="cdx-vr-in" type="text" name="data.stats.cost.value" value="{{data.stats.cost.value}}" data-dtype="Number" />{{/if}}
+    </div>
     <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.VehicleTabDescription"}}</div><div class="cdx-bio-editor">{{editor data.enrichedBio target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
   </section>
 
