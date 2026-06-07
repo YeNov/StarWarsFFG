@@ -11,10 +11,9 @@
         <label for="name">{{ localize "SWFFG.Name" }}</label>
         <input name="name" type="text" value="{{ data.clickedObject.name }}" placeholder="{{ localize "SWFFG.Name" }}">
       </div>
-      <div class="form-group cdx-desc-group">
-        <label>{{ localize "SWFFG.TabDescription" }} <a class="cdx-desc-toggle" title="{{ localize 'SWFFG.TabDescription' }}"><i class="fa-solid fa-pen-to-square"></i></a></label>
-        <div class="cdx-desc-rendered">{{{ data.clickedObject.system.enrichedDescription }}}</div>
-        <textarea class="modifier-description cdx-desc-raw" name="system.description" rows="4" style="display:none">{{ data.clickedObject.system.description }}</textarea>
+      <div class="form-group">
+        <label>{{ localize "SWFFG.TabDescription" }}</label>
+        {{editor data.clickedObject.system.enrichedDescription target="system.description" button=true owner=true editable=true engine="prosemirror"}}
       </div>
       <div class="form-group">
         <label for="system.type">

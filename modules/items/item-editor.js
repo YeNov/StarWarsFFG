@@ -12,6 +12,9 @@ export class itemEditor extends FFGFormApplication {
   constructor(data) {
     super();
     this.data = data;
+    // Inline {{editor}} state, keyed by field name. FormDataExtended reads live
+    // ProseMirror content from these on submit (see _getSubmitData).
+    this.editors = {};
     // appId mirrors the V1 field some handlers still reference.
     this.appId = this.id;
     // The header title is dynamic (current + parent item). Set it up front so
@@ -134,6 +137,101 @@ export class itemEditor extends FFGFormApplication {
     }
     this._setupTabs();
     this._activateListeners($(this.form));
+    this._activateEditors();
+  }
+
+  /* ---- Inline {{editor}} (ProseMirror) support ----
+     FFGFormApplication half-wired this (it has the `.editor.prosemirror` change
+     guard) but never activated the editors or fed them to FormDataExtended.
+     Mirrors FFGDocumentSheet, but the field source is the embedded clickedObject
+     and the save flows through the form (_onSubmit -> _updateObject -> write-back)
+     rather than a document update. */
+
+  /** @override — feed live editor content into the submitted form data. */
+  _getSubmitData(updateData = {}) {
+    if (!this.form) throw new Error("The form application has no registered form element.");
+    const fd = new foundry.applications.ux.FormDataExtended(this.form, { editors: this.editors });
+    let data = fd.object;
+    if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
+    return foundry.utils.flattenObject(data);
+  }
+
+  /** Bind each {{editor}} Edit button to mount a ProseMirror editor inline. */
+  _activateEditors() {
+    const root = this.element;
+    if (!root) return;
+    for (const content of root.querySelectorAll(".editor-content[data-edit]")) {
+      const name = content.dataset.edit;
+      if (!name) continue;
+      const containerEl = content.closest(".editor");
+      const button = containerEl?.querySelector(".editor-edit");
+      if (!button || button.dataset.editorBound) continue;
+      button.dataset.editorBound = "1";
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._activateEditor(name, content, containerEl, button);
+      });
+    }
+  }
+
+  async _activateEditor(name, contentEl, containerEl, buttonEl) {
+    if (this.editors[name]?.instance?.view) return;
+    if (this.editors[name]) this._destroyEditor(name);
+    const initial = foundry.utils.getProperty(this.data.clickedObject, name) ?? "";
+    const { ProseMirrorEditor } = foundry.applications.ux;
+    // Register the FormDataExtended-compatible entry BEFORE create() resolves so
+    // a submit-on-change mid-mount still serializes this editor.
+    this.editors[name] = {
+      instance: null,
+      options: { engine: "prosemirror", target: name, button: true, owner: this.isEditable },
+      active: true,
+      button: buttonEl,
+      container: containerEl,
+    };
+    const editor = await ProseMirrorEditor.create(contentEl, initial, {
+      // sourceObject (the host item) is a real Document — used for relative link
+      // resolution only; the actual save goes through the form, not this doc.
+      document: this.data.sourceObject,
+      fieldName: name,
+      relativeLinks: true,
+      plugins: {
+        menu: ProseMirror.ProseMirrorMenu.build(ProseMirror.defaultSchema, {
+          destroyOnSave: false,
+          onSave: () => this._saveEditor(name, { remove: true }),
+        }),
+        keyMaps: ProseMirror.ProseMirrorKeyMaps.build(ProseMirror.defaultSchema, {
+          onSave: () => this._saveEditor(name, { remove: true }),
+        }),
+      },
+    });
+    this.editors[name].instance = editor;
+    // `prosemirror` on the container is what FFGFormApplication's _onChangeForm
+    // guard looks for to avoid submitting on every keystroke.
+    containerEl.classList.add("editor-active", "prosemirror");
+    if (buttonEl) buttonEl.style.display = "none";
+  }
+
+  async _saveEditor(name, { remove = true } = {}) {
+    const state = this.editors[name];
+    if (!state?.instance?.view || state._saving) return;
+    state._saving = true;
+    try {
+      // _onSubmit reads the form via our _getSubmitData (which serializes the
+      // live editor) and routes through _updateObject -> embedded write-back.
+      await this._onSubmit(new Event("submit", { cancelable: true }));
+    } finally {
+      if (remove) this._destroyEditor(name);
+      this.render(true);
+    }
+  }
+
+  _destroyEditor(name) {
+    const state = this.editors[name];
+    if (!state) return;
+    try { state.instance?.destroy(); } catch (_e) { /* already torn down */ }
+    state.container?.classList.remove("editor-active", "prosemirror");
+    if (state.button) state.button.style.display = "";
+    delete this.editors[name];
   }
 
   /** Bind the BASICS / BASE MODS tab navigation, remembering the active tab. */
@@ -148,16 +246,6 @@ export class itemEditor extends FFGFormApplication {
   }
 
   _activateListeners(html) {
-    // Description edit toggle: show the rendered description; the pencil reveals
-    // the editable textarea. On blur the form submit re-renders back to the
-    // rendered view (the textarea defaults to display:none).
-    html.find(".cdx-desc-toggle").on("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const g = $(ev.currentTarget).closest(".cdx-desc-group");
-      g.find(".cdx-desc-rendered").hide();
-      g.find(".cdx-desc-raw").show().trigger("focus");
-    });
     html.find('[name="system.type"]').on("change", this._updateType.bind(this));
     html.find(".flat_editor.dropdown").on("change", this._updateDropdown.bind(this));
     html.find(".flat_editor.add-mod").on("click", this._modControl.bind(this));

@@ -1096,15 +1096,13 @@
 .cdx.cdx-embed .form-group:has(> .editor), .cdx.cdx-embed .form-group:has(> .editor-content) { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; gap:0; padding:0; }
 .cdx.cdx-embed .form-group:has(> .editor) > label, .cdx.cdx-embed .form-group:has(> .editor-content) > label { background:var(--cdx-accent); color:#fff; padding:5px 10px; margin:0; }
 .cdx.cdx-embed .form-group > .editor, .cdx.cdx-embed .form-group > .editor-content { padding:8px 10px; min-height:80px; color:var(--cdx-ink); }
-/* Description group: rendered view + a pencil that reveals the raw textarea. */
-.cdx.cdx-embed .cdx-desc-group { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; gap:0; padding:0; }
-.cdx.cdx-embed .cdx-desc-group > label { background:var(--cdx-accent); color:#fff; padding:5px 10px; margin:0; justify-content:space-between; }
-.cdx.cdx-embed .cdx-desc-group > label .cdx-desc-toggle { color:#fff; }
-.cdx.cdx-embed .cdx-desc-rendered { padding:8px 10px; min-height:54px; color:var(--cdx-ink); font-size:13px; line-height:1.45; }
-.cdx.cdx-embed .cdx-desc-rendered * { color:var(--cdx-ink); }
-.cdx.cdx-embed .cdx-desc-raw { margin:0; border:none; border-radius:0; background:var(--cdx-paper); color:var(--cdx-ink); font-size:13px; padding:8px 10px; }
-/* Generic (stock-host editor): the pencil is just a clickable affordance. */
-.cdx-desc-toggle { cursor:pointer; }
+/* Active inline ProseMirror editor: give the content surface a light paper
+   background + ink text (it otherwise rendered dark-on-dark and the description
+   text was invisible while editing). The menu bar keeps its own dark styling. */
+.cdx.cdx-embed .editor.prosemirror { background:var(--cdx-paper); min-height:150px; }
+.cdx.cdx-embed .editor.prosemirror .editor-container { background:var(--cdx-paper); }
+.cdx.cdx-embed .editor-content.ProseMirror { background:var(--cdx-paper); color:var(--cdx-ink); padding:6px 8px; min-height:90px; }
+.cdx.cdx-embed .editor-content.ProseMirror * { color:var(--cdx-ink); }
 .cdx.cdx-embed .form-group > label { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); display:flex; align-items:center; gap:4px; }
 .cdx.cdx-embed input[type=text], .cdx.cdx-embed input[type=number], .cdx.cdx-embed select {
   width:100%; box-sizing:border-box; background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px;
