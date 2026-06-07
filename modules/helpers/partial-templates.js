@@ -6,6 +6,7 @@ export default class TemplateHelpers {
       "systems/starwarsffg/templates/parts/codex/cdx-gear.html",
       "systems/starwarsffg/templates/parts/codex/cdx-talents.html",
       "systems/starwarsffg/templates/parts/codex/cdx-injuries.html",
+      "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html",
       "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html",
       "systems/starwarsffg/templates/parts/shared/ffg-sources.html",
       "systems/starwarsffg/templates/parts/shared/ffg-tags.html",

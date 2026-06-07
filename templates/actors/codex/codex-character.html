@@ -107,7 +107,7 @@
       {{/each}}
       {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
       <div class="cdx-chip-div"></div>
-      <div class="cdx-chip derived force cdx-align-{{cdxAlign}}"><div class="cdx-chip-box static"><button type="button" class="cdx-force-step minus" data-dir="-1" title="{{localize "SWFFG.Force"}}"><i class="fas fa-minus"></i></button><span class="cdx-force-c">{{data.stats.forcePool.value}}</span><span class="cdx-force-t">of {{data.stats.forcePool.max}}</span><button type="button" class="cdx-force-step plus" data-dir="1" title="{{localize "SWFFG.Force"}}"><i class="fas fa-plus"></i></button></div><div class="cdx-chip-label brass">{{localize "SWFFG.Force"}}</div></div>
+      {{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.forcePool.value maxValue=data.stats.forcePool.max path="stats.forcePool.value" label=(localize "SWFFG.Force") labelClass="brass" variant="force" align=cdxAlign lockCur=true lockMax=true disabled=disabled}}
       {{/if}}
     </div>
     {{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}

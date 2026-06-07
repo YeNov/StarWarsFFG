@@ -27,7 +27,7 @@
       {{!-- Silhouette · Speed · Handling · Armour --}}
       <div class="cdx-chiprow">
         <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.silhouette.value" value="{{data.stats.silhouette.value}}" data-dtype="Number" pattern="^(10|[0-9])$" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleSilhouette"}}</div></div>
-        <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.speed.value" value="{{data.stats.speed.value}}" data-dtype="Number" /></div><div class="cdx-chip-sub">max {{data.stats.speed.max}}</div><div class="cdx-chip-label">{{localize "SWFFG.VehicleSpeed"}}</div></div>
+        {{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.speed.value maxValue=data.stats.speed.max path="stats.speed.value" maxPath="stats.speed.max" label=(localize "SWFFG.VehicleSpeed") disabled=disabled}}
         <div class="cdx-chip"><div class="cdx-chip-box"><input type="text" name="data.stats.handling.value" value="{{data.stats.handling.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label">{{localize "SWFFG.VehicleHandling"}}</div></div>
         <div class="cdx-chip derived"><div class="cdx-chip-box"><input type="text" name="data.stats.armour.value" value="{{data.stats.armour.value}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div><div class="cdx-chip-label brass">{{localize "SWFFG.VehicleArmor"}}</div></div>
       </div>
@@ -37,16 +37,14 @@
         <div class="cdx-stat wounds wide">
           <div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullTrauma"}}</span></div>
           <div class="cdx-stat-body">
-            <div class="cdx-thresh"><input type="text" name="data.stats.hullTrauma.value" value="{{data.stats.hullTrauma.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.hullTrauma.max" value="{{data.stats.hullTrauma.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
-            {{#with cdxVehTracks.hull}}{{#if useBar}}<div class="cdx-track bar"><div class="cdx-track-fill" style="width:{{pct}}%;background:{{color}}"></div></div>{{else}}<div class="cdx-track pips">{{#each pips}}<span class="cdx-pip{{#if this}} on{{/if}}"{{#if this}} style="background:{{../color}}"{{/if}}></span>{{/each}}</div>{{/if}}{{/with}}
+            <div class="cdx-stepline"><button type="button" class="cdx-step" data-stat="hullTrauma" data-dir="-1"><i class="fas fa-minus"></i></button><div class="cdx-stepline-mid"><div class="cdx-thresh"><input type="text" name="data.stats.hullTrauma.value" value="{{data.stats.hullTrauma.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.hullTrauma.max" value="{{data.stats.hullTrauma.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>{{#with cdxVehTracks.hull}}{{#if useBar}}<div class="cdx-track bar"><div class="cdx-track-fill" style="width:{{pct}}%;background:{{color}}"></div></div>{{else}}<div class="cdx-track pips">{{#each pips}}<span class="cdx-pip{{#if this}} on{{/if}}"{{#if this}} style="background:{{../color}}"{{/if}}></span>{{/each}}</div>{{/if}}{{/with}}</div><button type="button" class="cdx-step" data-stat="hullTrauma" data-dir="1"><i class="fas fa-plus"></i></button></div>
             <div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div>
           </div>
         </div>
         <div class="cdx-stat strain wide">
           <div class="cdx-stat-head"><span>{{localize "SWFFG.VehicleHullStrain"}}</span></div>
           <div class="cdx-stat-body">
-            <div class="cdx-thresh"><input type="text" name="data.stats.systemStrain.value" value="{{data.stats.systemStrain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.systemStrain.max" value="{{data.stats.systemStrain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>
-            {{#with cdxVehTracks.strain}}{{#if useBar}}<div class="cdx-track bar"><div class="cdx-track-fill" style="width:{{pct}}%;background:{{color}}"></div></div>{{else}}<div class="cdx-track pips">{{#each pips}}<span class="cdx-pip{{#if this}} on{{/if}}"{{#if this}} style="background:{{../color}}"{{/if}}></span>{{/each}}</div>{{/if}}{{/with}}
+            <div class="cdx-stepline"><button type="button" class="cdx-step" data-stat="systemStrain" data-dir="-1"><i class="fas fa-minus"></i></button><div class="cdx-stepline-mid"><div class="cdx-thresh"><input type="text" name="data.stats.systemStrain.value" value="{{data.stats.systemStrain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.systemStrain.max" value="{{data.stats.systemStrain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>{{#with cdxVehTracks.strain}}{{#if useBar}}<div class="cdx-track bar"><div class="cdx-track-fill" style="width:{{pct}}%;background:{{color}}"></div></div>{{else}}<div class="cdx-track pips">{{#each pips}}<span class="cdx-pip{{#if this}} on{{/if}}"{{#if this}} style="background:{{../color}}"{{/if}}></span>{{/each}}</div>{{/if}}{{/with}}</div><button type="button" class="cdx-step" data-stat="systemStrain" data-dir="1"><i class="fas fa-plus"></i></button></div>
             <div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div>
           </div>
         </div>

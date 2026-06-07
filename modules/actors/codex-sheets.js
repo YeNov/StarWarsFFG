@@ -271,20 +271,21 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         await this.actor.update({ [`system.stats.${stat}.value`]: val });
       });
     });
-    // Force-pool commitment steppers (−/+): adjust committed dice
-    // (forcePool.value), clamped to [0, pool max]. Always active (a play action,
-    // not gated by edit mode).
-    root.querySelectorAll(".cdx-force-step").forEach((btn) => {
+    // Ratio-chip steppers (−/+): adjust the value at data-cdx-path, clamped to
+    // [0, data-cdx-max]. Drives the Force chip (committed dice) and the vehicle
+    // Speed chip from one handler. Always active (a play action).
+    root.querySelectorAll(".cdx-ratio-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault(); ev.stopPropagation();
         const dir = Number(ev.currentTarget.dataset.dir) || 0;
-        const fp = this.actor?.system?.stats?.forcePool;
-        if (!fp) return;
-        const max = Number(fp.max) || 0;
-        let val = (Number(fp.value) || 0) + dir;
-        val = Math.max(0, Math.min(max, val));
-        if (val === (Number(fp.value) || 0)) return;
-        await this.actor.update({ "system.stats.forcePool.value": val });
+        const path = ev.currentTarget.dataset.cdxPath;
+        if (!path) return;
+        const max = Number(ev.currentTarget.dataset.cdxMax);
+        const cur = Number(foundry.utils.getProperty(this.actor, path)) || 0;
+        let val = cur + dir;
+        val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
+        if (val === cur) return;
+        await this.actor.update({ [path]: val });
       });
     });
     // Minion Group-Strength steppers (members alive ±1). Alive count is DERIVED
