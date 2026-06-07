@@ -396,20 +396,29 @@
 .cdx .cdx-minion-top { display:flex; gap:6px; align-items:stretch; }
 .cdx .cdx-minion-top .cdx-gs { flex:4; }
 .cdx .cdx-minion-top .cdx-minion-def { flex:1.15; min-width:150px; }
-.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:14px; padding:8px 12px; }
-.cdx .cdx-gs-counter { flex:none; gap:9px; }
-.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; }
+/* Compact body — the group-strength panel is a single content row, so it stays
+   short; the minion defence block (below) is trimmed to match so the whole top
+   row isn't dragged tall. */
+.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:14px; padding:4px 12px; }
+.cdx .cdx-gs-counter { flex:none; gap:8px; }
+.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:23px; line-height:1; }
 .cdx .cdx-gs-cur { color:var(--cdx-ink); }
 .cdx .cdx-gs-max { color:var(--cdx-dim); }
-.cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-dim); padding:0; }
+.cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:23px; line-height:1; color:var(--cdx-dim); padding:0; }
 .cdx .cdx-gs-label { flex:1; min-width:0; font-size:13px; color:var(--cdx-dim); }
+/* Wipe Out — outline button: transparent fill, thin border, fills (inverts) on
+   hover. Sits at the right end of the row, vertically centred. */
 .cdx .cdx-wipeout {
-  flex:none; display:inline-flex; align-items:center; gap:8px; padding:6px 16px; cursor:pointer;
-  background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip);
-  font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-ink);
+  flex:none; display:inline-flex; align-items:center; gap:7px; padding:4px 14px; cursor:pointer;
+  background:transparent; border:1px solid var(--cdx-ink); border-radius:3px;
+  font-family:"Orbitron"; font-weight:700; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-ink);
 }
-.cdx .cdx-wipeout:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
-.cdx .cdx-wipeout > i { font-size:13px; }
+.cdx .cdx-wipeout:hover { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
+.cdx .cdx-wipeout > i { font-size:12px; }
+/* Trim the minion defence block so it doesn't tower over the compact group
+   strength beside it (the character/nemesis defence stays unchanged). */
+.cdx .cdx-minion-def .cdx-def-soak input, .cdx .cdx-minion-def .cdx-def-soak-v { font-size:24px; }
+.cdx .cdx-minion-def .cdx-def-row { padding:2px 9px; }
 
 /* Combined wound pool — full-width panel below the top row. */
 .cdx .cdx-wp { margin-top:6px; }

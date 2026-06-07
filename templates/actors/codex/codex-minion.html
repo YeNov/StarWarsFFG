@@ -74,30 +74,32 @@
     </div>
   </div>
 
-  {{!-- Characteristics --}}
-  <div class="cdx-chiprow">
-    {{#each data.characteristics as |characteristic id|}}
-    <div class="cdx-chip" data-ability="{{id}}">
-      <div class="cdx-chip-box"><input type="text" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" pattern="[1-7]" {{#if ../disabled}}disabled{{/if}} /></div>
-      <div class="cdx-chip-label">{{characteristic.label}}</div>
-    </div>
-    {{/each}}
-  </div>
-
-  {{!-- Tabs --}}
+  {{!-- Tabs — same names/order/list as the character/nemesis sheet (no XP). --}}
   <nav class="cdx-tabstrip">
-    <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.TabCharacteristics"}}</button>
-    <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.ItemsWeapons"}}</button>
-    <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.TabGear"}}</button>
+    <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.Codex.TabSkills"}}</button>
+    <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.Codex.TabCombat"}}</button>
+    <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.Codex.TabGear"}}</button>
+    <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.Codex.TabCrits"}}{{#if cdxCritCount}}<span class="cdx-tab-badge">{{cdxCritCount}}</span>{{/if}}</button>
     <button type="button" class="cdx-tab" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
-    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.TabBiography"}}</button>
+    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.Codex.TabBio"}}</button>
     <button type="button" class="cdx-tab" data-tab="effects">{{localize "SWFFG.TabEffects"}}</button>
-    <button type="button" class="cdx-tab" data-tab="mods">{{localize "SWFFG.TabModifiers"}}</button>
   </nav>
 
-  <section class="cdx-pane active" data-tab="skills">{{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}</section>
+  {{!-- Characteristics belong to the Skills tab, same as every other actor. --}}
+  <section class="cdx-pane active" data-tab="skills">
+    <div class="cdx-chiprow">
+      {{#each data.characteristics as |characteristic id|}}
+      <div class="cdx-chip" data-ability="{{id}}">
+        <div class="cdx-chip-box"><input type="text" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" pattern="[1-7]" {{#if ../disabled}}disabled{{/if}} /></div>
+        <div class="cdx-chip-label"><span class="cdx-cl-full">{{characteristic.label}}</span><span class="cdx-cl-abbr">{{lookup ../cdxCharAbbr id}}</span></div>
+      </div>
+      {{/each}}
+    </div>
+    {{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}
+  </section>
   <section class="cdx-pane" data-tab="combat">{{> "systems/starwarsffg/templates/parts/codex/cdx-combat.html"}}</section>
   <section class="cdx-pane gear" data-tab="gear">{{> "systems/starwarsffg/templates/parts/codex/cdx-gear.html"}}</section>
+  <section class="cdx-pane injuries" data-tab="injuries">{{> "systems/starwarsffg/templates/parts/codex/cdx-injuries.html"}}</section>
   <section class="cdx-pane talents items" data-tab="talents">{{> "systems/starwarsffg/templates/parts/codex/cdx-talents.html"}}</section>
 
   <section class="cdx-pane bio" data-tab="bio">
@@ -105,6 +107,5 @@
   </section>
 
   <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
-  <section class="cdx-pane attributes" data-tab="mods">{{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}</section>
   {{/unless}}
 </form>
