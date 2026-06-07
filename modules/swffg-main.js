@@ -18,6 +18,7 @@ import { ActiveEffectFFG} from "./active-effects/active-effect-ffg.js";
 import { ItemFFG } from "./items/item-ffg.js";
 import { ItemSheetFFG } from "./items/item-sheet-ffg.js";
 import { ItemSheetFFGV2 } from "./items/item-sheet-ffg-v2.js";
+import { CodexItemSheet } from "./items/codex-item-sheet.js";
 import { ActorSheetFFG } from "./actors/actor-sheet-ffg.js";
 import { ActorSheetFFGV2 } from "./actors/actor-sheet-ffg-v2.js";
 import { AdversarySheetFFG } from "./actors/adversary-sheet-ffg.js";
@@ -252,7 +253,7 @@ Hooks.once("init", async function () {
   };
 
   // Load character templates so that dynamic skills lists work correctly
-  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html"]);
+  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html"]);
 
   SettingsHelpers.initLevelSettings();
 
@@ -876,6 +877,13 @@ Hooks.once("init", async function () {
   // resolving. Drop the alias entry in the release after V2-full lands.
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
+  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Detailed
+  // templates: weapon/armour/gear/talent; a generic Codex frame covers the other
+  // simple types. Complex tree/config types keep the stock sheet (not listed).
+  foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
+    types: ["weapon", "armour", "gear", "talent", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"],
+    label: "Codex II Item Sheet",
+  });
 
   // Add utilities to the global scope, this can be useful for macro makers
   window.DicePoolFFG = DicePoolFFG;

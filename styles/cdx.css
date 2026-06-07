@@ -773,3 +773,36 @@
 .cdx .cdx-pane.effects th { background:var(--cdx-accent); color:#fff; text-align:left; font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 6px; }
 .cdx .cdx-pane.effects td { background:var(--cdx-paper2); padding:4px 6px; font-size:12px; border-bottom:1px solid var(--cdx-line); }
 .cdx .cdx-pane.effects .expand-icon { cursor:pointer; width:20px; text-align:center; }
+
+/* ============================ Item sheets ============================ */
+/* The window-content shell (.cdx > form.window-content) already paints the codex
+   bg/padding + flex column. Header, stat boxes, and a restyle of the native tab
+   strip below. Body partials (modifiers/sources/tags) keep mandar markup; we just
+   recolour text + form fields so they read on the codex paper. */
+.cdx .cdx-item-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:9px; }
+.cdx .cdx-item-img { width:84px; height:84px; flex:none; object-fit:contain; background:rgba(0,0,0,.18); border:2px solid var(--cdx-line); border-radius:6px; cursor:pointer; }
+.cdx .cdx-item-id { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+.cdx .cdx-item-name { font-family:"Orbitron"; font-weight:900; font-size:20px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-ink); background:transparent; border:none; border-bottom:1px solid var(--cdx-line); width:100%; padding:0 0 3px; }
+.cdx .cdx-item .cdx-item-header > .cdx-item-name { } /* generic frame: name sits beside the image */
+.cdx .cdx-item:not(.cdx-item-gear) .cdx-item-header { align-items:center; }
+
+/* Stat boxes: notched box · brown header label · big value (the prototype look). */
+.cdx .cdx-istats { display:flex; flex-wrap:wrap; gap:6px; }
+.cdx .cdx-istat { flex:1 1 auto; min-width:74px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+.cdx .cdx-istat-k { display:block; background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; }
+.cdx .cdx-istat-v { width:100%; box-sizing:border-box; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); padding:5px 6px; }
+.cdx .cdx-istat.cdx-restricted .cdx-istat-v { color:#cf2e2e; }
+.cdx .cdx-icheck { display:inline-flex; align-items:center; gap:7px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; }
+
+/* Native tab strip (.sheet-tabs) → codex tab look; only the active .tab shows. */
+.cdx .sheet-tabs { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); margin-bottom:8px; padding:0; }
+.cdx .sheet-tabs .item { padding:5px 12px; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; border:none; background:transparent; flex:0 0 auto; }
+.cdx .sheet-tabs .item.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+.cdx .sheet-tabs .item > i { margin-right:5px; }
+.cdx .sheet-body { flex:1; min-height:0; }
+.cdx .sheet-body .tab { display:none; }
+.cdx .sheet-body .tab.active { display:block; }
+.cdx .cdx-item-body, .cdx .cdx-item-body * { color:var(--cdx-ink); }
+.cdx .cdx-item-body input[type=text], .cdx .cdx-item-body input[type=number], .cdx .cdx-item-body select, .cdx .cdx-item-body textarea {
+  background:var(--cdx-paper); border:1px solid var(--cdx-line); color:var(--cdx-ink); border-radius:3px; padding:2px 5px;
+}
