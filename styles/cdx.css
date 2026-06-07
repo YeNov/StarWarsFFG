@@ -894,7 +894,9 @@
    edge (absolute) so it never shifts the number off-centre. */
 .cdx .cdx-istat-rwrap { flex:1; position:relative; display:flex; align-items:center; }
 .cdx .cdx-rv-in { flex:1; width:100%; text-align:center; }
-.cdx .cdx-restrict-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-family:"Orbitron"; font-weight:900; font-size:13px; line-height:1; color:var(--cdx-dim); background:transparent; border:none; cursor:pointer; padding:0; }
+/* width:auto is REQUIRED: mandar forces button{width:100%} inside sheets, which
+   otherwise stretches (R) across the box and over the value. */
+.cdx .cdx-restrict-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:auto; display:inline-block; font-family:"Orbitron"; font-weight:900; font-size:13px; line-height:1; color:var(--cdx-dim); background:transparent; border:none; cursor:pointer; padding:0; }
 .cdx .cdx-istat.cdx-restricted .cdx-restrict-btn { color:#cf2e2e; }
 .cdx .cdx-restrict-btn:hover { color:#cf2e2e; }
 /* Talent: taller stat boxes; the activation select is the clickable block. */
