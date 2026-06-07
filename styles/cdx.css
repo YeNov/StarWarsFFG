@@ -697,6 +697,8 @@
 .cdx .cdx-head-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
 .cdx .cdx-ge-k { color:var(--cdx-dim); }
 .cdx .cdx-ge-v { color:var(--cdx-ink); }
+/* Over-encumbered: current load exceeds the threshold. */
+.cdx .cdx-ge-v.over { color:#cf2e2e; font-weight:900; }
 
 /* ---- Bio / panels / tables ---- */
 .cdx .cdx-bio-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:10px; margin-bottom:10px; }

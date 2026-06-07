@@ -149,6 +149,15 @@ export class CodexItemSheet extends ItemSheetFFG {
       };
       skillSel?.addEventListener("change", sync);
       charSel?.addEventListener("change", sync);
+      // An owned weapon folds the wielder's characteristic into damage.adjusted
+      // (Brawn-based weapons), and the skill gates whether that applies. The
+      // generic change pipeline submits render:false, so a characteristic/skill
+      // change wouldn't refresh the adjusted badges — request an explicit
+      // re-render (coalesces with the pipeline's own submit), mirroring the
+      // base sheet's cross-field reactivity for "ranked"/"islearned".
+      const reRender = async (ev) => { await this._onSubmit(ev, { render: true }); };
+      skillSel?.addEventListener("change", reRender);
+      charSel?.addEventListener("change", reRender);
     }
 
     root?.querySelectorAll?.(".cdx-restrict-btn").forEach((btn) => {
