@@ -15,7 +15,7 @@
       <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponQuantity"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.quantity.value" value="{{data.quantity.value}}" data-dtype="Number" /></div>
       <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponEncumbrance"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.encumbrance.value" value="{{data.encumbrance.value}}" data-dtype="Number" /></div>
       {{#if (or (eq item.flags.starwarsffg.config.enablePrice undefined) (eq item.flags.starwarsffg.config.enablePrice true))}}
-      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponPrice"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.price.value" value="{{data.price.value}}" data-dtype="Number" /></div>
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponPrice"}}</span><input class="cdx-istat-v cdx-price" type="text" value="{{data.price.value}}" autocomplete="off" /></div>
       {{/if}}
       {{#if (or (eq item.flags.starwarsffg.config.enableRarity undefined) (eq item.flags.starwarsffg.config.enableRarity true))}}
       <div class="cdx-istat{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponRarity"}}</span><div class="cdx-istat-rwrap"><input class="cdx-istat-v cdx-rv-in cdx-num" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /><button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></div></div>

@@ -117,7 +117,31 @@ export class CodexItemSheet extends ItemSheetFFG {
         await this.item.update({ "system.rarity.isrestricted": !this.item.system?.rarity?.isrestricted });
       });
     });
-    // Digits-only fields (Damage/Crit/Encum/HP/Price/Rarity/Qty/Soak/Defence):
+    // Price — same comma rules as actor credits. The field is NOT Foundry-bound
+    // (no name=), so the comma'd display string can never round-trip into the
+    // stored Number when a neighbouring field triggers a submit. Show commas at
+    // rest, raw digits while editing, reformat + persist the integer on commit.
+    const fmt = (v) => (parseInt(String(v).replace(/[^\d]/g, ""), 10) || 0).toLocaleString("en-US");
+    const curPrice = () => parseInt(String(this.item?.system?.price?.value ?? "0").replace(/[^\d]/g, ""), 10) || 0;
+    root?.querySelectorAll?.("input.cdx-price").forEach((field) => {
+      field.value = fmt(curPrice());
+      field.addEventListener("focus", () => { field.value = String(curPrice()); setTimeout(() => field.select(), 0); });
+      field.addEventListener("input", () => {
+        const caret = field.selectionStart;
+        const stripped = field.value.replace(/[^\d]/g, "");
+        if (stripped !== field.value) { field.value = stripped; try { field.setSelectionRange(caret - 1, caret - 1); } catch (e) {} }
+      });
+      field.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") { ev.preventDefault(); field.blur(); }
+        else if (ev.key === "Escape") { ev.preventDefault(); field.value = String(curPrice()); field.blur(); }
+      });
+      field.addEventListener("blur", async () => {
+        const n = parseInt(field.value.replace(/[^\d]/g, ""), 10) || 0;
+        field.value = fmt(n);
+        if (this.isEditable && n !== curPrice()) { try { await this.item.update({ "system.price.value": n }); } catch (e) {} }
+      });
+    });
+    // Digits-only fields (Damage/Crit/Encum/HP/Rarity/Qty/Soak/Defence):
     // strip any non-digit on input so the field can only ever hold an integer.
     root?.querySelectorAll?.("input.cdx-num").forEach((inp) => {
       inp.setAttribute("inputmode", "numeric");
