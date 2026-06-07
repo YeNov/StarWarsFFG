@@ -834,6 +834,12 @@
 .cdx .cdx-idesc { margin:8px 0; }
 .cdx .cdx-idesc-head { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin-bottom:5px; }
 .cdx .cdx-idesc, .cdx .cdx-idesc * { color:var(--cdx-ink); }
+/* View mode: rendered description sizes to content. Edit mode: give the active
+   editor a definite height so the global `.editor{height:100%}` chain resolves
+   and the editor occupies real space in flow — pushing the tabs/modifiers DOWN
+   instead of the editing panel overlapping them. (Mirrors .cdx-bio-editor.) */
+.cdx .cdx-idesc > .editor { height:auto; }
+.cdx .cdx-idesc > .editor:has(.tox-tinymce), .cdx .cdx-idesc > .editor:has(.ProseMirror) { height:300px; }
 /* Weapon: Damage/Crit/Range across the top (span 2 of 6), then 2-up rows below. */
 .cdx .cdx-istats-weapon { grid-template-columns:repeat(6, minmax(0, 1fr)); }
 .cdx .cdx-istats-weapon .cdx-istat { grid-column:span 2; }
