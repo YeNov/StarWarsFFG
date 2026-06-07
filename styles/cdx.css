@@ -394,14 +394,19 @@
 /* The group-strength body is a single content row; it stretches to match the
    (taller) defence block beside it, with its content vertically centred. */
 .cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:12px; padding:8px 12px; }
+/* Counter + label share a wrapping sub-box so that, when the panel is too narrow
+   to fit them side by side, the label drops onto its own line UNDER the counter
+   instead of overflowing into the Wipe Out button. Wipe Out stays outside this
+   box, anchored at the right of the row. */
+.cdx .cdx-gs-main { flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
 .cdx .cdx-gs-counter { flex:none; gap:8px; }
 .cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; }
 .cdx .cdx-gs-cur { color:var(--cdx-ink); }
 .cdx .cdx-gs-max { color:var(--cdx-dim); }
 .cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-dim); padding:0; }
-/* Single line; the label takes the slack between the counter and Wipe Out, so
-   the button is pushed hard right. */
-.cdx .cdx-gs-label { flex:1; min-width:0; white-space:nowrap; font-size:13px; color:var(--cdx-dim); }
+/* nowrap (no min-width:0) so the label keeps its content width: it either fits
+   beside the counter or wraps WHOLE to the next line — never shrinks and spills. */
+.cdx .cdx-gs-label { flex:1 1 auto; white-space:nowrap; font-size:13px; color:var(--cdx-dim); }
 /* Wipe Out — small outline button anchored right (transparent fill, inverts on
    hover). width:auto is REQUIRED: mandar forces button{width:100%} inside
    sheets, which otherwise stretches it across the row and wraps the label. */
