@@ -459,9 +459,9 @@
 .cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
 
 /* ============================ Vehicle sheet ============================ */
-/* Dark slate header (scheme-independent). */
-.cdx .cdx-header.cdx-veh-header { background:linear-gradient(180deg,#3e4756,#262c36); color:#fff; }
-.cdx .cdx-veh-header .cdx-name { color:#fff; }
+/* The vehicle header uses the shared, scheme-driven .cdx-header style (background
+   var(--cdx-head), text var(--cdx-head-ink)) — same as the character/minion
+   headers — so it recolours per scheme instead of a fixed slate. No override. */
 /* Rarity/cost — a single bronze panel in the Bio tab (was a header badge). */
 .cdx .cdx-veh-rarity { display:flex; align-items:baseline; flex-wrap:wrap; gap:5px 8px; padding:9px 14px; margin-bottom:10px; background:var(--cdx-brass); color:#1a1205; clip-path:var(--cdx-clip); }
 .cdx .cdx-vr-k { font-family:"Orbitron"; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
