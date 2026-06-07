@@ -562,6 +562,10 @@
 /* Wraps within the identity column so the pool never spills into the DAM column. */
 .cdx .cdx-wpn-pool { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px; min-width:0; line-height:0; pointer-events:none; }
 .cdx .cdx-wpn-pool img { width:16px; height:16px; border:none; vertical-align:middle; }
+/* Crew-card roll pool: a VERTICAL stack of dice at the skills-tab glyph size
+   (18px). renderPreview emits 36px imgs inline, so override here. */
+.cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:column; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
+.cdx .cdx-card.crew .dice-pool img { width:18px; height:18px; border:none; }
 .cdx .cdx-statcols { display:flex; gap:6px; }
 .cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
 /* 3rd column holds the RANGE word ("Engaged", "Extreme", …) — far wider than a
