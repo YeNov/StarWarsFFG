@@ -890,9 +890,11 @@
    as the rarity value (inherits); goes red with the value when restricted. */
 /* Rarity value + "(R)" Restricted toggle inline, centred in the box. (R) matches
    the value's font, dim normally and red when restricted. */
-.cdx .cdx-istat-rwrap { flex:1; display:flex; align-items:center; justify-content:center; gap:5px; }
-.cdx .cdx-rv-in { flex:0 1 auto; width:2.4em; }
-.cdx .cdx-restrict-btn { font-family:"Orbitron"; font-weight:900; font-size:18px; line-height:1; color:var(--cdx-dim); background:transparent; border:none; cursor:pointer; padding:0; }
+/* The value stays centred (full-width input); the small "(R)" floats at the right
+   edge (absolute) so it never shifts the number off-centre. */
+.cdx .cdx-istat-rwrap { flex:1; position:relative; display:flex; align-items:center; }
+.cdx .cdx-rv-in { flex:1; width:100%; text-align:center; }
+.cdx .cdx-restrict-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-family:"Orbitron"; font-weight:900; font-size:13px; line-height:1; color:var(--cdx-dim); background:transparent; border:none; cursor:pointer; padding:0; }
 .cdx .cdx-istat.cdx-restricted .cdx-restrict-btn { color:#cf2e2e; }
 .cdx .cdx-restrict-btn:hover { color:#cf2e2e; }
 /* Talent: taller stat boxes; the activation select is the clickable block. */
