@@ -509,13 +509,16 @@
 .cdx .cdx-veh-zones .cdx-ratio-c { font-size:19px; }
 .cdx .cdx-veh-zones .cdx-ratio-step { width:15px; height:15px; border-width:2px; font-size:6px; }
 .cdx .cdx-veh-zones .cdx-chip-label { background:var(--cdx-brown); color:#fff; margin-top:3px; }
-/* Zone chips: white box, black outline, black value + black-outlined steppers. */
-.cdx .cdx-veh-zones .cdx-chip-box { background:#ffffff; border:2px solid #111111; color:#111111; }
-.cdx .cdx-veh-zones .cdx-ratio-step { background:#ffffff; border-color:#111111; color:#111111; }
-/* Speed chip: silhouette-style double thin black outline (instead of the brass
-   derived border); steppers + text pinned dark to read on the white→orange box. */
-.cdx .cdx-chip.cdx-ratio-hot .cdx-chip-box { border:4px double #16202b; }
-.cdx .cdx-chip.cdx-ratio-hot .cdx-ratio-step { border-color:#16202b; color:#16202b; }
+/* Zone chips outline follows the silhouette/handling rule: var(--cdx-ink) is dark
+   in every scheme except Dark (near-white there). Needs > specificity than the
+   .derived brass border to win. Box/value keep the scheme paper2/ink defaults so
+   a near-white outline stays visible on the dark-scheme dark box. */
+.cdx .cdx-veh-zones .cdx-chip.derived .cdx-chip-box { border-color:var(--cdx-ink); }
+.cdx .cdx-veh-zones .cdx-ratio-step { border-color:var(--cdx-ink); }
+/* Speed chip: same rule — the double outline + steppers follow var(--cdx-ink).
+   The value text stays pinned dark since its box is the light white→orange ramp. */
+.cdx .cdx-chip.cdx-ratio-hot .cdx-chip-box { border:4px double var(--cdx-ink); }
+.cdx .cdx-chip.cdx-ratio-hot .cdx-ratio-step { border-color:var(--cdx-ink); }
 
 /* ---- Tabs ---- */
 .cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
@@ -595,7 +598,7 @@
    the right edge on every row. Cards with statcols have 3 children (controls land
    in col3 naturally); cards without (crew) have 2, so the controls would auto-place
    in col2 and leave a gapped empty col3 — shifting them ~11px left. Force col3. */
-.cdx .cdx-card > .cdx-card-ctl { grid-column: 3; }
+.cdx .cdx-card > .cdx-card-ctl { grid-column: 3; transform: translateX(5px); }
 .cdx .cdx-statcols { display:flex; gap:6px; }
 .cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
 /* 3rd column holds the RANGE word ("Engaged", "Extreme", …) — far wider than a
