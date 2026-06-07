@@ -717,9 +717,13 @@
 .cdx .cdx-pane.effects .resource,
 .cdx .cdx-pane.effects .attribute,
 .cdx .cdx-pane.effects .block-background,
-.cdx .cdx-pane.effects .block-attribute { display:block; width:100%; max-width:none; box-sizing:border-box; }
-.cdx .cdx-pane.effects .attribute { border:none; padding:0; text-align:left; }
-.cdx .cdx-pane.effects .block-background { background:transparent; clip-path:none; padding:0; margin:0; }
+.cdx .cdx-pane.effects .block-attribute { display:block; width:100%; max-width:none; box-sizing:border-box; margin:0; padding:0; background:transparent; }
+.cdx .cdx-pane.effects .attribute { border:none; text-align:left; }
+.cdx .cdx-pane.effects .block-background { clip-path:none; }
+/* Any residual margin/background on these wrappers shows as a pale band above the
+   accent header (obvious only in light schemes) — flatten them so the header
+   reaches the top edge, matching every other actor sheet. */
+.cdx .cdx-pane.effects .resource.full, .cdx .cdx-pane.effects .flex-group-center, .cdx .cdx-pane.effects thead, .cdx .cdx-pane.effects thead tr { margin:0; padding:0; background:transparent; }
 .cdx .cdx-pane.effects .block-title { display:none; }
 .cdx .cdx-pane.effects table { width:100%; border-collapse:collapse; background:var(--cdx-paper2); }
 .cdx .cdx-pane.effects th { background:var(--cdx-accent); color:#fff; text-align:left; font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 6px; }
