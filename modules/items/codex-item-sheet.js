@@ -58,6 +58,8 @@ export class CodexItemSheet extends ItemSheetFFG {
   get template() {
     const base = "systems/starwarsffg/templates/items/codex";
     const type = this.item?.type;
+    // Critical injury + critical damage share one template (same data model).
+    if (type === "criticalinjury" || type === "criticaldamage") return `${base}/codex-crit.html`;
     return CODEX_DETAILED.has(type) ? `${base}/codex-${type}.html` : `${base}/codex-item.html`;
   }
 
