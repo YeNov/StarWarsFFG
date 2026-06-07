@@ -260,6 +260,22 @@
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box { background:#b3261e; }
 .cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box.static,
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box.static { color:#fff; }
+/* Force chip: XP-square layout (committed dice big on top, "of {pool}" small
+   below) with −/+ steppers riding the chip's left/right borders. The box is the
+   positioning context so the buttons anchor to its edges, not the wider chip. */
+.cdx .cdx-chip.force .cdx-chip-box { position:relative; flex-direction:column; gap:1px; overflow:visible; }
+.cdx .cdx-force-c { font-family:"Orbitron"; font-weight:900; font-size:26px; line-height:1; }
+.cdx .cdx-force-t { font-family:"Orbitron"; font-weight:600; font-size:9px; opacity:.7; line-height:1; }
+/* Steppers: border matches the chip-box border (3px brass); opaque, scheme-aware
+   contrast fill like the sheet's other +/- buttons; centred on the borders. */
+.cdx .cdx-force-step {
+  position:absolute; top:50%; width:19px; height:19px; padding:0; z-index:3;
+  border:3px solid var(--cdx-brass); border-radius:50%; background:var(--cdx-paper2); color:var(--cdx-ink);
+  display:inline-flex; align-items:center; justify-content:center; font-size:8px; line-height:1; cursor:pointer;
+}
+.cdx .cdx-force-step.minus { left:0; transform:translate(-50%,-50%); }
+.cdx .cdx-force-step.plus { right:0; transform:translate(50%,-50%); }
+.cdx .cdx-force-step:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
 /* ---- XP-buy mode ----

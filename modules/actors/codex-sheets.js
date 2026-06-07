@@ -270,6 +270,22 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         await this.actor.update({ [`system.stats.${stat}.value`]: val });
       });
     });
+    // Force-pool commitment steppers (−/+): adjust committed dice
+    // (forcePool.value), clamped to [0, pool max]. Always active (a play action,
+    // not gated by edit mode).
+    root.querySelectorAll(".cdx-force-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const fp = this.actor?.system?.stats?.forcePool;
+        if (!fp) return;
+        const max = Number(fp.max) || 0;
+        let val = (Number(fp.value) || 0) + dir;
+        val = Math.max(0, Math.min(max, val));
+        if (val === (Number(fp.value) || 0)) return;
+        await this.actor.update({ "system.stats.forcePool.value": val });
+      });
+    });
   }
 
   /**
