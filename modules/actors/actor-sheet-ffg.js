@@ -399,6 +399,16 @@ export class ActorSheetFFG extends FFGActorSheet {
       await this._onSubmit(event, { render: true });
     });
 
+    // Editing a skill rank changes that skill's dice pool (and any weapon's that
+    // uses it), which is rebuilt only during render. The default pipeline submits
+    // render:false, so the pool stayed stale until the next full render (e.g.
+    // leaving edit mode). Re-render on change — `change` fires on blur, so the
+    // typed value is committed first and there's no mid-typing DOM swap.
+    html.find("input.careerskill-rank").on("change", async (event) => {
+      event.stopPropagation();
+      await this._onSubmit(event, { render: true });
+    });
+
     // Minion sheets compute several display fields in _prepareMinionData
     // from raw inputs that the user edits directly:
     //   unit_wounds.value + quantity.max -> stats.wounds.max
