@@ -409,6 +409,14 @@ export class ActorSheetFFG extends FFGActorSheet {
       await this._onSubmit(event, { render: true });
     });
 
+    // Same for characteristic edits — they drive every skill's (and weapon's)
+    // dice pool, which only rebuilds on render. `change` fires on blur/step, so
+    // the value is committed before the re-render.
+    html.find('input[name^="data.characteristics."][name$=".value"]').on("change", async (event) => {
+      event.stopPropagation();
+      await this._onSubmit(event, { render: true });
+    });
+
     // Minion sheets compute several display fields in _prepareMinionData
     // from raw inputs that the user edits directly:
     //   unit_wounds.value + quantity.max -> stats.wounds.max
