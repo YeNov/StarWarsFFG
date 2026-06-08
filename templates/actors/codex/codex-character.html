@@ -120,7 +120,7 @@
   {{!-- Bio --}}
   <section class="cdx-pane bio" data-tab="bio">
     <div class="cdx-bio-grid">
-      <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.TabBiography"}}</div><div class="cdx-bio-editor">{{editor (or data.enrichedBio data.biography) target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
+      <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.TabBiography"}}</div><div class="cdx-bio-editor">{{editor data.enrichedBio target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
       <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.Characteristics"}}</div><div class="cdx-desc-grid">
         <label>{{localize "SWFFG.Gender"}}</label><input type="text" name="data.general.gender" value="{{data.general.gender}}" data-dtype="String" />
         <label>{{localize "SWFFG.Age"}}</label><input type="text" name="data.general.age" value="{{data.general.age}}" data-dtype="String" />
