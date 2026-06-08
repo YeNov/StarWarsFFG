@@ -67,7 +67,22 @@ export default class ActorHelpers {
       await xpLogEarn(this.object, newXP - curXP, newXP, this.object?.system?.experience.total, "manual adjustment", "Self");
     }
 
-    return await this.object.update(formData, { render });
+    const updated = await this.object.update(formData, { render });
+
+    // When the sheet submits with render:false (the Codex typed-value render-race fix),
+    // Foundry also skips refreshing the world display. Name/img edits must still
+    // propagate to the sidebar directory and active token nameplates, otherwise they
+    // stay stale until a full reload.
+    if (render === false && (foundry.utils.hasProperty(formData, "name") || foundry.utils.hasProperty(formData, "img"))) {
+      ui.actors?.render(false);
+      if (foundry.utils.hasProperty(formData, "name")) {
+        for (const token of this.object.getActiveTokens?.(true, false) ?? []) {
+          token.renderFlags?.set({ refreshNameplate: true });
+        }
+      }
+    }
+
+    return updated;
   }
 
   /**
