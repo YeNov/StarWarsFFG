@@ -22,7 +22,7 @@ export default class ActorHelpers {
       if (this.object.type !== "homestead") {
         if (this.object.type !== "vehicle") {
           // Handle credits
-          if (formData.data.stats?.credits?.value) {
+          if (formData.data?.stats?.credits?.value) {
             const rawCredits = formData.data.stats?.credits.value
               ?.toString()
               .match(/^(?!.*\.).*|.*\./)[0]
@@ -45,24 +45,32 @@ export default class ActorHelpers {
         formData.data.quantity.value = Math.min(formData.data.quantity.max, formData.data.quantity.max - Math.floor(formData.data.stats.wounds.value - 1) / formData.data.unit_wounds.value);
       }
     }
-    // Handle the free-form attributes list
-    const formAttrs = foundry.utils.expandObject(formData)?.data?.attributes || {};
-    const attributes = Object.values(formAttrs).reduce((obj, v) => {
-      let k = v["key"].trim();
-      delete v["key"];
-      obj[k] = v;
-      return obj;
-    }, {});
+    // Handle the free-form attributes list. Only reconcile when the form actually
+    // submitted a `data` branch (i.e. the sheet was in edit mode). A view-mode submit
+    // of just name/img/biography has no formData.data at all, so the old unconditional
+    // `formData.data.attributes = attributes` threw (data is undefined) and aborted the
+    // whole save -- silently discarding the edited name and avatar. Skipping the block
+    // here also avoids fabricating `-=key` deletion markers that would wipe existing
+    // attributes on a view-mode edit.
+    if (foundry.utils.hasProperty(formData, "data")) {
+      const formAttrs = foundry.utils.expandObject(formData)?.data?.attributes || {};
+      const attributes = Object.values(formAttrs).reduce((obj, v) => {
+        let k = v["key"].trim();
+        delete v["key"];
+        obj[k] = v;
+        return obj;
+      }, {});
 
-    // Remove attributes which are no longer used
-    if (this.object.system?.attributes) {
-      for (let k of Object.keys(this.object.system.attributes)) {
-        if (!attributes.hasOwnProperty(k)) attributes[`-=${k}`] = null;
+      // Remove attributes which are no longer used
+      if (this.object.system?.attributes) {
+        for (let k of Object.keys(this.object.system.attributes)) {
+          if (!attributes.hasOwnProperty(k)) attributes[`-=${k}`] = null;
+        }
       }
-    }
 
-    // recombine attributes to formData
-    formData.data.attributes = attributes;
+      // recombine attributes to formData
+      formData.data.attributes = attributes;
+    }
 
     // Update the Actor
     foundry.utils.setProperty(formData, `flags.starwarsffg.loaded`, false);
