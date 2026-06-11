@@ -300,14 +300,20 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       });
     });
     // Minion Group-Strength steppers (members alive ±1). Alive count is DERIVED
-    // from wounds (system prepareData), so we adjust wounds instead. Kill (−)
-    // adds a FULL member's worth of wounds (unit_wounds), and revive (+) removes
-    // one — this preserves the partial damage on the current member (it "moves"
-    // onto the next block) rather than snapping to a clean member boundary.
+    // from wounds (system prepareData):
+    //   alive = qmax - floor((wounds - 1) / unit)
+    // The wound track is 1-indexed -- the first point of damage is wound 1, so a
+    // member only drops at unit+1 wounds, NOT unit. A flat ±unit step is therefore
+    // off by one: from a clean group, −unit (e.g. 0 → 3 at unit 3) leaves the
+    // count unchanged because wound 3 still hasn't crossed the kill boundary.
+    // Instead, decompose the current wounds into dead members + partial damage on
+    // the leading (still-alive) member, move the dead count by one, and re-attach
+    // the SAME partial. This costs unit+1 from a clean group (kills a member) and
+    // unit mid-damage, while preserving the carried partial damage.
     //   e.g. 3/member, 2 applied, − → 5 wounds = 1 dead + the 2 carried over.
     // Clamped to [0, qmax·unit + 1] (the latter = whole group dead, matching
-    // killMinionGroup; one past wounds.max because the system's alive formula
-    // needs the extra point to drop the final member).
+    // killMinionGroup; one past wounds.max because the alive formula needs the
+    // extra point to drop the final member).
     root.querySelectorAll(".cdx-gs-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();
@@ -318,7 +324,12 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const qmax = Math.max(0, Math.trunc(Number(sys.quantity?.max) || 0));
         const cur = Math.max(0, Math.trunc(Number(sys.stats?.wounds?.value) || 0));
         const ceiling = qmax * unit + 1;
-        const next = Math.max(0, Math.min(ceiling, cur - dir * unit));
+        const deaths = cur >= 1 ? Math.floor((cur - 1) / unit) : 0;
+        const partial = cur >= 1 ? (cur - 1) - deaths * unit : 0;
+        const targetDeaths = Math.max(0, Math.min(qmax, deaths - dir));
+        const next = (targetDeaths === 0 && partial === 0)
+          ? 0
+          : Math.max(0, Math.min(ceiling, targetDeaths * unit + partial + 1));
         if (next === cur) return;
         await this.actor.update({ "system.stats.wounds.value": next });
       });
