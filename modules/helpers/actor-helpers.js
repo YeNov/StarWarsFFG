@@ -31,8 +31,17 @@ export default class ActorHelpers {
           }
         }
       }
-      if (this.object.type === "minion") {
-        // include the updated quantity of minions in the group in the update object so automation can access it
+      // include the updated quantity of minions in the group in the update object so automation can access it.
+      // Guard the same way as the skills block above: when the sheet is not in edit mode the quantity/wounds/
+      // unit_wounds inputs are disabled (excluded from FormData), so these would be undefined. Dereferencing
+      // them threw a TypeError that aborted the whole save -- silently discarding unrelated edits such as the
+      // avatar image picked via the FilePicker.
+      if (
+        this.object.type === "minion" &&
+        formData.data?.quantity?.max !== undefined &&
+        formData.data?.stats?.wounds?.value !== undefined &&
+        formData.data?.unit_wounds?.value !== undefined
+      ) {
         formData.data.quantity.value = Math.min(formData.data.quantity.max, formData.data.quantity.max - Math.floor(formData.data.stats.wounds.value - 1) / formData.data.unit_wounds.value);
       }
     }
