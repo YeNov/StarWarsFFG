@@ -22,7 +22,7 @@
         {{#if (eq actor.type "character")}}
         <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="specialization" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.Specialization"}}"></i><span class="cdx-stack cdx-spec-stack{{#if (gt cdxSpecCount 1)}} cdx-collapsible{{/if}}" title="{{localize "SWFFG.Specializations"}}">{{#each cdxSpecs}}<span class="cdx-pill spec item" data-item-id="{{this._id}}">{{this.name}}<i class="fas fa-times item-delete"></i></span>{{/each}}{{#if (gt cdxSpecCount 1)}}<span class="cdx-stack-more">+{{cdxSpecExtra}}</span>{{/if}}</span>{{#unless cdxSpecCount}}<span class="cdx-drag cdx-buy ffg-purchase" data-buy-action="specialization">{{localize "SWFFG.Codex.BuySpecialization"}}</span>{{/unless}}</span>
         {{/if}}
-        {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+        {{#if (eq actor.flags.starwarsffg.config.enableForcePool true)}}
         <span class="cdx-pillgroup"><i class="fa-regular fa-circle-up ffg-purchase cdx-pill-add" data-buy-action="forcepower" title="{{localize "SWFFG.Actors.Sheets.Purchase.Tooltip.ForcePower"}}"></i><span class="cdx-stack cdx-force-stack{{#if (gt cdxForceCount 1)}} cdx-collapsible{{/if}}" title="{{localize "SWFFG.ForcePowers"}}">{{#each cdxForcePowers}}<span class="cdx-pill force item" data-item-id="{{this._id}}">{{this.name}}<i class="fas fa-times item-delete"></i></span>{{/each}}{{#if (gt cdxForceCount 1)}}<span class="cdx-stack-more">+{{cdxForceExtra}}</span>{{/if}}</span>{{#unless cdxForceCount}}<span class="cdx-drag cdx-buy ffg-purchase" data-buy-action="forcepower">{{localize "SWFFG.Codex.BuyForcePower"}}</span>{{/unless}}</span>
         {{/if}}
         {{#if (eq actor.type "character")}}
@@ -105,7 +105,7 @@
         <div class="cdx-chip-label ffg-purchase" data-buy-action="characteristic" data-buy-characteristic="{{id}}"><span class="cdx-cl-full">{{characteristic.label}}</span><span class="cdx-cl-abbr">{{lookup ../cdxCharAbbr id}}</span></div>
       </div>
       {{/each}}
-      {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+      {{#if (eq actor.flags.starwarsffg.config.enableForcePool true)}}
       <div class="cdx-chip-div"></div>
       {{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.forcePool.value maxValue=data.stats.forcePool.max path="stats.forcePool.value" label=(localize "SWFFG.Force") labelClass="brass" variant="force" align=cdxAlign lockCur=true lockMax=true disabled=disabled}}
       {{/if}}
@@ -128,7 +128,7 @@
         <label>{{localize "SWFFG.Build"}}</label><input type="text" name="data.general.build" value="{{data.general.build}}" data-dtype="String" />
         <label>{{localize "SWFFG.Hair"}}</label><input type="text" name="data.general.hair" value="{{data.general.hair}}" data-dtype="String" />
         <label>{{localize "SWFFG.Eyes"}}</label><input type="text" name="data.general.eyes" value="{{data.general.eyes}}" data-dtype="String" />
-        {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+        {{#if (eq actor.flags.starwarsffg.config.enableForcePool true)}}
         <label>{{localize "SWFFG.Codex.Alignment"}}</label><select class="cdx-align-select">
           <option value="neutral" {{#if (eq cdxAlignStored "neutral")}}selected{{/if}}>{{localize "SWFFG.Codex.AlignmentNeutral"}}</option>
           <option value="good" {{#if (eq cdxAlignStored "good")}}selected{{/if}}>{{localize "SWFFG.Codex.AlignmentGood"}}</option>
@@ -140,7 +140,7 @@
     {{#if (eq actor.type "character")}}
     <div class="cdx-bio-stats">
       <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{localize "SWFFG.DescriptionObligation"}}</div><div class="cdx-bstat-body"><input type="text" name="data.obligation.value" value="{{data.obligation.value}}" data-dtype="Number" /></div></div>
-      {{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+      {{#if (eq actor.flags.starwarsffg.config.enableForcePool true)}}
       <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{localize "SWFFG.DescriptionMorality"}}</div><div class="cdx-bstat-body"><input type="text" name="data.morality.value" value="{{data.morality.value}}" data-dtype="Number" /></div></div>
       <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{localize "SWFFG.DescriptionConflict"}}</div><div class="cdx-bstat-body"><input type="text" name="data.conflict.value" value="{{data.conflict.value}}" data-dtype="Number" /></div></div>
       {{/if}}

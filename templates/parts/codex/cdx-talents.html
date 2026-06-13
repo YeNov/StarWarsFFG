@@ -1,6 +1,6 @@
 {{!-- Codex talents: force pool (guarded) + talent cards (talentList) + the
      reused ability / force-power / signature lists. --}}
-{{#if (and (ne actor.type "minion") (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true)))}}
+{{#if (and (ne actor.type "minion") (eq actor.flags.starwarsffg.config.enableForcePool true))}}
 <div class="cdx-forcepool">
   <span class="cdx-fp-k">{{localize "SWFFG.ForcePool"}}</span>
   <input type="text" name="data.stats.forcePool.value" value="{{data.stats.forcePool.value}}" data-dtype="Number" />
@@ -36,7 +36,7 @@
 {{/contains}}
 {{!-- Force powers — codex card style, matching the talents above. --}}
 {{#contains items "type" "forcepower"}}
-{{#if (or (eq actor.flags.starwarsffg.config.enableForcePool undefined) (eq actor.flags.starwarsffg.config.enableForcePool true))}}
+{{#if (eq actor.flags.starwarsffg.config.enableForcePool true)}}
 <div class="cdx-talents cdx-tlist">
   <div class="cdx-cards-head"><span>{{localize "SWFFG.ForcePower"}}</span></div>
   {{#each items as |item id|}} {{#iff item.type '==' 'forcepower'}}
