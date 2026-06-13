@@ -155,6 +155,10 @@
 .cdx .cdx-pill.sig { background:#2c7a86; border-color:rgba(255,255,255,.45); }
 .cdx .cdx-pill .item-delete { opacity:.55; font-size:9px; cursor:pointer; }
 .cdx .cdx-pill .item-delete:hover { opacity:1; }
+/* The per-pill delete cross is GM-only. The form gets a `cdx-gm` class on render
+   for GMs (see _cdxActivate); hide the cross by default and restore it for GMs. */
+.cdx .cdx-pill .item-delete { display:none; }
+.cdx .cdx-gm .cdx-pill .item-delete { display:inline-block; }
 .cdx .cdx-pill-add { color:rgba(255,255,255,.8); font-size:12px; cursor:pointer; }
 .cdx .cdx-drag { font-size:10px; font-style:italic; opacity:.7; }
 /* "Buy <thing>" placeholder for an empty spec/force/signature block — only an

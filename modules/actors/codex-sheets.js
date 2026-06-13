@@ -175,6 +175,11 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     );
     (form ?? root).classList.toggle("cdx-editmode", editOn);
 
+    // Reflect GM status as a class so GM-only chrome can hide itself for players —
+    // currently the per-pill delete cross (species/career/spec/force/sig). CSS
+    // hides `.cdx-pill .item-delete` when this class is absent.
+    (form ?? root).classList.toggle("cdx-gm", !!game.user?.isGM);
+
     // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
     root.querySelectorAll(".cdx-tab").forEach((btn) => {
       btn.addEventListener("click", (ev) => {
