@@ -222,9 +222,13 @@
    header's bottom edge from .cdx-header-wrap (which has no clip-path, so it isn't
    clipped like a direct header child would be). */
 .cdx .cdx-header-wrap { position:relative; }
+/* width:auto via the `.cdx form button.x` pattern -- Foundry/mandar force buttons
+   to width:100% inside the sheet form (see the .cdx-tab override). Without it the
+   absolutely-positioned tab stretches the full header width. */
+.cdx form button.cdx-hcollapse-btn { width:auto; min-width:0; }
 .cdx .cdx-hcollapse-btn {
   position:absolute; right:18px; bottom:0; transform:translateY(50%); z-index:6;
-  display:inline-flex; align-items:center; gap:5px; padding:3px 14px; border:none; cursor:pointer;
+  display:inline-flex; align-items:center; gap:5px; padding:3px 13px; border:none; cursor:pointer;
   font-family:"Orbitron",sans-serif; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1;
   background:var(--cdx-accent); color:var(--cdx-head-ink);
   clip-path:polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
@@ -256,7 +260,7 @@
 .cdx .cdx-header.cdx-hcollapsed .cdx-cr-editor { display:none; }
 .cdx .cdx-header.cdx-hcollapsed .cdx-square.cdx-credits {
   background:transparent; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
-  display:inline-flex; align-items:baseline; gap:6px;
+  display:inline-flex; flex-direction:row; align-items:baseline; gap:6px;
 }
 .cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k { display:none; }
 .cdx .cdx-header.cdx-hcollapsed .cdx-credits::before {
