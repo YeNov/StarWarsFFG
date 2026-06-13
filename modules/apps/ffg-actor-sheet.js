@@ -161,6 +161,14 @@ export class FFGActorSheet extends FFGDocumentSheet {
         return this._onDropItem(event, data);
       case "Folder":
         return this._onDropFolder(event, data);
+      case "Transfer":
+        // The FFG cross-actor transfer payload. On codex sheets the transfer
+        // DragDrop's drop target (.cdx-sheet, display:contents) never receives the
+        // event, so the drop lands here on the native root handler instead. Route
+        // it to the transfer handler; on stock sheets the transfer handler fires
+        // first on .sheet-body and stopPropagation() keeps it from reaching here.
+        console.log("CDX-DND | native _onDrop routing Transfer -> _onTransferItemDrop");
+        return this._onTransferItemDrop(event);
       default:
         return undefined;
     }

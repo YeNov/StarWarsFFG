@@ -2208,6 +2208,11 @@ export class ActorSheetFFG extends FFGActorSheet {
   async _onTransferItemDrop(event) {
     // TEMP DnD DIAGNOSTIC
     console.log("CDX-DND | transferDrop FIRED on", this.actor?.name, { target: event?.target?.className, raw: event?.dataTransfer?.getData?.("text/plain")?.slice?.(0, 120) });
+    // When this fires via the transfer DragDrop bound on a descendant (stock
+    // .sheet-body), stop the event before it bubbles to the native root _onDrop,
+    // which now also routes "Transfer" -- otherwise the item would be created and
+    // the source deleted twice. Must run synchronously, before any await.
+    event.stopPropagation();
     // Try to extract the data
     let data;
     try {
