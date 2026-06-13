@@ -100,51 +100,57 @@ export class ActorSheetFFG extends FFGActorSheet {
       }
 
       if (this.actor.type === "character" && ["talent", "specialization", "signatureability", "forcepower"].includes(itemData.type)) {
-        const cost = await this.calcPurchasePrice(itemData);
+        // Always prompt Buy (spend XP) or Grant (free) when one of these is dropped
+        // on a character. calcPurchasePrice returns the XP cost, or -1 when it can't
+        // be determined (e.g. a specialization with no career) -- clamp to 0. Force
+        // powers and signature abilities default to base_cost 0, so the previous
+        // `cost > 0 && cost < availableXP` gate meant they never prompted at all.
+        const cost = Math.max(0, await this.calcPurchasePrice(itemData));
         const availableXP = this.actor.system.experience.available;
-        if (cost > 0 && cost < availableXP) {
-          DialogV2.wait({
-            window: { title: game.i18n.localize("SWFFG.DragDrop.Title") },
-            classes: ["dialog", "starwarsffg"],
-            content: "",
-            buttons: [
-              {
-                action: "purchase",
-                icon: "fas fa-hourglass",
-                label: game.i18n.localize("SWFFG.DragDrop.PurchaseItem"),
-                default: true,
-                callback: async () => {
-                  if(!this.actor.verifyEditModeIsNotEnabled()) return false;
+        await DialogV2.wait({
+          window: { title: game.i18n.localize("SWFFG.DragDrop.Title") },
+          classes: ["dialog", "starwarsffg"],
+          content: "",
+          buttons: [
+            {
+              action: "purchase",
+              icon: "fas fa-hourglass",
+              label: game.i18n.localize("SWFFG.DragDrop.PurchaseItem"),
+              default: true,
+              callback: async () => {
+                if(!this.actor.verifyEditModeIsNotEnabled()) return false;
+                if (cost <= 0) return; // nothing to spend
+                if (cost > availableXP) {
+                  ui.notifications.warn(`Not enough available XP to purchase ${itemData.name} (cost ${cost}, available ${availableXP}); granting instead.`);
+                  return;
+                }
 
-                  if (cost > 0) {
-                    const AEState = await ActorHelpers.beginEditMode(this.actor, true);
-                    const updatedAvailableXP = this.actor.system.experience.available;
-                    await this.object.update({
-                      system: {
-                        experience: {
-                          available: updatedAvailableXP - cost,
-                        }
-                      }
-                    });
-                    await xpLogSpend(
-                        this.actor, `${game.i18n.localize("SWFFG.DragDrop.XPLog")} ${itemData.type} ${itemData.name}`,
-                        cost,
-                        this.actor.system.experience.available,
-                        this.actor.system.experience.total
-                    );
-                    await ActorHelpers.endEditMode(this.actor, AEState, true);
+                const AEState = await ActorHelpers.beginEditMode(this.actor, true);
+                const updatedAvailableXP = this.actor.system.experience.available;
+                await this.object.update({
+                  system: {
+                    experience: {
+                      available: updatedAvailableXP - cost,
+                    }
                   }
-                },
+                });
+                await xpLogSpend(
+                    this.actor, `${game.i18n.localize("SWFFG.DragDrop.XPLog")} ${itemData.type} ${itemData.name}`,
+                    cost,
+                    this.actor.system.experience.available,
+                    this.actor.system.experience.total
+                );
+                await ActorHelpers.endEditMode(this.actor, AEState, true);
               },
-              {
-                action: "grant",
-                icon: "fas fa-recycle",
-                label: game.i18n.localize("SWFFG.DragDrop.GrantItem"),
-              },
-            ],
-            rejectClose: false,
-          });
-        }
+            },
+            {
+              action: "grant",
+              icon: "fas fa-recycle",
+              label: game.i18n.localize("SWFFG.DragDrop.GrantItem"),
+            },
+          ],
+          rejectClose: false,
+        });
       }
 
       if (Object.keys(itemData).includes("effects") && ["armour", "weapon"].includes(itemData.type)) {
