@@ -146,8 +146,6 @@ export class FFGActorSheet extends FFGDocumentSheet {
 
   async _onDrop(event) {
     const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event);
-    // TEMP DnD DIAGNOSTIC
-    console.log("CDX-DND | native _onDrop FIRED on", this.actor?.name, { dataType: data?.type, target: event?.target?.className });
     const actor = this.actor;
     const allowed = Hooks.call("dropActorSheetData", actor, this, data);
     if (allowed === false) return;
@@ -167,7 +165,6 @@ export class FFGActorSheet extends FFGDocumentSheet {
         // event, so the drop lands here on the native root handler instead. Route
         // it to the transfer handler; on stock sheets the transfer handler fires
         // first on .sheet-body and stopPropagation() keeps it from reaching here.
-        console.log("CDX-DND | native _onDrop routing Transfer -> _onTransferItemDrop");
         return this._onTransferItemDrop(event);
       default:
         return undefined;
