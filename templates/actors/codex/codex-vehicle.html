@@ -3,7 +3,7 @@
   speed/hull/system-strain/encumbrance); reuses the stock vehicle partials for
   the complex Components / Crew / Cargo lists (they keep their own hooks).
 --}}
-<form class="cdx-sheet vehicle" autocomplete="off">
+<div class="cdx-sheet vehicle">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
   {{!-- Dark slate header: portrait · identity (name, type pills). Hardpoints moved
@@ -191,4 +191,4 @@
 
   <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
   {{/unless}}
-</form>
+</div>

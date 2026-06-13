@@ -3,7 +3,7 @@
   Minion specifics: group Quantity (max/alive), per-unit wounds, Kill buttons,
   no strain/force/credits. Skills use `groupskill` (handled inside cdx-skills).
 --}}
-<form class="cdx-sheet minion" autocomplete="off">
+<div class="cdx-sheet minion">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
   <header class="cdx-header">
@@ -110,4 +110,4 @@
 
   <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
   {{/unless}}
-</form>
+</div>

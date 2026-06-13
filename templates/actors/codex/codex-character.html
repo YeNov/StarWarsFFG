@@ -4,7 +4,7 @@
   ActorSheetFFG). Honours the input name= paths, listener-hook classes, and
   render guards. Tabs are bespoke (.cdx-tab/.cdx-pane, toggled in codex-sheets.js).
 --}}
-<form class="cdx-sheet" autocomplete="off">
+<div class="cdx-sheet">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
   {{!-- Header --}}
@@ -179,4 +179,4 @@
 
   <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
   {{/unless}}
-</form>
+</div>
