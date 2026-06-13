@@ -282,6 +282,28 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         await this.actor.update({ [`system.stats.${stat}.value`]: val });
       });
     });
+    // Threshold value & max edited directly (typing, not the ± buttons) -- wounds &
+    // strain on actors, hull trauma & system strain on vehicles -- drive the DERIVED
+    // progress track (cdxTracks/cdxVehTracks → bar width / pips), which getData only
+    // recomputes on render. The generic form pipeline submits with render:false, so
+    // the bar/pips stayed stale until the next full re-render. Persist via the
+    // explicit system path and let actor.update re-render (default) so the track
+    // updates live; change fires on blur (not mid-typing) so the value survives, and
+    // stopPropagation keeps the generic submit from also firing and racing us.
+    root.querySelectorAll([
+      'input[name="data.stats.wounds.value"]', 'input[name="data.stats.wounds.max"]',
+      'input[name="data.stats.strain.value"]', 'input[name="data.stats.strain.max"]',
+      'input[name="data.stats.hullTrauma.value"]', 'input[name="data.stats.hullTrauma.max"]',
+      'input[name="data.stats.systemStrain.value"]', 'input[name="data.stats.systemStrain.max"]',
+    ].join(", ")).forEach((input) => {
+      input.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        const raw = parseInt(String(ev.currentTarget.value).replace(/[^\d-]/g, ""), 10);
+        const val = Math.max(0, Number.isFinite(raw) ? raw : 0);
+        const path = ev.currentTarget.name.replace(/^data\./, "system.");
+        await this.actor.update({ [path]: val });
+      });
+    });
     // Ratio-chip steppers (−/+): adjust the value at data-cdx-path, clamped to
     // [0, data-cdx-max]. Drives the Force chip (committed dice) and the vehicle
     // Speed chip from one handler. Always active (a play action).
