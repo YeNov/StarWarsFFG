@@ -80,17 +80,17 @@
 
   {{!-- Tabs --}}
   <nav class="cdx-tabstrip">
-    <button type="button" class="cdx-tab active" data-tab="weapons">Weapon Systems</button>
+    <button type="button" class="cdx-tab active" data-tab="crew">{{localize "SWFFG.VehicleTabCrew"}}</button>
+    <button type="button" class="cdx-tab" data-tab="weapons">Weapon Systems</button>
     <button type="button" class="cdx-tab" data-tab="attachments">Attachments</button>
     <button type="button" class="cdx-tab" data-tab="damage">Critical Hits{{#if cdxVehCritCount}}<span class="cdx-tab-badge">{{cdxVehCritCount}}</span>{{/if}}</button>
-    <button type="button" class="cdx-tab" data-tab="crew">{{localize "SWFFG.VehicleTabCrew"}}</button>
     <button type="button" class="cdx-tab" data-tab="cargo">{{localize "SWFFG.VehicleTabCargo"}}</button>
     <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.Codex.TabBio"}}</button>
     <button type="button" class="cdx-tab" data-tab="effects">AEs</button>
   </nav>
 
   {{!-- Weapon systems --}}
-  <section class="cdx-pane active items" data-tab="weapons">
+  <section class="cdx-pane items" data-tab="weapons">
     <div class="cdx-cards">
       <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipWeapons"}}</span><span class="item-add shipweapon"><i class="far fa-plus-square"></i></span></div>
       {{#each items as |item id|}} {{#iff item.type '==' 'shipweapon'}}
@@ -143,7 +143,7 @@
   </section>
 
   {{!-- Crew --}}
-  <section class="cdx-pane" data-tab="crew">
+  <section class="cdx-pane active" data-tab="crew">
     <div class="cdx-cards">
       <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipCrew"}}</span></div>
       {{#each crew as |item id|}} {{#iff item.type '==' 'shipcrew'}}
