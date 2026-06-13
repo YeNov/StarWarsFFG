@@ -553,7 +553,10 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     new foundry.applications.ux.ContextMenu(
         htmlElement,
-        ".skillsGrid .skill",
+        // Codex skill rows (.cdx-skills .skill) carry the same data-ability/
+        // data-characteristic attributes the callbacks read, but live outside the
+        // stock .skillsGrid container, so include them here.
+        ".skillsGrid .skill, .cdx-skills .skill",
         contextMenuOptions,
       {jQuery: false},
     );
