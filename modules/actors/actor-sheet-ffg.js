@@ -1469,10 +1469,13 @@ export class ActorSheetFFG extends FFGActorSheet {
     // Add or Remove Attribute
     html.find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
 
-    // transfer items between owned actor objects
+    // transfer items between owned actor objects. Codex sheets use bespoke item
+    // cards (.cdx-card) inside a .cdx-sheet form instead of the stock
+    // .items-list / .sheet-body, so include both so cross-actor transfer works
+    // from and onto codex sheets too.
     const dragDrop = new foundry.applications.ux.DragDrop({
-      dragSelector: ".items-list .item",
-      dropSelector: ".sheet-body",
+      dragSelector: ".items-list .item, .cdx-card",
+      dropSelector: ".sheet-body, .cdx-sheet",
       permissions: { dragstart: this._canDragStart.bind(this), drop: this._canDragDrop.bind(this) },
       callbacks: { dragstart: this._onTransferItemDragStart.bind(this), drop: this._onTransferItemDrop.bind(this) },
     });
@@ -2145,6 +2148,9 @@ export class ActorSheetFFG extends FFGActorSheet {
     $(event.currentTarget).attr("data-item-actorid", this.actor.id);
 
     const item = this.actor.items.get(li.dataset.itemId);
+    // A draggable card may not map to an owned item (e.g. the codex vehicle crew
+    // card, whose id is an actor, not an item) -- bail rather than throw.
+    if (!item) return false;
 
     // limit transfer on personal weapons/armour/gear
     if (["weapon", "armour", "gear"].includes(item.type)) {
