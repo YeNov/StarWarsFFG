@@ -215,6 +215,63 @@
   background:var(--cdx-paper2); border:1px solid var(--cdx-accent); border-radius:5px; box-shadow:0 4px 14px rgba(0,0,0,.45);
 }
 .cdx .cdx-credits-wrap.editing .cdx-cr-editor { display:flex; }
+
+/* ===== Collapsible header (characters/rivals/nemeses/minions; NOT vehicles) =====
+   A per-actor flag (flags.starwarsffg.codexHeaderCollapsed) adds .cdx-hcollapsed to
+   the header; codex-sheets.js toggles it live. The toggle button hangs off the
+   header's bottom edge from .cdx-header-wrap (which has no clip-path, so it isn't
+   clipped like a direct header child would be). */
+.cdx .cdx-header-wrap { position:relative; }
+.cdx .cdx-hcollapse-btn {
+  position:absolute; right:18px; bottom:0; transform:translateY(50%); z-index:6;
+  display:inline-flex; align-items:center; gap:5px; padding:3px 14px; border:none; cursor:pointer;
+  font-family:"Orbitron",sans-serif; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1;
+  background:var(--cdx-accent); color:var(--cdx-head-ink);
+  clip-path:polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+}
+.cdx .cdx-hcollapse-btn:hover { filter:brightness(1.12); }
+.cdx .cdx-hcollapse-btn i { font-size:10px; }
+
+/* Shared: shrink the avatar ~3x in the collapsed state. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-portrait .profile-img { width:clamp(34px, 12cqw, 48px); border-width:1px; }
+
+/* Characters/rivals/nemeses (header has .cdx-header-main): one compact row laid out
+   as a grid -- small avatar on the left spanning two rows, name on top, credits
+   below. display:contents flattens the nested header-main/header-stats so the
+   avatar, name and credits become direct grid items. */
+.cdx .cdx-header.cdx-hcollapsed:has(.cdx-header-main) {
+  display:grid; grid-template-columns:auto 1fr; grid-template-areas:"av name" "av credits";
+  gap:1px 12px; align-items:center; padding:8px 14px;
+}
+.cdx .cdx-header.cdx-hcollapsed .cdx-header-main,
+.cdx .cdx-header.cdx-hcollapsed .cdx-header-stats { display:contents; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-portrait { grid-area:av; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-name { grid-area:name; width:auto; font-size:18px; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits-wrap { grid-area:credits; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-identity,
+.cdx .cdx-header.cdx-hcollapsed .cdx-header-stats .cdx-xp { display:none; }
+
+/* Credits as a plain inline "Credits <value>" string -- still editable inline. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-cr-change,
+.cdx .cdx-header.cdx-hcollapsed .cdx-cr-editor { display:none; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-square.cdx-credits {
+  background:transparent; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
+  display:inline-flex; align-items:baseline; gap:6px;
+}
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k { display:none; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits::before {
+  content:"Credits"; font-family:"Orbitron"; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; opacity:.7; color:var(--cdx-head-ink);
+}
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-input {
+  width:auto; min-width:5ch; background:transparent; border:none; padding:0;
+  font-family:"Orbitron"; font-weight:900; font-size:15px; color:var(--cdx-brass);
+}
+
+/* Minions (header has no .cdx-header-main): small avatar + inline name, type pill hidden. */
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) { padding:8px 14px; align-items:center; }
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-identity { flex-direction:row; align-items:center; }
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-pills { display:none; }
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-name { font-size:18px; }
 .cdx .cdx-cr-op, .cdx .cdx-cr-confirm, .cdx .cdx-cr-cancel {
   width:24px; height:24px; flex:none; border:1px solid var(--cdx-line); background:transparent; color:var(--cdx-ink);
   border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; padding:0;

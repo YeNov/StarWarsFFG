@@ -180,6 +180,23 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // hides `.cdx-pill .item-delete` when this class is absent.
     (form ?? root).classList.toggle("cdx-gm", !!game.user?.isGM);
 
+    // Collapsible header toggle (characters/rivals/nemeses/minions; vehicles have no
+    // button). Flip the class live and swap the button label/icon for instant
+    // feedback, then persist the per-actor flag WITHOUT a re-render (the class
+    // already reflects the new state, so a re-render would only cause a flash).
+    root.querySelector(".cdx-hcollapse-btn")?.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      const header = root.querySelector(".cdx-header");
+      if (!header) return;
+      const collapsed = header.classList.toggle("cdx-hcollapsed");
+      const btn = ev.currentTarget;
+      const label = btn.querySelector(".cdx-hcollapse-label");
+      if (label) label.textContent = collapsed ? "Expand" : "Collapse";
+      const icon = btn.querySelector("i");
+      if (icon) icon.className = collapsed ? "fas fa-caret-down" : "fas fa-caret-up";
+      await this.actor.update({ "flags.starwarsffg.codexHeaderCollapsed": collapsed }, { render: false });
+    });
+
     // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
     root.querySelectorAll(".cdx-tab").forEach((btn) => {
       btn.addEventListener("click", (ev) => {
@@ -501,6 +518,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
    */
   async getData(options) {
     const ctx = await super.getData(options);
+    // Per-actor collapsed-header preference (characters/rivals/nemeses/minions).
+    ctx.cdxHeaderCollapsed = !!this.actor?.getFlag?.("starwarsffg", "codexHeaderCollapsed");
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
       // Header pill stacks (specializations / force powers / signature abilities):

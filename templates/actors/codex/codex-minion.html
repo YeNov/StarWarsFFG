@@ -6,13 +6,16 @@
 <div class="cdx-sheet minion">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
-  <header class="cdx-header">
+  <div class="cdx-header-wrap">
+  <header class="cdx-header{{#if cdxHeaderCollapsed}} cdx-hcollapsed{{/if}}">
     <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
     <div class="cdx-identity">
       <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.MinionName'}}" data-dtype="String" />
       <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.minion" }}</span></div>
     </div>
   </header>
+  <button type="button" class="cdx-hcollapse-btn" title="Toggle header"><i class="fas fa-caret-{{#if cdxHeaderCollapsed}}down{{else}}up{{/if}}"></i><span class="cdx-hcollapse-label">{{#if cdxHeaderCollapsed}}Expand{{else}}Collapse{{/if}}</span></button>
+  </div>
 
   {{#unless limited}}
   {{!-- Persistent minion stats (always visible, above the tabs). Wrapped in a

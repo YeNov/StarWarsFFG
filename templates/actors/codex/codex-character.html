@@ -7,8 +7,10 @@
 <div class="cdx-sheet">
   <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
 
-  {{!-- Header --}}
-  <header class="cdx-header">
+  {{!-- Header (collapsible — see cdx-hcollapse-btn). Wrapped so the toggle button
+       can hang past the header's clipped bottom edge without being clipped. --}}
+  <div class="cdx-header-wrap">
+  <header class="cdx-header{{#if cdxHeaderCollapsed}} cdx-hcollapsed{{/if}}">
     <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
     <div class="cdx-header-main">
     <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
@@ -43,6 +45,8 @@
     </div>
     </div>
   </header>
+  <button type="button" class="cdx-hcollapse-btn" title="Toggle header"><i class="fas fa-caret-{{#if cdxHeaderCollapsed}}down{{else}}up{{/if}}"></i><span class="cdx-hcollapse-label">{{#if cdxHeaderCollapsed}}Expand{{else}}Collapse{{/if}}</span></button>
+  </div>
 
   {{#unless limited}}
   {{!-- Derived: Wounds / Strain / Defence / Encumbrance --}}
