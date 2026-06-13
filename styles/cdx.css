@@ -230,7 +230,10 @@
   position:absolute; right:18px; bottom:0; transform:translateY(50%); z-index:6;
   display:inline-flex; align-items:center; gap:5px; padding:3px 13px; border:none; cursor:pointer;
   font-family:"Orbitron",sans-serif; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1;
-  background:var(--cdx-accent); color:var(--cdx-head-ink);
+  /* --cdx-brass (gold/tan) is the one palette colour that contrasts with the
+     header background (--cdx-head) on every scheme -- the --cdx-accent fill blended
+     into the header on republic/empire/light (same hue family). */
+  background:var(--cdx-brass); color:var(--cdx-chip-label);
   clip-path:polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
 }
 .cdx .cdx-hcollapse-btn:hover { filter:brightness(1.12); }
