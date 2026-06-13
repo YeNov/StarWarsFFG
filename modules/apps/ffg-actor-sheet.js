@@ -44,6 +44,26 @@ export class FFGActorSheet extends FFGDocumentSheet {
     return super.close(options);
   }
 
+  /**
+   * Re-fire the conventional `renderActorSheetV2` hook.
+   *
+   * FFG actor sheets extend `DocumentSheetV2` directly rather than
+   * `foundry.applications.sheets.ActorSheetV2`, so `ActorSheetV2` is never in the
+   * inheritance chain. Foundry fires `render<ClassName>` for each class in that
+   * chain (ApplicationV2#_doEvent), which means it fires `renderDocumentSheetV2`
+   * and `renderApplicationV2` but NOT `renderActorSheetV2`. Modules that inject
+   * actor-sheet header controls hook the standard `renderActorSheetV2` anchor (the
+   * V2 successor to V1's `renderActorSheet`), so the migration silently dropped it.
+   *
+   * Re-emit it here for every FFG actor sheet, matching Foundry's render-hook
+   * signature: (application, element, context, options). Runs after super so the
+   * frame/header DOM and our own listeners are already in place.
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    Hooks.callAll("renderActorSheetV2", this, this.element, context, options);
+  }
+
   /** Actor popout editors use a smaller height floor than item sheets (base = 400). */
   get _popoutEditorMinHeight() { return 200; }
 
