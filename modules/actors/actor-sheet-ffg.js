@@ -1482,6 +1482,27 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     dragDrop.bind(html[0]);
 
+    // TEMP DnD DIAGNOSTIC -- remove once cross-actor item transfer is confirmed.
+    try {
+      const root = html[0];
+      const dragMatches = root.querySelectorAll(".items-list .item, .cdx-card");
+      const dropMatches = root.matches(".sheet-body, .cdx-sheet") ? [root] : root.querySelectorAll(".sheet-body, .cdx-sheet");
+      console.log("CDX-DND | bind", {
+        actor: this.actor?.name,
+        type: this.actor?.type,
+        rootTag: root?.tagName,
+        rootClass: root?.className,
+        canDragStart: this._canDragStart("x"),
+        canDragDrop: this._canDragDrop("x"),
+        dragMatchCount: dragMatches.length,
+        dropMatchCount: dropMatches.length ?? 0,
+        firstCardDraggable: dragMatches[0]?.getAttribute?.("draggable"),
+        firstCardHasOndragstart: !!dragMatches[0]?.ondragstart,
+        dropTargets: [...dropMatches].map((e) => `${e.tagName}.${e.className}`),
+        dropTargetHasOndrop: !!(dropMatches[0]?.ondrop),
+      });
+    } catch (e) { console.error("CDX-DND | bind diag error", e); }
+
     const dragDrop1 = new foundry.applications.ux.DragDrop({
       dragSelector: ".skill",
       dropSelector: ".macro",
@@ -2148,12 +2169,15 @@ export class ActorSheetFFG extends FFGActorSheet {
     $(event.currentTarget).attr("data-item-actorid", this.actor.id);
 
     const item = this.actor.items.get(li.dataset.itemId);
+    // TEMP DnD DIAGNOSTIC
+    console.log("CDX-DND | transferDragStart", { card: li?.className, itemId: li?.dataset?.itemId, itemFound: !!item, itemType: item?.type });
     // A draggable card may not map to an owned item (e.g. the codex vehicle crew
     // card, whose id is an actor, not an item) -- bail rather than throw.
     if (!item) return false;
 
     // limit transfer on personal weapons/armour/gear
     if (["weapon", "armour", "gear"].includes(item.type)) {
+      console.log("CDX-DND | transferDragStart -> setting Transfer payload for", item.name);
       const dragData = {
         type: "Transfer",
         actorId: this.actor.id,
@@ -2182,12 +2206,16 @@ export class ActorSheetFFG extends FFGActorSheet {
    * @param  {Object} event
    */
   async _onTransferItemDrop(event) {
+    // TEMP DnD DIAGNOSTIC
+    console.log("CDX-DND | transferDrop FIRED on", this.actor?.name, { target: event?.target?.className, raw: event?.dataTransfer?.getData?.("text/plain")?.slice?.(0, 120) });
     // Try to extract the data
     let data;
     try {
       data = JSON.parse(event.dataTransfer.getData("text/plain"));
+      console.log("CDX-DND | transferDrop parsed type =", data?.type);
       if (data.type !== "Transfer") return;
     } catch (err) {
+      console.log("CDX-DND | transferDrop parse failed", err);
       return false;
     }
 

@@ -146,6 +146,8 @@ export class FFGActorSheet extends FFGDocumentSheet {
 
   async _onDrop(event) {
     const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event);
+    // TEMP DnD DIAGNOSTIC
+    console.log("CDX-DND | native _onDrop FIRED on", this.actor?.name, { dataType: data?.type, target: event?.target?.className });
     const actor = this.actor;
     const allowed = Hooks.call("dropActorSheetData", actor, this, data);
     if (allowed === false) return;
