@@ -647,8 +647,12 @@ export class ActorSheetFFG extends FFGActorSheet {
       },
     };
 
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower)", [sendToChatContextItem], {jQuery: false});
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false});
+    // Codex header pills (species/career/spec/signature) are span.cdx-pill.item; force
+    // pills are span.cdx-pill.force.item -- neither matches li.item or div.item, so
+    // include them here so right-click "send to chat" (and force-roll) works on them
+    // too. Codex talent/gear cards are div.item and are already covered below.
+    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false});
+    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false});
     new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false});
 
     if (["nemesis", "rival"].includes(this.actor.type)) {
