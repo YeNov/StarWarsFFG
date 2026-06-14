@@ -1763,7 +1763,12 @@ export class ActorSheetFFG extends FFGActorSheet {
       };
     }
 
-    if (item.type === "talent") {
+    // Talents may carry a separate "long" description; prefer it when present, but
+    // don't clobber the already-rendered prettyDesc with an empty longDesc (the
+    // default is "") -- that wiped the chat-card description. The spec-talent
+    // fallback above has no system.longDesc at all, so this guard preserves its
+    // enrichedDescription too.
+    if (item.type === "talent" && item.system?.longDesc) {
       itemDetails.prettyDesc = item.system.longDesc;
     }
 
