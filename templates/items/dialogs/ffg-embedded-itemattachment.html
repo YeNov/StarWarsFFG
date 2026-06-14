@@ -13,8 +13,8 @@
         <input name="name" type="text" value="{{ data.clickedObject.name }}" placeholder="{{ localize "SWFFG.Name" }}">
       </div>
       <div class="form-group">
-        <label for="description">{{ localize "SWFFG.TabDescription" }}</label>
-        {{editor data.clickedObject.system.enrichedDescription target="system.description"  button=true owner=true editable=true}}
+        <label>{{ localize "SWFFG.TabDescription" }}</label>
+        {{editor data.clickedObject.system.enrichedDescription target="system.description" button=true owner=true editable=true engine="prosemirror"}}
       </div>
       <div class="form-group">
         <label for="system.hardpoints.value">{{ localize "SWFFG.Labels.HardPoints" }}</label>

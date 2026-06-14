@@ -100,51 +100,57 @@ export class ActorSheetFFG extends FFGActorSheet {
       }
 
       if (this.actor.type === "character" && ["talent", "specialization", "signatureability", "forcepower"].includes(itemData.type)) {
-        const cost = await this.calcPurchasePrice(itemData);
+        // Always prompt Buy (spend XP) or Grant (free) when one of these is dropped
+        // on a character. calcPurchasePrice returns the XP cost, or -1 when it can't
+        // be determined (e.g. a specialization with no career) -- clamp to 0. Force
+        // powers and signature abilities default to base_cost 0, so the previous
+        // `cost > 0 && cost < availableXP` gate meant they never prompted at all.
+        const cost = Math.max(0, await this.calcPurchasePrice(itemData));
         const availableXP = this.actor.system.experience.available;
-        if (cost > 0 && cost < availableXP) {
-          DialogV2.wait({
-            window: { title: game.i18n.localize("SWFFG.DragDrop.Title") },
-            classes: ["dialog", "starwarsffg"],
-            content: "",
-            buttons: [
-              {
-                action: "purchase",
-                icon: "fas fa-hourglass",
-                label: game.i18n.localize("SWFFG.DragDrop.PurchaseItem"),
-                default: true,
-                callback: async () => {
-                  if(!this.actor.verifyEditModeIsNotEnabled()) return false;
+        await DialogV2.wait({
+          window: { title: game.i18n.localize("SWFFG.DragDrop.Title") },
+          classes: ["dialog", "starwarsffg"],
+          content: "",
+          buttons: [
+            {
+              action: "purchase",
+              icon: "fas fa-hourglass",
+              label: game.i18n.localize("SWFFG.DragDrop.PurchaseItem"),
+              default: true,
+              callback: async () => {
+                if(!this.actor.verifyEditModeIsNotEnabled()) return false;
+                if (cost <= 0) return; // nothing to spend
+                if (cost > availableXP) {
+                  ui.notifications.warn(`Not enough available XP to purchase ${itemData.name} (cost ${cost}, available ${availableXP}); granting instead.`);
+                  return;
+                }
 
-                  if (cost > 0) {
-                    const AEState = await ActorHelpers.beginEditMode(this.actor, true);
-                    const updatedAvailableXP = this.actor.system.experience.available;
-                    await this.object.update({
-                      system: {
-                        experience: {
-                          available: updatedAvailableXP - cost,
-                        }
-                      }
-                    });
-                    await xpLogSpend(
-                        this.actor, `${game.i18n.localize("SWFFG.DragDrop.XPLog")} ${itemData.type} ${itemData.name}`,
-                        cost,
-                        this.actor.system.experience.available,
-                        this.actor.system.experience.total
-                    );
-                    await ActorHelpers.endEditMode(this.actor, AEState, true);
+                const AEState = await ActorHelpers.beginEditMode(this.actor, true);
+                const updatedAvailableXP = this.actor.system.experience.available;
+                await this.object.update({
+                  system: {
+                    experience: {
+                      available: updatedAvailableXP - cost,
+                    }
                   }
-                },
+                });
+                await xpLogSpend(
+                    this.actor, `${game.i18n.localize("SWFFG.DragDrop.XPLog")} ${itemData.type} ${itemData.name}`,
+                    cost,
+                    this.actor.system.experience.available,
+                    this.actor.system.experience.total
+                );
+                await ActorHelpers.endEditMode(this.actor, AEState, true);
               },
-              {
-                action: "grant",
-                icon: "fas fa-recycle",
-                label: game.i18n.localize("SWFFG.DragDrop.GrantItem"),
-              },
-            ],
-            rejectClose: false,
-          });
-        }
+            },
+            {
+              action: "grant",
+              icon: "fas fa-recycle",
+              label: game.i18n.localize("SWFFG.DragDrop.GrantItem"),
+            },
+          ],
+          rejectClose: false,
+        });
       }
 
       if (Object.keys(itemData).includes("effects") && ["armour", "weapon"].includes(itemData.type)) {
@@ -399,6 +405,24 @@ export class ActorSheetFFG extends FFGActorSheet {
       await this._onSubmit(event, { render: true });
     });
 
+    // Editing a skill rank changes that skill's dice pool (and any weapon's that
+    // uses it), which is rebuilt only during render. The default pipeline submits
+    // render:false, so the pool stayed stale until the next full render (e.g.
+    // leaving edit mode). Re-render on change — `change` fires on blur, so the
+    // typed value is committed first and there's no mid-typing DOM swap.
+    html.find("input.careerskill-rank").on("change", async (event) => {
+      event.stopPropagation();
+      await this._onSubmit(event, { render: true });
+    });
+
+    // Same for characteristic edits — they drive every skill's (and weapon's)
+    // dice pool, which only rebuilds on render. `change` fires on blur/step, so
+    // the value is committed before the re-render.
+    html.find('input[name^="data.characteristics."][name$=".value"]').on("change", async (event) => {
+      event.stopPropagation();
+      await this._onSubmit(event, { render: true });
+    });
+
     // Minion sheets compute several display fields in _prepareMinionData
     // from raw inputs that the user edits directly:
     //   unit_wounds.value + quantity.max -> stats.wounds.max
@@ -535,9 +559,12 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     new foundry.applications.ux.ContextMenu(
         htmlElement,
-        ".skillsGrid .skill",
+        // Codex skill rows (.cdx-skills .skill) carry the same data-ability/
+        // data-characteristic attributes the callbacks read, but live outside the
+        // stock .skillsGrid container, so include them here.
+        ".skillsGrid .skill, .cdx-skills .skill",
         contextMenuOptions,
-      {jQuery: false},
+      {jQuery: false, fixed: true},
     );
 
     html.find(".skill-purchase").click(async (ev) => {
@@ -569,7 +596,7 @@ export class ActorSheetFFG extends FFGActorSheet {
           this._onCreateSkill(li);
         },
       },
-    ], {jQuery: false});
+    ], {jQuery: false, fixed: true});
 
     html.find(".ffg-purchase").click(async (ev) => {
       await this._buyCore(ev)
@@ -620,9 +647,17 @@ export class ActorSheetFFG extends FFGActorSheet {
       },
     };
 
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower)", [sendToChatContextItem], {jQuery: false});
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false});
-    new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false});
+    // Codex header pills (species/career/spec/signature) are span.cdx-pill.item; force
+    // pills are span.cdx-pill.force.item -- neither matches li.item or div.item, so
+    // include them here so right-click "send to chat" (and force-roll) works on them
+    // too. Codex talent/gear cards are div.item and are already covered below.
+    // fixed:true positions the menu at document.body. Without it the menu is
+    // appended INSIDE the right-clicked element (Foundry's non-fixed path), and the
+    // codex talent/skill cards' constrained height/overflow squash it to a ~10px
+    // sliver -- so it "didn't appear".
+    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false, fixed: true});
+    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false, fixed: true});
+    new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false, fixed: true});
 
     if (["nemesis", "rival"].includes(this.actor.type)) {
       this.sheetoptions = new ActorOptions(this, html);
@@ -1448,10 +1483,13 @@ export class ActorSheetFFG extends FFGActorSheet {
     // Add or Remove Attribute
     html.find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
 
-    // transfer items between owned actor objects
+    // transfer items between owned actor objects. Codex sheets use bespoke item
+    // cards (.cdx-card) inside a .cdx-sheet form instead of the stock
+    // .items-list / .sheet-body, so include both so cross-actor transfer works
+    // from and onto codex sheets too.
     const dragDrop = new foundry.applications.ux.DragDrop({
-      dragSelector: ".items-list .item",
-      dropSelector: ".sheet-body",
+      dragSelector: ".items-list .item, .cdx-card",
+      dropSelector: ".sheet-body, .cdx-sheet",
       permissions: { dragstart: this._canDragStart.bind(this), drop: this._canDragDrop.bind(this) },
       callbacks: { dragstart: this._onTransferItemDragStart.bind(this), drop: this._onTransferItemDrop.bind(this) },
     });
@@ -1725,7 +1763,12 @@ export class ActorSheetFFG extends FFGActorSheet {
       };
     }
 
-    if (item.type === "talent") {
+    // Talents may carry a separate "long" description; prefer it when present, but
+    // don't clobber the already-rendered prettyDesc with an empty longDesc (the
+    // default is "") -- that wiped the chat-card description. The spec-talent
+    // fallback above has no system.longDesc at all, so this guard preserves its
+    // enrichedDescription too.
+    if (item.type === "talent" && item.system?.longDesc) {
       itemDetails.prettyDesc = item.system.longDesc;
     }
 
@@ -2124,6 +2167,9 @@ export class ActorSheetFFG extends FFGActorSheet {
     $(event.currentTarget).attr("data-item-actorid", this.actor.id);
 
     const item = this.actor.items.get(li.dataset.itemId);
+    // A draggable card may not map to an owned item (e.g. the codex vehicle crew
+    // card, whose id is an actor, not an item) -- bail rather than throw.
+    if (!item) return false;
 
     // limit transfer on personal weapons/armour/gear
     if (["weapon", "armour", "gear"].includes(item.type)) {
@@ -2155,6 +2201,11 @@ export class ActorSheetFFG extends FFGActorSheet {
    * @param  {Object} event
    */
   async _onTransferItemDrop(event) {
+    // When this fires via the transfer DragDrop bound on a descendant (stock
+    // .sheet-body), stop the event before it bubbles to the native root _onDrop,
+    // which now also routes "Transfer" -- otherwise the item would be created and
+    // the source deleted twice. Must run synchronously, before any await.
+    event.stopPropagation();
     // Try to extract the data
     let data;
     try {
@@ -2338,7 +2389,11 @@ export class ActorSheetFFG extends FFGActorSheet {
   async _buyCore(event) {
     if(!this.actor.verifyEditModeIsNotEnabled()) return;
 
-    const action = $(event.target).data("buy-action");
+    // Read from currentTarget (the bound .ffg-purchase element that carries the
+    // data-* attrs), NOT event.target — clicking a label with child spans (e.g.
+    // the codex characteristic chip's full/abbr label) lands on a child that has
+    // no data-buy-action, which previously made the purchase silently bail.
+    const action = $(event.currentTarget).data("buy-action");
     const template = "systems/starwarsffg/templates/dialogs/ffg-confirm-purchase.html";
     let content;
     const availableXP = this.object.system.experience.available;
@@ -2557,7 +2612,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       itemType = game.i18n.localize("TYPES.Item.talent");
       content = await foundry.applications.handlebars.renderTemplate(template, { selectableItems, itemType: itemType, itemCategory: "talent" });
     } else if (action === "characteristic") {
-      const characteristic = $(event.target).data("buy-characteristic");
+      const characteristic = $(event.currentTarget).data("buy-characteristic");
       await this._buyCharacteristicRank(characteristic);
       return;
     } else if (action === "skill") {

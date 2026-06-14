@@ -7,6 +7,25 @@ import ModifierHelpers from "../helpers/modifiers.js";
  */
 export class ActorFFG extends Actor {
 
+  /**
+   * Route to the Codex II actor sheet when the client `defaultSheetTheme`
+   * setting selects it — unless this actor has an explicit per-document sheet
+   * (the ⚙ Sheet picker writes flags.core.sheetClass, which always wins) or its
+   * type isn't covered by Codex. The Codex class + covered types live on
+   * CONFIG.FFG.codexSheets (set at sheet registration) to avoid a document↔sheet
+   * import cycle. @override
+   */
+  _getSheetClass() {
+    try {
+      const codex = CONFIG.FFG?.codexSheets?.actor;
+      if (codex && !this.getFlag("core", "sheetClass") && codex.types.includes(this.type)
+        && String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "").startsWith("codex")) {
+        return codex.cls;
+      }
+    } catch (e) { /* settings not ready yet, etc. — fall back to the default */ }
+    return super._getSheetClass();
+  }
+
   // returns true if EditMode is not enabled, false otherwise. sends warning notification if EditMode is enabled and sendWarn is true
   verifyEditModeIsNotEnabled(sendWarn = true){
     const result = !this.getFlag("starwarsffg", "config.enableEditMode");

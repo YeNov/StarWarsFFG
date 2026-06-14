@@ -246,6 +246,30 @@ export default class SettingsHelpers {
       },
     });
 
+    // Default sheet theme — client-scoped (per world, local to each user). Picks
+    // which sheet style new/unconfigured documents open with, AND (for the Codex
+    // options) the default colour scheme: the value is `codex-<scheme>`, so one
+    // selector sets both theme + scheme. Documents with an explicit per-document
+    // sheet (the ⚙ Sheet button, flags.core.sheetClass) or scheme flag keep their
+    // own choice. Resolved in ActorFFG/ItemFFG._getSheetClass + cdxDefaultScheme.
+    game.settings.register("starwarsffg", "defaultSheetTheme", {
+      name: "Default Sheet Theme",
+      hint: "Which sheet style (and Codex II colour scheme) to use by default. Stored locally per client. Documents with an explicitly chosen sheet/scheme keep that choice. Reloads on change.",
+      scope: "client",
+      config: true,
+      default: "default",
+      type: String,
+      choices: {
+        default: "Default (system sheets)",
+        "codex-republic": "Codex II — Republic",
+        "codex-empire": "Codex II — Empire",
+        "codex-dark": "Codex II — Dark",
+        "codex-light": "Codex II — Light",
+        "codex-mercenary": "Codex II — Mercenary",
+      },
+      onChange: this.debouncedReload,
+    });
+
     // Register setting for token healthy
     game.settings.register("starwarsffg", "ui-token-healthy", {
       name: game.i18n.localize("SWFFG.Settings.Tokens.Bar.Healthy.Name"),

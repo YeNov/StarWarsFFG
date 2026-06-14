@@ -12,6 +12,9 @@ export class itemEditor extends FFGFormApplication {
   constructor(data) {
     super();
     this.data = data;
+    // Inline {{editor}} state, keyed by field name. FormDataExtended reads live
+    // ProseMirror content from these on submit (see _getSubmitData).
+    this.editors = {};
     // appId mirrors the V1 field some handlers still reference.
     this.appId = this.id;
     // The header title is dynamic (current + parent item). Set it up front so
@@ -21,6 +24,19 @@ export class itemEditor extends FFGFormApplication {
       currentItem: data.clickedObject.name,
       parentItem: data.sourceObject.name,
     });
+    // Codex skin — applied ONLY when the host item's resolved sheet is the Codex
+    // item sheet (so a stock-sheet weapon keeps the stock embedded editor). The
+    // Codex class is read from CONFIG.FFG.codexSheets (set at registration) to
+    // avoid importing the sheet module here. Scheme follows the host item/actor.
+    try {
+      const codexCls = CONFIG.FFG?.codexSheets?.item?.cls;
+      this._cdx = !!(codexCls && data.sourceObject?._getSheetClass?.() === codexCls);
+      if (this._cdx) {
+        const SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
+        const s = data.sourceObject?.getFlag?.("starwarsffg", "scheme") ?? data.sourceObject?.actor?.getFlag?.("starwarsffg", "scheme");
+        this._cdxScheme = SCHEMES.includes(s) ? s : "republic";
+      }
+    } catch (e) { this._cdx = false; }
   }
 
   static DEFAULT_OPTIONS = {
@@ -112,8 +128,110 @@ export class itemEditor extends FFGFormApplication {
   /** @override */
   async _onRender(context, options) {
     await super._onRender(context, options);
+    // Apply the Codex scope when the host uses a Codex sheet: `cdx` (+ `cdx-embed`)
+    // on the window so the palette vars resolve and the editor is skinned, and
+    // the scheme class on the content form.
+    if (this._cdx && this.element) {
+      this.element.classList.add("cdx", "cdx-embed");
+      this.form?.classList?.add(`scheme-${this._cdxScheme}`);
+    }
     this._setupTabs();
     this._activateListeners($(this.form));
+    this._activateEditors();
+  }
+
+  /* ---- Inline {{editor}} (ProseMirror) support ----
+     FFGFormApplication half-wired this (it has the `.editor.prosemirror` change
+     guard) but never activated the editors or fed them to FormDataExtended.
+     Mirrors FFGDocumentSheet, but the field source is the embedded clickedObject
+     and the save flows through the form (_onSubmit -> _updateObject -> write-back)
+     rather than a document update. */
+
+  /** @override — feed live editor content into the submitted form data. */
+  _getSubmitData(updateData = {}) {
+    if (!this.form) throw new Error("The form application has no registered form element.");
+    const fd = new foundry.applications.ux.FormDataExtended(this.form, { editors: this.editors });
+    let data = fd.object;
+    if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
+    return foundry.utils.flattenObject(data);
+  }
+
+  /** Bind each {{editor}} Edit button to mount a ProseMirror editor inline. */
+  _activateEditors() {
+    const root = this.element;
+    if (!root) return;
+    for (const content of root.querySelectorAll(".editor-content[data-edit]")) {
+      const name = content.dataset.edit;
+      if (!name) continue;
+      const containerEl = content.closest(".editor");
+      const button = containerEl?.querySelector(".editor-edit");
+      if (!button || button.dataset.editorBound) continue;
+      button.dataset.editorBound = "1";
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._activateEditor(name, content, containerEl, button);
+      });
+    }
+  }
+
+  async _activateEditor(name, contentEl, containerEl, buttonEl) {
+    if (this.editors[name]?.instance?.view) return;
+    if (this.editors[name]) this._destroyEditor(name);
+    const initial = foundry.utils.getProperty(this.data.clickedObject, name) ?? "";
+    const { ProseMirrorEditor } = foundry.applications.ux;
+    // Register the FormDataExtended-compatible entry BEFORE create() resolves so
+    // a submit-on-change mid-mount still serializes this editor.
+    this.editors[name] = {
+      instance: null,
+      options: { engine: "prosemirror", target: name, button: true, owner: this.isEditable },
+      active: true,
+      button: buttonEl,
+      container: containerEl,
+    };
+    const editor = await ProseMirrorEditor.create(contentEl, initial, {
+      // sourceObject (the host item) is a real Document — used for relative link
+      // resolution only; the actual save goes through the form, not this doc.
+      document: this.data.sourceObject,
+      fieldName: name,
+      relativeLinks: true,
+      plugins: {
+        menu: ProseMirror.ProseMirrorMenu.build(ProseMirror.defaultSchema, {
+          destroyOnSave: false,
+          onSave: () => this._saveEditor(name, { remove: true }),
+        }),
+        keyMaps: ProseMirror.ProseMirrorKeyMaps.build(ProseMirror.defaultSchema, {
+          onSave: () => this._saveEditor(name, { remove: true }),
+        }),
+      },
+    });
+    this.editors[name].instance = editor;
+    // `prosemirror` on the container is what FFGFormApplication's _onChangeForm
+    // guard looks for to avoid submitting on every keystroke.
+    containerEl.classList.add("editor-active", "prosemirror");
+    if (buttonEl) buttonEl.style.display = "none";
+  }
+
+  async _saveEditor(name, { remove = true } = {}) {
+    const state = this.editors[name];
+    if (!state?.instance?.view || state._saving) return;
+    state._saving = true;
+    try {
+      // _onSubmit reads the form via our _getSubmitData (which serializes the
+      // live editor) and routes through _updateObject -> embedded write-back.
+      await this._onSubmit(new Event("submit", { cancelable: true }));
+    } finally {
+      if (remove) this._destroyEditor(name);
+      this.render(true);
+    }
+  }
+
+  _destroyEditor(name) {
+    const state = this.editors[name];
+    if (!state) return;
+    try { state.instance?.destroy(); } catch (_e) { /* already torn down */ }
+    state.container?.classList.remove("editor-active", "prosemirror");
+    if (state.button) state.button.style.display = "";
+    delete this.editors[name];
   }
 
   /** Bind the BASICS / BASE MODS tab navigation, remembering the active tab. */
@@ -144,6 +262,14 @@ export class itemEditor extends FFGFormApplication {
       dragDrop.bind(this.element);
     }
   }
+
+  /** DragDrop permission hooks. itemEditor extends FFGFormApplication (not the
+   *  sheet classes that define these), so without them `this._canDragStart.bind`
+   *  on the attachment DragDrop above throws a TypeError — which aborted
+   *  _onRender and left the attachment editor window un-draggable (qualities,
+   *  which skip the DragDrop, were unaffected). */
+  _canDragStart(_selector) { return true; }
+  _canDragDrop(_selector) { return true; }
 
   async onDropMod(event) {
     CONFIG.logger.debug("caught mod drag-and-drop");
@@ -186,6 +312,11 @@ export class itemEditor extends FFGFormApplication {
    * @param event
    */
   async _modControl(event) {
+    // The control is an <a data-action="create|delete">; stop the click here so
+    // it doesn't bubble to ApplicationV2's [data-action] dispatcher / the form,
+    // which (on delete) was closing the editor window.
+    event.preventDefault();
+    event.stopPropagation();
     let action = event.currentTarget.getAttribute('data-action');
     if (action === 'create') {
       const nk = new Date().getTime();
@@ -247,6 +378,10 @@ export class itemEditor extends FFGFormApplication {
    * @param event
    */
   async _modificationControl(event) {
+    // Stop the <a data-action="delete"> click from bubbling to ApplicationV2's
+    // [data-action] dispatcher / the form, which was closing the editor window.
+    event.preventDefault();
+    event.stopPropagation();
     if(this.actor && !this.data.sourceObject.parent?.verifyEditModeIsNotEnabled()) return;
 
     let action = event.currentTarget.getAttribute('data-action');
@@ -498,10 +633,16 @@ export class itemEditor extends FFGFormApplication {
             }
           }
 
-          // merge the existing data in so we end up with all fields present
+          // merge the existing data in so we end up with all fields present.
+          // performDeletions:true APPLIES the `-=key` deletion markers (v12+
+          // defaults this to false) — otherwise they linger in the merged
+          // attributes as `{"-=attr...": null}`, and the next render iterates
+          // that null entry into ffg-mod.html, throwing "Cannot convert
+          // undefined or null to object" and closing the editor window.
           attachment = foundry.utils.mergeObject(
             attachment,
             formData,
+            { performDeletions: true },
           );
           // pull the updated data back into our local record of what it should look like
           this.data.clickedObject = attachment;
@@ -530,9 +671,12 @@ export class itemEditor extends FFGFormApplication {
             }
           }
           // merge the existing data in so we end up with all fields present
+          // (performDeletions:true applies `-=key` markers — see the attachment
+          // branch above; otherwise the lingering null entry crashes re-render).
           modifier = foundry.utils.mergeObject(
             modifier,
             formData,
+            { performDeletions: true },
           );
           // pull the updated data back into our local record of what it should look like
           this.data.clickedObject = modifier;
@@ -838,6 +982,11 @@ export class forcePowerEditor extends itemEditor {
    * @param event
    */
   async _modControl(event) {
+    // The control is an <a data-action="create|delete">; stop the click here so
+    // it doesn't bubble to ApplicationV2's [data-action] dispatcher / the form,
+    // which (on delete) was closing the editor window.
+    event.preventDefault();
+    event.stopPropagation();
     let action = event.currentTarget.getAttribute('data-action');
     if (action === 'create') {
       const nk = new Date().getTime();

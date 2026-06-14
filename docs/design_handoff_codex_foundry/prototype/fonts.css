@@ -1,0 +1,50 @@
+/* ====== Local fonts shipped from the repo ====== */
+@font-face { font-family:"EotESymbol"; src:url("fonts/EotESymbol-Regular-PLUS.otf") format("opentype"); font-display:swap; }
+@font-face { font-family:"Signika"; src:url("fonts/Signika-Regular.ttf") format("truetype"); font-display:swap; }
+@font-face { font-family:"Roboto"; src:url("fonts/Roboto-Regular.ttf") format("truetype"); font-display:swap; }
+
+/* ====== Shared design tokens (one system, three themes) ====== */
+:root{
+  --oxblood:#791311;
+  --oxblood-bright:#a51f17;
+  --brass:#c8a24a;
+  --cyan:#43c4d6;
+
+  /* dice colors */
+  --die-ability:#46a24b;
+  --die-prof:#e7c84b;
+  --die-boost:#7fc8e8;
+  --die-difficulty:#9b4dca;
+  --die-challenge:#cf3b2d;
+  --die-setback:#cfcfcf;
+  --die-force:#ffffff;
+
+  /* characteristic accent */
+  --notch:9px;
+}
+
+/* the signature FFG bevel — reusable */
+.notch{
+  --n:var(--notch);
+  clip-path:polygon(0% var(--n), var(--n) 0%, calc(100% - var(--n)) 0%,
+    100% var(--n), 100% calc(100% - var(--n)), calc(100% - var(--n)) 100%,
+    var(--n) 100%, 0% calc(100% - var(--n)));
+}
+/* notch only on the top two corners (for headers sitting on a panel) */
+.notch-top{
+  --n:var(--notch);
+  clip-path:polygon(0% 0%, var(--n) 0%, calc(100% - var(--n)) 0%, 100% var(--n),
+    100% 100%, 0% 100%);
+}
+
+/* dice glyphs */
+.glyph{ font-family:"EotESymbol"; font-style:normal; line-height:1; }
+.g-ability{ color:var(--die-ability); }
+.g-prof{ color:var(--die-prof); }
+.g-boost{ color:var(--die-boost); }
+.g-difficulty{ color:var(--die-difficulty); }
+.g-challenge{ color:var(--die-challenge); }
+.g-setback{ color:var(--die-setback); }
+.g-force{ color:var(--die-force); }
+
+*{ box-sizing:border-box; }

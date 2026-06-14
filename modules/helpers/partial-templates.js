@@ -1,6 +1,12 @@
 export default class TemplateHelpers {
   static async preload() {
     const templatePaths = [
+      "systems/starwarsffg/templates/parts/codex/cdx-skills.html",
+      "systems/starwarsffg/templates/parts/codex/cdx-combat.html",
+      "systems/starwarsffg/templates/parts/codex/cdx-gear.html",
+      "systems/starwarsffg/templates/parts/codex/cdx-talents.html",
+      "systems/starwarsffg/templates/parts/codex/cdx-injuries.html",
+      "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html",
       "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html",
       "systems/starwarsffg/templates/parts/shared/ffg-sources.html",
       "systems/starwarsffg/templates/parts/shared/ffg-tags.html",
@@ -10,6 +16,7 @@ export default class TemplateHelpers {
       "systems/starwarsffg/templates/parts/actor/ffg-vehicle-weapon-attachments.html",
       "systems/starwarsffg/templates/parts/ffg-qualities-attachments-mods.html",
       "systems/starwarsffg/templates/parts/ffg-mods.html",
+      "systems/starwarsffg/templates/parts/ffg-attachments.html",
       "systems/starwarsffg/templates/items/dialogs/ffg-mod.html",
       "systems/starwarsffg/templates/items/dialogs/ffg-modification.html",
       "systems/starwarsffg/templates/parts/actor/ffg-vehicle-cargo.html",

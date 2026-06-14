@@ -22,7 +22,7 @@ export default class ActorHelpers {
       if (this.object.type !== "homestead") {
         if (this.object.type !== "vehicle") {
           // Handle credits
-          if (formData.data.stats?.credits?.value) {
+          if (formData.data?.stats?.credits?.value) {
             const rawCredits = formData.data.stats?.credits.value
               ?.toString()
               .match(/^(?!.*\.).*|.*\./)[0]
@@ -31,29 +31,46 @@ export default class ActorHelpers {
           }
         }
       }
-      if (this.object.type === "minion") {
-        // include the updated quantity of minions in the group in the update object so automation can access it
+      // include the updated quantity of minions in the group in the update object so automation can access it.
+      // Guard the same way as the skills block above: when the sheet is not in edit mode the quantity/wounds/
+      // unit_wounds inputs are disabled (excluded from FormData), so these would be undefined. Dereferencing
+      // them threw a TypeError that aborted the whole save -- silently discarding unrelated edits such as the
+      // avatar image picked via the FilePicker.
+      if (
+        this.object.type === "minion" &&
+        formData.data?.quantity?.max !== undefined &&
+        formData.data?.stats?.wounds?.value !== undefined &&
+        formData.data?.unit_wounds?.value !== undefined
+      ) {
         formData.data.quantity.value = Math.min(formData.data.quantity.max, formData.data.quantity.max - Math.floor(formData.data.stats.wounds.value - 1) / formData.data.unit_wounds.value);
       }
     }
-    // Handle the free-form attributes list
-    const formAttrs = foundry.utils.expandObject(formData)?.data?.attributes || {};
-    const attributes = Object.values(formAttrs).reduce((obj, v) => {
-      let k = v["key"].trim();
-      delete v["key"];
-      obj[k] = v;
-      return obj;
-    }, {});
+    // Handle the free-form attributes list. Only reconcile when the form actually
+    // submitted a `data` branch (i.e. the sheet was in edit mode). A view-mode submit
+    // of just name/img/biography has no formData.data at all, so the old unconditional
+    // `formData.data.attributes = attributes` threw (data is undefined) and aborted the
+    // whole save -- silently discarding the edited name and avatar. Skipping the block
+    // here also avoids fabricating `-=key` deletion markers that would wipe existing
+    // attributes on a view-mode edit.
+    if (foundry.utils.hasProperty(formData, "data")) {
+      const formAttrs = foundry.utils.expandObject(formData)?.data?.attributes || {};
+      const attributes = Object.values(formAttrs).reduce((obj, v) => {
+        let k = v["key"].trim();
+        delete v["key"];
+        obj[k] = v;
+        return obj;
+      }, {});
 
-    // Remove attributes which are no longer used
-    if (this.object.system?.attributes) {
-      for (let k of Object.keys(this.object.system.attributes)) {
-        if (!attributes.hasOwnProperty(k)) attributes[`-=${k}`] = null;
+      // Remove attributes which are no longer used
+      if (this.object.system?.attributes) {
+        for (let k of Object.keys(this.object.system.attributes)) {
+          if (!attributes.hasOwnProperty(k)) attributes[`-=${k}`] = null;
+        }
       }
-    }
 
-    // recombine attributes to formData
-    formData.data.attributes = attributes;
+      // recombine attributes to formData
+      formData.data.attributes = attributes;
+    }
 
     // Update the Actor
     foundry.utils.setProperty(formData, `flags.starwarsffg.loaded`, false);
@@ -67,7 +84,22 @@ export default class ActorHelpers {
       await xpLogEarn(this.object, newXP - curXP, newXP, this.object?.system?.experience.total, "manual adjustment", "Self");
     }
 
-    return await this.object.update(formData, { render });
+    const updated = await this.object.update(formData, { render });
+
+    // When the sheet submits with render:false (the Codex typed-value render-race fix),
+    // Foundry also skips refreshing the world display. Name/img edits must still
+    // propagate to the sidebar directory and active token nameplates, otherwise they
+    // stay stale until a full reload.
+    if (render === false && (foundry.utils.hasProperty(formData, "name") || foundry.utils.hasProperty(formData, "img"))) {
+      ui.actors?.render(false);
+      if (foundry.utils.hasProperty(formData, "name")) {
+        for (const token of this.object.getActiveTokens?.(true, false) ?? []) {
+          token.renderFlags?.set({ refreshNameplate: true });
+        }
+      }
+    }
+
+    return updated;
   }
 
   /**

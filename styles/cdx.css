@@ -1,0 +1,1194 @@
+/* ============================================================================
+   CODEX II — self-contained sheet styles. Everything is scoped under `.cdx`
+   (the outer ApplicationV2 window <div>) and targets only bespoke `.cdx-*`
+   classes, so it neither depends on nor conflicts with the active UI theme
+   (mandar). The palette is a PER-ACTOR flag applied as `scheme-*` on the
+   content <form>; vars are declared there and inherited by all content.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("../fonts/Orbitron-VariableFont_wght.woff2") format("woff2");
+  font-weight: 400 900; font-style: normal; font-display: swap;
+}
+
+/* ---- Palettes (per-actor scheme on the content form) ---- */
+.cdx form, .cdx form.scheme-republic {
+  --cdx-bg:#cdd4dc; --cdx-stripe:rgba(20,40,70,.05);
+  --cdx-paper:#e9edf2; --cdx-paper2:#f5f7fa; --cdx-ink:#16202b; --cdx-dim:#5d6b78; --cdx-line:#b9c3cd;
+  --cdx-accent:#1f4e8c; --cdx-accent2:#16407a; --cdx-brown:#2a5fa0; --cdx-brass:#b9892f;
+  --cdx-career:#e6eefb; --cdx-career-line:#3a78c0; --cdx-track:#c2ccd6;
+  --cdx-chip-label:#16202b; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#2a649f,#1b4474); --cdx-head-ink:#fff;
+  --cdx-warn:#c2570a;
+  --cdx-notch:9px;
+}
+.cdx form.scheme-empire {
+  --cdx-bg:#c8c9cc; --cdx-stripe:rgba(0,0,0,.05);
+  --cdx-paper:#e5e6e8; --cdx-paper2:#f1f1f3; --cdx-ink:#14151a; --cdx-dim:#5d5f66; --cdx-line:#b4b5ba;
+  --cdx-accent:#1b1c21; --cdx-accent2:#2b2c32; --cdx-brown:#7c1411; --cdx-brass:#7d8086;
+  --cdx-career:#e9e9ec; --cdx-career-line:#9a1f1b; --cdx-track:#bcbdc2;
+  --cdx-chip-label:#000; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#26272c,#131418); --cdx-head-ink:#fff;
+  --cdx-warn:#c0271d;
+}
+.cdx form.scheme-dark {
+  --cdx-bg:#0e0b0b; --cdx-stripe:rgba(255,255,255,.02);
+  --cdx-paper:#1a1413; --cdx-paper2:#221917; --cdx-ink:#ece4df; --cdx-dim:#9a8e88; --cdx-line:#3a2c29;
+  --cdx-accent:#8a1714; --cdx-accent2:#5d1110; --cdx-brown:#6e2a22; --cdx-brass:#c8a24a;
+  --cdx-career:rgba(200,162,74,.12); --cdx-career-line:#c8a24a; --cdx-track:#3a2c29;
+  --cdx-chip-label:#000; --cdx-chip-ink276:#fff; --cdx-head:linear-gradient(180deg,#6e1411,#380a09); --cdx-head-ink:#fff;
+  --cdx-warn:#f5b820;
+}
+.cdx form.scheme-light {
+  --cdx-bg:#dde6ec; --cdx-stripe:rgba(47,111,158,.045);
+  --cdx-paper:#f3f7fa; --cdx-paper2:#fff; --cdx-ink:#1b2a33; --cdx-dim:#5f7079; --cdx-line:#c5d2db;
+  --cdx-accent:#2f6f9e; --cdx-accent2:#245880; --cdx-brown:#3a86b5; --cdx-brass:#b0902c;
+  --cdx-career:#e4f1f8; --cdx-career-line:#4a9bc8; --cdx-track:#cad9e2;
+  --cdx-chip-label:#1b2a33; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#56a0c4,#2f6f9e); --cdx-head-ink:#fff;
+  --cdx-warn:#bf5a00;
+}
+.cdx form.scheme-mercenary {
+  --cdx-bg:#c9bdac; --cdx-stripe:rgba(60,40,20,.05);
+  --cdx-paper:#e6dccb; --cdx-paper2:#f1ebdd; --cdx-ink:#241c12; --cdx-dim:#6e6047; --cdx-line:#bcae95;
+  --cdx-accent:#7a4a22; --cdx-accent2:#5e3818; --cdx-brown:#8a5a2a; --cdx-brass:#b07a30;
+  --cdx-career:#efe2c8; --cdx-career-line:#b07a30; --cdx-track:#cdbfa3;
+  --cdx-chip-label:#241c12; --cdx-chip-ink:#f1ebdd; --cdx-head:linear-gradient(180deg,#3b4148,#22262b); --cdx-head-ink:#f1ebdd;
+  --cdx-warn:#9a3c08;
+}
+.cdx form {
+  --cdx-clip:polygon(0% var(--cdx-notch),var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% calc(100% - var(--cdx-notch)),calc(100% - var(--cdx-notch)) 100%,var(--cdx-notch) 100%,0% calc(100% - var(--cdx-notch)));
+  --cdx-clip-top:polygon(0% 0%,var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% 100%,0% 100%);
+}
+
+/* ---- Shell ---- (!important: mandar paints a parchment background-image on
+   .window-content with higher specificity) */
+.cdx > form.window-content {
+  background-color:var(--cdx-bg) !important;
+  background-image:repeating-linear-gradient(135deg,var(--cdx-stripe) 0 12px,transparent 12px 24px) !important;
+  color:var(--cdx-ink); font-family:"Signika",sans-serif; padding:12px; gap:9px;
+  display:flex; flex-direction:column; min-height:0; overflow-y:auto !important; overflow-x:hidden;
+}
+.cdx .cdx-sheet { display:contents; }
+/* NB: mandar forces `overflow: visible !important` on the content form (it
+   scrolls its own .sheet-body, which our bespoke layout lacks). A stylesheet
+   override can't reliably win that, so the scroll is set inline with !important
+   in codex-sheets.js (_cdxActivate) instead. */
+/* Scope generic field styling to the CONTENT form only — NOT the window header,
+   whose control buttons rely on the Font Awesome font-family for their glyphs
+   (a global `.cdx button{font-family:inherit}` was wiping the header icons). */
+.cdx form input, .cdx form select, .cdx form button { font-family:inherit; color:var(--cdx-ink); }
+.cdx form input:focus { outline:none; box-shadow:0 0 4px var(--cdx-accent); }
+/* mandar forces `button { display:block; width:100% }` inside sheets — undo it
+   for our inline tab controls so the flex row lays out horizontally. */
+.cdx form button.cdx-tab { display:inline-flex; align-items:center; width:auto; flex:0 0 auto; appearance:none; line-height:1; }
+.cdx .brass { color:var(--cdx-brass); }
+.cdx .cdx-slash { color:var(--cdx-dim); font-weight:700; padding:0 2px; }
+
+/* ---- Scheme strip ---- */
+.cdx .cdx-scheme-strip { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.cdx .cdx-scheme-label { font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-scheme-btn {
+  font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase;
+  padding:3px 10px; border:1px solid transparent; border-radius:2px; background:transparent; color:var(--cdx-dim); cursor:pointer;
+}
+.cdx .cdx-scheme-btn:hover { color:var(--cdx-ink); border-color:var(--cdx-line); }
+
+/* ---- Header ---- */
+.cdx .cdx-header {
+  display:flex; gap:14px; align-items:center; padding:14px;
+  background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip);
+  container-type:inline-size; /* so the avatar can flex to the header width (cqw) */
+}
+/* Character header puts the name on its own full-width row above the avatar row,
+   so it's never clipped by the XP/Credits chips. Scoped via :has so the
+   vehicle/minion headers keep their single-row layout. */
+.cdx .cdx-header:has(.cdx-header-main) { flex-direction:column; align-items:stretch; gap:10px; }
+.cdx .cdx-header-main { display:flex; gap:14px; align-items:center; }
+.cdx .cdx-portrait { flex:none; }
+/* contain (not cover): show the WHOLE avatar inside the box, never cropped. */
+.cdx .cdx-portrait .profile-img { width:clamp(100px, 30cqw, 150px); aspect-ratio:1/1; object-fit:contain; background:rgba(0,0,0,.18); border:2px solid rgba(255,255,255,.35); border-radius:6px; cursor:pointer; }
+.cdx .cdx-identity { flex:1; min-width:0; display:flex; flex-direction:column; gap:9px; }
+.cdx .cdx-name {
+  font-family:"Orbitron"; font-weight:900; font-size:26px; letter-spacing:1px; text-transform:uppercase; line-height:1;
+  color:var(--cdx-head-ink); background:transparent; border:none; width:100%; padding:0;
+}
+/* Vehicle name is a <textarea> so a long name wraps to a 2nd line instead of
+   being clipped (vehicles only). field-sizing grows it to fit (1–2 lines) where
+   supported; otherwise rows="2" reserves two lines. Capped at two lines. */
+.cdx textarea.cdx-veh-name { resize:none; overflow:hidden; box-sizing:border-box; line-height:1.05; field-sizing:content; max-height:2.2em; }
+.cdx .cdx-pills { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+.cdx .cdx-pillgroup { display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
+/* ---- Collapsible pill stack (specializations) — mirrors the prototype PillStack.
+   A VERTICAL stack of notched pills, NOT a horizontal row.
+   Collapsed: every pill but the top is pulled up (margin) so only an ~8px strip
+   peeks out behind the one above — a stacked-cards look — and the top pill shows
+   a "+N" badge while the rest stay hidden behind it. Open (click toggles `.open`
+   in codex-sheets.js): the pills separate into a vertical list with small gaps.
+   The first pill must paint ON TOP of the ones behind it, so z-index descends in
+   DOM order (capped — specs rarely exceed a handful). */
+.cdx .cdx-stack { position:relative; display:flex; flex-direction:column; align-items:stretch; width:max-content; min-width:130px; max-width:240px; }
+.cdx .cdx-stack.cdx-collapsible { cursor:pointer; }
+.cdx .cdx-stack .cdx-pill { position:relative; width:100%; height:22px; box-sizing:border-box; margin-top:5px; background:rgba(0,0,0,.4); box-shadow:0 -1px 0 rgba(255,255,255,.4) inset; }
+.cdx .cdx-stack .cdx-pill:first-child { margin-top:0; }
+.cdx .cdx-stack .cdx-pill:nth-child(1){z-index:12} .cdx .cdx-stack .cdx-pill:nth-child(2){z-index:11}
+.cdx .cdx-stack .cdx-pill:nth-child(3){z-index:10} .cdx .cdx-stack .cdx-pill:nth-child(4){z-index:9}
+.cdx .cdx-stack .cdx-pill:nth-child(5){z-index:8}  .cdx .cdx-stack .cdx-pill:nth-child(6){z-index:7}
+.cdx .cdx-stack .cdx-pill:nth-child(7){z-index:6}  .cdx .cdx-stack .cdx-pill:nth-child(n+8){z-index:5}
+/* Collapsed: overlap into a peeking stack (8px peek = 22px pill − 14px pull).
+   The pills are translucent, so hide the lower labels (and delete icons) — only
+   the top pill shows its name + the "+N" badge; the rest read as bare cards. */
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill { margin-top:-14px; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:first-child { margin-top:0; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:not(:first-child) { color:transparent; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill .item-delete { display:none; }
+/* "+N" badge: only when collapsed, pinned to the top pill's right edge. */
+.cdx .cdx-stack-more { display:none; }
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-stack-more {
+  display:flex; align-items:center; position:absolute; top:0; right:10px; height:22px; z-index:13; pointer-events:none;
+  font-family:"Orbitron"; font-weight:800; font-size:9px; letter-spacing:.5px; color:rgba(255,255,255,.9);
+}
+.cdx .cdx-pill {
+  font-family:"Orbitron"; font-weight:500; font-size:10px; letter-spacing:.5px; text-transform:uppercase;
+  background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.26); color:var(--cdx-head-ink);
+  padding:3px 10px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; clip-path:var(--cdx-clip); cursor:pointer;
+}
+.cdx .cdx-pill.force { background:#5b4bb3; border-color:rgba(255,255,255,.45); }
+.cdx .cdx-pill.sig { background:#2c7a86; border-color:rgba(255,255,255,.45); }
+.cdx .cdx-pill .item-delete { opacity:.55; font-size:9px; cursor:pointer; }
+.cdx .cdx-pill .item-delete:hover { opacity:1; }
+/* The per-pill delete cross (species/career/spec/force/signature) is GM-only AND
+   only while XP-buy mode is on. The form gets `cdx-gm` on render for GMs and
+   `cdx-xpbuy` while buy mode is active (see _cdxActivate); both land on the same
+   element, so require both. Hide by default and restore only when both are set. */
+.cdx .cdx-pill .item-delete { display:none; }
+.cdx .cdx-gm.cdx-xpbuy .cdx-pill .item-delete { display:inline-block; }
+.cdx .cdx-pill-add { color:rgba(255,255,255,.8); font-size:12px; cursor:pointer; }
+.cdx .cdx-drag { font-size:10px; font-style:italic; opacity:.7; }
+/* "Buy <thing>" placeholder for an empty spec/force/signature block — only an
+   affordance while XP-buy mode is on (.cdx-xpbuy). The .cdx-drag-shaped text
+   doubles as the purchase trigger (ffg-purchase + data-buy-action). The empty-
+   state "Assign Species/Career" placeholders use plain .cdx-drag and stay on. */
+.cdx .cdx-buy { display:none; cursor:pointer; }
+.cdx .cdx-xpbuy .cdx-buy { display:inline; }
+.cdx .cdx-xpbuy .cdx-buy:hover { opacity:1; text-decoration:underline; }
+
+.cdx .cdx-header-stats { flex:none; display:flex; flex-direction:column; gap:7px; align-items:stretch; }
+/* XP + CR side by side only when the header is wide enough that the middle pill
+   column still has room; otherwise stack them vertically (the header is the
+   inline-size container). */
+@container (min-width:680px) {
+  .cdx .cdx-header-stats { flex-direction:row; align-items:flex-start; }
+}
+.cdx .cdx-square {
+  width:74px; padding:7px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; background:rgba(0,0,0,.28); clip-path:var(--cdx-clip); color:var(--cdx-head-ink);
+}
+.cdx .cdx-square.cdx-credits { background:var(--cdx-brass); color:var(--cdx-chip-label); }
+/* Stacked XP/Credits chips size to content (not a fixed 74px) so Credits can
+   widen to hold the value up to ~8 characters; align-items:stretch on the column
+   keeps both chips the same width. */
+.cdx .cdx-header-stats .cdx-square { width:auto; min-width:74px; }
+.cdx .cdx-credits .cdx-sq-input { width:9ch; }
+
+/* ---- Credits "Change" flyout + in-place +/- editor ----
+   The wrapper is unclipped (the chip itself has a notch clip-path that would
+   otherwise cut these off). The "Change" tab slides down from under the chip on
+   hover; the editor opens to the LEFT so it stays inside the clipped header. */
+.cdx .cdx-credits-wrap { position:relative; }
+.cdx .cdx-credits-wrap .cdx-square { width:100%; position:relative; z-index:2; }
+.cdx .cdx-cr-change {
+  position:absolute; left:0; right:0; top:100%; z-index:1; margin-top:-3px;
+  transform:translateY(-100%); opacity:0; pointer-events:none;
+  transition:transform .18s ease, opacity .18s ease;
+  padding:24px 0 4px; line-height:1; cursor:pointer; /* line-height:1 cancels mandar's 28px button line-height that centred the label; the big top padding drops it into the revealed (bottom) half of the tab */
+  background:rgba(185,137,47,.5);                                   /* half-transparent body (fallback) */
+  background:color-mix(in srgb, var(--cdx-brass) 50%, transparent);
+  border:2px solid var(--cdx-brass);                                /* solid outline, same colour */
+  clip-path:polygon(0 0, 100% 0, 100% calc(100% - var(--cdx-notch)), calc(100% - var(--cdx-notch)) 100%, var(--cdx-notch) 100%, 0 calc(100% - var(--cdx-notch)));
+  color:var(--cdx-chip-label);
+  font-family:"Orbitron"; font-weight:900; font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+}
+.cdx .cdx-credits-wrap:hover .cdx-cr-change { transform:translateY(-50%); opacity:1; pointer-events:auto; }
+.cdx .cdx-credits-wrap.editing .cdx-cr-change { display:none; }
+.cdx .cdx-cr-editor {
+  display:none; position:absolute; top:50%; right:100%; transform:translateY(-50%); margin-right:6px; z-index:20;
+  align-items:center; gap:4px; padding:5px 6px; white-space:nowrap;
+  background:var(--cdx-paper2); border:1px solid var(--cdx-accent); border-radius:5px; box-shadow:0 4px 14px rgba(0,0,0,.45);
+}
+.cdx .cdx-credits-wrap.editing .cdx-cr-editor { display:flex; }
+
+/* ===== Collapsible header (characters/rivals/nemeses/minions; NOT vehicles) =====
+   A per-actor flag (flags.starwarsffg.codexHeaderCollapsed) adds .cdx-hcollapsed to
+   the header; codex-sheets.js toggles it live. The toggle button hangs off the
+   header's bottom edge from .cdx-header-wrap (which has no clip-path, so it isn't
+   clipped like a direct header child would be). */
+.cdx .cdx-header-wrap { position:relative; }
+/* width:auto via the `.cdx form button.x` pattern -- Foundry/mandar force buttons
+   to width:100% inside the sheet form (see the .cdx-tab override). Without it the
+   absolutely-positioned tab stretches the full header width. */
+.cdx form button.cdx-hcollapse-btn { width:auto; min-width:0; }
+.cdx .cdx-hcollapse-btn {
+  position:absolute; right:18px; bottom:0; transform:translateY(50%); z-index:6;
+  display:inline-flex; align-items:center; gap:5px; padding:3px 13px; border:none; cursor:pointer;
+  font-family:"Orbitron",sans-serif; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1;
+  /* --cdx-brass (gold/tan) is the one palette colour that contrasts with the
+     header background (--cdx-head) on every scheme -- the --cdx-accent fill blended
+     into the header on republic/empire/light (same hue family). */
+  background:var(--cdx-brass); color:var(--cdx-chip-label);
+  clip-path:polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+}
+.cdx .cdx-hcollapse-btn:hover { filter:brightness(1.12); }
+.cdx .cdx-hcollapse-btn i { font-size:10px; }
+
+/* Shared: shrink the avatar ~3x in the collapsed state. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-portrait .profile-img { width:clamp(34px, 12cqw, 48px); border-width:1px; }
+
+/* Characters/rivals/nemeses (header has .cdx-header-main): one compact row laid out
+   as a grid -- small avatar on the left spanning two rows, name on top, credits
+   below. display:contents flattens the nested header-main/header-stats so the
+   avatar, name and credits become direct grid items. */
+.cdx .cdx-header.cdx-hcollapsed:has(.cdx-header-main) {
+  display:grid; grid-template-columns:auto 1fr; grid-template-areas:"av name" "av credits";
+  gap:1px 12px; align-items:center; padding:8px 14px;
+}
+.cdx .cdx-header.cdx-hcollapsed .cdx-header-main,
+.cdx .cdx-header.cdx-hcollapsed .cdx-header-stats { display:contents; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-portrait { grid-area:av; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-name { grid-area:name; width:auto; font-size:18px; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits-wrap { grid-area:credits; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-identity,
+.cdx .cdx-header.cdx-hcollapsed .cdx-header-stats .cdx-xp { display:none; }
+
+/* Credits as a plain inline "Credits <value>" string -- still editable inline. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-cr-change,
+.cdx .cdx-header.cdx-hcollapsed .cdx-cr-editor { display:none; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-square.cdx-credits {
+  background:transparent; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
+  display:inline-flex; flex-direction:row; align-items:baseline; gap:6px;
+}
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k { display:none; }
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits::before {
+  content:"Credits"; font-family:"Orbitron"; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; opacity:.7; color:var(--cdx-head-ink);
+}
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-input {
+  /* field-sizing:content shrinks the input to its value so the number sits tight
+     after the label; text-align:left overrides the .cdx-square center alignment. */
+  width:auto; field-sizing:content; min-width:2ch; text-align:left;
+  background:transparent; border:none; padding:0;
+  font-family:"Orbitron"; font-weight:900; font-size:15px; color:var(--cdx-brass);
+}
+
+/* Minions (header has no .cdx-header-main): small avatar + inline name, type pill hidden. */
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) { padding:8px 14px; align-items:center; }
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-identity { flex-direction:row; align-items:center; }
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-pills { display:none; }
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-name { font-size:18px; }
+.cdx .cdx-cr-op, .cdx .cdx-cr-confirm, .cdx .cdx-cr-cancel {
+  width:24px; height:24px; flex:none; border:1px solid var(--cdx-line); background:transparent; color:var(--cdx-ink);
+  border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; padding:0;
+}
+.cdx .cdx-cr-op.active { background:var(--cdx-accent); color:#fff; border-color:var(--cdx-accent); }
+.cdx .cdx-cr-confirm { color:#2f7d3a; } .cdx .cdx-cr-confirm:hover { background:rgba(47,125,58,.14); }
+.cdx .cdx-cr-cancel { color:#a51f17; } .cdx .cdx-cr-cancel:hover { background:rgba(165,31,23,.14); }
+.cdx .cdx-cr-amount {
+  width:8ch; text-align:center; font-family:"Orbitron"; font-weight:700; font-size:13px;
+  background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; color:var(--cdx-ink); padding:3px 2px;
+}
+.cdx .cdx-sq-k { font-family:"Orbitron"; font-size:8.5px; font-weight:700; letter-spacing:1.5px; opacity:.75; text-transform:uppercase; }
+.cdx .cdx-sq-v { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1.05; }
+.cdx .cdx-sq-s { font-family:"Orbitron"; font-size:8px; opacity:.6; }
+.cdx .cdx-sq-input { font-family:"Orbitron"; font-weight:900; font-size:17px; text-align:center; background:transparent; border:none; width:100%; color:inherit; }
+
+
+/* ---- Chip row (characteristics + soak + force) ---- */
+.cdx .cdx-chiprow { display:flex; gap:6px; align-items:center; }
+/* Characteristics row now lives at the top of the Skills pane — space it off the
+   skills grid below. Scoped to panes so the minion's root-level row is unaffected. */
+.cdx .cdx-pane .cdx-chiprow { margin-bottom:9px; }
+.cdx .cdx-chip { flex:1; display:flex; flex-direction:column; align-items:center; min-width:0; container-type:inline-size; }
+/* Characteristic label collapses to a 2-letter+dot abbreviation (WILLPOWER →
+   WI.) once the chip is too narrow for the full word — a single dot, not an
+   ellipsis. All chips are equal width, so they all switch together. */
+.cdx .cdx-cl-abbr { display:none; }
+@container (max-width:80px) {
+  .cdx .cdx-cl-full { display:none; }
+  .cdx .cdx-cl-abbr { display:inline; }
+}
+.cdx .cdx-chip-box {
+  width:100%; max-width:84px; aspect-ratio:1/1; border-radius:13px; border:4px double var(--cdx-ink);
+  background:var(--cdx-paper2); display:flex; align-items:center; justify-content:center; box-shadow:inset 0 2px 6px rgba(0,0,0,.12);
+}
+.cdx .cdx-chip.derived .cdx-chip-box { border:3px solid var(--cdx-brass); }
+.cdx .cdx-chip-box input, .cdx .cdx-chip-box.static {
+  width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; color:var(--cdx-ink);
+}
+.cdx .cdx-chip-box.static { display:flex; align-items:center; justify-content:center; }
+.cdx .cdx-chip-label {
+  margin-top:-9px; z-index:2; background:var(--cdx-chip-label); color:var(--cdx-chip-ink);
+  font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase;
+  padding:3px 11px; white-space:nowrap; clip-path:var(--cdx-clip); cursor:pointer;
+}
+.cdx .cdx-chip-label.brass { background:var(--cdx-brass); }
+/* Force chip background by Morality alignment (neutral=white, good=blue, evil=red).
+   Only ever visible when the Force chip itself renders (force enabled). The pool
+   number flips to white on the saturated good/evil backgrounds for contrast. */
+.cdx .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:#ffffff; }
+.cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box { background:#1f5fb3; }
+.cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box { background:#b3261e; }
+.cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box.static,
+.cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box.static { color:#fff; }
+/* Ratio chip (reusable): XP-square layout — current big on top, "of {max}" small
+   below — with −/+ steppers riding the chip's left/right borders. The box is the
+   positioning context so the buttons anchor to its edges, not the wider chip.
+   Used by the Force chip (+ alignment background) and the vehicle Speed chip. */
+.cdx .cdx-chip.cdx-ratio .cdx-chip-box { position:relative; flex-direction:column; gap:1px; overflow:visible; }
+.cdx .cdx-ratio-c { font-family:"Orbitron"; font-weight:900; font-size:26px; line-height:1; }
+.cdx .cdx-ratio-t { font-family:"Orbitron"; font-weight:600; font-size:9px; opacity:.7; line-height:1; }
+/* Edit-mode inputs (current / max) styled as transparent text, not boxes. */
+.cdx .cdx-chip-box input.cdx-ratio-c { width:1.6em; text-align:center; background:transparent; border:none; color:var(--cdx-ink); padding:0; }
+.cdx .cdx-ratio-t input.cdx-ratio-m { width:1.6em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:600; font-size:9px; color:inherit; padding:0; }
+/* Steppers: border matches the chip-box border (3px brass); opaque, scheme-aware
+   contrast fill like the sheet's other +/- buttons; centred on the borders. */
+.cdx .cdx-ratio-step {
+  position:absolute; top:50%; width:19px; height:19px; padding:0; z-index:3;
+  border:3px solid var(--cdx-brass); border-radius:50%; background:var(--cdx-paper2); color:var(--cdx-ink);
+  display:inline-flex; align-items:center; justify-content:center; font-size:8px; line-height:1; cursor:pointer;
+}
+.cdx .cdx-ratio-step.minus { left:0; transform:translate(calc(-50% - 2px),-50%); }
+.cdx .cdx-ratio-step.plus { right:0; transform:translate(calc(50% + 2px),-50%); }
+.cdx .cdx-ratio-step:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
+.cdx .cdx-ratio-step i { transform:translateX(1.5px); }
+/* Ratio-bg variant (Speed): the box ramps from the scheme's chip background
+   (paper2) to red-orange, so the value text follows var(--cdx-ink) (the default)
+   for per-scheme contrast — no hardcoded colour. */
+.cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
+
+/* ---- XP-buy mode ----
+   The XP chip toggles a transient "buy mode" class on the form (.cdx-xpbuy, set
+   in codex-sheets.js — never persisted). Until it's on, the purchase affordances
+   are hidden: the standalone buy icons (skill upgrade, spec/force/signature "+")
+   are <i> elements and hidden outright, while the dual-purpose triggers (the
+   characteristic label, the Talents header) stay visible but only act as buy
+   buttons in buy mode. */
+.cdx .cdx-xp { cursor:pointer; }
+.cdx .cdx-xp.active { box-shadow:inset 0 0 0 2px var(--cdx-accent); background:rgba(255,255,255,.1); }
+.cdx .cdx-editmode .cdx-xp { cursor:default; } /* inert while editing */
+.cdx i.ffg-purchase { display:none; }
+.cdx .cdx-xpbuy i.ffg-purchase { display:inline-flex; }
+.cdx .cdx-chip-label.ffg-purchase, .cdx .cdx-cards-head .ffg-purchase { pointer-events:none; }
+.cdx .cdx-xpbuy .cdx-chip-label.ffg-purchase, .cdx .cdx-xpbuy .cdx-cards-head .ffg-purchase { pointer-events:auto; cursor:pointer; }
+/* The chip-label is a dark pill in every scheme, so an --cdx-accent outline only
+   stood out on the dark scheme (red on black); other schemes' accents are mid-
+   tones with poor contrast on the dark pill. Use --cdx-brass (bright/gold in
+   every palette) at 2px so the buyable highlight reads in all schemes. */
+.cdx .cdx-xpbuy .cdx-chip-label.ffg-purchase { box-shadow:inset 0 0 0 2px var(--cdx-brass); }
+.cdx .cdx-xpbuy .cdx-cards-head .ffg-purchase { color:var(--cdx-accent); }
+
+/* ---- Derived stat blocks ---- */
+.cdx .cdx-derived { display:flex; flex-wrap:nowrap; gap:6px; align-items:stretch; }
+.cdx .cdx-stat { flex:1; min-width:0; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; display:flex; flex-direction:column; }
+.cdx .cdx-stat.wide { flex:1.4; }
+.cdx .cdx-stat-head {
+  background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:1.2px;
+  text-transform:uppercase; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; clip-path:var(--cdx-clip-top);
+}
+.cdx .cdx-rest { width:20px; height:18px; border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.12); color:#fff; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
+.cdx .cdx-stat-body { padding:6px 8px 7px; text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.cdx .cdx-thresh { display:flex; align-items:baseline; justify-content:center; gap:2px; }
+.cdx .cdx-thresh input { width:2.2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:26px; color:var(--cdx-ink); padding:0; }
+.cdx .cdx-thresh input[disabled] { color:var(--cdx-ink); opacity:.9; }
+.cdx .cdx-stat-sub { display:flex; justify-content:space-between; gap:8px; margin-top:3px; padding:0 4px; }
+.cdx .cdx-stat-sub span { font-size:8px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-heal { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:6px; padding-top:6px; border-top:1px solid var(--cdx-line); }
+.cdx .cdx-heal-k { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-heal-v { font-family:"Orbitron"; font-weight:900; font-size:13px; color:var(--cdx-ink); }
+.cdx .cdx-heal .medical { color:var(--cdx-accent); cursor:pointer; }
+
+/* Defence card — big Soak on the left, Melee/Ranged stacked on the right. */
+.cdx .cdx-stat.cdx-def { flex:1.15; }
+/* Character/nemesis/adversary derived row (the one holding the .cdx-def card):
+   Wounds · Strain · Defence carry equal weight. Scoped via :has(.cdx-def) so the
+   minion's 5-block row (whose defence block has no .cdx-def class) is untouched. */
+.cdx .cdx-derived:has(.cdx-def) .cdx-stat { flex:1; }
+.cdx .cdx-stat-head span > i { margin-right:5px; opacity:.9; font-size:10px; }
+.cdx .cdx-def-body { flex:1; display:flex; align-items:stretch; }
+.cdx .cdx-def-soak { flex:0 0 auto; min-width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:4px 7px; border-right:1px solid var(--cdx-line); }
+.cdx .cdx-def-soak input, .cdx .cdx-def-soak-v { text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-ink); padding:0; }
+.cdx .cdx-def-soak input { width:1.4em; }
+.cdx .cdx-def-soak-k { font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); }
+/* Right panel fills the space left of Soak (flexible, never a rigid width) so it
+   can't overflow the card and clip the dice on a narrow window. The dice sit in a
+   narrow two-column block (see .cdx-def-dice); the MELEE/RANGED label keeps its
+   full natural width and never compacts. Character/nemesis/adversary only (no such
+   panel on the minion template). */
+.cdx .cdx-def-rows { flex:1; min-width:0; display:flex; flex-direction:column; container-type:inline-size; }
+.cdx .cdx-def-row { flex:1; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 9px; }
+.cdx .cdx-def-row + .cdx-def-row { border-top:1px solid var(--cdx-line); }
+/* flex:0 0 auto → the label is exactly its own (nowrap) width and never grows or
+   shrinks, so MELEE/RANGED never compacts; the dice block yields space instead. */
+/* Fixed label width (>= the longest label, "RANGED") so MELEE and RANGED leave
+   the SAME room for their dice — otherwise MELEE's shorter label gives its dice
+   extra space and it stays a row while RANGED collapses. Equal space → both
+   collapse to the same stair/square together. */
+.cdx .cdx-def-row > span { flex:0 0 48px; white-space:nowrap; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.7px; text-transform:uppercase; color:var(--cdx-dim); }
+/* Edit-mode plain borderless numbers (like Soak) — shown only while edit mode is
+   on; the locked view shows the setback dice below instead. */
+.cdx .cdx-def-row input { width:1.5em; flex:none; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:22px; color:var(--cdx-ink); padding:0; }
+/* Locked-view defence values. Setback dice are black rounded squares (the
+   rulebook glyph), filled with currentColor (= --cdx-ink) so they stay legible on
+   light AND dark schemes — a literal #000 would vanish on the dark scheme. */
+/* Dice stay in a single right-anchored row while they fit; only when the row is
+   too narrow does the block shrink and wrap into a compact form — 3 → 2+1, 4 →
+   2×2 (extra/lone row on top, since wrap-reverse renders the wrapped line above).
+   flex:0 1 auto → basis is the single-row (max-content) width, so it never grows
+   past one row but shrinks (→ wraps) once the label needs the space. min-width:0
+   lets it shrink below that basis to trigger the wrap. justify-content:flex-end
+   right-aligns every line, so the right-most die lands at the same X on every row
+   regardless of count (the container's right edge is pinned by the row's
+   space-between). */
+/* Compact two-column block by default (2 → row, 3 → pyramid, 4 → 2×2), right-
+   anchored. Both rows carry the SAME data-def-max (the larger of the two dice
+   counts), so the container queries below flip BOTH to a single line at the same
+   panel width — in line when there's room, collapsed together when not. */
+.cdx .cdx-def-dice { width:37px; flex:none; display:flex; flex-wrap:wrap-reverse; justify-content:flex-end; align-content:center; gap:3px; }
+@container (min-width:90px)  { .cdx .cdx-def-dice[data-def-max="1"] { width:auto; flex-wrap:nowrap; } }
+@container (min-width:110px) { .cdx .cdx-def-dice[data-def-max="2"] { width:auto; flex-wrap:nowrap; } }
+@container (min-width:130px) { .cdx .cdx-def-dice[data-def-max="3"] { width:auto; flex-wrap:nowrap; } }
+@container (min-width:150px) { .cdx .cdx-def-dice[data-def-max="4"] { width:auto; flex-wrap:nowrap; } }
+/* Dice are grouped in unbreakable pairs (getData), so the wrap can only happen
+   between pairs — 4 dice wrap to 2×2, never 3+1; 3 wrap to a 2+1 pyramid. */
+.cdx .cdx-die-pair { display:inline-flex; flex:none; gap:3px; }
+.cdx .cdx-die-setback { width:16px; height:16px; flex:none; color:var(--cdx-ink); }
+.cdx .cdx-def-digit { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; color:var(--cdx-ink); }
+.cdx .cdx-def-dash { font-family:"Orbitron"; font-weight:700; font-size:18px; line-height:1; color:var(--cdx-dim); }
+
+/* Wounds/strain steppers + damage track */
+.cdx .cdx-stepline { display:flex; align-items:center; gap:7px; }
+.cdx .cdx-stepline-mid { flex:1; min-width:0; }
+.cdx .cdx-step { width:24px; height:24px; flex:none; border:1px solid var(--cdx-line); background:transparent; color:var(--cdx-dim); border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; padding:0; }
+.cdx .cdx-step:hover { border-color:var(--cdx-accent); color:var(--cdx-accent); }
+.cdx .cdx-track { display:flex; gap:2px; margin-top:6px; justify-content:center; }
+.cdx .cdx-track.bar { display:block; height:9px; background:var(--cdx-track); border-radius:2px; overflow:hidden; }
+.cdx .cdx-track .cdx-track-fill { height:100%; }
+.cdx .cdx-pip { flex:1 1 0; max-width:12px; height:9px; border-radius:1px; background:var(--cdx-track); }
+
+/* ---- Minion: Group Strength + Combined Wound Pool ---- */
+/* Top row: Group Strength takes the lion's share, Defence sits beside it. */
+/* Persistent stats wrapper: a plain block, pinned (flex:none) as a child of the
+   column-flex form so it never shrinks. Its children (top row + wound pool) lay
+   out in normal block flow, so the wound pool can't be collapsed by the form's
+   flex distribution the way a direct flex-item .cdx-stat would be. */
+.cdx .cdx-minion-stats { flex:none; }
+.cdx .cdx-minion-top { display:flex; gap:6px; align-items:stretch; }
+.cdx .cdx-minion-top .cdx-gs { flex:2; }
+.cdx .cdx-minion-top .cdx-minion-def { flex:1; min-width:150px; }
+/* The group-strength body is a single content row; it stretches to match the
+   (taller) defence block beside it, with its content vertically centred. */
+.cdx .cdx-gs-body { flex:1; display:flex; align-items:center; gap:12px; padding:8px 12px; container-type:inline-size; }
+/* Counter + label share a wrapping sub-box so that, when the panel is too narrow
+   to fit them side by side, the label drops onto its own line UNDER the counter
+   instead of overflowing into the Wipe Out button. Wipe Out stays outside this
+   box, anchored at the right of the row. */
+.cdx .cdx-gs-main { flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
+/* When the body is too narrow to keep the counter and label side by side, stack
+   them as a centred column so the label sits centred directly under the 4/4. */
+@container (max-width:390px) {
+  .cdx .cdx-gs-main { flex-direction:column; flex-wrap:nowrap; align-items:center; gap:2px; }
+  .cdx .cdx-gs-label { flex:0 1 auto; text-align:center; }
+}
+.cdx .cdx-gs-counter { flex:none; gap:8px; }
+.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; }
+.cdx .cdx-gs-cur { color:var(--cdx-ink); }
+.cdx .cdx-gs-max { color:var(--cdx-dim); }
+.cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-dim); padding:0; }
+/* nowrap (no min-width:0) so the label keeps its content width: it either fits
+   beside the counter or wraps WHOLE to the next line — never shrinks and spills. */
+.cdx .cdx-gs-label { flex:1 1 auto; white-space:nowrap; font-size:13px; color:var(--cdx-dim); }
+/* Wipe Out — small outline button anchored right (transparent fill, inverts on
+   hover). width:auto is REQUIRED: mandar forces button{width:100%} inside
+   sheets, which otherwise stretches it across the row and wraps the label. */
+.cdx .cdx-wipeout {
+  flex:none; width:auto; display:inline-flex; align-items:center; gap:6px; padding:3px 11px; cursor:pointer;
+  background:transparent; border:1px solid var(--cdx-ink); border-radius:3px;
+  font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:.8px; text-transform:uppercase; color:var(--cdx-ink);
+}
+.cdx .cdx-wipeout:hover { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
+.cdx .cdx-wipeout > i { font-size:11px; }
+
+/* Combined wound pool — full-width panel below the top row. flex:none is
+   REQUIRED: .cdx-stat carries flex:1 + overflow:hidden(→min-height:0); as a
+   direct child of the scrollable COLUMN-flex form (not inside a row like
+   .cdx-derived) that lets it collapse to zero height and vanish. */
+.cdx .cdx-wp { flex:none; margin-top:6px; }
+.cdx .cdx-wp-unit-in { width:1.6em; text-align:center; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); border-radius:2px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; color:#fff; padding:0 2px; }
+.cdx .cdx-wp-body { padding:8px 12px 12px; }
+.cdx .cdx-wp-counter { gap:9px; }
+.cdx .cdx-wp-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; }
+.cdx .cdx-wp-cur { color:var(--cdx-ink); }
+.cdx .cdx-wp-max { color:var(--cdx-dim); }
+.cdx .cdx-wp-label { flex:1; min-width:0; font-size:13px; color:var(--cdx-dim); }
+/* The track: each member is a group of unit_wounds segments; a wider gap between
+   groups than within. Filled = wounds suffered (left-to-right). Filled colour is
+   --cdx-ink so it stays visible on light AND dark schemes (a literal black would
+   vanish on the dark scheme). */
+/* Each member is a bordered box of unit_wounds segments; 3px between the boxes.
+   The row wraps when the boxes no longer fit (segments have a min-width, so a
+   box can't shrink indefinitely — once the row is full it wraps to the next). */
+.cdx .cdx-wound-track { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-start; margin-top:10px; }
+/* flex:0 0 auto → each box is exactly as wide as its segments (the border hugs
+   them, no empty filler), left-anchored, 10px apart, wrapping when out of room. */
+.cdx .cdx-member-group { display:flex; gap:2px; flex:0 0 auto; padding:2px; border:1px solid var(--cdx-line); border-radius:3px; }
+.cdx .cdx-wound-seg { flex:0 0 auto; width:14px; height:11px; border-radius:2px; background:var(--cdx-track); }
+.cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
+
+/* ============================ Vehicle sheet ============================ */
+/* The vehicle header uses the shared, scheme-driven .cdx-header style (background
+   var(--cdx-head), text var(--cdx-head-ink)) — same as the character/minion
+   headers — so it recolours per scheme instead of a fixed slate. No override. */
+/* Rarity/cost — a single bronze panel in the Bio tab (was a header badge). */
+.cdx .cdx-veh-rarity { display:flex; align-items:baseline; flex-wrap:wrap; gap:5px 8px; padding:9px 14px; margin-bottom:10px; background:var(--cdx-brass); color:#1a1205; clip-path:var(--cdx-clip); }
+.cdx .cdx-vr-k { font-family:"Orbitron"; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
+.cdx .cdx-vr-k:not(:first-child) { margin-left:14px; }
+.cdx .cdx-vr-v { font-family:"Orbitron"; font-weight:900; font-size:18px; }
+.cdx .cdx-vr-in { width:4em; background:rgba(255,255,255,.35); border:1px solid rgba(0,0,0,.25); border-radius:3px; font-family:"Orbitron"; font-weight:900; font-size:15px; color:#1a1205; padding:1px 4px; }
+
+/* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
+.cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }
+.cdx .cdx-veh-left { flex:2; min-width:0; display:flex; flex-direction:column; gap:9px; }
+.cdx .cdx-veh-main .cdx-derived { flex:none; }
+/* "max N" sub-label tucked under a characteristic chip's box (e.g. Speed). */
+.cdx .cdx-chip-sub { margin-top:2px; font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+
+/* Systems: dotted-leader key/value rows in two columns. */
+.cdx .cdx-veh-systems { margin-bottom:0; flex:1; }
+.cdx .cdx-veh-sysgrid { display:grid; grid-template-columns:1fr 1fr; gap:2px 22px; padding:9px 12px; }
+.cdx .cdx-sysrow { display:flex; align-items:baseline; gap:6px; min-width:0; padding:3px 0; border-bottom:1px dotted var(--cdx-line); }
+.cdx .cdx-sys-k { font-family:"Orbitron"; font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-sys-v { flex:1; min-width:0; text-align:right; font-weight:700; font-size:13px; color:var(--cdx-ink); }
+.cdx .cdx-sys-v input[type=text] { width:3.4em; text-align:right; background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:1px 4px; color:var(--cdx-ink); }
+
+/* Defence — 4-zone radar: concentric rings, a top-view image at the centre,
+   and a shield value box pinned at each cardinal point (Fore/Aft/Port/Stbd). */
+.cdx .cdx-veh-defence { flex:1; min-width:228px; display:flex; flex-direction:column; }
+.cdx .cdx-veh-zones {
+  position:relative; aspect-ratio:1/1; width:100%; max-width:320px; margin:auto; align-self:center; padding:30px;
+  background:repeating-radial-gradient(circle at 50% 50%, var(--cdx-line) 0 1px, transparent 1px 9%);
+  border-radius:50%;
+}
+.cdx .cdx-veh-radar { position:absolute; inset:30%; display:flex; align-items:center; justify-content:center; }
+.cdx .cdx-veh-radar-img { max-width:100%; max-height:100%; object-fit:contain; opacity:.85; cursor:pointer; border-radius:4px; }
+.cdx .cdx-zone { position:absolute; }
+/* Inset from the radar edges so the chips' side steppers stay inside the panel
+   (the panel clips overflow) instead of being cut off at the left/right edge. */
+.cdx .cdx-zone.fore { top:12px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.aft  { bottom:12px; left:50%; transform:translateX(-50%); }
+.cdx .cdx-zone.port { left:14px; top:50%; transform:translateY(-50%); }
+.cdx .cdx-zone.stbd { right:14px; top:50%; transform:translateY(-50%); }
+/* Each zone is a compact ratio-chip (same component as Force/Speed): the box is
+   shrunk to fit the radar, the steppers scaled down, and the label is the
+   brown zone pill. */
+.cdx .cdx-veh-zones .cdx-chip { width:50px; flex:none; gap:0; }
+.cdx .cdx-veh-zones .cdx-chip-box { max-width:50px; border-radius:9px; }
+.cdx .cdx-veh-zones .cdx-ratio-c { font-size:19px; }
+.cdx .cdx-veh-zones .cdx-ratio-step { width:15px; height:15px; border-width:2px; font-size:6px; }
+.cdx .cdx-veh-zones .cdx-chip-label { background:var(--cdx-brown); color:#fff; margin-top:3px; }
+/* Zone chips outline follows the silhouette/handling rule: var(--cdx-ink) is dark
+   in every scheme except Dark (near-white there). Needs > specificity than the
+   .derived brass border to win. Box/value keep the scheme paper2/ink defaults so
+   a near-white outline stays visible on the dark-scheme dark box. */
+.cdx .cdx-veh-zones .cdx-chip.derived .cdx-chip-box { border:1.5px solid var(--cdx-ink); }
+.cdx .cdx-veh-zones .cdx-ratio-step { border-color:var(--cdx-ink); }
+/* Speed chip: same rule — the double outline + steppers follow var(--cdx-ink).
+   The value text stays pinned dark since its box is the light white→orange ramp. */
+.cdx .cdx-chip.cdx-ratio-hot .cdx-chip-box { border:4px double var(--cdx-ink); }
+.cdx .cdx-chip.cdx-ratio-hot .cdx-ratio-step { border-color:var(--cdx-ink); }
+
+/* ---- Tabs ---- */
+.cdx .cdx-tabstrip { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); }
+.cdx .cdx-tab {
+  border:none; background:transparent; cursor:pointer; padding:6px 14px;
+  font-family:"Orbitron"; font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim);
+}
+.cdx .cdx-tab:hover { color:var(--cdx-accent); }
+.cdx .cdx-tab.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+.cdx .cdx-tab-badge { display:inline-flex; align-items:center; justify-content:center; min-width:13px; height:13px; padding:0 2px; margin-left:2px; border-radius:7px; background:#a51f17; color:#fff; font-family:"Orbitron"; font-size:8px; font-weight:900; }
+.cdx .cdx-pane { display:none; }
+.cdx .cdx-pane.active { display:block; }
+
+/* ---- Skills ----
+   Each column is ONE grid; every header/row uses `grid-template-columns: subgrid`
+   so they all share the SAME tracks → the CS/RANK/ROLL columns stay vertically
+   aligned at any window width. Names ellipsis and dice never wrap, so row heights
+   are fixed (no reflow/misalignment on shrink). Columns wrap-to-stack when narrow. */
+.cdx .cdx-skills { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
+/* The CS (career-skill) column is dropped while edit mode is off — the left
+   career highlight already marks career skills. Its 26px subgrid track and the
+   cells return in edit mode (.cdx-editmode on the form). */
+.cdx .cdx-skill-col { flex:1 1 270px; min-width:0; display:grid; grid-template-columns:minmax(0,1fr) 34px max-content; align-content:start; }
+.cdx .cdx-editmode .cdx-skill-col { grid-template-columns:minmax(0,1fr) 26px 34px max-content; }
+.cdx .cdx-sk-head, .cdx .cdx-sk-row { grid-column:1 / -1; display:grid; grid-template-columns:subgrid; align-items:center; }
+.cdx .cdx-sk-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; margin-top:6px; }
+.cdx .cdx-sk-head > * { padding:4px 6px; }
+.cdx .cdx-sk-head .cdx-sk-c, .cdx .cdx-sk-head .cdx-sk-rank, .cdx .cdx-sk-head .cdx-sk-pool { text-align:center; padding:4px 2px; }
+.cdx .cdx-sk-row { background:var(--cdx-paper); border-bottom:1px solid var(--cdx-line); min-height:26px; }
+.cdx .cdx-sk-row:has(.careerskill-toggle:checked) { background:var(--cdx-career); box-shadow:inset 3px 0 0 var(--cdx-career-line); }
+.cdx .cdx-sk-name { font-size:15px; color:var(--cdx-ink); padding:2px 6px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cdx .cdx-sk-head .cdx-sk-name { color:#fff; font-size:8.5px; }
+.cdx .cdx-sk-char { font-size:10px; color:var(--cdx-dim); font-style:normal; margin-left:3px; }
+.cdx .cdx-sk-name .ffg-purchase { color:var(--cdx-career-line); cursor:pointer; font-size:12px; margin-right:2px; }
+.cdx .cdx-sk-c { text-align:center; display:none; }
+.cdx .cdx-editmode .cdx-sk-c { display:block; }
+.cdx .cdx-sk-c .careerskill-toggle { accent-color:var(--cdx-career-line); }
+.cdx .cdx-sk-rank { text-align:center; }
+.cdx .cdx-sk-rank input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }
+.cdx .cdx-sk-pool { padding:2px 6px; white-space:nowrap; }
+.cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; flex-wrap:nowrap; gap:1px; }
+.cdx .cdx-sk-pool img { width:18px; height:18px; }
+
+/* ---- Combat cards (weapon + armour) ---- */
+.cdx .cdx-cards-head { display:flex; align-items:center; justify-content:space-between; font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin:10px 0 8px; }
+.cdx .cdx-cards-head .item-add { cursor:pointer; color:var(--cdx-accent); }
+.cdx .cdx-card { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:5px 6px 5px 13px; margin-bottom:7px; display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; cursor:pointer; }
+/* Uniform (generous) left margin for every item row: a bigger card-left padding
+   plus zeroing any stray margin on the icon/roll wrappers (the .skill-label roll
+   icons on weapons/crew otherwise inherit a mandar margin that gear/attachments
+   lack, so the rows didn't line up). */
+.cdx .cdx-card .cdx-card-rollwrap, .cdx .cdx-card .cdx-card-icon { margin:0; }
+.cdx .cdx-card.off { opacity:.65; }
+.cdx .cdx-card-main { display:flex; align-items:center; gap:5px; min-width:0; }
+.cdx .cdx-card-icon { width:75px; height:75px; flex:none; border-radius:6px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
+/* Transparent wrapper purely for DOM depth (weapon roll resolution) — shrink-wraps the icon. */
+.cdx .cdx-card-rollwrap { flex:none; display:flex; }
+.cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.cdx .cdx-equip.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
+.cdx .cdx-card-title { font-family:"Orbitron"; font-weight:700; font-size:14px; color:var(--cdx-ink); }
+/* Restricted items (rarity.isrestricted) — name in red. */
+.cdx .cdx-card.cdx-restricted .cdx-card-title { color:#cf2e2e; }
+/* Weapon identity column: name + combat-skill line with the actor's dice pool. */
+.cdx .cdx-card-id { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.cdx .cdx-wpn-skill { display:flex; flex-wrap:wrap; align-items:center; gap:2px 5px; min-width:0; }
+.cdx .cdx-wpn-skill-k { font-size:12.5px; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-wpn-skill-dot { color:var(--cdx-dim); }
+.cdx .cdx-card-arc { font-size:12px; color:var(--cdx-ink); min-width:0; }
+/* Wraps within the identity column so the pool never spills into the DAM column. */
+.cdx .cdx-wpn-pool { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px; min-width:0; line-height:0; pointer-events:none; }
+.cdx .cdx-wpn-pool img { width:16px; height:16px; border:none; vertical-align:middle; }
+/* Crew-card roll pool: a HORIZONTAL row of dice at the skills-tab glyph size
+   (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
+.cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
+.cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
+/* Dark scheme: black/challenge dice nearly vanish on the dark paper. Give every
+   non-empty in-sheet dice pool a faint light backing so they stay legible. */
+.cdx form.scheme-dark .dice-pool:not(:empty),
+.cdx form.scheme-dark .cdx-wpn-pool:not(:empty) { background:rgba(255,255,255,.16); border-radius:4px; padding:1px 4px; }
+/* Pin the controls to the LAST grid column so the edit/delete buttons line up at
+   the right edge on every row. Cards with statcols have 3 children (controls land
+   in col3 naturally); cards without (crew) have 2, so the controls would auto-place
+   in col2 and leave a gapped empty col3 — shifting them ~11px left. Force col3. */
+.cdx .cdx-card > .cdx-card-ctl { grid-column: 3; transform: translateX(-5px); }
+.cdx .cdx-statcols { display:flex; gap:6px; }
+.cdx .cdx-statcol { width:60px; text-align:center; padding:0 2px; }
+/* 3rd column holds the RANGE word ("Engaged", "Extreme", …) — far wider than a
+   number — so give it room to stop it overflowing into ENC. Applies to the armour
+   card's 3rd column (HP) too, keeping weapon/armour columns aligned. The flex gap
+   above adds the breathing room between columns (notably RANGE → ENC). */
+.cdx .cdx-statcol:nth-child(3) { width:84px; }
+.cdx .cdx-sc-k { display:block; font-size:8.5px; letter-spacing:1px; color:var(--cdx-dim); }
+.cdx .cdx-sc-v { display:block; font-family:"Orbitron"; font-weight:900; font-size:17px; color:var(--cdx-accent); white-space:nowrap; }
+.cdx .cdx-card-ctl { display:flex; gap:8px; color:var(--cdx-dim); }
+/* On item CARDS (weapon/armour/gear) the controls carry a phantom label
+   (.cdx-sc-k with &nbsp;) so their icons sit on the same line as the stat-column
+   VALUES (which are pushed down by their own labels) — not at the card's vertical
+   centre. Injuries/talents keep the plain row above. */
+.cdx .cdx-card .cdx-card-ctl { flex-direction:column; align-items:center; gap:0; }
+.cdx .cdx-card .cdx-card-ctl-icons { display:flex; gap:8px; }
+.cdx .cdx-card-ctl a { color:var(--cdx-dim); cursor:pointer; }
+/* Ammo chip — only on an EXPANDED weapon card, placed in row 2's right columns
+   (the description/.item-details takes the left column). Hidden otherwise. */
+.cdx .cdx-card .cdx-ammo { display:none; }
+/* Ammo chip spans a full-width row ABOVE the description (weapons only — only
+   weapons render a .cdx-ammo). The description sits at row 2 normally, and drops
+   to row 3 when the ammo chip is present so the chip stacks on top of it. */
+.cdx .cdx-card.expanded .cdx-ammo { display:flex; flex-direction:column; align-items:center; gap:6px; grid-row:2; grid-column:1 / -1; padding:4px 0 8px; cursor:default; }
+.cdx .cdx-card.expanded .item-details { grid-row:2; grid-column:1 / -1; }
+.cdx .cdx-card.expanded:has(.cdx-ammo) .item-details { grid-row:3; }
+.cdx .cdx-ammo-k { font-family:"Orbitron"; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-ammo-stepper { display:flex; align-items:center; gap:6px; }
+.cdx .cdx-ammo-step { width:20px; height:20px; flex:none; border:1px solid var(--cdx-line); background:transparent; color:var(--cdx-dim); border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:9px; padding:0; }
+.cdx .cdx-ammo-step:hover { color:var(--cdx-accent); border-color:var(--cdx-accent); }
+.cdx .cdx-ammo-count { font-family:"Orbitron"; font-weight:900; font-size:16px; color:var(--cdx-accent); min-width:46px; text-align:center; }
+
+/* ---- Injuries ---- */
+.cdx .cdx-injury { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; margin-bottom:7px; }
+/* Expanded description spans the full card width (not just the name column). */
+.cdx .cdx-injury .item-details { grid-column:1 / -1; }
+.cdx .cdx-inj-name { font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }
+/* Difficulty/severity dice in a horizontal row (the images are otherwise stacked
+   vertically by the global img rules). Applies to every crit chip via .cdx-inj-sev. */
+.cdx .cdx-inj-sev { display:flex; align-items:center; gap:3px; }
+.cdx .cdx-sev-img { height:16px; flex:none; }
+
+/* ---- Talents ---- */
+.cdx .cdx-forcepool { display:flex; align-items:center; gap:6px; margin-bottom:10px; padding:6px 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-career-line); clip-path:var(--cdx-clip); }
+.cdx .cdx-fp-k { font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#5b4bb3; }
+.cdx .cdx-forcepool input { width:2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); }
+.cdx .cdx-fp-s { font-size:9px; color:var(--cdx-dim); margin-left:auto; }
+.cdx .cdx-talents { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; }
+/* Abilities / signature-ability sub-lists reuse the talent grid; space them off the block above. */
+.cdx .cdx-talents.cdx-tlist { margin-top:12px; }
+.cdx .cdx-cards-head { grid-column:1/-1; }
+.cdx .cdx-talent { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; cursor:pointer; }
+.cdx .cdx-tal-head { background:var(--cdx-accent); color:#fff; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.cdx .cdx-tal-name { font-family:"Orbitron"; font-weight:700; font-size:12px; }
+/* Activation label now lives on the controls line (left); margin-right:auto pushes
+   the edit/delete/info controls to the right. */
+.cdx .cdx-tal-act { margin-right:auto; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; align-items:center; }
+/* Inline details when a force-power / signature card is expanded (click to open). */
+.cdx .cdx-talent.expanded { overflow:visible; }
+.cdx .cdx-talent .item-details { padding:8px 10px; font-size:12px; line-height:1.4; color:var(--cdx-ink); border-top:1px solid var(--cdx-line); background:var(--cdx-paper); }
+.cdx .cdx-talent .item-details .item-properties { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.cdx .cdx-talent .item-details .tag { font-size:10px; padding:1px 6px; border:1px solid var(--cdx-line); border-radius:10px; color:var(--cdx-dim); }
+.cdx .cdx-sub { margin-top:10px; }
+
+/* ---- Gear — reuses the weapon/armour .cdx-card chrome; only the quantity
+   stepper inside its stat column is gear-specific. ---- */
+.cdx .cdx-card-icon img { width:100%; height:100%; object-fit:cover; border-radius:6px; }
+.cdx .cdx-card.gear .cdx-statcol { width:84px; }
+.cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:14px; }
+/* position:static neutralises the stock .quantity rule (position:absolute +
+   left/right:25%), which pulled the +/- toward the digit and "smashed" them so the
+   flex gap had no visible effect. With static, the gap spaces them properly;
+   translateY keeps the 1px-down nudge (top: needs positioning, which we drop). */
+.cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; position:static; transform:translateY(1px); }
+.cdx .cdx-card.gear .cdx-qty-v { font-family:"Orbitron"; font-weight:900; font-size:17px; line-height:1; color:var(--cdx-accent); min-width:16px; text-align:center; }
+/* Dark scheme: the accent (dark red) is too low-contrast against the near-black
+   weapon/armour/gear cards, so render the stat labels/values, the qty +/- and the
+   edit/delete controls in white. */
+.cdx form.scheme-dark .cdx-card .cdx-sc-k,
+.cdx form.scheme-dark .cdx-card .cdx-sc-v,
+.cdx form.scheme-dark .cdx-card.gear .cdx-qty-v,
+.cdx form.scheme-dark .cdx-card.gear .cdx-qty .quantity,
+.cdx form.scheme-dark .cdx-card .cdx-card-ctl a { color:#fff; }
+/* Dark scheme: expanded item details read low-contrast in --cdx-ink (cream) —
+   force the description text and the quality / other pills to pure white. */
+.cdx form.scheme-dark .item-details,
+.cdx form.scheme-dark .item-details .tag,
+.cdx form.scheme-dark .item-details .item-pill { color:#fff; }
+/* Total encumbrance in a section header (top of the Gear / Combat tabs), pushed
+   to the right next to the add (+) button. */
+.cdx .cdx-head-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
+.cdx .cdx-ge-k { color:var(--cdx-dim); }
+.cdx .cdx-ge-v { color:var(--cdx-ink); }
+/* Over-encumbered: current load exceeds the threshold. */
+.cdx .cdx-ge-v.over { color:#cf2e2e; font-weight:900; }
+/* Pulsing warning triangle to the left of the label when over the threshold.
+   --cdx-warn is scheme-aware (deep/saturated on the light schemes, bright amber
+   on dark) so it keeps contrast everywhere; the glow tracks it via currentColor.
+   The blink fades all the way to 0 to grab attention. */
+.cdx .cdx-enc-warn { color:var(--cdx-warn); font-size:12px; line-height:1; animation:cdx-enc-pulse 1.15s ease-in-out infinite; }
+@keyframes cdx-enc-pulse {
+  0%, 100% { opacity:1; text-shadow:0 0 5px currentColor, 0 0 10px currentColor; }
+  50%      { opacity:0; text-shadow:none; }
+}
+
+/* ---- Bio / panels / tables ---- */
+.cdx .cdx-bio-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:10px; margin-bottom:10px; }
+.cdx .cdx-panel { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; margin-bottom:10px; }
+.cdx .cdx-panel-head { background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
+.cdx .cdx-bio-editor { padding:8px 10px; min-height:120px; font-size:13px; line-height:1.5; }
+/* In edit mode the global `.editor{height:100%}` / `.tox-tinymce{height:100%}`
+   rules resolve against this block, which has only a min-height (no definite
+   height) — so 100% collapses to ~0 and the edit surface disappears while the
+   toolbar still shows. Give the container a definite height ONLY while an editor
+   is active (TinyMCE or ProseMirror) so the chain resolves, and fill it. */
+.cdx .cdx-bio-editor:has(.tox-tinymce),
+.cdx .cdx-bio-editor:has(.ProseMirror) { height:320px; }
+.cdx .cdx-bio-editor:has(.tox-tinymce) > .editor,
+.cdx .cdx-bio-editor:has(.ProseMirror) > .editor { width:100%; height:100%; }
+/* View mode: override the global `.editor{height:100%}` so the rendered bio
+   grows with its content instead of being clipped by `.cdx-panel{overflow:hidden}`. */
+.cdx .cdx-bio-editor > .editor { height:auto; }
+.cdx .cdx-desc-grid { display:grid; grid-template-columns:auto 1fr; gap:5px 8px; padding:8px 10px; align-items:center; }
+.cdx .cdx-desc-grid label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-desc-grid input, .cdx .cdx-desc-grid select { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
+/* The native dropdown popup (<option> list) on the Dark scheme renders white-on-
+   white and is unreadable — the popup doesn't inherit the select's dark paper.
+   Force a black background with white text so options are legible. */
+.cdx form.scheme-dark select option { background-color:#000; color:#fff; }
+/* Obligation / Morality / Conflict — equal-width chips reusing the .cdx-panel
+   blue-header styling of the other bio panels. */
+.cdx .cdx-bio-stats { display:flex; gap:10px; margin-bottom:10px; }
+.cdx .cdx-bio-stats .cdx-panel { flex:1; min-width:0; margin-bottom:0; }
+.cdx .cdx-bstat-body { padding:8px 10px; text-align:center; }
+.cdx .cdx-bstat-body input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:24px; color:var(--cdx-ink); padding:0; }
+.cdx .cdx-table { width:100%; border-collapse:collapse; }
+.cdx .cdx-table th { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 8px; text-align:left; }
+.cdx .cdx-table td { padding:5px 8px; border-bottom:1px solid var(--cdx-line); font-size:12px; }
+.cdx .cdx-tbl-ctl a { color:var(--cdx-dim); cursor:pointer; margin-left:6px; }
+.cdx .add-obligation, .cdx .add-motivation, .cdx .add-background { color:#fff; cursor:pointer; }
+
+/* ---- XP ---- */
+.cdx .cdx-xp-totals { display:flex; margin-bottom:10px; }
+.cdx .cdx-xp-chip { flex:1; min-width:0; }
+.cdx .cdx-xp-chip .cdx-thresh input { width:2.8em; }
+.cdx .cdx-xp-ctl { display:flex; justify-content:center; gap:14px; font-size:16px; color:var(--cdx-accent); padding:0 10px; margin-top:8px; }
+.cdx .cdx-xp-ctl a { cursor:pointer; }
+.cdx .cdx-xp-log { max-height:340px; overflow-y:auto; }
+.cdx .cdx-xp-entry { font-size:11.5px; padding:4px 8px; border-bottom:1px solid var(--cdx-line); color:var(--cdx-ink); }
+.cdx .cdx-xp-entry .refund { color:var(--cdx-accent); cursor:pointer; }
+
+/* ---- Reused stock partials (effects / mods / abilities / force powers) ----
+   These keep mandar's markup; just give them a readable card and ink colour. */
+.cdx .cdx-pane.effects, .cdx .cdx-pane.attributes, .cdx .cdx-sub {
+  background:var(--cdx-paper2); color:var(--cdx-ink); padding:8px; border:1px solid var(--cdx-line); border-radius:4px;
+}
+.cdx .cdx-pane.effects *, .cdx .cdx-pane.attributes *, .cdx .cdx-sub * { color:var(--cdx-ink); }
+/* Effects table is full-bleed (no pane padding) so the accent header reaches the
+   edges. NOTE: do NOT use overflow:hidden here — the pane is a flex item, and any
+   non-visible overflow sets its min-height to 0, letting it collapse and clip the
+   table body (rows vanish). Square the corners instead so the full-bleed table
+   has no rounded-corner gap. */
+.cdx .cdx-pane.effects { padding:0; border-radius:0; }
+/* Active Effects tab: the stock partial centres/constrains its content and shows a
+   redundant "Active Effects" title. Make the content full-width and drop the title. */
+.cdx .cdx-pane.effects .resource,
+.cdx .cdx-pane.effects .attribute,
+.cdx .cdx-pane.effects .block-background,
+.cdx .cdx-pane.effects .block-attribute { display:block; width:100%; max-width:none; box-sizing:border-box; margin:0; padding:0; background:transparent; }
+.cdx .cdx-pane.effects .attribute { border:none; text-align:left; }
+.cdx .cdx-pane.effects .block-background { clip-path:none; }
+/* Any residual margin/background on these wrappers shows as a pale band above the
+   accent header (obvious only in light schemes) — flatten them so the header
+   reaches the top edge, matching every other actor sheet. */
+.cdx .cdx-pane.effects .resource.full, .cdx .cdx-pane.effects .flex-group-center, .cdx .cdx-pane.effects thead, .cdx .cdx-pane.effects thead tr { margin:0; padding:0; background:transparent; }
+.cdx .cdx-pane.effects .block-title { display:none; }
+.cdx .cdx-pane.effects table { width:100%; border-collapse:collapse; background:var(--cdx-paper2); }
+.cdx .cdx-pane.effects th { background:var(--cdx-accent); color:#fff; text-align:left; font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 6px; }
+.cdx .cdx-pane.effects td { background:var(--cdx-paper2); padding:4px 6px; font-size:12px; border-bottom:1px solid var(--cdx-line); }
+.cdx .cdx-pane.effects .expand-icon { cursor:pointer; width:20px; text-align:center; }
+
+/* ============================ Item sheets ============================ */
+/* The window-content shell (.cdx > form.window-content) already paints the codex
+   bg/padding + flex column. Header, stat boxes, and a restyle of the native tab
+   strip below. Body partials (modifiers/sources/tags) keep mandar markup; we just
+   recolour text + form fields so they read on the codex paper. */
+.cdx .cdx-item-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:9px; }
+.cdx .cdx-item-img { width:210px; height:210px; flex:none; object-fit:contain; background:rgba(0,0,0,.18); border:2px solid var(--cdx-line); border-radius:6px; cursor:pointer; }
+.cdx .cdx-item-gear .cdx-item-img { width:210px; height:210px; }
+.cdx .cdx-item-id { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+.cdx .cdx-item-name { font-family:"Orbitron"; font-weight:900; font-size:20px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-ink); background:transparent; border:none; border-bottom:1px solid var(--cdx-line); width:100%; padding:0 0 3px; }
+.cdx .cdx-item .cdx-item-header > .cdx-item-name { } /* generic frame: name sits beside the image */
+.cdx .cdx-item:not(.cdx-item-gear) .cdx-item-header { align-items:center; }
+
+/* Stat boxes: notched box · brown header label · big value (the prototype look). */
+/* 2-column grid → Encum/Qty over Price/Rarity; keeps the 2+2 shape when shrunk
+   instead of stretching one box per row. */
+.cdx .cdx-istats { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; }
+/* Flex column so the value fills the box below the header and centres — no empty
+   strip ("footer") below a short input, and the activation <select> never clips. */
+.cdx .cdx-istat { display:flex; flex-direction:column; min-width:0; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+/* Use --cdx-accent (NOT --cdx-brown) so the item stat-chip headers match the
+   actor stat headers (.cdx-stat-head) in every scheme — e.g. bright red in dark
+   rather than a brownish red. */
+.cdx .cdx-istat-k { flex:none; background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; }
+.cdx .cdx-istat-v { flex:1; width:100%; box-sizing:border-box; text-align:center; background:transparent; border:none; outline:none; box-shadow:none; font-family:"Orbitron"; font-weight:900; font-size:18px; color:var(--cdx-ink); padding:6px; }
+/* span values (e.g. weapon Range) centre via flex; inputs centre via text-align. */
+.cdx span.cdx-istat-v, .cdx .cdx-istat-vtext { display:flex; align-items:center; justify-content:center; }
+.cdx .cdx-istat.cdx-restricted .cdx-istat-v { color:#cf2e2e; }
+.cdx .cdx-icheck { display:inline-flex; align-items:center; gap:7px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; }
+/* Quality pills — the item's qualities (data.itemmodifier), name + rank. */
+.cdx .cdx-iquals { display:flex; flex-wrap:wrap; gap:5px; }
+.cdx .cdx-iqual { font-family:"Orbitron"; font-weight:700; font-size:9px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-ink); background:var(--cdx-career); border:1px solid var(--cdx-career-line); border-radius:10px; padding:2px 9px; white-space:nowrap; }
+
+/* Native tab strip (.sheet-tabs) → codex tab look; only the active .tab shows. */
+.cdx .sheet-tabs { display:flex; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--cdx-accent); margin-bottom:8px; padding:0; }
+.cdx .sheet-tabs .item { padding:5px 12px; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim); cursor:pointer; border:none; background:transparent; flex:0 0 auto; }
+.cdx .sheet-tabs .item.active { background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+.cdx .sheet-tabs .item > i { margin-right:5px; }
+.cdx .sheet-body { flex:1; min-height:0; }
+.cdx .sheet-body .tab { display:none; }
+.cdx .sheet-body .tab.active { display:block; }
+.cdx .cdx-item-body, .cdx .cdx-item-body * { color:var(--cdx-ink); }
+.cdx .cdx-item-body input[type=text], .cdx .cdx-item-body input[type=number], .cdx .cdx-item-body select, .cdx .cdx-item-body textarea {
+  background:var(--cdx-paper); border:1px solid var(--cdx-line); color:var(--cdx-ink); border-radius:3px; padding:2px 5px;
+}
+
+/* ---- Detailed item sheets (gear/weapon/armour) ---- */
+/* Scheme-coloured header bar — same var(--cdx-head) as the character header — with
+   the type pill + name (+ subtitle) inside it. */
+.cdx .cdx-ihead { background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:11px 14px; margin-bottom:9px; display:flex; flex-direction:column; gap:5px; }
+.cdx .cdx-ihead .cdx-ipill { align-self:flex-start; background:rgba(0,0,0,.32); border:1px solid rgba(255,255,255,.22); }
+.cdx .cdx-ihead .cdx-item-name { color:var(--cdx-head-ink); border-bottom:none; font-size:24px; padding:0; }
+.cdx .cdx-ihead .cdx-isub { color:rgba(255,255,255,.72); }
+.cdx .cdx-ipill { align-self:flex-start; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1.5px; text-transform:uppercase; color:#fff; background:var(--cdx-accent); padding:3px 11px; clip-path:var(--cdx-clip); }
+.cdx .cdx-isub { font-family:"Orbitron"; font-weight:600; font-size:10px; letter-spacing:.5px; color:var(--cdx-dim); }
+.cdx .cdx-iwmain { display:flex; gap:12px; align-items:flex-start; margin-bottom:8px; }
+.cdx .cdx-item-gear .cdx-item-img { width:200px; height:200px; }
+.cdx .cdx-item-weapon .cdx-item-img, .cdx .cdx-item-armour .cdx-item-img { width:150px; height:150px; }
+.cdx .cdx-item-attachment .cdx-item-img, .cdx .cdx-item-shipattachment .cdx-item-img { width:130px; height:130px; }
+/* Item attachment Type selector — a stat chip spanning full width under the
+   Price/Rarity row, styled like the other stat blocks. */
+.cdx .cdx-attach-type { grid-column:1 / -1; }
+.cdx .cdx-attach-type .cdx-istat-sel { min-height:34px; }
+.cdx .cdx-iwmain .cdx-istats { flex:1; min-width:0; }
+/* Description / Special (always-visible) — styled like the actor biography
+   panel: a brown header BAR with white text + a bordered body holding the
+   editor. The body text uses --cdx-ink (scoped to the editor, NOT the head, so
+   the white header survives). */
+/* flex:none is REQUIRED. The item form's sections are flex items of the
+   scrolling window column; `overflow:hidden` here zeroes this block's flex
+   min-size, so when the column overflows the browser would shrink (clip) the
+   description while the tab body — which has no overflow:hidden — keeps its full
+   height. That makes the tab content "push"/squish the description. Pinning
+   flex:none keeps the description at its content height, so it pushes the tabs
+   and their content down (and the window scrolls) instead. */
+/* min-height lives on the CONTAINER (always present), NOT on `> .editor`:
+   Foundry's {{editor}} only emits the `.editor` wrapper while actively editing —
+   in view mode it renders just `.editor-content`, so a min-height on `> .editor`
+   collapses the box (head only) until you click in. Putting min-height here (as
+   the biography panel does on .cdx-bio-editor) keeps it a real box always.
+   flex:none stops the column from shrinking it under the tab body. */
+.cdx .cdx-idesc { flex:none; min-height:118px; margin:8px 0 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+.cdx .cdx-idesc-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
+.cdx .cdx-idesc > .editor, .cdx .cdx-idesc > .editor-content { padding:8px 10px; color:var(--cdx-ink); font-size:13px; line-height:1.5; }
+.cdx .cdx-idesc > .editor * { color:var(--cdx-ink); }
+/* View mode: rendered description sizes to content (min 90px). Edit mode: give
+   the active editor a definite height so the global `.editor{height:100%}` chain
+   resolves and it occupies real space in flow (mirrors .cdx-bio-editor). */
+.cdx .cdx-idesc > .editor { height:auto; }
+.cdx .cdx-idesc > .editor:has(.tox-tinymce), .cdx .cdx-idesc > .editor:has(.ProseMirror) { height:300px; }
+/* Weapon: Damage/Crit/Range across the top (span 2 of 6), then 2-up rows below. */
+.cdx .cdx-istats-weapon { grid-template-columns:repeat(6, minmax(0, 1fr)); }
+.cdx .cdx-istats-weapon .cdx-istat { grid-column:span 2; }
+.cdx .cdx-istats-weapon .cdx-istat.wide { grid-column:span 3; }
+
+/* Condition (status) track: 4 segments, Minor..current shaded. Radios drive it. */
+.cdx .cdx-cond-wrap { margin-top:2px; }
+.cdx .cdx-cond-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; }
+.cdx .cdx-cond-head > span:first-child { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); }
+.cdx .cdx-cond-cur { font-family:"Orbitron"; font-weight:700; font-size:11px; color:var(--cdx-accent); }
+.cdx .cdx-cond { display:flex; gap:4px; }
+.cdx .cdx-cond-seg { flex:1; display:flex; flex-direction:column; gap:3px; cursor:pointer; text-align:center; }
+.cdx .cdx-cond-seg input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
+.cdx .cdx-cond-bar { height:9px; border-radius:2px; border:1px solid var(--cdx-line); background:var(--cdx-track); }
+.cdx .cdx-cond-seg.filled .cdx-cond-bar { background:var(--cdx-accent); border-color:var(--cdx-accent); }
+.cdx .cdx-cond-lbl { font-family:"Orbitron"; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
+.cdx .cdx-cond-seg.current .cdx-cond-lbl { color:var(--cdx-ink); font-weight:700; }
+
+/* Qualities block label (pills reuse .cdx-iquals / .cdx-iqual). */
+.cdx .cdx-qual-wrap { margin-top:6px; }
+.cdx .cdx-qual-k { display:block; font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-accent); margin-bottom:4px; }
+
+/* ---- Talent item sheet: Tier/Activation/Rank row + checkbox cards ---- */
+.cdx .cdx-istats-talent { display:flex; gap:6px; }
+.cdx .cdx-istats-talent .cdx-istat { flex:1; }
+.cdx .cdx-istats-talent .cdx-istat.wide { flex:2; }
+.cdx .cdx-istat-sel { flex:1; width:100%; box-sizing:border-box; text-align:center; text-align-last:center; appearance:none; background:transparent; border:none; outline:none; box-shadow:none; font-family:"Orbitron"; font-weight:700; font-size:13px; line-height:1.3; color:var(--cdx-ink); padding:6px 8px; cursor:pointer; }
+.cdx .cdx-istat-sel option { color:#111; }
+/* Locked-mode text value (e.g. activation label) — smaller than the big numeric
+   value and allowed to wrap so long labels aren't clipped. */
+.cdx .cdx-istat-vtext { font-family:"Orbitron"; font-weight:700; font-size:13px; line-height:1.2; color:var(--cdx-ink); text-align:center; padding:7px 8px; white-space:normal; }
+/* Toggle cards: paper when off, career-tinted when on; conflict goes red. */
+.cdx .cdx-ichecks { display:flex; gap:6px; margin:8px 0; }
+.cdx .cdx-icheck2 { flex:1; min-width:0; display:flex; align-items:center; gap:10px; cursor:pointer; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; }
+.cdx .cdx-icheck2 input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
+.cdx .cdx-ick-box { width:18px; height:18px; flex:none; box-sizing:border-box; border:2px solid var(--cdx-dim); border-radius:3px; display:flex; align-items:center; justify-content:center; }
+/* Drive the toggled look from the live :checked state (via :has) so clicking a
+   box updates instantly — the sheet submits render:false, so an .on class set in
+   the template would otherwise go stale until the next full re-render. */
+.cdx .cdx-icheck2:has(input:checked) .cdx-ick-box { background:var(--cdx-accent); border-color:var(--cdx-accent); }
+.cdx .cdx-icheck2:has(input:checked) .cdx-ick-box::after { content:"\2713"; color:#fff; font-size:12px; font-weight:900; line-height:1; }
+.cdx .cdx-icheck2:has(input:checked) { background:var(--cdx-career); border-color:var(--cdx-career-line); }
+.cdx .cdx-icheck2.danger:has(input:checked) { background:#8a1714; border-color:#c0392b; color:#fff; }
+.cdx .cdx-icheck2.danger:has(input:checked) .cdx-ick-box { background:#c0392b; border-color:#c0392b; }
+.cdx .cdx-ick-lbl { font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:.3px; text-transform:uppercase; line-height:1.1; }
+
+/* Rarity "(R)" toggle button — locked-mode shortcut to flip Restricted. Same font
+   as the rarity value (inherits); goes red with the value when restricted. */
+/* Rarity value + "(R)" Restricted toggle inline, centred in the box. (R) matches
+   the value's font, dim normally and red when restricted. */
+/* The value stays centred (full-width input); the small "(R)" floats at the right
+   edge (absolute) so it never shifts the number off-centre. */
+.cdx .cdx-istat-rwrap { flex:1; position:relative; display:flex; align-items:center; }
+.cdx .cdx-rv-in { flex:1; width:100%; text-align:center; }
+/* width:auto is REQUIRED: mandar forces button{width:100%} inside sheets, which
+   otherwise stretches (R) across the box and over the value. */
+.cdx .cdx-restrict-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:auto; display:inline-block; font-family:"Orbitron"; font-weight:900; font-size:13px; line-height:1; color:var(--cdx-dim); background:transparent; border:none; cursor:pointer; padding:0; }
+.cdx .cdx-istat.cdx-restricted .cdx-restrict-btn { color:#cf2e2e; }
+.cdx .cdx-restrict-btn:hover { color:#cf2e2e; }
+/* Talent: taller stat boxes; the activation select is the clickable block. */
+.cdx .cdx-istats-talent .cdx-istat-v, .cdx .cdx-istats-talent .cdx-istat-sel { min-height:36px; }
+.cdx .cdx-istats-talent .cdx-istat-sel { font-size:15px; }
+
+/* ---- Qualities / Attachments lists (item sheets) ----
+   The stock ffg-mods / qualities-attachments partials are kept VERBATIM — their
+   DOM is load-bearing: the edit/delete handlers walk control → parent → parent
+   to the data-carrying <li>, and drag-drop targets `.item.force-power`. We only
+   restyle them into Codex cards. Shared markup in both partials:
+     ul.talent-list > li.talents-header.flexrow          (section head)
+                    > ul.items-list
+                        > li.item.force-power.expand-desc (a card row)
+                            > .item-name
+                            > <ranks count | hardpoints text>
+                            > .item-controls > a.item-edit, a.item-delete
+   Scoped to .cdx-item-body so actor-sheet talent lists are untouched. */
+.cdx .cdx-item-body .talent-list,
+.cdx .cdx-item-body .talent-list .items-list { list-style:none; margin:0; padding:0; }
+.cdx .cdx-item-body .talent-list { margin-bottom:10px; }
+/* Higher specificity (+ .talent-list) to beat mandar's stock header, which
+   paints a solid #490c0b red bar — drop the bar, keep just a label + underline. */
+.cdx .cdx-item-body .talent-list .talents-header {
+  display:flex; align-items:center; gap:8px; margin:10px 0 8px; padding:0 0 4px;
+  background:none; border:none; border-bottom:2px solid var(--cdx-accent); text-align:left;
+  font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-accent);
+}
+.cdx .cdx-item-body .talent-list .talents-header .header-name { flex:1; min-width:0; text-align:left; }
+.cdx .cdx-item-body .talent-list .talents-header > div:not(.header-name) { flex:none; font-size:8.5px; letter-spacing:.8px; color:var(--cdx-dim); }
+/* Card row */
+.cdx .cdx-item-body .item.force-power {
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip);
+  padding:7px 10px 7px 13px; margin-bottom:6px; cursor:pointer;
+}
+/* Expanded description (`_itemDisplayDesc` appends `.item-details` inside the
+   flex card). Force it onto its own full-width line BELOW the row instead of
+   sitting inline and clipping. */
+.cdx .cdx-item-body .item.force-power .item-details {
+  flex:0 0 100%; width:100%; margin-top:5px; padding-top:7px; border-top:1px dotted var(--cdx-line);
+  font-size:12px; line-height:1.45; color:var(--cdx-dim); white-space:normal; cursor:default;
+}
+.cdx .cdx-item-body .item.force-power .item-details * { color:var(--cdx-dim); }
+.cdx .cdx-item-body .item.force-power .item-details .statt,
+.cdx .cdx-item-body .item.force-power .item-details .stat { font-weight:700; color:var(--cdx-ink); margin-right:8px; }
+.cdx .cdx-item-body .item.force-power .item-name {
+  flex:1; min-width:0; font-size:14px; color:var(--cdx-ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cdx .cdx-item-body .item.force-power .item-name .restricted { color:#cf2e2e; }
+/* Middle column — ranks count (qualities) or "Hardpoints: N" (attachments). */
+.cdx .cdx-item-body .item.force-power > div:not(.item-name):not(.item-controls) {
+  flex:none; display:flex; align-items:center; gap:4px;
+  font-family:"Orbitron"; font-weight:700; font-size:11px; color:var(--cdx-dim); white-space:nowrap;
+}
+.cdx .cdx-item-body .item.force-power .fa-circle-question { color:var(--cdx-dim); font-size:11px; }
+/* Edit / delete controls. Higher specificity (+ .talent-list) to beat mandar's
+   `.item-controls { width:20px }`, which clips the "(from attachment)" label that
+   takes the controls' place for qualities inherited from an attachment. */
+.cdx .cdx-item-body .talent-list .item-controls {
+  width:auto; flex:none; margin:0; display:flex; align-items:center; gap:9px;
+  font-family:"Orbitron"; font-weight:600; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); white-space:nowrap;
+}
+.cdx .cdx-item-body .item-controls .item-control { width:auto; padding:0; color:var(--cdx-dim); cursor:pointer; font-size:12px; line-height:1; }
+.cdx .cdx-item-body .item-controls .item-control:hover { color:var(--cdx-accent); }
+.cdx .cdx-item-body .item-controls .item-delete:hover { color:#cf2e2e; }
+/* Empty-state "drag & drop" text (qualities partial emits a bare text node). */
+.cdx .cdx-item-body .talent-list > .items-list:not(:has(li)) {
+  display:block; padding:8px 4px; text-align:center;
+  font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-dim);
+}
+
+/* ---- Item header: type pill + status pill row (weapon/armour) ----
+   The condition track moved out of the body into a header pill. It's a native
+   <select> (so it persists via the normal form submit) dressed as a pill, with
+   a FIXED width sized for the longest label ("Undamaged") so picking a status
+   never reflows the header row. Sits on var(--cdx-head); uses the header ink. */
+.cdx .cdx-ihead-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.cdx .cdx-ihead .cdx-status { display:inline-flex; align-items:center; gap:6px; flex:none; background:rgba(0,0,0,.32); border:1px solid rgba(255,255,255,.22); clip-path:var(--cdx-clip); padding:3px 9px; }
+.cdx .cdx-status-ic { font-size:9px; line-height:1; color:var(--cdx-head-ink); opacity:.8; }
+.cdx .cdx-status-pill { appearance:none; -webkit-appearance:none; width:86px; height:13px; flex:none; margin:0; padding:0; background:transparent; border:none; outline:none; box-shadow:none; cursor:pointer; text-align:center; text-align-last:center; vertical-align:middle; line-height:13px; font-family:"Orbitron"; font-weight:700; font-size:8.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--cdx-head-ink); }
+.cdx .cdx-status-pill:hover { color:#fff; }
+.cdx .cdx-status-pill option { color:#111; text-transform:none; letter-spacing:normal; }
+.cdx .cdx-ihead .cdx-status::after { content:"\25BE"; font-size:8px; line-height:1; color:var(--cdx-head-ink); opacity:.7; pointer-events:none; }
+
+/* ---- Weapon Special tab ----
+   Skill / Characteristic / Ammo are bespoke .cdx-istat blocks (identical to the
+   header stat chips), and Special is an inline editor block (like the bio/desc
+   editor). Just give the selects/inputs a usable height inside the blocks. */
+.cdx .cdx-istats-special .cdx-istat-v,
+.cdx .cdx-istats-special .cdx-istat-sel { min-height:34px; }
+.cdx .cdx-istats-special .cdx-istat-k { color:#fff; }
+.cdx .cdx-ispecial { margin-top:8px; }
+
+/* Ship weapon: stat grid + Skill chip + Firing-arc panel stacked in the right
+   column (beside the image), instead of buried in the Special tab. */
+.cdx .cdx-sw-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.cdx .cdx-sw-main .cdx-istats { width:100%; }
+.cdx .cdx-sw-main .cdx-arc-panel { margin:0; }
+/* Lone Skill block (Special tab) spans full width. */
+.cdx .cdx-item-shipweapon .cdx-istats-special { grid-template-columns:1fr; }
+.cdx .cdx-arc-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:7px 10px; padding:9px 11px; }
+.cdx .cdx-arc { display:flex; align-items:center; gap:6px; cursor:pointer; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-ink); }
+.cdx .cdx-arc input { accent-color:var(--cdx-accent); width:14px; height:14px; flex:none; margin:0; }
+
+/* ---- Critical injury / damage ---- standard .cdx-ihead header (type pill +
+   name), then the avatar beside the stacked d100 Low/High (XP-style block) and
+   Severity blocks. */
+.cdx .cdx-item-crit .cdx-item-img { width:150px; height:150px; }
+.cdx .cdx-crit-stats { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.cdx .cdx-crit-stats .cdx-stat { flex:none; }
+.cdx .cdx-crit-sev .cdx-istat-sel { min-height:30px; font-size:18px; }
+
+/* ---- Adjusted value badge (Damage/Crit/Encum) ----
+   Show "{value} ({adjusted})" when an attachment/quality changes the stat. The
+   base value stays the centred editable input; the derived adjusted sits as a
+   small badge at the right edge (same pattern as the rarity (R) button). Green
+   when the adjustment is better, red when worse — direction is decided in the
+   template (damage: higher=better; crit/encum: lower=better), mirroring the
+   stock weapon sheet's positive/negative logic. */
+.cdx .cdx-istat-vwrap { flex:1; width:100%; position:relative; display:flex; align-items:center; }
+.cdx .cdx-istat-vwrap .cdx-istat-v { flex:1; min-width:0; }
+.cdx .cdx-istat-adj { position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-family:"Orbitron"; font-weight:900; font-size:18px; line-height:1; white-space:nowrap; }
+.cdx .cdx-istat-adj.better { color:#1f9d3a; }
+.cdx .cdx-istat-adj.worse { color:#cf2e2e; }
+
+/* ---- Embedded item editor (itemEditor), Codex skin ----
+   Only applied when the host item resolves to a Codex sheet: item-editor.js adds
+   `cdx cdx-embed` to the window + the scheme class to the content form, so the
+   palette vars resolve via `.cdx form.scheme-*` and the `.cdx > form.window-content`
+   shell paints the parchment background. These rules restyle the editor's own
+   structure (nav.tabs / section.content / .form-group) — scoped to .cdx.cdx-embed so
+   no other Codex sheet is affected. Tab show/hide stays with Foundry's Tabs. */
+/* The DocumentSheet shell (.cdx > form.window-content) reshapes content for the
+   bespoke sheets; the embedded editor is a `.flat_editor` FormApplication with
+   its OWN flex layout, so neutralise the shell's structural props here and keep
+   only the parchment background — restoring the editor's native column layout. */
+.cdx.cdx-embed > form.window-content { padding:9px !important; gap:0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; height:100% !important; min-height:0; }
+/* Tabs: a horizontal row. mandar sets `.tabs .item { width:100% }`, which (with a
+   flex item) stacks them vertically and overlaps the content — pin width:auto and
+   strip the absolute/vertical `.v2 .tabs` positioning. */
+.cdx.cdx-embed nav.tabs { display:flex !important; flex-direction:row !important; flex-wrap:wrap; position:static !important; inset:auto !important; width:auto !important; gap:2px; border:none; border-bottom:2px solid var(--cdx-accent); margin:0 0 9px; padding:0; }
+.cdx.cdx-embed nav.tabs .item { width:auto !important; height:auto !important; flex:0 0 auto !important; position:static !important; margin:0; border:none; background:transparent; color:var(--cdx-dim); text-shadow:none; clip-path:none; padding:6px 14px; font-family:"Orbitron"; font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+.cdx.cdx-embed nav.tabs .item:hover { background:transparent; color:var(--cdx-accent); }
+.cdx.cdx-embed nav.tabs .item.active { height:auto !important; background:var(--cdx-accent); color:#fff; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,0 100%); }
+/* Content fills the area BELOW the tabs; the active tab scrolls. */
+.cdx.cdx-embed section.content { flex:1; min-height:0; display:flex; flex-direction:column; }
+.cdx.cdx-embed section.content > .tab.active { flex:1; min-height:0; overflow-y:auto; padding-right:2px; }
+.cdx.cdx-embed .form-group { display:flex; flex-direction:column; gap:3px; margin-bottom:9px; }
+/* Description form-group (the only one with an editor) → a bordered panel with a
+   header bar, matching the other Codex description blocks. */
+.cdx.cdx-embed .form-group:has(> .editor), .cdx.cdx-embed .form-group:has(> .editor-content) { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; gap:0; padding:0; }
+.cdx.cdx-embed .form-group:has(> .editor) > label, .cdx.cdx-embed .form-group:has(> .editor-content) > label { background:var(--cdx-accent); color:#fff; padding:5px 10px; margin:0; }
+.cdx.cdx-embed .form-group > .editor, .cdx.cdx-embed .form-group > .editor-content { padding:8px 10px; min-height:80px; color:var(--cdx-ink); }
+/* Active inline ProseMirror editor: give the content surface a light paper
+   background + ink text (it otherwise rendered dark-on-dark and the description
+   text was invisible while editing). The menu bar keeps its own dark styling. */
+.cdx.cdx-embed .editor.prosemirror { background:var(--cdx-paper); min-height:150px; }
+.cdx.cdx-embed .editor.prosemirror .editor-container { background:var(--cdx-paper); }
+.cdx.cdx-embed .editor-content.ProseMirror { background:var(--cdx-paper); color:var(--cdx-ink); padding:6px 8px; min-height:90px; }
+.cdx.cdx-embed .editor-content.ProseMirror * { color:var(--cdx-ink); }
+/* The ProseMirror menu bar (and its dark dropdown popups) sit on a dark surface —
+   force the icons/labels light so they're visible. Scoped to the menubar only,
+   NOT the .editor-content above, so the editable text stays ink-on-paper. */
+.cdx.cdx-embed .editor.prosemirror menu,
+.cdx.cdx-embed .editor.prosemirror menu *,
+.cdx.cdx-embed .editor.prosemirror .editor-menu,
+.cdx.cdx-embed .editor.prosemirror .editor-menu * { color:#ececef; }
+.cdx.cdx-embed .form-group > label { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); display:flex; align-items:center; gap:4px; }
+.cdx.cdx-embed input[type=text], .cdx.cdx-embed input[type=number], .cdx.cdx-embed select {
+  width:100%; box-sizing:border-box; background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px;
+  color:var(--cdx-ink); font-family:"Orbitron"; font-weight:700; font-size:13px; padding:5px 8px;
+}
+.cdx.cdx-embed select option { color:#111; }
+.cdx.cdx-embed input[type=checkbox] { accent-color:var(--cdx-accent); width:16px; height:16px; }
+.cdx.cdx-embed .attributes-header, .cdx.cdx-embed .mod_container .attributes-header { font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-brown); }
+.cdx.cdx-embed .add-mod, .cdx.cdx-embed .add-modification { color:var(--cdx-accent); width:auto; }

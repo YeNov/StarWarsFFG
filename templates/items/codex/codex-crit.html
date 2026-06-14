@@ -1,0 +1,46 @@
+{{!--
+  Codex II — critical injury / critical damage (shared; identical data models).
+  Avatar with the name BELOW it, a d100 Low / High + Severity stat row, inline
+  description, then Modifiers / Sources / Tags tabs.
+--}}
+<form class="cdx-sheet cdx-item cdx-item-crit" autocomplete="off">
+  <div class="cdx-ihead">
+    <div class="cdx-ipill">{{cdxTypeLabel}}</div>
+    <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
+
+  <div class="cdx-iwmain">
+    <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
+    <div class="cdx-crit-stats">
+      <div class="cdx-stat cdx-xp-chip">
+        <div class="cdx-stat-head"><span>d100 Low / High</span></div>
+        <div class="cdx-stat-body">
+          <div class="cdx-thresh"><input class="cdx-num" type="text" name="data.min" value="{{data.min}}" data-dtype="Number" /><span class="cdx-slash">/</span><input class="cdx-num" type="text" name="data.max" value="{{data.max}}" data-dtype="Number" /></div>
+        </div>
+      </div>
+      <div class="cdx-stat cdx-crit-sev">
+        <div class="cdx-stat-head"><span>{{localize "SWFFG.Severity"}}</span></div>
+        <div class="cdx-stat-body">
+          <select class="cdx-istat-sel" name="data.severity">{{#selectFfg data.severity}}{{#each this.FFG.difficulty as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cdx-idesc">
+    <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
+    {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
+
+  <nav class="cdx-tabstrip">
+    <button type="button" class="cdx-tab active" data-tab="attributes">{{localize "SWFFG.TabModifiers"}}</button>
+    <button type="button" class="cdx-tab" data-tab="sources">{{localize "SWFFG.TabSources"}}</button>
+    <button type="button" class="cdx-tab" data-tab="tags">{{localize "SWFFG.TabTags"}}</button>
+  </nav>
+
+  <div class="cdx-item-body">
+    <section class="cdx-pane active attributes" data-tab="attributes">{{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}</section>
+    <section class="cdx-pane" data-tab="sources">{{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}</section>
+    <section class="cdx-pane" data-tab="tags">{{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}</section>
+  </div>
+</form>

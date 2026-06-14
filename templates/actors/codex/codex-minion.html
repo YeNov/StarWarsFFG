@@ -1,0 +1,116 @@
+{{!--
+  CODEX II — minion. Bespoke .cdx-* markup; behaviour from CodexActorSheet.
+  Minion specifics: group Quantity (max/alive), per-unit wounds, Kill buttons,
+  no strain/force/credits. Skills use `groupskill` (handled inside cdx-skills).
+--}}
+<div class="cdx-sheet minion">
+  <div id="actor-id" data-actor="{{actor._id}}" style="display:none;"></div>
+
+  <div class="cdx-header-wrap">
+  <header class="cdx-header{{#if cdxHeaderCollapsed}} cdx-hcollapsed{{/if}}">
+    <div class="cdx-portrait"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
+    <div class="cdx-identity">
+      <input class="cdx-name" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.MinionName'}}" data-dtype="String" />
+      <div class="cdx-pills"><span class="cdx-pill">{{ localize "TYPES.Actor.minion" }}</span></div>
+    </div>
+  </header>
+  <button type="button" class="cdx-hcollapse-btn" title="Toggle header"><i class="fas fa-caret-{{#if cdxHeaderCollapsed}}down{{else}}up{{/if}}"></i><span class="cdx-hcollapse-label">{{#if cdxHeaderCollapsed}}Expand{{else}}Collapse{{/if}}</span></button>
+  </div>
+
+  {{#unless limited}}
+  {{!-- Persistent minion stats (always visible, above the tabs). Wrapped in a
+       plain block so the wound pool is block-flow, NOT a flex item of the
+       column-flex form — otherwise it gets squeezed to 0 height whenever the
+       active tab's pane is tall enough to overflow the sheet. --}}
+  <div class="cdx-minion-stats">
+  {{!-- Top row: Group Strength (members alive/max + Wipe Out) · Defence (Soak +
+       Melee/Ranged setback dice, identical to the character/nemesis block). --}}
+  <div class="cdx-minion-top">
+    <div class="cdx-stat cdx-gs">
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Codex.GroupStrength"}}</span></div>
+      <div class="cdx-gs-body">
+        <div class="cdx-gs-main">
+          <div class="cdx-stepline cdx-gs-counter">
+            <button type="button" class="cdx-step cdx-gs-step" data-dir="-1" title="{{localize "SWFFG.Actors.Sheets.Token.KillMinion.KillMinion"}}"><i class="fas fa-minus"></i></button>
+            <div class="cdx-gs-count"><span class="cdx-gs-cur">{{data.quantity.value}}</span><span class="cdx-slash">/</span>{{#if disabled}}<span class="cdx-gs-max">{{data.quantity.max}}</span>{{else}}<input class="cdx-gs-max-in" type="text" name="data.quantity.max" value="{{data.quantity.max}}" data-dtype="Number" />{{/if}}</div>
+            <button type="button" class="cdx-step cdx-gs-step" data-dir="1"><i class="fas fa-plus"></i></button>
+          </div>
+          <span class="cdx-gs-label">{{localize "SWFFG.Codex.MembersInGroup"}}</span>
+        </div>
+        <button type="button" class="cdx-wipeout" title="{{localize "SWFFG.Actors.Sheets.Token.KillMinion.KillGroup"}}"><i class="fa-solid fa-skull-crossbones"></i><span>{{localize "SWFFG.Codex.WipeOut"}}</span></button>
+      </div>
+    </div>
+    <div class="cdx-stat defence cdx-def cdx-minion-def">
+      <div class="cdx-stat-head"><span><i class="fas fa-shield"></i>{{localize "SWFFG.Defense"}}</span></div>
+      <div class="cdx-def-body">
+        <div class="cdx-def-soak">
+          {{#if disabled}}<span class="cdx-def-soak-v">{{data.stats.soak.value}}</span>{{else}}<input type="text" name="data.stats.soak.value" value="{{data.stats.soak.value}}" data-dtype="Number" />{{/if}}
+          <span class="cdx-def-soak-k">{{localize "SWFFG.Soak"}}</span>
+        </div>
+        <div class="cdx-def-rows">
+          <div class="cdx-def-row">
+            <span class="cdx-def-label">{{localize "SWFFG.DefenseMelee"}}</span>
+            {{#if disabled}}<div class="cdx-def-dice" data-def-max="{{cdxDef.melee.poolMax}}">{{#if (eq cdxDef.melee.mode "dash")}}<span class="cdx-def-dash">—</span>{{else if (eq cdxDef.melee.mode "digit")}}<span class="cdx-def-digit">{{cdxDef.melee.value}}</span>{{else}}{{#each cdxDef.melee.pairs}}<span class="cdx-die-pair">{{#each this}}<svg width="16" height="16" viewBox="0 0 24 24" class="cdx-die-setback"><rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor"/></svg>{{/each}}</span>{{/each}}{{/if}}</div>{{else}}<input type="text" name="data.stats.defence.melee" value="{{data.stats.defence.melee}}" data-dtype="Number" />{{/if}}
+          </div>
+          <div class="cdx-def-row">
+            <span class="cdx-def-label">{{localize "SWFFG.DefenseRanged"}}</span>
+            {{#if disabled}}<div class="cdx-def-dice" data-def-max="{{cdxDef.ranged.poolMax}}">{{#if (eq cdxDef.ranged.mode "dash")}}<span class="cdx-def-dash">—</span>{{else if (eq cdxDef.ranged.mode "digit")}}<span class="cdx-def-digit">{{cdxDef.ranged.value}}</span>{{else}}{{#each cdxDef.ranged.pairs}}<span class="cdx-die-pair">{{#each this}}<svg width="16" height="16" viewBox="0 0 24 24" class="cdx-die-setback"><rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor"/></svg>{{/each}}</span>{{/each}}{{/if}}</div>{{else}}<input type="text" name="data.stats.defence.ranged" value="{{data.stats.defence.ranged}}" data-dtype="Number" />{{/if}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{!-- Combined wound pool: total wounds suffered across the group; the track is
+       grouped into members (unit_wounds segments each), filled left-to-right. --}}
+  <div class="cdx-stat cdx-wp">
+    <div class="cdx-stat-head"><span>{{localize "SWFFG.Codex.CombinedWoundPool"}} · {{#if disabled}}{{data.unit_wounds.value}}{{else}}<input class="cdx-wp-unit-in" type="text" name="data.unit_wounds.value" value="{{data.unit_wounds.value}}" data-dtype="Number" />{{/if}} {{localize "SWFFG.Codex.PerMember"}}</span></div>
+    <div class="cdx-wp-body">
+      <div class="cdx-stepline cdx-wp-counter">
+        <button type="button" class="cdx-step" data-stat="wounds" data-dir="-1"><i class="fas fa-minus"></i></button>
+        <div class="cdx-wp-count"><span class="cdx-wp-cur">{{data.stats.wounds.value}}</span><span class="cdx-slash">/</span><span class="cdx-wp-max">{{data.stats.wounds.max}}</span></div>
+        <button type="button" class="cdx-step" data-stat="wounds" data-dir="1"><i class="fas fa-plus"></i></button>
+        <span class="cdx-wp-label">{{cdxMinionWoundHint}}</span>
+      </div>
+      <div class="cdx-wound-track">
+        {{#each cdxMinionGroups}}<div class="cdx-member-group">{{#each this}}<span class="cdx-wound-seg{{#if this}} filled{{/if}}"></span>{{/each}}</div>{{/each}}
+      </div>
+    </div>
+  </div>
+  </div>{{!-- /cdx-minion-stats --}}
+
+  {{!-- Tabs — same names/order/list as the character/nemesis sheet (no XP). --}}
+  <nav class="cdx-tabstrip">
+    <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.Codex.TabSkills"}}</button>
+    <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.Codex.TabCombat"}}</button>
+    <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.Codex.TabGear"}}</button>
+    <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.Codex.TabCrits"}}{{#if cdxCritCount}}<span class="cdx-tab-badge">{{cdxCritCount}}</span>{{/if}}</button>
+    <button type="button" class="cdx-tab" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
+    <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.Codex.TabBio"}}</button>
+    <button type="button" class="cdx-tab" data-tab="effects">AEs</button>
+  </nav>
+
+  {{!-- Characteristics belong to the Skills tab, same as every other actor. --}}
+  <section class="cdx-pane active" data-tab="skills">
+    <div class="cdx-chiprow">
+      {{#each data.characteristics as |characteristic id|}}
+      <div class="cdx-chip" data-ability="{{id}}">
+        <div class="cdx-chip-box"><input type="text" name="data.characteristics.{{id}}.value" value="{{characteristic.value}}" data-dtype="Number" pattern="[1-7]" {{#if ../disabled}}disabled{{/if}} /></div>
+        <div class="cdx-chip-label"><span class="cdx-cl-full">{{characteristic.label}}</span><span class="cdx-cl-abbr">{{lookup ../cdxCharAbbr id}}</span></div>
+      </div>
+      {{/each}}
+    </div>
+    {{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}
+  </section>
+  <section class="cdx-pane" data-tab="combat">{{> "systems/starwarsffg/templates/parts/codex/cdx-combat.html"}}</section>
+  <section class="cdx-pane gear" data-tab="gear">{{> "systems/starwarsffg/templates/parts/codex/cdx-gear.html"}}</section>
+  <section class="cdx-pane injuries" data-tab="injuries">{{> "systems/starwarsffg/templates/parts/codex/cdx-injuries.html"}}</section>
+  <section class="cdx-pane talents items" data-tab="talents">{{> "systems/starwarsffg/templates/parts/codex/cdx-talents.html"}}</section>
+
+  <section class="cdx-pane bio" data-tab="bio">
+    <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.TabBiography"}}</div><div class="cdx-bio-editor">{{editor data.biography target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
+  </section>
+
+  <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
+  {{/unless}}
+</div>

@@ -1,0 +1,26 @@
+{{!--
+  Reusable "ratio chip": a circular chip showing current / max with −/+ steppers.
+  Hash params:
+    path      relative stat path, e.g. "stats.speed.value". The steppers write
+              system.<path>; the edit-mode current input binds data.<path>.
+    maxPath   relative path of the max (for the editable-max input). Optional.
+    cur,maxValue   the current + max numbers to display.
+    label,labelClass   chip label text + extra label classes (e.g. "brass").
+    variant   extra chip class (e.g. "force") for variant styling.
+    align     alignment key for the Force background tint. Optional.
+    ratioBg,ratioPct   tint the box white→red-orange by ratioPct (0–100). Optional.
+    noClamp   when true the steppers don't cap at max (only floor at 0).
+    lockCur,lockMax   when true the value / max are never editable (steppers only).
+    disabled  locked (not edit mode) → text; edit mode → inputs (unless locked).
+  The −/+ buttons carry data-cdx-path (system.<path>) + data-cdx-max so a single
+  handler (.cdx-ratio-step) drives any ratio chip.
+--}}
+<div class="cdx-chip derived cdx-ratio {{variant}}{{#if ratioBg}} cdx-ratio-hot{{/if}}{{#if align}} cdx-align-{{align}}{{/if}}">
+  <div class="cdx-chip-box static"{{#if ratioBg}} style="background:color-mix(in srgb, #e8451c {{ratioPct}}%, var(--cdx-paper2))"{{/if}}>
+    <button type="button" class="cdx-ratio-step minus" data-dir="-1" data-cdx-path="system.{{path}}"{{#unless noClamp}} data-cdx-max="{{maxValue}}"{{/unless}} title="{{label}}"><i class="fas fa-minus"></i></button>
+    {{#if disabled}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}{{#if lockCur}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}<input class="cdx-ratio-c" type="text" name="data.{{path}}" value="{{cur}}" data-dtype="Number" />{{/if}}{{/if}}
+    {{#unless noMax}}<span class="cdx-ratio-t">of {{#if disabled}}{{maxValue}}{{else}}{{#if lockMax}}{{maxValue}}{{else}}<input class="cdx-ratio-m" type="text" name="data.{{maxPath}}" value="{{maxValue}}" data-dtype="Number" />{{/if}}{{/if}}</span>{{/unless}}
+    <button type="button" class="cdx-ratio-step plus" data-dir="1" data-cdx-path="system.{{path}}"{{#unless noClamp}} data-cdx-max="{{maxValue}}"{{/unless}} title="{{label}}"><i class="fas fa-plus"></i></button>
+  </div>
+  <div class="cdx-chip-label {{labelClass}}">{{label}}</div>
+</div>

@@ -18,10 +18,12 @@ import { ActiveEffectFFG} from "./active-effects/active-effect-ffg.js";
 import { ItemFFG } from "./items/item-ffg.js";
 import { ItemSheetFFG } from "./items/item-sheet-ffg.js";
 import { ItemSheetFFGV2 } from "./items/item-sheet-ffg-v2.js";
+import { CodexItemSheet } from "./items/codex-item-sheet.js";
 import { ActorSheetFFG } from "./actors/actor-sheet-ffg.js";
 import { ActorSheetFFGV2 } from "./actors/actor-sheet-ffg-v2.js";
 import { AdversarySheetFFG } from "./actors/adversary-sheet-ffg.js";
 import { AdversarySheetFFGV2 } from "./actors/adversary-sheet-ffg-v2.js";
+import { CodexActorSheet, CodexAdversarySheet } from "./actors/codex-sheets.js";
 import { DicePoolFFG, RollFFG } from "./dice-pool-ffg.js";
 import { GroupManager } from "./groupmanager-ffg.js";
 import PopoutEditor from "./popout-editor.js";
@@ -251,7 +253,7 @@ Hooks.once("init", async function () {
   };
 
   // Load character templates so that dynamic skills lists work correctly
-  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html"]);
+  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html", "systems/starwarsffg/templates/items/codex/codex-crit.html", "systems/starwarsffg/templates/items/codex/codex-shipweapon.html", "systems/starwarsffg/templates/items/codex/codex-itemattachment.html", "systems/starwarsffg/templates/items/codex/codex-shipattachment.html"]);
 
   SettingsHelpers.initLevelSettings();
 
@@ -272,6 +274,17 @@ Hooks.once("init", async function () {
       $('link[href*="styles/starwarsffg.css"]').prop("disabled", false);
     }
   }
+
+  // CODEX II stylesheet — appended LAST in <head>, after whichever UI theme link
+  // was added above. Fully self-contained: everything is scoped under `.cdx` and
+  // styles only bespoke `.cdx-*` classes, so it neither depends on nor is
+  // overridden by the active theme. (system.json `styles` is unreliable here —
+  // the default mandar theme disables system styles at init.)
+  // ?v=<timestamp> busts the browser cache so edits to cdx.css load on a plain
+  // reload — the <link> was otherwise cached forever by its fixed URL, which is
+  // why CSS changes "didn't apply". TODO: switch the buster to the system
+  // version (game.system.version) for release so the file caches between bumps.
+  $("head").append(`<link href="systems/starwarsffg/styles/cdx.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
 
   /**
    * Register default XP spend notification
@@ -850,6 +863,13 @@ Hooks.once("init", async function () {
   foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
+  // CODEX II — bespoke, opt-in sheets selected per-actor via the ⚙ Sheet picker.
+  // Stock sheets stay registered as the default; Codex never takes makeDefault.
+  // Register a type only once its codex-<type>.html template exists. Widened as
+  // each type lands (character first).
+  const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
+  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: CODEX_ACTOR_TYPES, label: "Codex II Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", CodexAdversarySheet, { types: ["character"], label: "Codex II Adversary Sheet" });
   foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
   // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
   // to the same native sheet. ItemSheetFFG is the real, default class;
@@ -858,6 +878,23 @@ Hooks.once("init", async function () {
   // resolving. Drop the alias entry in the release after V2-full lands.
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
+  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Detailed
+  // templates: weapon/armour/gear/talent; a generic Codex frame covers the other
+  // simple types. Complex tree/config types keep the stock sheet (not listed).
+  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
+  foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
+    types: CODEX_ITEM_TYPES,
+    label: "Codex II Item Sheet",
+  });
+
+  // Stash the Codex sheet classes + the types they cover so the document
+  // classes' _getSheetClass() (ActorFFG/ItemFFG) can route to them when the
+  // client `defaultSheetTheme` setting selects "codex" — without importing the
+  // sheet classes into the document modules (which would form an import cycle).
+  CONFIG.FFG.codexSheets = {
+    actor: { cls: CodexActorSheet, types: CODEX_ACTOR_TYPES },
+    item: { cls: CodexItemSheet, types: CODEX_ITEM_TYPES },
+  };
 
   // Add utilities to the global scope, this can be useful for macro makers
   window.DicePoolFFG = DicePoolFFG;
@@ -1919,12 +1956,27 @@ Hooks.on("renderGamePause", function (_application, element, _context, _options)
   }
 
   Hooks.on("renderDialogV2", (app) => {
+    const el = app.element;
+    if (!el) return;
     const title = app.options?.window?.title;
-    if (!title) return;
-    const saved = loadPositions()[title];
-    if (!saved) return;
+    const saved = title ? loadPositions()[title] : null;
+    // EVERY DialogV2 first paints at the top-left corner (0,0) before Foundry
+    // (or our saved-position restore) moves it to its real spot — that
+    // paint-then-move is the visible "spawn then jump". Render hooks run
+    // synchronously before the browser's first paint, so make the window
+    // transparent here to swallow the (0,0) frame, then apply any saved
+    // position and reveal it together in the next task (atomic w.r.t. painting,
+    // so no intermediate frame is ever shown). Notes:
+    //  - opacity (not visibility/display) keeps the dialog focusable, so
+    //    Foundry's autofocus — which already ran in _onRender, before this hook
+    //    — is not blurred by the hide.
+    //  - the reveal lives in the setTimeout, never gated on requestAnimationFrame,
+    //    so a throttled/background tab can't strand the dialog invisible.
+    const prevOpacity = el.style.opacity;
+    el.style.opacity = "0";
     setTimeout(() => {
-      try { app.setPosition({ left: saved.left, top: saved.top }); } catch { /* dialog already closed */ }
+      if (saved) { try { app.setPosition({ left: saved.left, top: saved.top }); } catch { /* dialog already closed */ } }
+      el.style.opacity = prevOpacity;
     }, 0);
   });
 
