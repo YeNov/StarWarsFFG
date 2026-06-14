@@ -672,6 +672,20 @@ export class ActorSheetFFG extends FFGActorSheet {
           itemId: card?.getAttribute?.("data-item-id") ?? "(none)",
           defaultPrevented: ev.defaultPrevented,
         });
+        // After the bubble phase (ContextMenu._onActivate) has run, inspect state.
+        setTimeout(() => {
+          const menuEl = document.getElementById("context-menu") || document.querySelector("#context-menu, .context-menu, menu.context-menu");
+          const rect = menuEl?.getBoundingClientRect?.();
+          console.log("CDX-CTX | post-render", {
+            defaultPreventedNow: ev.defaultPrevented,
+            uiContext: ui.context?.constructor?.name ?? "(none)",
+            uiContextItems: ui.context?.menuItems?.length ?? 0,
+            menuElFound: !!menuEl,
+            menuRect: rect ? { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) } : null,
+            menuDisplay: menuEl ? getComputedStyle(menuEl).display : null,
+            menuVisibility: menuEl ? getComputedStyle(menuEl).visibility : null,
+          });
+        }, 60);
       }, true); // capture phase, fires before ContextMenu's bubble-phase listeners
     } catch (e) { console.error("CDX-CTX | diag error", e); }
 
