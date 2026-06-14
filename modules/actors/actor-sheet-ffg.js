@@ -655,6 +655,26 @@ export class ActorSheetFFG extends FFGActorSheet {
     new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false});
     new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false});
 
+    // TEMP CTX DIAGNOSTIC -- remove once the talent context menu is confirmed.
+    try {
+      console.log("CDX-CTX | menus registered", {
+        sheet: this.constructor?.name,
+        htmlElTag: htmlElement?.tagName,
+        htmlElClass: htmlElement?.className,
+        divItemCount: htmlElement?.querySelectorAll?.("div.item")?.length,
+        talentCount: htmlElement?.querySelectorAll?.("div.item.cdx-talent")?.length,
+      });
+      htmlElement?.addEventListener?.("contextmenu", (ev) => {
+        const card = ev.target?.closest?.("div.item, .cdx-pill.item");
+        console.log("CDX-CTX | contextmenu fired", {
+          target: ev.target?.className,
+          closestItem: card?.className ?? "(none)",
+          itemId: card?.getAttribute?.("data-item-id") ?? "(none)",
+          defaultPrevented: ev.defaultPrevented,
+        });
+      }, true); // capture phase, fires before ContextMenu's bubble-phase listeners
+    } catch (e) { console.error("CDX-CTX | diag error", e); }
+
     if (["nemesis", "rival"].includes(this.actor.type)) {
       this.sheetoptions = new ActorOptions(this, html);
       this.sheetoptions.register("enableAutoSoakCalculation", {
