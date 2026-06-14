@@ -564,7 +564,7 @@ export class ActorSheetFFG extends FFGActorSheet {
         // stock .skillsGrid container, so include them here.
         ".skillsGrid .skill, .cdx-skills .skill",
         contextMenuOptions,
-      {jQuery: false},
+      {jQuery: false, fixed: true},
     );
 
     html.find(".skill-purchase").click(async (ev) => {
@@ -596,7 +596,7 @@ export class ActorSheetFFG extends FFGActorSheet {
           this._onCreateSkill(li);
         },
       },
-    ], {jQuery: false});
+    ], {jQuery: false, fixed: true});
 
     html.find(".ffg-purchase").click(async (ev) => {
       await this._buyCore(ev)
@@ -651,43 +651,13 @@ export class ActorSheetFFG extends FFGActorSheet {
     // pills are span.cdx-pill.force.item -- neither matches li.item or div.item, so
     // include them here so right-click "send to chat" (and force-roll) works on them
     // too. Codex talent/gear cards are div.item and are already covered below.
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false});
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false});
-    new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false});
-
-    // TEMP CTX DIAGNOSTIC -- remove once the talent context menu is confirmed.
-    try {
-      console.log("CDX-CTX | menus registered", {
-        sheet: this.constructor?.name,
-        htmlElTag: htmlElement?.tagName,
-        htmlElClass: htmlElement?.className,
-        divItemCount: htmlElement?.querySelectorAll?.("div.item")?.length,
-        talentCount: htmlElement?.querySelectorAll?.("div.item.cdx-talent")?.length,
-      });
-      htmlElement?.addEventListener?.("contextmenu", (ev) => {
-        const card = ev.target?.closest?.("div.item, .cdx-pill.item");
-        console.log("CDX-CTX | contextmenu fired", {
-          target: ev.target?.className,
-          closestItem: card?.className ?? "(none)",
-          itemId: card?.getAttribute?.("data-item-id") ?? "(none)",
-          defaultPrevented: ev.defaultPrevented,
-        });
-        // After the bubble phase (ContextMenu._onActivate) has run, inspect state.
-        setTimeout(() => {
-          const menuEl = document.getElementById("context-menu") || document.querySelector("#context-menu, .context-menu, menu.context-menu");
-          const rect = menuEl?.getBoundingClientRect?.();
-          console.log("CDX-CTX | post-render", {
-            defaultPreventedNow: ev.defaultPrevented,
-            uiContext: ui.context?.constructor?.name ?? "(none)",
-            uiContextItems: ui.context?.menuItems?.length ?? 0,
-            menuElFound: !!menuEl,
-            menuRect: rect ? { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) } : null,
-            menuDisplay: menuEl ? getComputedStyle(menuEl).display : null,
-            menuVisibility: menuEl ? getComputedStyle(menuEl).visibility : null,
-          });
-        }, 60);
-      }, true); // capture phase, fires before ContextMenu's bubble-phase listeners
-    } catch (e) { console.error("CDX-CTX | diag error", e); }
+    // fixed:true positions the menu at document.body. Without it the menu is
+    // appended INSIDE the right-clicked element (Foundry's non-fixed path), and the
+    // codex talent/skill cards' constrained height/overflow squash it to a ~10px
+    // sliver -- so it "didn't appear".
+    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false, fixed: true});
+    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false, fixed: true});
+    new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false, fixed: true});
 
     if (["nemesis", "rival"].includes(this.actor.type)) {
       this.sheetoptions = new ActorOptions(this, html);
