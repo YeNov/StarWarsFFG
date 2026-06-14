@@ -1,0 +1,60 @@
+Codex II UI — License
+======================
+
+Copyright (c) 2026 YeNov
+
+This license applies to the original Codex II UI work authored by YeNov,
+specifically the following files and directories in this repository:
+
+  - templates/actors/codex/
+  - templates/parts/codex/
+  - templates/items/codex/
+  - styles/cdx.css
+  - modules/actors/codex-sheets.js
+  - modules/items/codex-item-sheet.js
+
+(collectively, the "Codex Work").
+
+The Codex Work is licensed under the
+Creative Commons Attribution-NonCommercial 4.0 International License
+(CC BY-NC 4.0).
+
+You are free to:
+
+  - Share — copy and redistribute the Codex Work in any medium or format.
+  - Adapt — remix, transform, and build upon the Codex Work.
+
+Under the following terms:
+
+  - Attribution — You must give appropriate credit to the author (YeNov),
+    provide a link to this license, and indicate if changes were made. You may
+    do so in any reasonable manner, but not in any way that suggests the author
+    endorses you or your use.
+
+  - NonCommercial — You may NOT use the Codex Work for commercial purposes. In
+    particular, the Codex Work may not be sold, licensed for a fee, paywalled,
+    or bundled into, distributed with, or used to promote any paid product,
+    paid service, or otherwise monetized offering.
+
+  - No additional restrictions — You may not apply legal terms or technological
+    measures that legally restrict others from doing anything this license
+    permits.
+
+The Codex Work is provided "as is", without warranty of any kind, express or
+implied. In no event shall the author be liable for any claim, damages, or other
+liability arising from, out of, or in connection with the Codex Work or its use.
+
+The full, authoritative legal text of CC BY-NC 4.0 is available at:
+
+  https://creativecommons.org/licenses/by-nc/4.0/legalcode
+  (human-readable summary: https://creativecommons.org/licenses/by-nc/4.0/)
+
+In the event of any conflict between this notice and the official CC BY-NC 4.0
+legal code, the official legal code governs.
+
+---
+
+This license covers only the Codex Work listed above. The host "Star Wars FFG"
+system, and any pre-existing files of that system which the Codex Work modifies,
+remain under their original MIT License (see LICENSE.txt). Nothing here
+re-licenses, supersedes, or restricts the host system's MIT License.

@@ -91,7 +91,8 @@ You may use, copy, modify, and redistribute it for any **non-commercial** purpos
 provided attribution to the author is retained. **It may not be sold, licensed for a
 fee, paywalled, or bundled into any paid product or distribution.**
 
-This is conceptually aligned with **CC BY-NC 4.0**.
+Formally licensed under **CC BY-NC 4.0** — see [`LICENSE-CODEX`](LICENSE-CODEX) for the
+full notice.
 
 The underlying *Star Wars FFG* system, and any pre-existing files this work modifies,
 remain under their original **MIT** license — see [`LICENSE.txt`](LICENSE.txt). This
