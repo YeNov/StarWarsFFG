@@ -1192,3 +1192,77 @@
 .cdx.cdx-embed input[type=checkbox] { accent-color:var(--cdx-accent); width:16px; height:16px; }
 .cdx.cdx-embed .attributes-header, .cdx.cdx-embed .mod_container .attributes-header { font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-brown); }
 .cdx.cdx-embed .add-mod, .cdx.cdx-embed .add-modification { color:var(--cdx-accent); width:auto; }
+
+/* ===========================================================================
+   Force-power upgrade tree (codex reskin of the stock .talent-grid).
+   The codex item window keeps the `.starwarsffg` class, so the stock
+   `.starwarsffg .talent-*` rules still provide the LAYOUT (flex-wrap grid,
+   size-based widths, absolute connector positioning, notch clip-paths). Here we
+   only restyle the visuals under `.cdx .cdx-ftree` and recolour the connectors.
+   Connector "on" = both endpoints purchased (template uses AND -> cdx-link-on).
+   =========================================================================== */
+
+/* --- Node cards --- */
+.cdx .cdx-ftree .talent-background,
+.cdx .cdx-ftree-power .talent-background,
+.cdx .cdx-ftree-power.talent-background { background:var(--cdx-paper2); color:var(--cdx-ink); }
+.cdx .cdx-ftree .talent-background .talent-header,
+.cdx .cdx-ftree-power .talent-header {
+  background:var(--cdx-head); color:var(--cdx-head-ink);
+  font-family:"Orbitron",sans-serif;
+}
+/* neutralise the stock active/passive header colours (red/grey) */
+.cdx .cdx-ftree .talent-background.talent-active .talent-header,
+.cdx .cdx-ftree .talent-background.talent-passive .talent-header { background:var(--cdx-head); }
+/* the base power node stands out with the accent header */
+.cdx .cdx-ftree-power .talent-header { background:var(--cdx-accent); }
+.cdx .cdx-ftree .talent-header input[type=text],
+.cdx .cdx-ftree-power .talent-header input[type=text] {
+  background:transparent; color:var(--cdx-head-ink); border:none;
+  font-family:"Orbitron",sans-serif; font-weight:700;
+}
+.cdx .cdx-ftree .talent-header div, .cdx .cdx-ftree-power .talent-header div { color:var(--cdx-head-ink); }
+
+/* --- Cost chip --- */
+.cdx .cdx-ftree .talent-cost,
+.cdx .cdx-ftree-power .talent-cost {
+  background:var(--cdx-brass); color:var(--cdx-chip-label);
+  font-family:"Orbitron",sans-serif; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:.5px;
+  padding:2px 6px;
+}
+.cdx .cdx-ftree .talent-cost input,
+.cdx .cdx-ftree-power .talent-cost input { background:transparent; border:none; color:var(--cdx-chip-label); width:4ch; font-weight:700; }
+
+/* --- Purchased indicator: the islearned checkbox, drawn as a radio --- */
+.cdx .cdx-ftree-state { display:inline-block; vertical-align:middle; margin-right:4px; }
+.cdx .cdx-ftree-state input[type=checkbox] {
+  appearance:none; -webkit-appearance:none; margin:0; width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--cdx-head-ink); background:transparent; cursor:pointer; vertical-align:middle; position:relative;
+}
+.cdx .cdx-ftree-state input[type=checkbox]:checked::after {
+  content:""; position:absolute; inset:2px; border-radius:50%; background:var(--cdx-head-ink);
+  box-shadow:0 0 4px var(--cdx-head-ink);
+}
+/* static "Purchased" indicator on the base power node */
+.cdx .cdx-ftree-power-state { float:right; display:inline-flex; align-items:center; gap:5px; color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
+.cdx .cdx-ftree-radio { width:12px; height:12px; border-radius:50%; border:2px solid var(--cdx-head-ink); display:inline-block; }
+.cdx .cdx-ftree-radio.on { background:var(--cdx-head-ink); box-shadow:0 0 4px var(--cdx-head-ink); }
+
+/* --- Per-node buy glyph (reuses .ffg-purchase) --- */
+.cdx .cdx-ftree-buy { float:right; }
+.cdx .cdx-ftree-buy .ffg-purchase { color:var(--cdx-brass); cursor:pointer; font-size:14px; }
+.cdx .cdx-ftree-buy .ffg-purchase:hover { filter:brightness(1.2); }
+
+/* --- Connectors: recolour the stock bars --- */
+.cdx .cdx-ftree .talent-connector .talent-connector-up.cdx-link-off,
+.cdx .cdx-ftree .talent-connector .talent-connector-side.cdx-link-off {
+  background-color:var(--cdx-line); opacity:.5;
+}
+.cdx .cdx-ftree .talent-connector .talent-connector-up.cdx-link-on,
+.cdx .cdx-ftree .talent-connector .talent-connector-side.cdx-link-on {
+  background-color:var(--cdx-accent); opacity:1;
+  box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent);
+}
+
+/* --- Learned node: a subtle accent ring --- */
+.cdx .cdx-ftree .talent-upgrade.cdx-learned .talent-background { box-shadow:0 0 0 2px var(--cdx-accent); }

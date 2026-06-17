@@ -21,7 +21,7 @@ import { CDX_SCHEMES, cdxDefaultScheme } from "../actors/codex-sheets.js";
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
  *  file throws ENOENT when the sheet renders. (talent still pending.) */
-const CODEX_DETAILED = new Set(["gear", "weapon", "armour", "talent"]);
+const CODEX_DETAILED = new Set(["gear", "weapon", "armour", "talent", "forcepower"]);
 
 /** data.status values ↔ condition-track labels (None = Undamaged). */
 const CODEX_STATUS = ["None", "Minor", "Moderate", "Major"];
