@@ -1194,75 +1194,76 @@
 .cdx.cdx-embed .add-mod, .cdx.cdx-embed .add-modification { color:var(--cdx-accent); width:auto; }
 
 /* ===========================================================================
-   Force-power upgrade tree (codex reskin of the stock .talent-grid).
-   The codex item window keeps the `.starwarsffg` class, so the stock
-   `.starwarsffg .talent-*` rules still provide the LAYOUT (flex-wrap grid,
-   size-based widths, absolute connector positioning, notch clip-paths). Here we
-   only restyle the visuals under `.cdx .cdx-ftree` and recolour the connectors.
-   Connector "on" = both endpoints purchased (template uses AND -> cdx-link-on).
+   Force-power upgrade tree — BESPOKE (.cdx-ft-*). No reliance on stock
+   .talent-* layout. A 4-column CSS grid; nodes span via grid-column; the up/
+   right connector lines live in the grid gaps. Connector ".on" = both endpoints
+   purchased (template uses AND) -> accent + glow; otherwise a muted line.
    =========================================================================== */
+.cdx .cdx-ft-hide, .cdx .cdx-ft-gone { display:none !important; }
 
-/* --- Node cards --- */
-.cdx .cdx-ftree .talent-background,
-.cdx .cdx-ftree-power .talent-background,
-.cdx .cdx-ftree-power.talent-background { background:var(--cdx-paper2); color:var(--cdx-ink); }
-.cdx .cdx-ftree .talent-background .talent-header,
-.cdx .cdx-ftree-power .talent-header {
-  background:var(--cdx-head); color:var(--cdx-head-ink);
-  font-family:"Orbitron",sans-serif;
-}
-/* neutralise the stock active/passive header colours (red/grey) */
-.cdx .cdx-ftree .talent-background.talent-active .talent-header,
-.cdx .cdx-ftree .talent-background.talent-passive .talent-header { background:var(--cdx-head); }
-/* the base power node stands out with the accent header */
-.cdx .cdx-ftree-power .talent-header { background:var(--cdx-accent); }
-.cdx .cdx-ftree .talent-header input[type=text],
-.cdx .cdx-ftree-power .talent-header input[type=text] {
-  background:transparent; color:var(--cdx-head-ink); border:none;
-  font-family:"Orbitron",sans-serif; font-weight:700;
-}
-.cdx .cdx-ftree .talent-header div, .cdx .cdx-ftree-power .talent-header div { color:var(--cdx-head-ink); }
+/* --- Base power banner --- */
+.cdx .cdx-ft-power { background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
+.cdx .cdx-ft-power-row { display:flex; justify-content:space-between; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
+.cdx .cdx-ft-fr input { width:3ch; background:transparent; border:none; color:var(--cdx-head-ink); font-family:inherit; }
+.cdx .cdx-ft-power-name input { width:100%; background:transparent; border:none; color:var(--cdx-head-ink); font-weight:900; font-size:24px; text-transform:uppercase; letter-spacing:1px; padding:0; }
+.cdx .cdx-ft-power-sub { font-size:9px; opacity:.85; text-transform:uppercase; letter-spacing:.5px; }
+.cdx .cdx-ft-desc { font-family:"Signika",sans-serif; font-size:11px; line-height:1.35; margin:6px 0; position:relative; }
+.cdx .cdx-ft-desc .popout-editor-button { position:absolute; top:0; right:0; opacity:.55; cursor:pointer; }
+.cdx .cdx-ft-power-foot { display:flex; justify-content:space-between; align-items:center; }
+.cdx .cdx-ft-power-state { display:inline-flex; align-items:center; gap:5px; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
+.cdx .cdx-ft-power-actions { display:inline-flex; gap:8px; align-items:center; }
+.cdx .cdx-ft-power-actions .talent-action { color:var(--cdx-head-ink); opacity:.85; cursor:pointer; }
+.cdx .cdx-ft-power-actions .talent-action:hover { opacity:1; }
+.cdx .cdx-ft-radio { width:11px; height:11px; border-radius:50%; border:2px solid var(--cdx-head-ink); display:inline-block; }
+.cdx .cdx-ft-radio.on { background:var(--cdx-head-ink); box-shadow:0 0 4px var(--cdx-head-ink); }
 
-/* --- Cost chip --- */
-.cdx .cdx-ftree .talent-cost,
-.cdx .cdx-ftree-power .talent-cost {
-  background:var(--cdx-brass); color:var(--cdx-chip-label);
-  font-family:"Orbitron",sans-serif; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:.5px;
-  padding:2px 6px;
+/* --- Grid --- */
+.cdx .cdx-ft-grid {
+  --ft-rowgap:32px; --ft-colgap:16px; --ft-line:3px; --ft-headh:26px;
+  display:grid; grid-template-columns:repeat(4, 1fr);
+  gap:var(--ft-rowgap) var(--ft-colgap); padding-top:var(--ft-rowgap); align-items:start;
 }
-.cdx .cdx-ftree .talent-cost input,
-.cdx .cdx-ftree-power .talent-cost input { background:transparent; border:none; color:var(--cdx-chip-label); width:4ch; font-weight:700; }
+.cdx .cdx-ft-node { position:relative; min-width:0; }
 
-/* --- Purchased indicator: the islearned checkbox, drawn as a radio --- */
-.cdx .cdx-ftree-state { display:inline-block; vertical-align:middle; margin-right:4px; }
-.cdx .cdx-ftree-state input[type=checkbox] {
-  appearance:none; -webkit-appearance:none; margin:0; width:14px; height:14px; border-radius:50%;
-  border:2px solid var(--cdx-head-ink); background:transparent; cursor:pointer; vertical-align:middle; position:relative;
-}
-.cdx .cdx-ftree-state input[type=checkbox]:checked::after {
-  content:""; position:absolute; inset:2px; border-radius:50%; background:var(--cdx-head-ink);
-  box-shadow:0 0 4px var(--cdx-head-ink);
-}
-/* static "Purchased" indicator on the base power node */
-.cdx .cdx-ftree-power-state { float:right; display:inline-flex; align-items:center; gap:5px; color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
-.cdx .cdx-ftree-radio { width:12px; height:12px; border-radius:50%; border:2px solid var(--cdx-head-ink); display:inline-block; }
-.cdx .cdx-ftree-radio.on { background:var(--cdx-head-ink); box-shadow:0 0 4px var(--cdx-head-ink); }
+/* --- Node card --- */
+.cdx .cdx-ft-card { position:relative; z-index:2; display:flex; flex-direction:column; min-height:118px;
+  background:var(--cdx-paper2); color:var(--cdx-ink); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); }
+.cdx .cdx-ft-node.on .cdx-ft-card { box-shadow:inset 0 0 0 2px var(--cdx-accent); }
+.cdx .cdx-ft-head { display:flex; align-items:center; gap:6px; padding:4px 8px; min-height:var(--ft-headh); box-sizing:border-box;
+  background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip-top); font-family:"Orbitron",sans-serif; }
+.cdx .cdx-ft-name { flex:1; min-width:0; }
+.cdx .cdx-ft-name input { width:100%; background:transparent; border:none; color:var(--cdx-head-ink); font-family:inherit; font-weight:700; font-size:11px; text-transform:uppercase; padding:0; }
+.cdx .cdx-ft-state input[type=checkbox] { appearance:none; -webkit-appearance:none; margin:0; flex:none; width:13px; height:13px; border-radius:50%;
+  border:2px solid var(--cdx-head-ink); background:transparent; cursor:pointer; position:relative; }
+.cdx .cdx-ft-state input[type=checkbox]:checked::after { content:""; position:absolute; inset:2px; border-radius:50%; background:var(--cdx-head-ink); box-shadow:0 0 4px var(--cdx-head-ink); }
+.cdx .cdx-ft-buy { flex:none; }
+.cdx .cdx-ft-buy .ffg-purchase { color:var(--cdx-brass); cursor:pointer; font-size:13px; }
+.cdx .cdx-ft-buy .ffg-purchase:hover { filter:brightness(1.25); }
+.cdx .cdx-ft-body { flex:1; padding:7px 9px; font-size:11px; line-height:1.3; position:relative; }
+.cdx .cdx-ft-body .popout-editor-button { position:absolute; top:3px; right:5px; opacity:.45; cursor:pointer; }
+.cdx .cdx-ft-foot { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 8px; border-top:1px solid var(--cdx-line); }
+.cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-ft-cost input { background:transparent; border:none; width:3.5ch; color:var(--cdx-brass); font-weight:700; font-family:inherit; padding:0; }
+.cdx .cdx-ft-edit-actions { display:none; gap:8px; align-items:center; }
+.cdx .cdx-ft-edit-actions .talent-action { color:var(--cdx-dim); cursor:pointer; }
+.cdx .cdx-ft-edit .cdx-ft-edit-actions { display:inline-flex; }
 
-/* --- Per-node buy glyph (reuses .ffg-purchase) --- */
-.cdx .cdx-ftree-buy { float:right; }
-.cdx .cdx-ftree-buy .ffg-purchase { color:var(--cdx-brass); cursor:pointer; font-size:14px; }
-.cdx .cdx-ftree-buy .ffg-purchase:hover { filter:brightness(1.2); }
+/* --- Connector lines --- */
+.cdx .cdx-ft-line { background:var(--cdx-line); opacity:.5; border-radius:2px; }
+.cdx .cdx-ft-line.on { background:var(--cdx-accent); opacity:1; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
+/* up: a flex row sitting in the row-gap above the card, one cell per spanned column */
+.cdx .cdx-ft-uplinks { position:absolute; left:0; right:0; bottom:100%; height:var(--ft-rowgap); display:flex; z-index:1; pointer-events:none; }
+.cdx .cdx-ft-upcell { flex:1; position:relative; }
+.cdx .cdx-ft-up { position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:var(--ft-line); }
+/* right: a line in the column-gap, aligned to the card header centre */
+.cdx .cdx-ft-rightlink { position:absolute; top:0; bottom:0; left:100%; width:var(--ft-colgap); z-index:1; pointer-events:none; }
+.cdx .cdx-ft-right { position:absolute; left:0; right:0; top:calc(var(--ft-headh) / 2); transform:translateY(-50%); height:var(--ft-line); }
 
-/* --- Connectors: recolour the stock bars --- */
-.cdx .cdx-ftree .talent-connector .talent-connector-up.cdx-link-off,
-.cdx .cdx-ftree .talent-connector .talent-connector-side.cdx-link-off {
-  background-color:var(--cdx-line); opacity:.5;
-}
-.cdx .cdx-ftree .talent-connector .talent-connector-up.cdx-link-on,
-.cdx .cdx-ftree .talent-connector .talent-connector-side.cdx-link-on {
-  background-color:var(--cdx-accent); opacity:1;
-  box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent);
-}
-
-/* --- Learned node: a subtle accent ring --- */
-.cdx .cdx-ftree .talent-upgrade.cdx-learned .talent-background { box-shadow:0 0 0 2px var(--cdx-accent); }
+/* --- Edit-mode link toggles --- */
+.cdx .cdx-ft-toggle { display:none; }
+.cdx .cdx-ft-edit .cdx-ft-uplinks, .cdx .cdx-ft-edit .cdx-ft-rightlink { pointer-events:auto; }
+.cdx .cdx-ft-edit .cdx-ft-toggle { display:block; position:absolute; cursor:pointer; z-index:3; }
+.cdx .cdx-ft-edit .cdx-ft-upcell .cdx-ft-toggle { top:0; bottom:0; left:50%; transform:translateX(-50%); width:14px; }
+.cdx .cdx-ft-edit .cdx-ft-rightlink .cdx-ft-toggle { left:0; right:0; top:calc(var(--ft-headh) / 2); transform:translateY(-50%); height:14px; }
+.cdx .cdx-ft-edit .cdx-ft-toggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
+.cdx .cdx-ft-edit .cdx-ft-toggle:hover::before { background:var(--cdx-accent); opacity:1; }
