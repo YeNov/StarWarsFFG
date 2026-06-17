@@ -57,25 +57,25 @@
         <div class="cdx-ft-uplinks">
           <div class="cdx-ft-upcell">
             {{#if upgrade.links-top-1}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop1Learned)}}on{{/if}}"></span>{{/if}}
-            <a class="cdx-ft-toggle {{#if upgrade.links-top-1}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="1" title="Toggle link"></a>
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-1}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="1" title="Toggle link"></a>
             <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-1" type="text" value="{{upgrade.links-top-1}}" data-dtype="Boolean" />
           </div>
           {{#iff upgrade.sizeInt ">" 1}}
           <div class="cdx-ft-upcell">
             {{#if upgrade.links-top-2}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop2Learned)}}on{{/if}}"></span>{{/if}}
-            <a class="cdx-ft-toggle {{#if upgrade.links-top-2}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="2" title="Toggle link"></a>
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-2}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="2" title="Toggle link"></a>
             <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-2" type="text" value="{{upgrade.links-top-2}}" data-dtype="Boolean" />
           </div>
           {{/iff}}{{#iff upgrade.sizeInt ">" 2}}
           <div class="cdx-ft-upcell">
             {{#if upgrade.links-top-3}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop3Learned)}}on{{/if}}"></span>{{/if}}
-            <a class="cdx-ft-toggle {{#if upgrade.links-top-3}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="3" title="Toggle link"></a>
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-3}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="3" title="Toggle link"></a>
             <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-3" type="text" value="{{upgrade.links-top-3}}" data-dtype="Boolean" />
           </div>
           {{/iff}}{{#iff upgrade.sizeInt ">" 3}}
           <div class="cdx-ft-upcell">
             {{#if upgrade.links-top-4}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop4Learned)}}on{{/if}}"></span>{{/if}}
-            <a class="cdx-ft-toggle {{#if upgrade.links-top-4}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="4" title="Toggle link"></a>
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-4}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="4" title="Toggle link"></a>
             <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-4" type="text" value="{{upgrade.links-top-4}}" data-dtype="Boolean" />
           </div>
           {{/iff}}
@@ -109,7 +109,7 @@
         {{!-- Right connector: line in the column-gap to the node on the right. --}}
         <div class="cdx-ft-rightlink">
           {{#if upgrade.links-right}}<span class="cdx-ft-line cdx-ft-right {{#if (and upgrade.islearned upgrade.isRightLearned)}}on{{/if}}"></span>{{/if}}
-          <a class="cdx-ft-toggle cdx-ft-toggle-right {{#if upgrade.links-right}}set{{/if}} {{#unless upgrade.canLinkRight}}cdx-ft-gone{{/unless}}" data-action="link-right" data-key="{{key}}" title="Toggle link"></a>
+          <a class="talent-action cdx-ft-toggle cdx-ft-toggle-right {{#if upgrade.links-right}}set{{/if}} {{#unless upgrade.canLinkRight}}cdx-ft-gone{{/unless}}" data-action="link-right" data-key="{{key}}" title="Toggle link"></a>
           <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-right" type="text" value="{{upgrade.links-right}}" data-dtype="Boolean" />
         </div>
       </div>
