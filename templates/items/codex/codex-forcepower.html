@@ -12,13 +12,12 @@
   The CSS grid is 4 columns; nodes span via grid-column. Up/right connector lines
   live in the grid gaps. Edit affordances are gated by .cdx-ft-edit on the grid.
 --}}
-<form class="{{cssClass}} item-sheet-forcepower" autocomplete="off">
+<form class="{{cssClass}} item-sheet-forcepower {{#if data.isEditing}}cdx-ft-editing{{/if}}" autocomplete="off">
   <header class="sheet-header">
     {{!-- The power itself (top banner). Owned == base power purchased. --}}
     <div class="cdx-ft-power {{#if item.isOwned}}on{{/if}}">
       <div class="cdx-ft-power-row">
         <span class="cdx-ft-fr">{{localize 'SWFFG.ForcePowerRequiredFR'}} <input name="system.required_force_rating" type="text" value="{{item.system.required_force_rating}}" /></span>
-        <span class="cdx-ft-power-state">{{#if item.isOwned}}<span class="cdx-ft-radio on"></span> Purchased{{/if}}</span>
       </div>
       <div class="cdx-ft-power-name"><input name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.ForcePowerName'}}" /></div>
       <div class="cdx-ft-power-sub">{{localize 'SWFFG.ForceBasicPower'}}</div>
@@ -87,7 +86,7 @@
           <div class="cdx-ft-head">
             <span class="cdx-ft-state"><input type="checkbox" name="data.upgrades.{{key}}.islearned" data-dtype="Boolean" {{#if upgrade.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
             <span class="cdx-ft-name"><input name="data.upgrades.{{key}}.name" type="text" value="{{upgrade.name}}" placeholder="{{localize 'SWFFG.ForceUpgradeName'}}" /></span>
-            <span class="cdx-ft-buy">{{#if ../item.isOwned}}{{#if upgrade.canPurchase}}<i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="forcepower-upgrade" data-cost="{{upgrade.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{upgrade.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{upgrade.cost}}"></i>{{/if}}{{/if}}</span>
+            <span class="cdx-ft-buy"><i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="forcepower-upgrade" data-cost="{{upgrade.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{upgrade.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{upgrade.cost}}"></i></span>
           </div>
           <div class="cdx-ft-body">
             <div class="popout-editor" data-target="data.upgrades.{{key}}.description" data-value="data.upgrades.{{key}}.enrichedDescription" data-label="{{upgrade.name}}">

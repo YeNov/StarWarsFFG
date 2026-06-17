@@ -1226,9 +1226,12 @@
 .cdx .cdx-ft-node { position:relative; min-width:0; }
 
 /* --- Node card --- */
+/* No border: a border + clip-path leaves notch-corner artifacts. Use a
+   drop-shadow (follows the clipped shape) for depth; bought nodes glow accent. */
 .cdx .cdx-ft-card { position:relative; z-index:2; display:flex; flex-direction:column; min-height:118px;
-  background:var(--cdx-paper2); color:var(--cdx-ink); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); }
-.cdx .cdx-ft-node.on .cdx-ft-card { box-shadow:inset 0 0 0 2px var(--cdx-accent); }
+  background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip);
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+.cdx .cdx-ft-node.on .cdx-ft-card { filter:drop-shadow(0 0 4px var(--cdx-accent)); }
 .cdx .cdx-ft-head { display:flex; align-items:center; gap:6px; padding:4px 8px; min-height:var(--ft-headh); box-sizing:border-box;
   background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip-top); font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-name { flex:1; min-width:0; }
@@ -1244,6 +1247,15 @@
 .cdx .cdx-ft-foot { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 8px; border-top:1px solid var(--cdx-line); }
 .cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
 .cdx .cdx-ft-cost input { background:transparent; border:none; width:3.5ch; color:var(--cdx-brass); font-weight:700; font-family:inherit; padding:0; }
+/* the base power's cost sits on the accent banner -- use head-ink so it reads */
+.cdx .cdx-ft-power .cdx-ft-cost, .cdx .cdx-ft-power .cdx-ft-cost input { color:var(--cdx-head-ink); }
+
+/* Tree-definition fields (upgrade/power names, required FR, cost) are read-only in
+   play mode; editable only when edit mode is on (form carries .cdx-ft-editing).
+   The islearned radio and the buy glyph stay interactive. */
+.cdx .cdx-ft-name input, .cdx .cdx-ft-power-name input, .cdx .cdx-ft-fr input, .cdx .cdx-ft-cost input { pointer-events:none; }
+.cdx .cdx-ft-editing .cdx-ft-name input, .cdx .cdx-ft-editing .cdx-ft-power-name input,
+.cdx .cdx-ft-editing .cdx-ft-fr input, .cdx .cdx-ft-editing .cdx-ft-cost input { pointer-events:auto; }
 .cdx .cdx-ft-edit-actions { display:none; gap:8px; align-items:center; }
 .cdx .cdx-ft-edit-actions .talent-action { color:var(--cdx-dim); cursor:pointer; }
 .cdx .cdx-ft-edit .cdx-ft-edit-actions { display:inline-flex; }
