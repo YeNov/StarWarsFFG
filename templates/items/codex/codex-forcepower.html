@@ -100,12 +100,17 @@
             <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} {{#if ../data.isEditing}}<input name="data.upgrades.{{key}}.cost" type="text" value="{{upgrade.cost}}" data-dtype="String" />{{else}}<b class="cdx-ft-cost-v">{{upgrade.cost}}</b>{{/if}}</span>
             <span class="cdx-ft-edit-actions">
               <a class="talent-action" data-itemid="{{key}}" title="Modifiers"><i class="fas fa-cog"></i></a>
-              {{#if upgrade.canCombine}}<a class="talent-action" data-action="combine" data-key="{{key}}" title="{{localize 'SWFFG.CombineBox'}}"><i class="fas fa-compress-alt"></i></a>{{/if}}
-              {{#if upgrade.canSplit}}<a class="talent-action" data-action="split" data-key="{{key}}" title="{{localize 'SWFFG.SplitBox'}}"><i class="fas fa-expand-alt"></i></a>{{/if}}
             </span>
           </div>
           <input class="cdx-ft-hide" name="data.upgrades.{{key}}.size" type="text" value="{{upgrade.size}}" data-dtype="String" />
           <input class="cdx-ft-hide" name="data.upgrades.{{key}}.visible" type="text" value="{{upgrade.visible}}" data-dtype="Boolean" />
+        </div>
+
+        {{!-- Combine/split live in the right gap BETWEEN cards (edit mode), like the
+             stock sheet -- combine merges with the right neighbour, split un-merges. --}}
+        <div class="cdx-ft-resize">
+          {{#if upgrade.canCombine}}<a class="talent-action" data-action="combine" data-key="{{key}}" title="{{localize 'SWFFG.CombineBox'}}"><i class="fas fa-compress-alt"></i></a>{{/if}}
+          {{#if upgrade.canSplit}}<a class="talent-action" data-action="split" data-key="{{key}}" title="{{localize 'SWFFG.SplitBox'}}"><i class="fas fa-expand-alt"></i></a>{{/if}}
         </div>
 
         {{!-- Right connector: line in the column-gap to the node on the right. --}}

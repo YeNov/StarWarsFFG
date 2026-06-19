@@ -1065,6 +1065,10 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       html.find(".talent-action").on("click", this._onClickTalentControl.bind(this));
       html.find(".talent-actions .fa-cog").on("click", ModifierHelpers.popoutModiferWindow.bind(this));
       html.find(".talent-modifiers .fa-cog").on("click", this._onClickUpgradeEdit.bind(this));
+      // Codex bespoke tree (.cdx-ft-*) renames the stock cog containers, so bind
+      // the codex power/upgrade modifier cogs explicitly.
+      html.find(".cdx-ft-power-actions .fa-cog").on("click", ModifierHelpers.popoutModiferWindow.bind(this));
+      html.find(".cdx-ft-edit-actions .fa-cog").on("click", this._onClickUpgradeEdit.bind(this));
     }
 
     if (this.object.type === "specialization") {
@@ -1827,7 +1831,8 @@ export class ItemSheetFFG extends FFGDocumentSheet {
 
     // pull the item which the edit is on
     const li = $(event.currentTarget);
-    const clickedId = li.closest('.talent-block').attr('id');
+    // .talent-block (stock) or .cdx-ft-node (codex bespoke tree) carries the id.
+    const clickedId = li.closest('.talent-block, .cdx-ft-node').attr('id');
     const modifierTypes = CONFIG.FFG.allowableModifierTypes;
     const modifierChoices = CONFIG.FFG.allowableModifierChoices;
 

@@ -1316,3 +1316,10 @@
 }
 .cdx .cdx-ft-tabs.sheet-tabs .item:hover { color:var(--cdx-accent); }
 .cdx .cdx-ft-tabs.sheet-tabs .item.active { background:var(--cdx-accent); color:#fff; }
+
+/* Combine/split buttons live in the right gap BETWEEN cards (edit mode only),
+   offset above the horizontal connector so they don't overlap it. */
+.cdx .cdx-ft-resize { display:none; position:absolute; top:28%; left:100%; transform:translate(-50%, -50%); z-index:4; flex-direction:column; gap:3px; }
+.cdx .cdx-ft-edit .cdx-ft-resize { display:flex; }
+.cdx .cdx-ft-resize .talent-action { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; background:var(--cdx-accent); color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+.cdx .cdx-ft-resize .talent-action:hover { filter:brightness(1.2); }
