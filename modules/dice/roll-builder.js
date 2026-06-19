@@ -185,6 +185,15 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // ApplicationV2 port no longer wires form submission, so stop the
       // default submit and close the dialog explicitly once the roll is sent.
       event.preventDefault();
+      // Snapshot the Adversary decision NOW, synchronously, before any of the
+      // awaits below. `this.adversaryRanks` is recomputed from the LIVE
+      // game.user.targets by the `targetToken` hook (see _onRender), so reading it
+      // at roll time -- after the awaits (status-effect cleanup, ammo/item updates)
+      // -- can pick up a changed value and silently apply fewer upgrades than the
+      // preview (which clones a pristine pool and reads ranks at render time) showed.
+      // Capturing here keeps the executed roll consistent with the Adversary preview.
+      const adversaryChecked = html.find(".adversary-toggle").is(":checked");
+      const adversaryRanks = this.adversaryRanks;
       // if sound was not passed search for sound dropdown value
       if (!this.roll.sound) {
         const sound = html.find(".sound-selection")?.[0]?.value;
@@ -300,9 +309,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         if (this.roll.crew) {
           this.roll.item['crew'] = this.roll.crew
         }
-        const adversaryChecked = html.find(".adversary-toggle").is(":checked");
-        if (adversaryChecked && this.adversaryRanks > 0 && this.dicePool.difficulty > 0) {
-          this.dicePool.upgradeDifficulty(this.adversaryRanks);
+        // Use the values snapshotted at click time (above) so the executed roll
+        // matches the Adversary preview even if targeting changed during the awaits.
+        if (adversaryChecked && adversaryRanks > 0 && this.dicePool.difficulty > 0) {
+          this.dicePool.upgradeDifficulty(adversaryRanks);
         }
         const roll = new game.ffg.RollFFG(this.dicePool.renderDiceExpression(), this.roll.item, this.dicePool, this.roll.flavor);
         // check if this is a crew roll - and it's a roll for a weapon
