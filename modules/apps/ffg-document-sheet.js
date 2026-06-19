@@ -220,6 +220,26 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     this.activateListeners(html);
     this._callLegacyRenderHook(html, context);
     this._activateEditors();
+
+    // --- Window size stability: no auto-resize on re-render ---
+    // ApplicationV2 re-forces a position dimension back to "auto" on EVERY
+    // re-render whenever the static `this.options.position` dimension is "auto"
+    // (the base ApplicationV2 default for any dimension a subclass didn't pin in
+    // DEFAULT_OPTIONS -- e.g. item sheets set only `width`, so `height` stays
+    // "auto"). That re-measures the content and snaps the window to fit it on
+    // any change (selecting an upgrade, editing a field...). We only want the
+    // window to resize via the resize handle or minimize. Once the LIVE position
+    // has a numeric dimension (the per-type sizing sets it), copy it into
+    // `this.options.position` so the auto-forcing stops -- this mirrors what V13
+    // itself does after a manual resize (#onResize writes options.position[dim]).
+    // Skip while (un)minimizing so we don't freeze the collapsed-header height.
+    if (!this.minimized && !this._minimizing && this.options?.position) {
+      for (const dim of ["width", "height"]) {
+        if (typeof this.position?.[dim] === "number" && this.options.position[dim] === "auto") {
+          this.options.position[dim] = this.position[dim];
+        }
+      }
+    }
   }
 
   _applyLegacyRootClasses(form, context = {}) {
