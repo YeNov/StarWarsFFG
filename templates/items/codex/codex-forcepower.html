@@ -88,7 +88,9 @@
           <div class="cdx-ft-head">
             <span class="cdx-ft-state"><input type="checkbox" name="data.upgrades.{{key}}.islearned" data-dtype="Boolean" {{#if upgrade.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
             <span class="cdx-ft-name">{{#if ../data.isEditing}}<input name="data.upgrades.{{key}}.name" type="text" value="{{upgrade.name}}" placeholder="{{localize 'SWFFG.ForceUpgradeName'}}" />{{else}}{{upgrade.name}}{{/if}}</span>
-            <span class="cdx-ft-buy"><i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="forcepower-upgrade" data-cost="{{upgrade.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{upgrade.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{upgrade.cost}}"></i></span>
+            {{!-- Buy glyph only when the power is OWNED and this upgrade is purchasable
+                 (same gate as the stock tree: item.isOwned && upgrade.canPurchase). --}}
+            <span class="cdx-ft-buy">{{#if ../item.isOwned}}{{#if upgrade.canPurchase}}<i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="forcepower-upgrade" data-cost="{{upgrade.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{upgrade.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{upgrade.cost}}"></i>{{/if}}{{/if}}</span>
           </div>
           <div class="cdx-ft-body">
             <div class="popout-editor" data-target="data.upgrades.{{key}}.description" data-value="data.upgrades.{{key}}.enrichedDescription" data-label="{{upgrade.name}}">
