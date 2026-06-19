@@ -1294,17 +1294,12 @@
 .cdx .cdx-ft-edit .cdx-ft-toggle:hover::before { background:var(--cdx-accent); opacity:1; }
 
 /* ===========================================================================
-   Codex: dark dice / symbol glyphs. The system renders dice symbols as
-   <span class="dietype <font> <type>">; many types are hard-coded `color:black`
-   (setback, force, forcepoint, despair, failure, light, dark, success, threat,
-   triumph) and vanish on dark surfaces. In codex, colour them with the scheme's
-   ink so they contrast with the paper background -- dark on light schemes, light
-   on the dark scheme. On the dark accent power banner use the header ink.
+   Codex: the Setback die glyph is hard-coded `color:black` and vanishes on the
+   DARK scheme's dark surfaces only (on the light/paper schemes it reads fine).
+   Outline it black-on-white there so it stays legible. Scoped to .scheme-dark
+   and to .setback ONLY -- every other glyph keeps its native colour everywhere.
    =========================================================================== */
-.cdx span.dietype.dark, .cdx span.dietype.despair, .cdx span.dietype.forcepoint,
-.cdx span.dietype.failure, .cdx span.dietype.force, .cdx span.dietype.light,
-.cdx span.dietype.setback, .cdx span.dietype.success, .cdx span.dietype.threat,
-.cdx span.dietype.triumph { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+.cdx .scheme-dark span.dietype.setback { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 
 /* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
    .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
@@ -1312,10 +1307,13 @@
 .cdx .cdx-ft-tabs.cdx-tabstrip { border-bottom-width:1px; gap:2px; margin-bottom:7px; }
 .cdx .cdx-ft-tabs .cdx-tab { padding:1px 10px; font-size:8px; font-weight:700; letter-spacing:.5px; line-height:1.5; text-shadow:none; }
 
-/* Force-power sheet scrolls as a WHOLE (header + tree together): the sheet-body
-   must not be a flex-clamped independent scroll area -- let it grow so the codex
-   window-content (overflow-y:auto) scrolls everything, header included. */
-.cdx .sheet-body.cdx-ft-body { flex:none; min-height:auto; overflow:visible; }
+/* The tree body is a plain flowing block -- NOT a flex-clamped inner scroll area.
+   It deliberately carries neither `.sheet-body` (`.cdx .sheet-body{flex:1}`) nor
+   `.cdx-ft-body` (`.cdx .cdx-ft-body{flex:1}`, the card-description rule that was
+   silently clamping it via a class-name collision). With nothing clamping it the
+   codex window-content (overflow-y:auto) is the ONLY scroll container, so the
+   power banner + the whole tree scroll together. */
+.cdx .cdx-ft-tree { flex:none; padding-bottom:8px; }
 
 /* Combine/split buttons live in the right gap BETWEEN cards (edit mode only),
    offset above the horizontal connector so they don't overlap it. */
