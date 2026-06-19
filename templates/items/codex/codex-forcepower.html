@@ -14,12 +14,12 @@
 --}}
 <form class="{{cssClass}} item-sheet-forcepower {{#if data.isEditing}}cdx-ft-editing{{/if}}" autocomplete="off">
   {{!-- Codex tabs: horizontal text strip above the header. Bespoke .sheet-tabs nav
-       so the native Tabs controller (navSelector .sheet-tabs) still drives it;
-       styled by .cdx .cdx-ft-tabs in cdx.css. --}}
-  <nav class="sheet-tabs tabs cdx-ft-tabs" data-group="primary">
-    <a class="item" data-tab="talents">{{localize "SWFFG.TabTalents"}}</a>
-    <a class="item" data-tab="sources">{{localize "SWFFG.TabSources"}}</a>
-    <a class="item" data-tab="tags">{{localize "SWFFG.TabTags"}}</a>
+       driven by the bespoke codex tab JS (.cdx-tab buttons / .cdx-pane sections),
+       same as the other codex item sheets; styled by .cdx-ft-tabs in cdx.css. --}}
+  <nav class="cdx-tabstrip cdx-ft-tabs">
+    <button type="button" class="cdx-tab active" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
+    <button type="button" class="cdx-tab" data-tab="sources">{{localize "SWFFG.TabSources"}}</button>
+    <button type="button" class="cdx-tab" data-tab="tags">{{localize "SWFFG.TabTags"}}</button>
   </nav>
   <header class="sheet-header">
     {{!-- The power itself (top banner). Owned == base power purchased. --}}
@@ -46,7 +46,8 @@
     </div>
   </header>
 
-  <section class="sheet-body">
+  <section class="sheet-body cdx-ft-body">
+    <section class="cdx-pane active" data-tab="talents">
     <div class="cdx-ft-grid {{#if data.isEditing}}cdx-ft-edit{{/if}}">
       {{#each data.upgrades as |upgrade key|}}
       <div class="cdx-ft-node size-{{#if upgrade.sizeInt}}{{upgrade.sizeInt}}{{else}}1{{/if}} {{#if upgrade.islearned}}on{{/if}} {{#unless upgrade.visible}}cdx-ft-gone{{/unless}}"
@@ -121,15 +122,16 @@
       </div>
       {{/each}}
     </div>
+    </section>
 
     <div class="hidden-content">
       {{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}
     </div>
-    <div class="tab sources" data-group="primary" data-tab="sources">
+    <section class="cdx-pane sources" data-tab="sources">
       {{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}
-    </div>
-    <div class="tab tags" data-group="primary" data-tab="tags">
+    </section>
+    <section class="cdx-pane tags" data-tab="tags">
       {{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}
-    </div>
+    </section>
   </section>
 </form>

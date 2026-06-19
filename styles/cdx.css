@@ -1298,27 +1298,18 @@
 .cdx span.dietype.dark, .cdx span.dietype.despair, .cdx span.dietype.forcepoint,
 .cdx span.dietype.failure, .cdx span.dietype.force, .cdx span.dietype.light,
 .cdx span.dietype.setback, .cdx span.dietype.success, .cdx span.dietype.threat,
-.cdx span.dietype.triumph { color:var(--cdx-ink); }
-.cdx .cdx-ft-power span.dietype.dark, .cdx .cdx-ft-power span.dietype.despair, .cdx .cdx-ft-power span.dietype.forcepoint,
-.cdx .cdx-ft-power span.dietype.failure, .cdx .cdx-ft-power span.dietype.force, .cdx .cdx-ft-power span.dietype.light,
-.cdx .cdx-ft-power span.dietype.setback, .cdx .cdx-ft-power span.dietype.success, .cdx .cdx-ft-power span.dietype.threat,
-.cdx .cdx-ft-power span.dietype.triumph { color:var(--cdx-head-ink); }
+.cdx span.dietype.triumph { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 
-/* --- Force-power tree tabs: horizontal text strip above the header. Override
-   mandar's V2 tab positioning (absolute / flex-column on the right). --- */
-.cdx .cdx-ft-tabs.sheet-tabs.tabs {
-  position:static !important; flex-direction:row !important; display:flex; gap:3px;
-  width:auto !important; height:auto !important; border:none; border-bottom:2px solid var(--cdx-accent);
-  padding:0; margin:0 0 9px 0;
-}
-.cdx .cdx-ft-tabs.sheet-tabs .item {
-  width:auto !important; flex:0 0 auto; padding:4px 14px; line-height:1.2;
-  font-family:"Orbitron",sans-serif; font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
-  color:var(--cdx-dim); background:transparent; border:none; cursor:pointer;
-  clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
-}
-.cdx .cdx-ft-tabs.sheet-tabs .item:hover { color:var(--cdx-accent); }
-.cdx .cdx-ft-tabs.sheet-tabs .item.active { background:var(--cdx-accent); color:#fff; }
+/* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
+   .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
+   + ~3x shorter than the actor-sheet tabs; .cdx-tab carries no text-shadow. --- */
+.cdx .cdx-ft-tabs.cdx-tabstrip { border-bottom-width:1px; gap:2px; margin-bottom:7px; }
+.cdx .cdx-ft-tabs .cdx-tab { padding:1px 10px; font-size:8px; font-weight:700; letter-spacing:.5px; line-height:1.5; text-shadow:none; }
+
+/* Force-power sheet scrolls as a WHOLE (header + tree together): the sheet-body
+   must not be a flex-clamped independent scroll area -- let it grow so the codex
+   window-content (overflow-y:auto) scrolls everything, header included. */
+.cdx .sheet-body.cdx-ft-body { flex:none; min-height:auto; overflow:visible; }
 
 /* Combine/split buttons live in the right gap BETWEEN cards (edit mode only),
    offset above the horizontal connector so they don't overlap it. */
