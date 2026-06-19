@@ -1237,13 +1237,15 @@
 .cdx .cdx-ft-node.on .cdx-ft-card { filter:drop-shadow(0 0 4px var(--cdx-accent)); }
 .cdx .cdx-ft-head { display:flex; align-items:center; gap:6px; padding:4px 8px; min-height:var(--ft-headh); box-sizing:border-box;
   background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip-top); font-family:"Orbitron",sans-serif; }
-.cdx .cdx-ft-name { flex:1; min-width:0; }
-.cdx .cdx-ft-name input { width:100%; background:transparent; border:none; color:var(--cdx-head-ink); font-family:inherit; font-weight:700; font-size:11px; text-transform:uppercase; padding:0; }
+.cdx .cdx-ft-name { flex:1; min-width:0; color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; }
+.cdx .cdx-ft-name input { width:100%; background:transparent; border:none; color:inherit; font:inherit; text-transform:inherit; padding:0; }
 .cdx .cdx-ft-state input[type=checkbox] { appearance:none; -webkit-appearance:none; margin:0; flex:none; width:13px; height:13px; border-radius:50%;
   border:2px solid var(--cdx-head-ink); background:transparent; cursor:pointer; position:relative; }
 .cdx .cdx-ft-state input[type=checkbox]:checked::after { content:""; position:absolute; inset:2px; border-radius:50%; background:var(--cdx-head-ink); box-shadow:0 0 4px var(--cdx-head-ink); }
 .cdx .cdx-ft-buy { flex:none; }
-.cdx .cdx-ft-buy .ffg-purchase { color:var(--cdx-brass); cursor:pointer; font-size:13px; }
+/* display:inline-flex overrides the codex default `.cdx i.ffg-purchase{display:none}`
+   (which only shows buy glyphs in xp-buy mode). On the tree the buy glyph is always shown. */
+.cdx .cdx-ft-buy .ffg-purchase { display:inline-flex; color:var(--cdx-brass); cursor:pointer; font-size:13px; }
 .cdx .cdx-ft-buy .ffg-purchase:hover { filter:brightness(1.25); }
 .cdx .cdx-ft-body { flex:1; padding:7px 9px; font-size:11px; line-height:1.3; position:relative; }
 .cdx .cdx-ft-body .popout-editor-button { position:absolute; top:3px; right:5px; opacity:.45; cursor:pointer; }
@@ -1252,13 +1254,12 @@
 .cdx .cdx-ft-cost input { background:transparent; border:none; width:3.5ch; color:var(--cdx-brass); font-weight:700; font-family:inherit; padding:0; }
 /* the base power's cost sits on the accent banner -- use head-ink so it reads */
 .cdx .cdx-ft-power .cdx-ft-cost, .cdx .cdx-ft-power .cdx-ft-cost input { color:var(--cdx-head-ink); }
-
-/* Tree-definition fields (upgrade/power names, required FR, cost) are read-only in
-   play mode; editable only when edit mode is on (form carries .cdx-ft-editing).
-   The islearned radio and the buy glyph stay interactive. */
-.cdx .cdx-ft-name input, .cdx .cdx-ft-power-name input, .cdx .cdx-ft-fr input, .cdx .cdx-ft-cost input { pointer-events:none; }
-.cdx .cdx-ft-editing .cdx-ft-name input, .cdx .cdx-ft-editing .cdx-ft-power-name input,
-.cdx .cdx-ft-editing .cdx-ft-fr input, .cdx .cdx-ft-editing .cdx-ft-cost input { pointer-events:auto; }
+/* play-mode cost value (rendered as plain text, no editable box) */
+.cdx .cdx-ft-cost-v { color:var(--cdx-brass); }
+.cdx .cdx-ft-power .cdx-ft-cost-v { color:var(--cdx-head-ink); }
+/* Definition fields (names, FR, cost) render as plain text in play mode and as
+   inputs only in edit mode -- gated in the template on data.isEditing, so there's
+   no editable box in play and they stay editable in edit mode. */
 .cdx .cdx-ft-edit-actions { display:none; gap:8px; align-items:center; }
 .cdx .cdx-ft-edit-actions .talent-action { color:var(--cdx-dim); cursor:pointer; }
 .cdx .cdx-ft-edit .cdx-ft-edit-actions { display:inline-flex; }
@@ -1272,13 +1273,13 @@
 .cdx .cdx-ft-up { position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:var(--ft-line); }
 /* right: a line in the column-gap, aligned to the card header centre */
 .cdx .cdx-ft-rightlink { position:absolute; top:0; bottom:0; left:100%; width:var(--ft-colgap); z-index:1; pointer-events:none; }
-.cdx .cdx-ft-right { position:absolute; left:0; right:0; top:calc(var(--ft-headh) / 2); transform:translateY(-50%); height:var(--ft-line); }
+.cdx .cdx-ft-right { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:var(--ft-line); }
 
 /* --- Edit-mode link toggles --- */
 .cdx .cdx-ft-toggle { display:none; }
 .cdx .cdx-ft-edit .cdx-ft-uplinks, .cdx .cdx-ft-edit .cdx-ft-rightlink { pointer-events:auto; }
 .cdx .cdx-ft-edit .cdx-ft-toggle { display:block; position:absolute; cursor:pointer; z-index:3; }
 .cdx .cdx-ft-edit .cdx-ft-upcell .cdx-ft-toggle { top:0; bottom:0; left:50%; transform:translateX(-50%); width:14px; }
-.cdx .cdx-ft-edit .cdx-ft-rightlink .cdx-ft-toggle { left:0; right:0; top:calc(var(--ft-headh) / 2); transform:translateY(-50%); height:14px; }
+.cdx .cdx-ft-edit .cdx-ft-rightlink .cdx-ft-toggle { left:0; right:0; top:50%; transform:translateY(-50%); height:14px; }
 .cdx .cdx-ft-edit .cdx-ft-toggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
 .cdx .cdx-ft-edit .cdx-ft-toggle:hover::before { background:var(--cdx-accent); opacity:1; }

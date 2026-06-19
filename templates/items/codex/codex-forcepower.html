@@ -17,9 +17,9 @@
     {{!-- The power itself (top banner). Owned == base power purchased. --}}
     <div class="cdx-ft-power {{#if item.isOwned}}on{{/if}}">
       <div class="cdx-ft-power-row">
-        <span class="cdx-ft-fr">{{localize 'SWFFG.ForcePowerRequiredFR'}} <input name="system.required_force_rating" type="text" value="{{item.system.required_force_rating}}" /></span>
+        <span class="cdx-ft-fr">{{localize 'SWFFG.ForcePowerRequiredFR'}} {{#if data.isEditing}}<input name="system.required_force_rating" type="text" value="{{item.system.required_force_rating}}" />{{else}}<b>{{item.system.required_force_rating}}</b>{{/if}}</span>
       </div>
-      <div class="cdx-ft-power-name"><input name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.ForcePowerName'}}" /></div>
+      <div class="cdx-ft-power-name">{{#if data.isEditing}}<input name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.ForcePowerName'}}" />{{else}}{{item.name}}{{/if}}</div>
       <div class="cdx-ft-power-sub">{{localize 'SWFFG.ForceBasicPower'}}</div>
       <div class="cdx-ft-desc">
         <div class="popout-editor" data-target="data.description" data-label="{{item.name}} {{localize 'SWFFG.ForceBasicPower'}}">
@@ -28,7 +28,7 @@
         </div>
       </div>
       <div class="cdx-ft-power-foot">
-        <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} <input name="data.base_cost" type="text" value="{{item.system.base_cost}}" data-dtype="String" /></span>
+        <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} {{#if data.isEditing}}<input name="data.base_cost" type="text" value="{{item.system.base_cost}}" data-dtype="String" />{{else}}<b class="cdx-ft-cost-v">{{item.system.base_cost}}</b>{{/if}}</span>
         <span class="cdx-ft-power-actions">
           <a class="talent-action hover" data-itemid="{{item._id}}" title="Modifiers"><i class="fas fa-cog"></i></a>
           <a class="talent-action" data-action="edit" title="Edit tree"><i class="fas fa-pen-to-square"></i></a>
@@ -85,7 +85,7 @@
         <div class="cdx-ft-card">
           <div class="cdx-ft-head">
             <span class="cdx-ft-state"><input type="checkbox" name="data.upgrades.{{key}}.islearned" data-dtype="Boolean" {{#if upgrade.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
-            <span class="cdx-ft-name"><input name="data.upgrades.{{key}}.name" type="text" value="{{upgrade.name}}" placeholder="{{localize 'SWFFG.ForceUpgradeName'}}" /></span>
+            <span class="cdx-ft-name">{{#if ../data.isEditing}}<input name="data.upgrades.{{key}}.name" type="text" value="{{upgrade.name}}" placeholder="{{localize 'SWFFG.ForceUpgradeName'}}" />{{else}}{{upgrade.name}}{{/if}}</span>
             <span class="cdx-ft-buy"><i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="forcepower-upgrade" data-cost="{{upgrade.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{upgrade.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{upgrade.cost}}"></i></span>
           </div>
           <div class="cdx-ft-body">
@@ -95,7 +95,7 @@
             </div>
           </div>
           <div class="cdx-ft-foot">
-            <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} <input name="data.upgrades.{{key}}.cost" type="text" value="{{upgrade.cost}}" data-dtype="String" /></span>
+            <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} {{#if ../data.isEditing}}<input name="data.upgrades.{{key}}.cost" type="text" value="{{upgrade.cost}}" data-dtype="String" />{{else}}<b class="cdx-ft-cost-v">{{upgrade.cost}}</b>{{/if}}</span>
             <span class="cdx-ft-edit-actions">
               <a class="talent-action" data-itemid="{{key}}" title="Modifiers"><i class="fas fa-cog"></i></a>
               {{#if upgrade.canCombine}}<a class="talent-action" data-action="combine" data-key="{{key}}" title="{{localize 'SWFFG.CombineBox'}}"><i class="fas fa-compress-alt"></i></a>{{/if}}
