@@ -13,6 +13,14 @@
   live in the grid gaps. Edit affordances are gated by .cdx-ft-edit on the grid.
 --}}
 <form class="{{cssClass}} item-sheet-forcepower {{#if data.isEditing}}cdx-ft-editing{{/if}}" autocomplete="off">
+  {{!-- Codex tabs: horizontal text strip above the header. Bespoke .sheet-tabs nav
+       so the native Tabs controller (navSelector .sheet-tabs) still drives it;
+       styled by .cdx .cdx-ft-tabs in cdx.css. --}}
+  <nav class="sheet-tabs tabs cdx-ft-tabs" data-group="primary">
+    <a class="item" data-tab="talents">{{localize "SWFFG.TabTalents"}}</a>
+    <a class="item" data-tab="sources">{{localize "SWFFG.TabSources"}}</a>
+    <a class="item" data-tab="tags">{{localize "SWFFG.TabTags"}}</a>
+  </nav>
   <header class="sheet-header">
     {{!-- The power itself (top banner). Owned == base power purchased. --}}
     <div class="cdx-ft-power {{#if item.isOwned}}on{{/if}}">
@@ -38,12 +46,6 @@
       </div>
     </div>
   </header>
-
-  {{> "systems/starwarsffg/templates/parts/shared/ffg-tabs.html" displayLimited=true limited=limited items=(array
-    (object tab="talents" label="SWFFG.TabTalents" icon="fab fa-superpowers" cls=classType)
-    (object tab="sources" label="SWFFG.TabSources" icon="fa-light fa-book-open-cover" cls=classType)
-    (object tab="tags" label="SWFFG.TabTags" icon="fa-sharp fa-regular fa-tags" cls=classType)
-  )}}
 
   <section class="sheet-body">
     <div class="cdx-ft-grid {{#if data.isEditing}}cdx-ft-edit{{/if}}">

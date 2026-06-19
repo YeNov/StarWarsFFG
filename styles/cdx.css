@@ -1245,7 +1245,7 @@
 .cdx .cdx-ft-buy { flex:none; }
 /* display:inline-flex overrides the codex default `.cdx i.ffg-purchase{display:none}`
    (which only shows buy glyphs in xp-buy mode). On the tree the buy glyph is always shown. */
-.cdx .cdx-ft-buy .ffg-purchase { display:inline-flex; color:var(--cdx-brass); cursor:pointer; font-size:13px; }
+.cdx .cdx-ft-buy .ffg-purchase { display:inline-flex; color:#fff; cursor:pointer; font-size:13px; }
 .cdx .cdx-ft-buy .ffg-purchase:hover { filter:brightness(1.25); }
 .cdx .cdx-ft-body { flex:1; padding:7px 9px; font-size:11px; line-height:1.3; position:relative; }
 .cdx .cdx-ft-body .popout-editor-button { position:absolute; top:3px; right:5px; opacity:.45; cursor:pointer; }
@@ -1283,3 +1283,36 @@
 .cdx .cdx-ft-edit .cdx-ft-rightlink .cdx-ft-toggle { left:0; right:0; top:50%; transform:translateY(-50%); height:14px; }
 .cdx .cdx-ft-edit .cdx-ft-toggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
 .cdx .cdx-ft-edit .cdx-ft-toggle:hover::before { background:var(--cdx-accent); opacity:1; }
+
+/* ===========================================================================
+   Codex: dark dice / symbol glyphs. The system renders dice symbols as
+   <span class="dietype <font> <type>">; many types are hard-coded `color:black`
+   (setback, force, forcepoint, despair, failure, light, dark, success, threat,
+   triumph) and vanish on dark surfaces. In codex, colour them with the scheme's
+   ink so they contrast with the paper background -- dark on light schemes, light
+   on the dark scheme. On the dark accent power banner use the header ink.
+   =========================================================================== */
+.cdx span.dietype.dark, .cdx span.dietype.despair, .cdx span.dietype.forcepoint,
+.cdx span.dietype.failure, .cdx span.dietype.force, .cdx span.dietype.light,
+.cdx span.dietype.setback, .cdx span.dietype.success, .cdx span.dietype.threat,
+.cdx span.dietype.triumph { color:var(--cdx-ink); }
+.cdx .cdx-ft-power span.dietype.dark, .cdx .cdx-ft-power span.dietype.despair, .cdx .cdx-ft-power span.dietype.forcepoint,
+.cdx .cdx-ft-power span.dietype.failure, .cdx .cdx-ft-power span.dietype.force, .cdx .cdx-ft-power span.dietype.light,
+.cdx .cdx-ft-power span.dietype.setback, .cdx .cdx-ft-power span.dietype.success, .cdx .cdx-ft-power span.dietype.threat,
+.cdx .cdx-ft-power span.dietype.triumph { color:var(--cdx-head-ink); }
+
+/* --- Force-power tree tabs: horizontal text strip above the header. Override
+   mandar's V2 tab positioning (absolute / flex-column on the right). --- */
+.cdx .cdx-ft-tabs.sheet-tabs.tabs {
+  position:static !important; flex-direction:row !important; display:flex; gap:3px;
+  width:auto !important; height:auto !important; border:none; border-bottom:2px solid var(--cdx-accent);
+  padding:0; margin:0 0 9px 0;
+}
+.cdx .cdx-ft-tabs.sheet-tabs .item {
+  width:auto !important; flex:0 0 auto; padding:4px 14px; line-height:1.2;
+  font-family:"Orbitron",sans-serif; font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+  color:var(--cdx-dim); background:transparent; border:none; cursor:pointer;
+  clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+}
+.cdx .cdx-ft-tabs.sheet-tabs .item:hover { color:var(--cdx-accent); }
+.cdx .cdx-ft-tabs.sheet-tabs .item.active { background:var(--cdx-accent); color:#fff; }
