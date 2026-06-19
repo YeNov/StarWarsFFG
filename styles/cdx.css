@@ -1306,6 +1306,15 @@
    and to .setback ONLY -- every other glyph keeps its native colour everywhere.
    =========================================================================== */
 .cdx .scheme-dark span.dietype.setback { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+/* Dark scheme: the other glyphs mandar hard-codes `black` (force/forcepoint,
+   light, dark, despair, failure, success, threat, triumph) vanish on the dark
+   surfaces -- recolour them white. (Setback keeps its black + white-outline.)
+   The light/paper schemes keep mandar's native black, which reads there. */
+.cdx .scheme-dark span.dietype.dark, .cdx .scheme-dark span.dietype.despair,
+.cdx .scheme-dark span.dietype.forcepoint, .cdx .scheme-dark span.dietype.failure,
+.cdx .scheme-dark span.dietype.force, .cdx .scheme-dark span.dietype.light,
+.cdx .scheme-dark span.dietype.success, .cdx .scheme-dark span.dietype.threat,
+.cdx .scheme-dark span.dietype.triumph { color:#fff; }
 
 /* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
    .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
