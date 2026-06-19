@@ -118,9 +118,16 @@ export class itemEditor extends FFGFormApplication {
    */
   async _enrichData() {
     let enriched = this.data;
-    enriched.clickedObject.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(this.data.clickedObject.system.description);
-    for (let modification of enriched.clickedObject.system.itemmodifier) {
-      modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(modification.system.description);
+    const co = enriched.clickedObject;
+    if (co?.system?.description !== undefined) {
+      co.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(co.system.description);
+      for (let modification of co.system.itemmodifier ?? []) {
+        modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(modification.system.description);
+      }
+    } else if (co?.description !== undefined) {
+      // Force-power / signature upgrades (and specialization talents) carry the
+      // description directly on the object, not under .system.
+      co.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(co.description);
     }
     return enriched;
   }
