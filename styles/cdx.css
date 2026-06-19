@@ -1204,8 +1204,11 @@
 /* --- Base power banner --- */
 .cdx .cdx-ft-power { background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-power-row { display:flex; justify-content:space-between; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
-.cdx .cdx-ft-fr input { width:3ch; background:transparent; border:none; color:var(--cdx-head-ink); font-family:inherit; }
-.cdx .cdx-ft-power-name input { width:100%; background:transparent; border:none; color:var(--cdx-head-ink); font-weight:900; font-size:24px; text-transform:uppercase; letter-spacing:1px; padding:0; }
+/* Name/FR render as text (play) or input (edit); style the container so BOTH look
+   identical and the header layout doesn't shift between modes. */
+.cdx .cdx-ft-fr input, .cdx .cdx-ft-fr b { font:inherit; color:inherit; background:transparent; border:none; padding:0; width:3ch; }
+.cdx .cdx-ft-power-name { color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-weight:900; font-size:24px; text-transform:uppercase; letter-spacing:1px; line-height:1.1; min-height:1.1em; }
+.cdx .cdx-ft-power-name input { width:100%; background:transparent; border:none; color:inherit; font:inherit; text-transform:inherit; letter-spacing:inherit; padding:0; }
 .cdx .cdx-ft-power-sub { font-size:9px; opacity:.85; text-transform:uppercase; letter-spacing:.5px; }
 .cdx .cdx-ft-desc { font-family:"Signika",sans-serif; font-size:11px; line-height:1.35; margin:6px 0; position:relative; }
 .cdx .cdx-ft-desc .popout-editor-button { position:absolute; top:0; right:0; opacity:.55; cursor:pointer; }
