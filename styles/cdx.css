@@ -1183,6 +1183,12 @@
 .cdx.cdx-embed .editor.prosemirror menu *,
 .cdx.cdx-embed .editor.prosemirror .editor-menu,
 .cdx.cdx-embed .editor.prosemirror .editor-menu * { color:#ececef; }
+/* The view-mode edit (pencil) button renders in-flow at the top-left; anchor it
+   top-right of the editor like the in-sheet editors. */
+.cdx.cdx-embed .form-group > .editor, .cdx.cdx-embed .form-group > .editor-content { position:relative; }
+.cdx.cdx-embed a.editor-edit, .cdx.cdx-embed .editor-edit {
+  position:absolute; top:5px; right:6px; left:auto; bottom:auto; margin:0; z-index:6; color:var(--cdx-accent);
+}
 .cdx.cdx-embed .form-group > label { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); display:flex; align-items:center; gap:4px; }
 .cdx.cdx-embed input[type=text], .cdx.cdx-embed input[type=number], .cdx.cdx-embed select {
   width:100%; box-sizing:border-box; background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px;
