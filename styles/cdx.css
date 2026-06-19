@@ -689,16 +689,18 @@
 .cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
 /* Dark scheme: pool dice are <img> raster icons (not recolourable glyphs), so the
    dark ones vanish on the dark paper. Mirror the description-glyph treatment, keyed
-   on the icon filename: setback + remove-setback (black.png / black-minus.png) keep
-   their black die with a white OUTLINE; every other dark icon (dark pip, despair,
-   failure, threat, success, triumph) is recoloured solid WHITE. Colour dice (green/
-   yellow/red/purple/blue), advantage, and the already-light force/light pips are
-   left alone. Placement-agnostic (scheme on the form or the .cdx element). */
+   on the icon filename: setback + remove-setback (black.png / black-minus.png) AND
+   the dark-side Force pip (darkpip.png) keep their black icon with a white OUTLINE
+   (the dark pip must read as dark side, not flip to a white light-side pip); every
+   other dark icon (despair, failure, threat, success, triumph) is recoloured solid
+   WHITE. Colour dice (green/yellow/red/purple/blue), advantage, and the already-light
+   force/light pips are left alone. Placement-agnostic (scheme on form or .cdx). */
 :is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black.png"],
-:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black-minus"] {
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black-minus"],
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="darkpip"] {
   filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
 }
-:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="darkpip"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
   filter: brightness(0) invert(1);
 }
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
@@ -1324,10 +1326,12 @@
    compound `.cdx.scheme-dark` also covers any sheet that carries the scheme on
    the .cdx element itself. Light/paper schemes keep mandar's native black.
    =========================================================================== */
-.cdx.scheme-dark span.dietype.setback,
-.cdx .scheme-dark span.dietype.setback { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
-.cdx.scheme-dark span.dietype:is(.dark,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
-.cdx .scheme-dark span.dietype:is(.dark,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+/* setback + the dark-side Force pip stay BLACK with a white outline (the dark pip
+   must read as dark side, not flip to a light-side white pip). */
+.cdx.scheme-dark span.dietype.setback, .cdx.scheme-dark span.dietype.dark,
+.cdx .scheme-dark span.dietype.setback, .cdx .scheme-dark span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+.cdx.scheme-dark span.dietype:is(.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
+.cdx .scheme-dark span.dietype:is(.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
 
 /* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
    .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
