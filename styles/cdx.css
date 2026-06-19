@@ -687,10 +687,15 @@
    (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
 .cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
 .cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
-/* Dark scheme: black/challenge dice nearly vanish on the dark paper. Give every
-   non-empty in-sheet dice pool a faint light backing so they stay legible. */
-.cdx form.scheme-dark .dice-pool:not(:empty),
-.cdx form.scheme-dark .cdx-wpn-pool:not(:empty) { background:rgba(255,255,255,.16); border-radius:4px; padding:1px 4px; }
+/* Dark scheme: the pool DICE are <img> (raster icons), not recolourable glyphs,
+   so the dark ones (setback, challenge, dark, force) nearly vanish on the dark
+   paper. Outline every pool die in white -- the image equivalent of whitening the
+   description glyphs -- so the dark dice read on the dark surface. No light backing
+   panel (the outline carries legibility). Placement-agnostic, like the glyph rule. */
+.cdx form.scheme-dark .dice-pool img, .cdx .scheme-dark .dice-pool img, .cdx.scheme-dark .dice-pool img,
+.cdx form.scheme-dark .cdx-wpn-pool img, .cdx .scheme-dark .cdx-wpn-pool img, .cdx.scheme-dark .cdx-wpn-pool img {
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+}
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
    the right edge on every row. Cards with statcols have 3 children (controls land
    in col3 naturally); cards without (crew) have 2, so the controls would auto-place
