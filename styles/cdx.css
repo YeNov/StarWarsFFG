@@ -687,14 +687,19 @@
    (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
 .cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
 .cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
-/* Dark scheme: the pool DICE are <img> (raster icons), not recolourable glyphs,
-   so the dark ones (setback, challenge, dark, force) nearly vanish on the dark
-   paper. Outline every pool die in white -- the image equivalent of whitening the
-   description glyphs -- so the dark dice read on the dark surface. No light backing
-   panel (the outline carries legibility). Placement-agnostic, like the glyph rule. */
-.cdx form.scheme-dark .dice-pool img, .cdx .scheme-dark .dice-pool img, .cdx.scheme-dark .dice-pool img,
-.cdx form.scheme-dark .cdx-wpn-pool img, .cdx .scheme-dark .cdx-wpn-pool img, .cdx.scheme-dark .cdx-wpn-pool img {
+/* Dark scheme: pool dice are <img> raster icons (not recolourable glyphs), so the
+   dark ones vanish on the dark paper. Mirror the description-glyph treatment, keyed
+   on the icon filename: setback + remove-setback (black.png / black-minus.png) keep
+   their black die with a white OUTLINE; every other dark icon (dark pip, despair,
+   failure, threat, success, triumph) is recoloured solid WHITE. Colour dice (green/
+   yellow/red/purple/blue), advantage, and the already-light force/light pips are
+   left alone. Placement-agnostic (scheme on the form or the .cdx element). */
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black.png"],
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black-minus"] {
   filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+}
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="darkpip"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
+  filter: brightness(0) invert(1);
 }
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
    the right edge on every row. Cards with statcols have 3 children (controls land
