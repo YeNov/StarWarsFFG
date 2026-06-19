@@ -336,6 +336,12 @@
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box { background:#b3261e; }
 .cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box.static,
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box.static { color:#fff; }
+/* Dark scheme: the neutral box is white but --cdx-ink is light, so the pool value
+   reads white-on-white. Force the box text (+ edit inputs) dark -- mirror of the
+   good/evil white-text rule. The steppers carry their own explicit --cdx-ink and
+   ride the dark border, so they're untouched and stay legible. */
+.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box.static,
+.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box.static input { color:#000; }
 /* Ratio chip (reusable): XP-square layout — current big on top, "of {max}" small
    below — with −/+ steppers riding the chip's left/right borders. The box is the
    positioning context so the buttons anchor to its edges, not the wider chip.
