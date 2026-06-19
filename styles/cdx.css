@@ -279,7 +279,9 @@
 
 /* Minions (header has no .cdx-header-main): small avatar + inline name, type pill hidden. */
 .cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) { padding:8px 14px; align-items:center; }
-.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-identity { flex-direction:row; align-items:center; }
+/* display:flex overrides the generic `.cdx-hcollapsed .cdx-identity{display:none}`
+   (which would otherwise hide the minion's name along with its identity block). */
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-identity { display:flex; flex-direction:row; align-items:center; }
 .cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-pills { display:none; }
 .cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-name { font-size:18px; }
 .cdx .cdx-cr-op, .cdx .cdx-cr-confirm, .cdx .cdx-cr-cancel {
@@ -336,12 +338,12 @@
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box { background:#b3261e; }
 .cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box.static,
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box.static { color:#fff; }
-/* Dark scheme: the neutral box is white but --cdx-ink is light, so the pool value
-   reads white-on-white. Force the box text (+ edit inputs) dark -- mirror of the
-   good/evil white-text rule. The steppers carry their own explicit --cdx-ink and
-   ride the dark border, so they're untouched and stay legible. */
-.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box.static,
-.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box.static input { color:#000; }
+/* Dark scheme: drop the white neutral background entirely -- a white box clashes
+   on the dark scheme. Fall back to the scheme's own chip surface (paper2) so the
+   pool value reads in the scheme ink, like every other chip. Good/evil keep their
+   saturated tints (they read on dark). Placement-agnostic, like the glyph rules. */
+.cdx.scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box,
+.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:var(--cdx-paper2); }
 /* Ratio chip (reusable): XP-square layout — current big on top, "of {max}" small
    below — with −/+ steppers riding the chip's left/right borders. The box is the
    positioning context so the buttons anchor to its edges, not the wider chip.
@@ -1300,21 +1302,19 @@
 .cdx .cdx-ft-edit .cdx-ft-toggle:hover::before { background:var(--cdx-accent); opacity:1; }
 
 /* ===========================================================================
-   Codex: the Setback die glyph is hard-coded `color:black` and vanishes on the
-   DARK scheme's dark surfaces only (on the light/paper schemes it reads fine).
-   Outline it black-on-white there so it stays legible. Scoped to .scheme-dark
-   and to .setback ONLY -- every other glyph keeps its native colour everywhere.
+   Codex DARK scheme — dice/symbol glyphs. mandar hard-codes many dietypes
+   `color:black` (setback, force/forcepoint, light, dark, despair, failure,
+   success, threat, triumph); they vanish on the dark scheme's dark surfaces.
+   Whiten the lot, EXCEPT setback which keeps black + a 1px white outline so it
+   still reads as a "black" die. GLOBAL across EVERY codex sheet (actor + item):
+   the scheme-* class sits on the content form (a descendant of .cdx), and the
+   compound `.cdx.scheme-dark` also covers any sheet that carries the scheme on
+   the .cdx element itself. Light/paper schemes keep mandar's native black.
    =========================================================================== */
+.cdx.scheme-dark span.dietype.setback,
 .cdx .scheme-dark span.dietype.setback { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
-/* Dark scheme: the other glyphs mandar hard-codes `black` (force/forcepoint,
-   light, dark, despair, failure, success, threat, triumph) vanish on the dark
-   surfaces -- recolour them white. (Setback keeps its black + white-outline.)
-   The light/paper schemes keep mandar's native black, which reads there. */
-.cdx .scheme-dark span.dietype.dark, .cdx .scheme-dark span.dietype.despair,
-.cdx .scheme-dark span.dietype.forcepoint, .cdx .scheme-dark span.dietype.failure,
-.cdx .scheme-dark span.dietype.force, .cdx .scheme-dark span.dietype.light,
-.cdx .scheme-dark span.dietype.success, .cdx .scheme-dark span.dietype.threat,
-.cdx .scheme-dark span.dietype.triumph { color:#fff; }
+.cdx.scheme-dark span.dietype:is(.dark,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
+.cdx .scheme-dark span.dietype:is(.dark,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
 
 /* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
    .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
