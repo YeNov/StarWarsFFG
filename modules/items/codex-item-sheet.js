@@ -72,6 +72,13 @@ export class CodexItemSheet extends ItemSheetFFG {
     // Localized item-type name for the header type pill (shared by every codex
     // item template via the general .cdx-ihead header).
     try { ctx.cdxTypeLabel = game.i18n.localize(`TYPES.Item.${this.item?.type}`); } catch (e) { ctx.cdxTypeLabel = ""; }
+    // Tree types (force power / signature / specialization): edit is a TRANSIENT
+    // per-session toggle (this._cdxEdit, default off), so the tree always opens
+    // read-only regardless of any persisted system.isEditing. The bespoke edit
+    // pencil flips _cdxEdit and re-renders (see activateListeners).
+    if (["forcepower", "signatureability", "specialization"].includes(this.item?.type) && ctx.data) {
+      ctx.data.isEditing = !!this._cdxEdit;
+    }
     try {
       const cur = Math.max(0, CODEX_STATUS.indexOf(ctx?.data?.status ?? "None"));
       ctx.cdxConditions = CODEX_STATUS.map((value, i) => ({
@@ -118,6 +125,14 @@ export class CodexItemSheet extends ItemSheetFFG {
       form.style.setProperty("overflow-x", "hidden", "important");
     }
     const root = html?.[0] ?? form;
+
+    // Tree edit pencil: flip the transient edit flag and re-render (read-only <->
+    // edit). NOT the persisted stock data.isEditing path.
+    root?.querySelector?.(".cdx-ft-edit-toggle")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      this._cdxEdit = !this._cdxEdit;
+      this.render({ force: true });
+    });
 
     // Bespoke tab switching — same as the codex actor sheets (.cdx-tab buttons /
     // .cdx-pane sections, toggled in JS). The stock native Tabs controller keyed

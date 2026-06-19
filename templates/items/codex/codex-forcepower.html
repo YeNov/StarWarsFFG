@@ -39,9 +39,8 @@
         <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} {{#if data.isEditing}}<input name="data.base_cost" type="text" value="{{item.system.base_cost}}" data-dtype="String" />{{else}}<b class="cdx-ft-cost-v">{{item.system.base_cost}}</b>{{/if}}</span>
         <span class="cdx-ft-power-actions">
           <a class="talent-action hover" data-itemid="{{item._id}}" title="Modifiers"><i class="fas fa-cog"></i></a>
-          <a class="talent-action" data-action="edit" title="Edit tree"><i class="fas fa-pen-to-square"></i></a>
+          <a class="cdx-ft-edit-toggle {{#if data.isEditing}}on{{/if}}" title="Toggle tree edit mode"><i class="fas fa-pen-to-square"></i></a>
           <a class="talent-action" data-action="img" title="Image"><i class="fas fa-image"></i></a>
-          <input class="cdx-ft-hide" name="data.isEditing" type="text" value="{{data.isEditing}}" data-dtype="Boolean" />
         </span>
       </div>
     </div>
