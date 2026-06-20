@@ -189,6 +189,19 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     return this.getData(options);
   }
 
+  /**
+   * Capture the content scroll BEFORE the re-render replaces it. ApplicationV2
+   * reuses the content <form> but swaps its innerHTML, which resets scrollTop --
+   * so e.g. ticking a tree node's "learned" checkbox (which submits + re-renders)
+   * would jump the sheet back to the top. The old DOM is still mounted here, so we
+   * read the current scroll; `_onRender` restores it once the new content is in
+   * place and the form's overflow has been re-applied. @override
+   */
+  async _preRender(context, options) {
+    await super._preRender(context, options);
+    this._ffgScrollTop = this.form?.scrollTop || 0;
+  }
+
   async _onRender(context, options) {
     await super._onRender(context, options);
 
@@ -240,6 +253,11 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
         }
       }
     }
+
+    // Restore the pre-render content scroll (captured in _preRender) now that the
+    // new content is in place and activateListeners has re-applied the form's
+    // overflow, so a re-render (e.g. a tree checkbox submit) keeps the scroll.
+    if (this._ffgScrollTop && this.form) this.form.scrollTop = this._ffgScrollTop;
   }
 
   _applyLegacyRootClasses(form, context = {}) {
