@@ -1221,6 +1221,21 @@
 .cdx.cdx-embed input[type=checkbox] { accent-color:var(--cdx-accent); width:16px; height:16px; }
 .cdx.cdx-embed .attributes-header, .cdx.cdx-embed .mod_container .attributes-header { font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-brown); }
 .cdx.cdx-embed .add-mod, .cdx.cdx-embed .add-modification { color:var(--cdx-accent); width:auto; }
+/* Dark scheme: --cdx-brown field labels + attribute headers nearly vanish on the
+   dark bg. Recolour the embedded-editor labels in the scheme ink (light #ece4df)
+   so they read like the input values. (item-editor.js puts scheme-* on the form,
+   inside .cdx.cdx-embed.) */
+.cdx.cdx-embed .scheme-dark .form-group > label,
+.cdx.cdx-embed .scheme-dark .attributes-header,
+.cdx.cdx-embed .scheme-dark .attributes-header > * { color:var(--cdx-ink); }
+/* Modifications tab: put the Installed?/Broken? checkboxes and the Ranks field on
+   ONE row each -- label fills the row, control sits at the right -- instead of
+   stacked. Name + Description (text fields) keep the default column layout. */
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="checkbox"]),
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) { flex-direction:row; align-items:center; gap:8px; }
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="checkbox"]) > label,
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > label { flex:1; margin:0; }
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > input[type="number"] { flex:0 0 auto; width:70px; }
 
 /* ===========================================================================
    Force-power upgrade tree — BESPOKE (.cdx-ft-*). No reliance on stock
