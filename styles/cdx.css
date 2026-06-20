@@ -1310,8 +1310,8 @@
 .cdx .cdx-ft-buy .ffg-purchase:hover { filter:brightness(1.25); }
 .cdx .cdx-ft-body { flex:1; padding:7px 9px; font-size:16.5px; line-height:1.3; position:relative; }
 .cdx .cdx-ft-body .popout-editor-button { position:absolute; top:3px; right:5px; opacity:.45; cursor:pointer; }
-.cdx .cdx-ft-foot { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 8px; border-top:1px solid var(--cdx-line); }
-.cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:10.8px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-ft-foot { display:flex; align-items:center; justify-content:space-between; gap:9px; padding:5px 12px; border-top:1px solid var(--cdx-line); }
+.cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:16.2px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
 .cdx .cdx-ft-cost input { background:transparent; border:none; width:3.5ch; color:var(--cdx-brass); font-weight:700; font-family:inherit; padding:0; }
 /* the base power's cost sits on the accent banner -- use head-ink so it reads */
 .cdx .cdx-ft-power .cdx-ft-cost, .cdx .cdx-ft-power .cdx-ft-cost input { color:var(--cdx-head-ink); }
@@ -1386,12 +1386,12 @@
    Talents add: force/conflict/ranked marks in the card FOOT (with the cost), an
    activation label at the top of the body, and a Skills tab (career + universal). */
 .cdx .cdx-ft-marks { display:inline-flex; align-items:center; gap:7px; }
-.cdx .cdx-ft-mark { flex:none; font-size:11px; line-height:1; }
+.cdx .cdx-ft-mark { flex:none; font-size:16.5px; line-height:1; }
 /* Plain Force talent (not conflict) = jedi crest, in the scheme ink (white on dark). */
 .cdx .cdx-ft-force { color:var(--cdx-ink); }
 /* Conflict talent (always also a Force talent) = the Sith emblem; the ring is a
    cut-out that shows the card foot behind it, so it reads on every scheme. */
-.cdx .cdx-ft-sith { width:13px; height:13px; background:url("/systems/starwarsffg/images/sith-emblem.svg") center/contain no-repeat; }
+.cdx .cdx-ft-sith { width:19.5px; height:19.5px; background:url("/systems/starwarsffg/images/sith-emblem.svg") center/contain no-repeat; }
 .cdx .cdx-ft-ranked { color:var(--cdx-dim); }
 /* Activation type line (Passive / Active …) above the talent description. */
 .cdx .cdx-ft-act { font-family:"Orbitron",sans-serif; font-weight:700; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); margin-bottom:4px; }
