@@ -989,6 +989,12 @@
    resolves and it occupies real space in flow (mirrors .cdx-bio-editor). */
 .cdx .cdx-idesc > .editor { height:auto; }
 .cdx .cdx-idesc > .editor:has(.tox-tinymce), .cdx .cdx-idesc > .editor:has(.ProseMirror) { height:300px; }
+/* When the description is long it scrolls inside that 300px box, and a scroll
+   container clips its own padding-bottom — the last line sat flush against the
+   bottom edge. A spacer block at the END of the scrolling content guarantees the
+   bottom clears like the top, whichever element actually scrolls (.editor or the
+   inner .editor-content). */
+.cdx .cdx-idesc .editor-content::after { content:""; display:block; height:10px; }
 /* Weapon: Damage/Crit/Range across the top (span 2 of 6), then 2-up rows below. */
 .cdx .cdx-istats-weapon { grid-template-columns:repeat(6, minmax(0, 1fr)); }
 .cdx .cdx-istats-weapon .cdx-istat { grid-column:span 2; }
