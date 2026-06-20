@@ -72,6 +72,12 @@ Codex visual language:
 These are intentionally **not** in v1; v1 lists talents / force powers / signature
 abilities as cards and pills only.
 
+> **Developers:** the force-power tree is the first of these to land. Its structure —
+> the reusable `.cdx-ft-*` design system (tabs, banner, edit mode, cards, buy/learnt,
+> connectors, fonts/layout) and how to extend it to the specialization and
+> signature-ability trees — is documented in
+> [`docs/codex-force-tree-design.md`](docs/codex-force-tree-design.md).
+
 ---
 
 ## License
