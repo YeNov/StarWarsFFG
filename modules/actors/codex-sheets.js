@@ -544,6 +544,44 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 
   /**
+   * Distribute skills into two columns WITHOUT splitting a skill group across the
+   * break. The stock _createSkillColumns fills column 1 to a row target and spills
+   * a group across the gap (repeating its header); instead we keep each group
+   * [header, ...skills] whole and pick the in-order boundary that best balances the
+   * two columns — so e.g. Combat (Brawl…) moves wholesale to the second column
+   * rather than starting at the bottom of the first. @override
+   */
+  _createSkillColumns(data) {
+    const byLabel = game.settings.get("starwarsffg", "skillSorting");
+    const sortFn = byLabel
+      ? (a, b) => data.data.skills[a].label.localeCompare(data.data.skills[b].label, game.i18n.lang)
+      : (a, b) => a.toLowerCase().localeCompare(b.toLowerCase());
+
+    // Each group = its header row + sorted skill rows; treated as one unbreakable unit.
+    const groups = data.data.skilltypes.map((type) => {
+      const skills = Object.keys(data.data.skills)
+        .filter((s) => data.data.skills[s].type === type.type)
+        .sort(sortFn)
+        .map((s) => ({ name: s, ...data.data.skills[s] }));
+      return [{ id: "header", ...type }, ...skills];
+    }).filter((g) => g.length > 1);
+
+    // Pick the in-order split point (k groups in column 0, the rest in column 1)
+    // that minimises the row-count imbalance between the two columns.
+    const total = groups.reduce((n, g) => n + g.length, 0);
+    let bestK = groups.length, bestDiff = Infinity, running = 0;
+    for (let k = 1; k <= groups.length; k++) {
+      running += groups[k - 1].length;
+      const diff = Math.abs(running - (total - running));
+      if (diff < bestDiff) { bestDiff = diff; bestK = k; }
+    }
+
+    const cols = [[], []];
+    groups.forEach((g, i) => cols[i < bestK ? 0 : 1].push(...g));
+    return cols.filter((c) => c.length > 0);
+  }
+
+  /**
    * Expose the crit-injury count (Injuries tab badge) and the wound/strain
    * damage tracks (the colored pip bars next to the steppers). @override
    */
