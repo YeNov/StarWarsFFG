@@ -1254,12 +1254,12 @@
 .cdx .cdx-ft-hide, .cdx .cdx-ft-gone { display:none !important; }
 
 /* --- Base power banner --- */
-/* Drop the header wrapper's box entirely (display:contents) so the banner itself
-   becomes the direct full-width child of the window-content column -- no wrapper
-   box painting a stray background behind it, and the stock
-   `.starwarsffg.sheet .sheet-header` flex-row rule (renamed away) can't reach it.
-   The banner is then the block that fills the whole width. */
-.cdx .cdx-ft-head { display:contents; }
+/* Banner wrapper class is .cdx-ft-banner -- NOT .cdx-ft-head, which is the
+   upgrade-CARD head (flex + --cdx-head gradient bg, below): same-name collision
+   there painted the card-head gradient behind the banner. display:contents drops
+   the wrapper box so the banner itself is the direct full-width child of the
+   window-content column (no stray bg, no stock .sheet-header flex rule). */
+.cdx .cdx-ft-banner { display:contents; }
 .cdx .cdx-ft-power { width:100%; box-sizing:border-box; background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-power-row { display:flex; justify-content:space-between; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
 /* Name/FR render as text (play) or input (edit); style the container so BOTH look
