@@ -698,6 +698,7 @@ Hooks.once("init", async function () {
       upgrade: [],
       success: [],
       upgradeDifficulty: [],
+      difficulty: [],
     };
     for (const skill of Object.keys(CONFIG.FFG.skills)) {
       allSkillChanges['boost'].push({
@@ -722,6 +723,11 @@ Hooks.once("init", async function () {
       });
       allSkillChanges['upgradeDifficulty'].push({
         key: `system.skills.${skill}.upgradeDifficulty`,
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        value: "1",
+      });
+      allSkillChanges['difficulty'].push({
+        key: `system.skills.${skill}.difficulty`,
         mode: CONST.ACTIVE_EFFECT_MODES.ADD,
         value: "1",
       });
@@ -751,6 +757,15 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/black.png`,
       name: "SWFFG.Status.Setback.Next",
       changes: allSkillChanges['setback'],
+      system: {
+        duration: "once",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-difficulty-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/purple.png`,
+      name: "SWFFG.Status.Difficulty.Next",
+      changes: allSkillChanges['difficulty'],
       system: {
         duration: "once",
       }
@@ -832,6 +847,15 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/black.png`,
       name: "SWFFG.Status.Setback.Combat",
       changes: allSkillChanges['setback'],
+      system: {
+        duration: "combat",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-difficulty-combat",
+      img: `systems/starwarsffg/images/status/purple.png`,
+      name: "SWFFG.Status.Difficulty.Combat",
+      changes: allSkillChanges['difficulty'],
       system: {
         duration: "combat",
       }

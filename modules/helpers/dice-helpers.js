@@ -106,7 +106,7 @@ export default class DiceHelpers {
       despair: skill.despair ?? 0,
       upgrades: skill.upgrades ?? 0,
       remsetback: skill.remsetback ?? 0,
-      difficulty: 2 + status.difficulty, // default to average difficulty
+      difficulty: 2 + status.difficulty + (skill.difficulty ?? 0), // default average + status-effect difficulty dice
     });
 
     dicePool.upgrade(Math.min(characteristic.value, skill.rank) + dicePool.upgrades);
@@ -219,7 +219,7 @@ export default class DiceHelpers {
       despair: skill?.despair ? skill.despair : 0,
       upgrades: skill?.upgrades ? skill.upgrades : 0,
       remsetback: skill?.remsetback ? skill.remsetback : 0,
-      difficulty: 2 + status.difficulty, // default to average difficulty
+      difficulty: 2 + status.difficulty + (skill.difficulty ?? 0), // default average + status-effect difficulty dice
     });
 
     dicePool.upgrade(Math.min(characteristic.value, skill.rank) + dicePool.upgrades);
@@ -237,7 +237,7 @@ export default class DiceHelpers {
       boost: skill.boost,
       setback: skill.setback,
       force: skill.force,
-      difficulty: difficulty,
+      difficulty: difficulty + (skill.difficulty ?? 0),
       advantage: skill.advantage,
       dark: skill.dark,
       light: skill.light,
@@ -340,7 +340,7 @@ export function get_dice_pool(actor_id, skill_name, incoming_roll) {
     despair: (skill.despair ?? 0) + incomingPool.despair,
     upgrades: (skill.upgrades ?? 0) + incomingPool.upgrades,
     remsetback: (skill.remsetback ?? 0) + incomingPool.remsetback,
-    difficulty: +incomingPool.difficulty,
+    difficulty: +incomingPool.difficulty + (skill.difficulty ?? 0),
     challenge: +incomingPool.challenge,
   });
   dicePool.upgradeDifficulty(skill.upgradeDifficulty ?? 0);
