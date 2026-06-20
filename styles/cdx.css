@@ -1406,6 +1406,13 @@
 .cdx .scheme-dark span.dietype.setback, .cdx .scheme-dark span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 .cdx.scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
 .cdx .scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+/* Foundry's #tooltip is body-level (outside .cdx), so the dark-scheme rules above
+   can't reach the dice glyphs baked into a force-power pill's data-tooltip — and the
+   Foundry tooltip is ALWAYS dark, so the naturally-black glyphs (setback/dark) vanish
+   on it. Mirror the dark-scheme glyph treatment for #tooltip (the ID out-specifies the
+   base `span.dietype` colours). Scheme-independent: the tooltip is dark in every scheme. */
+#tooltip span.dietype.setback, #tooltip span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+#tooltip span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
 
 /* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
    .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
