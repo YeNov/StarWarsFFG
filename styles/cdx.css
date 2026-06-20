@@ -1287,12 +1287,20 @@
 /* stretch makes every node fill its grid row, so all cards in a row share the
    tallest one's height; the card fills the node and its body flexes (cost pins
    to the bottom). */
-.cdx .cdx-ft-node { position:relative; min-width:0; }
+/* Flex column so the card (its only in-flow child; the connectors are absolute)
+   fills the stretched row height AND can grow past it when content is taller than
+   the measured row — see .cdx-ft-card flex below. */
+.cdx .cdx-ft-node { position:relative; min-width:0; display:flex; flex-direction:column; }
 
 /* --- Node card --- */
 /* No border: a border + clip-path leaves notch-corner artifacts. Use a
    drop-shadow (follows the clipped shape) for depth; bought nodes glow accent. */
-.cdx .cdx-ft-card { position:relative; z-index:2; height:100%; display:flex; flex-direction:column; min-height:118px;
+/* flex:1 0 auto (in the flex-column node) fills the row height for short cards but
+   NEVER shrinks below the card's own content (flex-shrink:0) — so the body can't be
+   squeezed into the foot when content slightly exceeds the measured row. Replaces a
+   fixed height:100%, which capped the card and caused the description to overflow the
+   footer (only visible where dark text crossed a light footer). */
+.cdx .cdx-ft-card { position:relative; z-index:2; flex:1 0 auto; display:flex; flex-direction:column; min-height:118px;
   background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip);
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
 .cdx .cdx-ft-node.on .cdx-ft-card { filter:drop-shadow(0 0 4px var(--cdx-accent)); }
