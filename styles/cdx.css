@@ -1345,6 +1345,27 @@
 .cdx .cdx-ft-edit .cdx-ft-toggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
 .cdx .cdx-ft-edit .cdx-ft-toggle:hover::before { background:var(--cdx-accent); opacity:1; }
 
+/* --- Signature-ability uplink bar (above the banner) ---
+   4 upward connection points, one per grid column, that link the base ability up
+   to the character's specialisations. Unique class names (NOT .cdx-ft-uplinks /
+   .cdx-ft-toggle, which are the card's own up-connectors) so the two don't collide.
+   The bar aligns to the grid: same full width, repeat(4,1fr), col-gap. */
+.cdx .cdx-ft-uplinkbar { --ft-colgap:16px; --ft-line:3px; display:grid; grid-template-columns:repeat(4, 1fr); gap:0 var(--ft-colgap); height:16px; margin-bottom:2px; }
+.cdx .cdx-ft-uplinknode { position:relative; }
+/* Play mode: only a SET uplink paints a line (no clutter when none are linked); the
+   little cap reads as "links upward, out of the sheet". */
+.cdx .cdx-ft-uplinkline { display:none; position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:var(--ft-line); background:var(--cdx-accent); border-radius:2px; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
+.cdx .cdx-ft-uplinkline.on { display:block; }
+.cdx .cdx-ft-uplinkline.on::before { content:""; position:absolute; top:-3px; left:50%; transform:translateX(-50%); border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:6px solid var(--cdx-accent); }
+/* Edit mode: every column shows a faint base line + a clickable toggle dot; set
+   ones glow accent. Mirrors the in-card .cdx-ft-toggle affordance. */
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinkline { display:block; background:var(--cdx-line); box-shadow:none; opacity:.5; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinkline.on { background:var(--cdx-accent); opacity:1; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
+.cdx .cdx-ft-uplinktoggle { display:none; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle { display:block; position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:14px; cursor:pointer; z-index:3; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle:hover::before { background:var(--cdx-accent); opacity:1; }
+
 /* ===========================================================================
    Codex DARK scheme — dice/symbol glyphs. mandar hard-codes many dietypes
    `color:black` (setback, force/forcepoint, light, dark, despair, failure,
