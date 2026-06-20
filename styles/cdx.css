@@ -705,7 +705,7 @@
 :is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="darkpip"] {
   filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
 }
-:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
   filter: brightness(0) invert(1);
 }
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
@@ -1353,8 +1353,8 @@
    must read as dark side, not flip to a light-side white pip). */
 .cdx.scheme-dark span.dietype.setback, .cdx.scheme-dark span.dietype.dark,
 .cdx .scheme-dark span.dietype.setback, .cdx .scheme-dark span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
-.cdx.scheme-dark span.dietype:is(.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
-.cdx .scheme-dark span.dietype:is(.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+.cdx.scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
+.cdx .scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
 
 /* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
    .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
