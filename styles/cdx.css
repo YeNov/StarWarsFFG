@@ -667,6 +667,11 @@
 .cdx .cdx-card.off { opacity:.65; }
 .cdx .cdx-card-main { display:flex; align-items:center; gap:5px; min-width:0; }
 .cdx .cdx-card-icon { width:75px; height:75px; flex:none; border-radius:6px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
+/* Dark scheme only: hovering a rollable item swaps its icon background to the black
+   generic-die.svg (mandar), which vanishes on the dark card. Whiten it via filter --
+   :hover only, so the weapon image (at rest) and the light schemes are untouched. */
+.cdx.scheme-dark .item-rollable.rollable:hover,
+.cdx .scheme-dark .item-rollable.rollable:hover { filter:brightness(0) invert(1); }
 /* Transparent wrapper purely for DOM depth (weapon roll resolution) — shrink-wraps the icon. */
 .cdx .cdx-card-rollwrap { flex:none; display:flex; }
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
