@@ -735,14 +735,8 @@ Hooks.once("init", async function () {
 
     // set up our own statuses
     CONFIG.statusEffects = [];
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-defeated",
-      img: "systems/starwarsffg/images/status/defeated.svg",
-      name: "SWFFG.Status.Defeated",
-      changes: [],
-    });
 
-    // one-time statuses
+    // dice statuses — next check
     CONFIG.statusEffects.push({
       id: "starwarsffg-boost-once",
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/blue.png`,
@@ -762,19 +756,19 @@ Hooks.once("init", async function () {
       }
     });
     CONFIG.statusEffects.push({
-      id: "starwarsffg-difficulty-once",
-      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/purple.png`,
-      name: "SWFFG.Status.Difficulty.Next",
-      changes: allSkillChanges['difficulty'],
+      id: "starwarsffg-upgrade-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/yellow.png`,
+      name: "SWFFG.Status.Upgrade.Next",
+      changes: allSkillChanges['upgrade'],
       system: {
         duration: "once",
       }
     });
     CONFIG.statusEffects.push({
-      id: "starwarsffg-upgrade-once",
-      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/yellow.png`,
-      name: "SWFFG.Status.Upgrade.Next",
-      changes: allSkillChanges['upgrade'],
+      id: "starwarsffg-upgrade-difficulty-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/red.png`,
+      name: "SWFFG.Status.UpgradeDifficulty.Next",
+      changes: allSkillChanges['upgradeDifficulty'],
       system: {
         duration: "once",
       }
@@ -789,13 +783,76 @@ Hooks.once("init", async function () {
       }
     });
     CONFIG.statusEffects.push({
-      id: "starwarsffg-upgrade-difficulty-once",
-      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/red.png`,
-      name: "SWFFG.Status.UpgradeDifficulty.Next",
-      changes: allSkillChanges['upgradeDifficulty'],
+      id: "starwarsffg-difficulty-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/purple.png`,
+      name: "SWFFG.Status.Difficulty.Next",
+      changes: allSkillChanges['difficulty'],
       system: {
         duration: "once",
       }
+    });
+    // dice statuses — this combat
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-boost-combat",
+      img: `systems/starwarsffg/images/status/blue.png`,
+      name: "SWFFG.Status.Boost.Combat",
+      changes: allSkillChanges['boost'],
+      system: {
+        duration: "combat",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-setback-combat",
+      img: `systems/starwarsffg/images/status/black.png`,
+      name: "SWFFG.Status.Setback.Combat",
+      changes: allSkillChanges['setback'],
+      system: {
+        duration: "combat",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-upgrade-combat",
+      img: `systems/starwarsffg/images/status/yellow.png`,
+      name: "SWFFG.Status.Upgrade.Combat",
+      changes: allSkillChanges['upgrade'],
+      system: {
+        duration: "combat",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-upgrade-difficulty-combat",
+      img: `systems/starwarsffg/images/status/red.png`,
+      name: "SWFFG.Status.UpgradeDifficulty.Combat",
+      changes: allSkillChanges['upgradeDifficulty'],
+      system: {
+        duration: "combat",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-success-combat",
+      img: `systems/starwarsffg/images/status/success.png`,
+      name: "SWFFG.Status.Success.Combat",
+      changes: allSkillChanges['success'],
+      system: {
+        duration: "combat",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-difficulty-combat",
+      img: `systems/starwarsffg/images/status/purple.png`,
+      name: "SWFFG.Status.Difficulty.Combat",
+      changes: allSkillChanges['difficulty'],
+      system: {
+        duration: "combat",
+      }
+    });
+
+    // conditions & other statuses
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-defeated",
+      img: "systems/starwarsffg/images/status/defeated.svg",
+      name: "SWFFG.Status.Defeated",
+      changes: [],
     });
     CONFIG.statusEffects.push({
       id: "starwarsffg-heavy-cover",
@@ -831,61 +888,6 @@ Hooks.once("init", async function () {
       img: "systems/starwarsffg/images/status/staggered.svg",
       name: "SWFFG.Status.Staggered",
       changes: [],
-    });
-    // combat-length statuses
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-boost-combat",
-      img: `systems/starwarsffg/images/status/blue.png`,
-      name: "SWFFG.Status.Boost.Combat",
-      changes: allSkillChanges['boost'],
-      system: {
-        duration: "combat",
-      }
-    });
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-setback-combat",
-      img: `systems/starwarsffg/images/status/black.png`,
-      name: "SWFFG.Status.Setback.Combat",
-      changes: allSkillChanges['setback'],
-      system: {
-        duration: "combat",
-      }
-    });
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-difficulty-combat",
-      img: `systems/starwarsffg/images/status/purple.png`,
-      name: "SWFFG.Status.Difficulty.Combat",
-      changes: allSkillChanges['difficulty'],
-      system: {
-        duration: "combat",
-      }
-    });
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-upgrade-combat",
-      img: `systems/starwarsffg/images/status/yellow.png`,
-      name: "SWFFG.Status.Upgrade.Combat",
-      changes: allSkillChanges['upgrade'],
-      system: {
-        duration: "combat",
-      }
-    });
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-success-combat",
-      img: `systems/starwarsffg/images/status/success.png`,
-      name: "SWFFG.Status.Success.Combat",
-      changes: allSkillChanges['success'],
-      system: {
-        duration: "combat",
-      }
-    });
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-upgrade-difficulty-combat",
-      img: `systems/starwarsffg/images/status/red.png`,
-      name: "SWFFG.Status.UpgradeDifficulty.Combat",
-      changes: allSkillChanges['upgradeDifficulty'],
-      system: {
-        duration: "combat",
-      }
     });
 
     // custom statuses defined by the user
