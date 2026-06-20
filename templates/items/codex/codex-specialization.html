@@ -76,8 +76,9 @@
               <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} <b class="cdx-ft-cost-v">{{calculateSpecializationTalentCost key}}</b></span>
               {{!-- Talent-type marks (force / conflict / ranked) sit in the foot with the cost. --}}
               <span class="cdx-ft-marks">
-                {{#if talent.isForceTalent}}<i class="fas fa-jedi cdx-ft-mark cdx-ft-force" title="{{localize 'SWFFG.TalentsForce'}}"></i>{{/if}}
-                {{#if talent.isConflictTalent}}<i class="fas fa-circle cdx-ft-mark cdx-ft-conflict" title="{{localize 'SWFFG.TalentsConflict'}}"></i>{{/if}}
+                {{!-- A conflict talent is ALWAYS a force talent, so one slot covers both:
+                     conflict -> Sith emblem; plain force (not conflict) -> jedi crest. --}}
+                {{#if talent.isConflictTalent}}<span class="cdx-ft-mark cdx-ft-sith" title="{{localize 'SWFFG.TalentsConflict'}}"></span>{{else}}{{#if talent.isForceTalent}}<i class="fas fa-jedi cdx-ft-mark cdx-ft-force" title="{{localize 'SWFFG.TalentsForce'}}"></i>{{/if}}{{/if}}
                 {{#if talent.isRanked}}<i class="fas fa-repeat cdx-ft-mark cdx-ft-ranked" title="{{localize 'SWFFG.ItemTalentRanked'}}"></i>{{/if}}
               </span>
               <span class="cdx-ft-edit-actions">
