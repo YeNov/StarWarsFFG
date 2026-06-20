@@ -3375,3 +3375,33 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   justify-content: center;
   padding: 3px 0;
 }
+
+/* =========================================================================
+   Token-HUD status-effect icons (SWFFG) — UI colour-scheme handling
+   -------------------------------------------------------------------------
+   Foundry applies `filter: var(--control-icon-filter)` to every status icon
+   in the token HUD; that variable is `invert(1)` in the LIGHT colour scheme,
+   which mangles our full-colour dice PNGs (boost -> red, upgrade -> blue, ...).
+   Core's rule lives in `@layer applications`, so these UNLAYERED rules win over
+   it without `!important`. NOTE: the token HUD renders OUTSIDE #interface (it is
+   a sibling <template id="hud"> under <body>), so its colour scheme follows the
+   *Applications* setting via `body.theme-<scheme>`, NOT the Interface setting.
+   ========================================================================= */
+#token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src$=".png"] {
+  /* Render our colour dice PNGs in their true colours in every UI scheme
+     (cancel the light-scheme invert). The monochrome condition SVGs
+     (defeated/disoriented/immobilised/staggered) are intentionally NOT matched,
+     so core's invert still flips them to stay visible on light backgrounds. */
+  filter: none;
+}
+#token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/black.png"] {
+  /* Setback is a near-black square that vanishes on the dark HUD: add a thin
+     1px white outline so it reads in every scheme. */
+  box-shadow: 0 0 0 1px #fff;
+}
+body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/success.png"] {
+  /* Success is a black glyph (invisible on dark): recolour it to solid white in
+     the DARK scheme only (body.theme-dark = the Applications scheme that governs
+     the HUD). In the light scheme it keeps its original black via the rule above. */
+  filter: brightness(0) invert(1);
+}
