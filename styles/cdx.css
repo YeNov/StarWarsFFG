@@ -771,8 +771,12 @@
    the edit/delete/info controls to the right. */
 .cdx .cdx-tal-act { margin-right:auto; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; align-items:center; }
-/* Inline details when a force-power / signature card is expanded (click to open). */
-.cdx .cdx-talent.expanded { overflow:visible; }
+/* Inline details when a force-power / signature card is expanded (click to open).
+   Drop the clip-path too: it clips ALL descendants to the octagon regardless of
+   overflow, so an upgrade pill's hover .tooltip2 was cut off at the card edge.
+   With clip-path:none the tooltip (z-index:500 on hover) renders fully and above
+   neighbouring cards. The notch is dropped only while expanded (a transient state). */
+.cdx .cdx-talent.expanded { overflow:visible; clip-path:none; }
 .cdx .cdx-talent .item-details { padding:8px 10px; font-size:12px; line-height:1.4; color:var(--cdx-ink); border-top:1px solid var(--cdx-line); background:var(--cdx-paper); }
 .cdx .cdx-talent .item-details .item-properties { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
 .cdx .cdx-talent .item-details .tag { font-size:10px; padding:1px 6px; border:1px solid var(--cdx-line); border-radius:10px; color:var(--cdx-dim); }
