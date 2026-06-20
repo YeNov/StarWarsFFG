@@ -1228,16 +1228,17 @@
 .cdx.cdx-embed .scheme-dark .form-group > label,
 .cdx.cdx-embed .scheme-dark .attributes-header,
 .cdx.cdx-embed .scheme-dark .attributes-header > * { color:var(--cdx-ink); }
-/* Modifications tab: put the Installed?/Broken? checkboxes and the Ranks field on
-   ONE row each -- label fills the row, control sits at the right -- instead of
-   stacked. Name + Description (text fields) keep the default column layout. */
-.cdx.cdx-embed .modification_header .form-group:has(> input[type="checkbox"]),
+/* Checkbox fields go inline: label fills the row, checkbox sits 5px off the right
+   edge. General across the embedded editor -- Installed?/Broken? (Modifications),
+   Restricted (Basics), the talent flags, etc. -- so every checkbox aligns the same. */
+.cdx.cdx-embed .form-group:has(> input[type="checkbox"]) { flex-direction:row; align-items:center; gap:8px; }
+.cdx.cdx-embed .form-group:has(> input[type="checkbox"]) > label { flex:1; margin:0; }
+.cdx.cdx-embed .form-group:has(> input[type="checkbox"]) > input[type="checkbox"] { margin-right:5px; }
+/* The Ranks number field also goes inline -- but ONLY in the Modifications tab
+   (.modification_header); the Basics number fields (HP/Rarity/Price) stay stacked. */
 .cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) { flex-direction:row; align-items:center; gap:8px; }
-.cdx.cdx-embed .modification_header .form-group:has(> input[type="checkbox"]) > label,
 .cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > label { flex:1; margin:0; }
 .cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > input[type="number"] { flex:0 0 auto; width:70px; }
-/* Keep the Installed?/Broken? checkboxes 5px clear of the row's right edge. */
-.cdx.cdx-embed .modification_header .form-group:has(> input[type="checkbox"]) > input[type="checkbox"] { margin-right:5px; }
 
 /* ===========================================================================
    Force-power upgrade tree — BESPOKE (.cdx-ft-*). No reliance on stock
