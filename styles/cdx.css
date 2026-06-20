@@ -1236,6 +1236,8 @@
 .cdx.cdx-embed .modification_header .form-group:has(> input[type="checkbox"]) > label,
 .cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > label { flex:1; margin:0; }
 .cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > input[type="number"] { flex:0 0 auto; width:70px; }
+/* Keep the Installed?/Broken? checkboxes 5px clear of the row's right edge. */
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="checkbox"]) > input[type="checkbox"] { margin-right:5px; }
 
 /* ===========================================================================
    Force-power upgrade tree — BESPOKE (.cdx-ft-*). No reliance on stock
