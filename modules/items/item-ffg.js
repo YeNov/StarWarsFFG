@@ -771,7 +771,11 @@ export class ItemFFG extends ItemBaseFFG {
         } else {
           upgradeDescriptions.push({
             name: up.name,
-            description: await foundry.applications.ux.TextEditor.enrichHTML(up.description),
+            // renderDiceImages (not plain enrichHTML) so FFG dice codes ([SU], [SE], …)
+            // become dietype glyph spans — its own regex pass converts them even when
+            // the registered enrichers don't fire. Matches the base-description path
+            // above, which renders glyphs; plain enrichHTML left the pill tooltips bare.
+            description: await PopoutEditor.renderDiceImages(up.description, this.actor),
             rank: 1,
           });
         }
