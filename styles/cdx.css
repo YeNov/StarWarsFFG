@@ -1311,7 +1311,7 @@
 .cdx .cdx-ft-body { flex:1; padding:7px 9px; font-size:11px; line-height:1.3; position:relative; }
 .cdx .cdx-ft-body .popout-editor-button { position:absolute; top:3px; right:5px; opacity:.45; cursor:pointer; }
 .cdx .cdx-ft-foot { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 8px; border-top:1px solid var(--cdx-line); }
-.cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:10.8px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
 .cdx .cdx-ft-cost input { background:transparent; border:none; width:3.5ch; color:var(--cdx-brass); font-weight:700; font-family:inherit; padding:0; }
 /* the base power's cost sits on the accent banner -- use head-ink so it reads */
 .cdx .cdx-ft-power .cdx-ft-cost, .cdx .cdx-ft-power .cdx-ft-cost input { color:var(--cdx-head-ink); }
