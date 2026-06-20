@@ -469,6 +469,10 @@
    between pairs — 4 dice wrap to 2×2, never 3+1; 3 wrap to a 2+1 pyramid. */
 .cdx .cdx-die-pair { display:inline-flex; flex:none; gap:3px; }
 .cdx .cdx-die-setback { width:16px; height:16px; flex:none; color:var(--cdx-ink); }
+/* Dark scheme: render the defence setback dice like the setback die glyph — black
+   fill with a white outline (rulebook-accurate) instead of the light currentColor
+   fill. CSS fill/stroke override the rect's fill="currentColor" presentation attr. */
+.cdx.scheme-dark .cdx-die-setback rect, .cdx .scheme-dark .cdx-die-setback rect { fill:#000; stroke:#fff; stroke-width:2; }
 .cdx .cdx-def-digit { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; color:var(--cdx-ink); }
 .cdx .cdx-def-dash { font-family:"Orbitron"; font-weight:700; font-size:18px; line-height:1; color:var(--cdx-dim); }
 
