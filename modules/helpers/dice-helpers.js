@@ -110,6 +110,8 @@ export default class DiceHelpers {
     });
 
     dicePool.upgrade(Math.min(characteristic.value, skill.rank) + dicePool.upgrades);
+    // status-effect difficulty upgrades (mirrors skill.upgrades for ability)
+    dicePool.upgradeDifficulty(skill.upgradeDifficulty ?? 0);
 
     if (type === "ability") {
       dicePool.upgrade();
@@ -221,6 +223,7 @@ export default class DiceHelpers {
     });
 
     dicePool.upgrade(Math.min(characteristic.value, skill.rank) + dicePool.upgrades);
+    dicePool.upgradeDifficulty(skill.upgradeDifficulty ?? 0);
 
     dicePool = new DicePoolFFG(await this.getModifiers(dicePool, item));
 
@@ -248,6 +251,7 @@ export default class DiceHelpers {
     });
 
     dicePool.upgrade(Math.min(characteristic.value, skill.rank) + dicePool.upgrades);
+    dicePool.upgradeDifficulty(skill.upgradeDifficulty ?? 0);
 
     this.displayRollDialog(sheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${skill.label}`, skill.label, {}, flavorText, sound);
   }
@@ -339,6 +343,7 @@ export function get_dice_pool(actor_id, skill_name, incoming_roll) {
     difficulty: +incomingPool.difficulty,
     challenge: +incomingPool.challenge,
   });
+  dicePool.upgradeDifficulty(skill.upgradeDifficulty ?? 0);
   return dicePool;
 }
 
