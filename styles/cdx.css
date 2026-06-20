@@ -1383,12 +1383,14 @@
 .cdx .cdx-ft-resize .talent-action { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; background:var(--cdx-accent); color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
 
 /* --- Specialization talent tree extras (reuses everything above) ---
-   Talents add: force/conflict/ranked marks in the card head, an activation
-   label at the top of the body, and a Skills tab (career skills + universal). */
-.cdx .cdx-ft-mark { flex:none; font-size:10px; line-height:1; }
-.cdx .cdx-ft-force { color:var(--cdx-head-ink); }
-.cdx .cdx-ft-conflict { color:#e23b3b; font-size:7px; }
-.cdx .cdx-ft-ranked { color:var(--cdx-head-ink); opacity:.75; font-size:9px; }
+   Talents add: force/conflict/ranked marks in the card FOOT (with the cost), an
+   activation label at the top of the body, and a Skills tab (career + universal). */
+.cdx .cdx-ft-marks { display:inline-flex; align-items:center; gap:7px; }
+.cdx .cdx-ft-mark { flex:none; font-size:11px; line-height:1; }
+/* Foot bg is the card paper, so colour the marks for paper (not the head ink). */
+.cdx .cdx-ft-force { color:var(--cdx-accent); }
+.cdx .cdx-ft-conflict { color:#e23b3b; }
+.cdx .cdx-ft-ranked { color:var(--cdx-dim); }
 /* Activation type line (Passive / Active …) above the talent description. */
 .cdx .cdx-ft-act { font-family:"Orbitron",sans-serif; font-weight:700; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); margin-bottom:4px; }
 .cdx .cdx-ft-passive .cdx-ft-act { color:var(--cdx-accent); }

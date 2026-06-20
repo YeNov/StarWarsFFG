@@ -62,9 +62,6 @@
             <div class="cdx-ft-head">
               <span class="cdx-ft-state"><input type="checkbox" name="data.talents.{{key}}.islearned" data-dtype="Boolean" {{#if talent.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
               <span class="cdx-ft-name">{{talent.name}}</span>
-              {{#if talent.isForceTalent}}<i class="fas fa-jedi cdx-ft-mark cdx-ft-force" title="{{localize 'SWFFG.TalentsForce'}}"></i>{{/if}}
-              {{#if talent.isConflictTalent}}<i class="fas fa-circle cdx-ft-mark cdx-ft-conflict" title="{{localize 'SWFFG.TalentsConflict'}}"></i>{{/if}}
-              {{#if talent.isRanked}}<i class="fas fa-repeat cdx-ft-mark cdx-ft-ranked" title="{{localize 'SWFFG.ItemTalentRanked'}}"></i>{{/if}}
               {{!-- Buy glyph only when the spec is OWNED and the talent is purchasable. --}}
               <span class="cdx-ft-buy">{{#if ../item.isOwned}}{{#if talent.canPurchase}}<i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="specialization-upgrade" data-cost="{{talent.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{talent.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{calculateSpecializationTalentCost key}}"></i>{{/if}}{{/if}}</span>
             </div>
@@ -77,6 +74,12 @@
             </div>
             <div class="cdx-ft-foot">
               <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} <b class="cdx-ft-cost-v">{{calculateSpecializationTalentCost key}}</b></span>
+              {{!-- Talent-type marks (force / conflict / ranked) sit in the foot with the cost. --}}
+              <span class="cdx-ft-marks">
+                {{#if talent.isForceTalent}}<i class="fas fa-jedi cdx-ft-mark cdx-ft-force" title="{{localize 'SWFFG.TalentsForce'}}"></i>{{/if}}
+                {{#if talent.isConflictTalent}}<i class="fas fa-circle cdx-ft-mark cdx-ft-conflict" title="{{localize 'SWFFG.TalentsConflict'}}"></i>{{/if}}
+                {{#if talent.isRanked}}<i class="fas fa-repeat cdx-ft-mark cdx-ft-ranked" title="{{localize 'SWFFG.ItemTalentRanked'}}"></i>{{/if}}
+              </span>
               <span class="cdx-ft-edit-actions">
                 <a class="talent-action" data-itemid="{{key}}" title="Modifiers"><i class="fas fa-cog"></i></a>
               </span>
