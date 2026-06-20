@@ -79,7 +79,7 @@
                 {{!-- A conflict talent is ALWAYS a force talent, so one slot covers both:
                      conflict -> Sith emblem; plain force (not conflict) -> jedi crest. --}}
                 {{#if talent.isConflictTalent}}<span class="cdx-ft-mark cdx-ft-sith" title="{{localize 'SWFFG.TalentsConflict'}}"></span>{{else}}{{#if talent.isForceTalent}}<i class="fas fa-jedi cdx-ft-mark cdx-ft-force" title="{{localize 'SWFFG.TalentsForce'}}"></i>{{/if}}{{/if}}
-                {{#if talent.isRanked}}<i class="fas fa-repeat cdx-ft-mark cdx-ft-ranked" title="{{localize 'SWFFG.ItemTalentRanked'}}"></i>{{/if}}
+                {{#if talent.isRanked}}<i class="fas fa-angles-up cdx-ft-mark cdx-ft-ranked" title="{{localize 'SWFFG.ItemTalentRanked'}}"></i>{{/if}}
               </span>
               <span class="cdx-ft-edit-actions">
                 <a class="talent-action" data-itemid="{{key}}" title="Modifiers"><i class="fas fa-cog"></i></a>
