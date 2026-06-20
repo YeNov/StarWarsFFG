@@ -91,8 +91,12 @@
   {{!-- Tabs --}}
   <nav class="cdx-tabstrip">
     <button type="button" class="cdx-tab active" data-tab="skills">{{localize "SWFFG.Codex.TabSkills"}}</button>
+    {{#if cdxCombinedInventory}}
+    <button type="button" class="cdx-tab" data-tab="inventory">{{localize "SWFFG.Codex.TabInventory"}}</button>
+    {{else}}
     <button type="button" class="cdx-tab" data-tab="combat">{{localize "SWFFG.Codex.TabCombat"}}</button>
     <button type="button" class="cdx-tab" data-tab="gear">{{localize "SWFFG.Codex.TabGear"}}</button>
+    {{/if}}
     <button type="button" class="cdx-tab" data-tab="injuries">{{localize "SWFFG.Codex.TabCrits"}}{{#if cdxCritCount}}<span class="cdx-tab-badge">{{cdxCritCount}}</span>{{/if}}</button>
     <button type="button" class="cdx-tab" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
     <button type="button" class="cdx-tab" data-tab="bio">{{localize "SWFFG.Codex.TabBio"}}</button>
@@ -116,10 +120,19 @@
     </div>
     {{> "systems/starwarsffg/templates/parts/codex/cdx-skills.html"}}
   </section>
+  {{#if cdxCombinedInventory}}
+  {{!-- Combined inventory: weapons + armour (combat) and gear under one tab. The
+       gear partial's encumbrance chip is suppressed (hideEnc) so the pool shows
+       once, in the weapons header. --}}
+  <section class="cdx-pane items" data-tab="inventory">{{> "systems/starwarsffg/templates/parts/codex/cdx-combat.html"}}{{> "systems/starwarsffg/templates/parts/codex/cdx-gear.html" hideEnc=true}}</section>
+  {{else}}
   <section class="cdx-pane" data-tab="combat">{{> "systems/starwarsffg/templates/parts/codex/cdx-combat.html"}}</section>
+  {{/if}}
   <section class="cdx-pane injuries" data-tab="injuries">{{> "systems/starwarsffg/templates/parts/codex/cdx-injuries.html"}}</section>
   <section class="cdx-pane talents items" data-tab="talents">{{> "systems/starwarsffg/templates/parts/codex/cdx-talents.html"}}</section>
+  {{#unless cdxCombinedInventory}}
   <section class="cdx-pane gear" data-tab="gear">{{> "systems/starwarsffg/templates/parts/codex/cdx-gear.html"}}</section>
+  {{/unless}}
 
   {{!-- Bio --}}
   <section class="cdx-pane bio" data-tab="bio">

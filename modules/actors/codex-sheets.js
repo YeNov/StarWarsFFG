@@ -121,7 +121,38 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   /** @override — add the Codex-only listeners on top of the stock ones. */
   activateListeners(html) {
     super.activateListeners(html);
+    this._cdxRegisterSheetOptions();
     this._cdxActivate(html);
+  }
+
+  /**
+   * Codex-only Sheet Options, added on top of the stock per-type ones. Registered
+   * here (not in the base actor-sheet-ffg per-type blocks) so the option appears
+   * ONLY when a Codex sheet is the active sheet — i.e. "the Codex theme is
+   * selected" is exactly "this sheet class is in use". `this.sheetoptions` is
+   * created by the base activateListeners (run via super above) for every actor
+   * type the Codex sheet supports.
+   *
+   *  - Inventory Style: "split" (default) keeps the separate Combat + Gear tabs;
+   *    "combined" merges weapons/armour/gear under one Inventory tab. Only the
+   *    actor types with those tabs get it (vehicles have a different tab set).
+   *    Stored as a semantic string (NOT an index) because the dialog's Array
+   *    type renders an object's keys as the <option value>s; see getData/the
+   *    templates which branch on the "combined" value.
+   */
+  _cdxRegisterSheetOptions() {
+    if (!this.sheetoptions) return;
+    if (!["character", "rival", "nemesis", "minion"].includes(this.actor?.type)) return;
+    this.sheetoptions.register("codexInventoryStyle", {
+      name: game.i18n.localize("SWFFG.Codex.InventoryStyle"),
+      hint: game.i18n.localize("SWFFG.Codex.InventoryStyleHint"),
+      type: "Array",
+      default: "split",
+      options: {
+        split: game.i18n.localize("SWFFG.Codex.InventoryStyleSplit"),
+        combined: game.i18n.localize("SWFFG.Codex.InventoryStyleCombined"),
+      },
+    });
   }
 
   /** @override — drop the pill-stack's document listener when the sheet closes. */
@@ -520,6 +551,10 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     const ctx = await super.getData(options);
     // Per-actor collapsed-header preference (characters/rivals/nemeses/minions).
     ctx.cdxHeaderCollapsed = !!this.actor?.getFlag?.("starwarsffg", "codexHeaderCollapsed");
+    // Inventory Style (Sheet Option): "combined" merges weapons/armour/gear into
+    // one Inventory tab; anything else (default "split") keeps the Combat + Gear
+    // tabs. Dotted-key getFlag, same idiom as config.enableEditMode above.
+    ctx.cdxCombinedInventory = this.actor?.getFlag?.("starwarsffg", "config.codexInventoryStyle") === "combined";
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
       // Header pill stacks (specializations / force powers / signature abilities):
