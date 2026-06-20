@@ -1381,4 +1381,24 @@
 .cdx .cdx-ft-resize { display:none; position:absolute; top:28%; left:100%; transform:translate(-50%, -50%); z-index:4; flex-direction:column; gap:3px; }
 .cdx .cdx-ft-edit .cdx-ft-resize { display:flex; }
 .cdx .cdx-ft-resize .talent-action { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; background:var(--cdx-accent); color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+
+/* --- Specialization talent tree extras (reuses everything above) ---
+   Talents add: force/conflict/ranked marks in the card head, an activation
+   label at the top of the body, and a Skills tab (career skills + universal). */
+.cdx .cdx-ft-mark { flex:none; font-size:10px; line-height:1; }
+.cdx .cdx-ft-force { color:var(--cdx-head-ink); }
+.cdx .cdx-ft-conflict { color:#e23b3b; font-size:7px; }
+.cdx .cdx-ft-ranked { color:var(--cdx-head-ink); opacity:.75; font-size:9px; }
+/* Activation type line (Passive / Active …) above the talent description. */
+.cdx .cdx-ft-act { font-family:"Orbitron",sans-serif; font-weight:700; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); margin-bottom:4px; }
+.cdx .cdx-ft-passive .cdx-ft-act { color:var(--cdx-accent); }
+/* Empty talent slot reads as a drop target rather than a blank card. */
+.cdx .cdx-ft-node:not(.on) .cdx-ft-name:empty::before { content:"— drop talent —"; color:var(--cdx-dim); font-weight:400; text-transform:none; font-size:9px; }
+/* Skills tab. */
+.cdx .cdx-ft-skills-head { font-family:"Orbitron",sans-serif; font-weight:700; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); margin:4px 0 9px; }
+.cdx .cdx-ft-skills { display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; }
+.cdx .cdx-ft-skill { background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px; color:var(--cdx-ink); font-family:inherit; font-size:12px; padding:5px 8px; }
+.cdx .cdx-ft-skill option { color:#111; }
+.cdx .cdx-ft-universal { display:flex; align-items:center; gap:8px; margin-top:13px; font-family:"Orbitron",sans-serif; font-weight:700; font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-ink); cursor:pointer; }
+.cdx .cdx-ft-universal input { accent-color:var(--cdx-accent); width:15px; height:15px; }
 .cdx .cdx-ft-resize .talent-action:hover { filter:brightness(1.2); }

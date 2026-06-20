@@ -1075,6 +1075,10 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       html.find(".talent-action").on("click", this._onClickTalentControl.bind(this));
       html.find(".talent-actions .fa-cog").on("click", ModifierHelpers.popoutModiferWindow.bind(this));
       html.find(".talent-modifiers .fa-cog").on("click", this._onClickUpgradeEdit.bind(this));
+      // Codex bespoke tree (.cdx-ft-*) renames the stock cog containers (same as
+      // the force-power tree above), so bind the codex spec/talent modifier cogs.
+      html.find(".cdx-ft-power-actions .fa-cog").on("click", ModifierHelpers.popoutModiferWindow.bind(this));
+      html.find(".cdx-ft-edit-actions .fa-cog").on("click", this._onClickUpgradeEdit.bind(this));
       try {
         const dragDrop = new foundry.applications.ux.DragDrop({
           dragSelector: ".item",
