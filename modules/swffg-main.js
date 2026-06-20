@@ -699,6 +699,7 @@ Hooks.once("init", async function () {
       success: [],
       upgradeDifficulty: [],
       difficulty: [],
+      advantage: [],
     };
     for (const skill of Object.keys(CONFIG.FFG.skills)) {
       allSkillChanges['boost'].push({
@@ -728,6 +729,11 @@ Hooks.once("init", async function () {
       });
       allSkillChanges['difficulty'].push({
         key: `system.skills.${skill}.difficulty`,
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        value: "1",
+      });
+      allSkillChanges['advantage'].push({
+        key: `system.skills.${skill}.advantage`,
         mode: CONST.ACTIVE_EFFECT_MODES.ADD,
         value: "1",
       });
@@ -783,6 +789,15 @@ Hooks.once("init", async function () {
       }
     });
     CONFIG.statusEffects.push({
+      id: "starwarsffg-advantage-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/advantage.png`,
+      name: "SWFFG.Status.Advantage.Next",
+      changes: allSkillChanges['advantage'],
+      system: {
+        duration: "once",
+      }
+    });
+    CONFIG.statusEffects.push({
       id: "starwarsffg-difficulty-once",
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/purple.png`,
       name: "SWFFG.Status.Difficulty.Next",
@@ -833,6 +848,15 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/success.png`,
       name: "SWFFG.Status.Success.Combat",
       changes: allSkillChanges['success'],
+      system: {
+        duration: "combat",
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-advantage-combat",
+      img: `systems/starwarsffg/images/status/advantage.png`,
+      name: "SWFFG.Status.Advantage.Combat",
+      changes: allSkillChanges['advantage'],
       system: {
         duration: "combat",
       }
