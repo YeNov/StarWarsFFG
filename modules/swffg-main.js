@@ -253,7 +253,7 @@ Hooks.once("init", async function () {
   };
 
   // Load character templates so that dynamic skills lists work correctly
-  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html", "systems/starwarsffg/templates/items/codex/codex-crit.html", "systems/starwarsffg/templates/items/codex/codex-shipweapon.html", "systems/starwarsffg/templates/items/codex/codex-itemattachment.html", "systems/starwarsffg/templates/items/codex/codex-shipattachment.html"]);
+  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html", "systems/starwarsffg/templates/items/codex/codex-crit.html", "systems/starwarsffg/templates/items/codex/codex-shipweapon.html", "systems/starwarsffg/templates/items/codex/codex-itemattachment.html", "systems/starwarsffg/templates/items/codex/codex-shipattachment.html", "systems/starwarsffg/templates/items/codex/codex-forcepower.html", "systems/starwarsffg/templates/items/codex/codex-specialization.html", "systems/starwarsffg/templates/items/codex/codex-signatureability.html"]);
 
   SettingsHelpers.initLevelSettings();
 
@@ -955,7 +955,7 @@ Hooks.once("init", async function () {
   // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Detailed
   // templates: weapon/armour/gear/talent; a generic Codex frame covers the other
   // simple types. Complex tree/config types keep the stock sheet (not listed).
-  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
+  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "forcepower", "specialization", "signatureability", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
   foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
     types: CODEX_ITEM_TYPES,
     label: "Codex II Item Sheet",

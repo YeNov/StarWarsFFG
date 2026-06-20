@@ -4,16 +4,17 @@
  * from the actor work; the scheme is a per-ITEM flag, falling back to the owning
  * actor's scheme, then republic.
  *
- * Scope: bespoke templates for weapon/armour/gear/talent; a generic Codex frame
- * (codex-item.html) for the other simple types (ability, crit injury/damage,
- * obligation, motivation, background, ship attachment, homestead upgrade). The
- * complex tree/config types (specialization, career, force/signature, species,
- * item attachment, ship weapon, item modifier) keep the stock sheet for now and
- * are NOT registered for this sheet.
+ * Scope: bespoke templates for weapon/armour/gear/talent, the three talent-tree
+ * types (force power / specialization / signature ability — bespoke .cdx-ft-*
+ * tree), plus ship weapon / item attachment / ship attachment; a generic Codex
+ * frame (codex-item.html) covers the remaining simple types (ability, crit
+ * injury/damage, obligation, motivation, background, homestead upgrade). The
+ * remaining config types (career, species, item modifier) keep the stock sheet
+ * and are NOT registered for this sheet.
  *
- * Tabs stay native: the base ItemSheetFFG configures a Foundry Tabs controller
- * keyed off `.sheet-tabs` / `.sheet-body`, so the codex templates keep that
- * markup (and the shared modifiers/sources/tags partials) and only restyle it.
+ * Tabs: the simple/detailed item templates keep native `.sheet-tabs` / `.sheet-body`
+ * (restyled). The tree templates use a bespoke `.cdx-tabstrip` switched in JS
+ * (see activateListeners), the same as the codex actor sheets.
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
 import { CDX_SCHEMES, cdxDefaultScheme } from "../actors/codex-sheets.js";
@@ -21,7 +22,7 @@ import { CDX_SCHEMES, cdxDefaultScheme } from "../actors/codex-sheets.js";
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
  *  file throws ENOENT when the sheet renders. (talent still pending.) */
-const CODEX_DETAILED = new Set(["gear", "weapon", "armour", "talent"]);
+const CODEX_DETAILED = new Set(["gear", "weapon", "armour", "talent", "forcepower", "specialization", "signatureability"]);
 
 /** data.status values ↔ condition-track labels (None = Undamaged). */
 const CODEX_STATUS = ["None", "Minor", "Moderate", "Major"];
@@ -72,6 +73,13 @@ export class CodexItemSheet extends ItemSheetFFG {
     // Localized item-type name for the header type pill (shared by every codex
     // item template via the general .cdx-ihead header).
     try { ctx.cdxTypeLabel = game.i18n.localize(`TYPES.Item.${this.item?.type}`); } catch (e) { ctx.cdxTypeLabel = ""; }
+    // Tree types (force power / signature / specialization): edit is a TRANSIENT
+    // per-session toggle (this._cdxEdit, default off), so the tree always opens
+    // read-only regardless of any persisted system.isEditing. The bespoke edit
+    // pencil flips _cdxEdit and re-renders (see activateListeners).
+    if (["forcepower", "signatureability", "specialization"].includes(this.item?.type) && ctx.data) {
+      ctx.data.isEditing = !!this._cdxEdit;
+    }
     try {
       const cur = Math.max(0, CODEX_STATUS.indexOf(ctx?.data?.status ?? "None"));
       ctx.cdxConditions = CODEX_STATUS.map((value, i) => ({
@@ -118,6 +126,14 @@ export class CodexItemSheet extends ItemSheetFFG {
       form.style.setProperty("overflow-x", "hidden", "important");
     }
     const root = html?.[0] ?? form;
+
+    // Tree edit pencil: flip the transient edit flag and re-render (read-only <->
+    // edit). NOT the persisted stock data.isEditing path.
+    root?.querySelector?.(".cdx-ft-edit-toggle")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      this._cdxEdit = !this._cdxEdit;
+      this.render({ force: true });
+    });
 
     // Bespoke tab switching — same as the codex actor sheets (.cdx-tab buttons /
     // .cdx-pane sections, toggled in JS). The stock native Tabs controller keyed

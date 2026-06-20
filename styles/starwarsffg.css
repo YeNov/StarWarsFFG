@@ -374,6 +374,13 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   pointer-events: none;
 }
 
+/* Cap the dialog width so a long hint/notes line wraps onto multiple rows
+   instead of stretching the auto-sized window horizontally. The 1fr label/notes
+   grid column then wraps within this bound; short hints keep the dialog compact. */
+.starwarsffg.application.dialog .sheet-options-dialog {
+  max-width: 600px !important;
+}
+
 .starwarsffg.application.dialog .sheet-options-dialog .form-group {
   display: grid !important;
   grid-template-columns: 1fr auto !important;
@@ -421,6 +428,8 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   font-size: 0.95em !important;
   line-height: 1.25 !important;
   opacity: 0.85 !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
 }
 
 .starwarsffg.application.dialog .sheet-options-dialog input[type=checkbox] {

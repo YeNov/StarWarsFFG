@@ -1,0 +1,133 @@
+{{!--
+  CODEX II — specialization talent tree, BESPOKE layout. Reuses the .cdx-ft-*
+  force-tree design system (see docs/codex-force-tree-design.md). Talents are
+  single-cell (NOT size-aware): one top link (links-top-1) + links-right, no
+  combine/split. Each .cdx-ft-node ALSO carries .specialization-talent (the
+  drag-drop drop target) + data-itemid/data-cost so dropping a talent and the
+  Buy/Grant flow keep working. Bindings:
+    - data.talents.{key}.{islearned,name,description,activation,activationLabel,
+        itemId,isRanked,pack,cost,isForceTalent,isConflictTalent,links-top-1,links-right}
+    - .ffg-purchase[data-buy-action=specialization-upgrade]   (buy a talent)
+    - [data-action=link-top|link-right] (.talent-action)      (toggle a prereq link, edit)
+    - .talent-action[data-itemid]                             (modifiers cog)
+  4-column grid (4×5 tiers); the per-tier XP cost shows in each card foot.
+--}}
+<form class="{{cssClass}} item-sheet-specialization {{#if data.isEditing}}cdx-ft-editing{{/if}}" autocomplete="off">
+  <nav class="cdx-tabstrip cdx-ft-tabs">
+    <button type="button" class="cdx-tab active" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
+    <button type="button" class="cdx-tab" data-tab="skills">{{localize "SWFFG.TabClassSkills"}}</button>
+    <button type="button" class="cdx-tab" data-tab="sources">{{localize "SWFFG.TabSources"}}</button>
+    <button type="button" class="cdx-tab" data-tab="tags">{{localize "SWFFG.TabTags"}}</button>
+  </nav>
+
+  <header class="cdx-ft-banner">
+    {{!-- The specialization itself (top banner). --}}
+    <div class="cdx-ft-power {{#if item.isOwned}}on{{/if}}">
+      <div class="cdx-ft-power-name">{{#if data.isEditing}}<input name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Specialization'}}" />{{else}}{{item.name}}{{/if}}</div>
+      <div class="cdx-ft-power-sub">{{localize 'SWFFG.Specialization'}}</div>
+      <div class="cdx-ft-desc">
+        <div class="popout-editor" data-target="data.description" data-label="{{item.name}}">
+          <a class="popout-editor-button"><i class="fas fa-edit"></i></a>
+          {{{ffgDiceSymbols data.enrichedDescription}}}
+        </div>
+      </div>
+      <div class="cdx-ft-power-foot">
+        <span></span>
+        <span class="cdx-ft-power-actions">
+          <a class="talent-action hover" data-itemid="{{item._id}}" title="Modifiers"><i class="fas fa-cog"></i></a>
+          <a class="cdx-ft-edit-toggle {{#if data.isEditing}}on{{/if}}" title="Toggle tree edit mode"><i class="fas fa-pen-to-square"></i></a>
+          <a class="talent-action" data-action="img" title="Image"><i class="fas fa-image"></i></a>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <section class="cdx-ft-tree">
+    <section class="cdx-pane active" data-tab="talents">
+      <div class="cdx-ft-grid {{#if data.isEditing}}cdx-ft-edit{{/if}}">
+        {{#each data.talents as |talent key|}}
+        <div class="cdx-ft-node specialization-talent {{#if talent.islearned}}on{{/if}}"
+             id="{{key}}" data-itemid="{{talent.itemId}}" data-cost="{{calculateSpecializationTalentCost key}}" data-base-item-name="{{../item.name}}">
+
+          {{!-- Up connector: a single cell (talents are 1-wide); none on the first tier. --}}
+          <div class="cdx-ft-uplinks">
+            <div class="cdx-ft-upcell">
+              {{#if talent.links-top-1}}<span class="cdx-ft-line cdx-ft-up {{#if (and talent.islearned talent.isTopLearned)}}on{{/if}}"></span>{{/if}}
+              <a class="talent-action cdx-ft-toggle {{#if talent.links-top-1}}set{{/if}} {{#unless talent.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="1" title="Toggle link"></a>
+              <input class="cdx-ft-hide" name="data.talents.{{key}}.links-top-1" type="text" value="{{talent.links-top-1}}" data-dtype="Boolean" />
+            </div>
+          </div>
+
+          <div class="cdx-ft-card {{#iff talent.activationLabel 'contains' 'Passive'}}cdx-ft-passive{{else}}cdx-ft-active{{/iff}}">
+            <div class="cdx-ft-head">
+              <span class="cdx-ft-state"><input type="checkbox" name="data.talents.{{key}}.islearned" data-dtype="Boolean" {{#if talent.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
+              <span class="cdx-ft-name">{{talent.name}}</span>
+              {{!-- Buy glyph only when the spec is OWNED and the talent is purchasable. --}}
+              <span class="cdx-ft-buy">{{#if ../item.isOwned}}{{#if talent.canPurchase}}<i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="specialization-upgrade" data-cost="{{talent.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{talent.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{calculateSpecializationTalentCost key}}"></i>{{/if}}{{/if}}</span>
+            </div>
+            <div class="cdx-ft-body">
+              {{#if talent.activationLabel}}<div class="cdx-ft-act">{{localize talent.activationLabel}}</div>{{/if}}
+              <div class="popout-editor" data-target="data.talents.{{key}}.description" data-value="data.talents.{{key}}.enrichedDescription" data-label="{{talent.name}}">
+                <a class="popout-editor-button"><i class="fas fa-edit"></i></a>
+                {{{talent.enrichedDescription}}}
+              </div>
+            </div>
+            <div class="cdx-ft-foot">
+              <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} <b class="cdx-ft-cost-v">{{calculateSpecializationTalentCost key}}</b></span>
+              {{!-- Talent-type marks (force / conflict / ranked) sit in the foot with the cost. --}}
+              <span class="cdx-ft-marks">
+                {{!-- A conflict talent is ALWAYS a force talent, so one slot covers both:
+                     conflict -> Sith emblem; plain force (not conflict) -> jedi crest. --}}
+                {{#if talent.isConflictTalent}}<span class="cdx-ft-mark cdx-ft-sith" title="{{localize 'SWFFG.TalentsConflict'}}"></span>{{else}}{{#if talent.isForceTalent}}<i class="fas fa-jedi cdx-ft-mark cdx-ft-force" title="{{localize 'SWFFG.TalentsForce'}}"></i>{{/if}}{{/if}}
+                {{#if talent.isRanked}}<i class="fas fa-angles-up cdx-ft-mark cdx-ft-ranked" title="{{localize 'SWFFG.ItemTalentRanked'}}"></i>{{/if}}
+              </span>
+              <span class="cdx-ft-edit-actions">
+                <a class="talent-action" data-itemid="{{key}}" title="Modifiers"><i class="fas fa-cog"></i></a>
+              </span>
+            </div>
+            {{!-- Talent identity fields (populated by drag-drop) preserved on submit. --}}
+            <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.name" value="{{talent.name}}" />
+            <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.activation" value="{{talent.activation}}" />
+            <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.activationLabel" value="{{talent.activationLabel}}" />
+            <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.itemId" value="{{talent.itemId}}" />
+            <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.isRanked" value="{{talent.isRanked}}" data-dtype="Boolean" />
+            <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.pack" value="{{talent.pack}}" />
+            <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.cost" value="{{talent.cost}}" />
+            <input class="cdx-ft-hide" type="checkbox" name="data.talents.{{key}}.isForceTalent" data-dtype="Boolean" {{checked talent.isForceTalent}} />
+          </div>
+
+          {{!-- Right connector to the node on the right. --}}
+          <div class="cdx-ft-rightlink">
+            {{#if talent.links-right}}<span class="cdx-ft-line cdx-ft-right {{#if (and talent.islearned talent.isRightLearned)}}on{{/if}}"></span>{{/if}}
+            <a class="talent-action cdx-ft-toggle cdx-ft-toggle-right {{#if talent.links-right}}set{{/if}} {{#unless talent.canLinkRight}}cdx-ft-gone{{/unless}}" data-action="link-right" data-key="{{key}}" title="Toggle link"></a>
+            <input class="cdx-ft-hide" name="data.talents.{{key}}.links-right" type="text" value="{{talent.links-right}}" data-dtype="Boolean" />
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      <div class="hidden-content">
+        {{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}
+      </div>
+    </section>
+
+    {{!-- Career skills + universal toggle. --}}
+    <section class="cdx-pane skills" data-tab="skills">
+      <div class="cdx-ft-skills-head">{{localize "SWFFG.Spec.CareerSkills"}}</div>
+      <div class="cdx-ft-skills">
+        {{#each data.careerSkills as |skill index|}}
+        <select name="data.careerSkills.{{index}}" class="cdx-ft-skill">
+          {{selectOptions ../careerSkills selected=skill valueAttr="value" labelAttr="label" localize=true}}
+        </select>
+        {{/each}}
+      </div>
+      <label class="cdx-ft-universal"><input type="checkbox" name="data.universal" data-dtype="Boolean" {{checked data.universal}} /> {{localize "SWFFG.Spec.Universal"}}</label>
+    </section>
+
+    <section class="cdx-pane sources" data-tab="sources">
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}
+    </section>
+    <section class="cdx-pane tags" data-tab="tags">
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}
+    </section>
+  </section>
+</form>

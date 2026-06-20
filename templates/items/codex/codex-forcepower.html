@@ -1,0 +1,139 @@
+{{!--
+  CODEX II — force-power upgrade tree, BESPOKE layout (no stock .talent-* markup).
+  Bespoke .cdx-ft-* structure + CSS (styles/cdx.css). We keep ONLY the system's
+  data bindings + behaviour hooks so the existing item-sheet JS still drives it:
+    - data.upgrades.{key}.{islearned,name,cost,size,visible,links-top-N,links-right}
+    - .ffg-purchase[data-buy-action]      (buy an upgrade)
+    - [data-action=link-top|link-right]   (toggle a link, edit mode)
+    - [data-action=combine|split]         (resize a node, edit mode)
+    - [data-action=edit|img], [data-itemid] (.talent-action)  (power/mod controls)
+    - .popout-editor                       (description editors)
+  Connector "on" = BOTH endpoints purchased (AND) -> .on (accent + glow).
+  The CSS grid is 4 columns; nodes span via grid-column. Up/right connector lines
+  live in the grid gaps. Edit affordances are gated by .cdx-ft-edit on the grid.
+--}}
+<form class="{{cssClass}} item-sheet-forcepower {{#if data.isEditing}}cdx-ft-editing{{/if}}" autocomplete="off">
+  {{!-- Codex tabs: horizontal text strip above the header. Bespoke .sheet-tabs nav
+       driven by the bespoke codex tab JS (.cdx-tab buttons / .cdx-pane sections),
+       same as the other codex item sheets; styled by .cdx-ft-tabs in cdx.css. --}}
+  <nav class="cdx-tabstrip cdx-ft-tabs">
+    <button type="button" class="cdx-tab active" data-tab="talents">{{localize "SWFFG.TabTalents"}}</button>
+    <button type="button" class="cdx-tab" data-tab="sources">{{localize "SWFFG.TabSources"}}</button>
+    <button type="button" class="cdx-tab" data-tab="tags">{{localize "SWFFG.TabTags"}}</button>
+  </nav>
+  <header class="cdx-ft-banner">
+    {{!-- The power itself (top banner). Owned == base power purchased. --}}
+    <div class="cdx-ft-power {{#if item.isOwned}}on{{/if}}">
+      <div class="cdx-ft-power-row">
+        <span class="cdx-ft-fr">{{localize 'SWFFG.ForcePowerRequiredFR'}} {{#if data.isEditing}}<input name="system.required_force_rating" type="text" value="{{item.system.required_force_rating}}" />{{else}}<b>{{item.system.required_force_rating}}</b>{{/if}}</span>
+      </div>
+      <div class="cdx-ft-power-name">{{#if data.isEditing}}<input name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.ForcePowerName'}}" />{{else}}{{item.name}}{{/if}}</div>
+      <div class="cdx-ft-power-sub">{{localize 'SWFFG.ForceBasicPower'}}</div>
+      <div class="cdx-ft-desc">
+        <div class="popout-editor" data-target="data.description" data-label="{{item.name}} {{localize 'SWFFG.ForceBasicPower'}}">
+          <a class="popout-editor-button"><i class="fas fa-edit"></i></a>
+          {{{ffgDiceSymbols data.enrichedDescription}}}
+        </div>
+      </div>
+      <div class="cdx-ft-power-foot">
+        <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} {{#if data.isEditing}}<input name="data.base_cost" type="text" value="{{item.system.base_cost}}" data-dtype="String" />{{else}}<b class="cdx-ft-cost-v">{{item.system.base_cost}}</b>{{/if}}</span>
+        <span class="cdx-ft-power-actions">
+          <a class="talent-action hover" data-itemid="{{item._id}}" title="Modifiers"><i class="fas fa-cog"></i></a>
+          <a class="cdx-ft-edit-toggle {{#if data.isEditing}}on{{/if}}" title="Toggle tree edit mode"><i class="fas fa-pen-to-square"></i></a>
+          <a class="talent-action" data-action="img" title="Image"><i class="fas fa-image"></i></a>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <section class="cdx-ft-tree">
+    <section class="cdx-pane active" data-tab="talents">
+    <div class="cdx-ft-grid {{#if data.isEditing}}cdx-ft-edit{{/if}}">
+      {{#each data.upgrades as |upgrade key|}}
+      <div class="cdx-ft-node size-{{#if upgrade.sizeInt}}{{upgrade.sizeInt}}{{else}}1{{/if}} {{#if upgrade.islearned}}on{{/if}} {{#unless upgrade.visible}}cdx-ft-gone{{/unless}}"
+           id="{{key}}" data-cost="{{upgrade.cost}}" data-base-item-name="{{../item.name}}"
+           style="grid-column: span {{#if upgrade.sizeInt}}{{upgrade.sizeInt}}{{else}}1{{/if}};">
+
+        {{!-- Up connectors: one cell per spanned column, distributed across the node
+             width; the line sits in the row-gap above and the toggle is edit-only. --}}
+        <div class="cdx-ft-uplinks">
+          <div class="cdx-ft-upcell">
+            {{#if upgrade.links-top-1}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop1Learned)}}on{{/if}}"></span>{{/if}}
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-1}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="1" title="Toggle link"></a>
+            <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-1" type="text" value="{{upgrade.links-top-1}}" data-dtype="Boolean" />
+          </div>
+          {{#iff upgrade.sizeInt ">" 1}}
+          <div class="cdx-ft-upcell">
+            {{#if upgrade.links-top-2}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop2Learned)}}on{{/if}}"></span>{{/if}}
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-2}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="2" title="Toggle link"></a>
+            <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-2" type="text" value="{{upgrade.links-top-2}}" data-dtype="Boolean" />
+          </div>
+          {{/iff}}{{#iff upgrade.sizeInt ">" 2}}
+          <div class="cdx-ft-upcell">
+            {{#if upgrade.links-top-3}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop3Learned)}}on{{/if}}"></span>{{/if}}
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-3}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="3" title="Toggle link"></a>
+            <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-3" type="text" value="{{upgrade.links-top-3}}" data-dtype="Boolean" />
+          </div>
+          {{/iff}}{{#iff upgrade.sizeInt ">" 3}}
+          <div class="cdx-ft-upcell">
+            {{#if upgrade.links-top-4}}<span class="cdx-ft-line cdx-ft-up {{#if (and upgrade.islearned upgrade.isTop4Learned)}}on{{/if}}"></span>{{/if}}
+            <a class="talent-action cdx-ft-toggle {{#if upgrade.links-top-4}}set{{/if}} {{#unless upgrade.canLinkTop}}cdx-ft-gone{{/unless}}" data-action="link-top" data-key="{{key}}" data-linknumber="4" title="Toggle link"></a>
+            <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-top-4" type="text" value="{{upgrade.links-top-4}}" data-dtype="Boolean" />
+          </div>
+          {{/iff}}
+        </div>
+
+        {{!-- The node card --}}
+        <div class="cdx-ft-card">
+          <div class="cdx-ft-head">
+            <span class="cdx-ft-state"><input type="checkbox" name="data.upgrades.{{key}}.islearned" data-dtype="Boolean" {{#if upgrade.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
+            <span class="cdx-ft-name">{{#if ../data.isEditing}}<input name="data.upgrades.{{key}}.name" type="text" value="{{upgrade.name}}" placeholder="{{localize 'SWFFG.ForceUpgradeName'}}" />{{else}}{{upgrade.name}}{{/if}}</span>
+            {{!-- Buy glyph only when the power is OWNED and this upgrade is purchasable
+                 (same gate as the stock tree: item.isOwned && upgrade.canPurchase). --}}
+            <span class="cdx-ft-buy">{{#if ../item.isOwned}}{{#if upgrade.canPurchase}}<i class="fa-regular fa-circle-up ffg-purchase" data-buy-action="forcepower-upgrade" data-cost="{{upgrade.cost}}" data-base-item-name="{{../item.name}}" data-upgrade-name="{{upgrade.name}}" data-upgrade-id="{{key}}" title="{{localize 'SWFFG.Cost'}} {{upgrade.cost}}"></i>{{/if}}{{/if}}</span>
+          </div>
+          <div class="cdx-ft-body">
+            <div class="popout-editor" data-target="data.upgrades.{{key}}.description" data-value="data.upgrades.{{key}}.enrichedDescription" data-label="{{upgrade.name}}">
+              <a class="popout-editor-button"><i class="fas fa-edit"></i></a>
+              {{{upgrade.enrichedDescription}}}
+            </div>
+          </div>
+          <div class="cdx-ft-foot">
+            <span class="cdx-ft-cost">{{localize "SWFFG.Cost"}} {{#if ../data.isEditing}}<input name="data.upgrades.{{key}}.cost" type="text" value="{{upgrade.cost}}" data-dtype="String" />{{else}}<b class="cdx-ft-cost-v">{{upgrade.cost}}</b>{{/if}}</span>
+            <span class="cdx-ft-edit-actions">
+              <a class="talent-action" data-itemid="{{key}}" title="Modifiers"><i class="fas fa-cog"></i></a>
+            </span>
+          </div>
+          <input class="cdx-ft-hide" name="data.upgrades.{{key}}.size" type="text" value="{{upgrade.size}}" data-dtype="String" />
+          <input class="cdx-ft-hide" name="data.upgrades.{{key}}.visible" type="text" value="{{upgrade.visible}}" data-dtype="Boolean" />
+        </div>
+
+        {{!-- Combine/split live in the right gap BETWEEN cards (edit mode), like the
+             stock sheet -- combine merges with the right neighbour, split un-merges. --}}
+        <div class="cdx-ft-resize">
+          {{#if upgrade.canCombine}}<a class="talent-action" data-action="combine" data-key="{{key}}" title="{{localize 'SWFFG.CombineBox'}}"><i class="fas fa-compress-alt"></i></a>{{/if}}
+          {{#if upgrade.canSplit}}<a class="talent-action" data-action="split" data-key="{{key}}" title="{{localize 'SWFFG.SplitBox'}}"><i class="fas fa-expand-alt"></i></a>{{/if}}
+        </div>
+
+        {{!-- Right connector: line in the column-gap to the node on the right. --}}
+        <div class="cdx-ft-rightlink">
+          {{#if upgrade.links-right}}<span class="cdx-ft-line cdx-ft-right {{#if (and upgrade.islearned upgrade.isRightLearned)}}on{{/if}}"></span>{{/if}}
+          <a class="talent-action cdx-ft-toggle cdx-ft-toggle-right {{#if upgrade.links-right}}set{{/if}} {{#unless upgrade.canLinkRight}}cdx-ft-gone{{/unless}}" data-action="link-right" data-key="{{key}}" title="Toggle link"></a>
+          <input class="cdx-ft-hide" name="data.upgrades.{{key}}.links-right" type="text" value="{{upgrade.links-right}}" data-dtype="Boolean" />
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    </section>
+
+    <div class="hidden-content">
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html"}}
+    </div>
+    <section class="cdx-pane sources" data-tab="sources">
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-sources.html" data=data}}
+    </section>
+    <section class="cdx-pane tags" data-tab="tags">
+      {{> "systems/starwarsffg/templates/parts/shared/ffg-tags.html" data=data}}
+    </section>
+  </section>
+</form>

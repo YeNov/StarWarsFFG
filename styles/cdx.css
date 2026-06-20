@@ -279,9 +279,14 @@
 
 /* Minions (header has no .cdx-header-main): small avatar + inline name, type pill hidden. */
 .cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) { padding:8px 14px; align-items:center; }
-.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-identity { flex-direction:row; align-items:center; }
+/* display:flex overrides the generic `.cdx-hcollapsed .cdx-identity{display:none}`
+   (which would otherwise hide the minion's name along with its identity block). */
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-identity { display:flex; flex-direction:row; align-items:center; }
 .cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-pills { display:none; }
-.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-name { font-size:18px; }
+/* Fill the row to the right edge (the general collapsed rule sets width:auto for
+   the character's grid; the minion is a plain flex row, so the input would shrink
+   to ~default width and clip the name). flex:1 + min-width:0 lets it span the gap. */
+.cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-name { font-size:18px; flex:1; width:auto; min-width:0; }
 .cdx .cdx-cr-op, .cdx .cdx-cr-confirm, .cdx .cdx-cr-cancel {
   width:24px; height:24px; flex:none; border:1px solid var(--cdx-line); background:transparent; color:var(--cdx-ink);
   border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; padding:0;
@@ -336,6 +341,12 @@
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box { background:#b3261e; }
 .cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box.static,
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box.static { color:#fff; }
+/* Dark scheme: drop the white neutral background entirely -- a white box clashes
+   on the dark scheme. Fall back to the scheme's own chip surface (paper2) so the
+   pool value reads in the scheme ink, like every other chip. Good/evil keep their
+   saturated tints (they read on dark). Placement-agnostic, like the glyph rules. */
+.cdx.scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box,
+.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:var(--cdx-paper2); }
 /* Ratio chip (reusable): XP-square layout — current big on top, "of {max}" small
    below — with −/+ steppers riding the chip's left/right borders. The box is the
    positioning context so the buttons anchor to its edges, not the wider chip.
@@ -656,6 +667,11 @@
 .cdx .cdx-card.off { opacity:.65; }
 .cdx .cdx-card-main { display:flex; align-items:center; gap:5px; min-width:0; }
 .cdx .cdx-card-icon { width:75px; height:75px; flex:none; border-radius:6px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
+/* Dark scheme only: hovering a rollable item swaps its icon background to the black
+   generic-die.svg (mandar), which vanishes on the dark card. Whiten it via filter --
+   :hover only, so the weapon image (at rest) and the light schemes are untouched. */
+.cdx.scheme-dark .item-rollable.rollable:hover,
+.cdx .scheme-dark .item-rollable.rollable:hover { filter:brightness(0) invert(1); }
 /* Transparent wrapper purely for DOM depth (weapon roll resolution) — shrink-wraps the icon. */
 .cdx .cdx-card-rollwrap { flex:none; display:flex; }
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
@@ -676,10 +692,22 @@
    (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
 .cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
 .cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
-/* Dark scheme: black/challenge dice nearly vanish on the dark paper. Give every
-   non-empty in-sheet dice pool a faint light backing so they stay legible. */
-.cdx form.scheme-dark .dice-pool:not(:empty),
-.cdx form.scheme-dark .cdx-wpn-pool:not(:empty) { background:rgba(255,255,255,.16); border-radius:4px; padding:1px 4px; }
+/* Dark scheme: pool dice are <img> raster icons (not recolourable glyphs), so the
+   dark ones vanish on the dark paper. Mirror the description-glyph treatment, keyed
+   on the icon filename: setback + remove-setback (black.png / black-minus.png) AND
+   the dark-side Force pip (darkpip.png) keep their black icon with a white OUTLINE
+   (the dark pip must read as dark side, not flip to a white light-side pip); every
+   other dark icon (despair, failure, threat, success, triumph) is recoloured solid
+   WHITE. Colour dice (green/yellow/red/purple/blue), advantage, and the already-light
+   force/light pips are left alone. Placement-agnostic (scheme on form or .cdx). */
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black.png"],
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black-minus"],
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="darkpip"] {
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+}
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
+  filter: brightness(0) invert(1);
+}
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
    the right edge on every row. Cards with statcols have 3 children (controls land
    in col3 naturally); cards without (crew) have 2, so the controls would auto-place
@@ -1183,6 +1211,12 @@
 .cdx.cdx-embed .editor.prosemirror menu *,
 .cdx.cdx-embed .editor.prosemirror .editor-menu,
 .cdx.cdx-embed .editor.prosemirror .editor-menu * { color:#ececef; }
+/* The view-mode edit (pencil) button renders in-flow at the top-left; anchor it
+   top-right of the editor like the in-sheet editors. */
+.cdx.cdx-embed .form-group > .editor, .cdx.cdx-embed .form-group > .editor-content { position:relative; }
+.cdx.cdx-embed a.editor-edit, .cdx.cdx-embed .editor-edit {
+  position:absolute; top:5px; right:6px; left:auto; bottom:auto; margin:0; z-index:6; color:var(--cdx-accent);
+}
 .cdx.cdx-embed .form-group > label { font-family:"Orbitron"; font-weight:600; font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); display:flex; align-items:center; gap:4px; }
 .cdx.cdx-embed input[type=text], .cdx.cdx-embed input[type=number], .cdx.cdx-embed select {
   width:100%; box-sizing:border-box; background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px;
@@ -1192,3 +1226,204 @@
 .cdx.cdx-embed input[type=checkbox] { accent-color:var(--cdx-accent); width:16px; height:16px; }
 .cdx.cdx-embed .attributes-header, .cdx.cdx-embed .mod_container .attributes-header { font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-brown); }
 .cdx.cdx-embed .add-mod, .cdx.cdx-embed .add-modification { color:var(--cdx-accent); width:auto; }
+/* Dark scheme: --cdx-brown field labels + attribute headers nearly vanish on the
+   dark bg. Recolour the embedded-editor labels in the scheme ink (light #ece4df)
+   so they read like the input values. (item-editor.js puts scheme-* on the form,
+   inside .cdx.cdx-embed.) */
+.cdx.cdx-embed .scheme-dark .form-group > label,
+.cdx.cdx-embed .scheme-dark .attributes-header,
+.cdx.cdx-embed .scheme-dark .attributes-header > * { color:var(--cdx-ink); }
+/* Checkbox fields go inline: label fills the row, checkbox sits 5px off the right
+   edge. General across the embedded editor -- Installed?/Broken? (Modifications),
+   Restricted (Basics), the talent flags, etc. -- so every checkbox aligns the same. */
+.cdx.cdx-embed .form-group:has(> input[type="checkbox"]) { flex-direction:row; align-items:center; gap:8px; }
+.cdx.cdx-embed .form-group:has(> input[type="checkbox"]) > label { flex:1; margin:0; }
+.cdx.cdx-embed .form-group:has(> input[type="checkbox"]) > input[type="checkbox"] { margin-right:5px; }
+/* The Ranks number field also goes inline -- but ONLY in the Modifications tab
+   (.modification_header); the Basics number fields (HP/Rarity/Price) stay stacked. */
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) { flex-direction:row; align-items:center; gap:8px; }
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > label { flex:1; margin:0; }
+.cdx.cdx-embed .modification_header .form-group:has(> input[type="number"]) > input[type="number"] { flex:0 0 auto; width:70px; }
+
+/* ===========================================================================
+   Force-power upgrade tree — BESPOKE (.cdx-ft-*). No reliance on stock
+   .talent-* layout. A 4-column CSS grid; nodes span via grid-column; the up/
+   right connector lines live in the grid gaps. Connector ".on" = both endpoints
+   purchased (template uses AND) -> accent + glow; otherwise a muted line.
+   =========================================================================== */
+.cdx .cdx-ft-hide, .cdx .cdx-ft-gone { display:none !important; }
+
+/* --- Base power banner --- */
+/* Banner wrapper class is .cdx-ft-banner -- NOT .cdx-ft-head, which is the
+   upgrade-CARD head (flex + --cdx-head gradient bg, below): same-name collision
+   there painted the card-head gradient behind the banner. display:contents drops
+   the wrapper box so the banner itself is the direct full-width child of the
+   window-content column (no stray bg, no stock .sheet-header flex rule). */
+.cdx .cdx-ft-banner { display:contents; }
+.cdx .cdx-ft-power { width:100%; box-sizing:border-box; background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
+.cdx .cdx-ft-power-row { display:flex; justify-content:space-between; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
+/* Name/FR render as text (play) or input (edit); style the container so BOTH look
+   identical and the header layout doesn't shift between modes. */
+.cdx .cdx-ft-fr input, .cdx .cdx-ft-fr b { font:inherit; color:inherit; background:transparent; border:none; padding:0; width:3ch; }
+.cdx .cdx-ft-power-name { color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-weight:900; font-size:24px; text-transform:uppercase; letter-spacing:1px; line-height:1.1; min-height:1.1em; }
+.cdx .cdx-ft-power-name input { width:100%; background:transparent; border:none; color:inherit; font:inherit; text-transform:inherit; letter-spacing:inherit; padding:0; }
+.cdx .cdx-ft-power-sub { font-size:9px; opacity:.85; text-transform:uppercase; letter-spacing:.5px; }
+.cdx .cdx-ft-desc { font-family:"Signika",sans-serif; font-size:11px; line-height:1.35; margin:6px 0; position:relative; }
+.cdx .cdx-ft-desc .popout-editor-button { position:absolute; top:0; right:0; opacity:.55; cursor:pointer; }
+.cdx .cdx-ft-power-foot { display:flex; justify-content:space-between; align-items:center; }
+.cdx .cdx-ft-power-state { display:inline-flex; align-items:center; gap:5px; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
+.cdx .cdx-ft-power-actions { display:inline-flex; gap:8px; align-items:center; }
+.cdx .cdx-ft-power-actions .talent-action { color:var(--cdx-head-ink); opacity:.85; cursor:pointer; }
+.cdx .cdx-ft-power-actions .talent-action:hover { opacity:1; }
+.cdx .cdx-ft-radio { width:11px; height:11px; border-radius:50%; border:2px solid var(--cdx-head-ink); display:inline-block; }
+.cdx .cdx-ft-radio.on { background:var(--cdx-head-ink); box-shadow:0 0 4px var(--cdx-head-ink); }
+
+/* --- Grid --- */
+.cdx .cdx-ft-grid {
+  --ft-rowgap:32px; --ft-colgap:16px; --ft-line:3px; --ft-headh:26px;
+  display:grid; grid-template-columns:repeat(4, 1fr);
+  gap:var(--ft-rowgap) var(--ft-colgap); padding-top:var(--ft-rowgap); align-items:stretch;
+}
+/* stretch makes every node fill its grid row, so all cards in a row share the
+   tallest one's height; the card fills the node and its body flexes (cost pins
+   to the bottom). */
+.cdx .cdx-ft-node { position:relative; min-width:0; }
+
+/* --- Node card --- */
+/* No border: a border + clip-path leaves notch-corner artifacts. Use a
+   drop-shadow (follows the clipped shape) for depth; bought nodes glow accent. */
+.cdx .cdx-ft-card { position:relative; z-index:2; height:100%; display:flex; flex-direction:column; min-height:118px;
+  background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip);
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+.cdx .cdx-ft-node.on .cdx-ft-card { filter:drop-shadow(0 0 4px var(--cdx-accent)); }
+.cdx .cdx-ft-head { display:flex; align-items:center; gap:6px; padding:4px 8px; min-height:var(--ft-headh); box-sizing:border-box;
+  background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip-top); font-family:"Orbitron",sans-serif; }
+.cdx .cdx-ft-name { flex:1; min-width:0; color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; }
+.cdx .cdx-ft-name input { width:100%; background:transparent; border:none; color:inherit; font:inherit; text-transform:inherit; padding:0; }
+.cdx .cdx-ft-state input[type=checkbox] { appearance:none; -webkit-appearance:none; margin:0; flex:none; width:13px; height:13px; border-radius:50%;
+  border:2px solid var(--cdx-head-ink); background:transparent; cursor:pointer; position:relative; }
+.cdx .cdx-ft-state input[type=checkbox]:checked::after { content:""; position:absolute; inset:2px; border-radius:50%; background:var(--cdx-head-ink); box-shadow:0 0 4px var(--cdx-head-ink); }
+.cdx .cdx-ft-buy { flex:none; }
+/* display:inline-flex overrides the codex default `.cdx i.ffg-purchase{display:none}`
+   (which only shows buy glyphs in xp-buy mode). On the tree the buy glyph is always shown. */
+.cdx .cdx-ft-buy .ffg-purchase { display:inline-flex; color:#fff; cursor:pointer; font-size:13px; }
+.cdx .cdx-ft-buy .ffg-purchase:hover { filter:brightness(1.25); }
+.cdx .cdx-ft-body { flex:1; padding:7px 9px; font-size:22px; line-height:1.3; position:relative; }
+.cdx .cdx-ft-body .popout-editor-button { position:absolute; top:3px; right:5px; opacity:.45; cursor:pointer; }
+.cdx .cdx-ft-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4.5px 11px; border-top:1px solid var(--cdx-line); }
+.cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:14.7px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-ft-cost input { background:transparent; border:none; width:3.5ch; color:var(--cdx-brass); font-weight:700; font-family:inherit; padding:0; }
+/* the base power's cost sits on the accent banner -- use head-ink so it reads */
+.cdx .cdx-ft-power .cdx-ft-cost, .cdx .cdx-ft-power .cdx-ft-cost input { color:var(--cdx-head-ink); }
+/* play-mode cost value (rendered as plain text, no editable box) */
+.cdx .cdx-ft-cost-v { color:var(--cdx-brass); }
+.cdx .cdx-ft-power .cdx-ft-cost-v { color:var(--cdx-head-ink); }
+/* Definition fields (names, FR, cost) render as plain text in play mode and as
+   inputs only in edit mode -- gated in the template on data.isEditing, so there's
+   no editable box in play and they stay editable in edit mode. */
+.cdx .cdx-ft-edit-actions { display:none; gap:8px; align-items:center; }
+.cdx .cdx-ft-edit-actions .talent-action { color:var(--cdx-dim); cursor:pointer; }
+.cdx .cdx-ft-edit .cdx-ft-edit-actions { display:inline-flex; }
+
+/* --- Connector lines --- */
+.cdx .cdx-ft-line { background:var(--cdx-line); opacity:.5; border-radius:2px; }
+.cdx .cdx-ft-line.on { background:var(--cdx-accent); opacity:1; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
+/* up: a flex row sitting in the row-gap above the card, one cell per spanned column */
+.cdx .cdx-ft-uplinks { position:absolute; left:0; right:0; bottom:100%; height:var(--ft-rowgap); display:flex; z-index:1; pointer-events:none; }
+.cdx .cdx-ft-upcell { flex:1; position:relative; }
+.cdx .cdx-ft-up { position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:var(--ft-line); }
+/* right: a line in the column-gap, aligned to the card header centre */
+.cdx .cdx-ft-rightlink { position:absolute; top:0; bottom:0; left:100%; width:var(--ft-colgap); z-index:1; pointer-events:none; }
+.cdx .cdx-ft-right { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:var(--ft-line); }
+
+/* --- Edit-mode link toggles --- */
+.cdx .cdx-ft-toggle { display:none; }
+.cdx .cdx-ft-edit .cdx-ft-uplinks, .cdx .cdx-ft-edit .cdx-ft-rightlink { pointer-events:auto; }
+.cdx .cdx-ft-edit .cdx-ft-toggle { display:block; position:absolute; cursor:pointer; z-index:3; }
+.cdx .cdx-ft-edit .cdx-ft-upcell .cdx-ft-toggle { top:0; bottom:0; left:50%; transform:translateX(-50%); width:14px; }
+.cdx .cdx-ft-edit .cdx-ft-rightlink .cdx-ft-toggle { left:0; right:0; top:50%; transform:translateY(-50%); height:14px; }
+.cdx .cdx-ft-edit .cdx-ft-toggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
+.cdx .cdx-ft-edit .cdx-ft-toggle:hover::before { background:var(--cdx-accent); opacity:1; }
+
+/* --- Signature-ability uplink bar (above the banner) ---
+   4 upward connection points, one per grid column, that link the base ability up
+   to the character's specialisations. Unique class names (NOT .cdx-ft-uplinks /
+   .cdx-ft-toggle, which are the card's own up-connectors) so the two don't collide.
+   The bar aligns to the grid: same full width, repeat(4,1fr), col-gap. */
+.cdx .cdx-ft-uplinkbar { --ft-colgap:16px; --ft-line:3px; display:grid; grid-template-columns:repeat(4, 1fr); gap:0 var(--ft-colgap); height:16px; margin-bottom:2px; }
+.cdx .cdx-ft-uplinknode { position:relative; }
+/* Play mode: only a SET uplink paints a line (no clutter when none are linked); the
+   little cap reads as "links upward, out of the sheet". */
+.cdx .cdx-ft-uplinkline { display:none; position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:var(--ft-line); background:var(--cdx-accent); border-radius:2px; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
+.cdx .cdx-ft-uplinkline.on { display:block; }
+.cdx .cdx-ft-uplinkline.on::before { content:""; position:absolute; top:-3px; left:50%; transform:translateX(-50%); border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:6px solid var(--cdx-accent); }
+/* Edit mode: every column shows a faint base line + a clickable toggle dot; set
+   ones glow accent. Mirrors the in-card .cdx-ft-toggle affordance. */
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinkline { display:block; background:var(--cdx-line); box-shadow:none; opacity:.5; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinkline.on { background:var(--cdx-accent); opacity:1; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
+.cdx .cdx-ft-uplinktoggle { display:none; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle { display:block; position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:14px; cursor:pointer; z-index:3; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
+.cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle:hover::before { background:var(--cdx-accent); opacity:1; }
+
+/* ===========================================================================
+   Codex DARK scheme — dice/symbol glyphs. mandar hard-codes many dietypes
+   `color:black` (setback, force/forcepoint, light, dark, despair, failure,
+   success, threat, triumph); they vanish on the dark scheme's dark surfaces.
+   Whiten the lot, EXCEPT setback which keeps black + a 1px white outline so it
+   still reads as a "black" die. GLOBAL across EVERY codex sheet (actor + item):
+   the scheme-* class sits on the content form (a descendant of .cdx), and the
+   compound `.cdx.scheme-dark` also covers any sheet that carries the scheme on
+   the .cdx element itself. Light/paper schemes keep mandar's native black.
+   =========================================================================== */
+/* setback + the dark-side Force pip stay BLACK with a white outline (the dark pip
+   must read as dark side, not flip to a light-side white pip). */
+.cdx.scheme-dark span.dietype.setback, .cdx.scheme-dark span.dietype.dark,
+.cdx .scheme-dark span.dietype.setback, .cdx .scheme-dark span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+.cdx.scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
+.cdx .scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+
+/* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
+   .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller
+   + ~3x shorter than the actor-sheet tabs; .cdx-tab carries no text-shadow. --- */
+.cdx .cdx-ft-tabs.cdx-tabstrip { border-bottom-width:1px; gap:2px; margin-bottom:7px; }
+.cdx .cdx-ft-tabs .cdx-tab { padding:1px 10px; font-size:8px; font-weight:700; letter-spacing:.5px; line-height:1.5; text-shadow:none; }
+
+/* The tree body is a plain flowing block -- NOT a flex-clamped inner scroll area.
+   It deliberately carries neither `.sheet-body` (`.cdx .sheet-body{flex:1}`) nor
+   `.cdx-ft-body` (`.cdx .cdx-ft-body{flex:1}`, the card-description rule that was
+   silently clamping it via a class-name collision). With nothing clamping it the
+   codex window-content (overflow-y:auto) is the ONLY scroll container, so the
+   power banner + the whole tree scroll together. */
+.cdx .cdx-ft-tree { flex:none; padding-bottom:8px; }
+
+/* Combine/split buttons live in the right gap BETWEEN cards (edit mode only),
+   offset above the horizontal connector so they don't overlap it. */
+.cdx .cdx-ft-resize { display:none; position:absolute; top:28%; left:100%; transform:translate(-50%, -50%); z-index:4; flex-direction:column; gap:3px; }
+.cdx .cdx-ft-edit .cdx-ft-resize { display:flex; }
+.cdx .cdx-ft-resize .talent-action { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; background:var(--cdx-accent); color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+
+/* --- Specialization talent tree extras (reuses everything above) ---
+   Talents add: force/conflict/ranked marks in the card FOOT (with the cost), an
+   activation label at the top of the body, and a Skills tab (career + universal). */
+.cdx .cdx-ft-marks { display:inline-flex; align-items:center; gap:7px; }
+.cdx .cdx-ft-mark { flex:none; font-size:15px; line-height:1; }
+/* Plain Force talent (not conflict) = jedi crest, in the scheme ink (white on dark). */
+.cdx .cdx-ft-force { color:var(--cdx-ink); }
+/* Conflict talent (always also a Force talent) = the Sith emblem; the ring is a
+   cut-out that shows the card foot behind it, so it reads on every scheme. */
+.cdx .cdx-ft-sith { width:17.7px; height:17.7px; background:url("/systems/starwarsffg/images/sith-emblem.svg") center/contain no-repeat; }
+.cdx .cdx-ft-ranked { color:var(--cdx-dim); }
+/* Activation type line (Passive / Active …) above the talent description. */
+.cdx .cdx-ft-act { font-family:"Orbitron",sans-serif; font-weight:700; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); margin-bottom:4px; }
+.cdx .cdx-ft-passive .cdx-ft-act { color:var(--cdx-accent); }
+/* Empty talent slot reads as a drop target rather than a blank card. */
+.cdx .cdx-ft-node:not(.on) .cdx-ft-name:empty::before { content:"— drop talent —"; color:var(--cdx-dim); font-weight:400; text-transform:none; font-size:9px; }
+/* Skills tab. */
+.cdx .cdx-ft-skills-head { font-family:"Orbitron",sans-serif; font-weight:700; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--cdx-brown); margin:4px 0 9px; }
+.cdx .cdx-ft-skills { display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; }
+.cdx .cdx-ft-skill { background:var(--cdx-paper2); border:1px solid var(--cdx-line); border-radius:3px; color:var(--cdx-ink); font-family:inherit; font-size:12px; padding:5px 8px; }
+.cdx .cdx-ft-skill option { color:#111; }
+.cdx .cdx-ft-universal { display:flex; align-items:center; gap:8px; margin-top:13px; font-family:"Orbitron",sans-serif; font-weight:700; font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-ink); cursor:pointer; }
+.cdx .cdx-ft-universal input { accent-color:var(--cdx-accent); width:15px; height:15px; }
+.cdx .cdx-ft-resize .talent-action:hover { filter:brightness(1.2); }
