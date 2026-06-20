@@ -1254,12 +1254,13 @@
 .cdx .cdx-ft-hide, .cdx .cdx-ft-gone { display:none !important; }
 
 /* --- Base power banner --- */
-/* Header wrapper is a plain full-width block (bespoke class so the stock
-   `.starwarsffg.sheet .sheet-header` flex-row + flex:0 0 100px rule -- which sized
-   the banner to its text and capped its height -- can't reach it). flex:none keeps
-   it from shrinking in the window-content column. */
-.cdx .cdx-ft-head { flex:none; display:block; }
-.cdx .cdx-ft-power { background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
+/* Drop the header wrapper's box entirely (display:contents) so the banner itself
+   becomes the direct full-width child of the window-content column -- no wrapper
+   box painting a stray background behind it, and the stock
+   `.starwarsffg.sheet .sheet-header` flex-row rule (renamed away) can't reach it.
+   The banner is then the block that fills the whole width. */
+.cdx .cdx-ft-head { display:contents; }
+.cdx .cdx-ft-power { width:100%; box-sizing:border-box; background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-power-row { display:flex; justify-content:space-between; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
 /* Name/FR render as text (play) or input (edit); style the container so BOTH look
    identical and the header layout doesn't shift between modes. */
