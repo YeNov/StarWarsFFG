@@ -792,6 +792,36 @@
 .cdx .cdx-ammo-step:hover { color:var(--cdx-accent); border-color:var(--cdx-accent); }
 .cdx .cdx-ammo-count { font-family:"Orbitron"; font-weight:900; font-size:16px; color:var(--cdx-accent); min-width:46px; text-align:center; }
 
+/* ---- Inventory reorder grip --------------------------------------------------------
+   A left-edge drag handle on weapon/armour/gear cards (rendered only for editors; wired
+   in codex-sheets.js _cdxWireReorder). The strip fills the card height and is 5px wide;
+   the 6 grip dots (2 columns × 3 rows) are a tiled radial-gradient that spreads to fill
+   the height. The card becomes the positioning context for the absolute strip — safe, no
+   other descendant in these cards is absolutely positioned — and the card's 13px left
+   padding already clears it. */
+.cdx .cdx-card.weapon, .cdx .cdx-card.armour, .cdx .cdx-card.gear { position:relative; }
+.cdx .cdx-grip {
+  position:absolute; left:1px; top:0; bottom:0; width:10px; z-index:4;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab; opacity:.4; color:var(--cdx-dim);
+}
+/* The 12 grip dots (2 cols × 6 rows) as a compact, vertically-centred cluster — a small
+   fixed-size box of tiled dots centred in the full-height grab strip (not spread over it). */
+.cdx .cdx-grip::before {
+  content:""; width:6px; height:18px;
+  background-image:radial-gradient(circle at center, currentColor 1px, transparent 1.5px);
+  background-size:3px 3px;   /* 6px / 3 = 2 cols, 18px / 3 = 6 rows = 12 dots */
+}
+.cdx .cdx-grip:hover { opacity:.85; color:var(--cdx-accent); }
+.cdx .cdx-grip:active { cursor:grabbing; }
+.cdx form.scheme-dark .cdx-grip { color:rgba(255,255,255,.55); }
+.cdx .cdx-card.cdx-dragging { opacity:.4; }
+/* Drop indicator: a glowing accent line at the top (drop-before) or bottom (drop-after)
+   inside edge of the hovered card. Inset box-shadow so the card's clip-path doesn't clip
+   it away (an outside line would be). */
+.cdx .cdx-card.cdx-drop-before { box-shadow:inset 0 3px 0 var(--cdx-accent); }
+.cdx .cdx-card.cdx-drop-after { box-shadow:inset 0 -3px 0 var(--cdx-accent); }
+
 /* ---- Injuries ---- */
 .cdx .cdx-injury { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; margin-bottom:7px; }
 /* Expanded description spans the full card width (not just the name column). */
