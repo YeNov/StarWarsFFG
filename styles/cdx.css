@@ -720,12 +720,12 @@
    the white dice-pool background and apply the dark-scheme glyph/icon treatment so the
    pool reads on the dark dialog. The adversary preview is also a `.dice-pool` → covered. */
 .cdx-dice .dice-pool { background:transparent !important; }
-/* Shrink the pool icons to fit a single row instead of overflowing the dialog when a
-   pool has many glyphs: the JS sizes icons in fixed count-tiers (36/24/12px) and doesn't
-   account for added result symbols, so a symbol-heavy pool stays large and spills out.
-   min-width:0 lets flexbox shrink them on overflow (no effect when they already fit);
-   height:auto keeps them square as the width shrinks. */
-.cdx-dice .dice-pool img { min-width: 0; height: auto; }
+/* Size the pool icons to FILL the row width. The JS sizes them in fixed count-tiers
+   (36/24/12px) regardless of dialog width, so they either overflow (many glyphs) or leave
+   dead space (few glyphs / a wide, resizable dialog). flex:1 1 auto lets them grow to fill
+   the row — capped at the 36px normal size — and shrink below the tier size when the pool
+   is too wide to fit; min-width:0 enables the shrink, height:auto keeps them square. */
+.cdx-dice .dice-pool img { flex: 1 1 auto; min-width: 0; max-width: 36px; height: auto; }
 /* Fixed-Results dietype glyphs: setback/dark = black with a white outline; the rest white. */
 .cdx-dice .dice-pool-dialog span.dietype.setback, .cdx-dice .dice-pool-dialog span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 .cdx-dice .dice-pool-dialog span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
