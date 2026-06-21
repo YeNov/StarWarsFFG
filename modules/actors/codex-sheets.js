@@ -292,6 +292,23 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       el.addEventListener("click", (ev) => ev.stopPropagation());
     });
 
+    // Carried toggle (Codex inventory, weapon/armour/gear): flip flags.starwarsffg.carried.
+    // Un-pressed = left on a ship/base → the item's encumbrance*qty is excluded from the
+    // actor's encumbrance (ActorFFG._calculateDerivedValues honours the flag; default =
+    // carried). stopPropagation so the click doesn't expand/roll the card.
+    root.querySelectorAll(".toggle-carried").forEach((el) => {
+      el.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (!this.options.editable) return;
+        if (this.actor?.verifyEditModeIsNotEnabled && !this.actor.verifyEditModeIsNotEnabled()) return;
+        const item = this.actor?.items?.get(ev.currentTarget.dataset.itemId);
+        if (!item) return;
+        const carried = item.getFlag("starwarsffg", "carried") !== false;
+        await item.setFlag("starwarsffg", "carried", !carried);
+      });
+    });
+
     // Force powers / signature abilities (Talents tab): clicking the card should
     // expand inline details, NOT open the item's tree. The stock `.items .item`
     // handler opens the sheet for these types; intercept in the capture phase so

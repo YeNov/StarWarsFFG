@@ -667,6 +667,9 @@ export class ActorFFG extends Actor {
     // Loop through all items
     items.forEach(function(item) {
       try {
+        // Items flagged "not carried" (left on a ship/base via the Codex carried
+        // toggle) don't count toward encumbrance. Default (flag absent or true) = carried.
+        if (item.flags?.starwarsffg?.carried === false) return;
         // Calculate encumbrance, only if encumbrance value exists
         if (item.system?.encumbrance?.adjusted !== undefined || item.system?.encumbrance?.value !== undefined) {
           if (item.type === "armour" && item?.system?.equippable?.equipped) {
