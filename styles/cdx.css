@@ -729,6 +729,16 @@
 /* Fixed-Results dietype glyphs: setback/dark = black with a white outline; the rest white. */
 .cdx-dice .dice-pool-dialog span.dietype.setback, .cdx-dice .dice-pool-dialog span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 .cdx-dice .dice-pool-dialog span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+/* Fixed Results table: pin it to the dialog width with proportioned columns so the
+   right-hand glyph/count/label group stops clipping. table-layout:fixed makes the six
+   columns share the window (overriding the stock 300px min-width that overflowed); the
+   % widths keep the labels roomy and the glyph/count columns tight — a long label wraps
+   rather than spilling out. */
+.cdx-dice .pool-additional-container { table-layout: fixed; width: 100% !important; min-width: 0 !important; }
+.cdx-dice .pool-additional-container td:nth-child(3n+1) { width: 12%; }
+.cdx-dice .pool-additional-container td:nth-child(3n+2) { width: 14%; }
+.cdx-dice .pool-additional-container td:nth-child(3n) { width: 24%; }
+.cdx-dice .pool-additional-container input[type="button"] { width: 100%; min-width: 0; margin: 0; box-sizing: border-box; }
 /* Pool ICON images: black setback / remove-setback / dark-pip keep a white outline; the
    dark result icons invert to white. Mirrors the dark-scheme dice-pool image filters above. */
 .cdx-dice .dice-pool img[src*="black.png"], .cdx-dice .dice-pool img[src*="black-minus"], .cdx-dice .dice-pool img[src*="darkpip"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
