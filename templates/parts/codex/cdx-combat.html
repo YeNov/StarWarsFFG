@@ -9,7 +9,10 @@
             (row = target.parentElement.parentElement; row.parentElement === .item)
             resolves the weapon and attaches it to the roll. --}}
       <div class="cdx-card-rollwrap"><div class="skill-label rollable roll-button starwarsffg item-rollable cdx-card-icon" style="background-image:url('{{item.img}}')"></div></div>
-      <a class="toggle-equipped cdx-equip {{#if item.system.equippable.equipped}}active{{/if}}" data-item-id="{{item._id}}" title="{{localize "SWFFG.Equipped"}}"><i class="fas fa-fist-raised"></i></a>
+      <div class="cdx-equip-col">
+        <a class="toggle-equipped cdx-equip {{#if item.system.equippable.equipped}}active{{/if}}" data-item-id="{{item._id}}" title="{{localize "SWFFG.Equipped"}}"><i class="fas fa-fist-raised"></i></a>
+        <a class="toggle-carried cdx-carried {{#unless (eq item.flags.starwarsffg.carried false)}}active{{/unless}}" data-item-id="{{item._id}}" title="Carried — turn off if left on a ship/base (not counted toward encumbrance)"><i class="fas fa-suitcase"></i></a>
+      </div>
       <div class="cdx-card-id">
         <div class="cdx-card-title">{{item.name}}</div>
         {{!-- Required combat skill + the actor's dice pool for it. data-ability lets
@@ -38,7 +41,10 @@
   <div class="item cdx-card armour {{#unless item.system.equippable.equipped}}off{{/unless}}{{#if item.system.rarity.isrestricted}} cdx-restricted{{/if}}" data-item-id="{{item._id}}">
     <div class="cdx-card-main">
       <div class="item-rollable cdx-card-icon" style="background-image:url('{{item.img}}')"></div>
-      <a class="toggle-equipped cdx-equip {{#if item.system.equippable.equipped}}active{{/if}}" data-item-id="{{item._id}}" title="{{localize "SWFFG.Equipped"}}"><i class="fas fa-shield-alt"></i></a>
+      <div class="cdx-equip-col">
+        <a class="toggle-equipped cdx-equip {{#if item.system.equippable.equipped}}active{{/if}}" data-item-id="{{item._id}}" title="{{localize "SWFFG.Equipped"}}"><i class="fas fa-shield-alt"></i></a>
+        <a class="toggle-carried cdx-carried {{#unless (eq item.flags.starwarsffg.carried false)}}active{{/unless}}" data-item-id="{{item._id}}" title="Carried — turn off if left on a ship/base (not counted toward encumbrance)"><i class="fas fa-suitcase"></i></a>
+      </div>
       <div class="cdx-card-title">{{item.name}}</div>
     </div>
     <div class="cdx-statcols">

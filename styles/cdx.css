@@ -680,6 +680,13 @@
 .cdx .cdx-card-rollwrap { flex:none; display:flex; }
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .cdx .cdx-equip.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
+/* Carried toggle (Codex inventory) — same chip as the equip button, stacked below it
+   in .cdx-equip-col on weapon/armour (gear has no equip button, so it sits inline).
+   Active = carried (default); un-pressed = left behind → its encumbrance*qty is dropped
+   from the actor total (ActorFFG._calculateDerivedValues honours flags.starwarsffg.carried). */
+.cdx .cdx-equip-col { display:flex; flex-direction:column; gap:4px; flex:none; }
+.cdx .cdx-carried { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.cdx .cdx-carried.active { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
 .cdx .cdx-card-title { font-family:"Orbitron"; font-weight:700; font-size:14px; color:var(--cdx-ink); }
 /* Restricted items (rarity.isrestricted) — name in red. */
 .cdx .cdx-card.cdx-restricted .cdx-card-title { color:#cf2e2e; }
