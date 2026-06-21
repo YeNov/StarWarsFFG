@@ -712,6 +712,22 @@
 :is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
   filter: brightness(0) invert(1);
 }
+
+/* === Codex dice roll window ===
+   `.cdx-dice` is toggled onto the roll-builder dialog ROOT in roll-builder.js#_onRender,
+   but only when the rolling actor uses a Codex sheet. A dedicated marker (NOT `.cdx`,
+   whose broad `.cdx form …` rules would restyle the stock dialog controls) lets us drop
+   the white dice-pool background and apply the dark-scheme glyph/icon treatment so the
+   pool reads on the dark dialog. The adversary preview is also a `.dice-pool` → covered. */
+.cdx-dice .dice-pool { background:transparent !important; }
+/* Fixed-Results dietype glyphs: setback/dark = black with a white outline; the rest white. */
+.cdx-dice .dice-pool-dialog span.dietype.setback, .cdx-dice .dice-pool-dialog span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+.cdx-dice .dice-pool-dialog span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+/* Pool ICON images: black setback / remove-setback / dark-pip keep a white outline; the
+   dark result icons invert to white. Mirrors the dark-scheme dice-pool image filters above. */
+.cdx-dice .dice-pool img[src*="black.png"], .cdx-dice .dice-pool img[src*="black-minus"], .cdx-dice .dice-pool img[src*="darkpip"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
+.cdx-dice .dice-pool img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) { filter: brightness(0) invert(1); }
+
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
    the right edge on every row. Cards with statcols have 3 children (controls land
    in col3 naturally); cards without (crew) have 2, so the controls would auto-place
