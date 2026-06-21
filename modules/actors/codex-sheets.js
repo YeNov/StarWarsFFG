@@ -81,6 +81,22 @@ Hooks.on("updateActor", async (actor, changed, options, userId) => {
 });
 
 /**
+ * Manual inventory order (Codex weapon/armour/gear cards, reorderable by their drag
+ * grips). Items are ordered by Foundry's `sort` field ascending; an item that has
+ * never been sorted (sort 0) falls to the BOTTOM in name order. So a fresh actor lists
+ * each category alphabetically; once a player drags a card the category keeps the chosen
+ * order; a newly added item lands at the end. Shared by getData (the render order) and
+ * the drag handler (to reconstruct the current order before re-numbering). `_cdxReorderItem`
+ * writes sort values as multiples of CDX_SORT_BASE so the order stays well-spaced.
+ */
+const CDX_SORT_BASE = 100000;
+function cdxInventoryOrder(a, b) {
+  const ea = (Number(a.sort) || 0) || Number.MAX_SAFE_INTEGER;
+  const eb = (Number(b.sort) || 0) || Number.MAX_SAFE_INTEGER;
+  return (ea - eb) || String(a.name ?? "").localeCompare(String(b.name ?? ""));
+}
+
+/**
  * Shared Codex behaviour, mixed onto whichever stock sheet base a given actor
  * type uses. Applied to ActorSheetFFG and AdversarySheetFFG below.
  */
@@ -326,6 +342,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     }, true);
 
     if (!this.options.editable) return;
+    this._cdxWireReorder(root);
     this._cdxWireCredits(root);
     // Alignment selector (bio) → write the Codex alignment flag; the chip recolours
     // on the resulting re-render.
@@ -547,6 +564,120 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 
   /**
+   * Inventory card reordering (weapons / armour / gear). Each card carries a left-edge
+   * grip (`.cdx-grip`, draggable); dragging it reorders cards WITHIN their own category by
+   * rewriting the items' Foundry `sort` field. The whole-card cross-actor transfer drag
+   * (base DragDrop, dragSelector `.cdx-card`) is left intact: the grip's dragstart calls
+   * stopPropagation so the base transfer dragstart never fires for a grip drag, and the
+   * grip drop calls stopPropagation so it never bubbles to the base sheet drop zone (which
+   * would route it through _onSortItem and double-sort). A grip dropped on empty space just
+   * no-ops — the base _onTransferItemDrop ignores our non-JSON payload.
+   */
+  _cdxWireReorder(root) {
+    const clearMarks = () => root
+      .querySelectorAll(".cdx-card.cdx-drop-before, .cdx-card.cdx-drop-after")
+      .forEach((c) => c.classList.remove("cdx-drop-before", "cdx-drop-after"));
+
+    root.querySelectorAll(".cdx-card .cdx-grip").forEach((grip) => {
+      const card = grip.closest(".cdx-card[data-item-id]");
+      if (!card) return;
+      // A plain click on the grip must not expand/roll the card.
+      grip.addEventListener("click", (ev) => ev.stopPropagation());
+      grip.addEventListener("dragstart", (ev) => {
+        ev.stopPropagation(); // beat the base .cdx-card transfer dragstart
+        const item = this.actor?.items?.get(card.dataset.itemId);
+        if (!item) return;
+        this._cdxReorder = { id: item.id, type: item.type, card };
+        try {
+          ev.dataTransfer.effectAllowed = "move";
+          ev.dataTransfer.setData("text/plain", item.id); // Firefox needs a payload to start a drag
+          ev.dataTransfer.setDragImage(card, 12, 16);      // ghost the whole card, not the 5px sliver
+        } catch (e) { /* dataTransfer may be restricted; the drag still works */ }
+        card.classList.add("cdx-dragging");
+      });
+      grip.addEventListener("dragend", () => {
+        this._cdxReorder = null;
+        card.classList.remove("cdx-dragging");
+        clearMarks();
+      });
+    });
+
+    root.querySelectorAll(".cdx-card[data-item-id]").forEach((card) => {
+      // Whether the pointer is in the card's lower half → drop AFTER it, else BEFORE.
+      const dropsAfter = (ev) => {
+        const rect = card.getBoundingClientRect();
+        return (ev.clientY - rect.top) > rect.height / 2;
+      };
+      const validTarget = () => {
+        const drag = this._cdxReorder;
+        if (!drag) return null;
+        const target = this.actor?.items?.get(card.dataset.itemId);
+        // Same category only, and never the dragged card itself.
+        if (!target || target.type !== drag.type || target.id === drag.id) return null;
+        return { drag, target };
+      };
+      card.addEventListener("dragover", (ev) => {
+        const v = validTarget();
+        if (!v) return;            // not a grip reorder (or wrong category) → let the base transfer handle it
+        ev.preventDefault();       // mark the card as a valid drop target
+        ev.stopPropagation();
+        const after = dropsAfter(ev);
+        card.classList.toggle("cdx-drop-after", after);
+        card.classList.toggle("cdx-drop-before", !after);
+      });
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("cdx-drop-before", "cdx-drop-after");
+      });
+      card.addEventListener("drop", async (ev) => {
+        const v = validTarget();
+        if (!v) return;
+        ev.preventDefault();
+        ev.stopPropagation();      // never reach the base sheet drop (it would also _onSortItem)
+        const after = dropsAfter(ev);
+        clearMarks();
+        // Persist the new order WITHOUT a re-render, then move the card in place. A
+        // re-render would reset the form's scroll (you've usually scrolled into the
+        // inventory) and flash; the optimistic DOM move mirrors the ammo stepper.
+        const ok = await this._cdxReorderItem(v.drag.id, v.target.id, v.drag.type, after);
+        if (ok && v.drag.card) { if (after) card.after(v.drag.card); else card.before(v.drag.card); }
+      });
+    });
+  }
+
+  /**
+   * Persist a within-category reorder: re-number every item of `type` so the dragged item
+   * lands before/after the target, writing the Foundry `sort` field. Re-numbering the whole
+   * category (rather than a single relative sort) keeps the result deterministic even from a
+   * cold start where every item still has sort 0. Only items whose sort actually changes are
+   * written, and with {render:false} — the caller moves the card in the DOM. Returns true on
+   * success so the caller knows it's safe to do the optimistic move.
+   */
+  async _cdxReorderItem(dragId, targetId, type, after) {
+    if (dragId === targetId) return false;
+    const dragItem = this.actor?.items?.get(dragId);
+    if (!dragItem) return false;
+    const sibs = (this.actor?.items?.filter((i) => i.type === type) ?? []).sort(cdxInventoryOrder);
+    const from = sibs.findIndex((i) => i.id === dragId);
+    if (from < 0) return false;
+    sibs.splice(from, 1);
+    let to = sibs.findIndex((i) => i.id === targetId);
+    if (to < 0) return false;
+    if (after) to += 1;
+    sibs.splice(to, 0, dragItem);
+    const updates = [];
+    sibs.forEach((it, idx) => {
+      const want = (idx + 1) * CDX_SORT_BASE;
+      if ((Number(it.sort) || 0) !== want) updates.push({ _id: it.id, sort: want });
+    });
+    try {
+      if (updates.length) await this.actor.updateEmbeddedDocuments("Item", updates, { render: false });
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Fill each weapon card's dice-pool node with the actor's pool for that weapon's
    * combat skill, reusing the same DiceHelpers.addSkillDicePool the Skills tab uses
    * (so it's the real, full pool). The .roll-button node is display-only here
@@ -610,6 +741,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // one Inventory tab; anything else (default "split") keeps the Combat + Gear
     // tabs. Dotted-key getFlag, same idiom as config.enableEditMode above.
     ctx.cdxCombinedInventory = this.actor?.getFlag?.("starwarsffg", "config.codexInventoryStyle") === "combined";
+    // Inventory render order: cdxItems is the actor's items in manual drag-sort order
+    // (see cdxInventoryOrder). The weapon/armour/gear partials iterate THIS instead of the
+    // collection-ordered `items`, so reordering via the card grips is reflected. These are
+    // still the live Item documents (not toObject'd), so the templates keep full
+    // item.system / item.flags / item.img access.
+    ctx.cdxItems = [...(this.actor?.items ?? [])].sort(cdxInventoryOrder);
+    // Show the inventory drag grips only to a user who can actually edit the actor —
+    // isEditable folds in document ownership (options.editable alone can be true for a
+    // non-owner, who would then get a permission error on drop). The wiring in
+    // _cdxWireReorder is gated by options.editable; with no grips rendered it's a no-op.
+    ctx.cdxCanReorder = !!this.isEditable;
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
       // Header pill stacks (specializations / force powers / signature abilities):

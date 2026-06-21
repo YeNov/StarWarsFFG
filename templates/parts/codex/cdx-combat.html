@@ -2,8 +2,9 @@
      hooks; centered DAM/CRIT/RANGE/ENC (armour: SOAK/DEF/HP/ENC). --}}
 <div class="cdx-cards items">
   <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsWeapons"}}</span>{{#unless (eq actor.type "minion")}}<span class="cdx-head-enc{{#if (gt data.stats.encumbrance.value data.stats.encumbrance.max)}} over{{/if}}">{{#if (gt data.stats.encumbrance.value data.stats.encumbrance.max)}}<i class="fas fa-triangle-exclamation cdx-enc-warn" title="Over encumbrance threshold"></i>{{/if}}<span class="cdx-ge-k">{{localize "SWFFG.Encumbrance"}}</span> <span class="cdx-ge-v{{#if (gt data.stats.encumbrance.value data.stats.encumbrance.max)}} over{{/if}}">{{data.stats.encumbrance.value}} / {{data.stats.encumbrance.max}}</span></span>{{/unless}}<span class="item-add weapon"><i class="far fa-plus-square"></i></span></div>
-  {{#each items as |item id|}} {{#iff item.type '==' 'weapon'}}
+  {{#each cdxItems as |item id|}} {{#iff item.type '==' 'weapon'}}
   <div class="item cdx-card weapon {{#unless item.system.equippable.equipped}}off{{/unless}}{{#if item.system.rarity.isrestricted}} cdx-restricted{{/if}}" data-item-id="{{item._id}}" data-ability="{{item.system.skill.value}}">
+    {{#if ../cdxCanReorder}}<div class="cdx-grip" draggable="true" title="Drag to reorder" aria-label="Drag to reorder"></div>{{/if}}
     <div class="cdx-card-main">
       {{!-- The roll icon must sit 3 levels deep in .item so DiceHelpers.rollSkill
             (row = target.parentElement.parentElement; row.parentElement === .item)
@@ -37,8 +38,9 @@
   {{/iff}} {{/each}}
 
   <div class="cdx-cards-head"><span>{{localize "SWFFG.ItemsArmor"}}</span><span class="item-add armour"><i class="far fa-plus-square"></i></span></div>
-  {{#each items as |item id|}} {{#iff item.type '==' 'armour'}}
+  {{#each cdxItems as |item id|}} {{#iff item.type '==' 'armour'}}
   <div class="item cdx-card armour {{#unless item.system.equippable.equipped}}off{{/unless}}{{#if item.system.rarity.isrestricted}} cdx-restricted{{/if}}" data-item-id="{{item._id}}">
+    {{#if ../cdxCanReorder}}<div class="cdx-grip" draggable="true" title="Drag to reorder" aria-label="Drag to reorder"></div>{{/if}}
     <div class="cdx-card-main">
       <div class="item-rollable cdx-card-icon" style="background-image:url('{{item.img}}')"></div>
       <div class="cdx-equip-col">
