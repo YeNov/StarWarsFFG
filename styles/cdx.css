@@ -1020,7 +1020,7 @@
    collapses the box (head only) until you click in. Putting min-height here (as
    the biography panel does on .cdx-bio-editor) keeps it a real box always.
    flex:none stops the column from shrinking it under the tab body. */
-.cdx .cdx-idesc { flex:none; min-height:118px; margin:8px 0 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+.cdx .cdx-idesc { flex:none; min-height:177px; margin:8px 0 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
 .cdx .cdx-idesc-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
 .cdx .cdx-idesc > .editor, .cdx .cdx-idesc > .editor-content { padding:8px 10px; color:var(--cdx-ink); font-size:13px; line-height:1.5; }
 .cdx .cdx-idesc > .editor * { color:var(--cdx-ink); }
