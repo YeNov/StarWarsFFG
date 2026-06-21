@@ -727,6 +727,10 @@
    dark result icons invert to white. Mirrors the dark-scheme dice-pool image filters above. */
 .cdx-dice .dice-pool img[src*="black.png"], .cdx-dice .dice-pool img[src*="black-minus"], .cdx-dice .dice-pool img[src*="darkpip"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
 .cdx-dice .dice-pool img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) { filter: brightness(0) invert(1); }
+/* The dice-SELECTION table (.pool-dice-pool) also lists the black setback die — give it
+   the same white outline so it reads on the dark dialog. Only black.png needs it; the
+   other rows (yellow/green/red/purple/blue/whiteHex) are coloured and stay untouched. */
+.cdx-dice .pool-dice-pool img[src*="black.png"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
 
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
    the right edge on every row. Cards with statcols have 3 children (controls land
