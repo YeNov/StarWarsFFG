@@ -165,6 +165,20 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     await super._onRender(context, options);
     const html = $(this.element);
 
+    // Codex-style the dice window (drop the white pool background + apply the
+    // dark-scheme glyph/icon treatment, see `.cdx-dice` in cdx.css) ONLY when the
+    // rolling actor uses a Codex sheet. Gate via a DEDICATED marker class, not
+    // `.cdx` — the broad `.cdx form input,…button` rules would otherwise restyle
+    // the stock dialog controls.
+    try {
+      const rollActor = this.roll?.item?.actor
+        ?? (this.roll?.data?.actor?._id ? game.actors.get(this.roll.data.actor._id) : null);
+      const sheetClass = rollActor?.getFlag?.("core", "sheetClass") ?? "";
+      const isCodex = sheetClass.includes("Codex")
+        || (rollActor?._sheet?.constructor?.name ?? "").startsWith("Codex");
+      this.element?.classList?.toggle("cdx-dice", !!isCodex);
+    } catch (e) { /* on any detection error, leave the stock dialog styling */ }
+
     this._initializeInputs(html);
     this._activateInputs(html);
 

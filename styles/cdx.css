@@ -469,6 +469,10 @@
    between pairs — 4 dice wrap to 2×2, never 3+1; 3 wrap to a 2+1 pyramid. */
 .cdx .cdx-die-pair { display:inline-flex; flex:none; gap:3px; }
 .cdx .cdx-die-setback { width:16px; height:16px; flex:none; color:var(--cdx-ink); }
+/* Dark scheme: render the defence setback dice like the setback die glyph — black
+   fill with a white outline (rulebook-accurate) instead of the light currentColor
+   fill. CSS fill/stroke override the rect's fill="currentColor" presentation attr. */
+.cdx.scheme-dark .cdx-die-setback rect, .cdx .scheme-dark .cdx-die-setback rect { fill:#000; stroke:#fff; stroke-width:2; }
 .cdx .cdx-def-digit { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; color:var(--cdx-ink); }
 .cdx .cdx-def-dash { font-family:"Orbitron"; font-weight:700; font-size:18px; line-height:1; color:var(--cdx-dim); }
 
@@ -708,6 +712,42 @@
 :is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
   filter: brightness(0) invert(1);
 }
+
+/* === Codex dice roll window ===
+   `.cdx-dice` is toggled onto the roll-builder dialog ROOT in roll-builder.js#_onRender,
+   but only when the rolling actor uses a Codex sheet. A dedicated marker (NOT `.cdx`,
+   whose broad `.cdx form …` rules would restyle the stock dialog controls) lets us drop
+   the white dice-pool background and apply the dark-scheme glyph/icon treatment so the
+   pool reads on the dark dialog. The adversary preview is also a `.dice-pool` → covered. */
+.cdx-dice .dice-pool { background:transparent !important; }
+/* Size the pool icons to FILL the row width. The JS sizes them in fixed count-tiers
+   (36/24/12px) regardless of dialog width, so they either overflow (many glyphs) or leave
+   dead space (few glyphs / a wide, resizable dialog). flex:1 1 auto lets them grow to fill
+   the row — capped at the 36px normal size — and shrink below the tier size when the pool
+   is too wide to fit; min-width:0 enables the shrink, height:auto keeps them square. */
+.cdx-dice .dice-pool img { flex: 1 1 auto; min-width: 0; max-width: 36px; height: auto; }
+/* Fixed-Results dietype glyphs: setback/dark = black with a white outline; the rest white. */
+.cdx-dice .dice-pool-dialog span.dietype.setback, .cdx-dice .dice-pool-dialog span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+.cdx-dice .dice-pool-dialog span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+/* Fixed Results table: pin it to the dialog width with proportioned columns so the
+   right-hand glyph/count/label group stops clipping. table-layout:fixed makes the six
+   columns share the window (overriding the stock 300px min-width that overflowed); the
+   % widths keep the labels roomy and the glyph/count columns tight — a long label wraps
+   rather than spilling out. */
+.cdx-dice .pool-additional-container { table-layout: fixed; width: 100% !important; min-width: 0 !important; }
+.cdx-dice .pool-additional-container td:nth-child(3n+1) { width: 12%; }
+.cdx-dice .pool-additional-container td:nth-child(3n+2) { width: 14%; }
+.cdx-dice .pool-additional-container td:nth-child(3n) { width: 24%; }
+.cdx-dice .pool-additional-container input[type="button"] { width: 100%; min-width: 0; margin: 0; box-sizing: border-box; }
+/* Pool ICON images: black setback / remove-setback / dark-pip keep a white outline; the
+   dark result icons invert to white. Mirrors the dark-scheme dice-pool image filters above. */
+.cdx-dice .dice-pool img[src*="black.png"], .cdx-dice .dice-pool img[src*="black-minus"], .cdx-dice .dice-pool img[src*="darkpip"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
+.cdx-dice .dice-pool img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) { filter: brightness(0) invert(1); }
+/* The dice-SELECTION table (.pool-dice-pool) also lists the black setback die — give it
+   the same white outline so it reads on the dark dialog. Only black.png needs it; the
+   other rows (yellow/green/red/purple/blue/whiteHex) are coloured and stay untouched. */
+.cdx-dice .pool-dice-pool img[src*="black.png"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
+
 /* Pin the controls to the LAST grid column so the edit/delete buttons line up at
    the right edge on every row. Cards with statcols have 3 children (controls land
    in col3 naturally); cards without (crew) have 2, so the controls would auto-place
@@ -771,8 +811,12 @@
    the edit/delete/info controls to the right. */
 .cdx .cdx-tal-act { margin-right:auto; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; align-items:center; }
-/* Inline details when a force-power / signature card is expanded (click to open). */
-.cdx .cdx-talent.expanded { overflow:visible; }
+/* Inline details when a force-power / signature card is expanded (click to open).
+   Drop the clip-path too: it clips ALL descendants to the octagon regardless of
+   overflow, so an upgrade pill's hover .tooltip2 was cut off at the card edge.
+   With clip-path:none the tooltip (z-index:500 on hover) renders fully and above
+   neighbouring cards. The notch is dropped only while expanded (a transient state). */
+.cdx .cdx-talent.expanded { overflow:visible; clip-path:none; }
 .cdx .cdx-talent .item-details { padding:8px 10px; font-size:12px; line-height:1.4; color:var(--cdx-ink); border-top:1px solid var(--cdx-line); background:var(--cdx-paper); }
 .cdx .cdx-talent .item-details .item-properties { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
 .cdx .cdx-talent .item-details .tag { font-size:10px; padding:1px 6px; border:1px solid var(--cdx-line); border-radius:10px; color:var(--cdx-dim); }
@@ -976,7 +1020,7 @@
    collapses the box (head only) until you click in. Putting min-height here (as
    the biography panel does on .cdx-bio-editor) keeps it a real box always.
    flex:none stops the column from shrinking it under the tab body. */
-.cdx .cdx-idesc { flex:none; min-height:118px; margin:8px 0 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
+.cdx .cdx-idesc { flex:none; min-height:177px; margin:8px 0 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; }
 .cdx .cdx-idesc-head { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
 .cdx .cdx-idesc > .editor, .cdx .cdx-idesc > .editor-content { padding:8px 10px; color:var(--cdx-ink); font-size:13px; line-height:1.5; }
 .cdx .cdx-idesc > .editor * { color:var(--cdx-ink); }
@@ -985,6 +1029,12 @@
    resolves and it occupies real space in flow (mirrors .cdx-bio-editor). */
 .cdx .cdx-idesc > .editor { height:auto; }
 .cdx .cdx-idesc > .editor:has(.tox-tinymce), .cdx .cdx-idesc > .editor:has(.ProseMirror) { height:300px; }
+/* When the description is long it scrolls inside that 300px box, and a scroll
+   container clips its own padding-bottom — the last line sat flush against the
+   bottom edge. A spacer block at the END of the scrolling content guarantees the
+   bottom clears like the top, whichever element actually scrolls (.editor or the
+   inner .editor-content). */
+.cdx .cdx-idesc .editor-content::after { content:""; display:block; height:10px; }
 /* Weapon: Damage/Crit/Range across the top (span 2 of 6), then 2-up rows below. */
 .cdx .cdx-istats-weapon { grid-template-columns:repeat(6, minmax(0, 1fr)); }
 .cdx .cdx-istats-weapon .cdx-istat { grid-column:span 2; }
@@ -1287,12 +1337,20 @@
 /* stretch makes every node fill its grid row, so all cards in a row share the
    tallest one's height; the card fills the node and its body flexes (cost pins
    to the bottom). */
-.cdx .cdx-ft-node { position:relative; min-width:0; }
+/* Flex column so the card (its only in-flow child; the connectors are absolute)
+   fills the stretched row height AND can grow past it when content is taller than
+   the measured row — see .cdx-ft-card flex below. */
+.cdx .cdx-ft-node { position:relative; min-width:0; display:flex; flex-direction:column; }
 
 /* --- Node card --- */
 /* No border: a border + clip-path leaves notch-corner artifacts. Use a
    drop-shadow (follows the clipped shape) for depth; bought nodes glow accent. */
-.cdx .cdx-ft-card { position:relative; z-index:2; height:100%; display:flex; flex-direction:column; min-height:118px;
+/* flex:1 0 auto (in the flex-column node) fills the row height for short cards but
+   NEVER shrinks below the card's own content (flex-shrink:0) — so the body can't be
+   squeezed into the foot when content slightly exceeds the measured row. Replaces a
+   fixed height:100%, which capped the card and caused the description to overflow the
+   footer (only visible where dark text crossed a light footer). */
+.cdx .cdx-ft-card { position:relative; z-index:2; flex:1 0 auto; display:flex; flex-direction:column; min-height:118px;
   background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip);
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
 .cdx .cdx-ft-node.on .cdx-ft-card { filter:drop-shadow(0 0 4px var(--cdx-accent)); }
@@ -1310,6 +1368,12 @@
 .cdx .cdx-ft-buy .ffg-purchase:hover { filter:brightness(1.25); }
 .cdx .cdx-ft-body { flex:1; padding:7px 9px; font-size:22px; line-height:1.3; position:relative; }
 .cdx .cdx-ft-body .popout-editor-button { position:absolute; top:3px; right:5px; opacity:.45; cursor:pointer; }
+/* The stock theme forces `.popout-editor { height:100%; overflow:auto; min-height:2rem }`
+   (mandar.css, incl. high-specificity `.starwarsffg.sheet.item .item-sheet-* .popout-editor`).
+   Inside the flex tree card that makes the description a fixed-height scroll box which
+   under-reports its height to the card sizing, so the real text overflowed into the foot.
+   Let it flow naturally so the card grows to fit it. !important beats the stock specificity. */
+.cdx .cdx-ft-body .popout-editor { height:auto !important; min-height:0 !important; overflow:visible !important; }
 .cdx .cdx-ft-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4.5px 11px; border-top:1px solid var(--cdx-line); }
 .cdx .cdx-ft-cost { font-family:"Orbitron",sans-serif; font-weight:700; font-size:14.7px; text-transform:uppercase; letter-spacing:.5px; color:var(--cdx-dim); white-space:nowrap; }
 .cdx .cdx-ft-cost input { background:transparent; border:none; width:3.5ch; color:var(--cdx-brass); font-weight:700; font-family:inherit; padding:0; }
@@ -1382,6 +1446,13 @@
 .cdx .scheme-dark span.dietype.setback, .cdx .scheme-dark span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 .cdx.scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
 .cdx .scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+/* Foundry's #tooltip is body-level (outside .cdx), so the dark-scheme rules above
+   can't reach the dice glyphs baked into a force-power pill's data-tooltip — and the
+   Foundry tooltip is ALWAYS dark, so the naturally-black glyphs (setback/dark) vanish
+   on it. Mirror the dark-scheme glyph treatment for #tooltip (the ID out-specifies the
+   base `span.dietype` colours). Scheme-independent: the tooltip is dark in every scheme. */
+#tooltip span.dietype.setback, #tooltip span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+#tooltip span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
 
 /* --- Force-power tree tabs: compact codex tab strip (bespoke .cdx-tabstrip /
    .cdx-tab system, so the codex tab JS switches the .cdx-pane sections). Smaller

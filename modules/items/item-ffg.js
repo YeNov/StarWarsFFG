@@ -771,18 +771,24 @@ export class ItemFFG extends ItemBaseFFG {
         } else {
           upgradeDescriptions.push({
             name: up.name,
-            description: await foundry.applications.ux.TextEditor.enrichHTML(up.description),
+            // renderDiceImages turns FFG dice codes ([SU], [AD], …) into dietype glyph
+            // spans (a superset of enrichHTML). The spans are carried in each pill's
+            // data-tooltip below, where Foundry renders them with the glyph font.
+            description: await PopoutEditor.renderDiceImages(up.description, this.actor),
             rank: 1,
           });
         }
       }
 
       for (const upd of upgradeDescriptions) {
-        props.push(`<div class="ffg-sendtochat hover" onclick="">${upd.name} ${upd.rank}
-          <div class="tooltip2">
-            ${upd.description}
-          </div>
-        </div>`);
+        // Bake the (glyph-rendered) description into data-tooltip at render time so
+        // Foundry's tooltip manager renders it BODY-LEVEL with dice glyphs. The old
+        // in-card .tooltip2 child never rendered the glyph font, and setting
+        // data-tooltip lazily on mouseover (itemPillHover) is too late for the
+        // tooltip manager. Mirrors the ffg-star-wars-enhancements quality-pill fix.
+        // Escape " for the attribute; renderDiceImages' spans use ' so they pass through.
+        const tooltipHtml = (upd.description || "").replaceAll('"', "&quot;");
+        props.push(`<div class="ffg-sendtochat hover" data-tooltip="${tooltipHtml}" data-tooltip-direction="UP">${upd.name} ${upd.rank}</div>`);
         purchasedUpgrades.push({
           name: upd.name,
           rank: upd.rank,
