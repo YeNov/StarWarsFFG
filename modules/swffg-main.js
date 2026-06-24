@@ -678,6 +678,20 @@ Hooks.once("init", async function () {
       if (Object.keys(options).includes('hidden')) {
         updateCombatTracker();
       }
+      // Combatant#img is derived from the token texture only the first time it is prepared and is
+      // never refreshed when the texture later changes (core uses `this.img ||= token.texture.src`).
+      // As a result, swapping a token image -- via token-hud-wildcard, tokenizer, manual edits, etc. --
+      // leaves the combat tracker showing the original art. Push the new texture onto the combatant so
+      // the tracker stays in sync. GM-only: the write replicates to all clients and re-renders the tracker.
+      // Skip videos: core intentionally leaves img unset for video textures (it renders a thumbnail).
+      if (game.user.isGM && foundry.utils.hasProperty(options, "texture.src")) {
+        const newSrc = tokenDocument.texture.src;
+        const combatant = tokenDocument.combatant;
+        const isVideo = foundry.helpers.media.VideoHelper.hasVideoExtension(newSrc);
+        if (combatant && !isVideo && combatant.img !== newSrc) {
+          await combatant.update({ img: newSrc });
+        }
+      }
     });
 
     Hooks.on("preCreateCombatant", async (combatant, context, options, combatantId) => {
