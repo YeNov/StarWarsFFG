@@ -1,5 +1,9 @@
 <form style="overflow-y: scroll; scrollbar-width: thin;">
   <div class="dice-pool-dialog">
+    <div class="adversary-pool-toggle" style="display: none;">
+      <button type="button" class="adversary-mode-btn" data-mode="base">{{localize "SWFFG.Adversary.BasePool"}}</button>
+      <button type="button" class="adversary-mode-btn" data-mode="adversary"><span class="adversary-pool-label"></span></button>
+    </div>
     <div class="dice-pool"></div>
     <div class="simulation" {{#if simDisplay }} {{ else }}style="display: none"{{/if}}>
       Success chance: <span id="success_chance">{{ success }}</span>
@@ -142,16 +146,6 @@
       </div>
       {{/if}}
     </div>
-    </details>
-    <div class="adversary-controls">
-      <label>
-        <input type="checkbox" class="adversary-toggle" checked />
-        <span class="adversary-label">{{adversaryLabel}}</span>
-      </label>
-    </div>
-    <details class="adversary-preview-details">
-      <summary>{{localize "SWFFG.Adversary.UpgradedPool"}}</summary>
-      <div class="adversary-preview dice-pool"></div>
     </details>
     <div class="roll-button flexrow">
       <button class="btn">{{localize "SWFFG.SkillsRoll"}}</button>

@@ -1272,6 +1272,9 @@ Hooks.once("ready", async () => {
   // Forward Apply Damage / Apply Crit writes from non-owning players to the GM.
   registerGMBridge();
 
+  // Log adversary-roll diagnostics forwarded from players on the GM machine.
+  RollBuilderFFG.registerRollLogBridge();
+
   // NOTE: the "currentVersion" will be updated in handleUpdate, preventing the code below from running in the future
   // this is intended to encourage migrating code to this file to clean up the main file
   // A migration failure must never abort the rest of this hook, which also renders

@@ -16,6 +16,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     this.dicePool = rollDicePool;
     this.description = rollDescription;
     this.adversaryRanks = RollBuilderFFG._computeAdversaryRanks();
+    // Which pool the dialog shows/rolls when an Adversary is targeted. Defaults
+    // to the Adversary pool so the upgrade is applied by default (mirrors the old
+    // checkbox defaulting to checked). Only takes effect while adversaryRanks > 0.
+    this._adversaryMode = true;
   }
 
   /**
@@ -23,14 +27,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
    * Mirrors the rank-counting logic in modules/helpers/token.js drawAdversaryCount.
    * Returns 0 if no targets, no actors, or no Adversary items.
    */
-  static _adversaryLabelText(ranks) {
-    return ranks > 0
-      ? game.i18n.format("SWFFG.Adversary.RollWithRanks", { ranks })
-      : game.i18n.localize("SWFFG.Adversary.RollWith");
-  }
-
   static _computeAdversaryRanks() {
     try {
+      // When the GM disables the feature, report 0 ranks. This single gate hides
+      // the Adversary controls (_refreshAdversary keys visibility off ranks > 0)
+      // and skips the difficulty upgrade at roll time.
+      if (!game.settings.get("starwarsffg", "enableAdversaryCalc")) return 0;
       const itemName = game.settings.get("starwarsffg", "adversaryItemName");
       const targets = Array.from(game.user?.targets ?? []);
       if (!targets.length) return 0;
@@ -48,6 +50,46 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       CONFIG.logger?.debug?.("Adversary rank detection failed", err);
       return 0;
     }
+  }
+
+  /** System-socket event used to forward adversary-roll diagnostics to the GM. */
+  static LOG_EVENT = "ffgAdversaryRollLog";
+
+  /** A compact, loggable dice breakdown of a pool. */
+  static _poolSummary(pool) {
+    return {
+      proficiency: pool.proficiency,
+      ability:     pool.ability,
+      boost:       pool.boost,
+      challenge:   pool.challenge,
+      difficulty:  pool.difficulty,
+      setback:     pool.setback,
+      force:       pool.force,
+      expression:  pool.renderDiceExpression(),
+    };
+  }
+
+  /**
+   * Log an adversary roll's pool data locally and forward it to the GM machine.
+   * `game.socket.emit` does not echo back to the sender, so the rolling client
+   * logs locally here while the active GM logs the forwarded copy in
+   * {@link registerRollLogBridge}.
+   */
+  static _logRoll(payload) {
+    CONFIG.logger?.log?.("Client -> GM Server | Dice Roll", payload);
+    game.socket.emit("system.starwarsffg", { event: RollBuilderFFG.LOG_EVENT, payload });
+  }
+
+  /**
+   * GM-side listener that logs adversary-roll diagnostics forwarded by players.
+   * Safe to call on every client; only GMs act on it. Call once at "ready".
+   */
+  static registerRollLogBridge() {
+    game.socket.on("system.starwarsffg", (data) => {
+      if (data?.event !== RollBuilderFFG.LOG_EVENT) return;
+      if (!game.user.isGM) return;
+      CONFIG.logger?.log?.("Client -> GM Server | Dice Roll", data.payload);
+    });
   }
 
   static DEFAULT_OPTIONS = {
@@ -155,8 +197,6 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       diceSymbols,
       simDisplay: display,
       simCount: game.settings.get("starwarsffg", "rollSimulation"),
-      adversaryRanks: this.adversaryRanks,
-      adversaryLabel: RollBuilderFFG._adversaryLabelText(this.adversaryRanks),
     };
   }
 
@@ -182,8 +222,11 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     this._initializeInputs(html);
     this._activateInputs(html);
 
-    html.find(".adversary-toggle").on("change", () => {
-      this._updateAdversaryPreview(html);
+    html.find(".adversary-mode-btn").on("click", (event) => {
+      event.preventDefault();
+      this._adversaryMode = event.currentTarget.dataset.mode === "adversary";
+      this._syncAdversaryButtons(html);
+      this._updatePreview(html);
     });
 
     this._refreshAdversary(html);
@@ -199,15 +242,32 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // ApplicationV2 port no longer wires form submission, so stop the
       // default submit and close the dialog explicitly once the roll is sent.
       event.preventDefault();
-      // Snapshot the Adversary decision NOW, synchronously, before any of the
-      // awaits below. `this.adversaryRanks` is recomputed from the LIVE
-      // game.user.targets by the `targetToken` hook (see _onRender), so reading it
-      // at roll time -- after the awaits (status-effect cleanup, ammo/item updates)
-      // -- can pick up a changed value and silently apply fewer upgrades than the
-      // preview (which clones a pristine pool and reads ranks at render time) showed.
-      // Capturing here keeps the executed roll consistent with the Adversary preview.
-      const adversaryChecked = html.find(".adversary-toggle").is(":checked");
-      const adversaryRanks = this.adversaryRanks;
+      // Snapshot the pool to roll NOW, synchronously, before any of the awaits
+      // below. In Adversary mode this returns a clone of the base pool upgraded by
+      // the targeted Adversary's ranks; in Base mode it returns this.dicePool as-is.
+      // `this.adversaryRanks` is recomputed from the LIVE game.user.targets by the
+      // `targetToken` hook (see _onRender), so capturing the resolved pool here --
+      // rather than reading ranks after the awaits (status-effect cleanup, ammo/item
+      // updates) -- keeps the executed roll consistent with the on-screen preview.
+      const rollPool = this._effectivePool();
+      // Forward roll diagnostics to the GM machine (and log locally) so the table
+      // can audit what each player's client computed -- on every roll. The
+      // adversary pool is only meaningful when an Adversary is targeted (ranks > 0).
+      let adversaryPool = null;
+      if (this.adversaryRanks > 0) {
+        const adversaryClone = this._clonePool();
+        if (this.dicePool.difficulty > 0) adversaryClone.upgradeDifficulty(this.adversaryRanks);
+        adversaryPool = RollBuilderFFG._poolSummary(adversaryClone);
+      }
+      RollBuilderFFG._logRoll({
+        user: game.user.name,
+        actor: this.roll.data?.token?.name ?? this.roll.data?.actor?.name ?? null,
+        skill: this.roll.skillName ?? null,
+        selected: this.adversaryRanks > 0 && this._adversaryMode ? "adversary" : "base",
+        adversaryRanks: this.adversaryRanks,
+        basePool: RollBuilderFFG._poolSummary(this.dicePool),
+        adversaryPool,
+      });
       // if sound was not passed search for sound dropdown value
       if (!this.roll.sound) {
         const sound = html.find(".sound-selection")?.[0]?.value;
@@ -293,7 +353,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       const sentToPlayer = html.find(".user-selection")?.[0]?.value;
       if (sentToPlayer) {
         let container = $(`<div class='dice-pool'></div>`)[0];
-        this.dicePool.renderAdvancedPreview(container);
+        rollPool.renderAdvancedPreview(container);
 
         const messageText = `<div>
           <div>${game.i18n.localize("SWFFG.SentDicePoolRollHint")}</div>
@@ -307,7 +367,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           flags: {
             starwarsffg: {
               roll: this.roll,
-              dicePool: this.dicePool,
+              dicePool: rollPool,
               description: this.description,
             },
           },
@@ -323,12 +383,9 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         if (this.roll.crew) {
           this.roll.item['crew'] = this.roll.crew
         }
-        // Use the values snapshotted at click time (above) so the executed roll
-        // matches the Adversary preview even if targeting changed during the awaits.
-        if (adversaryChecked && adversaryRanks > 0 && this.dicePool.difficulty > 0) {
-          this.dicePool.upgradeDifficulty(adversaryRanks);
-        }
-        const roll = new game.ffg.RollFFG(this.dicePool.renderDiceExpression(), this.roll.item, this.dicePool, this.roll.flavor);
+        // Roll the pool snapshotted at click time (above) so the executed roll
+        // matches the on-screen preview even if targeting changed during the awaits.
+        const roll = new game.ffg.RollFFG(rollPool.renderDiceExpression(), this.roll.item, rollPool, this.roll.flavor);
         // check if this is a crew roll - and it's a roll for a weapon
         if (this.roll.item && this.roll.item.hasOwnProperty('crew') && Object.keys(this.roll.item).length > 1) {
           await this.roll.item.update({"flags": {"starwarsffg": {"crew": this.roll.item.crew}}})
@@ -370,58 +427,75 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
   _updatePreview(html) {
     const poolDiv = html.find(".dice-pool-dialog .dice-pool")[0];
     poolDiv.innerHTML = "";
-    this.dicePool.renderPreview(poolDiv);
-    this._updateSimulationPreview();
-    this._updateAdversaryPreview(html);
+    const pool = this._effectivePool();
+    pool.renderPreview(poolDiv);
+    this._updateSimulationPreview(pool);
   }
 
   _refreshAdversary(html) {
     this.adversaryRanks = RollBuilderFFG._computeAdversaryRanks();
-    const controls = html.find(".adversary-controls")[0];
-    const details = html.find(".adversary-preview-details")[0];
-    const labelSpan = html.find(".adversary-label")[0];
-    const visible = this.adversaryRanks > 0;
-    if (controls) controls.style.display = visible ? "" : "none";
-    if (details) details.style.display = visible ? "" : "none";
-    if (labelSpan) labelSpan.textContent = RollBuilderFFG._adversaryLabelText(this.adversaryRanks);
-    this._updateAdversaryPreview(html);
+    // Show the Base/Adversary toggle only while an Adversary is targeted (ranks > 0).
+    const toggle = html.find(".adversary-pool-toggle")[0];
+    if (toggle) toggle.style.display = this.adversaryRanks > 0 ? "" : "none";
+    const label = html.find(".adversary-pool-label")[0];
+    if (label) label.textContent = game.i18n.format("SWFFG.Adversary.AdversaryPool", { ranks: this.adversaryRanks });
+    this._syncAdversaryButtons(html);
+    this._updatePreview(html);
   }
 
-  _updateAdversaryPreview(html) {
-    try {
-      const container = html.find(".adversary-preview")[0];
-      if (!container) return;
-      container.innerHTML = "";
-
-      const toggle = html.find(".adversary-toggle")[0];
-      const checked = toggle ? toggle.checked : false;
-      const gate = checked && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
-      if (!gate) return;
-
-      const clone = new DicePoolFFG({
-        proficiency: this.dicePool.proficiency,
-        ability:     this.dicePool.ability,
-        challenge:   this.dicePool.challenge,
-        difficulty:  this.dicePool.difficulty,
-        boost:       this.dicePool.boost,
-        setback:     this.dicePool.setback,
-        remsetback:  this.dicePool.remsetback,
-        force:       this.dicePool.force,
-        advantage:   this.dicePool.advantage,
-        success:     this.dicePool.success,
-        threat:      this.dicePool.threat,
-        failure:     this.dicePool.failure,
-        light:       this.dicePool.light,
-        dark:        this.dicePool.dark,
-        triumph:     this.dicePool.triumph,
-        despair:     this.dicePool.despair,
-        upgrades:    this.dicePool.upgrades,
-      });
-      clone.upgradeDifficulty(this.adversaryRanks);
-      clone.renderPreview(container);
-    } catch (err) {
-      CONFIG.logger?.debug?.("Adversary preview render failed", err);
+  /** Highlight the active Base/Adversary pool button and label the Roll button. */
+  _syncAdversaryButtons(html) {
+    const adversaryAvailable = this.adversaryRanks > 0;
+    const mode = adversaryAvailable && this._adversaryMode ? "adversary" : "base";
+    html.find(".adversary-mode-btn").each((i, btn) => {
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    });
+    const rollBtn = html.find(".roll-button .btn")[0];
+    if (rollBtn) {
+      rollBtn.textContent = !adversaryAvailable
+        ? game.i18n.localize("SWFFG.SkillsRoll")
+        : mode === "adversary"
+          ? game.i18n.localize("SWFFG.Adversary.RollAdversaryPool")
+          : game.i18n.localize("SWFFG.Adversary.RollBasePool");
     }
+  }
+
+  /** A field-for-field copy of the working (base) pool. */
+  _clonePool() {
+    return new DicePoolFFG({
+      proficiency: this.dicePool.proficiency,
+      ability:     this.dicePool.ability,
+      challenge:   this.dicePool.challenge,
+      difficulty:  this.dicePool.difficulty,
+      boost:       this.dicePool.boost,
+      setback:     this.dicePool.setback,
+      remsetback:  this.dicePool.remsetback,
+      force:       this.dicePool.force,
+      advantage:   this.dicePool.advantage,
+      success:     this.dicePool.success,
+      threat:      this.dicePool.threat,
+      failure:     this.dicePool.failure,
+      light:       this.dicePool.light,
+      dark:        this.dicePool.dark,
+      triumph:     this.dicePool.triumph,
+      despair:     this.dicePool.despair,
+      upgrades:    this.dicePool.upgrades,
+    });
+  }
+
+  /**
+   * The pool to display and roll. In Base mode -- or when no Adversary is targeted
+   * or there is no difficulty to upgrade -- this is the live base pool that manual
+   * edits mutate. In Adversary mode it is a clone of the base pool with its
+   * difficulty upgraded once per Adversary rank, leaving the base pool untouched so
+   * the two modes can be toggled back and forth freely.
+   */
+  _effectivePool() {
+    const adversaryActive = this._adversaryMode && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
+    if (!adversaryActive) return this.dicePool;
+    const clone = this._clonePool();
+    clone.upgradeDifficulty(this.adversaryRanks);
+    return clone;
   }
 
   _initializeInputs(html) {
@@ -519,26 +593,26 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
    * Add the results of the dice simulation
    * @private
    */
-  _updateSimulationPreview() {
+  _updateSimulationPreview(pool = this.dicePool) {
     try {
       const simPool = new MonteCarlo({
         dicePool: {
-          abilityDice: this.dicePool.ability,
-          difficultyDice: this.dicePool.difficulty,
-          proficiencyDice: this.dicePool.proficiency,
-          challengeDice: this.dicePool.challenge,
-          boostDice: this.dicePool.boost,
-          setbackDice: this.dicePool.setback,
+          abilityDice: pool.ability,
+          difficultyDice: pool.difficulty,
+          proficiencyDice: pool.proficiency,
+          challengeDice: pool.challenge,
+          boostDice: pool.boost,
+          setbackDice: pool.setback,
         },
         iterations: game.settings.get("starwarsffg", "rollSimulation"),
         runSimulate: false,
         modifiers: {
-          automaticSuccesses: this.dicePool.success,
-          automaticFailures: this.dicePool.failure,
-          automaticAdvantages: this.dicePool.advantage,
-          automaticThreats: this.dicePool.threat,
-          automaticTriumphs: this.dicePool.triumph,
-          automaticDespairs: this.dicePool.despair,
+          automaticSuccesses: pool.success,
+          automaticFailures: pool.failure,
+          automaticAdvantages: pool.advantage,
+          automaticThreats: pool.threat,
+          automaticTriumphs: pool.triumph,
+          automaticDespairs: pool.despair,
         },
       });
       const simResults = simPool.simulate();
