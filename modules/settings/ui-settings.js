@@ -162,6 +162,7 @@ export class actorSettings extends ffgSettings {
       "starwarsffg.showMinionCount",
       "starwarsffg.showAdversaryCount",
       "starwarsffg.adversaryItemName",
+      "starwarsffg.enableAdversaryCalc",
       "starwarsffg.maxAttribute",
       "starwarsffg.maxSkill",
       "starwarsffg.medItemName",
