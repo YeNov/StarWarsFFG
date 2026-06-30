@@ -2201,19 +2201,26 @@ export class ActorSheetFFG extends FFGActorSheet {
    * @param  {Object} event
    */
   async _onTransferItemDrop(event) {
-    // When this fires via the transfer DragDrop bound on a descendant (stock
-    // .sheet-body), stop the event before it bubbles to the native root _onDrop,
-    // which now also routes "Transfer" -- otherwise the item would be created and
-    // the source deleted twice. Must run synchronously, before any await.
-    event.stopPropagation();
     // Try to extract the data
     let data;
     try {
       data = JSON.parse(event.dataTransfer.getData("text/plain"));
-      if (data.type !== "Transfer") return;
     } catch (err) {
       return false;
     }
+    // Only OUR cross-actor "Transfer" payload should be consumed here. Anything
+    // else (a normal Item/Folder/Actor drop that lands on the stock .sheet-body,
+    // to which this handler is bound) must be left to bubble up to the native
+    // root _onDrop, which creates the embedded item. Returning early WITHOUT
+    // stopPropagation is what lets that happen -- a previous unconditional
+    // stopPropagation() here swallowed every non-Transfer drop on stock sheets,
+    // so items could never be dropped onto them (codex sheets were unaffected
+    // because their drop target is a display:contents element that never fires).
+    if (data.type !== "Transfer") return;
+    // Confirmed Transfer: stop the event before it also reaches the native root
+    // _onDrop (which now routes "Transfer" too), otherwise the item would be
+    // created and the source deleted twice. Synchronous -- runs before any await.
+    event.stopPropagation();
 
     if (data.data) {
       let sameActor = data.actorId === this.actor.id;
