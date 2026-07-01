@@ -20,11 +20,11 @@
     {{else}}
     <input name="data.attributes.{{ key }}.value" type="number" class="modvalue" value="{{ attr.value }}" data-attr-key="{{ key }}">
     {{/if}}
-    {{#if attr.hasEffect}}
-    <input type="checkbox" class="attribute-effect-toggle" title="{{localize "SWFFG.ModifierEnabled"}}" data-attr-key="{{ key }}" {{#if attr.effectEnabled}}checked{{/if}}>
-    {{else}}
-    <span class="attribute-effect-toggle-spacer"></span>
-    {{/if}}
+    <span class="attribute-effect-cell">
+      {{#if attr.hasEffect}}
+      <input type="checkbox" class="attribute-effect-toggle" title="{{localize "SWFFG.ModifierEnabled"}}" data-attr-key="{{ key }}" {{#if attr.effectEnabled}}checked{{/if}}>
+      {{/if}}
+    </span>
     <a class="attribute-control flat_editor add-mod" data-action="delete"><i class="fas fa-trash"></i></a>
   </li>
   {{/if}} {{/each}}

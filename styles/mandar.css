@@ -3775,10 +3775,21 @@ img {
 }
 
 .starwarsffg .attributes .attributes-header .attribute-enabled,
-.starwarsffg .attributes .attributes-list .attribute-effect-toggle,
-.starwarsffg .attributes .attributes-list .attribute-effect-toggle-spacer {
-  flex: 0 0 20px;
+.starwarsffg .attributes .attributes-list .attribute-effect-cell {
+  flex: 0 0 3.75rem;
   text-align: center;
+  white-space: nowrap;
+}
+
+.starwarsffg .attributes .attributes-list .attribute-effect-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.starwarsffg .attributes .attributes-list .attribute-effect-toggle {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .starwarsffg .item-sheet-criticalinjury .sheet-header {
