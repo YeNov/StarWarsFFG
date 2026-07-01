@@ -2,6 +2,7 @@
   <span class="attribute-modtype">{{localize "SWFFG.ModifierType"}}</span>
   <span class="attribute-mod">{{localize "SWFFG.Modifier"}}</span>
   <span class="attribute-value">{{localize "SWFFG.ModifierValue"}}</span>
+  <span class="attribute-enabled">{{localize "SWFFG.ModifierEnabled"}}</span>
   <a class="attribute-control" data-action="create"><i class="fas fa-plus"></i></a>
 </header>
 <ol class="attributes-list">
@@ -18,6 +19,11 @@
     <input name="data.attributes.{{ key }}.value" type="checkbox" class="modvalue" {{#if attr.value}}checked{{/if}} data-attr-key="{{ key }}">
     {{else}}
     <input name="data.attributes.{{ key }}.value" type="number" class="modvalue" value="{{ attr.value }}" data-attr-key="{{ key }}">
+    {{/if}}
+    {{#if attr.hasEffect}}
+    <input type="checkbox" class="attribute-effect-toggle" title="{{localize "SWFFG.ModifierEnabled"}}" data-attr-key="{{ key }}" {{#if attr.effectEnabled}}checked{{/if}}>
+    {{else}}
+    <span class="attribute-effect-toggle-spacer"></span>
     {{/if}}
     <a class="attribute-control flat_editor add-mod" data-action="delete"><i class="fas fa-trash"></i></a>
   </li>

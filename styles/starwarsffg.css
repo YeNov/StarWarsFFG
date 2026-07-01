@@ -3025,6 +3025,12 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg .attributes .attributes-list .attribute.flexrow > .modvalue {
   flex: 0 0 3.5rem;
 }
+.starwarsffg .attributes .attributes-header .attribute-enabled,
+.starwarsffg .attributes .attributes-list .attribute-effect-toggle,
+.starwarsffg .attributes .attributes-list .attribute-effect-toggle-spacer {
+  flex: 0 0 20px;
+  text-align: center;
+}
 .starwarsffg.sheet.item .item-sheet-signatureability .popout-editor {
   height: 100%;
   width: 100%;

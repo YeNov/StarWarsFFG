@@ -192,6 +192,23 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       data.item = foundry.utils.mergeObject(data.item, options.data); // some fields are read out of item, some are read out of data
     }
 
+    // Annotate each modifier row with whether its backing Active Effect is enabled. A bulk
+    // suspend (e.g. Sheet Options edit mode, or GM XP granting) disables every effect on every
+    // item so derived stats can be hand-edited without a feedback loop, then is supposed to
+    // restore each one's original state. If that restore is ever interrupted, an item's effect
+    // is left disabled in the database with nothing in the sheet to show or fix it (gear items
+    // in particular have no equip toggle to force a resync). This exposes a direct checkbox.
+    if (data.data?.attributes) {
+      const existingEffects = this.object.effects;
+      for (const key of Object.keys(data.data.attributes)) {
+        const attr = data.data.attributes[key];
+        if (!attr || key.startsWith("-=")) continue;
+        const matchingEffect = existingEffects.find((e) => e.name === key);
+        attr.hasEffect = !!matchingEffect;
+        attr.effectEnabled = matchingEffect ? !matchingEffect.disabled : true;
+      }
+    }
+
     // The sheet templates branch on `contains classType "V2"` to render the V2
     // layout (icon tab strip, refined panels, shown-by-default tabs). After the
     // Stage 3 collapse the real class is `ItemSheetFFG` (no "V2" suffix), so
@@ -1025,6 +1042,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
 
     // Add or Remove Attribute
     html.find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
+
+    // Enable/disable the Active Effect backing a modifier row
+    html.find(".attributes").on("change", ".attribute-effect-toggle", ModifierHelpers.onToggleAttributeEffect.bind(this));
 
     // When the modifier TYPE changes, (a) swap the value input between
     // checkbox/number and (b) repopulate the sibling "Modifier" dropdown to the
