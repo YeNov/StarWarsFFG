@@ -297,6 +297,28 @@ export default class ModifierHelpers {
   }
 
   /**
+   * Toggle the enabled/disabled state of the Active Effect backing a modifier row.
+   * This is the direct escape hatch for an effect stuck disabled by an interrupted bulk
+   * suspend (e.g. edit mode) -- gear items in particular have no equip toggle to force a
+   * resync, so without this the only fix was hand-editing the effect via Foundry's own
+   * Active Effects config sheet.
+   * @param  {object} event
+   */
+  static async onToggleAttributeEffect(event) {
+    if (this.actor && !this.actor.verifyEditModeIsNotEnabled()) return;
+    const key = event.currentTarget.dataset.attrKey;
+    const enabled = event.currentTarget.checked;
+    const effect = this.object.effects.find((e) => e.name === key);
+    if (!effect) return;
+    await effect.update({ disabled: !enabled });
+    // the owning actor's derived stats (e.g. encumbrance max) won't reflect the change
+    // until its sheet re-renders
+    if (this.object.isEmbedded && this.object.actor?.sheet?.rendered) {
+      this.object.actor.sheet.render(false);
+    }
+  }
+
+  /**
    * Create popout Modifiers Window
    * @param  {object} event
    */

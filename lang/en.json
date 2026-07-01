@@ -329,6 +329,7 @@
   "SWFFG.ModifierType": "Modifier Type",
   "SWFFG.Modifier": "Modifier",
   "SWFFG.ModifierValue": "Value",
+  "SWFFG.ModifierEnabled": "Enabled",
   "SWFFG.DestinyPool": "Destiny Pool",
   "SWFFG.Lightside": "Light",
   "SWFFG.Darkside": "Dark",

@@ -303,6 +303,21 @@ export class ItemFFG extends ItemBaseFFG {
         }
       }
     }
+
+    // Gear has no equipped state, so the Codex "carried" toggle is its only in-sheet trigger
+    // to suspend / unsuspend its own AEs -- mirroring the weapon/armour equip toggle above.
+    // This doubles as a manual escape hatch: a gear AE stuck disabled by an interrupted bulk
+    // suspend (e.g. edit mode) can be recovered just by toggling carried off then on again,
+    // without needing to hand-edit the effect via Foundry's Active Effects config sheet.
+    if (this.type === "gear" && "carried" in (changed?.flags?.starwarsffg ?? {}) && updatedExistingEffects) {
+      const carried = changed.flags.starwarsffg.carried !== false;
+      CONFIG.logger.debug("caught gear carried toggle, checking if Active Effect state should be synced");
+      for (const effect of updatedExistingEffects) {
+        if (await ItemHelpers.shouldUpdateAEStatus(this, effect)) {
+          await effect.update({disabled: !carried});
+        }
+      }
+    }
   }
 
   /**
