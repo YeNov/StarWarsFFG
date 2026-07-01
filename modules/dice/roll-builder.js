@@ -305,10 +305,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       }
 
       // validate that required data is present
-      if (this.roll.item?.uuid && !this.roll.item.flags?.starwarsffg?.uuid) {
-        // uuid flag is missing, look up the item and set it, so it's fixed going forward
+      if (this.roll.item?.uuid && this.roll.item.flags?.starwarsffg?.uuid !== this.roll.item.uuid) {
+        // The cached uuid flag is missing OR stale (e.g. the actor/item was duplicated or
+        // imported from another actor, leaving the flag pointing at the source item). Repair
+        // it so getItemDetails() resolves qualities from THIS item on every render.
         const tmp_item = await fromUuid(this.roll.item.uuid);
         await tmp_item.setFlag("starwarsffg", "uuid", this.roll.item.uuid);
+        foundry.utils.setProperty(this.roll.item, "flags.starwarsffg.uuid", this.roll.item.uuid);
       }
 
 
