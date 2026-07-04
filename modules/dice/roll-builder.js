@@ -291,7 +291,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
                 };
               }
             }
-            setProperty(entityData, "flags.starwarsffg.ffgsound", sound);
+            foundry.utils.setProperty(entityData, "flags.starwarsffg.ffgsound", sound);
             entity.update(entityData);
           }
         }
