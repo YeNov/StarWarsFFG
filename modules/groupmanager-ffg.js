@@ -4,36 +4,6 @@ import { FFGFormApplication } from "./apps/ffg-form-application.js";
 
 const { DialogV2 } = foundry.applications.api;
 
-const CanvasLayerClass = foundry?.canvas?.layers?.CanvasLayer || CanvasLayer;
-export class GroupManagerLayer extends CanvasLayerClass {
-  constructor() {
-    super();
-  }
-
-  static get layerOptions() {
-    return foundry.utils.mergeObject(super.layerOptions, {
-      canDragCreate: false,
-    });
-  }
-  /* -------------------------------------------- */
-  /*  Methods
-  /* -------------------------------------------- */
-
-  activate() {
-    super.activate();
-  }
-
-  deactivate() {
-    super.deactivate();
-  }
-
-  async draw() {
-    super.draw();
-  }
-
-  /* -------------------------------------------- */
-}
-
 export class GroupManager extends FFGFormApplication {
   constructor(object = {}, options = {}) {
     super(object, options);
