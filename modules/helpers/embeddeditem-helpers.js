@@ -224,7 +224,7 @@ export default class EmbeddedItemHelpers {
     if (!isNaN(modifierId)) {
       modifierIndex = modifierId;
     } else {
-      modifierIndex = ownedItem.data.data[modifierType].findIndex((i) => i.id === modifierId);
+      modifierIndex = ownedItem.system[modifierType].findIndex((i) => i.id === modifierId);
     }
 
     let item;
