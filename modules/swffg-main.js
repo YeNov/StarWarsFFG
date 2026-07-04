@@ -1229,8 +1229,19 @@ Hooks.on("renderChatInput", (app, html, data) => {
       rollButton.type = "button";
       rollButton.classList.add("ui-control", "icon", "fa-light", "fa-dice-d20");
 
-      const rollPrivacyElement = document.querySelector("#roll-privacy");
-      rollPrivacyElement.appendChild(rollButton);
+      // V14 renamed/relocated the chat roll-mode controls (formerly "#roll-privacy"),
+      // so the old global querySelector returned null and appendChild threw -- which
+      // aborted the renderChatInput hook and dropped the button. Scope the lookup to
+      // the chat-input element the hook hands us and fall back gracefully so a further
+      // DOM change can never throw here again.
+      const root = html instanceof HTMLElement ? html : (html?.[0] ?? document);
+      const anchor =
+        root.querySelector("#roll-privacy") ||
+        document.querySelector("#roll-privacy") ||
+        root.querySelector(".control-buttons") ||
+        root.querySelector(".chat-controls") ||
+        root;
+      anchor.appendChild(rollButton);
 
       rollButton.onclick = async function () {
         const dicePool = new DicePoolFFG();
