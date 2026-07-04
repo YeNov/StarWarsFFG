@@ -469,7 +469,7 @@ export default class ImportHelpers {
         }
 
         if (quality.Key === "DEFENSIVE") {
-          const nk = randomId();
+          const nk = foundry.utils.randomID();
           const count = quality.Count ? parseInt(quality.Count) : 0;
 
           attributes[`attr${nk}`] = {
