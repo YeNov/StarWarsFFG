@@ -1696,7 +1696,7 @@ export default class ImportHelpers {
         let obligation = 0;
         if (Array.isArray(characterData.Character.Obligations.CharObligation)) {
           characterData.Character.Obligations.CharObligation.forEach((CharObligation) => {
-            const nk = randomID();
+            const nk = foundry.utils.randomID();
             const charobligation = {
               key: nk,
               type: CharObligation.Name,
@@ -1709,7 +1709,7 @@ export default class ImportHelpers {
             }
           });
         } else {
-          const nk = randomID();
+          const nk = foundry.utils.randomID();
           const charobligation = {
             key: nk,
             type: characterData.Character.Obligations.CharObligation.Name,
@@ -1728,7 +1728,7 @@ export default class ImportHelpers {
         let duty = 0;
         if (Array.isArray(characterData.Character.Duties.CharDuty)) {
           characterData.Character.Duties.CharDuty.forEach((CharDuty) => {
-            const nk = randomID();
+            const nk = foundry.utils.randomID();
             const charduty = {
               key: nk,
               type: CharDuty.Name,
@@ -1740,7 +1740,7 @@ export default class ImportHelpers {
             }
           });
         } else {
-          const nk = randomID();
+          const nk = foundry.utils.randomID();
           const charduty = {
             key: nk,
             type: characterData.Character.Duties.CharDuty.Name,
