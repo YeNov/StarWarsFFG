@@ -1852,7 +1852,7 @@ export class ActorSheetFFG extends FFGActorSheet {
             CONFIG.logger.debug(`Updating ${ability} Characteristic from ${characteristic} to ${newCharacteristic}`);
 
             let updateData = {};
-            setProperty(updateData, `system.skills.${ability}.characteristic`, newCharacteristic);
+            foundry.utils.setProperty(updateData, `system.skills.${ability}.characteristic`, newCharacteristic);
 
             this.object.update(updateData);
           },
