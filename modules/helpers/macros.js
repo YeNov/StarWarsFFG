@@ -18,7 +18,7 @@ export async function createFFGMacro(bar, data, slot) {
     if (entity.type === "weapon") {
       let command;
       if (!entity?.flags?.starwarsffg?.ffgIsOwned) {
-        command = `await Hotbar.toggleDocumentSheet("${data.uuid}");`;
+        command = `await foundry.applications.ui.Hotbar.toggleDocumentSheet("${data.uuid}");`;
       } else {
         command = `
       game.ffg.DiceHelpers.rollItem(\"${item._id}\", \"${entity.actorId}\");
