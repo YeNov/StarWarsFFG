@@ -860,8 +860,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/blue.png`,
       name: "SWFFG.Status.Boost.Next",
       changes: allSkillChanges['boost'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -869,8 +873,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/black.png`,
       name: "SWFFG.Status.Setback.Next",
       changes: allSkillChanges['setback'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -878,8 +886,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/yellow.png`,
       name: "SWFFG.Status.Upgrade.Next",
       changes: allSkillChanges['upgrade'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -887,8 +899,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/red.png`,
       name: "SWFFG.Status.UpgradeDifficulty.Next",
       changes: allSkillChanges['upgradeDifficulty'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -896,8 +912,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/success.png`,
       name: "SWFFG.Status.Success.Next",
       changes: allSkillChanges['success'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -905,8 +925,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/advantage.png`,
       name: "SWFFG.Status.Advantage.Next",
       changes: allSkillChanges['advantage'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -914,8 +938,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/purple.png`,
       name: "SWFFG.Status.Difficulty.Next",
       changes: allSkillChanges['difficulty'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     // dice statuses — this combat
@@ -924,8 +952,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/blue.png`,
       name: "SWFFG.Status.Boost.Combat",
       changes: allSkillChanges['boost'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -933,8 +964,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/black.png`,
       name: "SWFFG.Status.Setback.Combat",
       changes: allSkillChanges['setback'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -942,8 +976,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/yellow.png`,
       name: "SWFFG.Status.Upgrade.Combat",
       changes: allSkillChanges['upgrade'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -951,8 +988,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/red.png`,
       name: "SWFFG.Status.UpgradeDifficulty.Combat",
       changes: allSkillChanges['upgradeDifficulty'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -960,8 +1000,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/success.png`,
       name: "SWFFG.Status.Success.Combat",
       changes: allSkillChanges['success'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -969,8 +1012,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/advantage.png`,
       name: "SWFFG.Status.Advantage.Combat",
       changes: allSkillChanges['advantage'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -978,8 +1024,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/purple.png`,
       name: "SWFFG.Status.Difficulty.Combat",
       changes: allSkillChanges['difficulty'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
 
