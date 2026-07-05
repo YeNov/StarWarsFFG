@@ -1269,6 +1269,26 @@ function isCurrentVersionNullOrBlank(currentVersion) {
 Hooks.once("ready", async () => {
   SettingsHelpers.readyLevelSetting();
 
+  // Self-heal a stale `defaultSheetTheme` client value. The setting originally
+  // offered a bare "codex" option; the scheme-fold replaced it with per-scheme
+  // keys ("codex-<scheme>") and dropped "codex" from the choices. A client left
+  // on the legacy "codex" (or any value no longer in the choices) still routes
+  // to the Codex sheet via _getSheetClass (startsWith("codex")), yet the
+  // settings dropdown can't render the missing value — so it shows "Default
+  // (system sheets)" as selected while sheets still open as Codex II, and
+  // re-picking Default in the UI fires no change (the value looks unchanged).
+  // Reset any out-of-choices value back to "default" so the effective sheet and
+  // the dropdown agree. Runs once: after the reset the value is a valid choice.
+  try {
+    const cfg = game.settings.settings.get("starwarsffg.defaultSheetTheme");
+    const current = game.settings.get("starwarsffg", "defaultSheetTheme");
+    if (cfg?.choices && !(current in cfg.choices)) {
+      await game.settings.set("starwarsffg", "defaultSheetTheme", "default");
+    }
+  } catch (err) {
+    CONFIG.logger?.warn?.("starwarsffg | defaultSheetTheme normalization skipped", err);
+  }
+
   // Forward Apply Damage / Apply Crit writes from non-owning players to the GM.
   registerGMBridge();
 
