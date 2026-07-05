@@ -1415,7 +1415,9 @@ export default class CombatantFFG extends Combatant {
     }
     CONFIG.logger.debug(`Removing combat-length status effects from ${this.actor.name} on combatant removal`);
     const effects = this.actor.getEmbeddedCollection("ActiveEffect");
-    const toDelete = effects.filter(e => e?.system?.duration === "combat");
+    // duration marker moved to flags: V14's strict ActiveEffect system model strips unknown
+    // `system` keys. Fall back to the legacy location for safety.
+    const toDelete = effects.filter(e => (e?.flags?.starwarsffg?.duration ?? e?.system?.duration) === "combat");
     if (toDelete) {
       await this.actor.deleteEmbeddedDocuments("ActiveEffect", toDelete.map(i => i.id));
     }

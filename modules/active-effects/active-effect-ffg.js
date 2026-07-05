@@ -16,7 +16,7 @@ export class ActiveEffectFFG extends ActiveEffect {
    * V14 replaced the core ActiveEffect `duration` model
    * ({seconds, rounds, turns, combat, ...}) with {value, units, expiry}, where
    * `value` must be an integer when `units` is set. This system never uses the
-   * core field (it tracks its own duration in `system.duration`), so effects
+   * core field (it tracks its own duration in `flags.starwarsffg.duration`), so effects
    * routinely carry the invalid default shape {value: null, units: "seconds"}.
    * That shape is tolerated as a schema default, but rejected when supplied
    * explicitly -- which happens any time an effect is copied via toObject() and

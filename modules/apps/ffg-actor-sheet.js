@@ -230,8 +230,8 @@ export class FFGActorSheet extends FFGDocumentSheet {
     // (e.g. the system's own "(inherent)" ones) migrate to {value: null,
     // units: "seconds"} -- the invalid "units but no value" state -- which makes
     // createEmbeddedDocuments throw a DataModelValidationError and aborts the drop.
-    // This system tracks effect duration in `system.duration`, so the core field
-    // is unused here; strip the malformed duration so Foundry applies a valid
+    // This system tracks effect duration in `flags.starwarsffg.duration`, so the core
+    // field is unused here; strip the malformed duration so Foundry applies a valid
     // (permanent) default. Integer values are left intact so real durations survive.
     for (const data of itemData) {
       for (const effect of data.effects ?? []) {

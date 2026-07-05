@@ -325,7 +325,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
             if (actorEffects) {
               const toDelete = [];
               for (const activeEffect of actorEffects.contents) {
-                if (activeEffect?.system?.duration === "once") {
+                // duration marker moved to flags: V14's strict ActiveEffect system model
+                // strips unknown `system` keys. Fall back to the legacy location for safety.
+                const duration = activeEffect?.flags?.starwarsffg?.duration ?? activeEffect?.system?.duration;
+                if (duration === "once") {
                   toDelete.push(activeEffect._id);
                 }
               }
