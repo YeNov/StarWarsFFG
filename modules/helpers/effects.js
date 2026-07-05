@@ -8,18 +8,19 @@ export default class EffectHelpers {
 
   // Map effects from EmbeddedCollection
   static transformEffects(originalEffect, _iterator, _effects) {
-    // originalEffect is a live ActiveEffect Document. structuredClone() used to
-    // deep-copy it, but on V14 the copy no longer carries the `changes` schema
-    // field (it stayed undefined and the forEach below threw), while `duration`
-    // still came through. toObject() returns a plain deep copy of the effect's
-    // source data (changes, duration, name, ...); the derived/related props we
-    // still need (id, parentName, active) are copied explicitly below.
+    // originalEffect is a live ActiveEffect Document. toObject() gives a plain,
+    // mutable copy of most source fields (duration, name, ...). On V14, though,
+    // the serialized copy comes back WITHOUT `changes` (structuredClone dropped
+    // it the same way), so read the changes off the live effect explicitly and
+    // deep-clone them so the mode/key rewrites below don't mutate the document.
+    // The `?? []` keeps this from ever throwing if changes are absent.
     let effect = originalEffect.toObject();
 
-    // Copy properties we need from the prototype
+    // Copy properties we need from the live document
     effect.id = originalEffect.id;
     effect.parentName = originalEffect.parent.name;
     effect.active = originalEffect.active;
+    effect.changes = foundry.utils.deepClone(originalEffect.changes ?? []);
 
     // Convert duration to string
     if (effect.duration.combat) {
