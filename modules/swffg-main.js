@@ -931,7 +931,23 @@ Hooks.once("init", async function () {
     // custom statuses defined by the user
     try {
       const addedStatuses = $.parseJSON(game.settings.get("starwarsffg", "additionalStatuses"));
-      for (const status of addedStatuses) {
+      // In V14 CONFIG.statusEffects is a Proxy keyed by each effect's `id`; its `ownKeys` trap
+      // returns one key per entry, so a status with a missing or duplicate `id` makes the trap
+      // return duplicate/undefined keys and throw ("'ownKeys' on proxy: trap returned duplicate
+      // entries"). That crashes the canvas on every scene draw (TextureLoader.loadSceneTextures
+      // does Object.values(CONFIG.statusEffects)). Guard the user-supplied list so bad JSON can
+      // no longer take down map rendering.
+      const seenIds = new Set(CONFIG.statusEffects.map((e) => e?.id));
+      for (const status of (Array.isArray(addedStatuses) ? addedStatuses : [])) {
+        if (!status?.id || typeof status.id !== "string") {
+          ui.notifications.warn("Skipped a custom status with a missing or invalid id");
+          continue;
+        }
+        if (seenIds.has(status.id)) {
+          ui.notifications.warn(`Skipped duplicate custom status id "${status.id}"`);
+          continue;
+        }
+        seenIds.add(status.id);
         CONFIG.statusEffects.push(status);
       }
 
