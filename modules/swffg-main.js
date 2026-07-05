@@ -1234,6 +1234,37 @@ Hooks.once("init", async function () {
   await TemplateHelpers.preload();
 });
 
+/**
+ * V14 exposes CONFIG.statusEffects as a Proxy keyed by each effect's `id`; its `ownKeys` trap
+ * returns one key per entry, so a duplicate or missing `id` makes it throw ("'ownKeys' on
+ * proxy: trap returned duplicate entries") and crash the canvas on every scene draw (core's
+ * TextureLoader.loadSceneTextures runs Object.values(CONFIG.statusEffects)). We register unique
+ * ids at init, but other packages append to the list afterwards -- e.g. Condition Lab captures
+ * our effects and concatenates them back, re-adding every id a second time -- so re-dedupe just
+ * before each canvas draw (canvasInit fires ahead of loadSceneTextures). Keeps the first entry
+ * for each id and drops entries with no id. Iteration uses the array protocol, not `ownKeys`,
+ * so reading the list here is safe even while it holds duplicates.
+ */
+function deduplicateStatusEffects() {
+  const seen = new Set();
+  const cleaned = [];
+  let dropped = 0;
+  for (const effect of CONFIG.statusEffects) {
+    const id = effect?.id;
+    if (!id || seen.has(id)) {
+      dropped += 1;
+      continue;
+    }
+    seen.add(id);
+    cleaned.push(effect);
+  }
+  if (dropped > 0) {
+    CONFIG.logger?.warn?.(`Removed ${dropped} duplicate/invalid status effect(s) to avoid a V14 canvas texture-load crash`);
+    CONFIG.statusEffects = cleaned;
+  }
+}
+Hooks.on("canvasInit", deduplicateStatusEffects);
+
 Hooks.on("renderChatInput", (app, html, data) => {
   if (app.id === "chat") {
     // add in the chat dice roller
