@@ -354,8 +354,13 @@ export class CombatFFG extends Combat {
                 await initiative.update({ turn: initiative.turns.findIndex((t) => t.id === currentId) });
               }
 
-              // Create multiple chat messages
-              await CONFIG.ChatMessage.documentClass.create(messages);
+              // Create multiple chat messages. Pass chatBubble:false so these initiative rolls
+              // don't pop a chat bubble over each combatant's token and pan the camera to it:
+              // core styles speaker'd messages as in-character, and ChatMessage._preCreate then
+              // auto-enables chatBubble for IC/EMOTE, whose sayBubble -> bubbles.say defaults
+              // pan:true (with the chatBubblesPan setting also defaulting on). The `??=` in core
+              // means an explicit false here is preserved.
+              await CONFIG.ChatMessage.documentClass.create(messages, { chatBubble: false });
 
               resolve(initiative);
             },
