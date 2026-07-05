@@ -372,8 +372,12 @@ export class RollFFG extends Roll {
     const msg = new cls(messageData);
     if (rMode) msg.applyRollMode(rMode);
 
-    // Either create or return the data
-    return create ? await cls.create(msg) : msg;
+    // Either create or return the data. Pass chatBubble:false so a token-speaker'd roll
+    // doesn't pop a chat bubble over the token and pan the camera to it (core's sayBubble ->
+    // ChatBubbles.say defaults pan:true, with the chatBubblesPan setting also defaulting on).
+    // The `??=` in ChatMessage._preCreate preserves an explicit false. Matches the initiative
+    // path, which sets the same option on its own message creation downstream.
+    return create ? await cls.create(msg, { chatBubble: false }) : msg;
   }
 
   /** @override */
