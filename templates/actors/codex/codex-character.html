@@ -62,7 +62,7 @@
     {{#unless (eq actor.type "rival")}}
     {{#if (or (eq actor.flags.starwarsffg.config.enableStrainThreshold undefined) (eq actor.flags.starwarsffg.config.enableStrainThreshold true))}}
     <div class="cdx-stat strain wide">
-      <div class="cdx-stat-head"><span>{{localize "SWFFG.Strain"}}</span><button type="button" class="cdx-strain-rest cdx-rest" title="Recover all strain"><i class="fas fa-rotate-left"></i></button></div>
+      <div class="cdx-stat-head"><span>{{localize "SWFFG.Strain"}}</span><button type="button" class="cdx-strain-rest cdx-rest" title="Post-encounter strain recovery"><i class="fas fa-rotate-left"></i></button></div>
       <div class="cdx-stat-body"><div class="cdx-stepline"><button type="button" class="cdx-step" data-stat="strain" data-dir="-1"><i class="fas fa-minus"></i></button><div class="cdx-stepline-mid"><div class="cdx-thresh"><input type="text" name="data.stats.strain.value" value="{{data.stats.strain.value}}" data-dtype="Number" /><span class="cdx-slash">/</span><input type="text" name="data.stats.strain.max" value="{{data.stats.strain.max}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div>{{#with cdxTracks.strain}}{{#if useBar}}<div class="cdx-track bar"><div class="cdx-track-fill" style="width:{{pct}}%;background:{{color}}"></div></div>{{else}}<div class="cdx-track pips">{{#each pips}}<span class="cdx-pip{{#if this}} on{{/if}}"{{#if this}} style="background:{{../color}}"{{/if}}></span>{{/each}}</div>{{/if}}{{/with}}</div><button type="button" class="cdx-step" data-stat="strain" data-dir="1"><i class="fas fa-plus"></i></button></div><div class="cdx-stat-sub"><span>{{localize "SWFFG.Current"}}</span><span>{{localize "SWFFG.Threshold"}}</span></div></div>
     </div>
     {{/if}}
