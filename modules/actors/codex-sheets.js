@@ -278,6 +278,23 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       },
     });
 
+    // Species/career pills are single `.cdx-pill.item[data-item-id]` spans in
+    // `.cdx-pills` — NOT inside a `.cdx-stack`, so CdxPillStack (which only scans
+    // `.cdx-stack`) ignores them, and NOT inside `.items`/`.header-description-
+    // block`/`.injuries`, so the stock opener in actor-sheet-ffg.js never matches
+    // them either. That left the pill body a dead click. Open the item sheet
+    // directly; the delete-X keeps flowing to the stock `.item-delete` handler
+    // (the pill span is itself `.item`, which that handler resolves via
+    // `.parents(".item")`), so it stays edit-mode-gated.
+    root.querySelectorAll(".cdx-pill.species[data-item-id], .cdx-pill.career[data-item-id]").forEach((pill) => {
+      pill.addEventListener("click", (ev) => {
+        if (ev.target.closest(".item-delete")) return; // delete-X → stock handler
+        ev.preventDefault();
+        ev.stopPropagation();
+        this.actor?.items?.get(pill.dataset.itemId)?.sheet?.render(true);
+      });
+    });
+
     // XP-buy mode: clicking the XP chip reveals every purchase affordance (skill
     // upgrades, characteristic/talent/spec/force/signature buys); otherwise they
     // are hidden (see `.cdx-xpbuy` in cdx.css). The flag is TRANSIENT — held on
