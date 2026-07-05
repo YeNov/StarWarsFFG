@@ -449,6 +449,22 @@ Hooks.once("init", async function () {
     CONFIG.Token.objectClass = TokenFFG;
   }
 
+  // The token HUD status menu runs Object.values(CONFIG.statusEffects) in _getStatusEffectChoices;
+  // under V14 that throws if the list holds a duplicate id (see dedupeStatusEffectsById). We keep
+  // our own effects unique, but other packages append to the list afterwards -- Condition Lab
+  // concatenates our effects back onto itself, re-adding every id -- and its rebuild lands after
+  // the initial canvas draw, so the canvasInit dedup can't cover this consumer. hudClass is the
+  // supported override point (sibling of objectClass above), so sanitise the list right before
+  // the menu reads it. Scoped to this one consumer; we do not touch the global CONFIG setter.
+  CONFIG.Token.hudClass = class extends CONFIG.Token.hudClass {
+    _getStatusEffectChoices(...args) {
+      const current = CONFIG.statusEffects;
+      const cleaned = dedupeStatusEffectsById(current);
+      if (cleaned.length !== current.length) CONFIG.statusEffects = cleaned;
+      return super._getStatusEffectChoices(...args);
+    }
+  };
+
   /**
    * Register action to take when a user removes a combatant from combat
    */
@@ -1037,28 +1053,6 @@ Hooks.once("init", async function () {
       ui.notifications.warn("Failed to load custom statuses, likely bad JSON");
     }
 
-    // V14 backs CONFIG.statusEffects with a Proxy keyed by each effect's `id`; assigning it a
-    // list that contains a duplicate or missing id makes its `ownKeys` trap throw ("duplicate
-    // entries"), which crashes every consumer that runs Object.values() on it -- canvas texture
-    // load (map view) AND the token HUD status menu. Downstream packages reassign the list after
-    // us and can reintroduce duplicates repeatedly: Condition Lab concatenates our effects back
-    // onto itself (re-adding all 19) on `ready`, on `updateCombat`, and on config changes. Rather
-    // than chase every consumer, dedupe at the source by wrapping the setter, so no assignment
-    // can ever leave duplicates in the proxy. Installed here (during our init, before any module
-    // `ready` hook) so it governs those later writes. See dedupeStatusEffectsById below.
-    const statusDescriptor = Object.getOwnPropertyDescriptor(CONFIG, "statusEffects");
-    if (statusDescriptor?.get && statusDescriptor?.set && !CONFIG._ffgStatusDedupeInstalled) {
-      Object.defineProperty(CONFIG, "statusEffects", {
-        configurable: true,
-        enumerable: true,
-        get: statusDescriptor.get,
-        set(value) {
-          statusDescriptor.set.call(this, dedupeStatusEffectsById(value));
-        },
-      });
-      CONFIG._ffgStatusDedupeInstalled = true;
-    }
-
   // Register sheet application classes
   foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
   // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
@@ -1260,10 +1254,12 @@ Hooks.once("init", async function () {
  * Return a copy of a status-effect list with duplicate ids removed (first entry per id kept) and
  * id-less entries dropped. V14 backs CONFIG.statusEffects with a Proxy whose `ownKeys` trap emits
  * one key per entry, so a duplicate/missing id makes Object.values() throw ("'ownKeys' on proxy:
- * trap returned duplicate entries") and crash the canvas draw and the token HUD status menu. Used
- * by the CONFIG.statusEffects setter wrapper (installed at init) so every assignment is sanitised
- * at the source; also used as a canvasInit backstop for any direct `.push` mutation. Iterating the
- * input uses the array protocol, not `ownKeys`, so it is safe even while the list holds duplicates.
+ * trap returned duplicate entries") and crash the two consumers that iterate it: the canvas
+ * texture load (map view) and the token HUD status menu. We register unique ids ourselves, but
+ * other packages (e.g. Condition Lab) reassign the list afterwards and re-add our ids, so we
+ * sanitise it at each of those consumers -- the canvasInit hook below and the TokenHUD subclass in
+ * init -- rather than redefining the global CONFIG.statusEffects setter. Iterating the input uses
+ * the array protocol, not `ownKeys`, so it is safe even while the list holds duplicates.
  */
 function dedupeStatusEffectsById(value) {
   const list = Array.isArray(value) ? value : Object.values(value ?? {});
@@ -1284,9 +1280,10 @@ function dedupeStatusEffectsById(value) {
   }
   return cleaned;
 }
-// Backstop for any mutation that bypasses the setter (e.g. a direct CONFIG.statusEffects.push);
-// reassigns (through the deduping setter) only when duplicates are actually present, so once the
-// list is clean this is a no-op. `.length` reads the array target, not the ownKeys trap.
+// Sanitise the list before each canvas draw: canvasInit fires ahead of TextureLoader.loadSceneTextures
+// in the same Canvas#draw, so a duplicate id reintroduced since the last draw can't crash the map
+// view. Reassigns only when duplicates are actually present, so once the list is clean this is a
+// no-op. `.length` reads the array target, not the ownKeys trap.
 Hooks.on("canvasInit", () => {
   const current = CONFIG.statusEffects;
   const cleaned = dedupeStatusEffectsById(current);
