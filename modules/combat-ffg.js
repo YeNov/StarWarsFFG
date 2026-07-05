@@ -860,7 +860,10 @@ export class CombatFFG extends Combat {
 
         const effects = new Set();
         if (claimant.token) {
-          claimant.token.effects.forEach((e) => effects.add(e))
+          // V14 removed the legacy TokenDocument#effects icon array and #overlayEffect;
+          // token status icons now derive from the actor's active effects (handled below).
+          // Guard both so worlds/modules that still expose them keep working.
+          claimant.token.effects?.forEach((e) => effects.add(e));
           if (claimant.token.overlayEffect) {
             effects.add(claimant.token.overlayEffect);
           }
@@ -871,8 +874,10 @@ export class CombatFFG extends Combat {
             defeated = true;
           }
           for (const effect of claimant.actor.temporaryEffects) {
-            if (effect?.icon) {
-              effects.add(effect.icon);
+            // V14: ActiveEffect#icon was replaced by #img
+            const effectImg = effect?.img ?? effect?.icon;
+            if (effectImg) {
+              effects.add(effectImg);
             }
           }
         }
