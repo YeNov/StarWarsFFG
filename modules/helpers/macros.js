@@ -21,7 +21,7 @@ export async function createFFGMacro(bar, data, slot) {
         command = `await foundry.applications.ui.Hotbar.toggleDocumentSheet("${data.uuid}");`;
       } else {
         command = `
-      game.ffg.DiceHelpers.rollItem(\"${item._id}\", \"${entity.actorId}\");
+      game.ffg.DiceHelpers.rollItem(\"${entity.id}\", \"${entity.actor?.id}\");
       `;
       }
       macro = await createMacroItem({
