@@ -955,6 +955,28 @@ Hooks.once("init", async function () {
       ui.notifications.warn("Failed to load custom statuses, likely bad JSON");
     }
 
+    // V14 backs CONFIG.statusEffects with a Proxy keyed by each effect's `id`; assigning it a
+    // list that contains a duplicate or missing id makes its `ownKeys` trap throw ("duplicate
+    // entries"), which crashes every consumer that runs Object.values() on it -- canvas texture
+    // load (map view) AND the token HUD status menu. Downstream packages reassign the list after
+    // us and can reintroduce duplicates repeatedly: Condition Lab concatenates our effects back
+    // onto itself (re-adding all 19) on `ready`, on `updateCombat`, and on config changes. Rather
+    // than chase every consumer, dedupe at the source by wrapping the setter, so no assignment
+    // can ever leave duplicates in the proxy. Installed here (during our init, before any module
+    // `ready` hook) so it governs those later writes. See dedupeStatusEffectsById below.
+    const statusDescriptor = Object.getOwnPropertyDescriptor(CONFIG, "statusEffects");
+    if (statusDescriptor?.get && statusDescriptor?.set && !CONFIG._ffgStatusDedupeInstalled) {
+      Object.defineProperty(CONFIG, "statusEffects", {
+        configurable: true,
+        enumerable: true,
+        get: statusDescriptor.get,
+        set(value) {
+          statusDescriptor.set.call(this, dedupeStatusEffectsById(value));
+        },
+      });
+      CONFIG._ffgStatusDedupeInstalled = true;
+    }
+
   // Register sheet application classes
   foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
   // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
@@ -1153,21 +1175,20 @@ Hooks.once("init", async function () {
 });
 
 /**
- * V14 exposes CONFIG.statusEffects as a Proxy keyed by each effect's `id`; its `ownKeys` trap
- * returns one key per entry, so a duplicate or missing `id` makes it throw ("'ownKeys' on
- * proxy: trap returned duplicate entries") and crash the canvas on every scene draw (core's
- * TextureLoader.loadSceneTextures runs Object.values(CONFIG.statusEffects)). We register unique
- * ids at init, but other packages append to the list afterwards -- e.g. Condition Lab captures
- * our effects and concatenates them back, re-adding every id a second time -- so re-dedupe just
- * before each canvas draw (canvasInit fires ahead of loadSceneTextures). Keeps the first entry
- * for each id and drops entries with no id. Iteration uses the array protocol, not `ownKeys`,
- * so reading the list here is safe even while it holds duplicates.
+ * Return a copy of a status-effect list with duplicate ids removed (first entry per id kept) and
+ * id-less entries dropped. V14 backs CONFIG.statusEffects with a Proxy whose `ownKeys` trap emits
+ * one key per entry, so a duplicate/missing id makes Object.values() throw ("'ownKeys' on proxy:
+ * trap returned duplicate entries") and crash the canvas draw and the token HUD status menu. Used
+ * by the CONFIG.statusEffects setter wrapper (installed at init) so every assignment is sanitised
+ * at the source; also used as a canvasInit backstop for any direct `.push` mutation. Iterating the
+ * input uses the array protocol, not `ownKeys`, so it is safe even while the list holds duplicates.
  */
-function deduplicateStatusEffects() {
+function dedupeStatusEffectsById(value) {
+  const list = Array.isArray(value) ? value : Object.values(value ?? {});
   const seen = new Set();
   const cleaned = [];
   let dropped = 0;
-  for (const effect of CONFIG.statusEffects) {
+  for (const effect of list) {
     const id = effect?.id;
     if (!id || seen.has(id)) {
       dropped += 1;
@@ -1177,11 +1198,18 @@ function deduplicateStatusEffects() {
     cleaned.push(effect);
   }
   if (dropped > 0) {
-    CONFIG.logger?.warn?.(`Removed ${dropped} duplicate/invalid status effect(s) to avoid a V14 canvas texture-load crash`);
-    CONFIG.statusEffects = cleaned;
+    CONFIG.logger?.warn?.(`Removed ${dropped} duplicate/invalid status effect(s) to avoid a V14 proxy crash`);
   }
+  return cleaned;
 }
-Hooks.on("canvasInit", deduplicateStatusEffects);
+// Backstop for any mutation that bypasses the setter (e.g. a direct CONFIG.statusEffects.push);
+// reassigns (through the deduping setter) only when duplicates are actually present, so once the
+// list is clean this is a no-op. `.length` reads the array target, not the ownKeys trap.
+Hooks.on("canvasInit", () => {
+  const current = CONFIG.statusEffects;
+  const cleaned = dedupeStatusEffectsById(current);
+  if (cleaned.length !== current.length) CONFIG.statusEffects = cleaned;
+});
 
 Hooks.on("renderChatInput", (app, html, data) => {
   if (app.id === "chat") {
