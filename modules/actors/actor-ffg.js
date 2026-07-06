@@ -774,7 +774,7 @@ export class ActorFFG extends Actor {
   }
 
   /** @override **/
-  applyActiveEffects() {
+  applyActiveEffects(...args) {
     // Scale each item's modifiers by its quantity (e.g. carrying 2 of a gear item that grants
     // +1 Encumbrance capacity should grant +2). The Active Effect persists the per-item value;
     // we derive the scaled value here from the effect's source so that changing quantity updates
@@ -815,6 +815,10 @@ export class ActorFFG extends Actor {
         }
       }
     }
-    return super.applyActiveEffects();
+    // V14 made applyActiveEffects phase-based: core calls it with a string phase
+    // ("initial", ...) and super requires that argument (missing it logs a
+    // deprecation, removed in V16). Forward whatever core passes. The pre-super
+    // mutations above are idempotent, so running once per phase is safe.
+    return super.applyActiveEffects(...args);
   }
 }
