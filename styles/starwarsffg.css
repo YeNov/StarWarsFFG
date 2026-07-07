@@ -3475,3 +3475,14 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
      the true-colour rule above. */
   filter: brightness(0) invert(1);
 }
+/* V14 sizes the status palette's rows to fill the token-HUD column height, so its
+   grid-template-rows resolves to ~51px per row while our icons are 24px — leaving a
+   big vertical gap in every row (looks like empty rows). Pack the rows to icon height
+   and top-align so the grid hugs the icons. Unlayered, so it beats core's @layer rule
+   without !important (same approach as the colour rules above). */
+#token-hud .status-effects.palette {
+  grid-template-rows: none;
+  grid-auto-rows: 24px;
+  align-content: start;
+  height: max-content;
+}
