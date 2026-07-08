@@ -273,7 +273,7 @@ export default class EmbeddedItemHelpers {
 
     delete temp._id;
     delete temp.id;
-    let tempItem = await new Item(temp, { temporary: true });
+    let tempItem = await new Item.implementation(temp, { temporary: true });
     tempItem.sheet.render(true);
   }
 
