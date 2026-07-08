@@ -1161,7 +1161,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
             item = await fromUuid(this.object.system.signatureabilities[itemId].source);
           }
         }
-        new Item(item).sheet.render(true);
+        new Item.implementation(item).sheet.render(true);
       });
     } else if (this.object.type === "species") {
       try {
@@ -1192,7 +1192,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           const itemId = $(event.target).data("talent-id");
           const itemType = $(event.target).data("item-type");
           let item = await fromUuid(this.object.system.talents[itemId].source);
-          new Item(item).sheet.render(true);
+          new Item.implementation(item).sheet.render(true);
         });
       } catch (err) {
         CONFIG.logger.debug(err);
