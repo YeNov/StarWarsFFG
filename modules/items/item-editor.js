@@ -121,14 +121,14 @@ export class itemEditor extends FFGFormApplication {
     let enriched = this.data;
     const co = enriched.clickedObject;
     if (co?.system?.description !== undefined) {
-      co.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(co.system.description);
+      co.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(co.system.description);
       for (let modification of co.system.itemmodifier ?? []) {
-        modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(modification.system.description);
+        modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(modification.system.description);
       }
     } else if (co?.description !== undefined) {
       // Force-power / signature upgrades (and specialization talents) carry the
       // description directly on the object, not under .system.
-      co.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(co.description);
+      co.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(co.description);
     }
     return enriched;
   }
@@ -834,7 +834,7 @@ export class talentEditor extends itemEditor {
    */
   async _enrichData() {
     let enriched = this.data;
-    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(this.data.clickedObject.description);
+    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.data.clickedObject.description);
     return enriched;
   }
 
@@ -1045,7 +1045,7 @@ export class forcePowerEditor extends itemEditor {
    */
   async _enrichData() {
     let enriched = this.data;
-    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(this.data.clickedObject.description);
+    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.data.clickedObject.description);
     return enriched;
   }
 
