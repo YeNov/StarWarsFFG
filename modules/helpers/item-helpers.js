@@ -1,3 +1,4 @@
+import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ModifierHelpers from "./modifiers.js";
 
 export default class ItemHelpers {
@@ -114,7 +115,7 @@ export default class ItemHelpers {
         }
         changes.push({
           key: path,
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: true,
         });
       }
@@ -136,7 +137,7 @@ export default class ItemHelpers {
         }
         changes.push({
           key: path,
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: true,
         });
       }
@@ -382,7 +383,7 @@ export default class ItemHelpers {
       if (key) {
         changes.push({
           key,
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value,
         });
       }

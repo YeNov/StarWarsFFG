@@ -1,8 +1,9 @@
+import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 export default class EffectHelpers {
 
   // Lookup mode name from int
   static MODES = Object.fromEntries(
-    Object.entries(CONST.ACTIVE_EFFECT_MODES).map(
+    Object.entries(AE_MODES).map(
       ([key, value]) => [value, key])
     );
 

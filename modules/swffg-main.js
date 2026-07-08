@@ -1,3 +1,4 @@
+import { AE_MODES } from "./config/ffg-active-effect-modes.js";
 /**
  * A systems implementation of the Star Wars RPG by Fantasy Flight Games.
  * Author: Esrin
@@ -816,37 +817,37 @@ Hooks.once("init", async function () {
     for (const skill of Object.keys(CONFIG.FFG.skills)) {
       allSkillChanges['boost'].push({
         key: `system.skills.${skill}.boost`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['setback'].push({
         key: `system.skills.${skill}.setback`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['upgrade'].push({
         key: `system.skills.${skill}.upgrades`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['success'].push({
         key: `system.skills.${skill}.success`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['upgradeDifficulty'].push({
         key: `system.skills.${skill}.upgradeDifficulty`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['difficulty'].push({
         key: `system.skills.${skill}.difficulty`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['advantage'].push({
         key: `system.skills.${skill}.advantage`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
     }
@@ -1046,12 +1047,12 @@ Hooks.once("init", async function () {
       changes: [
         {
           key: "system.stats.defence.melee",
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: "2",
         },
         {
           key: "system.stats.defence.ranged",
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: "2",
         },
       ],
