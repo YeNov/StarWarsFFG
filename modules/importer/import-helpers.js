@@ -22,7 +22,7 @@ export default class ImportHelpers {
           if (currentSource !== paths[i]) {
             currentSource = `${currentSource}/${paths[i]}`;
           }
-          await foundry.applications.apps.FilePicker.createDirectory(startingSource, `${currentSource}`, { bucket: null });
+          await foundry.applications.apps.FilePicker.implementation.createDirectory(startingSource, `${currentSource}`, { bucket: null });
         } catch (err) {
           CONFIG.logger.debug(`Error verifying path ${startingSource}, ${path}`, err);
         }

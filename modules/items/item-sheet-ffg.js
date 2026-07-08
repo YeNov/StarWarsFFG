@@ -2016,7 +2016,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     }
 
     if (action === "img") {
-      const fp = new foundry.applications.apps.FilePicker({
+      const fp = new foundry.applications.apps.FilePicker.implementation({
         type: "image",
         callback: async (path) => {
           await this.object.update({img: path});
