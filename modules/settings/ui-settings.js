@@ -47,7 +47,7 @@ class ffgSettings extends FFGFormApplication {
   _onFilePicker(event) {
     event.preventDefault();
 
-    const fp = new foundry.applications.apps.FilePicker({
+    const fp = new foundry.applications.apps.FilePicker.implementation({
       type: "image",
       callback: (path) => {
         $(event.currentTarget).prev().val(path);
