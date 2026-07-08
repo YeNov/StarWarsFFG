@@ -223,14 +223,14 @@ export class CombatFFG extends Combat {
       }
 
       const diceSymbols = {
-        boost: await foundry.applications.ux.TextEditor.enrichHTML("[BO]"),
-        setback: await foundry.applications.ux.TextEditor.enrichHTML("[SE]"),
-        advantage: await foundry.applications.ux.TextEditor.enrichHTML("[AD]"),
-        success: await foundry.applications.ux.TextEditor.enrichHTML("[SU]"),
-        threat: await foundry.applications.ux.TextEditor.enrichHTML("[TH]"),
-        failure: await foundry.applications.ux.TextEditor.enrichHTML("[FA]"),
-        upgrade: await foundry.applications.ux.TextEditor.enrichHTML("[PR]"),
-        force: await foundry.applications.ux.TextEditor.enrichHTML("[FO]"),
+        boost: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[BO]"),
+        setback: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SE]"),
+        advantage: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[AD]"),
+        success: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SU]"),
+        threat: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[TH]"),
+        failure: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FA]"),
+        upgrade: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[PR]"),
+        force: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FO]"),
       };
 
       const title = game.i18n.localize("SWFFG.InitiativeRoll") + ` ${whosInitiative}...`;
@@ -995,13 +995,13 @@ export class CombatFFG extends Combat {
         const advantages = initiativeParts.substring(decimalPosition + 2, decimalPosition + 3);
 
         for (let x = 0; x < successes; x++) {
-          initiativeImage['successes'] += await foundry.applications.ux.TextEditor.enrichHTML("[su]");
+          initiativeImage['successes'] += await foundry.applications.ux.TextEditor.implementation.enrichHTML("[su]");
         }
         for (let x = 0; x < advantages; x++) {
-          initiativeImage['advantages'] += await foundry.applications.ux.TextEditor.enrichHTML("[ad]");
+          initiativeImage['advantages'] += await foundry.applications.ux.TextEditor.implementation.enrichHTML("[ad]");
         }
         for (let x = 0; x < triumphs; x++) {
-          initiativeImage['triumphs'] += await foundry.applications.ux.TextEditor.enrichHTML("[tr]");
+          initiativeImage['triumphs'] += await foundry.applications.ux.TextEditor.implementation.enrichHTML("[tr]");
         }
       }
 

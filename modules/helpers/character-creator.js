@@ -668,7 +668,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           // do not include items disallowed by the GM
           continue;
         }
-        item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+        item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
         preparedItems.push(item);
       }
     }
@@ -693,7 +693,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }
       const items = await pack.getDocuments();
       for (const item of items) {
-        item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+        item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
         if (item.system.type === "culture") {
           cultures.push(item);
         } else if (item.system.type === "hook") {
@@ -705,7 +705,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
 
     for (const item of game.items.filter(i => i.type === "background")) {
-      item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+      item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
       if (item.system.type === "culture") {
         cultures.push(item);
       } else if (item.system.type === "hook") {
@@ -737,13 +737,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }
       const items = await pack.getDocuments();
       for (const item of items) {
-        item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+        item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
         obligations.push(item);
       }
     }
 
     for (const item of game.items.filter(i => i.type === "obligation")) {
-      item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+      item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
       obligations.push(item);
     }
 
@@ -765,13 +765,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }
       const items = await pack.getDocuments();
       for (const item of items) {
-        item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+        item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
         species.push(item);
       }
     }
 
     for (const item of game.items.filter(i => i.type === "species")) {
-      item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+      item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
       species.push(item);
     }
 
@@ -793,13 +793,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }
       const items = await pack.getDocuments();
       for (const item of items) {
-        item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+        item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
         careers.push(item);
       }
     }
 
     for (const item of game.items.filter(i => i.type === "careers")) {
-      item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+      item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
       careers.push(item);
     }
 
@@ -821,13 +821,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }
       const items = await pack.getDocuments();
       for (const item of items) {
-        item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+        item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
         motivations.push(item);
       }
     }
 
     for (const item of game.items.filter(i => i.type === "motivation")) {
-      item.pill = await foundry.applications.ux.TextEditor.enrichHTML(item?.link);
+      item.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(item?.link);
       motivations.push(item);
     }
 
@@ -983,7 +983,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     for (const specData of Object.values(selectedCareer.system.specializations)) {
       const specItem = await fromUuid(specData.source);
       if (specItem) {
-        specItem.pill = await foundry.applications.ux.TextEditor.enrichHTML(specItem?.link);
+        specItem.pill = await foundry.applications.ux.TextEditor.implementation.enrichHTML(specItem?.link);
         this.data.available.specializations.push(specItem);
       } else {
         CONFIG.logger.debug(`Unable to find specialization with UUID ${specData.source}`);

@@ -227,11 +227,11 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     }
 
     if (data?.data?.description) {
-      data.data.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(data.data.description);
+      data.data.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(data.data.description);
     }
 
     if (data?.data?.longDesc !== undefined) {
-      data.data.enrichedLongDesc = await foundry.applications.ux.TextEditor.enrichHTML(data.data.longDesc);
+      data.data.enrichedLongDesc = await foundry.applications.ux.TextEditor.implementation.enrichHTML(data.data.longDesc);
       data.data.hasLongDesc = true;
     } else {
       data.data.hasLongDesc = false;
@@ -274,7 +274,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         // enrich modification descriptions for display
         if (data.data.itemmodifier) {
           for (let modification of data.data.itemmodifier) {
-            modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(modification.system.description);
+            modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(modification.system.description);
           }
         }
         break;
@@ -353,7 +353,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           );
         }
         for (let x = 0; x < 16; x++) {
-          data.data.upgrades[`upgrade${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(data.data.upgrades[`upgrade${x}`].description);
+          data.data.upgrades[`upgrade${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(data.data.upgrades[`upgrade${x}`].description);
           let upgradeSize = ItemSheetFFG.SIZE_TO_INT[data.data.upgrades[`upgrade${x}`].size];
           data.data.upgrades[`upgrade${x}`].sizeInt = upgradeSize;
 
@@ -413,7 +413,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           );
         }
         for (let x = 0; x < 20; x++) {
-          data.data.talents[`talent${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(data.data.talents[`talent${x}`].description);
+          data.data.talents[`talent${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(data.data.talents[`talent${x}`].description);
 
           if (x - 4 < 0) {
             data.data.talents[`talent${x}`].isTopLearned = false;
@@ -545,7 +545,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           );
         }
         for (let x = 0; x < 8; x++) {
-          data.data.upgrades[`upgrade${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(data.data.upgrades[`upgrade${x}`].description);
+          data.data.upgrades[`upgrade${x}`].enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(data.data.upgrades[`upgrade${x}`].description);
           let upgradeSize = ItemSheetFFG.SIZE_TO_INT[data.data.upgrades[`upgrade${x}`].size];
           data.data.upgrades[`upgrade${x}`].sizeInt = upgradeSize;
 
@@ -2456,7 +2456,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       let details = li.children(".item-details");
       details.slideUp(200, () => details.remove());
     } else {
-      let div = $(`<div class="item-details">${await foundry.applications.ux.TextEditor.enrichHTML(desc)}</div>`);
+      let div = $(`<div class="item-details">${await foundry.applications.ux.TextEditor.implementation.enrichHTML(desc)}</div>`);
       li.append(div.hide());
       div.slideDown(200);
     }
