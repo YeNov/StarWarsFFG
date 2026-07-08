@@ -1470,7 +1470,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       temp.ownership = {
         default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
       }
-      let tempItem = await new Item(temp, { temporary: true });
+      let tempItem = await new Item.implementation(temp, { temporary: true });
 
       tempItem.sheet.render(true);
     });
