@@ -1,3 +1,4 @@
+import { AE_MODES } from "./config/ffg-active-effect-modes.js";
 import ModifierHelpers from "./helpers/modifiers.js";
 
 /**
@@ -295,7 +296,7 @@ async function migrateTo1907() {
                   for (const curMod of explodedMods) {
                     changes.push({
                       key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-                      mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                      mode: AE_MODES.ADD,
                       value: item.system.talents[`talent${i}`].attributes[nk].value,
                     });
                   }
@@ -336,7 +337,7 @@ async function migrateTo1907() {
                   for (const curMod of explodedMods) {
                     changes.push({
                       key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-                      mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                      mode: AE_MODES.ADD,
                       value: item.system.upgrades[`upgrade${i}`].attributes[nk].value,
                     });
                   }
@@ -379,7 +380,7 @@ async function migrateTo1907() {
                   for (const curMod of explodedMods) {
                     changes.push({
                       key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-                      mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                      mode: AE_MODES.ADD,
                       value: item.system.upgrades[`upgrade${i}`].attributes[nk].value,
                     });
                   }

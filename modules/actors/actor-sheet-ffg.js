@@ -1,3 +1,4 @@
+import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 /**
  * The system's Actor sheet — native ApplicationV2 DocumentSheetV2 (via the
  * shared FFGActorSheet → FFGDocumentSheet bases). Handles every FFG actor type.
@@ -1985,12 +1986,12 @@ export class ActorSheetFFG extends FFGActorSheet {
       changes: [
         {
           key: boughtPath,
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: boughtValue,
         },
         {
           key: "system.experience.available",
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: spentXP * -1,
         }
       ],
@@ -2000,7 +2001,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     if (boughtPath === "system.characteristics.Brawn.value") {
       effects.changes.push({
         key: "system.stats.soak.value",
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: 1,
       });
     }

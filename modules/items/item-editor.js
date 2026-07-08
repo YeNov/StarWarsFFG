@@ -1,3 +1,4 @@
+import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ItemHelpers from "../helpers/item-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
@@ -551,7 +552,7 @@ export class itemEditor extends FFGFormApplication {
               for (const curMod of explodedMods) {
                 changes.push({
                   key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-                  mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                  mode: AE_MODES.ADD,
                   value: formData.system.attributes[modKey].value,
                 });
               }
@@ -605,7 +606,7 @@ export class itemEditor extends FFGFormApplication {
                 for (const curMod of explodedMods) {
                   changes.push({
                     key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-                    mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                    mode: AE_MODES.ADD,
                     value: modifier.system.attributes[modKey].value,
                   });
                 }
@@ -706,7 +707,7 @@ export class itemEditor extends FFGFormApplication {
         for (const curMod of explodedMods) {
           changes.push({
             key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-            mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+            mode: AE_MODES.ADD,
             value: formData.system.attributes[modKey].value,
           });
         }
@@ -894,7 +895,7 @@ export class talentEditor extends itemEditor {
         for (const curMod of explodedMods) {
           changes.push({
             key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-            mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+            mode: AE_MODES.ADD,
             value: formData.attributes[modKey].value,
           });
         }
@@ -1100,7 +1101,7 @@ export class forcePowerEditor extends itemEditor {
         for (const curMod of explodedMods) {
           changes.push({
             key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-            mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+            mode: AE_MODES.ADD,
             value: formData.attributes[modKey].value,
           });
         }
