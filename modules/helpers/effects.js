@@ -23,15 +23,27 @@ export default class EffectHelpers {
     effect.active = originalEffect.active;
     effect.changes = foundry.utils.deepClone(originalEffect.changes ?? []);
 
-    // Convert duration to string
-    if (effect.duration.combat) {
+    // Convert duration to a display string. V14 rewrote the ActiveEffect duration
+    // model from {seconds, rounds, turns, combat, ...} to {value, units, ...}, so
+    // the old field reads all came back undefined on V14 and every row showed
+    // "Permanent". Handle the V14 {value, units} shape first, then fall back to the
+    // legacy V13 fields so the Effects-tab Duration column is correct on both.
+    const d = effect.duration ?? {};
+    if (Number.isInteger(d.value) && d.units) {
+      // V14: value + units (seconds/rounds/turns/minutes/hours/days/...). Use the
+      // localized label for the units we ship strings for; otherwise show the raw
+      // unit name so exotic units still read sensibly.
+      const unitKey = { seconds: "Seconds", rounds: "Rounds", turns: "Turns" }[d.units];
+      const unitLabel = unitKey ? game.i18n.localize(`SWFFG.Effect.Duration.${unitKey}`) : d.units;
+      effect.duration = `${d.value} ${unitLabel}`;
+    } else if (d.combat) {
       effect.duration = game.i18n.localize("SWFFG.Effect.Duration.CurrentCombat");
-    } else if (effect.duration.seconds) {
-      effect.duration = `${effect.duration.seconds} ${game.i18n.localize("SWFFG.Effect.Duration.Seconds")}`;
-    } else if (effect.duration.rounds) {
-      effect.duration = `${effect.duration.rounds} ${game.i18n.localize("SWFFG.Effect.Duration.Rounds")}`;
-    } else if (effect.duration.turns) {
-      effect.duration = `${effect.duration.turns} ${game.i18n.localize("SWFFG.Effect.Duration.Turns")}`;
+    } else if (d.seconds) {
+      effect.duration = `${d.seconds} ${game.i18n.localize("SWFFG.Effect.Duration.Seconds")}`;
+    } else if (d.rounds) {
+      effect.duration = `${d.rounds} ${game.i18n.localize("SWFFG.Effect.Duration.Rounds")}`;
+    } else if (d.turns) {
+      effect.duration = `${d.turns} ${game.i18n.localize("SWFFG.Effect.Duration.Turns")}`;
     } else {
       effect.duration = game.i18n.localize("SWFFG.Effect.Duration.Permanent");
     }
