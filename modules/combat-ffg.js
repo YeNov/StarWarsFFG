@@ -315,9 +315,22 @@ export class CombatFFG extends Combat {
                   // Roll initiative
                   updates.push({ _id: id, initiative: roll.total });
 
-                  // Determine the roll mode
-                  let rollMode = messageOptions.rollMode || game.settings.get("core", "rollMode");
-                  if ((c.token.hidden || c.hidden) && rollMode === "roll") rollMode = "gmroll";
+                  // Determine the roll mode. V14 renamed core.rollMode ->
+                  // core.messageMode with a new value vocabulary (public/gm/blind/
+                  // self) and applies it via ChatMessage#applyMode; feature-detect so
+                  // hidden combatants still roll privately on both V13 and V14, and
+                  // map any legacy caller-supplied rollMode.
+                  const isV14 = game.release.generation >= 14;
+                  const modeKey = isV14 ? "messageMode" : "rollMode";
+                  let rollMode;
+                  if (isV14) {
+                    rollMode = messageOptions.messageMode
+                      ?? (messageOptions.rollMode ? Roll._mapLegacyRollMode(messageOptions.rollMode) : game.settings.get("core", "messageMode"));
+                    if ((c.token.hidden || c.hidden) && (rollMode === "public" || rollMode === "ic")) rollMode = "gm";
+                  } else {
+                    rollMode = messageOptions.rollMode || game.settings.get("core", "rollMode");
+                    if ((c.token.hidden || c.hidden) && rollMode === "roll") rollMode = "gmroll";
+                  }
 
                   // Construct chat message data
                   let messageData = foundry.utils.mergeObject(
@@ -333,7 +346,7 @@ export class CombatFFG extends Combat {
                     },
                     messageOptions
                   );
-                  const chatData = await roll.toMessage(messageData, { create: false, rollMode });
+                  const chatData = await roll.toMessage(messageData, { create: false, [modeKey]: rollMode });
 
                   // Play 1 sound for the whole rolled set
                   if (i > 0) chatData.sound = null;
