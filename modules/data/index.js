@@ -47,6 +47,7 @@ import { HomesteadDataModel } from "./models/actor/homestead.js";
 import { MinionDataModel } from "./models/actor/minion.js";
 import { RivalDataModel } from "./models/actor/rival.js";
 import { NemesisDataModel } from "./models/actor/nemesis.js";
+import { CharacterDataModel } from "./models/actor/character.js";
 
 export {
   AbilityDataModel,
@@ -74,6 +75,7 @@ export {
   MinionDataModel,
   RivalDataModel,
   NemesisDataModel,
+  CharacterDataModel,
 };
 
 /**
@@ -132,5 +134,10 @@ export function registerSystemDataModels() {
     minion: MinionDataModel,
     rival: RivalDataModel,
     nemesis: NemesisDataModel,
+  });
+
+  // Stage 8: character — the full PC (largest surface). Completes all types.
+  Object.assign(CONFIG.Actor.dataModels, {
+    character: CharacterDataModel,
   });
 }
