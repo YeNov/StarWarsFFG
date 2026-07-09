@@ -369,12 +369,23 @@ applies).
       all loaded as their DataModel class, `invalidDocumentIds` empty);
       throwaway-item `toObject()` reproduced template.json defaults exactly for
       all six; sheet edit→save→reload round-trip held.
-- [ ] **Stage 3 — Equipment items.** `GearDataModel`, `WeaponDataModel`,
-      `ArmourDataModel`, `ShipWeaponDataModel`, `ShipAttachmentDataModel`,
-      `ItemAttachmentDataModel`. Heavier sheet coupling — audit
-      [item-sheet-ffg.js](../../../modules/items/item-sheet-ffg.js) for direct
-      `system.*` reads/writes on these types before/after to confirm parity,
-      since this file has the largest surface area of any sheet class.
+- [x] **Stage 3 — Equipment items. DONE + VERIFIED on V14 (2026-07-09).**
+      `GearDataModel`, `WeaponDataModel`, `ArmourDataModel`,
+      `ShipWeaponDataModel`, `ShipAttachmentDataModel`, `ItemAttachmentDataModel`
+      under [models/item/](../../../modules/data/models/item/), registered in
+      [index.js](../../../modules/data/index.js#registerSystemDataModels).
+      `weapon`/`shipweapon` share `damage`/`crit`/`range`/`special` via
+      [_combat-fields.js](../../../modules/data/models/item/_combat-fields.js);
+      `special.value` is `HTMLField` (rich text). `shipweapon`/`shipattachment`
+      carry a top-level `system.label` string as template.json does; weapon has
+      `skill`/`ammo`, shipweapon has `firingarc` instead. First stage with heavy
+      real-data exposure (weapons/armour), so verified by a **live drop/change
+      diff of `_source.system` vs `system.toObject()`** on existing docs.
+      **Result:** `invalidDocumentIds` empty, and across all existing equipment
+      (6 gear, 3 weapon, 2 armour, 2 shipweapon, 3 itemattachment) every
+      `dropped` and `changed` list was empty — no silent field loss, no
+      NumberField coercion (stored types were already correct). weapon + armour
+      edit→save→reload round-trip held.
 - [ ] **Stage 4 — Talent and Species.** `TalentDataModel`, `SpeciesDataModel`.
       Talent in particular is read by the specialization/signature-ability
       tree UI and the Codex force-tree widget (see memory
