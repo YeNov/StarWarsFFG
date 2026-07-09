@@ -398,12 +398,37 @@ applies).
       stripped; `startingXP` a number. Verify via the same `_source` drop/change
       diff plus a round-trip on a talent (check tree membership survives) and the
       Codex force-tree widget still renders (memory `cdx-force-tree-design`).
-- [ ] **Stage 5 — Tree types with dynamic numbered slots.**
-      `ForcePowerDataModel`, `SpecializationDataModel`, `CareerDataModel`,
-      `SignatureAbilityDataModel`. **Blocked on a runtime-shape audit first**
-      (see Risks) — do not write `defineSchema()` for `upgrades`/`talents`
-      until [item-editor.js](../../../modules/items/item-editor.js)'s actual
-      writes to those slots are captured from a live document.
+- [x] **Stage 5 — Tree types with dynamic numbered slots. DONE + data-VERIFIED
+      on V14 (2026-07-09); tree-editor round-trip recommended.**
+      `ForcePowerDataModel`,
+      `SpecializationDataModel`, `CareerDataModel`, `SignatureAbilityDataModel`
+      under [models/item/](../../../modules/data/models/item/).
+      **Runtime-shape audit done (unblocks this stage):** dumped a populated
+      `forcepower.upgrades.upgrade0` from a live world — inner shape is genuinely
+      freeform (hyphenated link keys `links-top-1`/`links-right`, a *string*
+      `cost:"5"`, nested `attributes`, assorted booleans/`size`). So slot values
+      stay untyped `ObjectField` (drop-proof); numbered containers are
+      `TypedObjectField` seeded with the template.json defaults via
+      [_tree-fields.js](../../../modules/data/models/item/_tree-fields.js)
+      (`slotDictField`/`stringSlotField`/`boolSlotField`). Slots: forcepower
+      `upgrade0..15`, signatureability `upgrade0..7`, specialization
+      `talent0..19`; dicts: careerSkills (`stringSlotField`, `"(none)"`),
+      uplink_nodes (`boolSlotField`), career specializations/signatureabilities
+      (freeform). `required_force_rating`/`base_cost` are NumberFields (watch the
+      forcepower diff in case costs are string-stored). **Result:** forcepower
+      `_source` diff empty `dropped`/`changed` (base_cost/required_force_rating
+      were already numbers — no coercion), `invalidDocumentIds` 0; throwaway
+      shapes exact for all four (16/20/0/8 slots, careerSkills, uplink_nodes).
+      Two findings, both benign: (1) a floating "Item … does not exist" rejection
+      during the throwaway create was a create-then-immediately-delete **race in
+      the diagnostic snippet** (async `_onCreate` deep-setup + inherent-AE
+      creation fire after delete), not a system/DataModel bug; (2)
+      `_prepareTalentTrees` returns `{system:{collection: talents}}` (a literal
+      `collection` key — pre-existing bug), now stripped by the schema —
+      confirmed **no code or template reads `system.collection`**, so stripping
+      is safe/cleaner. Tree editor reads `system.upgrades[id]`/`talents[id]` +
+      nested `attributes` (freeform-preserved). Remaining: manual item-editor
+      tree round-trip (toggle/purchase an upgrade, save, reopen).
 - [ ] **Stage 6 — Actor types, simple first.** `VehicleDataModel`,
       `HomesteadDataModel` (no shared Stats/Characteristics/Skills
       dependency, lower coupling).
