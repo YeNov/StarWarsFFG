@@ -335,8 +335,8 @@ applies).
       data-related errors on load.**
 - [x] **Stage 1 — Proof of concept on the simplest types. DONE + VERIFIED on
       V14 (2026-07-09).** `HomesteadUpgradeDataModel` (`meta_only`) and
-      `AbilityDataModel` (`core`), both no own fields, in
-      [modules/data/item-models.js](../../../modules/data/item-models.js),
+      `AbilityDataModel` (`core`), both no own fields, one file per type under
+      [modules/data/models/item/](../../../modules/data/models/item/),
       registered via `CONFIG.Item.dataModels` in
       [index.js](../../../modules/data/index.js#registerSystemDataModels).
       **Coexistence confirmed:** `CONFIG.Item.dataModels` registration alone
@@ -349,16 +349,26 @@ applies).
       `DataModelValidationError` on load. NOTE for later stages: registering a
       DataModel does not rewrite stored `_source` on load — it only cleans the
       in-memory view — so on-disk data is safe until an item is edited+saved.
-- [ ] **Stage 2 — Small leaf Item types.** `CriticalInjuryDataModel`,
-      `CriticalDamageDataModel`, `BackgroundDataModel`, `ObligationDataModel`,
-      `MotivationDataModel`, `ItemModifierDataModel`. Small field counts, no
-      dynamic dictionaries. The duplicate `description` on
+- [x] **Stage 2 — Small leaf Item types. DONE + VERIFIED on V14 (2026-07-09).**
+      `CriticalInjuryDataModel`, `CriticalDamageDataModel`,
+      `BackgroundDataModel`, `ObligationDataModel`, `MotivationDataModel`,
+      `ItemModifierDataModel` — one file per type under
+      [modules/data/models/item/](../../../modules/data/models/item/),
+      registered in
+      [index.js](../../../modules/data/index.js#registerSystemDataModels). Small
+      field counts, no dynamic dictionaries. The duplicate `description` on
       background/obligation/motivation is **resolved, not an open decision**
-      (see Risks): declare `description` once on the `CoreTemplate` mixin, do
-      *not* redeclare it on these three types. Because it holds ProseMirror
-      HTML, declare it as `HTMLField` (not `StringField`) — see the rich-text
-      risk below. Zero shape change — it already merges to one
-      `system.description` on disk.
+      (see Risks): declared once on the `CoreTemplate` mixin (as `HTMLField`),
+      NOT redeclared on these three types — zero shape change, already merges to
+      one `system.description` on disk. `type`/`magnitude`/`subtype`/`rank`/
+      `min`/`max`/`severity` are top-level `system.*` category/number fields.
+      **Refactor landed alongside:** concrete models split one-file-per-type
+      under `models/item/` (was a single `item-models.js`). **Verified live:**
+      no `DataModelValidationError` on load with real data present (30
+      criticalinjury + 19 criticaldamage + background/motivation/3 itemmodifier
+      all loaded as their DataModel class, `invalidDocumentIds` empty);
+      throwaway-item `toObject()` reproduced template.json defaults exactly for
+      all six; sheet edit→save→reload round-trip held.
 - [ ] **Stage 3 — Equipment items.** `GearDataModel`, `WeaponDataModel`,
       `ArmourDataModel`, `ShipWeaponDataModel`, `ShipAttachmentDataModel`,
       `ItemAttachmentDataModel`. Heavier sheet coupling — audit
