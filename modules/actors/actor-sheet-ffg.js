@@ -358,8 +358,12 @@ export class ActorSheetFFG extends FFGActorSheet {
     data.modifierTypes = CONFIG.FFG.allowableModifierTypes;
     data.modifierChoices = CONFIG.FFG.allowableModifierChoices;
 
-    // Include active effects
-    data.effects = actorData.system.effects.map(EffectHelpers.transformEffects);
+    // Include active effects. `effects` is derived data attached to system in
+    // prepareDerivedData (a list of live ActiveEffect Documents), not a schema
+    // field — so a registered system DataModel's toObject() (used for actorData
+    // above) drops it. Read it from the live system instead. `?? []` guards any
+    // actor whose prepare hasn't populated it.
+    data.effects = (this.actor.system.effects ?? []).map(EffectHelpers.transformEffects);
 
     return data;
   }

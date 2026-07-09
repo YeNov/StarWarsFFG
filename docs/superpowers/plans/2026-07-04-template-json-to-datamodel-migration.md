@@ -443,7 +443,18 @@ applies).
       empty `dropped`/`changed` (big stats block + freeform `crew` reproduce
       exactly, no coercion), `invalidDocumentIds` 0, `appliedClass`
       VehicleDataModel. No homesteads in world to diff (schema follows
-      template.json). Vehicle sheet round-trip recommended on next reload.
+      template.json). **Sheet fix required + verified:** opening a vehicle sheet
+      first threw `Cannot read properties of undefined (reading 'map')` at
+      [actor-sheet-ffg.js:362](../../../modules/actors/actor-sheet-ffg.js) —
+      `getData` reads `effects` off `this.actor.toObject(false)`, but `effects`
+      is derived data attached to `system` in `prepareDerivedData`
+      ([actor-ffg.js:316](../../../modules/actors/actor-ffg.js)), not a schema
+      field, so a registered DataModel's `toObject()` drops it (template.json's
+      plain object retained it). Fixed to read the list off the live
+      `this.actor.system.effects` (`?? []` guarded). Shared base `getData`, so it
+      also pre-empts the same crash for Stages 7–8. Vehicle sheet then opened,
+      threshold display correct (other dropped derived props like
+      `stats.*OverThreshold` aren't consumed by the template).
 - [ ] **Stage 7 — Actor types sharing Stats/Characteristics/Skills.**
       `MinionDataModel`, `RivalDataModel`, `NemesisDataModel`.
 - [ ] **Stage 8 — CharacterDataModel.** Largest surface, heaviest coupling
