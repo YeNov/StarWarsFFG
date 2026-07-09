@@ -57,6 +57,7 @@ import SWAImporter from "./importer/swa-importer.js";
 import {CharacterCreator} from "./helpers/character-creator.js";
 import {xpLogUndo} from "./helpers/actor-helpers.js";
 import {register_system_tours} from "./helpers/tours.js";
+import {registerSystemDataModels} from "./data/index.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -154,6 +155,11 @@ Hooks.once("init", async function () {
   CONFIG.Actor.documentClass = ActorFFG;
   CONFIG.Item.documentClass = ItemFFG;
   CONFIG.ActiveEffect.documentClass = ActiveEffectFFG;
+
+  // System Data Models — template.json → DataModel migration (Stage 0: no-op).
+  // Registers per-sub-type schemas into CONFIG.*.dataModels as stages land;
+  // until then template.json remains the sole schema source.
+  registerSystemDataModels();
 
   // we do not want the legacy active effect transfer mode
   // also, reeeeeeeeeeeeeeeee

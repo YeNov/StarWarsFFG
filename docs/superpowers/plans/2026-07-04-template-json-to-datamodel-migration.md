@@ -308,16 +308,31 @@ type, and a manual sheet smoke-test (open the sheet, edit a field, confirm
 save/reload round-trips, confirm any Active Effect targeting that type still
 applies).
 
-- [ ] **Stage 0 — Infrastructure.** Add `mix()` helper and the shared template
-      mixin functions (Actor: `MetaOnlyTemplate`, `BiographyTemplate`,
-      `SpeciesRefTemplate`, `CareerRefTemplate`, `SpecialisationRefTemplate`,
-      `StatsTemplate`, `CharacteristicsTemplate`, `SkillsTemplate`,
-      `AttributesTemplate`, `GeneralTemplate`; Item: `CoreTemplate`,
-      `BasicTemplate`, `HardpointsTemplate`, `EquippableTemplate`,
-      `ItemAttachmentsTemplate`, `QualitiesTemplate`) under a new
-      `modules/data/` directory. Register zero types yet — this stage is
-      pure scaffolding, verified by "nothing changed" (system still boots,
-      template.json still governs everything).
+- [x] **Stage 0 — Infrastructure. DONE (2026-07-09).** Added `mix()` helper +
+      base models ([modules/data/mix.js](../../../modules/data/mix.js)), the
+      shared `metadata`/`meta_only` field
+      ([shared-fields.js](../../../modules/data/shared-fields.js)), all 9 Actor
+      mixins ([actor-templates.js](../../../modules/data/actor-templates.js):
+      `BiographyTemplate`, `SpeciesRefTemplate`, `CareerRefTemplate`,
+      `SpecialisationRefTemplate`, `StatsTemplate`, `CharacteristicsTemplate`,
+      `SkillsTemplate`, `AttributesTemplate`, `GeneralTemplate`) and all 6 Item
+      mixins ([item-templates.js](../../../modules/data/item-templates.js):
+      `CoreTemplate`, `BasicTemplate`, `HardpointsTemplate`,
+      `EquippableTemplate`, `ItemAttachmentsTemplate`, `QualitiesTemplate`),
+      plus the shared `MetaOnlyTemplate`. `registerSystemDataModels()`
+      ([index.js](../../../modules/data/index.js)) is wired into
+      [swffg-main.js](../../../modules/swffg-main.js) `init` but registers ZERO
+      types — pure scaffolding. Decisions carried over: every legacy inline
+      `type`/`label`/`abrev` key is declared (no silent drop); rich-text fields
+      (`biography`, `general.features`, item `description`) use `HTMLField`;
+      `skills` is a `TypedObjectField` of freeform `ObjectField` defaulting to
+      the stock starwars list; `attributes` stays a freeform `ObjectField`. All
+      field construction is lazy (inside `defineSchema()`), so with nothing
+      registered the system boots identically. Open TODOs left in-code for their
+      registration stage: `specialisation.list` element type (Stage 8) and
+      new-actor skill defaulting vs. custom `arraySkillList` (Stage 7). ESM
+      syntax-checked; **live boot confirmed clean on V14 (2026-07-09) — no
+      data-related errors on load.**
 - [ ] **Stage 1 — Proof of concept on the simplest types.**
       `HomesteadUpgradeDataModel` (fully empty besides metadata) and
       `AbilityDataModel` (core only, no own fields). Lowest possible risk;
