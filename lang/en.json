@@ -1110,6 +1110,7 @@
   "SWFFG.CharacterCreator.Entry.Loading": "PC Wizard Loading...",
   "SWFFG.CharacterCreator.Checks.GM": "At least one GM must be online to use the PC Wizard",
   "SWFFG.Effect.Duration.Permanent": "Permanent",
+  "SWFFG.Effect.Duration.NextCheck": "Next Check",
   "SWFFG.Effect.Duration.CurrentCombat": "Current Combat",
   "SWFFG.Effect.Duration.Seconds": "Seconds",
   "SWFFG.Effect.Duration.Rounds": "Rounds",

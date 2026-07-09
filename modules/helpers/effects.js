@@ -23,13 +23,25 @@ export default class EffectHelpers {
     effect.active = originalEffect.active;
     effect.changes = foundry.utils.deepClone(originalEffect.changes ?? []);
 
-    // Convert duration to a display string. V14 rewrote the ActiveEffect duration
-    // model from {seconds, rounds, turns, combat, ...} to {value, units, ...}, so
-    // the old field reads all came back undefined on V14 and every row showed
-    // "Permanent". Handle the V14 {value, units} shape first, then fall back to the
-    // legacy V13 fields so the Effects-tab Duration column is correct on both.
+    // Convert duration to a display string.
+    //
+    // The system tracks its own dice-status lifetimes in flags, NOT in the core
+    // ActiveEffect.duration: "once" = consumed on the next check, "combat" = cleared
+    // when combat ends. Those statuses leave the core duration unset (permanent), so
+    // show the flag lifetime first — otherwise e.g. "Advantage Next Check" reads
+    // "Permanent". Read it off the live document (toObject can drop it on V14).
+    const ffgDuration = originalEffect.flags?.starwarsffg?.duration ?? effect.flags?.starwarsffg?.duration;
     const d = effect.duration ?? {};
-    if (Number.isInteger(d.value) && d.units) {
+    if (ffgDuration === "once") {
+      effect.duration = game.i18n.localize("SWFFG.Effect.Duration.NextCheck");
+    } else if (ffgDuration === "combat") {
+      effect.duration = game.i18n.localize("SWFFG.Effect.Duration.CurrentCombat");
+    }
+    // V14 rewrote the core duration model from {seconds, rounds, turns, combat, ...}
+    // to {value, units, ...}; the old field reads all came back undefined on V14, so
+    // every row showed "Permanent". Handle the V14 {value, units} shape first, then
+    // fall back to the legacy V13 fields so timed core durations read correctly on both.
+    else if (Number.isInteger(d.value) && d.units) {
       // V14: value + units (seconds/rounds/turns/minutes/hours/days/...). Use the
       // localized label for the units we ship strings for; otherwise show the raw
       // unit name so exotic units still read sensibly.
