@@ -333,11 +333,22 @@ applies).
       new-actor skill defaulting vs. custom `arraySkillList` (Stage 7). ESM
       syntax-checked; **live boot confirmed clean on V14 (2026-07-09) — no
       data-related errors on load.**
-- [ ] **Stage 1 — Proof of concept on the simplest types.**
-      `HomesteadUpgradeDataModel` (fully empty besides metadata) and
-      `AbilityDataModel` (core only, no own fields). Lowest possible risk;
-      validates the `documentTypes`/`CONFIG.Item.dataModels` registration
-      mechanics end to end before committing to anything with real fields.
+- [x] **Stage 1 — Proof of concept on the simplest types. DONE + VERIFIED on
+      V14 (2026-07-09).** `HomesteadUpgradeDataModel` (`meta_only`) and
+      `AbilityDataModel` (`core`), both no own fields, in
+      [modules/data/item-models.js](../../../modules/data/item-models.js),
+      registered via `CONFIG.Item.dataModels` in
+      [index.js](../../../modules/data/index.js#registerSystemDataModels).
+      **Coexistence confirmed:** `CONFIG.Item.dataModels` registration alone
+      applies the model with template.json still present — `system.json`
+      `documentTypes` was NOT needed. Verified live by creating a throwaway item
+      of each type: `system.constructor.name` was the DataModel class,
+      `toObject()` reproduced the template.json defaults exactly (ability →
+      `{description:"", attributes:{}, metadata:{tags:[],sources:[]}}`,
+      homesteadupgrade → `{metadata:{tags:[],sources:[]}}`), no
+      `DataModelValidationError` on load. NOTE for later stages: registering a
+      DataModel does not rewrite stored `_source` on load — it only cleans the
+      in-memory view — so on-disk data is safe until an item is edited+saved.
 - [ ] **Stage 2 — Small leaf Item types.** `CriticalInjuryDataModel`,
       `CriticalDamageDataModel`, `BackgroundDataModel`, `ObligationDataModel`,
       `MotivationDataModel`, `ItemModifierDataModel`. Small field counts, no
