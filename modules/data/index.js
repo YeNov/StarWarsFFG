@@ -41,6 +41,10 @@ import { SpecializationDataModel } from "./models/item/specialization.js";
 import { CareerDataModel } from "./models/item/career.js";
 import { SignatureAbilityDataModel } from "./models/item/signatureability.js";
 
+// Concrete Actor models (one file per type).
+import { VehicleDataModel } from "./models/actor/vehicle.js";
+import { HomesteadDataModel } from "./models/actor/homestead.js";
+
 export {
   AbilityDataModel,
   HomesteadUpgradeDataModel,
@@ -62,6 +66,8 @@ export {
   SpecializationDataModel,
   CareerDataModel,
   SignatureAbilityDataModel,
+  VehicleDataModel,
+  HomesteadDataModel,
 };
 
 /**
@@ -107,5 +113,11 @@ export function registerSystemDataModels() {
     specialization: SpecializationDataModel,
     career: CareerDataModel,
     signatureability: SignatureAbilityDataModel,
+  });
+
+  // Stage 6: simplest Actor types (no shared Stats/Characteristics/Skills).
+  Object.assign(CONFIG.Actor.dataModels, {
+    vehicle: VehicleDataModel,
+    homestead: HomesteadDataModel,
   });
 }
