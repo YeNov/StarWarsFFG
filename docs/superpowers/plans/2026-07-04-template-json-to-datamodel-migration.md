@@ -398,8 +398,8 @@ applies).
       stripped; `startingXP` a number. Verify via the same `_source` drop/change
       diff plus a round-trip on a talent (check tree membership survives) and the
       Codex force-tree widget still renders (memory `cdx-force-tree-design`).
-- [x] **Stage 5 — Tree types with dynamic numbered slots. DONE + data-VERIFIED
-      on V14 (2026-07-09); tree-editor round-trip recommended.**
+- [x] **Stage 5 — Tree types with dynamic numbered slots. DONE + VERIFIED on
+      V14 (2026-07-09), incl. tree-editor round-trip.**
       `ForcePowerDataModel`,
       `SpecializationDataModel`, `CareerDataModel`, `SignatureAbilityDataModel`
       under [models/item/](../../../modules/data/models/item/).
@@ -427,11 +427,23 @@ applies).
       `collection` key — pre-existing bug), now stripped by the schema —
       confirmed **no code or template reads `system.collection`**, so stripping
       is safe/cleaner. Tree editor reads `system.upgrades[id]`/`talents[id]` +
-      nested `attributes` (freeform-preserved). Remaining: manual item-editor
-      tree round-trip (toggle/purchase an upgrade, save, reopen).
-- [ ] **Stage 6 — Actor types, simple first.** `VehicleDataModel`,
-      `HomesteadDataModel` (no shared Stats/Characteristics/Skills
-      dependency, lower coupling).
+      nested `attributes` (freeform-preserved). Tree-editor round-trip on a live
+      force power (Ebb/Flow) held — upgrade toggle saved and persisted on reopen.
+- [x] **Stage 6 — Actor types, simple first. DONE + data-VERIFIED on V14
+      (2026-07-09).** `VehicleDataModel` + `HomesteadDataModel` under a new
+      [models/actor/](../../../modules/data/models/actor/) dir, registered in
+      `CONFIG.Actor.dataModels` (first Actor-side registration — exercises
+      `BaseActorDataModel` + Biography/Attributes/MetaOnly mixins from Stage 0).
+      Both use `templates: ["biography", "attributes", "meta_only"]`; homestead
+      adds `cost`/`consumables`, vehicle adds its own large inline `stats` block
+      (silhouette/speed/shields/hull/systemStrain/… with all legacy inline
+      type/label/min/max keys declared), `spaceShip`, `silhouetteImage`. Vehicle
+      `stats.crew` is a freeform `ObjectField`. No shared Stats/Characteristics/
+      Skills. **Verified live:** `_source` diff on 13 real vehicles came back
+      empty `dropped`/`changed` (big stats block + freeform `crew` reproduce
+      exactly, no coercion), `invalidDocumentIds` 0, `appliedClass`
+      VehicleDataModel. No homesteads in world to diff (schema follows
+      template.json). Vehicle sheet round-trip recommended on next reload.
 - [ ] **Stage 7 — Actor types sharing Stats/Characteristics/Skills.**
       `MinionDataModel`, `RivalDataModel`, `NemesisDataModel`.
 - [ ] **Stage 8 — CharacterDataModel.** Largest surface, heaviest coupling
