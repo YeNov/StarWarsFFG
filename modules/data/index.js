@@ -28,6 +28,12 @@ import { BackgroundDataModel } from "./models/item/background.js";
 import { ObligationDataModel } from "./models/item/obligation.js";
 import { MotivationDataModel } from "./models/item/motivation.js";
 import { ItemModifierDataModel } from "./models/item/itemmodifier.js";
+import { GearDataModel } from "./models/item/gear.js";
+import { WeaponDataModel } from "./models/item/weapon.js";
+import { ArmourDataModel } from "./models/item/armour.js";
+import { ShipWeaponDataModel } from "./models/item/shipweapon.js";
+import { ShipAttachmentDataModel } from "./models/item/shipattachment.js";
+import { ItemAttachmentDataModel } from "./models/item/itemattachment.js";
 
 export {
   AbilityDataModel,
@@ -38,6 +44,12 @@ export {
   ObligationDataModel,
   MotivationDataModel,
   ItemModifierDataModel,
+  GearDataModel,
+  WeaponDataModel,
+  ArmourDataModel,
+  ShipWeaponDataModel,
+  ShipAttachmentDataModel,
+  ItemAttachmentDataModel,
 };
 
 /**
@@ -59,5 +71,15 @@ export function registerSystemDataModels() {
     obligation: ObligationDataModel,
     motivation: MotivationDataModel,
     itemmodifier: ItemModifierDataModel,
+  });
+
+  // Stage 3: equipment Item types (heavier sheet coupling).
+  Object.assign(CONFIG.Item.dataModels, {
+    gear: GearDataModel,
+    weapon: WeaponDataModel,
+    armour: ArmourDataModel,
+    shipweapon: ShipWeaponDataModel,
+    shipattachment: ShipAttachmentDataModel,
+    itemattachment: ItemAttachmentDataModel,
   });
 }
