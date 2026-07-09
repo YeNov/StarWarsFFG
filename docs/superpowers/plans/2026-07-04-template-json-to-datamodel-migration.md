@@ -476,10 +476,20 @@ applies).
       `toObject` copy ([actor-sheet-ffg.js:219](../../../modules/actors/actor-sheet-ffg.js)),
       skipping `effects` (live Documents, handled separately at :362). All three
       sheets then opened. This general overlay also pre-empts Stage 8 (character).
-- [ ] **Stage 8 — CharacterDataModel.** Largest surface, heaviest coupling
-      (encumbrance/obligation/duty/morality/conflict feed derived-stat code
-      throughout `actor-ffg.js`/`actor-sheet-ffg.js`). Do last, once the
-      pattern is proven on every simpler type.
+- [x] **Stage 8 — CharacterDataModel. DONE + VERIFIED on V14 (2026-07-09).**
+      All 10 shared actor mixins (Biography/SpeciesRef/CareerRef/
+      SpecialisationRef/Stats/Characteristics/Skills/Attributes/General/MetaOnly)
+      + character-only `encumbrance`/`obligation`/`duty`/`morality`/`conflict`/
+      `experience`, in [models/actor/character.js](../../../modules/data/models/actor/character.js).
+      Completes all 26 sub-types (20 Item + 6 Actor). Pre-audit for the
+      derived-drop pattern: `_prepareCharacterData` sets `talentList` on the
+      actor (read live at getData:222, not via toObject) and guards
+      obligations/duty on `obligationlist`/`dutylist`; the general getData
+      overlay (Stage 7) covers top-level derived system props. `specialisation.list`
+      is `ArrayField(StringField)` — vestigial (`[]`, no code reads it).
+      **Verified live:** `_source` diff on 11 real characters — empty
+      `DROPPED`/`CHANGED`, `invalidDocumentIds` 0, `appliedClass`
+      CharacterDataModel; character sheet opens fine (derived overlay carried it).
 - [ ] **Stage 9 — Optional end state.** Once every sub-type in both `types`
       arrays has a registered DataModel, remove `template.json` and its
       manifest reference entirely. Re-check
