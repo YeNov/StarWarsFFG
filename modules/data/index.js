@@ -2,38 +2,62 @@
  * System Data Model registry.
  *
  * Public entry point for the template.json → DataModel migration. Re-exports
- * the composition primitives and shared template mixins, and owns
- * `registerSystemDataModels()`, the single place where per-sub-type classes get
- * wired into `CONFIG.Actor.dataModels` / `CONFIG.Item.dataModels`.
+ * the composition primitives, shared template mixins, and concrete per-sub-type
+ * models, and owns `registerSystemDataModels()`, the single place where those
+ * models get wired into `CONFIG.Actor.dataModels` / `CONFIG.Item.dataModels`.
  *
- * Stage 0: registers NOTHING. template.json still governs every type. Each
- * later stage adds its concrete DataModel classes to the maps below, one or a
- * few types at a time — Foundry uses a registered DataModel where present and
- * falls back to template.json for the rest, so partial registration is valid.
+ * Concrete models live one-per-type under ./models/item/ (and ./models/actor/
+ * as those stages land). Foundry uses a registered DataModel where present and
+ * falls back to template.json for the rest, so partial registration is valid —
+ * each stage adds a few more entries to `registerSystemDataModels()`.
  *
  * Plan: docs/superpowers/plans/2026-07-04-template-json-to-datamodel-migration.md
  */
-
-import { HomesteadUpgradeDataModel, AbilityDataModel } from "./item-models.js";
 
 export { mix, BaseActorDataModel, BaseItemDataModel } from "./mix.js";
 export { metadataField, MetaOnlyTemplate } from "./shared-fields.js";
 export * from "./actor-templates.js";
 export * from "./item-templates.js";
-export * from "./item-models.js";
+
+// Concrete Item models (one file per type).
+import { AbilityDataModel } from "./models/item/ability.js";
+import { HomesteadUpgradeDataModel } from "./models/item/homesteadupgrade.js";
+import { CriticalInjuryDataModel } from "./models/item/criticalinjury.js";
+import { CriticalDamageDataModel } from "./models/item/criticaldamage.js";
+import { BackgroundDataModel } from "./models/item/background.js";
+import { ObligationDataModel } from "./models/item/obligation.js";
+import { MotivationDataModel } from "./models/item/motivation.js";
+import { ItemModifierDataModel } from "./models/item/itemmodifier.js";
+
+export {
+  AbilityDataModel,
+  HomesteadUpgradeDataModel,
+  CriticalInjuryDataModel,
+  CriticalDamageDataModel,
+  BackgroundDataModel,
+  ObligationDataModel,
+  MotivationDataModel,
+  ItemModifierDataModel,
+};
 
 /**
  * Register the system's per-sub-type data models. Called once from the `init`
  * hook (swffg-main.js), before any document is prepared.
- *
- * Foundry uses a registered DataModel where present and falls back to
- * template.json for the rest, so partial registration is valid — each stage
- * adds a few more entries below.
  */
 export function registerSystemDataModels() {
   // Stage 1 (proof of concept): the two simplest Item types, no own fields.
   Object.assign(CONFIG.Item.dataModels, {
     homesteadupgrade: HomesteadUpgradeDataModel,
     ability: AbilityDataModel,
+  });
+
+  // Stage 2: small leaf Item types (real fields, no dynamic dictionaries).
+  Object.assign(CONFIG.Item.dataModels, {
+    criticalinjury: CriticalInjuryDataModel,
+    criticaldamage: CriticalDamageDataModel,
+    background: BackgroundDataModel,
+    obligation: ObligationDataModel,
+    motivation: MotivationDataModel,
+    itemmodifier: ItemModifierDataModel,
   });
 }
