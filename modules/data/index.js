@@ -36,6 +36,10 @@ import { ShipAttachmentDataModel } from "./models/item/shipattachment.js";
 import { ItemAttachmentDataModel } from "./models/item/itemattachment.js";
 import { TalentDataModel } from "./models/item/talent.js";
 import { SpeciesDataModel } from "./models/item/species.js";
+import { ForcePowerDataModel } from "./models/item/forcepower.js";
+import { SpecializationDataModel } from "./models/item/specialization.js";
+import { CareerDataModel } from "./models/item/career.js";
+import { SignatureAbilityDataModel } from "./models/item/signatureability.js";
 
 export {
   AbilityDataModel,
@@ -54,6 +58,10 @@ export {
   ItemAttachmentDataModel,
   TalentDataModel,
   SpeciesDataModel,
+  ForcePowerDataModel,
+  SpecializationDataModel,
+  CareerDataModel,
+  SignatureAbilityDataModel,
 };
 
 /**
@@ -91,5 +99,13 @@ export function registerSystemDataModels() {
   Object.assign(CONFIG.Item.dataModels, {
     talent: TalentDataModel,
     species: SpeciesDataModel,
+  });
+
+  // Stage 5: tree types with dynamic numbered slots (freeform slot values).
+  Object.assign(CONFIG.Item.dataModels, {
+    forcepower: ForcePowerDataModel,
+    specialization: SpecializationDataModel,
+    career: CareerDataModel,
+    signatureability: SignatureAbilityDataModel,
   });
 }
