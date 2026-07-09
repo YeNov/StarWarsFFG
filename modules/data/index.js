@@ -34,6 +34,8 @@ import { ArmourDataModel } from "./models/item/armour.js";
 import { ShipWeaponDataModel } from "./models/item/shipweapon.js";
 import { ShipAttachmentDataModel } from "./models/item/shipattachment.js";
 import { ItemAttachmentDataModel } from "./models/item/itemattachment.js";
+import { TalentDataModel } from "./models/item/talent.js";
+import { SpeciesDataModel } from "./models/item/species.js";
 
 export {
   AbilityDataModel,
@@ -50,6 +52,8 @@ export {
   ShipWeaponDataModel,
   ShipAttachmentDataModel,
   ItemAttachmentDataModel,
+  TalentDataModel,
+  SpeciesDataModel,
 };
 
 /**
@@ -81,5 +85,11 @@ export function registerSystemDataModels() {
     shipweapon: ShipWeaponDataModel,
     shipattachment: ShipAttachmentDataModel,
     itemattachment: ItemAttachmentDataModel,
+  });
+
+  // Stage 4: talent + species (read by the tree UI / importer).
+  Object.assign(CONFIG.Item.dataModels, {
+    talent: TalentDataModel,
+    species: SpeciesDataModel,
   });
 }

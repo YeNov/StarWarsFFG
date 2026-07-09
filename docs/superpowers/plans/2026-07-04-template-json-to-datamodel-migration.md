@@ -386,10 +386,18 @@ applies).
       `dropped` and `changed` list was empty — no silent field loss, no
       NumberField coercion (stored types were already correct). weapon + armour
       edit→save→reload round-trip held.
-- [ ] **Stage 4 — Talent and Species.** `TalentDataModel`, `SpeciesDataModel`.
-      Talent in particular is read by the specialization/signature-ability
-      tree UI and the Codex force-tree widget (see memory
-      `cdx-force-tree-design`) — cross-check those consumers.
+- [~] **Stage 4 — Talent and Species. IMPLEMENTED 2026-07-09, pending live
+      smoke-test.** `TalentDataModel` + `SpeciesDataModel` under
+      [models/item/](../../../modules/data/models/item/), registered in
+      [index.js](../../../modules/data/index.js#registerSystemDataModels). Talent
+      `trees` = `ArrayField(StringField)` (specialization id strings, confirmed
+      from `system.trees.includes(specialization.id)`); `longDesc` = `HTMLField`;
+      `activation`/`ranks` are SchemaFields; `isForceTalent`/`isConflictTalent`/
+      `tier` top-level. Species `talents`/`abilities`/`species` are freeform
+      `ObjectField`s (dynamic id-keyed dicts the importer writes) — nothing
+      stripped; `startingXP` a number. Verify via the same `_source` drop/change
+      diff plus a round-trip on a talent (check tree membership survives) and the
+      Codex force-tree widget still renders (memory `cdx-force-tree-design`).
 - [ ] **Stage 5 — Tree types with dynamic numbered slots.**
       `ForcePowerDataModel`, `SpecializationDataModel`, `CareerDataModel`,
       `SignatureAbilityDataModel`. **Blocked on a runtime-shape audit first**
