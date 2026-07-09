@@ -455,8 +455,27 @@ applies).
       also pre-empts the same crash for Stages 7–8. Vehicle sheet then opened,
       threshold display correct (other dropped derived props like
       `stats.*OverThreshold` aren't consumed by the template).
-- [ ] **Stage 7 — Actor types sharing Stats/Characteristics/Skills.**
-      `MinionDataModel`, `RivalDataModel`, `NemesisDataModel`.
+- [x] **Stage 7 — Actor types sharing Stats/Characteristics/Skills. DONE +
+      VERIFIED on V14 (2026-07-09).** `MinionDataModel`, `RivalDataModel`,
+      `NemesisDataModel` under [models/actor/](../../../modules/data/models/actor/),
+      registered in `CONFIG.Actor.dataModels`. minion = Biography+Stats+
+      Characteristics+Skills+Attributes+MetaOnly + quantity/unit_wounds; nemesis
+      = +SpeciesRef+General (no own fields); rival = SpeciesRef+Characteristics+
+      Skills+Attributes+General+MetaOnly + its OWN inline stats (no `strain`, so
+      NOT the shared StatsTemplate). Skills stay freeform `TypedObjectField`
+      (preserves custom skills + the 7 AE per-skill keys); characteristics is a
+      strict SchemaField. **Verified live:** `_source` diff on 108 real
+      adversaries (33 minion, 49 rival, 26 nemesis) all empty `dropped`/`changed`,
+      `invalidDocumentIds` 0, correct `appliedClass`. **Second derived-data-drop
+      crash, fixed generally:** opening a nemesis threw at `_createSkillColumns`
+      ([codex-sheets.js:726](../../../modules/actors/codex-sheets.js)) reading
+      `data.data.skilltypes.map` — `skilltypes` is derived
+      ([actor-ffg.js:259](../../../modules/actors/actor-ffg.js)), dropped by
+      DataModel `toObject()`. Rather than patch each reader, `getData` now
+      overlays ALL top-level derived props from the live system onto the
+      `toObject` copy ([actor-sheet-ffg.js:219](../../../modules/actors/actor-sheet-ffg.js)),
+      skipping `effects` (live Documents, handled separately at :362). All three
+      sheets then opened. This general overlay also pre-empts Stage 8 (character).
 - [ ] **Stage 8 — CharacterDataModel.** Largest surface, heaviest coupling
       (encumbrance/obligation/duty/morality/conflict feed derived-stat code
       throughout `actor-ffg.js`/`actor-sheet-ffg.js`). Do last, once the

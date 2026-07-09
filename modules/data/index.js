@@ -44,6 +44,9 @@ import { SignatureAbilityDataModel } from "./models/item/signatureability.js";
 // Concrete Actor models (one file per type).
 import { VehicleDataModel } from "./models/actor/vehicle.js";
 import { HomesteadDataModel } from "./models/actor/homestead.js";
+import { MinionDataModel } from "./models/actor/minion.js";
+import { RivalDataModel } from "./models/actor/rival.js";
+import { NemesisDataModel } from "./models/actor/nemesis.js";
 
 export {
   AbilityDataModel,
@@ -68,6 +71,9 @@ export {
   SignatureAbilityDataModel,
   VehicleDataModel,
   HomesteadDataModel,
+  MinionDataModel,
+  RivalDataModel,
+  NemesisDataModel,
 };
 
 /**
@@ -119,5 +125,12 @@ export function registerSystemDataModels() {
   Object.assign(CONFIG.Actor.dataModels, {
     vehicle: VehicleDataModel,
     homestead: HomesteadDataModel,
+  });
+
+  // Stage 7: adversary Actor types sharing Stats/Characteristics/Skills.
+  Object.assign(CONFIG.Actor.dataModels, {
+    minion: MinionDataModel,
+    rival: RivalDataModel,
+    nemesis: NemesisDataModel,
   });
 }
