@@ -217,6 +217,20 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully) for 0.7.x
     const actorData = this.actor.toObject(false);
+    // A registered system DataModel's toObject() serializes only declared schema
+    // fields, so top-level derived data attached to `system` during
+    // prepareDerivedData (skilltypes, …) is dropped — template.json's plain
+    // object retained it, and the templates/helpers expect it. Overlay those
+    // derived props from the live system. `effects` is skipped on purpose: it
+    // holds live ActiveEffect Documents, which must not be placed on this plain
+    // copy (it gets deep-cloned/merged below and elsewhere, which would recurse
+    // into Document back-references); it is read from the live system directly
+    // where consumed (see the effects mapping later in getData).
+    const liveSystem = this.actor.system;
+    for (const key of Object.keys(liveSystem)) {
+      if (key === "effects" || key in actorData.system) continue;
+      actorData.system[key] = foundry.utils.deepClone(liveSystem[key]);
+    }
     data.actor = actorData;
     data.data = actorData.system;
     data.talentList = this.actor.talentList;
