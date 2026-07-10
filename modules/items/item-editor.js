@@ -32,7 +32,7 @@ export class itemEditor extends FFGFormApplication {
       const codexCls = CONFIG.FFG?.codexSheets?.item?.cls;
       this._cdx = !!(codexCls && data.sourceObject?._getSheetClass?.() === codexCls);
       if (this._cdx) {
-        const SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
+        const SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch"];
         const s = data.sourceObject?.getFlag?.("starwarsffg", "scheme") ?? data.sourceObject?.actor?.getFlag?.("starwarsffg", "scheme");
         this._cdxScheme = SCHEMES.includes(s) ? s : "republic";
       }

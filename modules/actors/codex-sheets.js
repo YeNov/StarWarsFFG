@@ -25,7 +25,15 @@ import { CdxPillStack } from "./cdx-pill-stack.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
 
-export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary"];
+export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch"];
+export const CDX_SCHEME_LABELS = {
+  republic: "Republic",
+  empire: "Empire",
+  dark: "Dark",
+  light: "Light",
+  mercenary: "Mercenary",
+  eldritch: "Eldritch Horror",
+};
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
 /** The default Codex colour scheme, derived from the Default Sheet Theme setting
@@ -937,12 +945,12 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     return controls;
   }
 
-  /** Small DialogV2 to choose one of the five palettes; writes the actor flag. */
+  /** Small DialogV2 to choose one of the six palettes; writes the actor flag. */
   async _cdxPickScheme() {
     const current = this._cdxScheme();
     const buttons = CDX_SCHEMES.map((s) => ({
       action: s,
-      label: s.charAt(0).toUpperCase() + s.slice(1) + (s === current ? " ✓" : ""),
+      label: CDX_SCHEME_LABELS[s] + (s === current ? " ✓" : ""),
     }));
     let choice;
     try {

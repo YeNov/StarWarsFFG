@@ -4,6 +4,7 @@ import "../node_modules/chai/chai.js";
 import { HelpersTests } from "./common.test.js";
 import { ModifiersTests } from "./modifiers.test.js";
 import { TalentTreeTests } from "./talent-tree.test.js";
+import { CodexSchemeTests } from "./codex-schemes.test.js";
 import { SheetTabCacheTests } from "./v2-migration/sheet-tab-cache.test.js";
 import { FormSubmitCoalesceTests } from "./v2-migration/form-submit-coalesce.test.js";
 
@@ -32,6 +33,7 @@ export default class FFGFunctionalTests extends FormApplication {
     HelpersTests(suite, suiteInstance, Test, chai);
     ModifiersTests(suite, suiteInstance, Test, chai);
     TalentTreeTests(suite, suiteInstance, Test, chai);
+    CodexSchemeTests(suite, suiteInstance, Test, chai);
     SheetTabCacheTests(suite, suiteInstance, Test, chai);
     FormSubmitCoalesceTests(suite, suiteInstance, Test, chai);
 

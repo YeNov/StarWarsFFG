@@ -1,6 +1,6 @@
 /**
  * Codex II item sheets — an opt-in "Codex II Item Sheet" registered alongside
- * the stock item sheet. Reuses the `.cdx` CSS scope and the five scheme palettes
+ * the stock item sheet. Reuses the `.cdx` CSS scope and the six scheme palettes
  * from the actor work; the scheme is a per-ITEM flag, falling back to the owning
  * actor's scheme, then republic.
  *
@@ -17,7 +17,7 @@
  * (see activateListeners), the same as the codex actor sheets.
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
-import { CDX_SCHEMES, cdxDefaultScheme } from "../actors/codex-sheets.js";
+import { CDX_SCHEMES, CDX_SCHEME_LABELS, cdxDefaultScheme } from "../actors/codex-sheets.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -99,10 +99,10 @@ export class CodexItemSheet extends ItemSheetFFG {
     return controls;
   }
 
-  /** Small DialogV2 to choose one of the five palettes; writes the item flag. */
+  /** Small DialogV2 to choose one of the six palettes; writes the item flag. */
   async _cdxPickScheme() {
     const current = this._cdxScheme();
-    const buttons = CDX_SCHEMES.map((s) => ({ action: s, label: s.charAt(0).toUpperCase() + s.slice(1) + (s === current ? " ✓" : "") }));
+    const buttons = CDX_SCHEMES.map((s) => ({ action: s, label: CDX_SCHEME_LABELS[s] + (s === current ? " ✓" : "") }));
     let choice;
     try {
       choice = await foundry.applications.api.DialogV2.wait({

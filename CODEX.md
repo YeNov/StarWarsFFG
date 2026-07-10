@@ -31,6 +31,7 @@ and pick one of:
 - `Codex II - Dark`
 - `Codex II - Light`
 - `Codex II - Mercenary`
+- `Codex II - Eldritch Horror`
 
 Each actor can also override the colour scheme from the sheet's header palette menu.
 
@@ -82,12 +83,13 @@ abilities as cards and pills only.
 
 ## License
 
-The Codex II UI — its original templates, styles, and sheet code, specifically:
+The Codex II UI — its original templates, styles, assets, and sheet code, specifically:
 
 - `templates/actors/codex/`
 - `templates/parts/codex/`
 - `templates/items/codex/`
 - `styles/cdx.css`
+- `images/codex/eldritch/`
 - `modules/actors/codex-sheets.js`
 - `modules/items/codex-item-sheet.js`
 

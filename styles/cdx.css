@@ -12,6 +12,15 @@
   font-weight: 400 900; font-style: normal; font-display: swap;
 }
 
+/* Eldritch display face. The font already ships with the system; declaring a
+   Codex-specific alias here keeps this scheme independent of the active Foundry
+   UI theme (mandar also declares the source file, but other themes do not). */
+@font-face {
+  font-family: "CDX Eldritch Display";
+  src: url("../fonts/ElektraMediumPro-Bold.otf") format("opentype");
+  font-weight: 400 900; font-style: normal; font-display: swap;
+}
+
 /* ---- Palettes (per-actor scheme on the content form) ---- */
 .cdx form, .cdx form.scheme-republic {
   --cdx-bg:#cdd4dc; --cdx-stripe:rgba(20,40,70,.05);
@@ -53,6 +62,31 @@
   --cdx-career:#efe2c8; --cdx-career-line:#b07a30; --cdx-track:#cdbfa3;
   --cdx-chip-label:#241c12; --cdx-chip-ink:#f1ebdd; --cdx-head:linear-gradient(180deg,#3b4148,#22262b); --cdx-head-ink:#f1ebdd;
   --cdx-warn:#9a3c08;
+}
+.cdx form.scheme-eldritch {
+  --cdx-bg:#0b0d0c; --cdx-stripe:rgba(197,160,92,.018);
+  --cdx-paper:#111412; --cdx-paper2:#171a17; --cdx-ink:#d9d0c1; --cdx-dim:#a39682; --cdx-line:#514632;
+  --cdx-accent:#9a7335; --cdx-accent2:#6f5229; --cdx-brown:#76582e; --cdx-brass:#c19749;
+  --cdx-career:rgba(154,115,53,.14); --cdx-career-line:#a78042; --cdx-track:#39362f;
+  --cdx-chip-label:#17130d; --cdx-chip-ink:#d9d0c1;
+  --cdx-head:linear-gradient(180deg,rgba(23,25,22,.98),rgba(8,10,9,.995)); --cdx-head-ink:#ded5c6;
+  --cdx-warn:#d5a22b; --cdx-notch:9px;
+
+  /* Scheme-only semantic tokens. The existing palettes continue to resolve
+     through their unchanged declarations, so their computed styles do not move. */
+  --cdx-font-display:"CDX Eldritch Display",Georgia,"Times New Roman",serif;
+  --cdx-font-body:Georgia,"Palatino Linotype","Book Antiqua",Palatino,serif;
+  --cdx-heading-bg:linear-gradient(180deg,rgba(24,26,23,.98),rgba(11,13,12,.98));
+  --cdx-heading-ink:#c6a76f;
+  --cdx-active-bg:rgba(154,115,53,.14);
+  --cdx-active-ink:#d9c18c;
+  --cdx-panel-shadow:inset 0 0 0 1px rgba(193,151,73,.13),0 2px 8px rgba(0,0,0,.38);
+  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/paper.svg");
+  --cdx-sigil:url("/systems/starwarsffg/images/codex/eldritch/sigil.svg");
+  --cdx-portrait-radius:50%;
+  --cdx-rust:#67251d;
+  --cdx-rust-bright:#9a4130;
+  --cdx-rule:rgba(193,151,73,.44);
 }
 .cdx form {
   --cdx-clip:polygon(0% var(--cdx-notch),var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% calc(100% - var(--cdx-notch)),calc(100% - var(--cdx-notch)) 100%,var(--cdx-notch) 100%,0% calc(100% - var(--cdx-notch)));
@@ -1535,3 +1569,692 @@
 .cdx .cdx-ft-universal { display:flex; align-items:center; gap:8px; margin-top:13px; font-family:"Orbitron",sans-serif; font-weight:700; font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-ink); cursor:pointer; }
 .cdx .cdx-ft-universal input { accent-color:var(--cdx-accent); width:15px; height:15px; }
 .cdx .cdx-ft-resize .talent-action:hover { filter:brightness(1.2); }
+
+/* ===========================================================================
+   Codex II — Eldritch Horror
+
+   A deliberately late, scheme-scoped reskin. No shared component geometry is
+   changed here: existing flex/grid structure, dimensions, hit targets and data
+   hooks remain intact. The supplied reference is translated through charcoal
+   paper, warm ivory ink, aged brass rules, serif typography and restrained
+   occult ornament. The other Codex palettes never match these selectors.
+   =========================================================================== */
+
+/* --- Shell, type and native controls -------------------------------------- */
+.cdx:has(> form.window-content.scheme-eldritch) {
+  outline:1px solid rgba(193,151,73,.32);
+  outline-offset:-1px;
+  box-shadow:0 10px 34px rgba(0,0,0,.72),0 0 0 1px #080a09;
+}
+.cdx:has(> form.window-content.scheme-eldritch) > .window-header {
+  background:
+    linear-gradient(90deg,rgba(103,37,29,.14),transparent 32%,rgba(0,0,0,.22)),
+    linear-gradient(180deg,#1b1d19,#0b0d0c);
+  border-bottom:1px solid rgba(193,151,73,.48);
+  color:#b7a78e;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.65),0 2px 8px rgba(0,0,0,.4);
+}
+.cdx:has(> form.window-content.scheme-eldritch) > .window-header .window-title {
+  color:#c8b48f;
+  font-family:"CDX Eldritch Display",Georgia,"Times New Roman",serif;
+  letter-spacing:.7px;
+  text-shadow:0 1px 0 #000;
+}
+/* Do not touch the controls' font-family: Foundry renders their glyphs through
+   Font Awesome. Colour alone supplies the Eldritch frame treatment. */
+.cdx:has(> form.window-content.scheme-eldritch) > .window-header :is(.header-control,.window-header-control,button,a) {
+  color:#9f927f;
+  text-shadow:none;
+}
+.cdx:has(> form.window-content.scheme-eldritch) > .window-header :is(.header-control,.window-header-control,button,a):hover {
+  color:#d9c18c;
+}
+.cdx > form.window-content.scheme-eldritch {
+  background-color:var(--cdx-bg) !important;
+  background-image:
+    radial-gradient(ellipse at 48% 18%,rgba(72,63,46,.16) 0,rgba(11,13,12,.1) 38%,rgba(0,0,0,.52) 100%),
+    linear-gradient(115deg,rgba(193,151,73,.025),transparent 32%,rgba(0,0,0,.11) 70%),
+    var(--cdx-surface-texture) !important;
+  background-repeat:no-repeat,no-repeat,repeat !important;
+  background-size:100% 100%,100% 100%,320px 320px !important;
+  background-blend-mode:normal,normal,soft-light;
+  color:var(--cdx-ink);
+  font-family:var(--cdx-font-body);
+  text-rendering:optimizeLegibility;
+}
+.cdx form.scheme-eldritch {
+  color-scheme:dark;
+  font-family:var(--cdx-font-body);
+  accent-color:var(--cdx-brass);
+}
+.cdx form.scheme-eldritch :is(input,select,textarea) {
+  caret-color:var(--cdx-brass);
+}
+.cdx form.scheme-eldritch :is(input,select,textarea,button,a):focus-visible {
+  outline:1px solid var(--cdx-brass);
+  outline-offset:2px;
+  box-shadow:0 0 0 2px rgba(193,151,73,.18);
+}
+.cdx form.scheme-eldritch :is(input,select,textarea):disabled {
+  opacity:.82;
+}
+.cdx form.scheme-eldritch select option,
+.cdx.cdx-embed form.scheme-eldritch select option {
+  background-color:#0b0d0c;
+  color:#e0d7c7;
+}
+
+/* Every selector below is a text-bearing element that otherwise pins Orbitron
+   (or Signika). Dice-glyph and Font Awesome elements are intentionally absent. */
+.cdx form.scheme-eldritch :is(
+  .cdx-scheme-label,.cdx-scheme-btn,.cdx-name,.cdx-stack-more,.cdx-pill,
+  .cdx-cr-change,.cdx-hcollapse-btn,.cdx-sq-k,.cdx-sq-v,.cdx-sq-s,.cdx-sq-input,
+  .cdx-chip-box input,.cdx-chip-box.static,.cdx-chip-label,.cdx-ratio-c,.cdx-ratio-t,
+  .cdx-ratio-m,.cdx-stat-head,.cdx-thresh input,.cdx-heal-k,.cdx-heal-v,
+  .cdx-def-soak input,.cdx-def-soak-v,.cdx-def-soak-k,.cdx-def-row > span,
+  .cdx-def-row input,.cdx-def-digit,.cdx-def-dash,.cdx-gs-count,.cdx-gs-max-in,
+  .cdx-wipeout,.cdx-wp-unit-in,.cdx-wp-count,.cdx-vr-k,.cdx-vr-v,.cdx-vr-in,
+  .cdx-chip-sub,.cdx-sys-k,.cdx-tab,.cdx-tab-badge,.cdx-sk-head,.cdx-sk-rank input,
+  .cdx-cards-head,.cdx-card-title,.cdx-sc-v,.cdx-ammo-k,.cdx-ammo-count,
+  .cdx-inj-name,.cdx-fp-k,.cdx-forcepool input,.cdx-tal-name,.cdx-qty-v,
+  .cdx-panel-head,.cdx-desc-grid label,.cdx-bstat-body input,.cdx-table th,
+  .cdx-pane.effects th,.cdx-item-name,.cdx-istat-k,.cdx-istat-v,.cdx-icheck,
+  .cdx-iqual,.sheet-tabs .item,.cdx-ipill,.cdx-isub,.cdx-idesc-head,
+  .cdx-cond-head > span:first-child,.cdx-cond-cur,.cdx-cond-lbl,.cdx-qual-k,
+  .cdx-istat-sel,.cdx-istat-vtext,.cdx-ick-lbl,.cdx-restrict-btn,
+  .talents-header,.item.force-power > div,.talent-list .item-controls,
+  .talent-list > .items-list,.cdx-status-pill,.cdx-arc,.cdx-istat-adj,
+  .cdx-ft-power,.cdx-ft-power-name,.cdx-ft-head,.cdx-ft-name,.cdx-ft-cost,
+  .cdx-ft-act,.cdx-ft-skills-head,.cdx-ft-universal
+) {
+  font-family:var(--cdx-font-display);
+}
+.cdx form.scheme-eldritch .cdx-ft-desc,
+.cdx form.scheme-eldritch :is(.cdx-bio-editor,.cdx-idesc,.item-details,.editor-content,.cdx-sk-name,.cdx-gs-label,.cdx-wp-label) {
+  font-family:var(--cdx-font-body);
+}
+
+/* --- Scheme picker -------------------------------------------------------- */
+.cdx form.scheme-eldritch .cdx-scheme-strip {
+  padding-bottom:4px;
+  border-bottom:1px solid rgba(193,151,73,.18);
+}
+.cdx form.scheme-eldritch .cdx-scheme-label { color:#b29b74; }
+.cdx form.scheme-eldritch .cdx-scheme-btn {
+  color:#8f826e;
+  border-color:rgba(193,151,73,.12);
+  border-radius:0;
+}
+.cdx form.scheme-eldritch .cdx-scheme-btn:hover {
+  color:var(--cdx-active-ink);
+  border-color:var(--cdx-rule);
+  background:rgba(193,151,73,.06);
+}
+
+/* --- Dossier header and identity ----------------------------------------- */
+.cdx form.scheme-eldritch .cdx-header {
+  position:relative;
+  isolation:isolate;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.2),transparent 48%,rgba(0,0,0,.34)),
+    var(--cdx-heading-bg);
+  color:var(--cdx-head-ink);
+  border:1px solid rgba(193,151,73,.38);
+  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(193,151,73,.16),0 4px 16px rgba(0,0,0,.42);
+}
+.cdx form.scheme-eldritch .cdx-header::before {
+  content:"";
+  position:absolute;
+  inset:5px;
+  z-index:0;
+  pointer-events:none;
+  border:1px solid rgba(193,151,73,.13);
+  clip-path:var(--cdx-clip);
+}
+.cdx form.scheme-eldritch .cdx-header::after {
+  content:"";
+  position:absolute;
+  z-index:0;
+  pointer-events:none;
+  inset:0 0 0 52%;
+  background:var(--cdx-sigil) 92% 34% / min(260px,46cqw) auto no-repeat;
+  opacity:.105;
+  filter:sepia(1) saturate(.7);
+}
+.cdx form.scheme-eldritch .cdx-header > * { position:relative; z-index:1; }
+.cdx form.scheme-eldritch .cdx-name {
+  color:#e2d9ca;
+  letter-spacing:1.4px;
+  text-shadow:0 1px 0 #000,0 0 12px rgba(193,151,73,.12);
+}
+.cdx form.scheme-eldritch .cdx-header.cdx-hcollapsed .cdx-credits::before {
+  font-family:var(--cdx-font-display);
+}
+.cdx form.scheme-eldritch .cdx-portrait .profile-img {
+  object-fit:cover;
+  background:#090b0a;
+  border:1px solid #a88952;
+  border-radius:var(--cdx-portrait-radius);
+  box-shadow:
+    0 0 0 2px #090b0a,
+    0 0 0 4px rgba(193,151,73,.56),
+    0 0 0 7px #0a0c0b,
+    0 0 0 8px rgba(193,151,73,.2),
+    0 5px 16px rgba(0,0,0,.68);
+  filter:saturate(.67) sepia(.12) contrast(1.06);
+}
+.cdx form.scheme-eldritch .cdx-pill,
+.cdx form.scheme-eldritch .cdx-stack .cdx-pill {
+  background:rgba(12,14,12,.84);
+  border-color:rgba(193,151,73,.38);
+  color:#d8c9b2;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.7);
+}
+.cdx form.scheme-eldritch .cdx-pill.force {
+  background:linear-gradient(180deg,#632a22,#371713);
+  border-color:#9c5843;
+}
+.cdx form.scheme-eldritch .cdx-pill.sig {
+  background:linear-gradient(180deg,#4e4430,#29251c);
+  border-color:#9a7e4d;
+}
+.cdx form.scheme-eldritch .cdx-square {
+  background:rgba(10,12,10,.76);
+  border:1px solid rgba(193,151,73,.36);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.62),inset 0 0 0 3px rgba(193,151,73,.09);
+}
+.cdx form.scheme-eldritch .cdx-square.cdx-credits {
+  background:linear-gradient(180deg,rgba(84,63,31,.52),rgba(29,24,16,.82));
+  color:#e2ca98;
+  border-color:#a78042;
+}
+.cdx form.scheme-eldritch .cdx-xp.active {
+  background:rgba(103,37,29,.42);
+  box-shadow:inset 0 0 0 1px var(--cdx-rust-bright),0 0 8px rgba(154,65,48,.32);
+}
+.cdx form.scheme-eldritch .cdx-cr-change {
+  background:rgba(64,48,25,.94);
+  border-color:#9f7a3f;
+  color:#e0cfad;
+}
+.cdx form.scheme-eldritch .cdx-cr-editor {
+  background:#111411;
+  border-color:#8c6b38;
+  border-radius:0;
+  box-shadow:0 6px 18px rgba(0,0,0,.62),inset 0 0 0 1px rgba(193,151,73,.1);
+}
+.cdx form.scheme-eldritch .cdx-hcollapse-btn {
+  background:linear-gradient(180deg,#342a1b,#17140e);
+  color:#cbb488;
+  box-shadow:inset 0 0 0 1px rgba(193,151,73,.42);
+}
+
+/* --- Shared framed surfaces ---------------------------------------------- */
+.cdx form.scheme-eldritch :is(
+  .cdx-stat,.cdx-panel,.cdx-card,.cdx-injury,.cdx-forcepool,.cdx-talent,
+  .cdx-pane.effects,.cdx-pane.attributes,.cdx-sub,.cdx-istat,.cdx-idesc,
+  .cdx-icheck2,.cdx-item-body .item.force-power,.cdx-ft-card
+) {
+  background-color:var(--cdx-paper2);
+  background-image:
+    linear-gradient(135deg,rgba(193,151,73,.018),transparent 48%,rgba(0,0,0,.11)),
+    var(--cdx-surface-texture);
+  background-size:100% 100%,320px 320px;
+  border-color:var(--cdx-line);
+  box-shadow:var(--cdx-panel-shadow);
+}
+.cdx form.scheme-eldritch :is(.cdx-stat,.cdx-panel,.cdx-istat,.cdx-idesc,.cdx-talent) {
+  box-shadow:inset 0 0 0 3px #101310,inset 0 0 0 4px rgba(193,151,73,.1),0 2px 8px rgba(0,0,0,.4);
+}
+.cdx form.scheme-eldritch :is(
+  .cdx-stat-head,.cdx-panel-head,.cdx-table th,.cdx-pane.effects th,
+  .cdx-istat-k,.cdx-idesc-head,.cdx-tal-head
+) {
+  background:var(--cdx-heading-bg);
+  color:var(--cdx-heading-ink);
+  box-shadow:inset 0 -1px 0 rgba(193,151,73,.36),inset 0 -3px 0 rgba(0,0,0,.62);
+  text-shadow:0 1px 0 #000;
+}
+.cdx form.scheme-eldritch .cdx-stat-head span > i { color:#aa9b85; }
+.cdx form.scheme-eldritch .cdx-rest {
+  background:#111411;
+  border-color:#77633f;
+  color:#c6b89f;
+  border-radius:0;
+}
+.cdx form.scheme-eldritch .cdx-rest:hover {
+  background:#2c2418;
+  border-color:var(--cdx-brass);
+  color:#ead9b6;
+}
+.cdx form.scheme-eldritch :is(.cdx-step,.cdx-ammo-step) {
+  background:linear-gradient(180deg,#1b1d19,#0b0d0c);
+  border-color:#5f523a;
+  border-radius:0;
+  color:#b4a58c;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.72);
+}
+.cdx form.scheme-eldritch :is(.cdx-step,.cdx-ammo-step):hover {
+  background:#2c2418;
+  border-color:var(--cdx-brass);
+  color:#e2c991;
+}
+.cdx form.scheme-eldritch .cdx-track.bar,
+.cdx form.scheme-eldritch .cdx-pip,
+.cdx form.scheme-eldritch .cdx-cond-bar {
+  background:#302e29;
+  border-color:#554a37;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.8);
+}
+.cdx form.scheme-eldritch .cdx-heal { border-top-color:rgba(193,151,73,.2); }
+.cdx form.scheme-eldritch .cdx-heal .medical { color:#bd9450; }
+.cdx form.scheme-eldritch .cdx-def-soak { border-right-color:rgba(193,151,73,.23); }
+.cdx form.scheme-eldritch .cdx-def-row + .cdx-def-row { border-top-color:rgba(193,151,73,.18); }
+
+/* --- Characteristics, Force and compact ratio controls ------------------ */
+.cdx form.scheme-eldritch .cdx-chip-box {
+  border:4px double #8e7549;
+  border-radius:0;
+  clip-path:var(--cdx-clip);
+  background:
+    linear-gradient(145deg,rgba(193,151,73,.055),transparent 44%),
+    #141714;
+  box-shadow:inset 0 0 0 3px #0e110f,inset 0 0 0 4px rgba(193,151,73,.1),0 4px 10px rgba(0,0,0,.4);
+}
+.cdx form.scheme-eldritch .cdx-chip.derived .cdx-chip-box {
+  border:4px double #9b7c44;
+}
+.cdx form.scheme-eldritch .cdx-chip-label {
+  background:linear-gradient(180deg,#31281a,#17140f);
+  color:#d5c19a;
+  box-shadow:inset 0 0 0 1px rgba(193,151,73,.4);
+  text-shadow:0 1px #000;
+}
+.cdx form.scheme-eldritch .cdx-chip-label.brass { background:linear-gradient(180deg,#503b1e,#241b11); }
+.cdx form.scheme-eldritch .cdx-chip.derived.cdx-align-neutral .cdx-chip-box {
+  background:linear-gradient(145deg,rgba(177,87,62,.14),transparent 50%),#241411;
+  border-color:#8c543d;
+}
+.cdx form.scheme-eldritch .cdx-chip.derived.cdx-align-good .cdx-chip-box {
+  background:linear-gradient(145deg,#25384a,#111820);
+  border-color:#70889a;
+}
+.cdx form.scheme-eldritch .cdx-chip.derived.cdx-align-evil .cdx-chip-box {
+  background:linear-gradient(145deg,#6f2b21,#29110e);
+  border-color:#a35a44;
+}
+.cdx form.scheme-eldritch .cdx-chip:is(.cdx-align-neutral,.cdx-align-evil) .cdx-chip-label {
+  background:linear-gradient(180deg,#62281f,#2b120f);
+  color:#dfc0ae;
+  box-shadow:inset 0 0 0 1px rgba(178,90,66,.55);
+}
+.cdx form.scheme-eldritch .cdx-ratio-step {
+  background:#111411;
+  border-color:#8f7443;
+  border-radius:2px;
+  color:#d0b982;
+  box-shadow:inset 0 0 0 1px #050605;
+}
+.cdx form.scheme-eldritch .cdx-ratio-step:hover {
+  background:#2d2417;
+  border-color:#c29a50;
+  color:#f0d7a1;
+}
+.cdx form.scheme-eldritch .cdx-chip-div { background:rgba(193,151,73,.22); }
+
+/* --- Tabs and skills ------------------------------------------------------ */
+.cdx form.scheme-eldritch :is(.cdx-tabstrip,.sheet-tabs),
+.cdx.cdx-embed > form.scheme-eldritch nav.tabs {
+  border-bottom-color:#715b36;
+  box-shadow:0 1px 0 rgba(193,151,73,.1);
+}
+.cdx form.scheme-eldritch :is(.cdx-tab,.sheet-tabs .item),
+.cdx.cdx-embed > form.scheme-eldritch nav.tabs .item {
+  color:#9f927f;
+  text-shadow:none;
+}
+.cdx form.scheme-eldritch :is(.cdx-tab,.sheet-tabs .item):hover,
+.cdx.cdx-embed > form.scheme-eldritch nav.tabs .item:hover {
+  color:#d8bf89;
+  background:rgba(193,151,73,.045);
+}
+.cdx form.scheme-eldritch :is(.cdx-tab.active,.sheet-tabs .item.active),
+.cdx.cdx-embed > form.scheme-eldritch nav.tabs .item.active {
+  background:var(--cdx-active-bg);
+  color:var(--cdx-active-ink);
+  clip-path:none;
+  box-shadow:inset 0 0 0 1px rgba(193,151,73,.52),inset 0 -3px 0 #0b0d0c;
+}
+.cdx form.scheme-eldritch .cdx-tab-badge {
+  background:#64291f;
+  color:#e7c7b4;
+  box-shadow:0 0 0 1px #9b533e;
+}
+.cdx form.scheme-eldritch .cdx-sk-head {
+  background:linear-gradient(180deg,#1c1f1b,#0d0f0e);
+  color:#bd9d63;
+  box-shadow:inset 0 0 0 1px rgba(193,151,73,.34);
+}
+.cdx form.scheme-eldritch .cdx-sk-head .cdx-sk-name { color:#bd9d63; }
+.cdx form.scheme-eldritch .cdx-sk-row {
+  background:rgba(14,17,15,.66);
+  border-bottom-color:rgba(153,131,91,.24);
+}
+.cdx form.scheme-eldritch .cdx-sk-row:nth-of-type(even) { background:rgba(21,24,21,.48); }
+.cdx form.scheme-eldritch .cdx-sk-row:has(.careerskill-toggle:checked) {
+  background:linear-gradient(90deg,rgba(154,115,53,.2),rgba(154,115,53,.065));
+  box-shadow:inset 3px 0 0 #aa8343;
+}
+.cdx form.scheme-eldritch .cdx-sk-name { color:#ddd4c6; }
+.cdx form.scheme-eldritch .cdx-sk-char { color:#a8926d; }
+
+/* --- Inventory, talents, panels and tables ------------------------------ */
+.cdx form.scheme-eldritch .cdx-cards-head {
+  color:#b69255;
+  border-bottom:1px solid rgba(193,151,73,.26);
+  padding-bottom:4px;
+}
+.cdx form.scheme-eldritch .cdx-card:hover,
+.cdx form.scheme-eldritch .cdx-injury:hover,
+.cdx form.scheme-eldritch .cdx-item-body .item.force-power:hover {
+  border-color:#8e7040;
+  box-shadow:inset 0 0 0 1px rgba(193,151,73,.14),0 3px 10px rgba(0,0,0,.48);
+}
+.cdx form.scheme-eldritch .cdx-card-icon,
+.cdx form.scheme-eldritch .cdx-item-img {
+  background-color:#090b09;
+  border-color:#65553b;
+  border-radius:2px;
+  box-shadow:inset 0 0 0 2px #0b0d0c,0 2px 8px rgba(0,0,0,.5);
+  filter:saturate(.68) sepia(.1) contrast(1.04);
+}
+.cdx form.scheme-eldritch .cdx-card-title { color:#ded5c6; }
+.cdx form.scheme-eldritch .cdx-card.cdx-restricted .cdx-card-title { color:#c76d55; }
+.cdx form.scheme-eldritch :is(.cdx-equip,.cdx-carried) {
+  background:#101310;
+  border-color:#5b4e38;
+  border-radius:2px;
+  color:#aa9c86;
+}
+.cdx form.scheme-eldritch :is(.cdx-equip,.cdx-carried).active {
+  background:#4a361c;
+  border-color:#a57e3d;
+  color:#ead6aa;
+}
+.cdx form.scheme-eldritch :is(.cdx-sc-v,.cdx-ammo-count,.cdx-qty-v,.cdx-card.gear .cdx-qty .quantity) {
+  color:#d1b16d;
+}
+.cdx form.scheme-eldritch .cdx-forcepool {
+  border-color:#7a523d;
+  background-color:#191311;
+}
+.cdx form.scheme-eldritch .cdx-fp-k { color:#bd765e; }
+.cdx form.scheme-eldritch .cdx-tal-head { color:#c7a76b; }
+.cdx form.scheme-eldritch .cdx-talent .item-details {
+  background:rgba(10,12,10,.7);
+  border-top-color:rgba(193,151,73,.2);
+}
+.cdx form.scheme-eldritch .cdx-panel-head { color:#c7a76b; }
+.cdx form.scheme-eldritch :is(.cdx-desc-grid input,.cdx-desc-grid select,.cdx-sys-v input[type=text]) {
+  background:#0e110f;
+  border-color:#514632;
+  border-radius:0;
+}
+.cdx form.scheme-eldritch .cdx-table td,
+.cdx form.scheme-eldritch .cdx-pane.effects td {
+  background:rgba(14,17,15,.72);
+  border-bottom-color:rgba(193,151,73,.18);
+}
+.cdx form.scheme-eldritch .cdx-pane.effects table { background:#111411; }
+
+/* --- Minion sheet -------------------------------------------------------- */
+.cdx form.scheme-eldritch .cdx-gs-body,
+.cdx form.scheme-eldritch .cdx-wp-body {
+  background:linear-gradient(90deg,rgba(193,151,73,.025),transparent 38%,rgba(0,0,0,.08));
+}
+.cdx form.scheme-eldritch .cdx-wipeout {
+  background:#17110f;
+  border-color:#814433;
+  border-radius:0;
+  color:#c98b75;
+}
+.cdx form.scheme-eldritch .cdx-wipeout:hover {
+  background:#65291f;
+  border-color:#a65b44;
+  color:#f0d3c4;
+}
+.cdx form.scheme-eldritch .cdx-wp-unit-in {
+  background:#101310;
+  border-color:#7d6841;
+  border-radius:0;
+  color:#decba4;
+}
+.cdx form.scheme-eldritch .cdx-member-group {
+  background:#0c0e0d;
+  border-color:#65553a;
+  border-radius:0;
+  box-shadow:inset 0 0 0 1px rgba(193,151,73,.07);
+}
+.cdx form.scheme-eldritch .cdx-wound-seg { background:#302e29; border-radius:0; }
+.cdx form.scheme-eldritch .cdx-wound-seg.filled { background:#c6b797; }
+
+/* --- Vehicle sheet ------------------------------------------------------- */
+.cdx form.scheme-eldritch .cdx-veh-rarity {
+  background:linear-gradient(180deg,#3c2e1b,#18140e);
+  color:#d8c49c;
+  border:1px solid #82683e;
+  box-shadow:inset 0 0 0 3px #0e100e,inset 0 0 0 4px rgba(193,151,73,.12);
+}
+.cdx form.scheme-eldritch .cdx-vr-in {
+  background:#0d100e;
+  border-color:#715c38;
+  border-radius:0;
+  color:#e0cda8;
+}
+.cdx form.scheme-eldritch .cdx-sysrow { border-bottom-color:rgba(193,151,73,.22); }
+.cdx form.scheme-eldritch .cdx-veh-zones {
+  background:
+    radial-gradient(circle at 50% 50%,rgba(154,115,53,.08),transparent 57%),
+    repeating-radial-gradient(circle at 50% 50%,rgba(193,151,73,.26) 0 1px,transparent 1px 9%);
+  box-shadow:inset 0 0 32px rgba(0,0,0,.52);
+}
+.cdx form.scheme-eldritch .cdx-veh-radar-img {
+  filter:saturate(.45) sepia(.28) brightness(.82) contrast(1.12);
+}
+.cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip-label {
+  background:linear-gradient(180deg,#3b2d1b,#17130e);
+  color:#d6bf8f;
+}
+.cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip.derived .cdx-chip-box,
+.cdx form.scheme-eldritch .cdx-veh-zones .cdx-ratio-step {
+  border-color:#9a804f;
+}
+
+/* --- Standard and detailed item sheets ---------------------------------- */
+.cdx form.scheme-eldritch .cdx-item-name { color:#ded5c6; }
+.cdx form.scheme-eldritch .cdx-ihead {
+  position:relative;
+  isolation:isolate;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.18),transparent 50%,rgba(0,0,0,.36)),
+    var(--cdx-heading-bg);
+  border:1px solid rgba(193,151,73,.38);
+  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(193,151,73,.14),0 3px 12px rgba(0,0,0,.45);
+}
+.cdx form.scheme-eldritch .cdx-ihead::after {
+  content:"";
+  position:absolute;
+  z-index:0;
+  inset:0 0 0 56%;
+  pointer-events:none;
+  background:var(--cdx-sigil) 90% 38% / 150px auto no-repeat;
+  opacity:.075;
+}
+.cdx form.scheme-eldritch .cdx-ihead > * { position:relative; z-index:1; }
+.cdx form.scheme-eldritch .cdx-ihead :is(.cdx-ipill,.cdx-status) {
+  background:rgba(9,11,9,.8);
+  border-color:rgba(193,151,73,.38);
+}
+.cdx form.scheme-eldritch .cdx-ipill {
+  background:linear-gradient(180deg,#4a371e,#21180f);
+  color:#d9bf88;
+}
+.cdx form.scheme-eldritch .cdx-istat-k { color:#c5a468; }
+.cdx form.scheme-eldritch .cdx-istat-v,
+.cdx form.scheme-eldritch .cdx-istat-sel {
+  background:rgba(8,10,9,.22);
+  color:#ddd4c6;
+}
+.cdx form.scheme-eldritch .cdx-iqual {
+  background:#211b12;
+  border-color:#7f673e;
+  border-radius:2px;
+  color:#d3bc8b;
+}
+.cdx form.scheme-eldritch .cdx-idesc-head { color:#c5a468; }
+.cdx form.scheme-eldritch .cdx-icheck2:has(input:checked) {
+  background:linear-gradient(90deg,rgba(154,115,53,.24),rgba(154,115,53,.08));
+  border-color:#9b7940;
+}
+.cdx form.scheme-eldritch .cdx-icheck2.danger:has(input:checked) {
+  background:linear-gradient(90deg,#5b241c,#28110e);
+  border-color:#9d513d;
+}
+.cdx form.scheme-eldritch .cdx-ick-box { border-color:#887859; border-radius:0; }
+.cdx form.scheme-eldritch .cdx-item-body .talent-list .talents-header {
+  color:#b99557;
+  border-bottom-color:#745b31;
+}
+.cdx form.scheme-eldritch .cdx-item-body .item.force-power .item-details {
+  border-top-color:rgba(193,151,73,.22);
+  color:#b4a894;
+}
+.cdx form.scheme-eldritch .cdx-cond-seg.filled .cdx-cond-bar {
+  background:#9a7335;
+  border-color:#c19749;
+}
+.cdx form.scheme-eldritch .cdx-cond-seg.current .cdx-cond-lbl { color:#d9c18c; }
+
+/* --- Progression trees --------------------------------------------------- */
+.cdx form.scheme-eldritch .cdx-ft-power {
+  position:relative;
+  background:
+    linear-gradient(90deg,rgba(103,37,29,.24),transparent 38%,rgba(0,0,0,.36)),
+    var(--cdx-heading-bg);
+  color:#ddd2c1;
+  border:1px solid #765f39;
+  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(193,151,73,.12),0 3px 12px rgba(0,0,0,.46);
+}
+.cdx form.scheme-eldritch .cdx-ft-power-name,
+.cdx form.scheme-eldritch .cdx-ft-power :is(.cdx-ft-cost,.cdx-ft-cost input,.cdx-ft-cost-v) {
+  color:#ded2bf;
+}
+.cdx form.scheme-eldritch .cdx-ft-card {
+  border:1px solid #514632;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));
+}
+.cdx form.scheme-eldritch .cdx-ft-node.on .cdx-ft-card {
+  border-color:#9c7b42;
+  filter:drop-shadow(0 0 5px rgba(193,151,73,.5));
+}
+.cdx form.scheme-eldritch .cdx-ft-head {
+  background:linear-gradient(180deg,#25241d,#111310);
+  color:#c9ac76;
+  box-shadow:inset 0 -1px 0 rgba(193,151,73,.35);
+}
+.cdx form.scheme-eldritch .cdx-ft-name { color:#ceb27d; }
+.cdx form.scheme-eldritch .cdx-ft-foot { border-top-color:rgba(193,151,73,.22); }
+.cdx form.scheme-eldritch .cdx-ft-line { background:#66583d; opacity:.72; }
+.cdx form.scheme-eldritch .cdx-ft-line.on,
+.cdx form.scheme-eldritch .cdx-ft-uplinkline.on {
+  background:#bc9147;
+  box-shadow:0 0 4px rgba(193,151,73,.75),0 0 9px rgba(193,151,73,.38);
+}
+.cdx form.scheme-eldritch .cdx-ft-uplinkline.on::before { border-bottom-color:#bc9147; }
+.cdx form.scheme-eldritch .cdx-ft-resize .talent-action {
+  background:#5e291f;
+  color:#e1c1ae;
+  box-shadow:0 0 0 1px #9a523f,0 2px 5px rgba(0,0,0,.5);
+}
+.cdx form.scheme-eldritch .cdx-ft-skill {
+  background:#101310;
+  border-color:#514632;
+  border-radius:0;
+}
+
+/* --- Embedded editors ---------------------------------------------------- */
+.cdx.cdx-embed > form.window-content.scheme-eldritch {
+  background-color:var(--cdx-bg) !important;
+  background-image:
+    radial-gradient(ellipse at 50% 10%,rgba(72,63,46,.13),transparent 62%),
+    var(--cdx-surface-texture) !important;
+  background-repeat:no-repeat,repeat !important;
+  background-size:100% 100%,320px 320px !important;
+  font-family:var(--cdx-font-body);
+}
+.cdx.cdx-embed > form.scheme-eldritch :is(nav.tabs .item,.form-group > label,.attributes-header,.attributes-header > *,input[type=text],input[type=number],select) {
+  font-family:var(--cdx-font-display);
+}
+.cdx.cdx-embed > form.scheme-eldritch .form-group > label,
+.cdx.cdx-embed > form.scheme-eldritch :is(.attributes-header,.attributes-header > *) {
+  color:#c2aa7d;
+}
+.cdx.cdx-embed > form.scheme-eldritch :is(input[type=text],input[type=number],select) {
+  background:#101310;
+  border-color:#554a36;
+  border-radius:0;
+  color:#ddd4c6;
+}
+.cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor),
+.cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor-content) {
+  background:#141714;
+  border-color:#554a36;
+  box-shadow:inset 0 0 0 3px #0e100e,inset 0 0 0 4px rgba(193,151,73,.1);
+}
+.cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor) > label,
+.cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor-content) > label {
+  background:var(--cdx-heading-bg);
+  color:#c5a468;
+  box-shadow:inset 0 -1px 0 rgba(193,151,73,.3);
+}
+.cdx.cdx-embed > form.scheme-eldritch .editor.prosemirror,
+.cdx.cdx-embed > form.scheme-eldritch .editor.prosemirror .editor-container,
+.cdx.cdx-embed > form.scheme-eldritch .editor-content.ProseMirror {
+  background:#111411;
+  color:#ddd4c6;
+}
+
+/* --- Dark-surface compatibility ----------------------------------------- */
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) .cdx-die-setback rect {
+  fill:#000;
+  stroke:#eee5d7;
+  stroke-width:2;
+}
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) .item-rollable.rollable:hover {
+  filter:brightness(0) invert(1) sepia(.18);
+}
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="black.png"],
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="black-minus"],
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="darkpip"] {
+  filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+}
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
+  filter:brightness(0) invert(1);
+}
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) span.dietype:is(.setback,.dark) {
+  color:#000;
+  -webkit-text-stroke:1px #fff;
+  paint-order:stroke fill;
+}
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) {
+  color:#fff;
+}
+.cdx form.scheme-eldritch .cdx-grip { color:rgba(224,215,199,.58); }
+.cdx form.scheme-eldritch .cdx-card :is(.cdx-sc-k,.cdx-sc-v,.cdx-card-ctl a),
+.cdx form.scheme-eldritch .cdx-card.gear :is(.cdx-qty-v,.cdx-qty .quantity) {
+  color:#d8c49c;
+}
+.cdx form.scheme-eldritch .item-details,
+.cdx form.scheme-eldritch .item-details :is(.tag,.item-pill) {
+  color:#ded5c6;
+}
