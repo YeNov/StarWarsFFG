@@ -490,13 +490,24 @@ applies).
       **Verified live:** `_source` diff on 11 real characters — empty
       `DROPPED`/`CHANGED`, `invalidDocumentIds` 0, `appliedClass`
       CharacterDataModel; character sheet opens fine (derived overlay carried it).
-- [ ] **Stage 9 — Optional end state.** Once every sub-type in both `types`
-      arrays has a registered DataModel, remove `template.json` and its
-      manifest reference entirely. Re-check
-      [modules/helpers/migration.js](../../../modules/helpers/migration.js)
-      first — version-to-version structural renames still need explicit
-      migration code; DataModel's automatic default-backfill only covers
-      *new* fields on old documents, not renames/restructures.
+- [x] **Stage 9 — End state: template.json removed. DONE + VERIFIED on V14
+      (2026-07-09).** Deleted `template.json` and moved the sub-type
+      declarations into a `documentTypes` block in
+      [system.json](../../../system.json) (6 Actor + 20 Item, verified to match
+      template.json's `types` arrays exactly — the schema still comes from the
+      registered DataModels). Pre-audit: no runtime code reads template.json /
+      `game.system.model` / `game.model` (only comments in `modules/data/`);
+      `migration.js` is independent of it (its "template" is an HTML
+      notification). **Upgrade-path note (answering the transition question):**
+      an old template.json-era world loads clean on this build because the
+      DataModels reproduce the exact stored shape and interpret old `_source`
+      directly — template.json is not a migration intermediary. The only failure
+      mode is deleting it *without* `documentTypes` (types go undeclared → all
+      docs invalid); done together here, and a system update replaces the folder
+      atomically so there's no partial state. **Verified live:** world launched
+      clean, `invalidDocumentIds` empty for actors AND items, every world/embedded
+      document resolved to its `…DataModel` class, `documentTypes` counts correct
+      (base + 6 Actor, base + 20 Item). template.json is now fully retired.
 
 ## Verification approach (every stage)
 
