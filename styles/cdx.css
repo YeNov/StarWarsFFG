@@ -66,27 +66,27 @@
 .cdx form.scheme-eldritch {
   --cdx-bg:#0b0d0c; --cdx-stripe:rgba(197,160,92,.018);
   --cdx-paper:#111412; --cdx-paper2:#171a17; --cdx-ink:#d9d0c1; --cdx-dim:#a39682; --cdx-line:#514632;
-  --cdx-accent:#9a7335; --cdx-accent2:#6f5229; --cdx-brown:#76582e; --cdx-brass:#c19749;
-  --cdx-career:rgba(154,115,53,.14); --cdx-career-line:#a78042; --cdx-track:#39362f;
+  --cdx-accent:#6f624c; --cdx-accent2:#514838; --cdx-brown:#5d5140; --cdx-brass:#81745d;
+  --cdx-career:rgba(104,90,67,.12); --cdx-career-line:#76684f; --cdx-track:#39362f;
   --cdx-chip-label:#17130d; --cdx-chip-ink:#d9d0c1;
   --cdx-head:linear-gradient(180deg,rgba(23,25,22,.98),rgba(8,10,9,.995)); --cdx-head-ink:#ded5c6;
-  --cdx-warn:#d5a22b; --cdx-notch:9px;
+  --cdx-warn:#8d7540; --cdx-notch:9px;
 
   /* Scheme-only semantic tokens. The existing palettes continue to resolve
      through their unchanged declarations, so their computed styles do not move. */
   --cdx-font-display:"CDX Eldritch Display",Georgia,"Times New Roman",serif;
   --cdx-font-body:Georgia,"Palatino Linotype","Book Antiqua",Palatino,serif;
   --cdx-heading-bg:linear-gradient(180deg,rgba(24,26,23,.98),rgba(11,13,12,.98));
-  --cdx-heading-ink:#c6a76f;
-  --cdx-active-bg:rgba(154,115,53,.14);
-  --cdx-active-ink:#d9c18c;
-  --cdx-panel-shadow:inset 0 0 0 1px rgba(193,151,73,.13),0 2px 8px rgba(0,0,0,.38);
+  --cdx-heading-ink:#9e927f;
+  --cdx-active-bg:rgba(104,90,67,.12);
+  --cdx-active-ink:#aaa08e;
+  --cdx-panel-shadow:inset 0 0 0 1px rgba(112,96,70,.13),0 2px 8px rgba(0,0,0,.38);
   --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/paper.svg?v=2");
   --cdx-sigil:url("/systems/starwarsffg/images/codex/eldritch/sigil.svg");
   --cdx-portrait-radius:50%;
   --cdx-rust:#67251d;
   --cdx-rust-bright:#9a4130;
-  --cdx-rule:rgba(193,151,73,.44);
+  --cdx-rule:rgba(112,96,70,.36);
 }
 .cdx form {
   --cdx-clip:polygon(0% var(--cdx-notch),var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% calc(100% - var(--cdx-notch)),calc(100% - var(--cdx-notch)) 100%,var(--cdx-notch) 100%,0% calc(100% - var(--cdx-notch)));
@@ -766,7 +766,8 @@
    dead space (few glyphs / a wide, resizable dialog). flex:1 1 auto lets them grow to fill
    the row — capped at the 36px normal size — and shrink below the tier size when the pool
    is too wide to fit; min-width:0 enables the shrink, height:auto keeps them square. */
-.cdx-dice .dice-pool img { flex: 1 1 auto; min-width: 0; max-width: 36px; height: auto; }
+.cdx-dice .dice-pool .ffg-die-icon { flex:1 1 auto; min-width:0; max-width:36px; }
+.cdx-dice .dice-pool .ffg-die-icon img { width:100%; height:auto; }
 /* Fixed-Results dietype glyphs: setback/dark = black with a white outline; the rest white. */
 .cdx-dice .dice-pool-dialog span.dietype.setback, .cdx-dice .dice-pool-dialog span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 .cdx-dice .dice-pool-dialog span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
@@ -1582,7 +1583,7 @@
 
 /* --- Shell, type and native controls -------------------------------------- */
 .cdx:has(> form.window-content.scheme-eldritch) {
-  outline:1px solid rgba(193,151,73,.32);
+  outline:1px solid rgba(112,96,70,.28);
   outline-offset:-1px;
   box-shadow:0 10px 34px rgba(0,0,0,.72),0 0 0 1px #080a09;
 }
@@ -1590,7 +1591,7 @@
   background:
     linear-gradient(90deg,rgba(103,37,29,.14),transparent 32%,rgba(0,0,0,.22)),
     linear-gradient(180deg,#1b1d19,#0b0d0c);
-  border-bottom:1px solid rgba(193,151,73,.48);
+  border-bottom:1px solid rgba(112,96,70,.38);
   color:#b7a78e;
   box-shadow:inset 0 -2px 0 rgba(0,0,0,.65),0 2px 8px rgba(0,0,0,.4);
 }
@@ -1607,7 +1608,7 @@
   text-shadow:none;
 }
 .cdx:has(> form.window-content.scheme-eldritch) > .window-header :is(.header-control,.window-header-control,button,a):hover {
-  color:#d9c18c;
+  color:#aaa08e;
 }
 .cdx > form.window-content.scheme-eldritch {
   background-color:var(--cdx-bg) !important;
@@ -1635,7 +1636,7 @@
 .cdx form.scheme-eldritch :is(input,select,textarea,button,a):focus-visible {
   outline:1px solid var(--cdx-brass);
   outline-offset:2px;
-  box-shadow:0 0 0 2px rgba(193,151,73,.18);
+  box-shadow:0 0 0 2px rgba(112,96,70,.16);
 }
 .cdx form.scheme-eldritch :is(input,select,textarea):disabled {
   opacity:.82;
@@ -1679,18 +1680,18 @@
 /* --- Scheme picker -------------------------------------------------------- */
 .cdx form.scheme-eldritch .cdx-scheme-strip {
   padding-bottom:4px;
-  border-bottom:1px solid rgba(193,151,73,.18);
+  border-bottom:1px solid rgba(112,96,70,.16);
 }
 .cdx form.scheme-eldritch .cdx-scheme-label { color:#b29b74; }
 .cdx form.scheme-eldritch .cdx-scheme-btn {
   color:#8f826e;
-  border-color:rgba(193,151,73,.12);
+  border-color:rgba(112,96,70,.12);
   border-radius:0;
 }
 .cdx form.scheme-eldritch .cdx-scheme-btn:hover {
   color:var(--cdx-active-ink);
   border-color:var(--cdx-rule);
-  background:rgba(193,151,73,.06);
+  background:rgba(112,96,70,.05);
 }
 
 /* --- Dossier header and identity ----------------------------------------- */
@@ -1701,8 +1702,8 @@
     linear-gradient(90deg,rgba(0,0,0,.2),transparent 48%,rgba(0,0,0,.34)),
     var(--cdx-heading-bg);
   color:var(--cdx-head-ink);
-  border:1px solid rgba(193,151,73,.38);
-  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(193,151,73,.16),0 4px 16px rgba(0,0,0,.42);
+  border:1px solid rgba(112,96,70,.34);
+  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(112,96,70,.14),0 4px 16px rgba(0,0,0,.42);
 }
 .cdx form.scheme-eldritch .cdx-header::before {
   content:"";
@@ -1710,7 +1711,7 @@
   inset:5px;
   z-index:0;
   pointer-events:none;
-  border:1px solid rgba(193,151,73,.13);
+  border:1px solid rgba(112,96,70,.12);
   clip-path:var(--cdx-clip);
 }
 .cdx form.scheme-eldritch .cdx-header::after {
@@ -1727,7 +1728,7 @@
 .cdx form.scheme-eldritch .cdx-name {
   color:#e2d9ca;
   letter-spacing:1.4px;
-  text-shadow:0 1px 0 #000,0 0 12px rgba(193,151,73,.12);
+  text-shadow:0 1px 0 #000,0 0 12px rgba(112,96,70,.1);
 }
 .cdx form.scheme-eldritch .cdx-header.cdx-hcollapsed .cdx-credits::before {
   font-family:var(--cdx-font-display);
@@ -1735,20 +1736,20 @@
 .cdx form.scheme-eldritch .cdx-portrait .profile-img {
   object-fit:cover;
   background:#090b0a;
-  border:1px solid #a88952;
+  border:1px solid #6f634f;
   border-radius:var(--cdx-portrait-radius);
   box-shadow:
     0 0 0 2px #090b0a,
-    0 0 0 4px rgba(193,151,73,.56),
+    0 0 0 4px rgba(112,96,70,.46),
     0 0 0 7px #0a0c0b,
-    0 0 0 8px rgba(193,151,73,.2),
+    0 0 0 8px rgba(112,96,70,.18),
     0 5px 16px rgba(0,0,0,.68);
   filter:saturate(.67) sepia(.12) contrast(1.06);
 }
 .cdx form.scheme-eldritch .cdx-pill,
 .cdx form.scheme-eldritch .cdx-stack .cdx-pill {
   background:rgba(12,14,12,.84);
-  border-color:rgba(193,151,73,.38);
+  border-color:rgba(112,96,70,.32);
   color:#d8c9b2;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.7);
 }
@@ -1758,17 +1759,17 @@
 }
 .cdx form.scheme-eldritch .cdx-pill.sig {
   background:linear-gradient(180deg,#4e4430,#29251c);
-  border-color:#9a7e4d;
+  border-color:#665a45;
 }
 .cdx form.scheme-eldritch .cdx-square {
   background:rgba(10,12,10,.76);
-  border:1px solid rgba(193,151,73,.36);
-  box-shadow:inset 0 0 0 2px rgba(0,0,0,.62),inset 0 0 0 3px rgba(193,151,73,.09);
+  border:1px solid rgba(112,96,70,.32);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.62),inset 0 0 0 3px rgba(112,96,70,.08);
 }
 .cdx form.scheme-eldritch .cdx-square.cdx-credits {
   background:linear-gradient(180deg,rgba(84,63,31,.52),rgba(29,24,16,.82));
-  color:#e2ca98;
-  border-color:#a78042;
+  color:#b2a792;
+  border-color:#6e6048;
 }
 .cdx form.scheme-eldritch .cdx-xp.active {
   background:rgba(103,37,29,.42);
@@ -1776,19 +1777,19 @@
 }
 .cdx form.scheme-eldritch .cdx-cr-change {
   background:rgba(64,48,25,.94);
-  border-color:#9f7a3f;
-  color:#e0cfad;
+  border-color:#6b5d46;
+  color:#aaa18f;
 }
 .cdx form.scheme-eldritch .cdx-cr-editor {
   background:#111411;
-  border-color:#8c6b38;
+  border-color:#5f5340;
   border-radius:0;
-  box-shadow:0 6px 18px rgba(0,0,0,.62),inset 0 0 0 1px rgba(193,151,73,.1);
+  box-shadow:0 6px 18px rgba(0,0,0,.62),inset 0 0 0 1px rgba(112,96,70,.09);
 }
 .cdx form.scheme-eldritch .cdx-hcollapse-btn {
   background:linear-gradient(180deg,#342a1b,#17140e);
-  color:#cbb488;
-  box-shadow:inset 0 0 0 1px rgba(193,151,73,.42);
+  color:#a79b86;
+  box-shadow:inset 0 0 0 1px rgba(112,96,70,.34);
 }
 
 /* --- Shared framed surfaces ---------------------------------------------- */
@@ -1799,7 +1800,7 @@
 ) {
   background-color:var(--cdx-paper2);
   background-image:
-    radial-gradient(circle at 24% 18%,rgba(193,151,73,.045),transparent 35%),
+    radial-gradient(circle at 24% 18%,rgba(112,96,70,.04),transparent 35%),
     repeating-linear-gradient(101deg,rgba(224,210,181,.014) 0 1px,transparent 1px 5px),
     var(--cdx-surface-texture);
   background-repeat:no-repeat,repeat,repeat;
@@ -1809,7 +1810,7 @@
   box-shadow:var(--cdx-panel-shadow);
 }
 .cdx form.scheme-eldritch :is(.cdx-stat,.cdx-panel,.cdx-istat,.cdx-idesc,.cdx-talent) {
-  box-shadow:inset 0 0 0 3px #101310,inset 0 0 0 4px rgba(193,151,73,.1),0 2px 8px rgba(0,0,0,.4);
+  box-shadow:inset 0 0 0 3px #101310,inset 0 0 0 4px rgba(112,96,70,.09),0 2px 8px rgba(0,0,0,.4);
 }
 .cdx form.scheme-eldritch :is(
   .cdx-stat-head,.cdx-panel-head,.cdx-table th,.cdx-pane.effects th,
@@ -1817,20 +1818,20 @@
 ) {
   background:var(--cdx-heading-bg);
   color:var(--cdx-heading-ink);
-  box-shadow:inset 0 -1px 0 rgba(193,151,73,.36),inset 0 -3px 0 rgba(0,0,0,.62);
+  box-shadow:inset 0 -1px 0 rgba(112,96,70,.3),inset 0 -3px 0 rgba(0,0,0,.62);
   text-shadow:0 1px 0 #000;
 }
 .cdx form.scheme-eldritch .cdx-stat-head span > i { color:#aa9b85; }
 .cdx form.scheme-eldritch .cdx-rest {
   background:#111411;
-  border-color:#77633f;
+  border-color:#5b5243;
   color:#c6b89f;
   border-radius:0;
 }
 .cdx form.scheme-eldritch .cdx-rest:hover {
   background:#2c2418;
   border-color:var(--cdx-brass);
-  color:#ead9b6;
+  color:#b2a998;
 }
 .cdx form.scheme-eldritch :is(.cdx-step,.cdx-ammo-step) {
   background:linear-gradient(180deg,#1b1d19,#0b0d0c);
@@ -1842,7 +1843,7 @@
 .cdx form.scheme-eldritch :is(.cdx-step,.cdx-ammo-step):hover {
   background:#2c2418;
   border-color:var(--cdx-brass);
-  color:#e2c991;
+  color:#afa490;
 }
 .cdx form.scheme-eldritch .cdx-track.bar,
 .cdx form.scheme-eldritch .cdx-pip,
@@ -1851,10 +1852,10 @@
   border-color:#554a37;
   box-shadow:inset 0 1px 2px rgba(0,0,0,.8);
 }
-.cdx form.scheme-eldritch .cdx-heal { border-top-color:rgba(193,151,73,.2); }
-.cdx form.scheme-eldritch .cdx-heal .medical { color:#bd9450; }
-.cdx form.scheme-eldritch .cdx-def-soak { border-right-color:rgba(193,151,73,.23); }
-.cdx form.scheme-eldritch .cdx-def-row + .cdx-def-row { border-top-color:rgba(193,151,73,.18); }
+.cdx form.scheme-eldritch .cdx-heal { border-top-color:rgba(112,96,70,.18); }
+.cdx form.scheme-eldritch .cdx-heal .medical { color:#8d8069; }
+.cdx form.scheme-eldritch .cdx-def-soak { border-right-color:rgba(112,96,70,.2); }
+.cdx form.scheme-eldritch .cdx-def-row + .cdx-def-row { border-top-color:rgba(112,96,70,.16); }
 
 /* --- Characteristics, Force and compact ratio controls ------------------ */
 .cdx form.scheme-eldritch .cdx-chip-box {
@@ -1895,23 +1896,23 @@
 }
 .cdx form.scheme-eldritch .cdx-ratio-step {
   background:#111411;
-  border-color:#8f7443;
+  border-color:#625745;
   border-radius:2px;
-  color:#d0b982;
+  color:#a49982;
   box-shadow:inset 0 0 0 1px #050605;
 }
 .cdx form.scheme-eldritch .cdx-ratio-step:hover {
   background:#2d2417;
-  border-color:#c29a50;
-  color:#f0d7a1;
+  border-color:#75674c;
+  color:#b5aa95;
 }
-.cdx form.scheme-eldritch .cdx-chip-div { background:rgba(193,151,73,.22); }
+.cdx form.scheme-eldritch .cdx-chip-div { background:rgba(112,96,70,.18); }
 
 /* --- Tabs and skills ------------------------------------------------------ */
 .cdx form.scheme-eldritch :is(.cdx-tabstrip,.sheet-tabs),
 .cdx.cdx-embed > form.scheme-eldritch nav.tabs {
-  border-bottom-color:#715b36;
-  box-shadow:0 1px 0 rgba(193,151,73,.1);
+  border-bottom-color:#51483a;
+  box-shadow:0 1px 0 rgba(112,96,70,.09);
 }
 .cdx form.scheme-eldritch :is(.cdx-tab,.sheet-tabs .item),
 .cdx.cdx-embed > form.scheme-eldritch nav.tabs .item {
@@ -1920,15 +1921,15 @@
 }
 .cdx form.scheme-eldritch :is(.cdx-tab,.sheet-tabs .item):hover,
 .cdx.cdx-embed > form.scheme-eldritch nav.tabs .item:hover {
-  color:#d8bf89;
-  background:rgba(193,151,73,.045);
+  color:#aaa08b;
+  background:rgba(112,96,70,.04);
 }
 .cdx form.scheme-eldritch :is(.cdx-tab.active,.sheet-tabs .item.active),
 .cdx.cdx-embed > form.scheme-eldritch nav.tabs .item.active {
   background:var(--cdx-active-bg);
   color:var(--cdx-active-ink);
   clip-path:none;
-  box-shadow:inset 0 0 0 1px rgba(193,151,73,.52),inset 0 -3px 0 #0b0d0c;
+  box-shadow:inset 0 0 0 1px rgba(112,96,70,.4),inset 0 -3px 0 #0b0d0c;
 }
 .cdx form.scheme-eldritch .cdx-tab-badge {
   background:#64291f;
@@ -1937,33 +1938,33 @@
 }
 .cdx form.scheme-eldritch .cdx-sk-head {
   background:linear-gradient(180deg,#1c1f1b,#0d0f0e);
-  color:#bd9d63;
-  box-shadow:inset 0 0 0 1px rgba(193,151,73,.34);
+  color:#93866f;
+  box-shadow:inset 0 0 0 1px rgba(112,96,70,.28);
 }
-.cdx form.scheme-eldritch .cdx-sk-head .cdx-sk-name { color:#bd9d63; }
+.cdx form.scheme-eldritch .cdx-sk-head .cdx-sk-name { color:#93866f; }
 .cdx form.scheme-eldritch .cdx-sk-row {
   background:rgba(14,17,15,.66);
   border-bottom-color:rgba(153,131,91,.24);
 }
 .cdx form.scheme-eldritch .cdx-sk-row:nth-of-type(even) { background:rgba(21,24,21,.48); }
 .cdx form.scheme-eldritch .cdx-sk-row:has(.careerskill-toggle:checked) {
-  background:linear-gradient(90deg,rgba(154,115,53,.2),rgba(154,115,53,.065));
-  box-shadow:inset 3px 0 0 #aa8343;
+  background:linear-gradient(90deg,rgba(104,90,67,.16),rgba(104,90,67,.055));
+  box-shadow:inset 3px 0 0 #716248;
 }
 .cdx form.scheme-eldritch .cdx-sk-name { color:#ddd4c6; }
-.cdx form.scheme-eldritch .cdx-sk-char { color:#a8926d; }
+.cdx form.scheme-eldritch .cdx-sk-char { color:#887e6b; }
 
 /* --- Inventory, talents, panels and tables ------------------------------ */
 .cdx form.scheme-eldritch .cdx-cards-head {
-  color:#b69255;
-  border-bottom:1px solid rgba(193,151,73,.26);
+  color:#8d816a;
+  border-bottom:1px solid rgba(112,96,70,.22);
   padding-bottom:4px;
 }
 .cdx form.scheme-eldritch .cdx-card:hover,
 .cdx form.scheme-eldritch .cdx-injury:hover,
 .cdx form.scheme-eldritch .cdx-item-body .item.force-power:hover {
-  border-color:#8e7040;
-  box-shadow:inset 0 0 0 1px rgba(193,151,73,.14),0 3px 10px rgba(0,0,0,.48);
+  border-color:#625745;
+  box-shadow:inset 0 0 0 1px rgba(112,96,70,.12),0 3px 10px rgba(0,0,0,.48);
 }
 .cdx form.scheme-eldritch .cdx-card-icon,
 .cdx form.scheme-eldritch .cdx-item-img {
@@ -1983,23 +1984,23 @@
 }
 .cdx form.scheme-eldritch :is(.cdx-equip,.cdx-carried).active {
   background:#4a361c;
-  border-color:#a57e3d;
-  color:#ead6aa;
+  border-color:#6c5f47;
+  color:#afa591;
 }
 .cdx form.scheme-eldritch :is(.cdx-sc-v,.cdx-ammo-count,.cdx-qty-v,.cdx-card.gear .cdx-qty .quantity) {
-  color:#d1b16d;
+  color:#998c74;
 }
 .cdx form.scheme-eldritch .cdx-forcepool {
   border-color:#7a523d;
   background-color:#191311;
 }
 .cdx form.scheme-eldritch .cdx-fp-k { color:#bd765e; }
-.cdx form.scheme-eldritch .cdx-tal-head { color:#c7a76b; }
+.cdx form.scheme-eldritch .cdx-tal-head { color:#958971; }
 .cdx form.scheme-eldritch .cdx-talent .item-details {
   background:rgba(10,12,10,.7);
-  border-top-color:rgba(193,151,73,.2);
+  border-top-color:rgba(112,96,70,.18);
 }
-.cdx form.scheme-eldritch .cdx-panel-head { color:#c7a76b; }
+.cdx form.scheme-eldritch .cdx-panel-head { color:#958971; }
 .cdx form.scheme-eldritch :is(.cdx-desc-grid input,.cdx-desc-grid select,.cdx-sys-v input[type=text]) {
   background:#0e110f;
   border-color:#514632;
@@ -2008,14 +2009,14 @@
 .cdx form.scheme-eldritch .cdx-table td,
 .cdx form.scheme-eldritch .cdx-pane.effects td {
   background:rgba(14,17,15,.72);
-  border-bottom-color:rgba(193,151,73,.18);
+  border-bottom-color:rgba(112,96,70,.16);
 }
 .cdx form.scheme-eldritch .cdx-pane.effects table { background:#111411; }
 
 /* --- Minion sheet -------------------------------------------------------- */
 .cdx form.scheme-eldritch .cdx-gs-body,
 .cdx form.scheme-eldritch .cdx-wp-body {
-  background:linear-gradient(90deg,rgba(193,151,73,.025),transparent 38%,rgba(0,0,0,.08));
+  background:linear-gradient(90deg,rgba(112,96,70,.022),transparent 38%,rgba(0,0,0,.08));
 }
 .cdx form.scheme-eldritch .cdx-wipeout {
   background:#17110f;
@@ -2030,37 +2031,37 @@
 }
 .cdx form.scheme-eldritch .cdx-wp-unit-in {
   background:#101310;
-  border-color:#7d6841;
+  border-color:#5e5545;
   border-radius:0;
-  color:#decba4;
+  color:#aaa18f;
 }
 .cdx form.scheme-eldritch .cdx-member-group {
   background:#0c0e0d;
   border-color:#65553a;
   border-radius:0;
-  box-shadow:inset 0 0 0 1px rgba(193,151,73,.07);
+  box-shadow:inset 0 0 0 1px rgba(112,96,70,.06);
 }
 .cdx form.scheme-eldritch .cdx-wound-seg { background:#302e29; border-radius:0; }
-.cdx form.scheme-eldritch .cdx-wound-seg.filled { background:#c6b797; }
+.cdx form.scheme-eldritch .cdx-wound-seg.filled { background:#aaa18e; }
 
 /* --- Vehicle sheet ------------------------------------------------------- */
 .cdx form.scheme-eldritch .cdx-veh-rarity {
   background:linear-gradient(180deg,#3c2e1b,#18140e);
-  color:#d8c49c;
-  border:1px solid #82683e;
-  box-shadow:inset 0 0 0 3px #0e100e,inset 0 0 0 4px rgba(193,151,73,.12);
+  color:#a89e8a;
+  border:1px solid #5d5240;
+  box-shadow:inset 0 0 0 3px #0e100e,inset 0 0 0 4px rgba(112,96,70,.11);
 }
 .cdx form.scheme-eldritch .cdx-vr-in {
   background:#0d100e;
-  border-color:#715c38;
+  border-color:#534a3b;
   border-radius:0;
-  color:#e0cda8;
+  color:#aaa18f;
 }
-.cdx form.scheme-eldritch .cdx-sysrow { border-bottom-color:rgba(193,151,73,.22); }
+.cdx form.scheme-eldritch .cdx-sysrow { border-bottom-color:rgba(112,96,70,.18); }
 .cdx form.scheme-eldritch .cdx-veh-zones {
   background:
-    radial-gradient(circle at 50% 50%,rgba(154,115,53,.08),transparent 57%),
-    repeating-radial-gradient(circle at 50% 50%,rgba(193,151,73,.26) 0 1px,transparent 1px 9%);
+    radial-gradient(circle at 50% 50%,rgba(104,90,67,.07),transparent 57%),
+    repeating-radial-gradient(circle at 50% 50%,rgba(112,96,70,.2) 0 1px,transparent 1px 9%);
   box-shadow:inset 0 0 32px rgba(0,0,0,.52);
 }
 .cdx form.scheme-eldritch .cdx-veh-radar-img {
@@ -2068,11 +2069,11 @@
 }
 .cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip-label {
   background:linear-gradient(180deg,#3b2d1b,#17130e);
-  color:#d6bf8f;
+  color:#a69b87;
 }
 .cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip.derived .cdx-chip-box,
 .cdx form.scheme-eldritch .cdx-veh-zones .cdx-ratio-step {
-  border-color:#9a804f;
+  border-color:#655a46;
 }
 
 /* --- Standard and detailed item sheets ---------------------------------- */
@@ -2083,8 +2084,8 @@
   background:
     linear-gradient(90deg,rgba(0,0,0,.18),transparent 50%,rgba(0,0,0,.36)),
     var(--cdx-heading-bg);
-  border:1px solid rgba(193,151,73,.38);
-  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(193,151,73,.14),0 3px 12px rgba(0,0,0,.45);
+  border:1px solid rgba(112,96,70,.34);
+  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(112,96,70,.12),0 3px 12px rgba(0,0,0,.45);
 }
 .cdx form.scheme-eldritch .cdx-ihead::after {
   content:"";
@@ -2098,13 +2099,13 @@
 .cdx form.scheme-eldritch .cdx-ihead > * { position:relative; z-index:1; }
 .cdx form.scheme-eldritch .cdx-ihead :is(.cdx-ipill,.cdx-status) {
   background:rgba(9,11,9,.8);
-  border-color:rgba(193,151,73,.38);
+  border-color:rgba(112,96,70,.32);
 }
 .cdx form.scheme-eldritch .cdx-ipill {
   background:linear-gradient(180deg,#4a371e,#21180f);
-  color:#d9bf88;
+  color:#a69b86;
 }
-.cdx form.scheme-eldritch .cdx-istat-k { color:#c5a468; }
+.cdx form.scheme-eldritch .cdx-istat-k { color:#958971; }
 .cdx form.scheme-eldritch .cdx-istat-v,
 .cdx form.scheme-eldritch .cdx-istat-sel {
   background:rgba(8,10,9,.22);
@@ -2112,33 +2113,33 @@
 }
 .cdx form.scheme-eldritch .cdx-iqual {
   background:#211b12;
-  border-color:#7f673e;
+  border-color:#5c5240;
   border-radius:2px;
-  color:#d3bc8b;
+  color:#a49a86;
 }
-.cdx form.scheme-eldritch .cdx-idesc-head { color:#c5a468; }
+.cdx form.scheme-eldritch .cdx-idesc-head { color:#958971; }
 .cdx form.scheme-eldritch .cdx-icheck2:has(input:checked) {
-  background:linear-gradient(90deg,rgba(154,115,53,.24),rgba(154,115,53,.08));
-  border-color:#9b7940;
+  background:linear-gradient(90deg,rgba(104,90,67,.2),rgba(104,90,67,.07));
+  border-color:#655945;
 }
 .cdx form.scheme-eldritch .cdx-icheck2.danger:has(input:checked) {
   background:linear-gradient(90deg,#5b241c,#28110e);
   border-color:#9d513d;
 }
-.cdx form.scheme-eldritch .cdx-ick-box { border-color:#887859; border-radius:0; }
+.cdx form.scheme-eldritch .cdx-ick-box { border-color:#695f4d; border-radius:0; }
 .cdx form.scheme-eldritch .cdx-item-body .talent-list .talents-header {
-  color:#b99557;
-  border-bottom-color:#745b31;
+  color:#8f826b;
+  border-bottom-color:#554b3b;
 }
 .cdx form.scheme-eldritch .cdx-item-body .item.force-power .item-details {
-  border-top-color:rgba(193,151,73,.22);
+  border-top-color:rgba(112,96,70,.18);
   color:#b4a894;
 }
 .cdx form.scheme-eldritch .cdx-cond-seg.filled .cdx-cond-bar {
-  background:#9a7335;
-  border-color:#c19749;
+  background:#6f624c;
+  border-color:#81745d;
 }
-.cdx form.scheme-eldritch .cdx-cond-seg.current .cdx-cond-lbl { color:#d9c18c; }
+.cdx form.scheme-eldritch .cdx-cond-seg.current .cdx-cond-lbl { color:#aaa08e; }
 
 /* --- Progression trees --------------------------------------------------- */
 .cdx form.scheme-eldritch .cdx-ft-power {
@@ -2147,8 +2148,8 @@
     linear-gradient(90deg,rgba(103,37,29,.24),transparent 38%,rgba(0,0,0,.36)),
     var(--cdx-heading-bg);
   color:#ddd2c1;
-  border:1px solid #765f39;
-  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(193,151,73,.12),0 3px 12px rgba(0,0,0,.46);
+  border:1px solid #554b3c;
+  box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(112,96,70,.11),0 3px 12px rgba(0,0,0,.46);
 }
 .cdx form.scheme-eldritch .cdx-ft-power-name,
 .cdx form.scheme-eldritch .cdx-ft-power :is(.cdx-ft-cost,.cdx-ft-cost input,.cdx-ft-cost-v) {
@@ -2159,23 +2160,23 @@
   filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));
 }
 .cdx form.scheme-eldritch .cdx-ft-node.on .cdx-ft-card {
-  border-color:#9c7b42;
-  filter:drop-shadow(0 0 5px rgba(193,151,73,.5));
+  border-color:#675b46;
+  filter:drop-shadow(0 0 5px rgba(112,96,70,.38));
 }
 .cdx form.scheme-eldritch .cdx-ft-head {
   background:linear-gradient(180deg,#25241d,#111310);
-  color:#c9ac76;
-  box-shadow:inset 0 -1px 0 rgba(193,151,73,.35);
+  color:#9b8f78;
+  box-shadow:inset 0 -1px 0 rgba(112,96,70,.28);
 }
-.cdx form.scheme-eldritch .cdx-ft-name { color:#ceb27d; }
-.cdx form.scheme-eldritch .cdx-ft-foot { border-top-color:rgba(193,151,73,.22); }
-.cdx form.scheme-eldritch .cdx-ft-line { background:#66583d; opacity:.72; }
+.cdx form.scheme-eldritch .cdx-ft-name { color:#9f937d; }
+.cdx form.scheme-eldritch .cdx-ft-foot { border-top-color:rgba(112,96,70,.18); }
+.cdx form.scheme-eldritch .cdx-ft-line { background:#514a3f; opacity:.72; }
 .cdx form.scheme-eldritch .cdx-ft-line.on,
 .cdx form.scheme-eldritch .cdx-ft-uplinkline.on {
-  background:#bc9147;
-  box-shadow:0 0 4px rgba(193,151,73,.75),0 0 9px rgba(193,151,73,.38);
+  background:#786a4f;
+  box-shadow:0 0 4px rgba(112,96,70,.55),0 0 9px rgba(112,96,70,.3);
 }
-.cdx form.scheme-eldritch .cdx-ft-uplinkline.on::before { border-bottom-color:#bc9147; }
+.cdx form.scheme-eldritch .cdx-ft-uplinkline.on::before { border-bottom-color:#786a4f; }
 .cdx form.scheme-eldritch .cdx-ft-resize .talent-action {
   background:#5e291f;
   color:#e1c1ae;
@@ -2204,25 +2205,25 @@
 }
 .cdx.cdx-embed > form.scheme-eldritch .form-group > label,
 .cdx.cdx-embed > form.scheme-eldritch :is(.attributes-header,.attributes-header > *) {
-  color:#c2aa7d;
+  color:#998d77;
 }
 .cdx.cdx-embed > form.scheme-eldritch :is(input[type=text],input[type=number],select) {
   background:#101310;
-  border-color:#554a36;
+  border-color:#4d473b;
   border-radius:0;
   color:#ddd4c6;
 }
 .cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor),
 .cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor-content) {
   background:#141714;
-  border-color:#554a36;
-  box-shadow:inset 0 0 0 3px #0e100e,inset 0 0 0 4px rgba(193,151,73,.1);
+  border-color:#4d473b;
+  box-shadow:inset 0 0 0 3px #0e100e,inset 0 0 0 4px rgba(112,96,70,.09);
 }
 .cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor) > label,
 .cdx.cdx-embed > form.scheme-eldritch .form-group:has(> .editor-content) > label {
   background:var(--cdx-heading-bg);
-  color:#c5a468;
-  box-shadow:inset 0 -1px 0 rgba(193,151,73,.3);
+  color:#958971;
+  box-shadow:inset 0 -1px 0 rgba(112,96,70,.24);
 }
 .cdx.cdx-embed > form.scheme-eldritch .editor.prosemirror,
 .cdx.cdx-embed > form.scheme-eldritch .editor.prosemirror .editor-container,
@@ -2232,32 +2233,40 @@
 }
 
 /* --- In-sheet dice print texture -----------------------------------------
-   The coloured raster dice and defence SVGs otherwise read as perfectly clean
-   digital stickers against the aged sheet. A non-interactive paper overlay
-   makes them feel printed into the dossier without changing their hit targets,
-   source artwork, or gameplay colours. */
-.cdx form.scheme-eldritch :is(.dice-pool,.cdx-wpn-pool,.cdx-def-dice) {
+   Each preview image receives its own alpha-masked grain. The paper is clipped
+   to the die silhouette, leaving the pool itself completely transparent. */
+.cdx form.scheme-eldritch .ffg-die-icon {
   position:relative;
-  isolation:isolate;
+  display:inline-block;
+  line-height:0;
+  vertical-align:baseline;
 }
-.cdx form.scheme-eldritch :is(.dice-pool,.cdx-wpn-pool,.cdx-def-dice)::after {
+.cdx form.scheme-eldritch .ffg-die-icon img {
+  display:block;
+  filter:saturate(.72) brightness(.88) contrast(1.08);
+}
+.cdx form.scheme-eldritch .ffg-die-icon::after {
   content:"";
   position:absolute;
-  inset:-1px;
-  z-index:3;
+  inset:0;
+  z-index:1;
   pointer-events:none;
-  border-radius:2px;
   background:
-    repeating-linear-gradient(103deg,rgba(236,219,183,.12) 0 1px,transparent 1px 4px),
+    repeating-linear-gradient(103deg,rgba(221,210,188,.16) 0 1px,transparent 1px 4px),
     var(--cdx-surface-texture);
   background-size:6px 6px,128px 128px;
-  background-blend-mode:soft-light,soft-light;
-  mix-blend-mode:soft-light;
-  opacity:.46;
+  background-blend-mode:multiply,soft-light;
+  mix-blend-mode:multiply;
+  opacity:.62;
+  -webkit-mask:var(--ffg-die-mask) center / contain no-repeat;
+  mask:var(--ffg-die-mask) center / contain no-repeat;
 }
-.cdx form.scheme-eldritch :is(.dice-pool,.cdx-wpn-pool) img,
+.cdx form.scheme-eldritch .ffg-die-icon:has(img[src*="/yellow.png"]) img {
+  filter:saturate(.42) sepia(.16) brightness(.76) contrast(1.08);
+}
+.cdx form.scheme-eldritch span.dietype.proficiency { color:#8f805e; }
 .cdx form.scheme-eldritch .cdx-def-dice svg {
-  filter:saturate(.86) brightness(.94) contrast(1.05);
+  filter:saturate(.72) brightness(.88) contrast(1.08);
 }
 
 /* --- Dark-surface compatibility ----------------------------------------- */

@@ -356,11 +356,16 @@ export class DicePoolFFG {
 
   _addIcons(container, icon, times, height = 36, width = 36) {
     for (let i = 0; i < times; i++) {
+      const die = document.createElement("span");
+      die.classList.add("ffg-die-icon");
+      die.style.setProperty("--ffg-die-mask", `url("${icon}")`);
+
       const img = document.createElement("img");
       img.src = icon;
       img.width = width;
       img.height = height;
-      container.appendChild(img);
+      die.appendChild(img);
+      container.appendChild(die);
     }
   }
 
