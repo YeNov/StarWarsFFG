@@ -356,17 +356,14 @@ export class DicePoolFFG {
 
   _addIcons(container, icon, times, height = 36, width = 36) {
     for (let i = 0; i < times; i++) {
+      const die = document.createElement("span");
+      die.classList.add("ffg-die-icon");
+      die.style.setProperty("--ffg-die-mask", `url("${icon}")`);
+
       const img = document.createElement("img");
       img.src = icon;
       img.width = width;
       img.height = height;
-
-      const die = document.createElement("span");
-      die.classList.add("ffg-die-icon");
-      // CSS url() values in an inline custom property do not consistently use
-      // the same Foundry base route as an <img>. Reuse the browser-resolved src
-      // so the texture mask always points at the image that visibly loaded.
-      die.style.setProperty("--ffg-die-mask", `url("${img.src}")`);
       die.appendChild(img);
       container.appendChild(die);
     }

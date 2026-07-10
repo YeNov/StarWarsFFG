@@ -2238,7 +2238,6 @@
 .cdx form.scheme-eldritch .ffg-die-icon {
   position:relative;
   display:inline-block;
-  isolation:isolate;
   line-height:0;
   vertical-align:baseline;
 }
