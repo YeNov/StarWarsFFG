@@ -32,15 +32,20 @@ export default class EffectHelpers {
     // "Permanent". Read it off the live document (toObject can drop it on V14).
     const ffgDuration = originalEffect.flags?.starwarsffg?.duration ?? effect.flags?.starwarsffg?.duration;
     const d = effect.duration ?? {};
+    // On V14 the legacy {seconds, rounds, turns, combat} fields survive only as
+    // deprecated getters that log a compatibility warning on every READ (removed in
+    // V16). Feature-detect so we never touch them on V14 — the real duration there is
+    // {value, units} — while keeping the V13 fallback chain intact on older cores.
+    const isV14 = game.release.generation >= 14;
     if (ffgDuration === "once") {
       effect.duration = game.i18n.localize("SWFFG.Effect.Duration.NextCheck");
     } else if (ffgDuration === "combat") {
       effect.duration = game.i18n.localize("SWFFG.Effect.Duration.CurrentCombat");
     }
     // V14 rewrote the core duration model from {seconds, rounds, turns, combat, ...}
-    // to {value, units, ...}; the old field reads all came back undefined on V14, so
-    // every row showed "Permanent". Handle the V14 {value, units} shape first, then
-    // fall back to the legacy V13 fields so timed core durations read correctly on both.
+    // to {value, units, ...}. Handle the V14 {value, units} shape first, then fall back
+    // to the legacy V13 fields (guarded by !isV14 so the deprecated getters are never
+    // read on V14) so timed core durations read correctly on both.
     else if (Number.isInteger(d.value) && d.units) {
       // V14: value + units (seconds/rounds/turns/minutes/hours/days/...). Use the
       // localized label for the units we ship strings for; otherwise show the raw
@@ -48,13 +53,13 @@ export default class EffectHelpers {
       const unitKey = { seconds: "Seconds", rounds: "Rounds", turns: "Turns" }[d.units];
       const unitLabel = unitKey ? game.i18n.localize(`SWFFG.Effect.Duration.${unitKey}`) : d.units;
       effect.duration = `${d.value} ${unitLabel}`;
-    } else if (d.combat) {
+    } else if (!isV14 && d.combat) {
       effect.duration = game.i18n.localize("SWFFG.Effect.Duration.CurrentCombat");
-    } else if (d.seconds) {
+    } else if (!isV14 && d.seconds) {
       effect.duration = `${d.seconds} ${game.i18n.localize("SWFFG.Effect.Duration.Seconds")}`;
-    } else if (d.rounds) {
+    } else if (!isV14 && d.rounds) {
       effect.duration = `${d.rounds} ${game.i18n.localize("SWFFG.Effect.Duration.Rounds")}`;
-    } else if (d.turns) {
+    } else if (!isV14 && d.turns) {
       effect.duration = `${d.turns} ${game.i18n.localize("SWFFG.Effect.Duration.Turns")}`;
     } else {
       effect.duration = game.i18n.localize("SWFFG.Effect.Duration.Permanent");
