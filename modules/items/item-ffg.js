@@ -759,6 +759,13 @@ export class ItemFFG extends ItemBaseFFG {
 
     data.prettyDesc = await PopoutEditor.renderDiceImages(data.description, this.actor);
 
+    // Weapons/ship weapons carry a "special" HTML field that can contain FFG dice
+    // codes ([AD], [TH], …). Pre-render it to glyphs here so the roll card can output
+    // the enriched field directly rather than relying on a Handlebars helper.
+    if (["weapon", "shipweapon"].includes(this.type) && data.special?.value) {
+      data.enrichedSpecial = await PopoutEditor.renderDiceImages(data.special.value, this.actor);
+    }
+
     if (["weapon", "armor", "armour", "shipweapon"].includes(this.type)) {
       data.doNotSubmit = (await this.sheet.getData()).data.doNotSubmit;
     }
