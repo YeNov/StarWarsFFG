@@ -2245,23 +2245,41 @@
   display:block;
   filter:saturate(.78) brightness(.9) contrast(1.08);
 }
+.cdx form.scheme-eldritch .ffg-die-icon::before,
 .cdx form.scheme-eldritch .ffg-die-icon::after {
   content:"";
   position:absolute;
   inset:0;
   z-index:1;
   pointer-events:none;
+}
+.cdx form.scheme-eldritch .ffg-die-icon::before {
   background:
-    linear-gradient(145deg,rgba(255,255,255,.32),transparent 42%,rgba(0,0,0,.3)),
+    radial-gradient(ellipse at 50% 52%,rgba(0,0,0,.42) 0,rgba(0,0,0,.25) 43%,rgba(0,0,0,.05) 70%,transparent 82%),
     repeating-linear-gradient(103deg,rgba(255,255,255,.14) 0 1px,rgba(0,0,0,.1) 1px 2px,transparent 2px 4px),
     var(--cdx-surface-texture);
   background-size:100% 100%,5px 5px,32px 32px;
-  background-blend-mode:normal,overlay,soft-light;
-  mix-blend-mode:overlay;
-  filter:grayscale(1) contrast(1.6);
-  opacity:.48;
+  background-blend-mode:multiply,overlay,soft-light;
+  mix-blend-mode:soft-light;
+  filter:grayscale(1) contrast(1.5);
+  opacity:.62;
   -webkit-mask:var(--ffg-die-mask) center / contain no-repeat;
   mask:var(--ffg-die-mask) center / contain no-repeat;
+}
+.cdx form.scheme-eldritch .ffg-die-icon::after {
+  background:#eadfc8;
+  mix-blend-mode:screen;
+  opacity:.42;
+  -webkit-mask-image:var(--ffg-die-mask),var(--ffg-die-mask);
+  -webkit-mask-position:center,center;
+  -webkit-mask-repeat:no-repeat,no-repeat;
+  -webkit-mask-size:contain,calc(100% - 2px) calc(100% - 2px);
+  -webkit-mask-composite:xor;
+  mask-image:var(--ffg-die-mask),var(--ffg-die-mask);
+  mask-position:center,center;
+  mask-repeat:no-repeat,no-repeat;
+  mask-size:contain,calc(100% - 2px) calc(100% - 2px);
+  mask-composite:exclude;
 }
 .cdx form.scheme-eldritch .ffg-die-icon:has(img[src*="/yellow.png"]) img {
   filter:hue-rotate(-10deg) saturate(.86) brightness(.9) contrast(1.06);
