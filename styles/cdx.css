@@ -2243,7 +2243,7 @@
 }
 .cdx form.scheme-eldritch .ffg-die-icon img {
   display:block;
-  filter:saturate(.72) brightness(.88) contrast(1.08);
+  filter:saturate(.78) brightness(.9) contrast(1.08);
 }
 .cdx form.scheme-eldritch .ffg-die-icon::after {
   content:"";
@@ -2252,21 +2252,23 @@
   z-index:1;
   pointer-events:none;
   background:
-    repeating-linear-gradient(103deg,rgba(221,210,188,.16) 0 1px,transparent 1px 4px),
+    linear-gradient(145deg,rgba(255,255,255,.32),transparent 42%,rgba(0,0,0,.3)),
+    repeating-linear-gradient(103deg,rgba(255,255,255,.14) 0 1px,rgba(0,0,0,.1) 1px 2px,transparent 2px 4px),
     var(--cdx-surface-texture);
-  background-size:6px 6px,128px 128px;
-  background-blend-mode:multiply,soft-light;
-  mix-blend-mode:multiply;
-  opacity:.62;
+  background-size:100% 100%,5px 5px,32px 32px;
+  background-blend-mode:normal,overlay,soft-light;
+  mix-blend-mode:overlay;
+  filter:grayscale(1) contrast(1.6);
+  opacity:.48;
   -webkit-mask:var(--ffg-die-mask) center / contain no-repeat;
   mask:var(--ffg-die-mask) center / contain no-repeat;
 }
 .cdx form.scheme-eldritch .ffg-die-icon:has(img[src*="/yellow.png"]) img {
-  filter:saturate(.42) sepia(.16) brightness(.76) contrast(1.08);
+  filter:hue-rotate(-10deg) saturate(.86) brightness(.9) contrast(1.06);
 }
-.cdx form.scheme-eldritch span.dietype.proficiency { color:#8f805e; }
+.cdx form.scheme-eldritch span.dietype.proficiency { color:#c49a3c; }
 .cdx form.scheme-eldritch .cdx-def-dice svg {
-  filter:saturate(.72) brightness(.88) contrast(1.08);
+  filter:saturate(.78) brightness(.9) contrast(1.08);
 }
 
 /* --- Dark-surface compatibility ----------------------------------------- */
