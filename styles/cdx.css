@@ -81,7 +81,7 @@
   --cdx-active-bg:rgba(154,115,53,.14);
   --cdx-active-ink:#d9c18c;
   --cdx-panel-shadow:inset 0 0 0 1px rgba(193,151,73,.13),0 2px 8px rgba(0,0,0,.38);
-  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/paper.svg");
+  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/paper.svg?v=2");
   --cdx-sigil:url("/systems/starwarsffg/images/codex/eldritch/sigil.svg");
   --cdx-portrait-radius:50%;
   --cdx-rust:#67251d;
@@ -1613,11 +1613,13 @@
   background-color:var(--cdx-bg) !important;
   background-image:
     radial-gradient(ellipse at 48% 18%,rgba(72,63,46,.16) 0,rgba(11,13,12,.1) 38%,rgba(0,0,0,.52) 100%),
-    linear-gradient(115deg,rgba(193,151,73,.025),transparent 32%,rgba(0,0,0,.11) 70%),
+    radial-gradient(circle at 16% 38%,rgba(164,133,80,.075),transparent 24%),
+    radial-gradient(circle at 78% 72%,rgba(0,0,0,.34),transparent 31%),
+    repeating-linear-gradient(103deg,rgba(224,210,181,.018) 0 1px,transparent 1px 4px),
     var(--cdx-surface-texture) !important;
-  background-repeat:no-repeat,no-repeat,repeat !important;
-  background-size:100% 100%,100% 100%,320px 320px !important;
-  background-blend-mode:normal,normal,soft-light;
+  background-repeat:no-repeat,no-repeat,no-repeat,repeat,repeat !important;
+  background-size:100% 100%,100% 100%,100% 100%,7px 7px,256px 256px !important;
+  background-blend-mode:normal,screen,multiply,soft-light,soft-light;
   color:var(--cdx-ink);
   font-family:var(--cdx-font-body);
   text-rendering:optimizeLegibility;
@@ -1797,9 +1799,12 @@
 ) {
   background-color:var(--cdx-paper2);
   background-image:
-    linear-gradient(135deg,rgba(193,151,73,.018),transparent 48%,rgba(0,0,0,.11)),
+    radial-gradient(circle at 24% 18%,rgba(193,151,73,.045),transparent 35%),
+    repeating-linear-gradient(101deg,rgba(224,210,181,.014) 0 1px,transparent 1px 5px),
     var(--cdx-surface-texture);
-  background-size:100% 100%,320px 320px;
+  background-repeat:no-repeat,repeat,repeat;
+  background-size:100% 100%,9px 9px,256px 256px;
+  background-blend-mode:screen,soft-light,soft-light;
   border-color:var(--cdx-line);
   box-shadow:var(--cdx-panel-shadow);
 }
@@ -2187,9 +2192,11 @@
   background-color:var(--cdx-bg) !important;
   background-image:
     radial-gradient(ellipse at 50% 10%,rgba(72,63,46,.13),transparent 62%),
+    repeating-linear-gradient(103deg,rgba(224,210,181,.016) 0 1px,transparent 1px 4px),
     var(--cdx-surface-texture) !important;
-  background-repeat:no-repeat,repeat !important;
-  background-size:100% 100%,320px 320px !important;
+  background-repeat:no-repeat,repeat,repeat !important;
+  background-size:100% 100%,7px 7px,256px 256px !important;
+  background-blend-mode:normal,soft-light,soft-light;
   font-family:var(--cdx-font-body);
 }
 .cdx.cdx-embed > form.scheme-eldritch :is(nav.tabs .item,.form-group > label,.attributes-header,.attributes-header > *,input[type=text],input[type=number],select) {
