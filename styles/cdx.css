@@ -2238,6 +2238,7 @@
 .cdx form.scheme-eldritch .ffg-die-icon {
   position:relative;
   display:inline-block;
+  isolation:isolate;
   line-height:0;
   vertical-align:baseline;
 }
@@ -2295,8 +2296,22 @@
   stroke:#eee5d7;
   stroke-width:2;
 }
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) .item-rollable.rollable {
+  position:relative;
+}
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) .item-rollable.rollable:hover {
-  filter:brightness(0) invert(1) sepia(.18);
+  filter:none;
+  background-color:#080a09 !important;
+  background-image:none !important;
+}
+:is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) .item-rollable.rollable:hover::after {
+  content:"";
+  position:absolute;
+  inset:11px;
+  pointer-events:none;
+  background:#b9ad99;
+  -webkit-mask:url("/systems/starwarsffg/images/generic-die.svg") center / contain no-repeat;
+  mask:url("/systems/starwarsffg/images/generic-die.svg") center / contain no-repeat;
 }
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="black.png"],
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="black-minus"],
