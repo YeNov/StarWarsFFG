@@ -57,7 +57,7 @@ import SWAImporter from "./importer/swa-importer.js";
 import {CharacterCreator} from "./helpers/character-creator.js";
 import {xpLogUndo} from "./helpers/actor-helpers.js";
 import {register_system_tours} from "./helpers/tours.js";
-import {registerSystemDataModels} from "./data/index.js";
+import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -144,6 +144,8 @@ Hooks.once("init", async function () {
     },
     diceterms: [AbilityDie, BoostDie, ChallengeDie, DifficultyDie, ForceDie, ProficiencyDie, SetbackDie],
     ActiveEffectFFG,
+    // Read-only migration self-check: await game.ffg.reportDataModelConformance()
+    reportDataModelConformance,
   };
 
   // Define custom log prefix and logger

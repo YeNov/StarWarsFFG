@@ -16,6 +16,7 @@
 
 export { mix, BaseActorDataModel, BaseItemDataModel } from "./mix.js";
 export { metadataField, MetaOnlyTemplate } from "./shared-fields.js";
+export { reportDataModelConformance } from "./conformance-report.js";
 export * from "./actor-templates.js";
 export * from "./item-templates.js";
 

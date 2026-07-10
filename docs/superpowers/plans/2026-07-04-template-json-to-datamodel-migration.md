@@ -102,6 +102,18 @@ silently folded in.
 
 ## Bulk rewrite tool (pre-migration data verification)
 
+> **BUILT as a report-only reporter (2026-07-09).** Shipped the *verify* half of
+> this tool — the `classifyDiff` walk across all four recursion targets — as
+> [conformance-report.js](../../../modules/data/conformance-report.js), exposed
+> as `game.ffg.reportDataModelConformance()`. It never writes (safe on locked
+> packs), so the risky write-back half was not built: because the DataModels
+> reproduce template.json's exact shape, there is nothing to conform. **Full
+> live run: CLEAN across 17,925 documents** (world actors/items + embedded
+> inventory + unlinked-token deltas + every OggDude compendium pack) — 0
+> dropped/changed, 0 invalid. This is the reusable check an upgrader runs against
+> their own world; the write-back stays available as a future flag if a world
+> ever reports findings. The full design below is retained for that contingency.
+
 **Purpose.** Before a sub-type's DataModel is registered in
 `CONFIG.Actor.dataModels`/`CONFIG.Item.dataModels`, walk every existing
 document of that type, re-derive what its `system` data *would* look like
