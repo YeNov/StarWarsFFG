@@ -1858,35 +1858,35 @@
 
 /* --- Characteristics, Force and compact ratio controls ------------------ */
 .cdx form.scheme-eldritch .cdx-chip-box {
-  border:4px double #8e7549;
+  border:1px solid #50483a;
   border-radius:0;
   clip-path:var(--cdx-clip);
   background:
-    linear-gradient(145deg,rgba(193,151,73,.055),transparent 44%),
+    linear-gradient(145deg,rgba(133,111,73,.025),transparent 44%),
     #141714;
-  box-shadow:inset 0 0 0 3px #0e110f,inset 0 0 0 4px rgba(193,151,73,.1),0 4px 10px rgba(0,0,0,.4);
+  box-shadow:inset 0 0 0 3px #0e110f,inset 0 0 0 4px rgba(112,96,70,.28),0 3px 8px rgba(0,0,0,.42);
 }
 .cdx form.scheme-eldritch .cdx-chip.derived .cdx-chip-box {
-  border:4px double #9b7c44;
+  border-color:#645742;
 }
 .cdx form.scheme-eldritch .cdx-chip-label {
-  background:linear-gradient(180deg,#31281a,#17140f);
-  color:#d5c19a;
-  box-shadow:inset 0 0 0 1px rgba(193,151,73,.4);
+  background:linear-gradient(180deg,#242019,#14130f);
+  color:#aaa18f;
+  box-shadow:inset 0 0 0 1px rgba(111,96,70,.26);
   text-shadow:0 1px #000;
 }
-.cdx form.scheme-eldritch .cdx-chip-label.brass { background:linear-gradient(180deg,#503b1e,#241b11); }
+.cdx form.scheme-eldritch .cdx-chip-label.brass { background:linear-gradient(180deg,#30281b,#17140f); }
 .cdx form.scheme-eldritch .cdx-chip.derived.cdx-align-neutral .cdx-chip-box {
   background:linear-gradient(145deg,rgba(177,87,62,.14),transparent 50%),#241411;
-  border-color:#8c543d;
+  border-color:#68483c;
 }
 .cdx form.scheme-eldritch .cdx-chip.derived.cdx-align-good .cdx-chip-box {
   background:linear-gradient(145deg,#25384a,#111820);
-  border-color:#70889a;
+  border-color:#52616a;
 }
 .cdx form.scheme-eldritch .cdx-chip.derived.cdx-align-evil .cdx-chip-box {
   background:linear-gradient(145deg,#6f2b21,#29110e);
-  border-color:#a35a44;
+  border-color:#74453a;
 }
 .cdx form.scheme-eldritch .cdx-chip:is(.cdx-align-neutral,.cdx-align-evil) .cdx-chip-label {
   background:linear-gradient(180deg,#62281f,#2b120f);
