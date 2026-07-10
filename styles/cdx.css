@@ -296,7 +296,7 @@
 .cdx .cdx-header.cdx-hcollapsed .cdx-cr-change,
 .cdx .cdx-header.cdx-hcollapsed .cdx-cr-editor { display:none; }
 .cdx .cdx-header.cdx-hcollapsed .cdx-square.cdx-credits {
-  background:transparent; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
+  background:transparent; border:none; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
   display:inline-flex; flex-direction:row; align-items:baseline; gap:6px;
 }
 .cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k { display:none; }
@@ -2229,6 +2229,35 @@
 .cdx.cdx-embed > form.scheme-eldritch .editor-content.ProseMirror {
   background:#111411;
   color:#ddd4c6;
+}
+
+/* --- In-sheet dice print texture -----------------------------------------
+   The coloured raster dice and defence SVGs otherwise read as perfectly clean
+   digital stickers against the aged sheet. A non-interactive paper overlay
+   makes them feel printed into the dossier without changing their hit targets,
+   source artwork, or gameplay colours. */
+.cdx form.scheme-eldritch :is(.dice-pool,.cdx-wpn-pool,.cdx-def-dice) {
+  position:relative;
+  isolation:isolate;
+}
+.cdx form.scheme-eldritch :is(.dice-pool,.cdx-wpn-pool,.cdx-def-dice)::after {
+  content:"";
+  position:absolute;
+  inset:-1px;
+  z-index:3;
+  pointer-events:none;
+  border-radius:2px;
+  background:
+    repeating-linear-gradient(103deg,rgba(236,219,183,.12) 0 1px,transparent 1px 4px),
+    var(--cdx-surface-texture);
+  background-size:6px 6px,128px 128px;
+  background-blend-mode:soft-light,soft-light;
+  mix-blend-mode:soft-light;
+  opacity:.46;
+}
+.cdx form.scheme-eldritch :is(.dice-pool,.cdx-wpn-pool) img,
+.cdx form.scheme-eldritch .cdx-def-dice svg {
+  filter:saturate(.86) brightness(.94) contrast(1.05);
 }
 
 /* --- Dark-surface compatibility ----------------------------------------- */
