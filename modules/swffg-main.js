@@ -78,6 +78,25 @@ Hooks.on("setup", function (){
   register_system_tours();
 });
 
+// Merge the Codex localization file into the translation table. Codex labels are
+// kept in their own lang/codex/<lang>.json (separate from the base system strings)
+// and loaded here in code rather than via a second manifest language entry, so
+// they resolve on a simple client reload instead of only after a full world
+// relaunch (system.json is re-read only on relaunch). i18nInit fires right after
+// the base table loads. English is merged first as a fallback base, then the
+// active language on top when it differs.
+Hooks.on("i18nInit", async function () {
+  const langs = game.i18n.lang && game.i18n.lang !== "en" ? ["en", game.i18n.lang] : ["en"];
+  for (const lang of langs) {
+    try {
+      const json = await foundry.utils.fetchJsonWithTimeout(`systems/starwarsffg/lang/codex/${lang}.json`);
+      foundry.utils.mergeObject(game.i18n.translations, foundry.utils.expandObject(json));
+    } catch (e) {
+      // No codex file for this language (e.g. only English exists) — skip quietly.
+    }
+  }
+});
+
 // Apply optional label overrides for Credits, Obligation, Morality, Duty, and
 // Conflict. i18nInit fires immediately after the translation table is loaded and
 // is the canonical place to mutate it, so overriding the translation entry here
