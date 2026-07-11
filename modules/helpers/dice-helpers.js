@@ -7,14 +7,13 @@ import { DicePoolFFG } from "../dice-pool-ffg.js";
 export default class DiceHelpers {
   static async rollSkill(obj, event, type, flavorText, sound) {
     const data = await obj.getData();
-    const row = event.target.parentElement.parentElement;
-    let skillName = row.parentElement.dataset["ability"];
-    if (skillName === undefined) {
-      skillName = row.dataset["ability"];
-      if (skillName === undefined) {
-        skillName = row.parentElement.parentElement.parentElement.dataset["ability"];
-      }
-    }
+    // Resolve the skill/weapon row by climbing to the nearest [data-ability]
+    // ancestor rather than counting fixed parentElement hops. The dice preview
+    // wraps each die in a <span class="ffg-die-icon">, so a hard-coded hop count
+    // lands one level short and skillName comes back undefined — which builds a
+    // pool with 0 ability dice (no positive dice at all).
+    const abilityEl = event.target?.closest?.("[data-ability]") ?? null;
+    let skillName = abilityEl?.dataset?.["ability"];
 
     let skills;
     const theme = await game.settings.get("starwarsffg", "skilltheme");
@@ -66,16 +65,12 @@ export default class DiceHelpers {
 
     // Determine if this roll is triggered by an item.
     let item;
-    if ($(row.parentElement).hasClass("item")) {
-      //Check if token is linked to actor
-      if (obj.actor.token === null) {
-        let itemID = row.parentElement.dataset["itemId"];
-        item = actor.items.get(itemID);
-      } else {
-        //Rolls this if unlinked
-        let itemID = row.parentElement.dataset["itemId"];
-        item = obj.actor.token.actor.items.get(itemID);
-      }
+    const itemEl = event.target?.closest?.(".item");
+    if (itemEl) {
+      const itemID = itemEl.dataset["itemId"];
+      // Check if token is linked to actor; unlinked tokens carry their own items.
+      const owner = obj.actor.token === null ? actor : obj.actor.token.actor;
+      item = owner.items.get(itemID);
     }
 
     if (item && item.type === "weapon") {

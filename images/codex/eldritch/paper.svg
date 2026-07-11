@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Seamless charcoal paper texture</title>
+  <desc>An original transparent paper-grain overlay made from stitched procedural noise and faint fibres.</desc>
+  <defs>
+    <filter id="paper-mottle" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.014 0.021"
+        numOctaves="4"
+        seed="43"
+        stitchTiles="stitch"
+        result="mottle"
+      />
+      <feColorMatrix in="mottle" type="saturate" values="0" result="gray" />
+      <feComponentTransfer in="gray">
+        <feFuncR type="linear" slope="0.88" intercept="0.06" />
+        <feFuncG type="linear" slope="0.82" intercept="0.08" />
+        <feFuncB type="linear" slope="0.70" intercept="0.10" />
+        <feFuncA type="table" tableValues="0.34 0.34" />
+      </feComponentTransfer>
+    </filter>
+    <filter id="paper-grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.58 0.74"
+        numOctaves="3"
+        seed="19"
+        stitchTiles="stitch"
+        result="grain"
+      />
+      <feColorMatrix in="grain" type="saturate" values="0" result="gray" />
+      <feComponentTransfer in="gray">
+        <feFuncR type="linear" slope="0.95" intercept="0.02" />
+        <feFuncG type="linear" slope="0.90" intercept="0.04" />
+        <feFuncB type="linear" slope="0.80" intercept="0.06" />
+        <feFuncA type="table" tableValues="0.18 0.18" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="256" height="256" filter="url(#paper-mottle)" opacity="0.88" />
+  <rect width="256" height="256" filter="url(#paper-grain)" opacity="0.72" />
+  <g fill="none" stroke="#c7b083" stroke-width="0.45" opacity="0.075">
+    <path d="M-12 31C45 20 89 42 146 29s93-8 134 5" />
+    <path d="M-18 96c52 13 93-15 145-3s96 13 148-2" />
+    <path d="M-15 171c63-17 106 13 164-1s87-7 126 6" />
+    <path d="M-8 231c51 9 96-10 145 0s92 8 136-5" />
+  </g>
+  <g fill="none" stroke="#050706" stroke-width="0.6" opacity="0.16">
+    <path d="M37-14c-8 54 9 102-2 151s-3 91 7 139" />
+    <path d="M119-18c12 49-7 94 4 142s6 92-3 150" />
+    <path d="M211-16c-6 57 11 101-1 151s-4 88 8 140" />
+  </g>
+</svg>

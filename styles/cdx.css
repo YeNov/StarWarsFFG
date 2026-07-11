@@ -262,7 +262,7 @@
 .cdx .cdx-header.cdx-hcollapsed .cdx-cr-change,
 .cdx .cdx-header.cdx-hcollapsed .cdx-cr-editor { display:none; }
 .cdx .cdx-header.cdx-hcollapsed .cdx-square.cdx-credits {
-  background:transparent; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
+  background:transparent; border:none; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
   display:inline-flex; flex-direction:row; align-items:baseline; gap:6px;
 }
 .cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k { display:none; }
@@ -732,7 +732,8 @@
    dead space (few glyphs / a wide, resizable dialog). flex:1 1 auto lets them grow to fill
    the row — capped at the 36px normal size — and shrink below the tier size when the pool
    is too wide to fit; min-width:0 enables the shrink, height:auto keeps them square. */
-.cdx-dice .dice-pool img { flex: 1 1 auto; min-width: 0; max-width: 36px; height: auto; }
+.cdx-dice .dice-pool .ffg-die-icon { flex:1 1 auto; min-width:0; max-width:36px; }
+.cdx-dice .dice-pool .ffg-die-icon img { width:100%; height:auto; }
 /* Fixed-Results dietype glyphs: setback/dark = black with a white outline; the rest white. */
 .cdx-dice .dice-pool-dialog span.dietype.setback, .cdx-dice .dice-pool-dialog span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
 .cdx-dice .dice-pool-dialog span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Cosmic circle ornament</title>
+  <desc>An original restrained line ornament of concentric rings, orbital paths, and star marks.</desc>
+  <defs>
+    <g id="radial-mark">
+      <path d="M256 30v20m0 8v14" />
+      <path d="m256 48 5 5-5 5-5-5Z" />
+    </g>
+    <g id="small-star">
+      <circle r="3.5" />
+      <path d="M0-10v4M0 6v4M-10 0h4M6 0h4" />
+    </g>
+  </defs>
+
+  <g
+    fill="none"
+    stroke="#9a8157"
+    stroke-width="1.25"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.34"
+  >
+    <circle cx="256" cy="256" r="226" stroke-dasharray="1 8" />
+    <circle cx="256" cy="256" r="218" />
+    <circle cx="256" cy="256" r="198" stroke-dasharray="42 9 3 9" />
+    <circle cx="256" cy="256" r="164" />
+    <circle cx="256" cy="256" r="112" stroke-dasharray="2 6" />
+    <circle cx="256" cy="256" r="52" />
+
+    <path d="M102 256c34-61 89-96 154-96s120 35 154 96c-34 61-89 96-154 96s-120-35-154-96Z" />
+    <ellipse cx="256" cy="256" rx="187" ry="69" transform="rotate(28 256 256)" />
+    <ellipse cx="256" cy="256" rx="187" ry="69" transform="rotate(-28 256 256)" />
+    <path d="M256 92c43 43 67 97 67 164s-24 121-67 164c-43-43-67-97-67-164s24-121 67-164Z" />
+
+    <path d="M256 144 368 256 256 368 144 256Z" />
+    <path d="m256 179 77 77-77 77-77-77Z" stroke-dasharray="9 7" />
+    <path d="M204 256c17-23 34-35 52-35s35 12 52 35c-17 23-34 35-52 35s-35-12-52-35Z" />
+    <circle cx="256" cy="256" r="16" />
+    <circle cx="256" cy="256" r="4" fill="#9a8157" stroke="none" />
+
+    <use href="#radial-mark" />
+    <use href="#radial-mark" transform="rotate(45 256 256)" />
+    <use href="#radial-mark" transform="rotate(90 256 256)" />
+    <use href="#radial-mark" transform="rotate(135 256 256)" />
+    <use href="#radial-mark" transform="rotate(180 256 256)" />
+    <use href="#radial-mark" transform="rotate(225 256 256)" />
+    <use href="#radial-mark" transform="rotate(270 256 256)" />
+    <use href="#radial-mark" transform="rotate(315 256 256)" />
+
+    <g transform="translate(155 116)">
+      <use href="#small-star" />
+    </g>
+    <g transform="translate(394 192) scale(.75)">
+      <use href="#small-star" />
+    </g>
+    <g transform="translate(118 326) scale(.65)">
+      <use href="#small-star" />
+    </g>
+    <g transform="translate(348 390) scale(.85)">
+      <use href="#small-star" />
+    </g>
+
+    <path d="M77 215h24m310 82h24M215 77v24m82 310v24" />
+    <path d="M126 126 142 142m228 228 16 16M386 126l-16 16M142 370l-16 16" />
+  </g>
+</svg>

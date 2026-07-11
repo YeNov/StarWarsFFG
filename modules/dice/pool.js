@@ -360,7 +360,16 @@ export class DicePoolFFG {
       img.src = icon;
       img.width = width;
       img.height = height;
-      container.appendChild(img);
+
+      const die = document.createElement("span");
+      die.classList.add("ffg-die-icon");
+      // A relative url() in an inline custom property resolves against the
+      // stylesheet that consumes it (cdx.css, under /styles/) rather than the
+      // document, so a raw `icon` path 404s. Reuse the browser-resolved absolute
+      // src so the grain mask points at the image that actually loaded.
+      die.style.setProperty("--ffg-die-mask", `url("${img.src}")`);
+      die.appendChild(img);
+      container.appendChild(die);
     }
   }
 
