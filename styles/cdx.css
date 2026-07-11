@@ -2229,8 +2229,14 @@
 }
 
 /* --- In-sheet dice preview ------------------------------------------------
-   Grain/paper texture removed — to be redone. Only layout + colour mute here. */
+   Each die gets an inner shadow + an edge highlight clipped to its silhouette,
+   for a recessed/embossed look. Kept cheap: two static masked overlays, one
+   blend each, no background-blend-mode, no per-die filter chains, and nothing
+   sized to the sheet (so no re-raster on resize). `isolation:isolate` scopes the
+   blends to the die (img + overlays) instead of the sheet behind it. */
 .cdx form.scheme-eldritch .ffg-die-icon {
+  position:relative;
+  isolation:isolate;
   display:inline-block;
   line-height:0;
   vertical-align:baseline;
@@ -2238,6 +2244,38 @@
 .cdx form.scheme-eldritch .ffg-die-icon img {
   display:block;
   filter:saturate(.78) brightness(.9) contrast(1.08);
+}
+.cdx form.scheme-eldritch .ffg-die-icon::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  /* Shadow: a dark radial pooling in the CENTRE and fading out to the edges,
+     multiplied onto the die so the core reads as recessed (bowl). */
+  background:radial-gradient(100% 100% at 50% 50%, rgba(0,0,0,.35) 48%, rgba(0,0,0,0) 100%) center / 100% 100% no-repeat;
+  mix-blend-mode:multiply;
+  -webkit-mask:var(--ffg-die-mask) center / contain no-repeat;
+          mask:var(--ffg-die-mask) center / contain no-repeat;
+}
+/* Edge highlight that follows the polygon and fades INWARD (a real edge->interior
+   gradient, impossible with a CSS gradient). An SVG filter builds it from the die
+   shape: erode the alpha, subtract it from the original to get the outline of
+   EVERY edge/corner, blur that outline into a soft glow, then tint it. The
+   ::after paints the die image only to feed its alpha to the filter — the filter
+   output is the glow alone, which `screen` lightens onto the die below.
+   NB: feMorphology/feGaussianBlur are the heaviest primitives here, but this is a
+   static one-time render per die (dice previews don't re-render on resize). */
+.cdx form.scheme-eldritch .ffg-die-icon::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:var(--ffg-die-mask) center / contain no-repeat;
+  filter:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='r' color-interpolation-filters='sRGB'><feMorphology in='SourceAlpha' operator='erode' radius='1' result='i'/><feComposite in='SourceAlpha' in2='i' operator='out' result='rim'/><feGaussianBlur in='rim' stdDeviation='1.1' result='soft'/><feFlood flood-color='%23fff6e0'/><feComposite in2='soft' operator='in'/></filter></svg>#r");
+  mix-blend-mode:screen;
+  opacity:.4;
 }
 .cdx form.scheme-eldritch .ffg-die-icon:has(img[src*="/yellow.png"]) img {
   filter:hue-rotate(-10deg) saturate(.86) brightness(.9) contrast(1.06);
