@@ -39,6 +39,9 @@
   --cdx-portrait-radius:50%;
   --cdx-rust:#67251d;
   --cdx-rust-bright:#9a4130;
+  /* Eerie blue outline/glow used to keep dark icons (setback, dark, black dice)
+     legible on the near-black surface. */
+  --cdx-die-outline:#79c2d6;
   --cdx-rule:rgba(112,96,70,.36);
 }
 
@@ -759,7 +762,7 @@
 /* --- Dark-surface compatibility ----------------------------------------- */
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) .cdx-die-setback rect {
   fill:#000;
-  stroke:#eee5d7;
+  stroke:var(--cdx-die-outline);
   stroke-width:2;
 }
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) .item-rollable.rollable {
@@ -782,14 +785,14 @@
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="black.png"],
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="black-minus"],
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img[src*="darkpip"] {
-  filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+  filter:drop-shadow(0 0 1px var(--cdx-die-outline)) drop-shadow(0 0 1px var(--cdx-die-outline));
 }
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) :is(.dice-pool,.cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
   filter:brightness(0) invert(1);
 }
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) span.dietype:is(.setback,.dark) {
   color:#000;
-  -webkit-text-stroke:1px #fff;
+  -webkit-text-stroke:1px var(--cdx-die-outline);
   paint-order:stroke fill;
 }
 :is(.cdx.scheme-eldritch,.cdx .scheme-eldritch) span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) {
