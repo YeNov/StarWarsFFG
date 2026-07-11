@@ -777,6 +777,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // non-owner, who would then get a permission error on drop). The wiring in
     // _cdxWireReorder is gated by options.editable; with no grips rendered it's a no-op.
     ctx.cdxCanReorder = !!this.isEditable;
+    // Labels for the codex header/bio-stats. The codex templates render these via
+    // context vars (not bare {{localize}}) so they reliably reflect the optional
+    // label override settings: the configured override when set, otherwise the
+    // localized default. Covers the credits square (expanded + collapsed) and the
+    // Obligation / Morality / Conflict bio-stats.
+    const cdxLabel = (settingKey, i18nKey) =>
+      game.settings.get("starwarsffg", settingKey) || game.i18n.localize(i18nKey);
+    ctx.cdxCreditsLabel = cdxLabel("labelCredits", "SWFFG.DescriptionCredits");
+    ctx.cdxObligationLabel = cdxLabel("labelObligation", "SWFFG.DescriptionObligation");
+    ctx.cdxMoralityLabel = cdxLabel("labelMorality", "SWFFG.DescriptionMorality");
+    ctx.cdxConflictLabel = cdxLabel("labelConflict", "SWFFG.DescriptionConflict");
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
       // Header pill stacks (specializations / force powers / signature abilities):

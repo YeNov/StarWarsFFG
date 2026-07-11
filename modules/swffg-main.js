@@ -78,6 +78,33 @@ Hooks.on("setup", function (){
   register_system_tours();
 });
 
+// Apply optional label overrides for Credits, Obligation, Morality, Duty, and
+// Conflict. i18nInit fires immediately after the translation table is loaded and
+// is the canonical place to mutate it, so overriding the translation entry here
+// updates every template and code path that localizes these keys. Settings are
+// registered in the init hook, which runs before i18nInit.
+Hooks.on("i18nInit", function () {
+  const labelOverrides = {
+    labelCredits: "SWFFG.DescriptionCredits",
+    labelObligation: "SWFFG.DescriptionObligation",
+    labelMorality: "SWFFG.DescriptionMorality",
+    labelDuty: "SWFFG.DescriptionDuty",
+    labelConflict: "SWFFG.DescriptionConflict",
+  };
+  for (const [settingKey, translationKey] of Object.entries(labelOverrides)) {
+    try {
+      const override = game.settings.get("starwarsffg", settingKey);
+      if (override) {
+        foundry.utils.setProperty(game.i18n.translations, translationKey, override);
+      }
+    } catch (e) {
+      // Setting not registered yet (unexpected hook ordering) — skip rather than
+      // abort system startup. The codex sheet reads these settings directly, so
+      // its labels update regardless.
+    }
+  }
+});
+
 Hooks.once("init", async function () {
   console.log(`Initializing SWFFG System`);
   // Place our classes in their own namespace for later reference.
@@ -348,6 +375,34 @@ Hooks.once("init", async function () {
     default: 500,
     type: Number,
   });
+
+  /**
+   * Optional override text for the Credits, Obligation, Morality, and Duty labels.
+   * When left blank the default (localized) label is used. When set, the value
+   * overrides the matching SWFFG.Description* translation everywhere it appears.
+   */
+  const labelOverrides = {
+    labelCredits: "SWFFG.DescriptionCredits",
+    labelObligation: "SWFFG.DescriptionObligation",
+    labelMorality: "SWFFG.DescriptionMorality",
+    labelDuty: "SWFFG.DescriptionDuty",
+    labelConflict: "SWFFG.DescriptionConflict",
+  };
+  // Debounced so saving several label overrides at once (the settings form sets
+  // them in a loop) only triggers one reload AFTER every value is persisted — an
+  // immediate reload on the first change would abort the loop and discard the rest.
+  const debouncedLabelReload = foundry.utils.debounce(() => window.location.reload(), 100);
+  for (const key of Object.keys(labelOverrides)) {
+    game.settings.register("starwarsffg", key, {
+      name: game.i18n.localize(`SWFFG.Settings.Label.${key.replace("label", "")}.Name`),
+      hint: game.i18n.localize(`SWFFG.Settings.Label.${key.replace("label", "")}.Hint`),
+      scope: "world",
+      config: false,
+      default: "",
+      type: String,
+      onChange: debouncedLabelReload,
+    });
+  }
 
   /**
    * Register the option to use generic slots for combat

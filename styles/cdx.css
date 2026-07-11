@@ -265,9 +265,11 @@
   background:transparent; border:none; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
   display:inline-flex; flex-direction:row; align-items:baseline; gap:6px;
 }
-.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k { display:none; }
-.cdx .cdx-header.cdx-hcollapsed .cdx-credits::before {
-  content:"Credits"; font-family:"Orbitron"; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; opacity:.7; color:var(--cdx-head-ink);
+/* Show the label span (which carries the optional Credits override, else "CR")
+   as the collapsed inline label instead of a hardcoded ::before string, so it
+   tracks the Credits label override setting. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k {
+  display:inline; font-family:"Orbitron"; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; opacity:.7; color:var(--cdx-head-ink);
 }
 .cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-input {
   /* field-sizing:content shrinks the input to its value so the number sits tight

@@ -202,7 +202,7 @@
   letter-spacing:1.4px;
   text-shadow:0 1px 0 #000,0 0 12px rgba(112,96,70,.1);
 }
-.cdx form.scheme-eldritch .cdx-header.cdx-hcollapsed .cdx-credits::before {
+.cdx form.scheme-eldritch .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k {
   font-family:var(--cdx-font-display);
 }
 .cdx form.scheme-eldritch .cdx-portrait .profile-img {

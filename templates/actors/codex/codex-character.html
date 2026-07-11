@@ -38,7 +38,7 @@
       <div class="cdx-square cdx-xp"><span class="cdx-sq-k">XP</span><span class="cdx-sq-v">{{data.experience.available}}</span><span class="cdx-sq-s">of {{data.experience.total}}</span></div>
       {{/if}}
       <div class="cdx-credits-wrap">
-        <div class="cdx-square cdx-credits"><span class="cdx-sq-k">CR</span><input class="cdx-sq-input" type="text" inputmode="numeric" value="{{data.stats.credits.value}}" /></div>
+        <div class="cdx-square cdx-credits"><span class="cdx-sq-k">{{cdxCreditsLabel}}</span><input class="cdx-sq-input" type="text" inputmode="numeric" value="{{data.stats.credits.value}}" /></div>
         <button type="button" class="cdx-cr-change">Change</button>
         <div class="cdx-cr-editor"><button type="button" class="cdx-cr-op active" data-op="add" title="Add"><i class="fas fa-plus"></i></button><button type="button" class="cdx-cr-op" data-op="sub" title="Subtract"><i class="fas fa-minus"></i></button><input type="text" class="cdx-cr-amount" inputmode="numeric" placeholder="0" /><button type="button" class="cdx-cr-confirm" title="Confirm"><i class="fas fa-check"></i></button><button type="button" class="cdx-cr-cancel" title="Cancel"><i class="fas fa-times"></i></button></div>
       </div>
@@ -156,14 +156,14 @@
     </div>
     {{#if (eq actor.type "character")}}
     <div class="cdx-bio-stats">
-      <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{localize "SWFFG.DescriptionObligation"}}</div><div class="cdx-bstat-body"><input type="text" name="data.obligation.value" value="{{data.obligation.value}}" data-dtype="Number" /></div></div>
+      <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{cdxObligationLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.obligation.value" value="{{data.obligation.value}}" data-dtype="Number" /></div></div>
       {{#if (eq actor.flags.starwarsffg.config.enableForcePool true)}}
-      <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{localize "SWFFG.DescriptionMorality"}}</div><div class="cdx-bstat-body"><input type="text" name="data.morality.value" value="{{data.morality.value}}" data-dtype="Number" /></div></div>
-      <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{localize "SWFFG.DescriptionConflict"}}</div><div class="cdx-bstat-body"><input type="text" name="data.conflict.value" value="{{data.conflict.value}}" data-dtype="Number" /></div></div>
+      <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{cdxMoralityLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.morality.value" value="{{data.morality.value}}" data-dtype="Number" /></div></div>
+      <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{cdxConflictLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.conflict.value" value="{{data.conflict.value}}" data-dtype="Number" /></div></div>
       {{/if}}
     </div>
     <div class="cdx-panel">
-      <div class="cdx-panel-head">{{localize "SWFFG.DescriptionObligation"}} / {{localize "SWFFG.DescriptionMorality"}}</div>
+      <div class="cdx-panel-head">{{cdxObligationLabel}} / {{cdxMoralityLabel}}</div>
       <table class="cdx-table">
         <thead><tr><th>{{localize "SWFFG.MotivationName"}}</th><th>{{localize "SWFFG.MotivationMagnitude"}}</th><th>{{localize "SWFFG.MotivationDescription"}}</th><th><a class="add-obligation"><i class="far fa-plus-square"></i></a></th></tr></thead>
         <tbody>
