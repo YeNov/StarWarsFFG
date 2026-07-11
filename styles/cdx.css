@@ -660,6 +660,17 @@
 .cdx .cdx-sk-pool { padding:2px 6px; white-space:nowrap; }
 .cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; flex-wrap:nowrap; gap:1px; }
 .cdx .cdx-sk-pool img { width:18px; height:18px; }
+/* Dice-pool source hint (hover): the shared .tooltip2 has no vertical anchor, so
+   it renders on the pool's own line and covers the dice. Anchor it to the pool
+   node and drop it just below the row instead. Also size the panel to its
+   content (the shared rule pins width:100% of the narrow pool → min-width:150px,
+   while the pool's white-space:nowrap kept long rows from wrapping, so the text
+   spilled past the fixed-width background). max-content + wrapping fixes both. */
+.cdx .cdx-sk-pool .dice-pool.hover { position:relative; }
+.cdx .cdx-sk-pool .dice-pool.hover .tooltip2 {
+  top:calc(100% + 3px); bottom:auto; left:0;
+  width:max-content; max-width:360px; white-space:normal;
+}
 
 /* ---- Combat cards (weapon + armour) ---- */
 .cdx .cdx-cards-head { display:flex; align-items:center; justify-content:space-between; font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin:10px 0 8px; }
