@@ -6,6 +6,7 @@ import {
   xpSpendingSettings,
   localizationSettings,
   groupManagerSettings,
+  codexSettings,
 } from "./ui-settings.js";
 
 export default class SettingsHelpers {
@@ -80,6 +81,15 @@ export default class SettingsHelpers {
       label: game.i18n.localize("SWFFG.Settings.groupManager.Label"),
       icon: "fa-solid fa-user-group",
       type: groupManagerSettings,
+      restricted: true,
+    });
+
+    game.settings.registerMenu("starwarsffg", "codexSettings", {
+      name: game.i18n.localize("SWFFG.Settings.codex.Name"),
+      hint: game.i18n.localize("SWFFG.Settings.codex.Hint"),
+      label: game.i18n.localize("SWFFG.Settings.codex.Label"),
+      icon: "fa-solid fa-book-sparkles",
+      type: codexSettings,
       restricted: true,
     });
 
@@ -382,6 +392,18 @@ export default class SettingsHelpers {
         }
         return this.debouncedReload();
       },
+    });
+
+    // Codex house rule: whether advantages recover strain during Post-Encounter
+    // strain recovery (every 2 advantages = 1 strain). On by default. Read by the
+    // codex sheet's _cdxApplyStrainRecovery.
+    game.settings.register("starwarsffg", "codexAdvantageHealsStrain", {
+      name: game.i18n.localize("SWFFG.Settings.codex.AdvantageHealsStrain.Name"),
+      hint: game.i18n.localize("SWFFG.Settings.codex.AdvantageHealsStrain.Hint"),
+      scope: "world",
+      config: false,
+      default: true,
+      type: Boolean,
     });
 
     // Increase compatibility with old versions (likely to make new games kinda weird as it updates items from chat data)

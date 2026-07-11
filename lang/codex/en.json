@@ -25,5 +25,11 @@
   "SWFFG.Codex.WipeOut": "Wipe Out",
   "SWFFG.Codex.CombinedWoundPool": "Combined Wound Pool",
   "SWFFG.Codex.PerMember": "per member",
-  "SWFFG.Codex.WoundsSuffered": "wounds suffered — every {n} removes a member"
+  "SWFFG.Codex.WoundsSuffered": "wounds suffered — every {n} removes a member",
+  "SWFFG.Codex.StrainRecovery.Title": "Post-Encounter Strain Recovery",
+  "SWFFG.Codex.StrainRecovery.SelectSkill": "Select recovery skill",
+  "SWFFG.Codex.StrainRecovery.Recover": "Recover",
+  "SWFFG.Codex.StrainRecovery.Healed": "{quantity} strain healed",
+  "SWFFG.Codex.StrainRecovery.NoStrain": "{name} has no strain to heal",
+  "SWFFG.Codex.StrainRecovery.MissingSkill": "{name} is missing the Cool or Discipline skill"
 }

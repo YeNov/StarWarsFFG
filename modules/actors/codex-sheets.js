@@ -24,6 +24,7 @@ import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
 import { CdxPillStack } from "./cdx-pill-stack.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
+import { DicePoolFFG } from "../dice-pool-ffg.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch"];
 export const CDX_SCHEME_LABELS = {
@@ -376,7 +377,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       if (CDX_ALIGNMENTS.includes(v)) this.actor?.setFlag("starwarsffg", "codexAlignment", v);
     });
     this._cdxWireAmmo(root);
-    // Strain recovery — open the token-action-hud-ffgsw post-encounter utility.
+    // Strain recovery — self-contained post-encounter strain recovery dialog.
     root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
       btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
     });
@@ -982,32 +983,104 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 
   /**
-   * Open the token-action-hud-ffgsw "Post-Encounter strain recovery" utility (the
-   * Cool/Discipline dice-pool dialog) for this actor. That macro operates on the
-   * controlled token, so we select this actor's token first, then run the module's
-   * own macro script. Falls back to a plain strain reset if the module isn't
-   * active, and warns if the actor has no token on the canvas.
+   * Post-Encounter strain recovery for this actor. Ported from the
+   * token-action-hud-ffgsw "strainRecovery" macro (AdmiralDave/Wrycu) so the codex
+   * sheet no longer depends on that module: pops a Cool/Discipline dice-pool
+   * chooser, rolls the chosen pool, and removes strain equal to
+   * success + floor(advantage / 2). Operates directly on this actor (no token
+   * selection needed). No-op with a notice if there's no strain to heal.
    */
   async _cdxStrainRecovery() {
-    const MOD = "token-action-hud-ffgsw";
-    if (!game.modules.get(MOD)?.active) {
-      return this.actor.update({ "system.stats.strain.value": 0 });
-    }
-    const token = this.actor.getActiveTokens?.()?.[0]
-      ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === this.actor.id);
-    if (!token) {
-      ui.notifications?.warn(`Select ${this.actor.name}'s token on the canvas to use strain recovery.`);
+    const actor = this.actor;
+    const currentStrain = Number(actor?.system?.stats?.strain?.value) || 0;
+    if (currentStrain <= 0) {
+      ui.notifications?.info(game.i18n.format("SWFFG.Codex.StrainRecovery.NoStrain", { name: actor?.name ?? "" }));
       return;
     }
-    token.control({ releaseOthers: true });
-    try {
-      const command = await fetch(`modules/${MOD}/content/macros/strainRecovery.js`).then((r) => (r.ok ? r.text() : null));
-      if (!command) throw new Error("strainRecovery macro not found");
-      await new Macro({ name: "Strain Recovery", type: "script", command, img: "icons/svg/regen.svg" }).execute();
-    } catch (e) {
-      console.error("starwarsffg | Codex strain recovery failed", e);
-      ui.notifications?.error("Strain recovery utility failed to run.");
+
+    const skills = actor.system?.skills ?? {};
+    const coolSkill = skills["Cool"];
+    const disciplineSkill = skills["Discipline"];
+    const coolChar = coolSkill ? actor.system?.characteristics?.[coolSkill.characteristic] : null;
+    const disciplineChar = disciplineSkill ? actor.system?.characteristics?.[disciplineSkill.characteristic] : null;
+    if (!coolSkill || !disciplineSkill || !coolChar || !disciplineChar) {
+      ui.notifications?.error(game.i18n.format("SWFFG.Codex.StrainRecovery.MissingSkill", { name: actor?.name ?? "" }));
+      return;
     }
+
+    const buildPool = (skill, characteristic) => {
+      const pool = new DicePoolFFG({
+        ability: Math.max(characteristic?.value ?? 0, skill?.rank ?? 0),
+        boost: skill.boost,
+        setback: skill.setback,
+        remsetback: skill.remsetback,
+        force: skill.force ?? 0,
+        advantage: skill.advantage,
+        dark: skill.dark,
+        light: skill.light,
+        failure: skill.failure,
+        threat: skill.threat,
+        success: skill.success,
+        triumph: skill?.triumph ?? 0,
+        despair: skill?.despair ?? 0,
+      });
+      pool.upgrade(Math.min(characteristic.value ?? 0, skill.rank ?? 0));
+      return pool;
+    };
+
+    const coolPool = buildPool(coolSkill, coolChar);
+    const disciplinePool = buildPool(disciplineSkill, disciplineChar);
+
+    // Pre-select the stronger pool (more ability+proficiency+boost, proficiency breaks ties).
+    const weight = (p) => p.ability + p.proficiency + p.boost;
+    const coolBetter = weight(coolPool) > weight(disciplinePool)
+      || (weight(coolPool) === weight(disciplinePool) && coolPool.proficiency > disciplinePool.proficiency);
+
+    const content = `<form class="form cdx-strain-recovery">
+      <p>${game.i18n.localize("SWFFG.Codex.StrainRecovery.SelectSkill")}</p>
+      <div class="cdx-strain-choices">
+        <label><input type="radio" name="selected_skill" value="Cool"${coolBetter ? " checked" : ""} /> ${coolSkill.label} ${coolPool.renderPreview().outerHTML}</label>
+        <label><input type="radio" name="selected_skill" value="Discipline"${coolBetter ? "" : " checked"} /> ${disciplineSkill.label} ${disciplinePool.renderPreview().outerHTML}</label>
+      </div>
+    </form>`;
+
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Codex.StrainRecovery.Title"), icon: "fa-solid fa-laptop-medical" },
+      content,
+      modal: true,
+      rejectClose: false,
+      buttons: [{
+        action: "recover",
+        label: game.i18n.localize("SWFFG.Codex.StrainRecovery.Recover"),
+        default: true,
+        callback: async (event, button) => {
+          const chosen = button.form.elements.selected_skill.value === "Cool" ? coolPool : disciplinePool;
+          await this._cdxApplyStrainRecovery(chosen, currentStrain);
+        },
+      }],
+    });
+  }
+
+  /**
+   * Roll a recovery pool and remove the recovered strain from this actor.
+   * Healed = success (+ floor(advantage / 2) when the "advantages heal strain"
+   * house rule is enabled), capped at current strain.
+   */
+  async _cdxApplyStrainRecovery(pool, currentStrain) {
+    const actor = this.actor;
+    const message = await new game.ffg.RollFFG(pool.renderDiceExpression()).toMessage({
+      speaker: { actor },
+      flavor: `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize("SWFFG.Codex.StrainRecovery.Title")}...`,
+    });
+    const result = message.rolls?.[0]?.ffg ?? {};
+    const advantageHeals = game.settings.get("starwarsffg", "codexAdvantageHealsStrain");
+    const rolled = (result.success ?? 0) + (advantageHeals ? Math.floor((result.advantage ?? 0) / 2) : 0);
+    const healed = Math.min(currentStrain, Math.max(0, rolled));
+    await ChatMessage.create({
+      speaker: { actor },
+      content: game.i18n.format("SWFFG.Codex.StrainRecovery.Healed", { quantity: healed }),
+    });
+    await actor.update({ "system.stats.strain.value": currentStrain - healed });
   }
 };
 

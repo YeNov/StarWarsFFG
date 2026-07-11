@@ -287,3 +287,22 @@ export class groupManagerSettings extends ffgSettings {
     return this._buildSettingsContext(includeSettingsNames);
   }
 }
+
+export class codexSettings extends ffgSettings {
+  static DEFAULT_OPTIONS = {
+    id: "codex-settings",
+    classes: ["starwarsffg", "codex-settings"],
+    window: { title: "SWFFG.Settings.codex.Title" },
+  };
+
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
+    const includeSettingsNames = [
+      "starwarsffg.codexAdvantageHealsStrain",
+    ];
+    return this._buildSettingsContext(includeSettingsNames);
+  }
+}
