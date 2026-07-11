@@ -301,6 +301,7 @@ export class codexSettings extends ffgSettings {
 
   async _prepareContext(_options) {
     const includeSettingsNames = [
+      "starwarsffg.defaultSheetTheme",
       "starwarsffg.codexAdvantageHealsStrain",
     ];
     return this._buildSettingsContext(includeSettingsNames);

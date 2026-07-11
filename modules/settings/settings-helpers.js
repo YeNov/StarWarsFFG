@@ -266,7 +266,7 @@ export default class SettingsHelpers {
       name: "Default Sheet Theme",
       hint: "Which sheet style (and Codex II colour scheme) to use by default. Stored locally per client. Documents with an explicitly chosen sheet/scheme keep that choice. Reloads on change.",
       scope: "client",
-      config: true,
+      config: false,
       default: "default",
       type: String,
       choices: {
