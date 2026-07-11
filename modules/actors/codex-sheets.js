@@ -713,7 +713,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     if (!nodes.length) return;
     let data;
     try { data = await this.getData({}); } catch (e) { return; }
-    nodes.forEach((elem) => { try { DiceHelpers.addSkillDicePool(data, elem); } catch (e) { /* skip this weapon */ } });
+    nodes.forEach((elem) => {
+      // Resolve the weapon item from its card so its roll modifiers are folded
+      // into the previewed pool (matches what clicking the weapon rolls).
+      const card = elem.closest(".cdx-card.weapon[data-item-id]");
+      const item = card ? (this.actor?.items?.get(card.dataset.itemId) ?? null) : null;
+      try { DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { /* skip this weapon */ }
+    });
   }
 
   /**

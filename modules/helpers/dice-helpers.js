@@ -142,13 +142,13 @@ export default class DiceHelpers {
     return new RollBuilderFFG(data, dicePool, description, skillName, item, flavorText, sound).render(true);
   }
 
-  static async addSkillDicePool(data, elem) {
+  static async addSkillDicePool(data, elem, item = null) {
     const skillName = elem.dataset["ability"];
     if (data.data.skills[skillName]) {
       const skill = data.data.skills[skillName];
       const characteristic = data.data.characteristics[skill.characteristic];
 
-      const dicePool = new DicePoolFFG({
+      let dicePool = new DicePoolFFG({
         ability: Math.max(characteristic?.value ? characteristic.value : 0, skill?.rank ? skill.rank : 0),
         boost: skill.boost,
         setback: skill.setback,
@@ -180,6 +180,13 @@ export default class DiceHelpers {
         },
       });
       dicePool.upgrade(Math.min(characteristic.value, skill.rank) + dicePool.upgrades);
+
+      // When a weapon item is supplied, fold in its roll modifiers (weapon
+      // qualities, attachments, and item modifiers) so the preview matches what
+      // rollItem actually rolls, instead of showing only the bare skill pool.
+      if (item && (item.type === "weapon" || item.type === "shipweapon")) {
+        dicePool = new DicePoolFFG(await this.getModifiers(dicePool, item));
+      }
 
       const rollButton = elem.querySelector(".roll-button");
       dicePool.renderPreview(rollButton);
