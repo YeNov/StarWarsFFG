@@ -285,6 +285,9 @@ Hooks.once("init", async function () {
   // why CSS changes "didn't apply". TODO: switch the buster to the system
   // version (game.system.version) for release so the file caches between bumps.
   $("head").append(`<link href="systems/starwarsffg/styles/cdx.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
+  // Eldritch Horror scheme lives in its own file, appended AFTER cdx.css so it
+  // layers on top of the base Codex styles (same cache-buster rationale).
+  $("head").append(`<link href="systems/starwarsffg/styles/cdx-eldritch.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
 
   /**
    * Register default XP spend notification
