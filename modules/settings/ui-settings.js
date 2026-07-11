@@ -50,6 +50,10 @@ class ffgSettings extends FFGFormApplication {
     let includeSettings = [];
     for (const setting of game.settings.settings) {
       if (acceptableSettings.includes(setting[0])) {
+        // World-scoped settings are GM-only; hide them from users without
+        // SETTINGS_MODIFY so non-restricted menus (e.g. Codex) show players just
+        // the per-client settings they can actually change.
+        if (setting[1].scope === "world" && !canConfigure) continue;
         const s = foundry.utils.duplicate(setting[1]);
         s.name = game.i18n.localize(s.name);
         s.hint = game.i18n.localize(s.hint);

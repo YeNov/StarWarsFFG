@@ -84,13 +84,17 @@ export default class SettingsHelpers {
       restricted: true,
     });
 
+    // Not GM-restricted: the menu holds the per-client Default Sheet Theme, which
+    // every user sets for themselves. World-scoped (GM-only) settings inside it —
+    // e.g. the strain house rule — are filtered out for non-GMs in
+    // _buildSettingsContext, so players see only what they can change.
     game.settings.registerMenu("starwarsffg", "codexSettings", {
       name: game.i18n.localize("SWFFG.Settings.codex.Name"),
       hint: game.i18n.localize("SWFFG.Settings.codex.Hint"),
       label: game.i18n.localize("SWFFG.Settings.codex.Label"),
       icon: "fa-solid fa-book-sparkles",
       type: codexSettings,
-      restricted: true,
+      restricted: false,
     });
 
     // Register dice theme setting
