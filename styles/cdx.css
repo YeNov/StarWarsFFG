@@ -1570,6 +1570,9 @@
 /* Collapsed pill stacks hide all but the top pill (color:transparent); the SVG
    stroke ignores `color`, so hide the buried pills' outlines the same way. */
 .cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:not(:first-child) > svg.cdx-notch { display:none; }
+/* Collapsed header shows Credits as plain inline text (clip-path:none, no box),
+   so it must not carry a notch outline. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-square.cdx-credits > svg.cdx-notch { display:none; }
 
 .cdx form:not(.scheme-eldritch) .cdx-stat,
 .cdx form:not(.scheme-eldritch) .cdx-card,
