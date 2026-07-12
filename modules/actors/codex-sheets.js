@@ -44,11 +44,14 @@ const CDX_NOTCH = 9;   // notch size in px — must match --cdx-notch in the CSS
 
 /**
  * Redraw one block's SVG notch outline at a KNOWN border-box size (px). The
- * <path> traces the same octagon geometry as the block's clip-path fill, inset
- * slightly so the stroke sits inside the clip; falls back to a plain rectangle
- * when the block is too small for a full octagon. Callers pass w/h from the
- * ResizeObserver entry so this never reads the DOM; if omitted it measures
- * (forces a layout — the slow path, kept only as a fallback).
+ * <path> traces the SAME octagon as the block's clip-path fill (fixed CDX_NOTCH
+ * corner, inset slightly so the stroke sits inside the clip), so fill and outline
+ * stay aligned at any size — including short pills (~18–20px), which must still
+ * get their diagonals. The notch is clamped to half the smaller side only so the
+ * path can't self-cross on a pathologically tiny block (real blocks are ≥18px, so
+ * this never fires and the outline matches the fixed-9px clip exactly). Callers
+ * pass w/h from the ResizeObserver entry so this never reads the DOM; if omitted
+ * it measures (forces a layout — the slow path, kept only as a fallback).
  */
 export function cdxDrawNotch(el, w, h) {
   const svg = el.querySelector(":scope > svg.cdx-notch");
@@ -58,11 +61,11 @@ export function cdxDrawNotch(el, w, h) {
     w = r.width; h = r.height;
   }
   if (w < 2 || h < 2) return;               // hidden / unlaid-out — observer redraws later
-  const n = CDX_NOTCH, i = 0.75;            // i: inset so the stroke stays inside the clip
-  const d = (w < 2 * n + 2 || h < 2 * n + 2)
-    ? `M${i},${i} L${w - i},${i} L${w - i},${h - i} L${i},${h - i} Z`
-    : `M${i},${n} L${n},${i} L${w - n},${i} L${w - i},${n}` +
-      ` L${w - i},${h - n} L${w - n},${h - i} L${n},${h - i} L${i},${h - n} Z`;
+  const i = 0.75;                           // i: inset so the stroke stays inside the clip
+  const n = Math.min(CDX_NOTCH, w / 2, h / 2);
+  const d =
+    `M${i},${n} L${n},${i} L${w - n},${i} L${w - i},${n}` +
+    ` L${w - i},${h - n} L${w - n},${h - i} L${n},${h - i} L${i},${h - n} Z`;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   svg.firstChild.setAttribute("d", d);
 }
