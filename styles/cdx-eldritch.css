@@ -842,3 +842,45 @@
 .cdx form.scheme-eldritch .item-details :is(.tag,.item-pill) {
   color:#ded5c6;
 }
+
+/* ============================================================================
+   Notched outline — Eldritch (SVG overlay; shape rules shared from cdx.css)
+   ----------------------------------------------------------------------------
+   Drop the border (recoloured to --cdx-ol per block so the SVG stroke matches
+   each block's old edge tone); the inset box-shadow frames are untouched. These
+   selectors carry the scheme class, so their border:none reliably overrides
+   Eldritch's own borders defined above. ===================================== */
+.cdx form.scheme-eldritch .cdx-stat,
+.cdx form.scheme-eldritch .cdx-card,
+.cdx form.scheme-eldritch .cdx-injury,
+.cdx form.scheme-eldritch .cdx-talent,
+.cdx form.scheme-eldritch .cdx-panel,
+.cdx form.scheme-eldritch .cdx-istat,
+.cdx form.scheme-eldritch .cdx-icheck2,
+.cdx form.scheme-eldritch .cdx-item-body .item.force-power,
+.cdx form.scheme-eldritch .cdx-forcepool,
+.cdx form.scheme-eldritch .cdx-header,
+.cdx form.scheme-eldritch .cdx-pill,
+.cdx form.scheme-eldritch .cdx-square,
+.cdx form.scheme-eldritch .cdx-veh-rarity,
+.cdx form.scheme-eldritch .cdx-ihead,
+.cdx form.scheme-eldritch .cdx-ipill,
+.cdx form.scheme-eldritch .cdx-ihead .cdx-status {
+  --cdx-ol:var(--cdx-line);
+  border:none;
+  position:relative;
+}
+.cdx form.scheme-eldritch .cdx-header,
+.cdx form.scheme-eldritch .cdx-ihead,
+.cdx form.scheme-eldritch .cdx-pill,
+.cdx form.scheme-eldritch .cdx-square,
+.cdx form.scheme-eldritch .cdx-ipill,
+.cdx form.scheme-eldritch .cdx-ihead .cdx-status { --cdx-ol:rgba(112,96,70,.5); }
+.cdx form.scheme-eldritch .cdx-pill.force { --cdx-ol:#9c5843; }
+.cdx form.scheme-eldritch .cdx-pill.sig { --cdx-ol:#665a45; }
+.cdx form.scheme-eldritch .cdx-forcepool { --cdx-ol:#7a523d; }
+.cdx form.scheme-eldritch .cdx-veh-rarity { --cdx-ol:#5d5240; }
+.cdx form.scheme-eldritch .cdx-card:hover,
+.cdx form.scheme-eldritch .cdx-injury:hover,
+.cdx form.scheme-eldritch .cdx-item-body .item.force-power:hover { --cdx-ol:#625745; }
+.cdx form.scheme-eldritch .cdx-talent.expanded { border:1px solid var(--cdx-ol); }

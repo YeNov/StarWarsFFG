@@ -17,7 +17,7 @@
  * (see activateListeners), the same as the codex actor sheets.
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
-import { CDX_SCHEMES, CDX_SCHEME_LABELS, cdxDefaultScheme } from "../actors/codex-sheets.js";
+import { CDX_SCHEMES, CDX_SCHEME_LABELS, cdxDefaultScheme, cdxBuildNotchOutlines } from "../actors/codex-sheets.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -231,5 +231,17 @@ export class CodexItemSheet extends ItemSheetFFG {
         if (ev.key.length === 1 && !/[0-9]/.test(ev.key)) ev.preventDefault();
       });
     });
+
+    // Notched-block outlines — same SVG overlay the actor sheets use, covering
+    // the item-sheet diamond blocks (item header, pills, stat boxes, checks,
+    // force-power rows, vehicle rarity). See cdxBuildNotchOutlines.
+    if (root) cdxBuildNotchOutlines(this, root);
+  }
+
+  /** @override — drop the notch-outline ResizeObserver when the sheet closes. */
+  async close(options = {}) {
+    this._cdxNotchRO?.disconnect();
+    this._cdxNotchRO = null;
+    return super.close(options);
   }
 }
