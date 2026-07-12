@@ -1,0 +1,12 @@
+/* ============================================================================
+   CODEX II — Light scheme (extracted from cdx.css). Loaded AFTER cdx.css.
+   Palette scoped to `.scheme-light`; shared clip / notch vars live in cdx.css.
+   ========================================================================== */
+.cdx form.scheme-light {
+  --cdx-bg:#dde6ec; --cdx-stripe:rgba(47,111,158,.045);
+  --cdx-paper:#f3f7fa; --cdx-paper2:#fff; --cdx-ink:#1b2a33; --cdx-dim:#5f7079; --cdx-line:#c5d2db;
+  --cdx-accent:#2f6f9e; --cdx-accent2:#245880; --cdx-brown:#3a86b5; --cdx-brass:#b0902c;
+  --cdx-career:#e4f1f8; --cdx-career-line:#4a9bc8; --cdx-track:#cad9e2;
+  --cdx-chip-label:#1b2a33; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#56a0c4,#2f6f9e); --cdx-head-ink:#fff;
+  --cdx-warn:#bf5a00;
+}

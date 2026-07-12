@@ -2,9 +2,8 @@
    CODEX II — Eldritch Horror scheme (extracted from cdx.css).
    Loaded via a <link> appended right AFTER cdx.css in swffg-main.js, so it
    layers on top of the base Codex styles. Everything here is scoped to
-   `.scheme-eldritch`; the other schemes never match these selectors.
-   NB: the palette also sets --cdx-notch, which the shared `.cdx form` clip
-   rules in cdx.css consume — only this scheme defines it (unchanged behaviour).
+   `.scheme-eldritch`; the other schemes never match these selectors. The shared
+   `.cdx form` clip / notch vars (incl. --cdx-notch) live in cdx.css.
    ========================================================================== */
 
 /* Eldritch display face. The font already ships with the system; declaring a
@@ -23,7 +22,7 @@
   --cdx-career:rgba(104,90,67,.12); --cdx-career-line:#76684f; --cdx-track:#39362f;
   --cdx-chip-label:#17130d; --cdx-chip-ink:#d9d0c1;
   --cdx-head:linear-gradient(180deg,rgba(23,25,22,.98),rgba(8,10,9,.995)); --cdx-head-ink:#ded5c6;
-  --cdx-warn:#8d7540; --cdx-notch:9px;
+  --cdx-warn:#8d7540;
 
   /* Scheme-only semantic tokens. The existing palettes continue to resolve
      through their unchanged declarations, so their computed styles do not move. */

@@ -1,0 +1,12 @@
+/* ============================================================================
+   CODEX II — Mercenary scheme (extracted from cdx.css). Loaded AFTER cdx.css.
+   Palette scoped to `.scheme-mercenary`; shared clip / notch vars live in cdx.css.
+   ========================================================================== */
+.cdx form.scheme-mercenary {
+  --cdx-bg:#c9bdac; --cdx-stripe:rgba(60,40,20,.05);
+  --cdx-paper:#e6dccb; --cdx-paper2:#f1ebdd; --cdx-ink:#241c12; --cdx-dim:#6e6047; --cdx-line:#bcae95;
+  --cdx-accent:#7a4a22; --cdx-accent2:#5e3818; --cdx-brown:#8a5a2a; --cdx-brass:#b07a30;
+  --cdx-career:#efe2c8; --cdx-career-line:#b07a30; --cdx-track:#cdbfa3;
+  --cdx-chip-label:#241c12; --cdx-chip-ink:#f1ebdd; --cdx-head:linear-gradient(180deg,#3b4148,#22262b); --cdx-head-ink:#f1ebdd;
+  --cdx-warn:#9a3c08;
+}
