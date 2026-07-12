@@ -43,16 +43,20 @@ const CDX_NOTCH_SEL = [
 const CDX_NOTCH = 9;   // notch size in px — must match --cdx-notch in the CSS
 
 /**
- * Redraw one block's SVG notch outline to its current px size. The <path> traces
- * the same octagon geometry as the block's clip-path fill, inset slightly so the
- * stroke sits inside the clip. Falls back to a plain rectangle when the block is
- * too small for a full octagon.
+ * Redraw one block's SVG notch outline at a KNOWN border-box size (px). The
+ * <path> traces the same octagon geometry as the block's clip-path fill, inset
+ * slightly so the stroke sits inside the clip; falls back to a plain rectangle
+ * when the block is too small for a full octagon. Callers pass w/h from the
+ * ResizeObserver entry so this never reads the DOM; if omitted it measures
+ * (forces a layout — the slow path, kept only as a fallback).
  */
-export function cdxDrawNotch(el) {
+export function cdxDrawNotch(el, w, h) {
   const svg = el.querySelector(":scope > svg.cdx-notch");
   if (!svg) return;
-  const r = el.getBoundingClientRect();
-  const w = r.width, h = r.height;
+  if (w == null || h == null) {             // fallback: measure (border box) — forces layout
+    const r = el.getBoundingClientRect();
+    w = r.width; h = r.height;
+  }
   if (w < 2 || h < 2) return;               // hidden / unlaid-out — observer redraws later
   const n = CDX_NOTCH, i = 0.75;            // i: inset so the stroke stays inside the clip
   const d = (w < 2 * n + 2 || h < 2 * n + 2)
@@ -66,23 +70,31 @@ export function cdxDrawNotch(el) {
 /**
  * Give every notched block (CDX_NOTCH_SEL) inside `root` an <svg.cdx-notch>
  * overlay whose stroked <path> outlines the same octagon as its clip-path fill,
- * so the two can never drift. Because the path is built from the block's live px
- * size, the notches stay a fixed 9px and the stroke a uniform 1px at any size or
- * DPR. A single ResizeObserver (stored on `host`, rebuilt each call, torn down in
- * the sheet's close) redraws blocks when they resize — tab switches, window
- * resize, header collapse, talent expand.
+ * so the two can never drift. The path is built from the block's live px size, so
+ * notches stay a fixed 9px and the stroke a uniform 1px at any size / DPR. A
+ * single ResizeObserver (stored on `host`, rebuilt each call, torn down in the
+ * sheet's close) redraws blocks on resize — tab switch, window resize, header
+ * collapse, talent expand.
+ *
+ * Perf: the observer reads the size straight off each entry (borderBoxSize), so
+ * it never calls getBoundingClientRect, and its initial per-element fire does the
+ * FIRST draw — so the build loop only creates nodes. No forced layout on either
+ * path (avoids read-after-write layout thrashing across N blocks).
  */
 export function cdxBuildNotchOutlines(host, root) {
   if (!root) return;
   host._cdxNotchRO?.disconnect();
   host._cdxNotchRO = new ResizeObserver((entries) => {
-    for (const e of entries) cdxDrawNotch(e.target);
+    for (const e of entries) {
+      const box = e.borderBoxSize && e.borderBoxSize[0];
+      if (box) cdxDrawNotch(e.target, box.inlineSize, box.blockSize);
+      else cdxDrawNotch(e.target);          // legacy fallback: measures
+    }
   });
   for (const el of root.querySelectorAll(CDX_NOTCH_SEL)) {
-    let svg = el.querySelector(":scope > svg.cdx-notch");
-    if (!svg) {
+    if (!el.querySelector(":scope > svg.cdx-notch")) {
       const NS = "http://www.w3.org/2000/svg";
-      svg = document.createElementNS(NS, "svg");
+      const svg = document.createElementNS(NS, "svg");
       svg.setAttribute("class", "cdx-notch");
       svg.setAttribute("aria-hidden", "true");
       svg.setAttribute("preserveAspectRatio", "none");
@@ -93,7 +105,8 @@ export function cdxBuildNotchOutlines(host, root) {
       // keeps the on-top overlay click-through.
       el.append(svg);
     }
-    cdxDrawNotch(el);
+    // observe() delivers an initial size on the next frame -> first draw. No
+    // explicit cdxDrawNotch here, so this loop performs zero layout reads.
     host._cdxNotchRO.observe(el);
   }
 }
