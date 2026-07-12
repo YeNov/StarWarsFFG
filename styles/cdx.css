@@ -22,6 +22,18 @@
   --cdx-notch:9px;
   --cdx-clip:polygon(0% var(--cdx-notch),var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% calc(100% - var(--cdx-notch)),calc(100% - var(--cdx-notch)) 100%,var(--cdx-notch) 100%,0% calc(100% - var(--cdx-notch)));
   --cdx-clip-top:polygon(0% 0%,var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% 100%,0% 100%);
+  /* ---- Elevation levels (design-language "levels" pass) ----
+     Light-scheme defaults; dark schemes override --cdx-rim / --cdx-float /
+     --cdx-float-soft / --cdx-well in cdx-dark.css. Eldritch is excluded from
+     the treatment (it ships its own depth), so it never reads these.
+     --cdx-elev-1 derives from --cdx-rim, so a scheme only needs to move the rim
+     to re-tune the raise. */
+  --cdx-rim:rgba(255,255,255,.9);
+  --cdx-elev-1:inset 0 1px 0 var(--cdx-rim),inset 0 -3px 5px rgba(12,22,38,.08);
+  --cdx-float:drop-shadow(0 2px 4px rgba(12,22,38,.2)) drop-shadow(0 6px 15px rgba(12,22,38,.5));
+  --cdx-float-soft:drop-shadow(0 1px 3px rgba(12,22,38,.14)) drop-shadow(0 4px 10px rgba(12,22,38,.32));
+  --cdx-drop:0 3px 7px rgba(12,22,38,.3);
+  --cdx-well:inset 0 2px 7px rgba(12,22,38,.3),inset 0 -1px 0 rgba(255,255,255,.6);
 }
 
 /* ---- Shell ---- (!important: mandar paints a parchment background-image on
@@ -1498,3 +1510,54 @@
 .cdx form:not(.scheme-eldritch) .cdx-veh-rarity { --cdx-ol:rgba(0,0,0,.30); }
 .cdx form:not(.scheme-eldritch) .cdx-talent.expanded { border:1px solid var(--cdx-ol); }
 
+/* ============================================================================
+   Elevation levels — the design-language "levels" pass. Additive depth on the
+   same non-eldritch panels the notch-outline overlay covers; no geometry moves.
+   clip-path clips outer box-shadow, so "raised" = an inset top-rim highlight
+   (survives the clip). A filter:drop-shadow adds a genuine float; where an
+   unclipped wrapper exists, the filter is cast from that wrapper so notched
+   children keep their silhouette. Inventory/talent list wrappers carry the
+   token so the clipped cards inside can cast outside their notches. "Wells"
+   recess genuine text bodies (bio / talent details / item description) with an
+   inset shadow — never threshold numbers. Values are tokenised per scheme.
+   ========================================================================== */
+/* Raised — inset top-rim highlight */
+.cdx form:not(.scheme-eldritch) .cdx-stat,
+.cdx form:not(.scheme-eldritch) .cdx-injury,
+.cdx form:not(.scheme-eldritch) .cdx-talent,
+.cdx form:not(.scheme-eldritch) .cdx-panel,
+.cdx form:not(.scheme-eldritch) .cdx-forcepool,
+.cdx form:not(.scheme-eldritch) .cdx-idesc,
+.cdx form:not(.scheme-eldritch) .cdx-istat,
+.cdx form:not(.scheme-eldritch) .cdx-icheck2 { box-shadow:var(--cdx-elev-1); }
+/* Real float — cast from an unclipped wrapper when one exists, so notched child
+   panels can keep their octagon silhouette. */
+.cdx form:not(.scheme-eldritch) .cdx-header-wrap,   /* character / minion header */
+.cdx form:not(.scheme-eldritch) .cdx-derived,       /* Wounds · Strain · Defence row */
+.cdx form:not(.scheme-eldritch) .cdx-minion-stats,  /* Group Strength · Defence · wound pool */
+.cdx form:not(.scheme-eldritch) .cdx-istats,        /* item-sheet stat boxes */
+.cdx form:not(.scheme-eldritch) .cdx-ichecks,       /* talent toggle cards */
+.cdx form:not(.scheme-eldritch) .cdx-xp-totals { filter:var(--cdx-float); }
+/* Soft float — content sections that should lift, but stay quieter than the top
+   readouts. The filter is still cast from unclipped wrappers where available. */
+.cdx form:not(.scheme-eldritch) .cdx-skills,        /* skills table columns */
+.cdx form:not(.scheme-eldritch) .cdx-pane.injuries,
+.cdx form:not(.scheme-eldritch) .cdx-cards.items,
+.cdx form:not(.scheme-eldritch) .cdx-gear.items,
+.cdx form:not(.scheme-eldritch) .cdx-pane.talents .cdx-talents,
+.cdx form:not(.scheme-eldritch) .cdx-forcepool,
+.cdx form:not(.scheme-eldritch) .cdx-bio-grid,
+.cdx form:not(.scheme-eldritch) .cdx-pane.bio > .cdx-panel:has(.cdx-bio-editor),
+.cdx form:not(.scheme-eldritch) .cdx-pane.effects { filter:var(--cdx-float-soft); }
+/* Wells — recessed text bodies */
+.cdx form:not(.scheme-eldritch) .cdx-bio-editor,
+.cdx form:not(.scheme-eldritch) .cdx-talent .item-details,
+.cdx form:not(.scheme-eldritch) .cdx-idesc > .editor-content { box-shadow:var(--cdx-well); }
+/* Raised dials — the characteristic / soak chips are NOT clip-path'd (rounded
+   border, not a notch), so a real outer box-shadow drop works here (no filter
+   needed); the inset rim keeps the number seated on the dial. Overrides the
+   base .cdx-chip-box inner shadow. */
+.cdx form:not(.scheme-eldritch) .cdx-chip-box { box-shadow:inset 0 1px 0 var(--cdx-rim),var(--cdx-drop); }
+/* Float the small bio-stat panels (Obligation / Morality / Conflict) from their
+   unclipped .cdx-bio-stats row. */
+.cdx form:not(.scheme-eldritch) .cdx-bio-stats { filter:var(--cdx-float-soft); }
