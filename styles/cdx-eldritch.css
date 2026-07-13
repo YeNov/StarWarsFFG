@@ -218,14 +218,15 @@
   border:1px solid rgba(112,96,70,.12);
   clip-path:var(--cdx-clip);
 }
-.cdx form.scheme-eldritch .cdx-header::after {
+/* Sigil ornament — Scholar variant only (Fate's marble carries the surface). */
+.cdx form.scheme-eldritch-scholar .cdx-header::after {
   content:"";
   position:absolute;
   z-index:0;
   pointer-events:none;
   inset:0 0 0 52%;
   background:var(--cdx-sigil) 92% 34% / min(260px,46cqw) auto no-repeat;
-  opacity:.105;
+  opacity:.4;
   filter:sepia(1) saturate(.7);
 }
 .cdx form.scheme-eldritch .cdx-header > * { position:relative; z-index:1; }
@@ -677,7 +678,8 @@
   border:1px solid rgba(112,96,70,.34);
   box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(112,96,70,.12),0 3px 12px rgba(0,0,0,.45);
 }
-.cdx form.scheme-eldritch .cdx-ihead::after {
+/* Sigil ornament (item header) — Scholar variant only. */
+.cdx form.scheme-eldritch-scholar .cdx-ihead::after {
   content:"";
   position:absolute;
   z-index:0;
