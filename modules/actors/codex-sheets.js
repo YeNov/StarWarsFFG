@@ -25,6 +25,7 @@ import { CdxPillStack } from "./cdx-pill-stack.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
+import { getFatedSigilMask } from "./codex-fated-sigil.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -690,6 +691,30 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // Eldritch marble: glue each block's marble to one content-anchored origin so
     // the veins are continuous across blocks and scroll with the sheet.
     cdxPositionMarble(this, root);
+
+    // Eldritch sigils: a per-actor procedural mask generated once and cached, fed
+    // to the header ornament as its CSS mask — Fate gets the dense "deco" wall,
+    // Scholar gets a single "medallion" sigil. Both seed off the actor + carry
+    // clouds/wear. Other schemes ignore it.
+    this._cdxFatedSigil();
+  }
+
+  /** Set the per-actor procedural sigil mask on the form (Fate → --cdx-fated-sigil,
+   *  Scholar → --cdx-scholar-sigil). Cleared for non-Eldritch schemes. */
+  _cdxFatedSigil() {
+    const form = this.form;
+    if (!form) return;
+    form.style.removeProperty("--cdx-fated-sigil");
+    form.style.removeProperty("--cdx-scholar-sigil");
+    const scheme = this._cdxScheme();
+    const seed = this.actor?.uuid ?? this.actor?.id ?? this.actor?.name ?? "codex";
+    if (scheme === "eldritch-fate") {
+      const url = getFatedSigilMask(seed, { style: "deco" });
+      if (url) form.style.setProperty("--cdx-fated-sigil", `url("${url}")`);
+    } else if (scheme === "eldritch-scholar") {
+      const url = getFatedSigilMask(seed, { style: "medallion" });
+      if (url) form.style.setProperty("--cdx-scholar-sigil", `url("${url}")`);
+    }
   }
 
   /** @see cdxBuildNotchOutlines — thin instance wrapper so the observer is
