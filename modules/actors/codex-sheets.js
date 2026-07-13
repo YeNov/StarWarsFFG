@@ -225,6 +225,61 @@ export const CDX_SCHEME_LABELS = {
   "eldritch-scholar": "Eldritch Horror - Scholar",
   "eldritch-fate": "Eldritch Horror - Fate",
 };
+
+/** Scheme picker grouped into two categories — "Modern" and "Eldritch Horror"
+ *  (the two Eldritch buttons shown as just "Scholar" / "Fate"). Opens a DialogV2
+ *  and resolves the chosen scheme id, or null if cancelled. Shared by the actor
+ *  and item sheets. */
+export async function cdxPickScheme(current, subjectName) {
+  const GROUPS = [
+    ["Modern", ["republic", "empire", "dark", "light", "mercenary"]],
+    ["Eldritch Horror", ["eldritch-scholar", "eldritch-fate"]],
+  ];
+  const SHORT = { "eldritch-scholar": "Scholar", "eldritch-fate": "Fate" };
+  // Scheme choices are Foundry-styled <button>s (same look as before), grouped into
+  // labelled category panels. Clicking one applies immediately. All styling is
+  // INLINE — DialogV2 drops <style> blocks from content, so a stylesheet wouldn't
+  // take (that's what left the buttons stacked vertically).
+  const btn = (s) =>
+    `<button type="button" data-cdx-scheme="${s}" style="flex:0 0 auto;width:auto;margin:0` +
+    `${s === current ? ";box-shadow:0 0 0 2px var(--color-warm-2,#c9593f)" : ""}">` +
+    `${SHORT[s] ?? CDX_SCHEME_LABELS[s]}</button>`;
+  const group = ([title, list]) =>
+    `<fieldset style="border:1px solid rgba(127,127,127,.35);border-radius:6px;margin:.5rem 0;padding:.3rem .6rem .6rem">` +
+    `<legend style="padding:0 .4rem;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7">${title}</legend>` +
+    `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.2rem">${list.map(btn).join("")}</div>` +
+    `</fieldset>`;
+  const content =
+    `<div class="cdx-scheme-picker">` +
+    `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${subjectName ?? ""}</b>:</p>` +
+    GROUPS.map(group).join("") +
+    `</div>`;
+
+  // The scheme buttons live in the content, so wire their clicks via the render
+  // hook (scoped to our dialog by the .cdx-scheme-picker marker): set the choice
+  // and close, which resolves DialogV2.wait (rejectClose:false → no throw).
+  let choice = null;
+  const hookId = Hooks.on("renderDialogV2", (app, element) => {
+    const root = element instanceof HTMLElement ? element : element?.[0];
+    if (!root?.querySelector?.(".cdx-scheme-picker")) return;
+    for (const b of root.querySelectorAll("[data-cdx-scheme]")) {
+      b.addEventListener("click", () => { choice = b.dataset.cdxScheme; app.close(); });
+    }
+  });
+  try {
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: "Codex II — Scheme" },
+      position: { width: 640 },   // ~3x the default so both category rows fit comfortably
+      content,
+      buttons: [{ action: "cancel", icon: "fa-solid fa-times", label: "Cancel" }],
+      rejectClose: false,
+    });
+  } catch (e) { /* dismissed */ } finally {
+    Hooks.off("renderDialogV2", hookId);
+  }
+  return choice && CDX_SCHEMES.includes(choice) ? choice : null;
+}
+
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
 /** The default Codex colour scheme, derived from the Default Sheet Theme setting
@@ -1215,23 +1270,10 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     return controls;
   }
 
-  /** Small DialogV2 to choose one of the six palettes; writes the actor flag. */
+  /** Categorised DialogV2 palette picker; writes the actor flag. */
   async _cdxPickScheme() {
-    const current = this._cdxScheme();
-    const buttons = CDX_SCHEMES.map((s) => ({
-      action: s,
-      label: CDX_SCHEME_LABELS[s] + (s === current ? " ✓" : ""),
-    }));
-    let choice;
-    try {
-      choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Codex II — Scheme" },
-        content: `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${this.actor.name}</b>:</p>`,
-        buttons,
-        rejectClose: false,
-      });
-    } catch (e) { return; }
-    if (choice && CDX_SCHEMES.includes(choice)) await this.actor.setFlag("starwarsffg", "scheme", choice);
+    const choice = await cdxPickScheme(this._cdxScheme(), this.actor?.name);
+    if (choice) await this.actor.setFlag("starwarsffg", "scheme", choice);
   }
 
   /**

@@ -17,7 +17,7 @@
  * (see activateListeners), the same as the codex actor sheets.
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
-import { CDX_SCHEMES, CDX_SCHEME_LABELS, cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP } from "../actors/codex-sheets.js";
+import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "../actors/codex-sheets.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -100,20 +100,10 @@ export class CodexItemSheet extends ItemSheetFFG {
     return controls;
   }
 
-  /** Small DialogV2 to choose one of the six palettes; writes the item flag. */
+  /** Categorised DialogV2 palette picker; writes the item flag. */
   async _cdxPickScheme() {
-    const current = this._cdxScheme();
-    const buttons = CDX_SCHEMES.map((s) => ({ action: s, label: CDX_SCHEME_LABELS[s] + (s === current ? " ✓" : "") }));
-    let choice;
-    try {
-      choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Codex II — Scheme" },
-        content: `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${this.item?.name ?? "item"}</b>:</p>`,
-        buttons,
-        rejectClose: false,
-      });
-    } catch (e) { return; }
-    if (choice && CDX_SCHEMES.includes(choice)) await this.item.setFlag("starwarsffg", "scheme", choice);
+    const choice = await cdxPickScheme(this._cdxScheme(), this.item?.name ?? "item");
+    if (choice) await this.item.setFlag("starwarsffg", "scheme", choice);
   }
 
   /** @override — keep every stock listener; make the form the scroll container
