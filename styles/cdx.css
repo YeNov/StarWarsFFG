@@ -153,7 +153,11 @@
    column still has room; otherwise stack them vertically (the header is the
    inline-size container). */
 @container (min-width:680px) {
-  .cdx .cdx-header-stats { flex-direction:row; align-items:flex-start; }
+  /* Row layout: stretch so XP and Credits share the taller chip's height (XP has
+     an extra "of N" line). The credits-wrap becomes a flex box so its inner chip
+     fills the stretched height too (otherwise only the wrapper would stretch). */
+  .cdx .cdx-header-stats { flex-direction:row; align-items:stretch; }
+  .cdx .cdx-header-stats > .cdx-credits-wrap { display:flex; }
 }
 .cdx .cdx-square {
   width:74px; padding:7px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center;
