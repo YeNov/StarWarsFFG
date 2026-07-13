@@ -242,7 +242,9 @@
   inset:0 0 0 52%;
   background:var(--cdx-scholar-ink,#9a8157);
   opacity:var(--cdx-scholar-opacity,.4);
-  mask-image:var(--cdx-scholar-sigil);
+  /* Transparent fallback keeps the ornament hidden until the JS-generated mask
+     lands (it's produced off the first-paint path); avoids a solid-ink flash. */
+  mask-image:var(--cdx-scholar-sigil,linear-gradient(#0000,#0000));
   mask-mode:alpha;
   mask-size:var(--cdx-scholar-size,min(260px,46cqw)) var(--cdx-scholar-size,min(260px,46cqw));
   mask-repeat:no-repeat;
@@ -264,7 +266,7 @@
      horizontal fade (--cdx-fated-fade) sized to the header — so the ornament
      stays hidden on the left and emerges toward the right ONCE, without the
      pattern stretching. mask-composite:intersect multiplies the two alphas. */
-  mask-image:var(--cdx-fated-sigil),var(--cdx-fated-fade);
+  mask-image:var(--cdx-fated-sigil,linear-gradient(#0000,#0000)),var(--cdx-fated-fade);
   mask-mode:alpha,alpha;
   mask-size:var(--cdx-fated-tile,340px) var(--cdx-fated-tile,340px),100% 100%;
   mask-repeat:repeat,no-repeat;

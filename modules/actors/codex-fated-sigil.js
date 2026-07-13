@@ -87,7 +87,8 @@ function noiseFloat(rng, size, cells, blur) {
   const bc = big.getContext("2d");
   bc.imageSmoothingEnabled = true;
   bc.imageSmoothingQuality = "high";
-  if (blur > 0) bc.filter = `blur(${blur}px)`;
+  // Blur is a px amount tuned for 1024; scale it so smaller fogSize keeps the look.
+  if (blur > 0) bc.filter = `blur(${blur * size / 1024}px)`;
   bc.drawImage(small, 0, 0, cells, cells, 0, 0, size, size);
   bc.filter = "none";
 
@@ -99,12 +100,13 @@ function noiseFloat(rng, size, cells, blur) {
 
 /** White ellipse "empty patches" on black, blurred; returns strength 0..1. */
 function patchesFloat(rng, size, D) {
+  const s = size / 1024;              // px params are tuned for 1024; scale with size
   const c = makeCanvas(size, size);
   const x = c.getContext("2d");
   x.fillStyle = "#000"; x.fillRect(0, 0, size, size);
   x.fillStyle = "#fff";
   const count = Math.round(D.patchCount);
-  const rmul = D.patchScale;
+  const rmul = D.patchScale * s;
   for (let i = 0; i < count; i++) {
     const cx = rng() * size, cy = rng() * size;
     const rx = (35 + rng() * 115) * rmul, ry = (22 + rng() * 88) * rmul;
@@ -114,7 +116,7 @@ function patchesFloat(rng, size, D) {
   }
   const b = makeCanvas(size, size);
   const bc = b.getContext("2d");
-  bc.filter = "blur(30px)";
+  bc.filter = `blur(${30 * s}px)`;
   bc.drawImage(c, 0, 0);
   bc.filter = "none";
   const d = bc.getImageData(0, 0, size, size).data;
@@ -125,6 +127,7 @@ function patchesFloat(rng, size, D) {
 
 /** White gouge "scratches" on black, softly blurred; returns strength 0..1. */
 function scratchesFloat(rng, size, D) {
+  const s = size / 1024;              // px params are tuned for 1024; scale with size
   const c = makeCanvas(size, size);
   const x = c.getContext("2d");
   x.fillStyle = "#000"; x.fillRect(0, 0, size, size);
@@ -133,18 +136,18 @@ function scratchesFloat(rng, size, D) {
   for (let i = 0; i < count; i++) {
     const x0 = rng() * size, y0 = rng() * size;
     const ang = rng() * Math.PI * 2;
-    const len = 70 + rng() * 190;
-    const drift = (rng() * 2 - 1) * 28;
+    const len = (70 + rng() * 190) * s;
+    const drift = (rng() * 2 - 1) * 28 * s;
     const x1 = x0 + Math.cos(ang) * len + Math.cos(ang + Math.PI / 2) * drift;
     const y1 = y0 + Math.sin(ang) * len + Math.sin(ang + Math.PI / 2) * drift;
-    x.lineWidth = D.scratchWidthMin + rng() * (D.scratchWidthMax - D.scratchWidthMin);
+    x.lineWidth = (D.scratchWidthMin + rng() * (D.scratchWidthMax - D.scratchWidthMin)) * s;
     x.globalAlpha = Math.min(1, (30 + rng() * 80) / 255);
     x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke();
   }
   x.globalAlpha = 1;
   const b = makeCanvas(size, size);
   const bc = b.getContext("2d");
-  bc.filter = "blur(1.2px)";
+  bc.filter = `blur(${1.2 * s}px)`;
   bc.drawImage(c, 0, 0);
   bc.filter = "none";
   const d = bc.getImageData(0, 0, size, size).data;

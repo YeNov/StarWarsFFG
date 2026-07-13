@@ -204,6 +204,18 @@ export function cdxPositionMarble(host, root) {
   for (const b of container.querySelectorAll(CDX_MARBLE_SEL)) host._cdxMarbleRO.observe(b);
   recompute();                                                       // initial pass
 }
+
+/** Run `fn` off the first-paint path: requestIdleCallback (fires after paint, when
+ *  idle) if available, else a macrotask. Returns a canceller. */
+function cdxDeferIdle(fn) {
+  if (typeof requestIdleCallback === "function") {
+    const id = requestIdleCallback(fn, { timeout: 800 });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 0);
+  return () => clearTimeout(id);
+}
+
 export const CDX_SCHEME_LABELS = {
   republic: "Republic",
   empire: "Empire",
@@ -368,6 +380,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     this._cdxMarbleRO?.disconnect();
     this._cdxMarbleRO = null;
     if (this._cdxMarbleRAF) { cancelAnimationFrame(this._cdxMarbleRAF); this._cdxMarbleRAF = null; }
+    this._cdxSigilCancel?.();
+    this._cdxSigilCancel = null;
     this._cdxXpBuy = false; // never persist XP-buy mode across reopenings
     return super.close(options);
   }
@@ -700,21 +714,34 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 
   /** Set the per-actor procedural sigil mask on the form (Fate → --cdx-fated-sigil,
-   *  Scholar → --cdx-scholar-sigil). Cleared for non-Eldritch schemes. */
+   *  Scholar → --cdx-scholar-sigil). Cleared for non-Eldritch schemes.
+   *  Generation (~a few 1024² passes) is deferred off the first-paint path so the
+   *  sheet opens instantly — the CSS transparent fallback hides the ornament until
+   *  the mask lands. Cached per (seed, style), and skipped when already set. */
   _cdxFatedSigil() {
     const form = this.form;
     if (!form) return;
-    form.style.removeProperty("--cdx-fated-sigil");
-    form.style.removeProperty("--cdx-scholar-sigil");
     const scheme = this._cdxScheme();
+    const isFate = scheme === "eldritch-fate";
+    const isScholar = scheme === "eldritch-scholar";
+    if (!isFate) form.style.removeProperty("--cdx-fated-sigil");
+    if (!isScholar) form.style.removeProperty("--cdx-scholar-sigil");
+    if (!isFate && !isScholar) return;
+
+    const prop = isFate ? "--cdx-fated-sigil" : "--cdx-scholar-sigil";
+    if (form.style.getPropertyValue(prop)) return;   // already on this form — skip cheap re-renders
+
+    // Fate uses the 1024 deco wall (its 2× size breaks tiling); the Scholar single
+    // sigil is shown small, so 512 is ample and ~4x cheaper (wear scales with size).
+    const opts = isFate ? { style: "deco" } : { style: "medallion", fogSize: 512 };
     const seed = this.actor?.uuid ?? this.actor?.id ?? this.actor?.name ?? "codex";
-    if (scheme === "eldritch-fate") {
-      const url = getFatedSigilMask(seed, { style: "deco" });
-      if (url) form.style.setProperty("--cdx-fated-sigil", `url("${url}")`);
-    } else if (scheme === "eldritch-scholar") {
-      const url = getFatedSigilMask(seed, { style: "medallion" });
-      if (url) form.style.setProperty("--cdx-scholar-sigil", `url("${url}")`);
-    }
+    this._cdxSigilCancel?.();
+    this._cdxSigilCancel = cdxDeferIdle(() => {
+      this._cdxSigilCancel = null;
+      if (this.form !== form || this._cdxScheme() !== scheme) return;   // stale render / scheme changed
+      const url = getFatedSigilMask(seed, opts);
+      if (url) form.style.setProperty(prop, `url("${url}")`);
+    });
   }
 
   /** @see cdxBuildNotchOutlines — thin instance wrapper so the observer is
