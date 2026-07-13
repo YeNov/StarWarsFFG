@@ -26,7 +26,32 @@ import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 
-export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch"];
+export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
+
+// The two Eldritch Horror variants share ALL the `.scheme-eldritch` styling and
+// the content-anchored bleeding-texture feature; they differ only in surface
+// texture — Scholar uses the paper grain, Fate uses the marble. Both carry the
+// base `scheme-eldritch` class (see cdxSchemeClasses) so the shared CSS + the
+// JS gate (which keys on `.scheme-eldritch`) apply to both.
+const CDX_ELDRITCH_VARIANTS = ["eldritch-scholar", "eldritch-fate"];
+
+/** Normalise a stored scheme value: map the legacy single "eldritch" onto the
+ *  paper "Scholar" variant (its previous look), and drop anything unknown. */
+export function cdxNormalizeScheme(s) {
+  if (s === "eldritch") return "eldritch-scholar";   // legacy → the paper variant
+  return CDX_SCHEMES.includes(s) ? s : null;
+}
+
+/** Root class(es) for a scheme. Eldritch variants also get the base
+ *  `scheme-eldritch` class so the shared Eldritch CSS matches them. */
+export function cdxSchemeClasses(scheme) {
+  const cls = [`scheme-${scheme}`];
+  if (CDX_ELDRITCH_VARIANTS.includes(scheme)) cls.push("scheme-eldritch");
+  return cls;
+}
+
+/** Every scheme class we might have set, for stripping before re-applying. */
+export const CDX_SCHEME_STRIP = [...CDX_SCHEMES.map((s) => `scheme-${s}`), "scheme-eldritch"];
 
 /**
  * Blocks that get an SVG notch outline (see _cdxNotchOutlines). These are the
@@ -127,12 +152,12 @@ export function cdxBuildNotchOutlines(host, root) {
 }
 
 /**
- * Marble origin (Eldritch scheme). Each framed block paints the marble as its own
- * background; on its own that re-tiles per block (every block starts the tile at
- * its own corner). To read as ONE continuous slab glued to the sheet, we set each
- * block's --cdx-marble-x/y (its CSS marble background-position) to MINUS the
- * block's offset within the scroll content. That aligns every block's tile to a
- * single origin at the content's top-left, so:
+ * Texture origin (Eldritch scheme). Each framed block reveals the texture through
+ * a luminance mask on its ::before; on its own that mask re-tiles per block (every
+ * block starts the tile at its own corner). To read as ONE continuous slab glued
+ * to the sheet, we set each block's --cdx-marble-x/y (its CSS mask-position) to
+ * MINUS the block's offset within the scroll content. That aligns every block's
+ * tile to a single origin at the content's top-left, so:
  *   - adjacent blocks' veins line up (shared origin), and
  *   - because the offset is measured in the content frame (scroll-independent),
  *     the whole slab moves with the blocks as the sheet scrolls — no scroll
@@ -151,7 +176,7 @@ export function cdxPositionMarble(host, root) {
   // The scroll container is the content <form> (made overflow:auto in _cdxActivate).
   const container = host.form
     ?? (root.matches?.("form.window-content") ? root : root.querySelector?.("form.window-content"));
-  if (!container?.classList?.contains("scheme-eldritch")) return;   // marble is Eldritch-only
+  if (!container?.classList?.contains("scheme-eldritch")) return;   // both Eldritch variants (Scholar/Fate) carry this base class
 
   const recompute = () => {
     const cRect = container.getBoundingClientRect();
@@ -184,7 +209,8 @@ export const CDX_SCHEME_LABELS = {
   dark: "Dark",
   light: "Light",
   mercenary: "Mercenary",
-  eldritch: "Eldritch Horror",
+  "eldritch-scholar": "Eldritch Horror - Scholar",
+  "eldritch-fate": "Eldritch Horror - Fate",
 };
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
@@ -195,7 +221,7 @@ export function cdxDefaultScheme() {
   try {
     const t = String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "");
     const s = t.startsWith("codex-") ? t.slice("codex-".length) : null;
-    return CDX_SCHEMES.includes(s) ? s : "republic";
+    return cdxNormalizeScheme(s) ?? "republic";
   } catch (e) { return "republic"; }
 }
 
@@ -270,7 +296,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   /** The per-actor palette, defaulting to republic. */
   _cdxScheme() {
     const s = this.actor?.getFlag?.("starwarsffg", "scheme");
-    return CDX_SCHEMES.includes(s) ? s : cdxDefaultScheme();
+    return cdxNormalizeScheme(s) ?? cdxDefaultScheme();
   }
 
   /**
@@ -281,16 +307,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
    * @override
    */
   _getLegacyRootClasses(_context = {}) {
-    return [`scheme-${this._cdxScheme()}`];
+    return cdxSchemeClasses(this._cdxScheme());
   }
 
   /**
-   * Strip stale `scheme-*` before super re-adds the current one (the base only
-   * ever ADDS classes), so switching palettes doesn't accumulate them.
+   * Strip stale `scheme-*` (incl. the shared `scheme-eldritch` base) before super
+   * re-adds the current one(s) (the base only ever ADDS classes), so switching
+   * palettes doesn't accumulate them.
    * @override
    */
   _applyLegacyRootClasses(form, context = {}) {
-    for (const s of CDX_SCHEMES) form.classList.remove(`scheme-${s}`);
+    for (const c of CDX_SCHEME_STRIP) form.classList.remove(c);
     super._applyLegacyRootClasses(form, context);
   }
 

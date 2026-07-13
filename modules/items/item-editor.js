@@ -1,6 +1,7 @@
 import ItemHelpers from "../helpers/item-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
+import { cdxNormalizeScheme, cdxSchemeClasses } from "../actors/codex-sheets.js";
 
 export class itemEditor extends FFGFormApplication {
   /*
@@ -32,9 +33,8 @@ export class itemEditor extends FFGFormApplication {
       const codexCls = CONFIG.FFG?.codexSheets?.item?.cls;
       this._cdx = !!(codexCls && data.sourceObject?._getSheetClass?.() === codexCls);
       if (this._cdx) {
-        const SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch"];
         const s = data.sourceObject?.getFlag?.("starwarsffg", "scheme") ?? data.sourceObject?.actor?.getFlag?.("starwarsffg", "scheme");
-        this._cdxScheme = SCHEMES.includes(s) ? s : "republic";
+        this._cdxScheme = cdxNormalizeScheme(s) ?? "republic";
       }
     } catch (e) { this._cdx = false; }
   }
@@ -140,7 +140,7 @@ export class itemEditor extends FFGFormApplication {
     // the scheme class on the content form.
     if (this._cdx && this.element) {
       this.element.classList.add("cdx", "cdx-embed");
-      this.form?.classList?.add(`scheme-${this._cdxScheme}`);
+      this.form?.classList?.add(...cdxSchemeClasses(this._cdxScheme));
     }
     this._setupTabs();
     this._activateListeners($(this.form));

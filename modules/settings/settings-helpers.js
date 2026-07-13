@@ -280,7 +280,8 @@ export default class SettingsHelpers {
         "codex-dark": "Codex II — Dark",
         "codex-light": "Codex II — Light",
         "codex-mercenary": "Codex II — Mercenary",
-        "codex-eldritch": "Codex II — Eldritch Horror",
+        "codex-eldritch-scholar": "Codex II — Eldritch Horror - Scholar",
+        "codex-eldritch-fate": "Codex II — Eldritch Horror - Fate",
       },
       onChange: this.debouncedReload,
     });

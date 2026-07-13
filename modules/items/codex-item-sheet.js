@@ -17,7 +17,7 @@
  * (see activateListeners), the same as the codex actor sheets.
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
-import { CDX_SCHEMES, CDX_SCHEME_LABELS, cdxDefaultScheme, cdxBuildNotchOutlines } from "../actors/codex-sheets.js";
+import { CDX_SCHEMES, CDX_SCHEME_LABELS, cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP } from "../actors/codex-sheets.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -39,19 +39,20 @@ export class CodexItemSheet extends ItemSheetFFG {
   _cdxScheme() {
     const s = this.item?.getFlag?.("starwarsffg", "scheme")
       ?? this.item?.actor?.getFlag?.("starwarsffg", "scheme");
-    return CDX_SCHEMES.includes(s) ? s : cdxDefaultScheme();
+    return cdxNormalizeScheme(s) ?? cdxDefaultScheme();
   }
 
-  /** Replace the legacy root classes with ONLY the palette class (mirrors the
-   *  actor mixin) so mandar's structural item-form rules don't match us. The
-   *  editable/locked classes are still applied by the base. @override */
+  /** Replace the legacy root classes with the palette class(es) (mirrors the
+   *  actor mixin; Eldritch variants also carry the base `scheme-eldritch`) so
+   *  mandar's structural item-form rules don't match us. The editable/locked
+   *  classes are still applied by the base. @override */
   _getLegacyRootClasses(_context = {}) {
-    return [`scheme-${this._cdxScheme()}`];
+    return cdxSchemeClasses(this._cdxScheme());
   }
 
-  /** Strip stale `scheme-*` before super re-adds the current one. @override */
+  /** Strip stale `scheme-*` before super re-adds the current one(s). @override */
   _applyLegacyRootClasses(form, context = {}) {
-    for (const s of CDX_SCHEMES) form.classList.remove(`scheme-${s}`);
+    for (const c of CDX_SCHEME_STRIP) form.classList.remove(c);
     super._applyLegacyRootClasses(form, context);
   }
 
