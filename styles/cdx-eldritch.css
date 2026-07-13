@@ -587,6 +587,13 @@
 }
 .cdx form.scheme-eldritch .cdx-sk-name { color:#ddd4c6; }
 .cdx form.scheme-eldritch .cdx-sk-char { color:#887e6b; }
+/* The marble mask puts each skill row in its own stacking context (isolation),
+   which trapped the dice-pool hint below sibling rows/columns. The hint shows on
+   mouse-over of the pool (.hover is a permanent class, so match :hover/:focus —
+   the actual trigger). While hovered, lift the row above its column-mates and its
+   column above the neighbouring columns so the hint paints over them. */
+.cdx form.scheme-eldritch .cdx-sk-row:has(.dice-pool:hover,.dice-pool:focus) { z-index:5; }
+.cdx form.scheme-eldritch .cdx-skill-col:has(.dice-pool:hover,.dice-pool:focus) { position:relative; z-index:5; }
 
 /* --- Inventory, talents, panels and tables ------------------------------ */
 .cdx form.scheme-eldritch .cdx-cards-head {
