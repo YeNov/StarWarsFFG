@@ -40,6 +40,18 @@ const CDX_NOTCH_SEL = [
   ".cdx-ihead", ".cdx-ipill", ".cdx-ihead .cdx-status",
 ].join(",");
 
+/**
+ * Blocks that paint the marble (Eldritch scheme) as their own background — must
+ * match the "Shared framed surfaces" selector list in styles/cdx-eldritch.css.
+ * cdxPositionMarble offsets each one's marble to a single content origin.
+ */
+const CDX_MARBLE_SEL = [
+  ".cdx-stat", ".cdx-panel", ".cdx-card", ".cdx-injury", ".cdx-forcepool",
+  ".cdx-talent", ".cdx-pane.effects", ".cdx-pane.attributes", ".cdx-sub",
+  ".cdx-istat", ".cdx-idesc", ".cdx-icheck2", ".cdx-item-body .item.force-power",
+  ".cdx-ft-card", ".cdx-sk-row",
+].join(",");
+
 const CDX_NOTCH = 9;   // notch size in px — must match --cdx-notch in the CSS
 
 /**
@@ -112,6 +124,59 @@ export function cdxBuildNotchOutlines(host, root) {
     // explicit cdxDrawNotch here, so this loop performs zero layout reads.
     host._cdxNotchRO.observe(el);
   }
+}
+
+/**
+ * Marble origin (Eldritch scheme). Each framed block paints the marble as its own
+ * background; on its own that re-tiles per block (every block starts the tile at
+ * its own corner). To read as ONE continuous slab glued to the sheet, we set each
+ * block's --cdx-marble-x/y (its CSS marble background-position) to MINUS the
+ * block's offset within the scroll content. That aligns every block's tile to a
+ * single origin at the content's top-left, so:
+ *   - adjacent blocks' veins line up (shared origin), and
+ *   - because the offset is measured in the content frame (scroll-independent),
+ *     the whole slab moves with the blocks as the sheet scrolls — no scroll
+ *     listener needed.
+ * Offsets only change on reflow (resize, tab switch, expand/collapse, add/remove),
+ * so a ResizeObserver on the container + blocks recomputes all of them (rAF-
+ * debounced). Non-Eldritch schemes don't paint the marble, so this tears down and
+ * returns. The observer is owned by `host` and disconnected in the sheet's close.
+ */
+export function cdxPositionMarble(host, root) {
+  host._cdxMarbleRO?.disconnect();
+  host._cdxMarbleRO = null;
+  if (host._cdxMarbleRAF) { cancelAnimationFrame(host._cdxMarbleRAF); host._cdxMarbleRAF = null; }
+  if (!root) return;
+
+  // The scroll container is the content <form> (made overflow:auto in _cdxActivate).
+  const container = host.form
+    ?? (root.matches?.("form.window-content") ? root : root.querySelector?.("form.window-content"));
+  if (!container?.classList?.contains("scheme-eldritch")) return;   // marble is Eldritch-only
+
+  const recompute = () => {
+    const cRect = container.getBoundingClientRect();
+    const sx = container.scrollLeft, sy = container.scrollTop;
+    const blocks = container.querySelectorAll(CDX_MARBLE_SEL);
+    const rects = [];
+    for (const b of blocks) rects.push(b.getBoundingClientRect());  // batch reads (no interleaved writes)
+    let i = 0;
+    for (const b of blocks) {
+      const r = rects[i++];
+      if (r.width < 2 && r.height < 2) continue;                    // hidden (inactive tab) — repositioned when shown
+      const x = Math.round(r.left - cRect.left + sx);
+      const y = Math.round(r.top - cRect.top + sy);
+      b.style.setProperty("--cdx-marble-x", `${-x}px`);
+      b.style.setProperty("--cdx-marble-y", `${-y}px`);
+    }
+  };
+
+  host._cdxMarbleRO = new ResizeObserver(() => {
+    if (host._cdxMarbleRAF) cancelAnimationFrame(host._cdxMarbleRAF);
+    host._cdxMarbleRAF = requestAnimationFrame(recompute);          // coalesce resize storms to one pass/frame
+  });
+  host._cdxMarbleRO.observe(container);
+  for (const b of container.querySelectorAll(CDX_MARBLE_SEL)) host._cdxMarbleRO.observe(b);
+  recompute();                                                       // initial pass
 }
 export const CDX_SCHEME_LABELS = {
   republic: "Republic",
@@ -272,6 +337,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     this._cdxPillStack = null;
     this._cdxNotchRO?.disconnect();
     this._cdxNotchRO = null;
+    this._cdxMarbleRO?.disconnect();
+    this._cdxMarbleRO = null;
+    if (this._cdxMarbleRAF) { cancelAnimationFrame(this._cdxMarbleRAF); this._cdxMarbleRAF = null; }
     this._cdxXpBuy = false; // never persist XP-buy mode across reopenings
     return super.close(options);
   }
@@ -591,6 +659,10 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // sized to the block in px so the notches stay a fixed 9px and the line is a
     // uniform 1px on every edge (see _cdxNotchOutlines).
     this._cdxNotchOutlines(root);
+
+    // Eldritch marble: glue each block's marble to one content-anchored origin so
+    // the veins are continuous across blocks and scroll with the sheet.
+    cdxPositionMarble(this, root);
   }
 
   /** @see cdxBuildNotchOutlines — thin instance wrapper so the observer is

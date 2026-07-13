@@ -33,7 +33,10 @@
   --cdx-active-bg:rgba(104,90,67,.12);
   --cdx-active-ink:#aaa08e;
   --cdx-panel-shadow:inset 0 0 0 1px rgba(112,96,70,.13),0 2px 8px rgba(0,0,0,.38);
-  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/paper.svg?v=2");
+  /* --cdx-surface-texture now lives on the .cdx window frame (marble knobs). */
+  /* Default marble veil (tier 2). Set here at low specificity so .cdx-stat's
+     tier-1 override reliably wins; the framed-surface rule only reads it. */
+  --cdx-veil:var(--cdx-veil-2);
   --cdx-sigil:url("/systems/starwarsffg/images/codex/eldritch/sigil.svg");
   --cdx-portrait-radius:50%;
   --cdx-rust:#67251d;
@@ -59,6 +62,22 @@
   outline:1px solid rgba(112,96,70,.28);
   outline-offset:-1px;
   box-shadow:0 10px 34px rgba(0,0,0,.72),0 0 0 1px #080a09;
+
+  /* Marble surface texture (pre-inverted to a dark slab with light veins, so no
+     live filter is needed and the blocks can share one global origin). Swap to
+     the non "-inv" file for the raw white marble. Defined on the frame so every
+     block inherits it. */
+  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/marble-calacatta-seamless-square-inv.webp");
+
+  /* ---- Marble knobs ------------------------------------------------------
+     The marble is painted as each targeted block's own background (see "Shared
+     framed surfaces"), tiled from one global origin via background-attachment:
+     fixed, so it appears ONLY on those blocks and does not re-tile per block.
+     A dim veil sits over it per tier — lower alpha shows more marble. */
+  --cdx-marble-tile:520px;         /* marble tile size                          */
+  --cdx-marble-blend:normal;       /* how the marble sits on the block base     */
+  --cdx-veil-1:rgba(11,13,12,.7); /* tier 1 dim: wounds / strain / defence (more marble) */
+  --cdx-veil-2:rgba(11,13,12,.65); /* tier 2 dim: skills / talents / etc. (subtler)       */
 }
 .cdx:has(> form.window-content.scheme-eldritch) > .window-header {
   background:
@@ -84,14 +103,12 @@
   color:#aaa08e;
 }
 .cdx > form.window-content.scheme-eldritch {
-  background-color:var(--cdx-bg) !important;
+  background-color:var(--cdx-bg) !important;   /* plain dark sheet; marble lives on the blocks only */
   background-image:
-    radial-gradient(ellipse at 48% 18%,rgba(72,63,46,.16) 0,rgba(11,13,12,.1) 38%,rgba(0,0,0,.52) 100%),
-    repeating-linear-gradient(103deg,rgba(224,210,181,.018) 0 1px,transparent 1px 4px),
-    var(--cdx-surface-texture) !important;
-  background-repeat:no-repeat,repeat,repeat !important;
-  background-size:100% 100%,7px 7px,256px 256px !important;
-  background-blend-mode:normal,soft-light,soft-light !important;
+    radial-gradient(ellipse at 48% 18%,rgba(72,63,46,.16) 0,rgba(11,13,12,.1) 38%,rgba(0,0,0,.52) 100%) !important;
+  background-repeat:no-repeat !important;
+  background-size:100% 100% !important;
+  background-blend-mode:normal !important;
   color:var(--cdx-ink);
   font-family:var(--cdx-font-body);
   text-rendering:optimizeLegibility;
@@ -263,7 +280,13 @@
   box-shadow:inset 0 0 0 1px rgba(112,96,70,.34);
 }
 
-/* --- Shared framed surfaces ---------------------------------------------- */
+/* --- Shared framed surfaces ----------------------------------------------
+   The marble appears ONLY on these blocks — it is each block's own background,
+   not a sheet-wide slab. The marble scrolls with the sheet (background-attachment
+   :scroll). A dim veil layer sits on top; the per-tier veil is chosen via the
+   --cdx-veil indirection variable (NOT set here — this rule only reads it — so
+   its inflated :is() specificity can't beat the tier overrides). Tier 2 is the
+   default (set on the form); tier 1 (the derived stat blocks) overrides it. */
 .cdx form.scheme-eldritch :is(
   .cdx-stat,.cdx-panel,.cdx-card,.cdx-injury,.cdx-forcepool,.cdx-talent,
   .cdx-pane.effects,.cdx-pane.attributes,.cdx-sub,.cdx-istat,.cdx-idesc,
@@ -271,13 +294,23 @@
 ) {
   background-color:var(--cdx-paper2);
   background-image:
-    repeating-linear-gradient(101deg,rgba(224,210,181,.014) 0 1px,transparent 1px 5px),
+    linear-gradient(var(--cdx-veil),var(--cdx-veil)),
     var(--cdx-surface-texture);
-  background-repeat:repeat,repeat;
-  background-size:9px 9px,256px 256px;
-  background-blend-mode:soft-light,soft-light;
+  background-repeat:no-repeat,repeat;
+  /* The marble layer's origin is driven per-block by JS (cdxPositionMarble):
+     each block is offset to a single content-anchored origin so the veins are
+     continuous across blocks and scroll with the sheet. Falls back to 0 0. */
+  background-position:0 0,var(--cdx-marble-x,0) var(--cdx-marble-y,0);
+  background-size:auto,var(--cdx-marble-tile);
+  background-attachment:scroll,scroll;
+  background-blend-mode:normal,var(--cdx-marble-blend);
   border-color:var(--cdx-line);
   box-shadow:var(--cdx-panel-shadow);
+}
+/* Tier 1 — wounds / strain / defence: lighter veil, so more marble shows.
+   Sets only the indirection var, so it reliably wins over the shared rule. */
+.cdx form.scheme-eldritch .cdx-stat {
+  --cdx-veil:var(--cdx-veil-1);
 }
 .cdx form.scheme-eldritch :is(.cdx-stat,.cdx-panel,.cdx-istat,.cdx-idesc,.cdx-talent) {
   box-shadow:inset 0 0 0 3px #101310,inset 0 0 0 4px rgba(112,96,70,.09),0 2px 8px rgba(0,0,0,.4);
@@ -447,13 +480,32 @@
   box-shadow:inset 0 0 0 1px rgba(112,96,70,.28);
 }
 .cdx form.scheme-eldritch .cdx-sk-head .cdx-sk-name { color:#93866f; }
+/* Skill rows carry the marble too, positioned by cdxPositionMarble so their veins
+   are continuous with the rest of the slab. All rows use the tier-2 veil (no
+   alternation); the veil is a translucent tint over the marble.
+   The career-skill selector is listed on the marble stack explicitly because the
+   base cdx.css rule `.cdx .cdx-sk-row:has(.careerskill-toggle:checked)` sets a
+   `background:` shorthand at higher specificity than the plain row rule — which
+   would wipe the marble to none. Re-declaring the stack here (higher specificity)
+   restores it, and the career row just swaps --cdx-veil for a soft warm tint. */
+.cdx form.scheme-eldritch .cdx-sk-row,
+.cdx form.scheme-eldritch .cdx-sk-row:has(.careerskill-toggle:checked) {
+  background-color:var(--cdx-paper2);
+  background-image:
+    linear-gradient(var(--cdx-veil),var(--cdx-veil)),
+    var(--cdx-surface-texture);
+  background-repeat:no-repeat,repeat;
+  background-position:0 0,var(--cdx-marble-x,0) var(--cdx-marble-y,0);
+  background-size:auto,var(--cdx-marble-tile);
+  background-attachment:scroll,scroll;
+  background-blend-mode:normal,var(--cdx-marble-blend);
+}
 .cdx form.scheme-eldritch .cdx-sk-row {
-  background:rgba(14,17,15,.66);
+  --cdx-veil:var(--cdx-veil-2);
   border-bottom-color:rgba(153,131,91,.24);
 }
-.cdx form.scheme-eldritch .cdx-sk-row:nth-of-type(even) { background:rgba(21,24,21,.48); }
 .cdx form.scheme-eldritch .cdx-sk-row:has(.careerskill-toggle:checked) {
-  background:linear-gradient(90deg,rgba(104,90,67,.16),rgba(104,90,67,.055));
+  --cdx-veil:rgba(48,40,22,.3);   /* soft warm career overlay — as dim as regular rows, just warmer */
   box-shadow:inset 3px 0 0 #716248;
 }
 .cdx form.scheme-eldritch .cdx-sk-name { color:#ddd4c6; }
