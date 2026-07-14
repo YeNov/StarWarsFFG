@@ -1,7 +1,12 @@
 # DataModel Undeclared Paths — Fix Plan (rev. 6)
 
-> **Status: proposal, not started** (no schema code written yet). Rev. 6
-> (2026-07-14) is a **premise correction, not a refinement**: revs. 1–5 were
+> **Status (2026-07-14): Stages 1–2 landed and verified offline; Stage 3 (live
+> V13+V14 verification) is the open work.** Commits: `6196265e` (plan +
+> evidence), `0f4b9b50` (declarations), `bedaa51b` (reporter), `8863ddcb`
+> (real_value migration), plus the correction notes in the migration plan.
+> Nothing is pushed.
+>
+> Rev. 6 is a **premise correction, not a refinement**: revs. 1–5 were
 > built on the belief that the DataModel cutover *permanently erases* undeclared
 > `system.*` paths from the database. **Measurement disproved that.** The data is
 > intact; the defect is narrower. Stages 0 and 5 of rev. 5 (emergency freeze,
@@ -153,48 +158,76 @@ it can read backups and packs the same way.
 > Remaining: finish 1.3 classification for every path in group (a)/(b), then
 > Stage 2 declares only group (a) + (c).
 
-- [ ] **1.1 — Extend `audit.js` coverage** to every collection and pack that
+- [x] **1.1 — Extend `audit.js` coverage. DONE.** to every collection and pack that
       matters: world `items`/`actors` (done), unlinked-token deltas in `scenes`,
       **all 8 OggDude Actor/Item packs** (`yn-weapons` done — add `yn-armor`,
       `yn-gear`, `yn-items`, `yn-actors`, `yn-adversaries`, `yn-vehicles`,
       `yn-attachments`, `yn-mods`, `yn-careers`, `yn-specializations`,
       `yn-species`, `yn-talents`, `yn-force-powers`, `yn-signature-abilities`,
       `v12-export-*`), plus the V14 world copy.
-- [ ] **1.2 — Discover, don't assume.** The F-table came from reading templates
+- [x] **1.2 — Discover, don't assume. DONE.** The F-table came from reading templates
       and JS; F4 proved that unreliable in both directions. Run the **generic**
       check: for every doc, construct its real model class (model-probe recipe)
       and diff `toObject()` against the stored `system`. **Every path the model
       drops is a finding**, including ones no template mentions (module- and
       macro-written data). This supersedes the hand-built list.
-- [ ] **1.3 — Classify each dropped path**: *declare* (real stored data) vs
-      *ignore* (never stored / genuinely dead). Confirm F7/F8 counts. Record
-      counts as justification, per path.
-- [ ] **1.4 — `changed`-path policy.** A declaration cannot fix a type coercion
-      (e.g. stored `"5"` vs `NumberField` → `5`). For each: widen the field so the
-      stored type round-trips, or record an accepted coercion (path, before →
-      after, rationale).
+- [x] **1.3 — Classify each dropped path. DONE 2026-07-14.** Criterion applied:
+      **declare iff something reads the path for that type** (grep of
+      `modules/` + `templates/`). Outcome — every remaining dropped path is a
+      deliberate ignore, with the reason recorded:
+      - **Declared** (readers confirmed): see Stage 2, all landed.
+      - **Derived, recreated by `ItemFFG.prepareData`** → ignoring is correct
+        (they only leaked into storage on save): `hardpoints.current` and
+        `adjusteditemmodifier` (both assigned inside `prepareData`, verified by
+        locating their enclosing method), `renderedDesc`, `enrichedDescription`,
+        `enrichedSpecial`, `hasLongDesc`, `doNotSubmit.*`, `isReadOnly`,
+        `collection.talentN.*` / `collection.upgradeN.*` (~1,700 of the 2,088).
+        **Resolves the "both spellings on disk" alarm**: `adjusteditemmodifer`
+        (misspelled) is the *stored* field; `adjusteditemmodifier` (correct) is
+        *derived*. Not a data-integrity fork — nothing to decide.
+      - **Dead — written, never read**: `skill.useBrawn` (3018 docs; exactly 4
+        hits in the tree, all importer writes), `specialization.careerskills`
+        (300; importer typo for the declared `careerSkills`, written as `{}`),
+        `morality.weakness`/`strength` (no readers).
+      - **Importer type-leakage no sheet binds**: `minion.species.*` /
+        `minion.general.*` (ffg-minion-sheet.html binds neither),
+        `rival.quantity.*` / `rival.unit_wounds.*` (minion fields on a rival),
+        `stats.Brawn`/`stats.Willpower` (characteristics written under `stats`),
+        `vehicle.itemmodifier`/`itemattachment` (448 each — every reader is
+        `ownedItem`/`parentItem`.system.itemattachment, i.e. items, never the
+        actor's own), `shipattachment.type`/`rank` (the sheet binds neither; the
+        shipattachment case sets a derived `data.modTypeSelected` instead),
+        `talent.<id>` (an id-keyed empty string).
+- [~] **1.4 — `changed`-path policy.** No coercions surfaced in the audit, but
+      it did surface **6 armour documents whose stored `defence.value` is not a
+      number** ("Armoured clothing", "Woven reed armour", …) — they throw on
+      strict construction. **Pre-existing** (identical before the schema
+      changes). Foundry loads documents non-strict with `fallback`, so they
+      resolve to `0` + a console warning rather than going invalid; under
+      template.json the raw `""` passed through and rendered as blank. Left
+      alone: it is a data-cleanup task, not a schema one. Worth a follow-up.
 
 ## Stage 2 — Declare the fields + fix the tooling
 
-- [ ] **2.1 — F1**: `isrestricted: new f.BooleanField({initial:false})` inside
+- [x] **2.1 — F1. DONE.**: `isrestricted: new f.BooleanField({initial:false})` inside
       `BasicTemplate.rarity` ([item-templates.js](../../../modules/data/item-templates.js)).
       Vehicle already declares its own copy.
-- [ ] **2.2 — F2**: `status: new f.StringField({initial:"None"})` on
+- [x] **2.2 — F2. DONE.**: `status: new f.StringField({initial:"None"})` on
       [weapon.js](../../../modules/data/models/item/weapon.js),
       [armour.js](../../../modules/data/models/item/armour.js),
       [shipweapon.js](../../../modules/data/models/item/shipweapon.js). Confirm
       `"None"` against `CONFIG.FFG.itemstatus`; check stored values (the live DB
       has real ones) so the default matches reality.
-- [ ] **2.3 — F3**: `medical: new f.SchemaField({uses: new f.NumberField({initial:0})})`
+- [x] **2.3 — F3. DONE.**: `medical: new f.SchemaField({uses: new f.NumberField({initial:0})})`
       on `StatsTemplate` **and** rival's inline `stats`
       ([rival.js](../../../modules/data/models/actor/rival.js) — rival does not
       use the shared template).
-- [ ] **2.4 — F5**: on `GeneralTemplate`, add `age`/`build`/`eyes`/`gender`/
+- [x] **2.4 — F5. DONE.**: on `GeneralTemplate`, add `age`/`build`/`eyes`/`gender`/
       `hair`/`height` as `StringField({initial:""})`, and `motivation1`/
       `motivation2` as freeform `ObjectField()` (nemesis/rival write
       `category`/`type`/`description` under them). **Do not add `notes` or actor
       `motivation`** — measured never-stored (see Dropped).
-- [ ] **2.5 — F6/F7/F8/F9**: `obligationlist` (+`dutylist` only if 1.3 finds it
+- [x] **2.5 — F6/F7/F8/F9. DONE.**: `obligationlist` (+`dutylist` only if 1.3 finds it
       stored anywhere) as `ObjectField()` on
       [character.js](../../../modules/data/models/actor/character.js);
       `stats.hyperdrive.backup` NumberField on
@@ -203,7 +236,7 @@ it can read backups and packs the same way.
       `isEditing: BooleanField({initial:false})` on the three tree models
       (**stored on 43/43 forcepowers — declare it, keep it**; correct the
       forcepower.js comment calling it transient).
-- [ ] **2.6 — F10: fix the migration (independent of all the above).** At
+- [x] **2.6 — F10. DONE (code); live run still pending.: fix the migration (independent of all the above).** At
       [swffg-main.js:1546-1561](../../../modules/swffg-main.js) the legacy
       wounds/strain `real_value` transfer has **never worked**: it assigns to
       *initialized* data (`SchemaField.initialize` builds a separate prepared
@@ -215,14 +248,14 @@ it can read backups and packs the same way.
       nullable:true`) so the read works. *No actor currently has `real_value`
       (0/44), so this is future-proofing for ancient worlds, not a live fix —
       test on a doctored copy with a distinctive sentinel (e.g. 7, never 0).*
-- [ ] **2.7 — Fix the conformance reporter.** Move the type→class maps into a
+- [x] **2.7 — Fix the conformance reporter. DONE.** Move the type→class maps into a
       dependency-free `modules/data/models-registry.js` (index.js already
       re-exports the reporter → circular-import risk), have `checkDocument`
       construct the model class from raw `_source` rather than comparing a live
       doc to its own clone, and make it **refuse to run** when models are
       registered unless forced. Port the offline `compare.js`/`model-probe.mjs`
       approach as the reference implementation.
-- [ ] **2.8 — Prove it offline.** Re-run the Stage-1 audit with the new schemas
+- [x] **2.8 — Prove it offline. DONE.** Re-run the Stage-1 audit with the new schemas
       against copies of: the live world, the V14 world, and every pack.
       Expected: zero dropped paths except those classified *ignore* in 1.3, and
       `changed` only per the 1.4 accepted list.
@@ -251,7 +284,7 @@ played through 2026-07-14) and V13 prunes identically.
 
 ## Stage 4 — Follow-ups
 
-- [ ] **4.1 — Correct the record.** In
+- [x] **4.1 — Correct the record. DONE.** In
       [2026-07-04-template-json-to-datamodel-migration.md](2026-07-04-template-json-to-datamodel-migration.md):
       mark the "Full live run: CLEAN across 17,925 documents" claim invalid
       (tautological method — it was right about data safety by luck, not

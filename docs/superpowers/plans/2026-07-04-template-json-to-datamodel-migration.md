@@ -100,19 +100,61 @@ stage that would change a path (e.g. renaming a field or flattening a nested
 block to "tidy" the schema) must be called out and decided separately, never
 silently folded in.
 
+> **CORRECTION (2026-07-14) — "today's shape" is NOT template.json.** Every
+> stage below reproduced template.json and treated that as done. It wasn't:
+> template.json only ever supplied *defaults*, and merged them onto stored data
+> without pruning, so the schemaless system happily persisted paths it never
+> declared — and sheets, importers and dice helpers read them. A DataModel that
+> matches template.json therefore still drops real, read data. Measured
+> examples: `rarity.isrestricted` (written by every OggDude importer, read by
+> ~10 sheets), `weapon.status` (drives Setback / too-damaged rolls),
+> `shipweapon.skill` (rollItem resolves it; template.json's shipweapon has no
+> `skill` block at all), `rival.stats.strain` (the rival token's bar2 binds it;
+> template.json's rival has no `strain`).
+>
+> The right contract is **what the running system persists and reads**, which
+> only a raw-data audit reveals — not what template.json declared. See
+> [2026-07-14-datamodel-undeclared-paths-fix.md](2026-07-14-datamodel-undeclared-paths-fix.md).
+> Dropping such a path does not erase it (the server keeps writing the full
+> record) but makes it invisible, which silently kills the behaviour that reads
+> it.
+
 ## Bulk rewrite tool (pre-migration data verification)
 
-> **BUILT as a report-only reporter (2026-07-09).** Shipped the *verify* half of
-> this tool — the `classifyDiff` walk across all four recursion targets — as
-> [conformance-report.js](../../../modules/data/conformance-report.js), exposed
-> as `game.ffg.reportDataModelConformance()`. It never writes (safe on locked
-> packs), so the risky write-back half was not built: because the DataModels
-> reproduce template.json's exact shape, there is nothing to conform. **Full
-> live run: CLEAN across 17,925 documents** (world actors/items + embedded
-> inventory + unlinked-token deltas + every OggDude compendium pack) — 0
-> dropped/changed, 0 invalid. This is the reusable check an upgrader runs against
-> their own world; the write-back stays available as a future flag if a world
-> ever reports findings. The full design below is retained for that contingency.
+> **BUILT as a report-only reporter (2026-07-09) — but the result below was
+> INVALID. See [2026-07-14-datamodel-undeclared-paths-fix.md](2026-07-14-datamodel-undeclared-paths-fix.md).**
+>
+> ~~**Full live run: CLEAN across 17,925 documents** (world actors/items +
+> embedded inventory + unlinked-token deltas + every OggDude compendium pack) —
+> 0 dropped/changed, 0 invalid.~~ **Retracted (2026-07-14).** The reporter
+> compared `doc._source.system` against `doc.system.toObject()`. With the models
+> registered that is an object against its own clone — construction has already
+> cleaned `_source`, and `toObject(true)` returns `deepClone(this._source)` — so
+> `dropped`/`changed` were empty **by construction**. The run could not have
+> reported anything, on any world. The corpus it scanned carries
+> `rarity.isrestricted` on essentially every OggDude weapon, a path no schema
+> declared; a real diff flags that thousands of times.
+>
+> Re-running the check properly (construct each model from raw source; offline
+> LevelDB read, no Foundry) across **17,696 documents** found **2,088 dropped
+> paths**, including data the sheets and dice helpers actually read —
+> `weapon.status`, `shipweapon.skill`, `rival.stats.strain`,
+> `rarity.isrestricted`. Those are now declared; see the fix plan for the
+> full classification (much of the 2,088 is derived junk that *should* drop).
+>
+> The premise that made this reporter look unnecessary — *"because the
+> DataModels reproduce template.json's exact shape, there is nothing to
+> conform"* — is the actual root error, and it is upstream of the tool: **the
+> schemas were audited against template.json, which was never the real
+> contract.** The schemaless system also persisted paths template.json never
+> declared, and code read them. Note the reporter's conclusion (that stored data
+> is safe) turned out to be *true*, but for an unrelated reason it never
+> tested: the Foundry server runs no system JS, resolves no model, and keeps
+> writing the full record.
+>
+> [conformance-report.js](../../../modules/data/conformance-report.js) is now
+> probe-based and reports real drops. It still never writes, so the write-back
+> half remains unbuilt; the design below is retained for that contingency.
 
 **Purpose.** Before a sub-type's DataModel is registered in
 `CONFIG.Actor.dataModels`/`CONFIG.Item.dataModels`, walk every existing
