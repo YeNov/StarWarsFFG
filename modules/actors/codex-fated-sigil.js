@@ -47,10 +47,14 @@ function rngFromSeed(source, salt = "") {
 }
 
 /**
- * Art-direction defaults. Based on the handoff, but the wear is reworked: the
- * handoff's "extreme" patch tuning (264 large ellipses) covered the whole tile
- * and zeroed everything, so instead we start from mostly-visible and carve holes
- * with a cloud ramp + a handful of empty patches. Tune to taste.
+ * Art-direction defaults. Tune to taste — see wearSource for which knobs reach
+ * which style; the wear knobs are Fate-only, as Scholar's medallion opts out.
+ *
+ * The procedural (cloud/patch/scratch/grain) knobs carry the handoff's history:
+ * its "extreme" patch tuning (264 large ellipses) covered the whole tile and
+ * zeroed everything, so that path instead starts mostly-visible and carves holes
+ * with a cloud ramp + a handful of empty patches. They are inert unless
+ * wearSource is "procedural".
  */
 export const CDX_FATED_DEFAULTS = {
   style: "deco",          // "deco" = ported mystic_patterns wall; "medallion" = bespoke sigil
@@ -62,12 +66,12 @@ export const CDX_FATED_DEFAULTS = {
   // roughly half this on screen — hence a default above 1, which keeps the
   // linework from thinning below a whole pixel and washing out.
   medallionLineScale: 1.5,
-  // TEMP EXPERIMENT — wear source. "grunge" masks the sigil with the seamless
-  // photo-grunge scan (grunge-wear-seamless.webp); "procedural" restores the
-  // original layered-noise fog + patches + scratches + grain below; "none" emits
-  // the sigil clean. This default only reaches the Fate wall — the Scholar
-  // medallion pins "none" at its call site (see _cdxFatedSigil), so every knob
-  // from here down is Fate-only art direction.
+  // Wear source. "grunge" masks the sigil with the seamless photo-grunge scan
+  // (grunge-wear-seamless.webp); "procedural" builds the layered-noise fog +
+  // patches + scratches + grain below instead (the pre-grunge look, kept for
+  // A/B); "none" emits the sigil clean. This default only reaches the Fate wall
+  // — the Scholar medallion pins "none" at its call site (see _cdxFatedSigil),
+  // so every knob from here down is Fate-only art direction.
   wearSource: "grunge",
   // Blotch scale: px each copy of the scan occupies inside the maskSize canvas, so
   // it scales independently of the deco wall (which sigilSize drives). Rounded to
@@ -199,7 +203,7 @@ function grainFloat(rng, size) {
   return out;
 }
 
-/* ---- grunge wear (TEMP EXPERIMENT) ----------------------------------------
+/* ---- grunge wear (the default wear source) ---------------------------------
    A seamless scanned-grunge tile used in place of the procedural fog: light
    paper = intact, dark blotches = eroded, so it drops straight into the same
    0..1 visibility contract makeWear() returns. Made seamless via a
