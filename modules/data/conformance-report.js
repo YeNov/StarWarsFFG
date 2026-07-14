@@ -4,22 +4,49 @@
  *
  * Walks every document across the four "recursion targets" the migration plan
  * enumerates — world collections, actor-embedded items, unlinked-token
- * `ActorDelta`s on scenes, and compendium packs — runs each through its
- * registered DataModel, and reports any leaf path that would be **dropped** or
- * **changed** relative to the stored `_source`. It NEVER writes anything, so it
- * is safe to run against a live world (locked packs included — read-only).
+ * `ActorDelta`s on scenes, and compendium packs — and reports any leaf path a
+ * sub-type's DataModel drops or changes relative to the raw stored `_source`.
+ * It NEVER writes anything, so it is safe to run against a live world (locked
+ * packs included — read-only).
  *
- * Because this system's DataModels reproduce template.json's exact shape, a
- * clean run (no drops/changes, no invalid documents) means every stored
- * document already conforms and the migration is a data non-event for that
- * world. Any finding is a place a human should look before trusting the upgrade.
+ * ## Why this is written the way it is
+ *
+ * The original version compared `doc._source.system` against
+ * `doc.system.toObject()`. **On a build where the models are registered that is
+ * a tautology**: construction already cleaned `_source`, and `toObject(true)`
+ * returns `deepClone(this._source)` — an object against its own clone. It could
+ * never report a drop, and its "CLEAN across 17,925 documents" run was
+ * meaningless (the OggDude packs it scanned carry `rarity.isrestricted` on
+ * essentially every weapon, which a real diff flags thousands of times).
+ *
+ * So the check now builds the model **class** from the raw source itself
+ * (`new ModelClass(deepClone(raw))`) via ./models-registry.js — not
+ * `CONFIG.*.dataModels`, which is empty under a diagnostic boot — and diffs the
+ * result. That reports a real drop even when the models are live.
+ *
+ * ## Caveats worth knowing before trusting a result
+ *
+ * - A **drop is not data loss.** The Foundry server never runs the system's
+ *   client-side esmodules, so it resolves no model, never prunes, and keeps
+ *   writing the full record. Dropped paths are invisible to sheets and code
+ *   (`SchemaField.initialize` walks declared fields only) but remain on disk.
+ * - This reads `_source` **in the client**, which on a registered build is
+ *   itself already cleaned. For ground truth about what the database holds,
+ *   read the LevelDB offline — see
+ *   docs/superpowers/plans/artifacts/2026-07-14-datamodel-evidence/.
+ * - Some drops are **intended**: derived props that leak into stored data
+ *   (`renderedDesc`, `hardpoints.current`, `adjusteditemmodifier`,
+ *   `collection.*`) and dead importer output (`skill.useBrawn`). Judge findings
+ *   against the classification in the plan, not as automatic defects.
  *
  * Run from the console:
  *   await game.ffg.reportDataModelConformance();
  *   await game.ffg.reportDataModelConformance({ compendiums: false }); // skip packs (faster)
  *
- * Plan: docs/superpowers/plans/2026-07-04-template-json-to-datamodel-migration.md
+ * Plan: docs/superpowers/plans/2026-07-14-datamodel-undeclared-paths-fix.md
  */
+
+import { modelFor } from "./models-registry.js";
 
 // V14 renamed foundry.utils.objectsEqual → equals; prefer the new name so V14
 // doesn't log a deprecation, fall back on V13.
@@ -53,10 +80,21 @@ function classifyDiff(oldData, newData, { ignoreAdded = false } = {}) {
   return { dropped, changed, added };
 }
 
-/** Diff a fully-realized document (world/embedded/compendium) via its live model. */
+/**
+ * Diff a fully-realized document (world/embedded/compendium) by constructing its
+ * model class from the raw source.
+ *
+ * Do NOT "simplify" this to `doc.system.toObject()` — see the tautology note in
+ * the module header. The probe must be built from `_source` independently of
+ * whether `CONFIG.*.dataModels` is populated.
+ */
 function checkDocument(doc) {
+  const ModelClass = modelFor(doc.documentName, doc.type);
+  const raw = doc._source?.system;
+  if (!ModelClass || !raw) return null;
   try {
-    return classifyDiff(doc._source.system, doc.system.toObject());
+    const probe = new ModelClass(foundry.utils.deepClone(raw), { parent: doc });
+    return classifyDiff(raw, probe.toObject());
   } catch (err) {
     return { constructError: String(err?.message ?? err) };
   }
@@ -70,7 +108,7 @@ function checkDocument(doc) {
  * delta; that would inflate it into a full override — see the plan).
  */
 function checkDelta(delta, type) {
-  const ModelClass = CONFIG.Actor.dataModels[type];
+  const ModelClass = modelFor("Actor", type);
   const oldData = foundry.utils.deepClone(delta._source?.system ?? {});
   if (!ModelClass || foundry.utils.isEmpty(oldData)) return null; // no overrides → nothing to check
   let probe;
