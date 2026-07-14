@@ -356,26 +356,51 @@ export default class ModifierHelpers {
     }).render(true);
   }
 
-  static async getDicePoolModifiers(pool, item, items) {
+  /**
+   * Apply an item's dice-pool modifiers (its own attributes, plus `items`).
+   * @param trackSources when true, also append a hint line per contributing mod to
+   *   dicePool.source, so the pool preview's tooltip can explain where the dice came
+   *   from (@see DicePoolFFG#_addSourceToolTip). Off by default: the roll paths build
+   *   their pools without sources, and only the Codex weapon-card preview wants them.
+   *   Lines are appended already-rendered, because by this point dicePool.source holds
+   *   strings from the constructor and mixing objects in would break its re-mapping.
+   */
+  static async getDicePoolModifiers(pool, item, items, trackSources = false) {
     let dicePool = new DicePoolFFG(pool);
 
-    dicePool.boost += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Boost", "Roll Modifiers");
-    dicePool.setback += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Setback", "Roll Modifiers");
-    dicePool.remsetback += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Remove Setback", "Roll Modifiers");
-    dicePool.advantage += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Advantage", "Result Modifiers");
-    dicePool.dark += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Dark", "Result Modifiers");
-    dicePool.failure += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Failure", "Result Modifiers");
-    dicePool.light += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Light", "Result Modifiers");
-    dicePool.success += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Success", "Result Modifiers");
-    dicePool.threat += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Threat", "Result Modifiers");
-    dicePool.triumph += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Triumph", "Result Modifiers");
-    dicePool.despair += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Despair", "Result Modifiers");
+    // sources carry the raw item type ("itemattachment"); show the sheet's label.
+    const label = (s) => ({ ...s, type: game.i18n?.localize(`TYPES.Item.${s.type}`) ?? s.type });
 
-    dicePool.difficulty += ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Add Difficulty", "Dice Modifiers");
-    dicePool.upgradeDifficulty(ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Upgrade Difficulty", "Dice Modifiers"));
-    dicePool.upgradeDifficulty(-1 * ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Downgrade Difficulty", "Dice Modifiers"));
-    dicePool.upgrade(ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Upgrade Ability", "Dice Modifiers"));
-    dicePool.upgrade(-1 * ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, "Downgrade Ability", "Dice Modifiers"));
+    // Returns the mod total exactly as before; only additionally records the lines.
+    const valueOf = (key, modtype, bucket, render) => {
+      if (!trackSources || !bucket) {
+        return ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, key, modtype);
+      }
+      const { total, sources } = ModifierHelpers.getCalculatedValueFromCurrentAndArray(item, items, key, modtype, true);
+      const lines = sources.filter((s) => parseInt(s.value, 10) > 0).map((s) => render(label(s)));
+      if (lines.length) dicePool.source[bucket] = [...(dicePool.source[bucket] ?? []), ...lines];
+      return total;
+    };
+
+    dicePool.boost += valueOf("Add Boost", "Roll Modifiers", "boost", (s) => `${s.name} (${s.type}): +${s.value} boost dice`);
+    dicePool.setback += valueOf("Add Setback", "Roll Modifiers", "setback", (s) => `${s.name} (${s.type}): +${s.value} setback dice`);
+    dicePool.remsetback += valueOf("Remove Setback", "Roll Modifiers", "remsetback", (s) => `${s.name} (${s.type}): -${s.value} setback dice`);
+    dicePool.advantage += valueOf("Add Advantage", "Result Modifiers", "advantage", (s) => `${s.name} (${s.type}): ${s.value} Advantage`);
+    dicePool.dark += valueOf("Add Dark", "Result Modifiers", "dark", (s) => `${s.name} (${s.type}): ${s.value} Dark`);
+    dicePool.failure += valueOf("Add Failure", "Result Modifiers", "failure", (s) => `${s.name} (${s.type}): ${s.value} Failure`);
+    dicePool.light += valueOf("Add Light", "Result Modifiers", "light", (s) => `${s.name} (${s.type}): ${s.value} Light`);
+    dicePool.success += valueOf("Add Success", "Result Modifiers", "success", (s) => `${s.name} (${s.type}): ${s.value} Success`);
+    dicePool.threat += valueOf("Add Threat", "Result Modifiers", "threat", (s) => `${s.name} (${s.type}): ${s.value} Threat`);
+    dicePool.triumph += valueOf("Add Triumph", "Result Modifiers", "triumph", (s) => `${s.name} (${s.type}): ${s.value} Triumph`);
+    dicePool.despair += valueOf("Add Despair", "Result Modifiers", "despair", (s) => `${s.name} (${s.type}): ${s.value} Despair`);
+
+    dicePool.difficulty += valueOf("Add Difficulty", "Dice Modifiers", "difficulty", (s) => `${s.name} (${s.type}): +${s.value} difficulty dice`);
+    dicePool.upgradeDifficulty(valueOf("Upgrade Difficulty", "Dice Modifiers", "upgradeDifficulty", (s) => `${s.name} (${s.type}): upgrade difficulty ${s.value} time(s)`));
+    // Downgrades have no tooltip bucket (the pool tracks no negative source), so they
+    // stay untracked — the filter above would drop them anyway.
+    dicePool.upgradeDifficulty(-1 * valueOf("Downgrade Difficulty", "Dice Modifiers"));
+    dicePool.upgrade(valueOf("Upgrade Ability", "Dice Modifiers", "upgrades", (s) => `${s.name} (${s.type}): ${s.value} upgrade(s)`));
+    dicePool.upgrade(-1 * valueOf("Downgrade Ability", "Dice Modifiers"));
 
     return dicePool;
   }
@@ -423,6 +448,12 @@ export default class ModifierHelpers {
       return "Skill Remove Setback";
     } else if (skillPath.endsWith("setback")) {
       return "Skill Setback";
+    } else if (skillPath.endsWith("upgradeDifficulty")) {
+      return "Skill Upgrade Difficulty";
+      // Ordered after upgradeDifficulty for clarity; endsWith is case-sensitive, so
+      // "…upgradeDifficulty" would not match this branch regardless.
+    } else if (skillPath.endsWith("difficulty")) {
+      return "Skill Difficulty";
     } else if (skillPath.endsWith("careerskill")) {
       return "Career Skill";
     }

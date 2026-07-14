@@ -157,6 +157,19 @@ export default class DiceHelpers {
       const isWeapon = !!item && (item.type === "weapon" || item.type === "shipweapon");
       const status = (isWeapon ? this.getWeaponStatus(item, false) : null) ?? { setback: 0, difficulty: 0 };
 
+      // Weapon damage is computed, not an active effect, so _prepareSources never
+      // records it — synthesise the hint lines here or the dice appear unexplained.
+      const damageSource = (key) => {
+        if (!status[key]) return [];
+        return [{
+          modtype: key === "setback" ? "Skill Setback" : "Skill Difficulty",
+          key: "damaged",
+          name: item.name,
+          value: String(status[key]),
+          type: game.i18n.localize(CONFIG.FFG.itemstatus[item.system.status].label),
+        }];
+      };
+
       let dicePool = new DicePoolFFG({
         ability: Math.max(characteristic?.value ? characteristic.value : 0, skill?.rank ? skill.rank : 0),
         boost: skill.boost,
@@ -181,7 +194,9 @@ export default class DiceHelpers {
           skill: skill?.ranksource?.length ? skill.ranksource : [],
           boost: skill?.boostsource?.length ? skill.boostsource : [],
           remsetback: skill?.remsetbacksource?.length ? skill.remsetbacksource : [],
-          setback: skill?.setbacksource?.length ? skill.setbacksource : [],
+          setback: [...(skill?.setbacksource?.length ? skill.setbacksource : []), ...damageSource("setback")],
+          difficulty: [...(skill?.difficultysource?.length ? skill.difficultysource : []), ...damageSource("difficulty")],
+          upgradeDifficulty: skill?.upgradeDifficultysource?.length ? skill.upgradeDifficultysource : [],
           advantage: skill?.advantagesource?.length ? skill.advantagesource : [],
           dark: skill?.darksource?.length ? skill.darksource : [],
           light: skill?.lightsource?.length ? skill.lightsource : [],
@@ -201,8 +216,10 @@ export default class DiceHelpers {
       // When a weapon item is supplied, fold in its roll modifiers (weapon
       // qualities, attachments, and item modifiers) so the preview matches what
       // rollItem actually rolls, instead of showing only the bare skill pool.
+      // trackSources: this is a hover-hint surface, so each contributing quality /
+      // attachment also gets a tooltip line. Only this path asks for them.
       if (isWeapon) {
-        dicePool = new DicePoolFFG(await this.getModifiers(dicePool, item));
+        dicePool = await this.getModifiers(dicePool, item, true);
       }
 
       const rollButton = elem.querySelector(".roll-button");
@@ -303,23 +320,28 @@ export default class DiceHelpers {
     return { setback, difficulty };
   }
 
-  static async getModifiers(dicePool, item) {
+  /**
+   * Fold a weapon's own mods, its attachments, and their active modifiers into a pool.
+   * @param trackSources see ModifierHelpers.getDicePoolModifiers — off by default so the
+   *   roll paths are unaffected; the Codex weapon-card preview opts in to explain its dice.
+   */
+  static async getModifiers(dicePool, item, trackSources = false) {
     if (item.type === "weapon" || item.type === "shipweapon") {
-      dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, item, []);
+      dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, item, [], trackSources);
 
       if (item?.system?.itemattachment) {
         await ImportHelpers.asyncForEach(item.system.itemattachment, async (attachment) => {
           //get base mods and additional mods totals
-          dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, attachment, []);
+          dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, attachment, [], trackSources);
           const activeModifiers = attachment.system.itemmodifier.filter((i) => i.system?.active);
           await ImportHelpers.asyncForEach(activeModifiers, async (modifier) => {
-            dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, modifier, []);
+            dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, modifier, [], trackSources);
           });
         });
       }
       if (item?.system?.itemmodifier) {
         await ImportHelpers.asyncForEach(item.system.itemmodifier, async (modifier) => {
-          dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, modifier, []);
+          dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, modifier, [], trackSources);
         });
       }
     }

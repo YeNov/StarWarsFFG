@@ -31,6 +31,19 @@ export class DicePoolFFG {
 
     this.source = {};
 
+    // Each block below maps raw source OBJECTS into display strings. But a pool is
+    // routinely built from another pool — ModifierHelpers.getDicePoolModifiers does
+    // `new DicePoolFFG(pool)` on every call — and on that second pass the entries are
+    // already strings: `.value` is undefined, so `parseInt(undefined, 10) > 0` filters
+    // every one of them out and the tooltip silently empties. Carry rendered entries
+    // through untouched (re-applied after the blocks, which yield [] for those keys).
+    const rendered = {};
+    for (const [key, entries] of Object.entries(obj?.source ?? {})) {
+      if (Array.isArray(entries) && entries.length && entries.every((e) => typeof e === "string")) {
+        rendered[key] = [...entries];
+      }
+    }
+
     if (obj?.source?.skill?.length) {
       this.source.skill = obj.source.skill
         .filter((item) => parseInt(item.value, 10) > 0)
@@ -41,7 +54,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Rank") {
             return `${rank.name} (${rank.type}): ${rank.value} rank(s)`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
     if (obj?.source?.boost?.length) {
@@ -51,7 +64,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Boost") {
             return `${rank.name} (${rank.type}): +${rank.value} boost dice`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): +${rank.value} boost dice`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): +${rank.value} boost dice`;
         });
     }
     if (obj?.source?.remsetback?.length) {
@@ -61,7 +74,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Remove Setback") {
             return `${rank.name} (${rank.type}): -${rank.value} setback dice`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): -${rank.value} setback dice`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): -${rank.value} setback dice`;
         });
     }
     if (obj?.source?.setback?.length) {
@@ -71,7 +84,27 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Setback") {
             return `${rank.name} (${rank.type}): +${rank.value} setback dice`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): +${rank.value} setback dice`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): +${rank.value} setback dice`;
+        });
+    }
+    if (obj?.source?.difficulty?.length) {
+      this.source.difficulty = obj.source.difficulty
+        .filter((item) => parseInt(item.value, 10) > 0)
+        .map((rank) => {
+          if (rank.modtype === "Skill Difficulty") {
+            return `${rank.name} (${rank.type}): +${rank.value} difficulty dice`;
+          }
+          return `${rank.modtype} from ${rank.name} (${rank.type}): +${rank.value} difficulty dice`;
+        });
+    }
+    if (obj?.source?.upgradeDifficulty?.length) {
+      this.source.upgradeDifficulty = obj.source.upgradeDifficulty
+        .filter((item) => parseInt(item.value, 10) > 0)
+        .map((rank) => {
+          if (rank.modtype === "Skill Upgrade Difficulty") {
+            return `${rank.name} (${rank.type}): upgrade difficulty ${rank.value} time(s)`;
+          }
+          return `${rank.modtype} from ${rank.name} (${rank.type}): upgrade difficulty ${rank.value} time(s)`;
         });
     }
     if (obj?.source?.upgrades?.length) {
@@ -81,7 +114,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Upgrade") {
             return `${rank.name} (${rank.type}): ${rank.value} upgrade(s)`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
     if (obj?.source?.success?.length) {
@@ -91,7 +124,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Success") {
             return `${rank.name} (${rank.type}): ${rank.value} Success`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
     if (obj?.source?.advantage?.length) {
@@ -101,7 +134,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Advantage") {
             return `${rank.name} (${rank.type}): ${rank.value} Advantage`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
     if (obj?.source?.light?.length) {
@@ -111,7 +144,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Light") {
             return `${rank.name} (${rank.type}): ${rank.value} Light`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
     if (obj?.source?.failure?.length) {
@@ -121,7 +154,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Failure") {
             return `${rank.name} (${rank.type}): ${rank.value} Failure`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
     if (obj?.source?.threat?.length) {
@@ -131,7 +164,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Threat") {
             return `${rank.name} (${rank.type}): ${rank.value} Threat`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
     if (obj?.source?.dark?.length) {
@@ -141,7 +174,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Dark") {
             return `${rank.name} (${rank.type}): ${rank.value} Dark`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
 
@@ -152,7 +185,7 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Despair") {
             return `${rank.name} (${rank.type}): ${rank.value} Despair`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
 
@@ -163,9 +196,12 @@ export class DicePoolFFG {
           if (rank.modtype === "Skill Add Triumph") {
             return `${rank.name} (${rank.type}): ${rank.value} Triumph`;
           }
-          return `${modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
+          return `${rank.modtype} from ${rank.name} (${rank.type}): ${rank.value}`;
         });
     }
+
+    // Restore any already-rendered lines the blocks above just emptied (see `rendered`).
+    Object.assign(this.source, rendered);
   }
 
   /**
@@ -374,7 +410,7 @@ export class DicePoolFFG {
   }
 
   _addSourceToolTip(container) {
-    const createToolTip = this.source?.skill?.length || this.source?.boost?.length || this.source?.remsetback?.length || this.source?.setback?.length || this.source?.upgrades?.length || this.source?.success?.length || this.source?.advantage?.length || this.source?.light?.length || this.source?.failure?.length || this.source?.threat?.length || this.source?.dark?.length || this.source?.triumph?.length || this.source?.despair?.length;
+    const createToolTip = this.source?.skill?.length || this.source?.boost?.length || this.source?.remsetback?.length || this.source?.setback?.length || this.source?.difficulty?.length || this.source?.upgradeDifficulty?.length || this.source?.upgrades?.length || this.source?.success?.length || this.source?.advantage?.length || this.source?.light?.length || this.source?.failure?.length || this.source?.threat?.length || this.source?.dark?.length || this.source?.triumph?.length || this.source?.despair?.length;
 
     if (createToolTip) {
       const mapDataToString = (values) => {
@@ -396,6 +432,12 @@ export class DicePoolFFG {
       }
       if (this.source?.setback?.length) {
         mapDataToString(this.source.setback);
+      }
+      if (this.source?.difficulty?.length) {
+        mapDataToString(this.source.difficulty);
+      }
+      if (this.source?.upgradeDifficulty?.length) {
+        mapDataToString(this.source.upgradeDifficulty);
       }
       if (this.source?.upgrades?.length) {
         mapDataToString(this.source.upgrades);

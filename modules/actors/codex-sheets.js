@@ -1028,13 +1028,57 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     if (!nodes.length) return;
     let data;
     try { data = await this.getData({}); } catch (e) { return; }
-    nodes.forEach((elem) => {
+    // Hints live on the form, outside the cards, so they outlive a content re-render.
+    this.form?.querySelectorAll(".cdx-wpn-tip").forEach((n) => n.remove());
+    // Awaited (not forEach): the tooltip only exists once the pool has rendered.
+    for (const elem of nodes) {
       // Resolve the weapon item from its card so its roll modifiers are folded
       // into the previewed pool (matches what clicking the weapon rolls).
       const card = elem.closest(".cdx-card.weapon[data-item-id]");
       const item = card ? (this.actor?.items?.get(card.dataset.itemId) ?? null) : null;
-      try { DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { /* skip this weapon */ }
-    });
+      try { await DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { continue; }
+      this._cdxWeaponPoolHint(elem);
+    }
+  }
+
+  /**
+   * Drive a weapon pool's source hint from its row, with the tooltip re-homed onto
+   * the form. Two things stop the shared `.hover:hover .tooltip2` mechanism working
+   * in place here:
+   *   - .cdx-card carries a clip-path (the notches), which clips its whole subtree —
+   *     a tooltip anchored inside the card is cut off at the card's edge.
+   *   - .cdx-wpn-pool is pointer-events:none, so it can never be :hover-ed. That is
+   *     deliberate: .roll-button has a global handler, and the pool sits one level
+   *     deeper than rollSkill's parent-walk expects, so a click there would roll a
+   *     bare skill instead of the weapon. Clicks must keep falling through to the
+   *     card's icon, which sits at the depth rollSkill wants.
+   * The form is unclipped, and an absolutely positioned child of it scrolls with the
+   * content, so the hint tracks its row. The `.hover` host keeps the shared
+   * `.starwarsffg .hover .tooltip2` styling matching, so it looks like the skill hint.
+   */
+  _cdxWeaponPoolHint(elem) {
+    const tip = elem.querySelector(".tooltip2");
+    const form = this.form;
+    if (!tip || !form) return;
+
+    const host = document.createElement("div");
+    host.className = "hover cdx-wpn-tip";
+    host.appendChild(tip);
+    form.appendChild(host);
+
+    const show = () => {
+      // Measure against offsetParent — by definition what position:absolute resolves
+      // to — rather than assuming the form is positioned. Adding position:relative to
+      // the form would silently re-anchor the sheet's other ~30 absolute elements.
+      const anchor = host.offsetParent ?? form;
+      const a = anchor.getBoundingClientRect();
+      const r = elem.getBoundingClientRect();
+      host.style.left = `${r.left - a.left + anchor.scrollLeft}px`;
+      host.style.top = `${r.bottom - a.top + anchor.scrollTop + 3}px`;
+      host.classList.add("cdx-tip-on");
+    };
+    elem.addEventListener("pointerenter", show);
+    elem.addEventListener("pointerleave", () => host.classList.remove("cdx-tip-on"));
   }
 
   /**
