@@ -794,6 +794,12 @@
 /* Difficulty/severity dice in a horizontal row (the images are otherwise stacked
    vertically by the global img rules). Applies to every crit chip via .cdx-inj-sev. */
 .cdx .cdx-inj-sev { display:flex; align-items:center; gap:3px; }
+/* Each severity die is wrapped in .ffg-die-icon (as pool.js does for dice pools)
+   so it inherits the per-scheme die treatment. pool.js sets --ffg-die-mask from
+   the resolved img src; here the die is always the purple difficulty die, so set
+   it in CSS — absolute path, since a relative url() in the mask would resolve
+   against this stylesheet (/styles/) rather than the document. */
+.cdx .cdx-inj-sev .ffg-die-icon { flex:none; --ffg-die-mask:url("/systems/starwarsffg/images/dice/starwars/purple.png"); }
 .cdx .cdx-sev-img { height:16px; flex:none; }
 
 /* ---- Talents ---- */
