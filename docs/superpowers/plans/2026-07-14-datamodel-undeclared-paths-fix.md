@@ -260,11 +260,41 @@ it can read backups and packs the same way.
       numbers — no coercion", from the same tautological `_source`-vs-
       `toObject()` diff. 93 and 90 documents respectively coerce.
 
-- [ ] **1.5 — Follow-up: 6 corrupt armour records.** In `v12-export-actors`,
-      `defence.value` holds `","`, `"d"`, `"e"` — non-numeric, so unlike the 189
-      `"1"`-style strings they cannot coerce and fall back to `0` with a console
-      warning. Pre-existing (identical before the schema work) and confined to a
-      legacy export pack, so out of scope here; it is a data-cleanup task.
+- [x] **1.5 — 6 armour records with a non-numeric defence/soak. WON'T FIX
+      (decided 2026-07-14).** In `yehors-sw-ffg-shared-data.v12-export-actors`,
+      six armour items embedded in adversary actors store a stray character
+      where a number belongs — unlike the ~1,010 `"1"`-style strings these
+      cannot coerce, so they fall back to `0` and log a warning. Pre-existing
+      and identical before any of the schema work; the schema only made them
+      visible.
+
+      | armour (item id) | parent actor (actor id) | stored |
+      |---|---|---|
+      | Armoured clothing `qr2ChUGJW7QhOscB` | Gerk, Houk Supervisor `8DyzOlcxVQ47susL` | `defence.value = ","` |
+      | Woven reed armour `BrPz3XyYLYLEFjej` | Mimbanese Resistance Sniper `AHh91U7S5RciAVe4` | `defence.value = "d"` |
+      | Custom crimson ISB uniform … `2FlbWgVrKSbRFiR0` | Commander Abyss `UyT2mXEiy0xZI4du` | `soak.value = "g"` |
+      | Personal deflector shield `TNxr4AeinM9J4yeD` | CSA Viceprex `gR2gxRMFEapf5fpT` | `defence.value = "d"` |
+      | Woven reed armour `MmiXQZISy504KeCA` | Mimbanese Resistance Fighter `h56i3BtvWZot8fi9` | `defence.value = "d"` |
+      | Scales `9aPAyqD6dELegntv` | Joopa Worm `mcH6LSe098GaWdXU` | `defence.value = "e"` |
+
+      **Reason for not fixing: we do not know the correct values.** Each record
+      has exactly one mangled field with its sibling intact and no description,
+      which looks like a stat-block parse artifact — but the *intended* number
+      is not recoverable. Cross-referencing every other copy in every pack:
+      Personal deflector shield has 8 siblings that agree on `2`; Armoured
+      clothing's siblings **disagree** (29× `"1"`, 6× `0`); both Woven reed
+      armour copies are themselves the corrupt ones; Scales and the ISB uniform
+      are unique. `adjusted` is `0` on all six, so nothing is recoverable there
+      either.
+
+      There is also an untested hypothesis that some adversary armour is zeroed
+      **on purpose**, the adversary's own `stats.soak`/`stats.defence` being the
+      authoritative numbers — in which case the `0` fallback already lands on
+      the intended value and a "fix" would be the regression. Flagged as a
+      hypothesis, not a finding: nobody has verified it, and it is not a
+      prerequisite for the decision. Skipping is justified by the uncertainty
+      alone, on a legacy archive pack with no live impact.
+
       (They surface as "failed" in `changed-audit.mjs` only because the probe
       harness does not shim Foundry's `logger` global that the fallback path
       logs through — they are not fatal in Foundry.)
