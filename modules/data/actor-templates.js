@@ -37,6 +37,28 @@ export function medicalField() {
   return new f.SchemaField({ uses: new f.NumberField({ initial: 0 }) });
 }
 
+/**
+ * Legacy `stats.<wounds|strain>.real_value`, kept only so the one-shot migration
+ * in swffg-main.js can still see it. Pre-V10 worlds stored the true value here
+ * while `.value` held a display value; the migration moves it back and nulls
+ * this out.
+ *
+ * It must be declared even though no actor in a current world has it (0/44 in a
+ * raw-DB audit): the migration reads `_source`, and the client prunes undeclared
+ * paths out of `_source` at construction, so an undeclared `real_value` is
+ * unreadable and the migration silently does nothing.
+ *
+ * `required: false` + `initial: undefined` keeps it off actors that never had
+ * it: the key is present in the in-memory object but holds `undefined`, which
+ * does not survive JSON, so nothing is written to the database and the
+ * migration's `!= null` guard stays false. `nullable` is what lets the
+ * migration persist the `null` tombstone that keeps it one-shot.
+ */
+export function legacyRealValue() {
+  const f = foundry.data.fields;
+  return new f.NumberField({ required: false, initial: undefined, nullable: true });
+}
+
 /** template.json `biography` — a single rich-text field. */
 export const BiographyTemplate = (Base) =>
   class extends Base {
@@ -116,8 +138,8 @@ export const StatsTemplate = (Base) =>
       return {
         ...super.defineSchema(),
         stats: new f.SchemaField({
-          wounds: new f.SchemaField({ value: num(), min: num(), max: num(), adjusted: num() }),
-          strain: new f.SchemaField({ value: num(), min: num(), max: num(), adjusted: num() }),
+          wounds: new f.SchemaField({ value: num(), min: num(), max: num(), adjusted: num(), real_value: legacyRealValue() }),
+          strain: new f.SchemaField({ value: num(), min: num(), max: num(), adjusted: num(), real_value: legacyRealValue() }),
           soak: new f.SchemaField({ value: num(), adjusted: num() }),
           defence: new f.SchemaField({ ranged: num(), melee: num(), adjusted: num() }),
           encumbrance: new f.SchemaField({ value: num(), max: num(), adjusted: num() }),

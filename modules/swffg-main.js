@@ -1545,19 +1545,28 @@ Hooks.once("ready", async () => {
 
     // Calculating wound and strain .value from .real_value is no longer necessary due to the Token._drawBar() override in swffg-main.js
     // This is a temporary migration check to transfer existing actors .real_value back into the correct .value location.
-    game.actors.forEach((actor) => {
+    //
+    // This used to assign the transferred value onto `actor.system.stats.*.value`
+    // and then send an update carrying only `real_value: null`. The assignment
+    // targets prepared data -- SchemaField#initialize builds a fresh object, so
+    // writing to it never reaches _source -- meaning the transfer was thrown away
+    // and only the tombstone persisted. It also ran inside `forEach(async ...)`,
+    // which the migration never awaited, so version bookkeeping could race the
+    // writes. Both halves now go in one awaited update per actor, read from
+    // _source (the declared `legacyRealValue` field is what keeps it readable).
+    for (const actor of game.actors) {
       if (actor.type === "character" || actor.type === "minion") {
-        if (actor.system.stats.wounds.real_value != null) {
-          actor.system.stats.wounds.value = actor.system.stats.wounds.real_value;
-          game.actors.get(actor.id).update({ ["system.stats.wounds.real_value"]: null });
-          CONFIG.logger.log("Migrated stats.wounds.value from stats.wounds.real_value");
-          CONFIG.logger.log(actor.system.stats.wounds);
+        const legacyStats = actor._source?.system?.stats;
+        const realValueUpdate = {};
+        for (const track of ["wounds", "strain"]) {
+          const realValue = legacyStats?.[track]?.real_value;
+          if (realValue == null) continue;
+          realValueUpdate[`system.stats.${track}.value`] = realValue;
+          realValueUpdate[`system.stats.${track}.real_value`] = null;
         }
-        if (actor.system.stats.strain.real_value != null) {
-          actor.system.stats.strain.value = actor.system.stats.strain.real_value;
-          game.actors.get(actor.id).update({ ["system.stats.strain.real_value"]: null });
-          CONFIG.logger.log("Migrated stats.strain.value from stats.strain.real_value");
-          CONFIG.logger.log(actor.system.stats.strain);
+        if (!foundry.utils.isEmpty(realValueUpdate)) {
+          await actor.update(realValueUpdate);
+          CONFIG.logger.log(`Migrated ${actor.name} stats .value from .real_value`, realValueUpdate);
         }
 
         // migrate all character to using current skill list if not default.
@@ -1579,7 +1588,14 @@ Hooks.once("ready", async () => {
               }
             });
 
-            actor.update({
+            // NOTE: this writes to `data`, not `system`. Since V10 `data` is not
+            // shimmed, so the Actor schema discards the key and this update is a
+            // no-op -- the skill-theme migration has silently done nothing for
+            // several majors. Left as-is deliberately: switching to `system`
+            // would un-dormant it and start rewriting every actor's skills on
+            // the next load, which needs its own decision and testing rather
+            // than riding along with an unrelated fix.
+            await actor.update({
               data: {
                 skills: skills.skills,
               },
@@ -1589,7 +1605,7 @@ Hooks.once("ready", async () => {
           }
         }
       }
-    });
+    }
 
     if (isAlpha || isCurrentVersionNullOrBlank(currentVersion) || parseFloat(currentVersion) < 1.1) {
       // Migrate alternate skill lists from file if found
