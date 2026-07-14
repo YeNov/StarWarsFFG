@@ -12,51 +12,28 @@
   font-weight: 400 900; font-style: normal; font-display: swap;
 }
 
-/* ---- Palettes (per-actor scheme on the content form) ---- */
-.cdx form, .cdx form.scheme-republic {
-  --cdx-bg:#cdd4dc; --cdx-stripe:rgba(20,40,70,.05);
-  --cdx-paper:#e9edf2; --cdx-paper2:#f5f7fa; --cdx-ink:#16202b; --cdx-dim:#5d6b78; --cdx-line:#b9c3cd;
-  --cdx-accent:#1f4e8c; --cdx-accent2:#16407a; --cdx-brown:#2a5fa0; --cdx-brass:#b9892f;
-  --cdx-career:#e6eefb; --cdx-career-line:#3a78c0; --cdx-track:#c2ccd6;
-  --cdx-chip-label:#16202b; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#2a649f,#1b4474); --cdx-head-ink:#fff;
-  --cdx-warn:#c2570a;
-  --cdx-notch:9px;
-}
-.cdx form.scheme-empire {
-  --cdx-bg:#c8c9cc; --cdx-stripe:rgba(0,0,0,.05);
-  --cdx-paper:#e5e6e8; --cdx-paper2:#f1f1f3; --cdx-ink:#14151a; --cdx-dim:#5d5f66; --cdx-line:#b4b5ba;
-  --cdx-accent:#1b1c21; --cdx-accent2:#2b2c32; --cdx-brown:#7c1411; --cdx-brass:#7d8086;
-  --cdx-career:#e9e9ec; --cdx-career-line:#9a1f1b; --cdx-track:#bcbdc2;
-  --cdx-chip-label:#000; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#26272c,#131418); --cdx-head-ink:#fff;
-  --cdx-warn:#c0271d;
-}
-.cdx form.scheme-dark {
-  --cdx-bg:#0e0b0b; --cdx-stripe:rgba(255,255,255,.02);
-  --cdx-paper:#1a1413; --cdx-paper2:#221917; --cdx-ink:#ece4df; --cdx-dim:#9a8e88; --cdx-line:#3a2c29;
-  --cdx-accent:#8a1714; --cdx-accent2:#5d1110; --cdx-brown:#6e2a22; --cdx-brass:#c8a24a;
-  --cdx-career:rgba(200,162,74,.12); --cdx-career-line:#c8a24a; --cdx-track:#3a2c29;
-  --cdx-chip-label:#000; --cdx-chip-ink276:#fff; --cdx-head:linear-gradient(180deg,#6e1411,#380a09); --cdx-head-ink:#fff;
-  --cdx-warn:#f5b820;
-}
-.cdx form.scheme-light {
-  --cdx-bg:#dde6ec; --cdx-stripe:rgba(47,111,158,.045);
-  --cdx-paper:#f3f7fa; --cdx-paper2:#fff; --cdx-ink:#1b2a33; --cdx-dim:#5f7079; --cdx-line:#c5d2db;
-  --cdx-accent:#2f6f9e; --cdx-accent2:#245880; --cdx-brown:#3a86b5; --cdx-brass:#b0902c;
-  --cdx-career:#e4f1f8; --cdx-career-line:#4a9bc8; --cdx-track:#cad9e2;
-  --cdx-chip-label:#1b2a33; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#56a0c4,#2f6f9e); --cdx-head-ink:#fff;
-  --cdx-warn:#bf5a00;
-}
-.cdx form.scheme-mercenary {
-  --cdx-bg:#c9bdac; --cdx-stripe:rgba(60,40,20,.05);
-  --cdx-paper:#e6dccb; --cdx-paper2:#f1ebdd; --cdx-ink:#241c12; --cdx-dim:#6e6047; --cdx-line:#bcae95;
-  --cdx-accent:#7a4a22; --cdx-accent2:#5e3818; --cdx-brown:#8a5a2a; --cdx-brass:#b07a30;
-  --cdx-career:#efe2c8; --cdx-career-line:#b07a30; --cdx-track:#cdbfa3;
-  --cdx-chip-label:#241c12; --cdx-chip-ink:#f1ebdd; --cdx-head:linear-gradient(180deg,#3b4148,#22262b); --cdx-head-ink:#f1ebdd;
-  --cdx-warn:#9a3c08;
-}
+/* ---- Palettes (per-actor scheme on the content form) ----
+   Each scheme's palette — and any scheme-specific rules — lives in its own file
+   appended AFTER this one in swffg-main.js: cdx-republic / cdx-empire / cdx-dark
+   / cdx-light / cdx-mercenary / cdx-eldritch .css. Republic doubles as the
+   default (its file sets the bare `.cdx form` fallback). Only the shared,
+   scheme-agnostic vars live here. */
 .cdx form {
+  --cdx-notch:9px;
   --cdx-clip:polygon(0% var(--cdx-notch),var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% calc(100% - var(--cdx-notch)),calc(100% - var(--cdx-notch)) 100%,var(--cdx-notch) 100%,0% calc(100% - var(--cdx-notch)));
   --cdx-clip-top:polygon(0% 0%,var(--cdx-notch) 0%,calc(100% - var(--cdx-notch)) 0%,100% var(--cdx-notch),100% 100%,0% 100%);
+  /* ---- Elevation levels (design-language "levels" pass) ----
+     Light-scheme defaults; dark schemes override --cdx-rim / --cdx-float /
+     --cdx-float-soft / --cdx-well in cdx-dark.css. Eldritch is excluded from
+     the treatment (it ships its own depth), so it never reads these.
+     --cdx-elev-1 derives from --cdx-rim, so a scheme only needs to move the rim
+     to re-tune the raise. */
+  --cdx-rim:rgba(255,255,255,.9);
+  --cdx-elev-1:inset 0 1px 0 var(--cdx-rim),inset 0 -3px 5px rgba(12,22,38,.08);
+  --cdx-float:drop-shadow(0 2px 4px rgba(12,22,38,.2)) drop-shadow(0 6px 15px rgba(12,22,38,.5));
+  --cdx-float-soft:drop-shadow(0 1px 3px rgba(12,22,38,.14)) drop-shadow(0 4px 10px rgba(12,22,38,.32));
+  --cdx-drop:0 3px 7px rgba(12,22,38,.3);
+  --cdx-well:inset 0 2px 7px rgba(12,22,38,.3),inset 0 -1px 0 rgba(255,255,255,.6);
 }
 
 /* ---- Shell ---- (!important: mandar paints a parchment background-image on
@@ -176,7 +153,11 @@
    column still has room; otherwise stack them vertically (the header is the
    inline-size container). */
 @container (min-width:680px) {
-  .cdx .cdx-header-stats { flex-direction:row; align-items:flex-start; }
+  /* Row layout: stretch so XP and Credits share the taller chip's height (XP has
+     an extra "of N" line). The credits-wrap becomes a flex box so its inner chip
+     fills the stretched height too (otherwise only the wrapper would stretch). */
+  .cdx .cdx-header-stats { flex-direction:row; align-items:stretch; }
+  .cdx .cdx-header-stats > .cdx-credits-wrap { display:flex; }
 }
 .cdx .cdx-square {
   width:74px; padding:7px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -265,9 +246,11 @@
   background:transparent; border:none; box-shadow:none; clip-path:none; padding:0; min-width:0; width:auto;
   display:inline-flex; flex-direction:row; align-items:baseline; gap:6px;
 }
-.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k { display:none; }
-.cdx .cdx-header.cdx-hcollapsed .cdx-credits::before {
-  content:"Credits"; font-family:"Orbitron"; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; opacity:.7; color:var(--cdx-head-ink);
+/* Show the label span (which carries the optional Credits override, else "CR")
+   as the collapsed inline label instead of a hardcoded ::before string, so it
+   tracks the Credits label override setting. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k {
+  display:inline; font-family:"Orbitron"; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; opacity:.7; color:var(--cdx-head-ink);
 }
 .cdx .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-input {
   /* field-sizing:content shrinks the input to its value so the number sits tight
@@ -341,12 +324,6 @@
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box { background:#b3261e; }
 .cdx .cdx-chip.derived.cdx-align-good .cdx-chip-box.static,
 .cdx .cdx-chip.derived.cdx-align-evil .cdx-chip-box.static { color:#fff; }
-/* Dark scheme: drop the white neutral background entirely -- a white box clashes
-   on the dark scheme. Fall back to the scheme's own chip surface (paper2) so the
-   pool value reads in the scheme ink, like every other chip. Good/evil keep their
-   saturated tints (they read on dark). Placement-agnostic, like the glyph rules. */
-.cdx.scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box,
-.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:var(--cdx-paper2); }
 /* Ratio chip (reusable): XP-square layout — current big on top, "of {max}" small
    below — with −/+ steppers riding the chip's left/right borders. The box is the
    positioning context so the buttons anchor to its edges, not the wider chip.
@@ -420,6 +397,7 @@
    Wounds · Strain · Defence carry equal weight. Scoped via :has(.cdx-def) so the
    minion's 5-block row (whose defence block has no .cdx-def class) is untouched. */
 .cdx .cdx-derived:has(.cdx-def) .cdx-stat { flex:1; }
+.cdx .cdx-derived:has(.cdx-def) .cdx-stat-head { min-height:26px; box-sizing:border-box; }
 .cdx .cdx-stat-head span > i { margin-right:5px; opacity:.9; font-size:10px; }
 .cdx .cdx-def-body { flex:1; display:flex; align-items:stretch; }
 .cdx .cdx-def-soak { flex:0 0 auto; min-width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:4px 7px; border-right:1px solid var(--cdx-line); }
@@ -469,10 +447,6 @@
    between pairs — 4 dice wrap to 2×2, never 3+1; 3 wrap to a 2+1 pyramid. */
 .cdx .cdx-die-pair { display:inline-flex; flex:none; gap:3px; }
 .cdx .cdx-die-setback { width:16px; height:16px; flex:none; color:var(--cdx-ink); }
-/* Dark scheme: render the defence setback dice like the setback die glyph — black
-   fill with a white outline (rulebook-accurate) instead of the light currentColor
-   fill. CSS fill/stroke override the rect's fill="currentColor" presentation attr. */
-.cdx.scheme-dark .cdx-die-setback rect, .cdx .scheme-dark .cdx-die-setback rect { fill:#000; stroke:#fff; stroke-width:2; }
 .cdx .cdx-def-digit { font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; color:var(--cdx-ink); }
 .cdx .cdx-def-dash { font-family:"Orbitron"; font-weight:700; font-size:18px; line-height:1; color:var(--cdx-dim); }
 
@@ -658,6 +632,17 @@
 .cdx .cdx-sk-pool { padding:2px 6px; white-space:nowrap; }
 .cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; flex-wrap:nowrap; gap:1px; }
 .cdx .cdx-sk-pool img { width:18px; height:18px; }
+/* Dice-pool source hint (hover): the shared .tooltip2 has no vertical anchor, so
+   it renders on the pool's own line and covers the dice. Anchor it to the pool
+   node and drop it just below the row instead. Also size the panel to its
+   content (the shared rule pins width:100% of the narrow pool → min-width:150px,
+   while the pool's white-space:nowrap kept long rows from wrapping, so the text
+   spilled past the fixed-width background). max-content + wrapping fixes both. */
+.cdx .cdx-sk-pool .dice-pool.hover { position:relative; }
+.cdx .cdx-sk-pool .dice-pool.hover .tooltip2 {
+  top:calc(100% + 3px); bottom:auto; left:0;
+  width:max-content; max-width:360px; white-space:normal;
+}
 
 /* ---- Combat cards (weapon + armour) ---- */
 .cdx .cdx-cards-head { display:flex; align-items:center; justify-content:space-between; font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin:10px 0 8px; }
@@ -671,11 +656,6 @@
 .cdx .cdx-card.off { opacity:.65; }
 .cdx .cdx-card-main { display:flex; align-items:center; gap:5px; min-width:0; }
 .cdx .cdx-card-icon { width:75px; height:75px; flex:none; border-radius:6px; border:1px solid var(--cdx-line); background-size:cover; background-position:center; }
-/* Dark scheme only: hovering a rollable item swaps its icon background to the black
-   generic-die.svg (mandar), which vanishes on the dark card. Whiten it via filter --
-   :hover only, so the weapon image (at rest) and the light schemes are untouched. */
-.cdx.scheme-dark .item-rollable.rollable:hover,
-.cdx .scheme-dark .item-rollable.rollable:hover { filter:brightness(0) invert(1); }
 /* Transparent wrapper purely for DOM depth (weapon roll resolution) — shrink-wraps the icon. */
 .cdx .cdx-card-rollwrap { flex:none; display:flex; }
 .cdx .cdx-equip { width:30px; height:30px; flex:none; border-radius:5px; border:1px solid var(--cdx-line); color:var(--cdx-dim); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
@@ -698,27 +678,25 @@
 .cdx .cdx-card-arc { font-size:12px; color:var(--cdx-ink); min-width:0; }
 /* Wraps within the identity column so the pool never spills into the DAM column. */
 .cdx .cdx-wpn-pool { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px; min-width:0; line-height:0; pointer-events:none; }
+/* Weapon-card dice-pool source hint. Unlike the skills' .cdx-sk-pool hint this can't
+   be anchored in place: .cdx-card has a clip-path, which clips its whole subtree, and
+   .cdx-wpn-pool is pointer-events:none so it never gets :hover. _cdxWeaponPoolHint
+   therefore re-parents the tooltip into this host on the (unclipped) form and toggles
+   .cdx-tip-on from the row. The host keeps the `hover` class so the shared
+   .starwarsffg .hover .tooltip2 rule still paints it like the skills hint. */
+.cdx form .cdx-wpn-tip { position:absolute; pointer-events:none; }
+.cdx form .cdx-wpn-tip .tooltip2 {
+  /* static: the host does the positioning. The pool's line-height:0 would otherwise
+     be inherited and collapse the text. Size to content, as .cdx-sk-pool does. */
+  position:static; line-height:normal;
+  width:max-content; min-width:0; max-width:360px; white-space:normal;
+}
+.cdx form .cdx-wpn-tip.cdx-tip-on .tooltip2 { opacity:1; z-index:500; }
 .cdx .cdx-wpn-pool img { width:16px; height:16px; border:none; vertical-align:middle; }
 /* Crew-card roll pool: a HORIZONTAL row of dice at the skills-tab glyph size
    (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
 .cdx .cdx-card.crew .dice-pool { display:inline-flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:1px; line-height:0; vertical-align:middle; }
 .cdx .cdx-card.crew .dice-pool img { width:18px !important; height:18px !important; border:none; }
-/* Dark scheme: pool dice are <img> raster icons (not recolourable glyphs), so the
-   dark ones vanish on the dark paper. Mirror the description-glyph treatment, keyed
-   on the icon filename: setback + remove-setback (black.png / black-minus.png) AND
-   the dark-side Force pip (darkpip.png) keep their black icon with a white OUTLINE
-   (the dark pip must read as dark side, not flip to a white light-side pip); every
-   other dark icon (despair, failure, threat, success, triumph) is recoloured solid
-   WHITE. Colour dice (green/yellow/red/purple/blue), advantage, and the already-light
-   force/light pips are left alone. Placement-agnostic (scheme on form or .cdx). */
-:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black.png"],
-:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black-minus"],
-:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="darkpip"] {
-  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
-}
-:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
-  filter: brightness(0) invert(1);
-}
 
 /* === Codex dice roll window ===
    `.cdx-dice` is toggled onto the roll-builder dialog ROOT in roll-builder.js#_onRender,
@@ -815,7 +793,6 @@
 }
 .cdx .cdx-grip:hover { opacity:.85; color:var(--cdx-accent); }
 .cdx .cdx-grip:active { cursor:grabbing; }
-.cdx form.scheme-dark .cdx-grip { color:rgba(255,255,255,.55); }
 .cdx .cdx-card.cdx-dragging { opacity:.4; }
 /* Drop indicator: a glowing accent line at the top (drop-before) or bottom (drop-after)
    inside edge of the hovered card. Inset box-shadow so the card's clip-path doesn't clip
@@ -831,6 +808,12 @@
 /* Difficulty/severity dice in a horizontal row (the images are otherwise stacked
    vertically by the global img rules). Applies to every crit chip via .cdx-inj-sev. */
 .cdx .cdx-inj-sev { display:flex; align-items:center; gap:3px; }
+/* Each severity die is wrapped in .ffg-die-icon (as pool.js does for dice pools)
+   so it inherits the per-scheme die treatment. pool.js sets --ffg-die-mask from
+   the resolved img src; here the die is always the purple difficulty die, so set
+   it in CSS — absolute path, since a relative url() in the mask would resolve
+   against this stylesheet (/styles/) rather than the document. */
+.cdx .cdx-inj-sev .ffg-die-icon { flex:none; --ffg-die-mask:url("/systems/starwarsffg/images/dice/starwars/purple.png"); }
 .cdx .cdx-sev-img { height:16px; flex:none; }
 
 /* ---- Talents ---- */
@@ -850,11 +833,9 @@
 .cdx .cdx-tal-act { margin-right:auto; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-talent .cdx-card-ctl { padding:5px 10px; justify-content:flex-end; align-items:center; }
 /* Inline details when a force-power / signature card is expanded (click to open).
-   Drop the clip-path too: it clips ALL descendants to the octagon regardless of
-   overflow, so an upgrade pill's hover .tooltip2 was cut off at the card edge.
-   With clip-path:none the tooltip (z-index:500 on hover) renders fully and above
-   neighbouring cards. The notch is dropped only while expanded (a transient state). */
-.cdx .cdx-talent.expanded { overflow:visible; clip-path:none; }
+   Keep the notched clip so expanded talent cards remain in the Codex card shape;
+   the SVG notch outline is resize-observed and follows the taller card. */
+.cdx .cdx-talent.expanded { overflow:hidden; clip-path:var(--cdx-clip); }
 .cdx .cdx-talent .item-details { padding:8px 10px; font-size:12px; line-height:1.4; color:var(--cdx-ink); border-top:1px solid var(--cdx-line); background:var(--cdx-paper); }
 .cdx .cdx-talent .item-details .item-properties { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
 .cdx .cdx-talent .item-details .tag { font-size:10px; padding:1px 6px; border:1px solid var(--cdx-line); border-radius:10px; color:var(--cdx-dim); }
@@ -871,19 +852,6 @@
    translateY keeps the 1px-down nudge (top: needs positioning, which we drop). */
 .cdx .cdx-card.gear .cdx-qty .quantity { display:inline-flex; align-items:center; line-height:1; cursor:pointer; color:var(--cdx-accent); font-size:14px; position:static; transform:translateY(1px); }
 .cdx .cdx-card.gear .cdx-qty-v { font-family:"Orbitron"; font-weight:900; font-size:17px; line-height:1; color:var(--cdx-accent); min-width:16px; text-align:center; }
-/* Dark scheme: the accent (dark red) is too low-contrast against the near-black
-   weapon/armour/gear cards, so render the stat labels/values, the qty +/- and the
-   edit/delete controls in white. */
-.cdx form.scheme-dark .cdx-card .cdx-sc-k,
-.cdx form.scheme-dark .cdx-card .cdx-sc-v,
-.cdx form.scheme-dark .cdx-card.gear .cdx-qty-v,
-.cdx form.scheme-dark .cdx-card.gear .cdx-qty .quantity,
-.cdx form.scheme-dark .cdx-card .cdx-card-ctl a { color:#fff; }
-/* Dark scheme: expanded item details read low-contrast in --cdx-ink (cream) —
-   force the description text and the quality / other pills to pure white. */
-.cdx form.scheme-dark .item-details,
-.cdx form.scheme-dark .item-details .tag,
-.cdx form.scheme-dark .item-details .item-pill { color:#fff; }
 /* Total encumbrance in a section header (top of the Gear / Combat tabs), pushed
    to the right next to the add (+) button. */
 .cdx .cdx-head-enc { margin-left:auto; margin-right:12px; display:inline-flex; align-items:center; gap:6px; }
@@ -921,10 +889,6 @@
 .cdx .cdx-desc-grid { display:grid; grid-template-columns:auto 1fr; gap:5px 8px; padding:8px 10px; align-items:center; }
 .cdx .cdx-desc-grid label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-desc-grid input, .cdx .cdx-desc-grid select { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
-/* The native dropdown popup (<option> list) on the Dark scheme renders white-on-
-   white and is unreadable — the popup doesn't inherit the select's dark paper.
-   Force a black background with white text so options are legible. */
-.cdx form.scheme-dark select option { background-color:#000; color:#fff; }
 /* Obligation / Morality / Conflict — equal-width chips reusing the .cdx-panel
    blue-header styling of the other bio panels. */
 .cdx .cdx-bio-stats { display:flex; gap:10px; margin-bottom:10px; }
@@ -1314,13 +1278,6 @@
 .cdx.cdx-embed input[type=checkbox] { accent-color:var(--cdx-accent); width:16px; height:16px; }
 .cdx.cdx-embed .attributes-header, .cdx.cdx-embed .mod_container .attributes-header { font-family:"Orbitron"; font-weight:600; font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-brown); }
 .cdx.cdx-embed .add-mod, .cdx.cdx-embed .add-modification { color:var(--cdx-accent); width:auto; }
-/* Dark scheme: --cdx-brown field labels + attribute headers nearly vanish on the
-   dark bg. Recolour the embedded-editor labels in the scheme ink (light #ece4df)
-   so they read like the input values. (item-editor.js puts scheme-* on the form,
-   inside .cdx.cdx-embed.) */
-.cdx.cdx-embed .scheme-dark .form-group > label,
-.cdx.cdx-embed .scheme-dark .attributes-header,
-.cdx.cdx-embed .scheme-dark .attributes-header > * { color:var(--cdx-ink); }
 /* Checkbox fields go inline: label fills the row, checkbox sits 5px off the right
    edge. General across the embedded editor -- Installed?/Broken? (Modifications),
    Restricted (Basics), the talent flags, etc. -- so every checkbox aligns the same. */
@@ -1468,22 +1425,6 @@
 .cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle:not(.set)::before { content:""; position:absolute; inset:0; margin:auto; width:var(--ft-line); height:var(--ft-line); background:var(--cdx-dim); opacity:.5; border-radius:50%; }
 .cdx .cdx-ft-edit.cdx-ft-uplinkbar .cdx-ft-uplinktoggle:hover::before { background:var(--cdx-accent); opacity:1; }
 
-/* ===========================================================================
-   Codex DARK scheme — dice/symbol glyphs. mandar hard-codes many dietypes
-   `color:black` (setback, force/forcepoint, light, dark, despair, failure,
-   success, threat, triumph); they vanish on the dark scheme's dark surfaces.
-   Whiten the lot, EXCEPT setback which keeps black + a 1px white outline so it
-   still reads as a "black" die. GLOBAL across EVERY codex sheet (actor + item):
-   the scheme-* class sits on the content form (a descendant of .cdx), and the
-   compound `.cdx.scheme-dark` also covers any sheet that carries the scheme on
-   the .cdx element itself. Light/paper schemes keep mandar's native black.
-   =========================================================================== */
-/* setback + the dark-side Force pip stay BLACK with a white outline (the dark pip
-   must read as dark side, not flip to a light-side white pip). */
-.cdx.scheme-dark span.dietype.setback, .cdx.scheme-dark span.dietype.dark,
-.cdx .scheme-dark span.dietype.setback, .cdx .scheme-dark span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
-.cdx.scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
-.cdx .scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
 /* Foundry's #tooltip is body-level (outside .cdx), so the dark-scheme rules above
    can't reach the dice glyphs baked into a force-power pill's data-tooltip — and the
    Foundry tooltip is ALWAYS dark, so the naturally-black glyphs (setback/dark) vanish
@@ -1536,3 +1477,106 @@
 .cdx .cdx-ft-universal { display:flex; align-items:center; gap:8px; margin-top:13px; font-family:"Orbitron",sans-serif; font-weight:700; font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-ink); cursor:pointer; }
 .cdx .cdx-ft-universal input { accent-color:var(--cdx-accent); width:15px; height:15px; }
 .cdx .cdx-ft-resize .talent-action:hover { filter:brightness(1.2); }
+
+/* ============================================================================
+   Notched outline (SVG overlay)
+   ----------------------------------------------------------------------------
+   A CSS `border` can't follow the --cdx-clip octagon's 45° notches (clip-path
+   slices it off there). Instead every diamond block carries an <svg.cdx-notch>
+   overlay (prepended by _cdxNotchOutlines) whose single stroked <path> traces
+   the SAME octagon geometry as the clip fill — built per-block in px so the
+   notches stay a fixed 9px and the outline can never drift from the fill. The
+   CSS border is dropped; the stroke colour is --cdx-ol (defaults to --cdx-line,
+   the old border colour). The overlay touches no fill, so gradient/translucent
+   blocks need no special handling. position:absolute is !important so it beats
+   Eldritch's `.cdx-header > *` position:relative. ========================== */
+.cdx .cdx-notch { position:absolute !important; inset:0; width:100%; height:100%; pointer-events:none; }
+.cdx .cdx-notch path { fill:none; stroke:var(--cdx-ol,var(--cdx-line)); stroke-width:1.25; vector-effect:non-scaling-stroke; }
+/* Collapsed pill stacks hide all but the top pill (color:transparent); the SVG
+   stroke ignores `color`, so hide the buried pills' outlines the same way. */
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:not(:first-child) > svg.cdx-notch { display:none; }
+/* Collapsed header shows Credits as plain inline text (clip-path:none, no box),
+   so it must not carry a notch outline. */
+.cdx .cdx-header.cdx-hcollapsed .cdx-square.cdx-credits > svg.cdx-notch { display:none; }
+
+.cdx form:not(.scheme-eldritch) .cdx-stat,
+.cdx form:not(.scheme-eldritch) .cdx-card,
+.cdx form:not(.scheme-eldritch) .cdx-injury,
+.cdx form:not(.scheme-eldritch) .cdx-talent,
+.cdx form:not(.scheme-eldritch) .cdx-panel,
+.cdx form:not(.scheme-eldritch) .cdx-istat,
+.cdx form:not(.scheme-eldritch) .cdx-icheck2,
+.cdx form:not(.scheme-eldritch) .cdx-item-body .item.force-power,
+.cdx form:not(.scheme-eldritch) .cdx-forcepool,
+.cdx form:not(.scheme-eldritch) .cdx-header,
+.cdx form:not(.scheme-eldritch) .cdx-pill,
+.cdx form:not(.scheme-eldritch) .cdx-square,
+.cdx form:not(.scheme-eldritch) .cdx-veh-rarity,
+.cdx form:not(.scheme-eldritch) .cdx-ihead,
+.cdx form:not(.scheme-eldritch) .cdx-ipill,
+.cdx form:not(.scheme-eldritch) .cdx-ihead .cdx-status {
+  --cdx-ol:var(--cdx-line);
+  border:none;
+  position:relative;
+}
+.cdx form:not(.scheme-eldritch) .cdx-forcepool { --cdx-ol:var(--cdx-career-line); }
+.cdx form:not(.scheme-eldritch) .cdx-header,
+.cdx form:not(.scheme-eldritch) .cdx-pill,
+.cdx form:not(.scheme-eldritch) .cdx-square,
+.cdx form:not(.scheme-eldritch) .cdx-ihead,
+.cdx form:not(.scheme-eldritch) .cdx-ipill,
+.cdx form:not(.scheme-eldritch) .cdx-ihead .cdx-status { --cdx-ol:rgba(255,255,255,.28); }
+.cdx form:not(.scheme-eldritch) .cdx-square.cdx-credits,
+.cdx form:not(.scheme-eldritch) .cdx-veh-rarity { --cdx-ol:rgba(0,0,0,.30); }
+
+/* ============================================================================
+   Elevation levels — the design-language "levels" pass. Additive depth on the
+   same non-eldritch panels the notch-outline overlay covers; no geometry moves.
+   clip-path clips outer box-shadow, so "raised" = an inset top-rim highlight
+   (survives the clip). A filter:drop-shadow adds a genuine float; where an
+   unclipped wrapper exists, the filter is cast from that wrapper so notched
+   children keep their silhouette. Inventory/talent list wrappers carry the
+   token so the clipped cards inside can cast outside their notches. "Wells"
+   recess genuine text bodies (bio / talent details / item description) with an
+   inset shadow — never threshold numbers. Values are tokenised per scheme.
+   ========================================================================== */
+/* Raised — inset top-rim highlight */
+.cdx form:not(.scheme-eldritch) .cdx-stat,
+.cdx form:not(.scheme-eldritch) .cdx-injury,
+.cdx form:not(.scheme-eldritch) .cdx-talent,
+.cdx form:not(.scheme-eldritch) .cdx-panel,
+.cdx form:not(.scheme-eldritch) .cdx-forcepool,
+.cdx form:not(.scheme-eldritch) .cdx-idesc,
+.cdx form:not(.scheme-eldritch) .cdx-istat,
+.cdx form:not(.scheme-eldritch) .cdx-icheck2 { box-shadow:var(--cdx-elev-1); }
+/* Real float — cast from an unclipped wrapper when one exists, so notched child
+   panels can keep their octagon silhouette. */
+.cdx form:not(.scheme-eldritch) .cdx-header-wrap,   /* character / minion header */
+.cdx form:not(.scheme-eldritch) .cdx-derived,       /* Wounds · Strain · Defence row */
+.cdx form:not(.scheme-eldritch) .cdx-minion-stats,  /* Group Strength · Defence · wound pool */
+.cdx form:not(.scheme-eldritch) .cdx-istats,        /* item-sheet stat boxes */
+.cdx form:not(.scheme-eldritch) .cdx-ichecks,       /* talent toggle cards */
+.cdx form:not(.scheme-eldritch) .cdx-xp-totals { filter:var(--cdx-float); }
+/* Soft float — content sections that should lift, but stay quieter than the top
+   readouts. The filter is still cast from unclipped wrappers where available. */
+.cdx form:not(.scheme-eldritch) .cdx-skills,        /* skills table columns */
+.cdx form:not(.scheme-eldritch) .cdx-pane.injuries,
+.cdx form:not(.scheme-eldritch) .cdx-cards.items,
+.cdx form:not(.scheme-eldritch) .cdx-gear.items,
+.cdx form:not(.scheme-eldritch) .cdx-pane.talents .cdx-talents,
+.cdx form:not(.scheme-eldritch) .cdx-forcepool,
+.cdx form:not(.scheme-eldritch) .cdx-bio-grid,
+.cdx form:not(.scheme-eldritch) .cdx-pane.bio > .cdx-panel:has(.cdx-bio-editor),
+.cdx form:not(.scheme-eldritch) .cdx-pane.effects { filter:var(--cdx-float-soft); }
+/* Wells — recessed text bodies */
+.cdx form:not(.scheme-eldritch) .cdx-bio-editor,
+.cdx form:not(.scheme-eldritch) .cdx-talent .item-details,
+.cdx form:not(.scheme-eldritch) .cdx-idesc > .editor-content { box-shadow:var(--cdx-well); }
+/* Raised dials — the characteristic / soak chips are NOT clip-path'd (rounded
+   border, not a notch), so a real outer box-shadow drop works here (no filter
+   needed); the inset rim keeps the number seated on the dial. Overrides the
+   base .cdx-chip-box inner shadow. */
+.cdx form:not(.scheme-eldritch) .cdx-chip-box { box-shadow:inset 0 1px 0 var(--cdx-rim),var(--cdx-drop); }
+/* Float the small bio-stat panels (Obligation / Morality / Conflict) from their
+   unclipped .cdx-bio-stats row. */
+.cdx form:not(.scheme-eldritch) .cdx-bio-stats { filter:var(--cdx-float-soft); }

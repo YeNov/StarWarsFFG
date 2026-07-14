@@ -11,6 +11,38 @@ class ffgSettings extends FFGFormApplication {
     await super._onRender(context, options);
     const html = $(this.element);
     html.find("button.filepicker").click(this._onFilePicker.bind(this));
+    // The V1 SettingsConfig reset listener is not carried over by the ApplicationV2
+    // port, so the "Reset Defaults" button is inert unless we wire it here.
+    html.find("button[name='reset']").click(this._onResetDefaults.bind(this));
+  }
+
+  /**
+   * Reset every field in this settings form to its registered default value.
+   * Non-destructive: it only repopulates the inputs, so the change is persisted
+   * when the user clicks Save (mirroring core's reset-then-save behavior).
+   */
+  _onResetDefaults(event) {
+    event.preventDefault();
+    const form = this.form;
+    if (!form) return;
+    for (const el of form.elements) {
+      const setting = el.name ? game.settings.settings.get(el.name) : null;
+      if (!setting) continue;
+      const def = setting.default;
+      if (el.type === "checkbox") {
+        el.checked = Boolean(def);
+      } else {
+        el.value = def ?? "";
+        // Keep a range slider's value readout in sync with its reset value.
+        if (el.type === "range") {
+          const readout = el.parentElement?.querySelector(".range-value");
+          if (readout) {
+            if (readout.tagName === "INPUT") readout.value = el.value;
+            else readout.innerHTML = el.value;
+          }
+        }
+      }
+    }
   }
 
   _buildSettingsContext(acceptableSettings) {
@@ -18,6 +50,10 @@ class ffgSettings extends FFGFormApplication {
     let includeSettings = [];
     for (const setting of game.settings.settings) {
       if (acceptableSettings.includes(setting[0])) {
+        // World-scoped settings are GM-only; hide them from users without
+        // SETTINGS_MODIFY so non-restricted menus (e.g. Codex) show players just
+        // the per-client settings they can actually change.
+        if (setting[1].scope === "world" && !canConfigure) continue;
         const s = foundry.utils.duplicate(setting[1]);
         s.name = game.i18n.localize(s.name);
         s.hint = game.i18n.localize(s.hint);
@@ -225,6 +261,11 @@ export class localizationSettings extends ffgSettings {
       "starwarsffg.skillSorting",
       "starwarsffg.destiny-pool-light",
       "starwarsffg.destiny-pool-dark",
+      "starwarsffg.labelCredits",
+      "starwarsffg.labelObligation",
+      "starwarsffg.labelMorality",
+      "starwarsffg.labelDuty",
+      "starwarsffg.labelConflict",
     ];
     return this._buildSettingsContext(includeSettingsNames);
   }
@@ -246,6 +287,26 @@ export class groupManagerSettings extends ffgSettings {
       "starwarsffg.pcListMode",
       "starwarsffg.privateTriggers",
       "starwarsffg.GMCharactersInGroupManager"
+    ];
+    return this._buildSettingsContext(includeSettingsNames);
+  }
+}
+
+export class codexSettings extends ffgSettings {
+  static DEFAULT_OPTIONS = {
+    id: "codex-settings",
+    classes: ["starwarsffg", "codex-settings"],
+    window: { title: "SWFFG.Settings.codex.Title" },
+  };
+
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
+    const includeSettingsNames = [
+      "starwarsffg.defaultSheetTheme",
+      "starwarsffg.codexAdvantageHealsStrain",
     ];
     return this._buildSettingsContext(includeSettingsNames);
   }

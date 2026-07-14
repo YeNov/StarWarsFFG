@@ -1,0 +1,110 @@
+/* ============================================================================
+   CODEX II — Dark scheme (extracted from cdx.css).
+   Loaded via a <link> appended AFTER cdx.css in swffg-main.js, so it layers on
+   top of the base Codex styles. The palette is scoped to `.scheme-dark`; the
+   structural rules below are dark-only contrast fixes (dice/glyph recolouring,
+   white card text, legible dropdowns) that carry `.scheme-dark`, so they win by
+   specificity over the base rules regardless of file order. The shared `.cdx
+   form` clip / notch vars live in cdx.css.
+   ========================================================================== */
+
+/* ---- Palette ---- */
+.cdx form.scheme-dark {
+  --cdx-bg:#0e0b0b; --cdx-stripe:rgba(255,255,255,.02);
+  --cdx-paper:#1a1413; --cdx-paper2:#221917; --cdx-ink:#ece4df; --cdx-dim:#9a8e88; --cdx-line:#3a2c29;
+  --cdx-accent:#8a1714; --cdx-accent2:#5d1110; --cdx-brown:#6e2a22; --cdx-brass:#c8a24a;
+  --cdx-career:rgba(200,162,74,.12); --cdx-career-line:#c8a24a; --cdx-track:#3a2c29;
+  --cdx-chip-label:#000; --cdx-chip-ink:#fff; --cdx-head:linear-gradient(180deg,#6e1411,#380a09); --cdx-head-ink:#fff;
+  --cdx-warn:#f5b820;
+  /* Elevation levels re-tuned for the near-black surface: a faint light rim
+     instead of the light-scheme's bright one, Sith-red float shadows, and a
+     darker inset for wells (--cdx-elev-1 derives from --cdx-rim). */
+  --cdx-rim:rgba(255,255,255,.15);
+  --cdx-float:drop-shadow(0 2px 4px rgba(165,31,23,.22)) drop-shadow(0 6px 15px rgba(110,20,17,.48));
+  --cdx-float-soft:drop-shadow(0 1px 3px rgba(165,31,23,.14)) drop-shadow(0 4px 10px rgba(110,20,17,.30));
+  --cdx-drop:0 3px 7px rgba(0,0,0,.6);
+  --cdx-well:inset 0 2px 8px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* ---- Structural contrast fixes ---- */
+
+/* Dark scheme: drop the white neutral background entirely -- a white box clashes
+   on the dark scheme. Fall back to the scheme's own chip surface (paper2) so the
+   pool value reads in the scheme ink, like every other chip. Good/evil keep their
+   saturated tints (they read on dark). Placement-agnostic, like the glyph rules. */
+.cdx.scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box,
+.cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:var(--cdx-paper2); }
+
+/* Dark scheme: render the defence setback dice like the setback die glyph — black
+   fill with a white outline (rulebook-accurate) instead of the light currentColor
+   fill. CSS fill/stroke override the rect's fill="currentColor" presentation attr. */
+.cdx.scheme-dark .cdx-die-setback rect, .cdx .scheme-dark .cdx-die-setback rect { fill:#000; stroke:#fff; stroke-width:2; }
+
+/* Dark scheme only: hovering a rollable item swaps its icon background to the black
+   generic-die.svg (mandar), which vanishes on the dark card. Whiten it via filter --
+   :hover only, so the weapon image (at rest) and the light schemes are untouched. */
+.cdx.scheme-dark .item-rollable.rollable:hover,
+.cdx .scheme-dark .item-rollable.rollable:hover { filter:brightness(0) invert(1); }
+
+/* Dark scheme: pool dice are <img> raster icons (not recolourable glyphs), so the
+   dark ones vanish on the dark paper. Mirror the description-glyph treatment, keyed
+   on the icon filename: setback + remove-setback (black.png / black-minus.png) AND
+   the dark-side Force pip (darkpip.png) keep their black icon with a white OUTLINE
+   (the dark pip must read as dark side, not flip to a white light-side pip); every
+   other dark icon (despair, failure, threat, success, triumph) is recoloured solid
+   WHITE. Colour dice (green/yellow/red/purple/blue), advantage, and the already-light
+   force/light pips are left alone. Placement-agnostic (scheme on form or .cdx). */
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black.png"],
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="black-minus"],
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img[src*="darkpip"] {
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+}
+:is(.cdx.scheme-dark, .cdx .scheme-dark) :is(.dice-pool, .cdx-wpn-pool) img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) {
+  filter: brightness(0) invert(1);
+}
+
+.cdx form.scheme-dark .cdx-grip { color:rgba(255,255,255,.55); }
+
+/* Dark scheme: the accent (dark red) is too low-contrast against the near-black
+   weapon/armour/gear cards, so render the stat labels/values, the qty +/- and the
+   edit/delete controls in white. */
+.cdx form.scheme-dark .cdx-card .cdx-sc-k,
+.cdx form.scheme-dark .cdx-card .cdx-sc-v,
+.cdx form.scheme-dark .cdx-card.gear .cdx-qty-v,
+.cdx form.scheme-dark .cdx-card.gear .cdx-qty .quantity,
+.cdx form.scheme-dark .cdx-card .cdx-card-ctl a { color:#fff; }
+/* Dark scheme: expanded item details read low-contrast in --cdx-ink (cream) —
+   force the description text and the quality / other pills to pure white. */
+.cdx form.scheme-dark .item-details,
+.cdx form.scheme-dark .item-details .tag,
+.cdx form.scheme-dark .item-details .item-pill { color:#fff; }
+
+/* The native dropdown popup (<option> list) on the Dark scheme renders white-on-
+   white and is unreadable — the popup doesn't inherit the select's dark paper.
+   Force a black background with white text so options are legible. */
+.cdx form.scheme-dark select option { background-color:#000; color:#fff; }
+
+/* Dark scheme: --cdx-brown field labels + attribute headers nearly vanish on the
+   dark bg. Recolour the embedded-editor labels in the scheme ink (light #ece4df)
+   so they read like the input values. (item-editor.js puts scheme-* on the form,
+   inside .cdx.cdx-embed.) */
+.cdx.cdx-embed .scheme-dark .form-group > label,
+.cdx.cdx-embed .scheme-dark .attributes-header,
+.cdx.cdx-embed .scheme-dark .attributes-header > * { color:var(--cdx-ink); }
+
+/* ===========================================================================
+   Codex DARK scheme — dice/symbol glyphs. mandar hard-codes many dietypes
+   `color:black` (setback, force/forcepoint, light, dark, despair, failure,
+   success, threat, triumph); they vanish on the dark scheme's dark surfaces.
+   Whiten the lot, EXCEPT setback which keeps black + a 1px white outline so it
+   still reads as a "black" die. GLOBAL across EVERY codex sheet (actor + item):
+   the scheme-* class sits on the content form (a descendant of .cdx), and the
+   compound `.cdx.scheme-dark` also covers any sheet that carries the scheme on
+   the .cdx element itself. Light/paper schemes keep mandar's native black.
+   =========================================================================== */
+/* setback + the dark-side Force pip stay BLACK with a white outline (the dark pip
+   must read as dark side, not flip to a light-side white pip). */
+.cdx.scheme-dark span.dietype.setback, .cdx.scheme-dark span.dietype.dark,
+.cdx .scheme-dark span.dietype.setback, .cdx .scheme-dark span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+.cdx.scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph),
+.cdx .scheme-dark span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }

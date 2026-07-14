@@ -2,9 +2,8 @@
    CODEX II — Eldritch Horror scheme (extracted from cdx.css).
    Loaded via a <link> appended right AFTER cdx.css in swffg-main.js, so it
    layers on top of the base Codex styles. Everything here is scoped to
-   `.scheme-eldritch`; the other schemes never match these selectors.
-   NB: the palette also sets --cdx-notch, which the shared `.cdx form` clip
-   rules in cdx.css consume — only this scheme defines it (unchanged behaviour).
+   `.scheme-eldritch`; the other schemes never match these selectors. The shared
+   `.cdx form` clip / notch vars (incl. --cdx-notch) live in cdx.css.
    ========================================================================== */
 
 /* Eldritch display face. The font already ships with the system; declaring a
@@ -23,7 +22,7 @@
   --cdx-career:rgba(104,90,67,.12); --cdx-career-line:#76684f; --cdx-track:#39362f;
   --cdx-chip-label:#17130d; --cdx-chip-ink:#d9d0c1;
   --cdx-head:linear-gradient(180deg,rgba(23,25,22,.98),rgba(8,10,9,.995)); --cdx-head-ink:#ded5c6;
-  --cdx-warn:#8d7540; --cdx-notch:9px;
+  --cdx-warn:#8d7540;
 
   /* Scheme-only semantic tokens. The existing palettes continue to resolve
      through their unchanged declarations, so their computed styles do not move. */
@@ -34,7 +33,10 @@
   --cdx-active-bg:rgba(104,90,67,.12);
   --cdx-active-ink:#aaa08e;
   --cdx-panel-shadow:inset 0 0 0 1px rgba(112,96,70,.13),0 2px 8px rgba(0,0,0,.38);
-  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/paper.svg?v=2");
+  /* --cdx-surface-texture now lives on the .cdx window frame (marble knobs). */
+  /* Default marble veil (tier 2). Set here at low specificity so .cdx-stat's
+     tier-1 override reliably wins; the framed-surface rule only reads it. */
+  --cdx-veil:var(--cdx-veil-2);
   --cdx-sigil:url("/systems/starwarsffg/images/codex/eldritch/sigil.svg");
   --cdx-portrait-radius:50%;
   --cdx-rust:#67251d;
@@ -55,11 +57,55 @@
    occult ornament. The other Codex palettes never match these selectors.
    =========================================================================== */
 
-/* --- Shell, type and native controls -------------------------------------- */
+/* --- Shell, type and native controls --------------------------------------
+   Both Eldritch variants (Scholar / Fate) carry the base `scheme-eldritch`
+   class, so everything below is shared. Only the surface texture differs, set
+   per variant on the frame: Fate here (marble, the default), Scholar overrides
+   it to paper just after this rule. Both flow through the same bleeding-texture
+   stack (see "Shared framed surfaces" + cdxPositionMarble). */
 .cdx:has(> form.window-content.scheme-eldritch) {
   outline:1px solid rgba(112,96,70,.28);
   outline-offset:-1px;
   box-shadow:0 10px 34px rgba(0,0,0,.72),0 0 0 1px #080a09;
+
+  /* Fate surface texture — the marble, pre-inverted to a dark slab with light
+     veins (no live filter needed). Swap to the non "-inv" file for raw white
+     marble. Defined on the frame so every block inherits it. */
+  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/marble-calacatta-seamless-square-inv.webp");
+
+  /* ---- Texture knobs -----------------------------------------------------
+     The texture is a luminance MASK over --cdx-vein on each block's ::before (see
+     "Shared framed surfaces"): the vein colour shows where the texture is light,
+     the veil base where it is dark. cdxPositionMarble aligns the mask to one
+     content origin so it appears ONLY on those blocks, reads continuously across
+     them, and scrolls with the sheet.
+     The veil is PURE BLACK so the effective colour is `L·vein + (1−L)·black` =
+     the vein colour scaled by the texture's luminance — no base-colour tint mixes
+     into the veins. --cdx-vein is the texture's own colour (per variant). */
+  --cdx-marble-tile:520px;         /* texture tile size (= mask-size)             */
+  --cdx-vein:#474849;              /* Fate vein colour — grey marble              */
+  --cdx-veil-1:#000;               /* tier 1 base — absolute black                */
+  --cdx-veil-2:#000;               /* tier 2 base — absolute black                */
+  --cdx-career-glow:rgba(94,74,40,.2); /* warm wash ADDED over the base on career skills */
+
+  /* Fate header "fated sigil" ornament (mask generated per-actor in JS). */
+  --cdx-fated-ink:#aeb6bd;         /* colour the sigil wall is masked into  */
+  --cdx-fated-tile:340px;          /* on-screen size of the 1024 mask tile  */
+  --cdx-fated-opacity:.65;         /* ornament strength                     */
+  /* Header-wide horizontal fade (× the pattern): hidden 0..50%, eases 0→.1 by
+     66.7%, ramps .1→1 to the right edge. Sized to the header, applied once. */
+  --cdx-fated-fade:linear-gradient(to right,rgba(255,255,255,0) 0 50%,rgba(255,255,255,.1) 66.667%,rgba(255,255,255,1) 100%);
+}
+/* Scholar variant — the paper grain instead of marble. Same specificity as the
+   base frame rule, declared after it so it wins for Scholar sheets. */
+.cdx:has(> form.window-content.scheme-eldritch-scholar) {
+  --cdx-surface-texture:url("/systems/starwarsffg/images/codex/eldritch/paper.svg?v=2");
+  --cdx-marble-tile:256px;         /* paper.svg is a 256px seamless tile */
+  --cdx-vein:#898477e8;              /* Scholar vein colour — yellowish paper */
+  /* Procedural single-sigil header ornament (mask generated per-actor in JS). */
+  --cdx-scholar-ink:#9a8157;        /* warm gold the sigil is masked into */
+  --cdx-scholar-size:min(260px,46cqw); /* on-screen sigil size */
+  --cdx-scholar-opacity:.4;         /* ornament strength */
 }
 .cdx:has(> form.window-content.scheme-eldritch) > .window-header {
   background:
@@ -85,14 +131,12 @@
   color:#aaa08e;
 }
 .cdx > form.window-content.scheme-eldritch {
-  background-color:var(--cdx-bg) !important;
+  background-color:var(--cdx-bg) !important;   /* plain dark sheet; marble lives on the blocks only */
   background-image:
-    radial-gradient(ellipse at 48% 18%,rgba(72,63,46,.16) 0,rgba(11,13,12,.1) 38%,rgba(0,0,0,.52) 100%),
-    repeating-linear-gradient(103deg,rgba(224,210,181,.018) 0 1px,transparent 1px 4px),
-    var(--cdx-surface-texture) !important;
-  background-repeat:no-repeat,repeat,repeat !important;
-  background-size:100% 100%,7px 7px,256px 256px !important;
-  background-blend-mode:normal,soft-light,soft-light !important;
+    radial-gradient(ellipse at 48% 18%,rgba(72,63,46,.16) 0,rgba(11,13,12,.1) 38%,rgba(0,0,0,.52) 100%) !important;
+  background-repeat:no-repeat !important;
+  background-size:100% 100% !important;
+  background-blend-mode:normal !important;
   color:var(--cdx-ink);
   font-family:var(--cdx-font-body);
   text-rendering:optimizeLegibility;
@@ -186,15 +230,47 @@
   border:1px solid rgba(112,96,70,.12);
   clip-path:var(--cdx-clip);
 }
-.cdx form.scheme-eldritch .cdx-header::after {
+/* Sigil ornament — Scholar variant only (Fate's marble carries the surface).
+   A per-actor procedural single sigil + clouds, generated in JS (--cdx-scholar-sigil
+   set on the form), used as the ALPHA mask over a warm ink — the Scholar counterpart
+   to Fate's deco wall. Positioned once on the right (no tiling). */
+.cdx form.scheme-eldritch-scholar .cdx-header::after {
   content:"";
   position:absolute;
   z-index:0;
   pointer-events:none;
   inset:0 0 0 52%;
-  background:var(--cdx-sigil) 92% 34% / min(260px,46cqw) auto no-repeat;
-  opacity:.105;
-  filter:sepia(1) saturate(.7);
+  background:var(--cdx-scholar-ink,#9a8157);
+  opacity:var(--cdx-scholar-opacity,.4);
+  /* Transparent fallback keeps the ornament hidden until the JS-generated mask
+     lands (it's produced off the first-paint path); avoids a solid-ink flash. */
+  mask-image:var(--cdx-scholar-sigil,linear-gradient(#0000,#0000));
+  mask-mode:alpha;
+  mask-size:var(--cdx-scholar-size,min(260px,46cqw)) var(--cdx-scholar-size,min(260px,46cqw));
+  mask-repeat:no-repeat;
+  mask-position:92% 34%;
+}
+/* Fate variant header ornament — a per-actor "fated sigil" wall generated at
+   runtime (codex-fated-sigil.js → --cdx-fated-sigil on the form) and used as the
+   ALPHA mask over a coloured fill, tiled across the header. The Fate counterpart
+   to Scholar's static sigil. */
+.cdx form.scheme-eldritch-fate .cdx-header::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:var(--cdx-fated-ink,#aeb6bd);
+  opacity:var(--cdx-fated-opacity,.5);
+  /* Two mask layers: the tiled sigil pattern, intersected with a header-wide
+     horizontal fade (--cdx-fated-fade) sized to the header — so the ornament
+     stays hidden on the left and emerges toward the right ONCE, without the
+     pattern stretching. mask-composite:intersect multiplies the two alphas. */
+  mask-image:var(--cdx-fated-sigil,linear-gradient(#0000,#0000)),var(--cdx-fated-fade);
+  mask-mode:alpha,alpha;
+  mask-size:var(--cdx-fated-tile,340px) var(--cdx-fated-tile,340px),100% 100%;
+  mask-repeat:repeat,no-repeat;
+  mask-composite:intersect;
 }
 .cdx form.scheme-eldritch .cdx-header > * { position:relative; z-index:1; }
 .cdx form.scheme-eldritch .cdx-name {
@@ -202,7 +278,7 @@
   letter-spacing:1.4px;
   text-shadow:0 1px 0 #000,0 0 12px rgba(112,96,70,.1);
 }
-.cdx form.scheme-eldritch .cdx-header.cdx-hcollapsed .cdx-credits::before {
+.cdx form.scheme-eldritch .cdx-header.cdx-hcollapsed .cdx-credits .cdx-sq-k {
   font-family:var(--cdx-font-display);
 }
 .cdx form.scheme-eldritch .cdx-portrait .profile-img {
@@ -264,21 +340,54 @@
   box-shadow:inset 0 0 0 1px rgba(112,96,70,.34);
 }
 
-/* --- Shared framed surfaces ---------------------------------------------- */
+/* --- Shared framed surfaces ----------------------------------------------
+   The texture is a luminance MASK, not a background layer. Each block is a
+   veil-tinted dark base (per tier via --cdx-veil), and WHITE is painted through
+   the texture on a ::before (below) — so the marble/paper veins read as light
+   where the texture is light, rather than a flat colour laid over the texture.
+   The mask is positioned per-block by JS (cdxPositionMarble → --cdx-marble-x/y)
+   to one content origin, so the veining is continuous across blocks and scrolls
+   with the sheet. The per-tier veil is chosen via the --cdx-veil indirection
+   variable (NOT set here — this rule only reads it — so its inflated :is()
+   specificity can't beat the tier overrides). Tier 2 is the default (set on the
+   form); tier 1 (the derived stat blocks) overrides it. */
 .cdx form.scheme-eldritch :is(
   .cdx-stat,.cdx-panel,.cdx-card,.cdx-injury,.cdx-forcepool,.cdx-talent,
   .cdx-pane.effects,.cdx-pane.attributes,.cdx-sub,.cdx-istat,.cdx-idesc,
   .cdx-icheck2,.cdx-item-body .item.force-power,.cdx-ft-card
 ) {
+  position:relative;
+  isolation:isolate;              /* scope the ::before mask layer's z-index */
   background-color:var(--cdx-paper2);
-  background-image:
-    repeating-linear-gradient(101deg,rgba(224,210,181,.014) 0 1px,transparent 1px 5px),
-    var(--cdx-surface-texture);
-  background-repeat:repeat,repeat;
-  background-size:9px 9px,256px 256px;
-  background-blend-mode:soft-light,soft-light;
+  background-image:linear-gradient(var(--cdx-veil),var(--cdx-veil));
   border-color:var(--cdx-line);
   box-shadow:var(--cdx-panel-shadow);
+}
+/* The texture as a luminance mask over white: light veins where the texture is
+   light, transparent (veil base shows) where it is dark. mask-position rides the
+   same content-anchored origin as the JS sets, so veins flow across blocks and
+   scroll with the sheet. Sits behind the block's content. Skill rows share it. */
+.cdx form.scheme-eldritch :is(
+  .cdx-stat,.cdx-panel,.cdx-card,.cdx-injury,.cdx-forcepool,.cdx-talent,
+  .cdx-pane.effects,.cdx-pane.attributes,.cdx-sub,.cdx-istat,.cdx-idesc,
+  .cdx-icheck2,.cdx-item-body .item.force-power,.cdx-ft-card,.cdx-sk-row
+)::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;                     /* behind content, above the veil base */
+  pointer-events:none;
+  background:var(--cdx-vein,#fff); /* the texture's colour — revealed through the mask */
+  mask-image:var(--cdx-surface-texture);
+  mask-mode:luminance;            /* opaque texture → masked by its light/dark */
+  mask-repeat:repeat;
+  mask-size:var(--cdx-marble-tile);
+  mask-position:var(--cdx-marble-x,0) var(--cdx-marble-y,0);
+}
+/* Tier 1 — wounds / strain / defence: lighter veil, so more marble shows.
+   Sets only the indirection var, so it reliably wins over the shared rule. */
+.cdx form.scheme-eldritch .cdx-stat {
+  --cdx-veil:var(--cdx-veil-1);
 }
 .cdx form.scheme-eldritch :is(.cdx-stat,.cdx-panel,.cdx-istat,.cdx-idesc,.cdx-talent) {
   box-shadow:inset 0 0 0 3px #101310,inset 0 0 0 4px rgba(112,96,70,.09),0 2px 8px rgba(0,0,0,.4);
@@ -448,17 +557,43 @@
   box-shadow:inset 0 0 0 1px rgba(112,96,70,.28);
 }
 .cdx form.scheme-eldritch .cdx-sk-head .cdx-sk-name { color:#93866f; }
+/* Skill rows share the framed-surface treatment: a veil-tinted base plus the
+   white-vein mask from the shared ::before rule. All rows use the tier-2 veil (no
+   alternation). The career-skill selector is listed on the base here because the
+   base cdx.css rule `.cdx .cdx-sk-row:has(.careerskill-toggle:checked)` sets a
+   `background:` shorthand at higher specificity than the plain row rule — which
+   would wipe the base to a flat fill. Re-declaring it here (higher specificity)
+   restores the veil base; the ::before mask is a separate element, so career rows
+   keep their veins automatically and just swap --cdx-veil for a soft warm tint. */
+.cdx form.scheme-eldritch .cdx-sk-row,
+.cdx form.scheme-eldritch .cdx-sk-row:has(.careerskill-toggle:checked) {
+  position:relative;
+  isolation:isolate;
+  background-color:var(--cdx-paper2);
+  background-image:linear-gradient(var(--cdx-veil),var(--cdx-veil));
+}
 .cdx form.scheme-eldritch .cdx-sk-row {
-  background:rgba(14,17,15,.66);
+  --cdx-veil:var(--cdx-veil-2);
   border-bottom-color:rgba(153,131,91,.24);
 }
-.cdx form.scheme-eldritch .cdx-sk-row:nth-of-type(even) { background:rgba(21,24,21,.48); }
 .cdx form.scheme-eldritch .cdx-sk-row:has(.careerskill-toggle:checked) {
-  background:linear-gradient(90deg,rgba(104,90,67,.16),rgba(104,90,67,.055));
+  /* Career highlight ADDS a warm wash over the shared veil base (still reading
+     --cdx-veil), rather than replacing it — so editing the base veil doesn't
+     force re-tuning career. The wash sits under the vein mask like the base. */
+  background-image:
+    linear-gradient(var(--cdx-career-glow),var(--cdx-career-glow)),
+    linear-gradient(var(--cdx-veil),var(--cdx-veil));
   box-shadow:inset 3px 0 0 #716248;
 }
 .cdx form.scheme-eldritch .cdx-sk-name { color:#ddd4c6; }
 .cdx form.scheme-eldritch .cdx-sk-char { color:#887e6b; }
+/* The marble mask puts each skill row in its own stacking context (isolation),
+   which trapped the dice-pool hint below sibling rows/columns. The hint shows on
+   mouse-over of the pool (.hover is a permanent class, so match :hover/:focus —
+   the actual trigger). While hovered, lift the row above its column-mates and its
+   column above the neighbouring columns so the hint paints over them. */
+.cdx form.scheme-eldritch .cdx-sk-row:has(.dice-pool:hover,.dice-pool:focus) { z-index:5; }
+.cdx form.scheme-eldritch .cdx-skill-col:has(.dice-pool:hover,.dice-pool:focus) { position:relative; z-index:5; }
 
 /* --- Inventory, talents, panels and tables ------------------------------ */
 .cdx form.scheme-eldritch .cdx-cards-head {
@@ -593,7 +728,8 @@
   border:1px solid rgba(112,96,70,.34);
   box-shadow:inset 0 0 0 3px #0b0d0c,inset 0 0 0 4px rgba(112,96,70,.12),0 3px 12px rgba(0,0,0,.45);
 }
-.cdx form.scheme-eldritch .cdx-ihead::after {
+/* Sigil ornament (item header) — Scholar variant only. */
+.cdx form.scheme-eldritch-scholar .cdx-ihead::after {
   content:"";
   position:absolute;
   z-index:0;
@@ -842,3 +978,45 @@
 .cdx form.scheme-eldritch .item-details :is(.tag,.item-pill) {
   color:#ded5c6;
 }
+
+/* ============================================================================
+   Notched outline — Eldritch (SVG overlay; shape rules shared from cdx.css)
+   ----------------------------------------------------------------------------
+   Drop the border (recoloured to --cdx-ol per block so the SVG stroke matches
+   each block's old edge tone); the inset box-shadow frames are untouched. These
+   selectors carry the scheme class, so their border:none reliably overrides
+   Eldritch's own borders defined above. ===================================== */
+.cdx form.scheme-eldritch .cdx-stat,
+.cdx form.scheme-eldritch .cdx-card,
+.cdx form.scheme-eldritch .cdx-injury,
+.cdx form.scheme-eldritch .cdx-talent,
+.cdx form.scheme-eldritch .cdx-panel,
+.cdx form.scheme-eldritch .cdx-istat,
+.cdx form.scheme-eldritch .cdx-icheck2,
+.cdx form.scheme-eldritch .cdx-item-body .item.force-power,
+.cdx form.scheme-eldritch .cdx-forcepool,
+.cdx form.scheme-eldritch .cdx-header,
+.cdx form.scheme-eldritch .cdx-pill,
+.cdx form.scheme-eldritch .cdx-square,
+.cdx form.scheme-eldritch .cdx-veh-rarity,
+.cdx form.scheme-eldritch .cdx-ihead,
+.cdx form.scheme-eldritch .cdx-ipill,
+.cdx form.scheme-eldritch .cdx-ihead .cdx-status {
+  --cdx-ol:var(--cdx-line);
+  border:none;
+  position:relative;
+}
+.cdx form.scheme-eldritch .cdx-header,
+.cdx form.scheme-eldritch .cdx-ihead,
+.cdx form.scheme-eldritch .cdx-pill,
+.cdx form.scheme-eldritch .cdx-square,
+.cdx form.scheme-eldritch .cdx-ipill,
+.cdx form.scheme-eldritch .cdx-ihead .cdx-status { --cdx-ol:rgba(112,96,70,.5); }
+.cdx form.scheme-eldritch .cdx-pill.force { --cdx-ol:#9c5843; }
+.cdx form.scheme-eldritch .cdx-pill.sig { --cdx-ol:#665a45; }
+.cdx form.scheme-eldritch .cdx-forcepool { --cdx-ol:#7a523d; }
+.cdx form.scheme-eldritch .cdx-veh-rarity { --cdx-ol:#5d5240; }
+.cdx form.scheme-eldritch .cdx-card:hover,
+.cdx form.scheme-eldritch .cdx-injury:hover,
+.cdx form.scheme-eldritch .cdx-item-body .item.force-power:hover { --cdx-ol:#625745; }
+.cdx form.scheme-eldritch .cdx-talent.expanded { border:1px solid var(--cdx-ol); }

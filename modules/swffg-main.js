@@ -78,6 +78,52 @@ Hooks.on("setup", function (){
   register_system_tours();
 });
 
+// Merge the Codex localization file into the translation table. Codex labels are
+// kept in their own lang/codex/<lang>.json (separate from the base system strings)
+// and loaded here in code rather than via a second manifest language entry, so
+// they resolve on a simple client reload instead of only after a full world
+// relaunch (system.json is re-read only on relaunch). i18nInit fires right after
+// the base table loads. English is merged first as a fallback base, then the
+// active language on top when it differs.
+Hooks.on("i18nInit", async function () {
+  const langs = game.i18n.lang && game.i18n.lang !== "en" ? ["en", game.i18n.lang] : ["en"];
+  for (const lang of langs) {
+    try {
+      const json = await foundry.utils.fetchJsonWithTimeout(`systems/starwarsffg/lang/codex/${lang}.json`);
+      foundry.utils.mergeObject(game.i18n.translations, foundry.utils.expandObject(json));
+    } catch (e) {
+      // No codex file for this language (e.g. only English exists) — skip quietly.
+    }
+  }
+});
+
+// Apply optional label overrides for Credits, Obligation, Morality, Duty, and
+// Conflict. i18nInit fires immediately after the translation table is loaded and
+// is the canonical place to mutate it, so overriding the translation entry here
+// updates every template and code path that localizes these keys. Settings are
+// registered in the init hook, which runs before i18nInit.
+Hooks.on("i18nInit", function () {
+  const labelOverrides = {
+    labelCredits: "SWFFG.DescriptionCredits",
+    labelObligation: "SWFFG.DescriptionObligation",
+    labelMorality: "SWFFG.DescriptionMorality",
+    labelDuty: "SWFFG.DescriptionDuty",
+    labelConflict: "SWFFG.DescriptionConflict",
+  };
+  for (const [settingKey, translationKey] of Object.entries(labelOverrides)) {
+    try {
+      const override = game.settings.get("starwarsffg", settingKey);
+      if (override) {
+        foundry.utils.setProperty(game.i18n.translations, translationKey, override);
+      }
+    } catch (e) {
+      // Setting not registered yet (unexpected hook ordering) — skip rather than
+      // abort system startup. The codex sheet reads these settings directly, so
+      // its labels update regardless.
+    }
+  }
+});
+
 Hooks.once("init", async function () {
   console.log(`Initializing SWFFG System`);
   // Place our classes in their own namespace for later reference.
@@ -285,9 +331,14 @@ Hooks.once("init", async function () {
   // why CSS changes "didn't apply". TODO: switch the buster to the system
   // version (game.system.version) for release so the file caches between bumps.
   $("head").append(`<link href="systems/starwarsffg/styles/cdx.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
-  // Eldritch Horror scheme lives in its own file, appended AFTER cdx.css so it
-  // layers on top of the base Codex styles (same cache-buster rationale).
-  $("head").append(`<link href="systems/starwarsffg/styles/cdx-eldritch.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
+  // Each Codex scheme's palette (and any scheme-specific rules) lives in its own
+  // file, appended AFTER cdx.css so it layers on top of the base Codex styles.
+  // Republic loads first and doubles as the default palette (its bare `.cdx form`
+  // fallback); every scheme-* rule outranks it by specificity. Same cache-buster
+  // rationale as cdx.css above.
+  for (const scheme of ["republic", "empire", "dark", "light", "mercenary", "eldritch"]) {
+    $("head").append(`<link href="systems/starwarsffg/styles/cdx-${scheme}.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
+  }
 
   /**
    * Register default XP spend notification
@@ -348,6 +399,34 @@ Hooks.once("init", async function () {
     default: 500,
     type: Number,
   });
+
+  /**
+   * Optional override text for the Credits, Obligation, Morality, and Duty labels.
+   * When left blank the default (localized) label is used. When set, the value
+   * overrides the matching SWFFG.Description* translation everywhere it appears.
+   */
+  const labelOverrides = {
+    labelCredits: "SWFFG.DescriptionCredits",
+    labelObligation: "SWFFG.DescriptionObligation",
+    labelMorality: "SWFFG.DescriptionMorality",
+    labelDuty: "SWFFG.DescriptionDuty",
+    labelConflict: "SWFFG.DescriptionConflict",
+  };
+  // Debounced so saving several label overrides at once (the settings form sets
+  // them in a loop) only triggers one reload AFTER every value is persisted — an
+  // immediate reload on the first change would abort the loop and discard the rest.
+  const debouncedLabelReload = foundry.utils.debounce(() => window.location.reload(), 100);
+  for (const key of Object.keys(labelOverrides)) {
+    game.settings.register("starwarsffg", key, {
+      name: game.i18n.localize(`SWFFG.Settings.Label.${key.replace("label", "")}.Name`),
+      hint: game.i18n.localize(`SWFFG.Settings.Label.${key.replace("label", "")}.Hint`),
+      scope: "world",
+      config: false,
+      default: "",
+      type: String,
+      onChange: debouncedLabelReload,
+    });
+  }
 
   /**
    * Register the option to use generic slots for combat

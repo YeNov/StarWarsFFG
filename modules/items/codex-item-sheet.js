@@ -17,7 +17,7 @@
  * (see activateListeners), the same as the codex actor sheets.
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
-import { CDX_SCHEMES, CDX_SCHEME_LABELS, cdxDefaultScheme } from "../actors/codex-sheets.js";
+import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "../actors/codex-sheets.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -39,19 +39,20 @@ export class CodexItemSheet extends ItemSheetFFG {
   _cdxScheme() {
     const s = this.item?.getFlag?.("starwarsffg", "scheme")
       ?? this.item?.actor?.getFlag?.("starwarsffg", "scheme");
-    return CDX_SCHEMES.includes(s) ? s : cdxDefaultScheme();
+    return cdxNormalizeScheme(s) ?? cdxDefaultScheme();
   }
 
-  /** Replace the legacy root classes with ONLY the palette class (mirrors the
-   *  actor mixin) so mandar's structural item-form rules don't match us. The
-   *  editable/locked classes are still applied by the base. @override */
+  /** Replace the legacy root classes with the palette class(es) (mirrors the
+   *  actor mixin; Eldritch variants also carry the base `scheme-eldritch`) so
+   *  mandar's structural item-form rules don't match us. The editable/locked
+   *  classes are still applied by the base. @override */
   _getLegacyRootClasses(_context = {}) {
-    return [`scheme-${this._cdxScheme()}`];
+    return cdxSchemeClasses(this._cdxScheme());
   }
 
-  /** Strip stale `scheme-*` before super re-adds the current one. @override */
+  /** Strip stale `scheme-*` before super re-adds the current one(s). @override */
   _applyLegacyRootClasses(form, context = {}) {
-    for (const s of CDX_SCHEMES) form.classList.remove(`scheme-${s}`);
+    for (const c of CDX_SCHEME_STRIP) form.classList.remove(c);
     super._applyLegacyRootClasses(form, context);
   }
 
@@ -99,20 +100,10 @@ export class CodexItemSheet extends ItemSheetFFG {
     return controls;
   }
 
-  /** Small DialogV2 to choose one of the six palettes; writes the item flag. */
+  /** Categorised DialogV2 palette picker; writes the item flag. */
   async _cdxPickScheme() {
-    const current = this._cdxScheme();
-    const buttons = CDX_SCHEMES.map((s) => ({ action: s, label: CDX_SCHEME_LABELS[s] + (s === current ? " ✓" : "") }));
-    let choice;
-    try {
-      choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Codex II — Scheme" },
-        content: `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${this.item?.name ?? "item"}</b>:</p>`,
-        buttons,
-        rejectClose: false,
-      });
-    } catch (e) { return; }
-    if (choice && CDX_SCHEMES.includes(choice)) await this.item.setFlag("starwarsffg", "scheme", choice);
+    const choice = await cdxPickScheme(this._cdxScheme(), this.item?.name ?? "item");
+    if (choice) await this.item.setFlag("starwarsffg", "scheme", choice);
   }
 
   /** @override — keep every stock listener; make the form the scroll container
@@ -231,5 +222,17 @@ export class CodexItemSheet extends ItemSheetFFG {
         if (ev.key.length === 1 && !/[0-9]/.test(ev.key)) ev.preventDefault();
       });
     });
+
+    // Notched-block outlines — same SVG overlay the actor sheets use, covering
+    // the item-sheet diamond blocks (item header, pills, stat boxes, checks,
+    // force-power rows, vehicle rarity). See cdxBuildNotchOutlines.
+    if (root) cdxBuildNotchOutlines(this, root);
+  }
+
+  /** @override — drop the notch-outline ResizeObserver when the sheet closes. */
+  async close(options = {}) {
+    this._cdxNotchRO?.disconnect();
+    this._cdxNotchRO = null;
+    return super.close(options);
   }
 }

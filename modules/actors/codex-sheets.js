@@ -24,16 +24,262 @@ import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
 import { CdxPillStack } from "./cdx-pill-stack.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
+import { DicePoolFFG } from "../dice-pool-ffg.js";
+import { getFatedSigilMask } from "./codex-fated-sigil.js";
 
-export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch"];
+export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
+
+// The two Eldritch Horror variants share ALL the `.scheme-eldritch` styling and
+// the content-anchored bleeding-texture feature; they differ only in surface
+// texture — Scholar uses the paper grain, Fate uses the marble. Both carry the
+// base `scheme-eldritch` class (see cdxSchemeClasses) so the shared CSS + the
+// JS gate (which keys on `.scheme-eldritch`) apply to both.
+const CDX_ELDRITCH_VARIANTS = ["eldritch-scholar", "eldritch-fate"];
+
+/** Normalise a stored scheme value: map the legacy single "eldritch" onto the
+ *  paper "Scholar" variant (its previous look), and drop anything unknown. */
+export function cdxNormalizeScheme(s) {
+  if (s === "eldritch") return "eldritch-scholar";   // legacy → the paper variant
+  return CDX_SCHEMES.includes(s) ? s : null;
+}
+
+/** Root class(es) for a scheme. Eldritch variants also get the base
+ *  `scheme-eldritch` class so the shared Eldritch CSS matches them. */
+export function cdxSchemeClasses(scheme) {
+  const cls = [`scheme-${scheme}`];
+  if (CDX_ELDRITCH_VARIANTS.includes(scheme)) cls.push("scheme-eldritch");
+  return cls;
+}
+
+/** Every scheme class we might have set, for stripping before re-applying. */
+export const CDX_SCHEME_STRIP = [...CDX_SCHEMES.map((s) => `scheme-${s}`), "scheme-eldritch"];
+
+/**
+ * Blocks that get an SVG notch outline (see _cdxNotchOutlines). These are the
+ * --cdx-clip octagon blocks whose diagonal corners a CSS border can't follow.
+ * Excludes the editor containers and the overlapping chip-label tabs.
+ */
+const CDX_NOTCH_SEL = [
+  ".cdx-stat", ".cdx-card", ".cdx-injury", ".cdx-talent", ".cdx-panel",
+  ".cdx-istat", ".cdx-icheck2", ".item.force-power", ".cdx-forcepool",
+  ".cdx-header", ".cdx-pill", ".cdx-square", ".cdx-veh-rarity",
+  ".cdx-ihead", ".cdx-ipill", ".cdx-ihead .cdx-status",
+].join(",");
+
+/**
+ * Blocks that paint the marble (Eldritch scheme) as their own background — must
+ * match the "Shared framed surfaces" selector list in styles/cdx-eldritch.css.
+ * cdxPositionMarble offsets each one's marble to a single content origin.
+ */
+const CDX_MARBLE_SEL = [
+  ".cdx-stat", ".cdx-panel", ".cdx-card", ".cdx-injury", ".cdx-forcepool",
+  ".cdx-talent", ".cdx-pane.effects", ".cdx-pane.attributes", ".cdx-sub",
+  ".cdx-istat", ".cdx-idesc", ".cdx-icheck2", ".cdx-item-body .item.force-power",
+  ".cdx-ft-card", ".cdx-sk-row",
+].join(",");
+
+const CDX_NOTCH = 9;   // notch size in px — must match --cdx-notch in the CSS
+
+/**
+ * Redraw one block's SVG notch outline at a KNOWN border-box size (px). The
+ * <path> traces the SAME octagon as the block's clip-path fill (fixed CDX_NOTCH
+ * corner, inset slightly so the stroke sits inside the clip), so fill and outline
+ * stay aligned at any size — including short pills (~18–20px), which must still
+ * get their diagonals. The notch is clamped to half the smaller side only so the
+ * path can't self-cross on a pathologically tiny block (real blocks are ≥18px, so
+ * this never fires and the outline matches the fixed-9px clip exactly). Callers
+ * pass w/h from the ResizeObserver entry so this never reads the DOM; if omitted
+ * it measures (forces a layout — the slow path, kept only as a fallback).
+ */
+export function cdxDrawNotch(el, w, h) {
+  const svg = el.querySelector(":scope > svg.cdx-notch");
+  if (!svg) return;
+  if (w == null || h == null) {             // fallback: measure (border box) — forces layout
+    const r = el.getBoundingClientRect();
+    w = r.width; h = r.height;
+  }
+  if (w < 2 || h < 2) return;               // hidden / unlaid-out — observer redraws later
+  const i = 0.75;                           // i: inset so the stroke stays inside the clip
+  const n = Math.min(CDX_NOTCH, w / 2, h / 2);
+  const d =
+    `M${i},${n} L${n},${i} L${w - n},${i} L${w - i},${n}` +
+    ` L${w - i},${h - n} L${w - n},${h - i} L${n},${h - i} L${i},${h - n} Z`;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.firstChild.setAttribute("d", d);
+}
+
+/**
+ * Give every notched block (CDX_NOTCH_SEL) inside `root` an <svg.cdx-notch>
+ * overlay whose stroked <path> outlines the same octagon as its clip-path fill,
+ * so the two can never drift. The path is built from the block's live px size, so
+ * notches stay a fixed 9px and the stroke a uniform 1px at any size / DPR. A
+ * single ResizeObserver (stored on `host`, rebuilt each call, torn down in the
+ * sheet's close) redraws blocks on resize — tab switch, window resize, header
+ * collapse, talent expand.
+ *
+ * Perf: the observer reads the size straight off each entry (borderBoxSize), so
+ * it never calls getBoundingClientRect, and its initial per-element fire does the
+ * FIRST draw — so the build loop only creates nodes. No forced layout on either
+ * path (avoids read-after-write layout thrashing across N blocks).
+ */
+export function cdxBuildNotchOutlines(host, root) {
+  if (!root) return;
+  host._cdxNotchRO?.disconnect();
+  host._cdxNotchRO = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      const box = e.borderBoxSize && e.borderBoxSize[0];
+      if (box) cdxDrawNotch(e.target, box.inlineSize, box.blockSize);
+      else cdxDrawNotch(e.target);          // legacy fallback: measures
+    }
+  });
+  for (const el of root.querySelectorAll(CDX_NOTCH_SEL)) {
+    if (!el.querySelector(":scope > svg.cdx-notch")) {
+      const NS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("class", "cdx-notch");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("preserveAspectRatio", "none");
+      svg.appendChild(document.createElementNS(NS, "path"));
+      // Append (not prepend): an absolutely-positioned last child keeps the
+      // block's `:first-child` rules intact (e.g. .cdx-vr-k:not(:first-child)),
+      // and there are no `:last-child` rules to disturb. pointer-events:none
+      // keeps the on-top overlay click-through.
+      el.append(svg);
+    }
+    // observe() delivers an initial size on the next frame -> first draw. No
+    // explicit cdxDrawNotch here, so this loop performs zero layout reads.
+    host._cdxNotchRO.observe(el);
+  }
+}
+
+/**
+ * Texture origin (Eldritch scheme). Each framed block reveals the texture through
+ * a luminance mask on its ::before; on its own that mask re-tiles per block (every
+ * block starts the tile at its own corner). To read as ONE continuous slab glued
+ * to the sheet, we set each block's --cdx-marble-x/y (its CSS mask-position) to
+ * MINUS the block's offset within the scroll content. That aligns every block's
+ * tile to a single origin at the content's top-left, so:
+ *   - adjacent blocks' veins line up (shared origin), and
+ *   - because the offset is measured in the content frame (scroll-independent),
+ *     the whole slab moves with the blocks as the sheet scrolls — no scroll
+ *     listener needed.
+ * Offsets only change on reflow (resize, tab switch, expand/collapse, add/remove),
+ * so a ResizeObserver on the container + blocks recomputes all of them (rAF-
+ * debounced). Non-Eldritch schemes don't paint the marble, so this tears down and
+ * returns. The observer is owned by `host` and disconnected in the sheet's close.
+ */
+export function cdxPositionMarble(host, root) {
+  host._cdxMarbleRO?.disconnect();
+  host._cdxMarbleRO = null;
+  if (host._cdxMarbleRAF) { cancelAnimationFrame(host._cdxMarbleRAF); host._cdxMarbleRAF = null; }
+  if (!root) return;
+
+  // The scroll container is the content <form> (made overflow:auto in _cdxActivate).
+  const container = host.form
+    ?? (root.matches?.("form.window-content") ? root : root.querySelector?.("form.window-content"));
+  if (!container?.classList?.contains("scheme-eldritch")) return;   // both Eldritch variants (Scholar/Fate) carry this base class
+
+  const recompute = () => {
+    const cRect = container.getBoundingClientRect();
+    const sx = container.scrollLeft, sy = container.scrollTop;
+    const blocks = container.querySelectorAll(CDX_MARBLE_SEL);
+    const rects = [];
+    for (const b of blocks) rects.push(b.getBoundingClientRect());  // batch reads (no interleaved writes)
+    let i = 0;
+    for (const b of blocks) {
+      const r = rects[i++];
+      if (r.width < 2 && r.height < 2) continue;                    // hidden (inactive tab) — repositioned when shown
+      const x = Math.round(r.left - cRect.left + sx);
+      const y = Math.round(r.top - cRect.top + sy);
+      b.style.setProperty("--cdx-marble-x", `${-x}px`);
+      b.style.setProperty("--cdx-marble-y", `${-y}px`);
+    }
+  };
+
+  host._cdxMarbleRO = new ResizeObserver(() => {
+    if (host._cdxMarbleRAF) cancelAnimationFrame(host._cdxMarbleRAF);
+    host._cdxMarbleRAF = requestAnimationFrame(recompute);          // coalesce resize storms to one pass/frame
+  });
+  host._cdxMarbleRO.observe(container);
+  for (const b of container.querySelectorAll(CDX_MARBLE_SEL)) host._cdxMarbleRO.observe(b);
+  recompute();                                                       // initial pass
+}
+
+/** Run `fn` off the first-paint path: requestIdleCallback (fires after paint, when
+ *  idle) if available, else a macrotask. Returns a canceller. */
+function cdxDeferIdle(fn) {
+  if (typeof requestIdleCallback === "function") {
+    const id = requestIdleCallback(fn, { timeout: 800 });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 0);
+  return () => clearTimeout(id);
+}
+
 export const CDX_SCHEME_LABELS = {
   republic: "Republic",
   empire: "Empire",
   dark: "Dark",
   light: "Light",
   mercenary: "Mercenary",
-  eldritch: "Eldritch Horror",
+  "eldritch-scholar": "Eldritch Horror - Scholar",
+  "eldritch-fate": "Eldritch Horror - Fate",
 };
+
+/** Scheme picker grouped into two categories — "Modern" and "Eldritch Horror"
+ *  (the two Eldritch buttons shown as just "Scholar" / "Fate"). Opens a DialogV2
+ *  and resolves the chosen scheme id, or null if cancelled. Shared by the actor
+ *  and item sheets. */
+export async function cdxPickScheme(current, subjectName) {
+  const GROUPS = [
+    ["Modern", ["republic", "empire", "dark", "light", "mercenary"]],
+    ["Eldritch Horror", ["eldritch-scholar", "eldritch-fate"]],
+  ];
+  const SHORT = { "eldritch-scholar": "Scholar", "eldritch-fate": "Fate" };
+  // Scheme choices are Foundry-styled <button>s (same look as before), grouped into
+  // labelled category panels. Clicking one applies immediately. All styling is
+  // INLINE — DialogV2 drops <style> blocks from content, so a stylesheet wouldn't
+  // take (that's what left the buttons stacked vertically).
+  const btn = (s) =>
+    `<button type="button" data-cdx-scheme="${s}" style="flex:0 0 auto;width:auto;margin:0` +
+    `${s === current ? ";box-shadow:0 0 0 2px var(--color-warm-2,#c9593f)" : ""}">` +
+    `${SHORT[s] ?? CDX_SCHEME_LABELS[s]}</button>`;
+  const group = ([title, list]) =>
+    `<fieldset style="border:1px solid rgba(127,127,127,.35);border-radius:6px;margin:.5rem 0;padding:.3rem .6rem .6rem">` +
+    `<legend style="padding:0 .4rem;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7">${title}</legend>` +
+    `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.2rem">${list.map(btn).join("")}</div>` +
+    `</fieldset>`;
+  const content =
+    `<div class="cdx-scheme-picker">` +
+    `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${subjectName ?? ""}</b>:</p>` +
+    GROUPS.map(group).join("") +
+    `</div>`;
+
+  // The scheme buttons live in the content, so wire their clicks via the render
+  // hook (scoped to our dialog by the .cdx-scheme-picker marker): set the choice
+  // and close, which resolves DialogV2.wait (rejectClose:false → no throw).
+  let choice = null;
+  const hookId = Hooks.on("renderDialogV2", (app, element) => {
+    const root = element instanceof HTMLElement ? element : element?.[0];
+    if (!root?.querySelector?.(".cdx-scheme-picker")) return;
+    for (const b of root.querySelectorAll("[data-cdx-scheme]")) {
+      b.addEventListener("click", () => { choice = b.dataset.cdxScheme; app.close(); });
+    }
+  });
+  try {
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: "Codex II — Scheme" },
+      position: { width: 640 },   // ~3x the default so both category rows fit comfortably
+      content,
+      buttons: [{ action: "cancel", icon: "fa-solid fa-times", label: "Cancel" }],
+      rejectClose: false,
+    });
+  } catch (e) { /* dismissed */ } finally {
+    Hooks.off("renderDialogV2", hookId);
+  }
+  return choice && CDX_SCHEMES.includes(choice) ? choice : null;
+}
+
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
 /** The default Codex colour scheme, derived from the Default Sheet Theme setting
@@ -43,7 +289,7 @@ export function cdxDefaultScheme() {
   try {
     const t = String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "");
     const s = t.startsWith("codex-") ? t.slice("codex-".length) : null;
-    return CDX_SCHEMES.includes(s) ? s : "republic";
+    return cdxNormalizeScheme(s) ?? "republic";
   } catch (e) { return "republic"; }
 }
 
@@ -118,7 +364,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   /** The per-actor palette, defaulting to republic. */
   _cdxScheme() {
     const s = this.actor?.getFlag?.("starwarsffg", "scheme");
-    return CDX_SCHEMES.includes(s) ? s : cdxDefaultScheme();
+    return cdxNormalizeScheme(s) ?? cdxDefaultScheme();
   }
 
   /**
@@ -129,16 +375,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
    * @override
    */
   _getLegacyRootClasses(_context = {}) {
-    return [`scheme-${this._cdxScheme()}`];
+    return cdxSchemeClasses(this._cdxScheme());
   }
 
   /**
-   * Strip stale `scheme-*` before super re-adds the current one (the base only
-   * ever ADDS classes), so switching palettes doesn't accumulate them.
+   * Strip stale `scheme-*` (incl. the shared `scheme-eldritch` base) before super
+   * re-adds the current one(s) (the base only ever ADDS classes), so switching
+   * palettes doesn't accumulate them.
    * @override
    */
   _applyLegacyRootClasses(form, context = {}) {
-    for (const s of CDX_SCHEMES) form.classList.remove(`scheme-${s}`);
+    for (const c of CDX_SCHEME_STRIP) form.classList.remove(c);
     super._applyLegacyRootClasses(form, context);
   }
 
@@ -183,6 +430,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   async close(options = {}) {
     this._cdxPillStack?.destroy();
     this._cdxPillStack = null;
+    this._cdxNotchRO?.disconnect();
+    this._cdxNotchRO = null;
+    this._cdxMarbleRO?.disconnect();
+    this._cdxMarbleRO = null;
+    if (this._cdxMarbleRAF) { cancelAnimationFrame(this._cdxMarbleRAF); this._cdxMarbleRAF = null; }
+    this._cdxSigilCancel?.();
+    this._cdxSigilCancel = null;
     this._cdxXpBuy = false; // never persist XP-buy mode across reopenings
     return super.close(options);
   }
@@ -376,7 +630,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       if (CDX_ALIGNMENTS.includes(v)) this.actor?.setFlag("starwarsffg", "codexAlignment", v);
     });
     this._cdxWireAmmo(root);
-    // Strain recovery — open the token-action-hud-ffgsw post-encounter utility.
+    // Strain recovery — self-contained post-encounter strain recovery dialog.
     root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
       btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
     });
@@ -495,6 +749,67 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         await this.actor.update({ [path]: val });
       });
     });
+
+    // Notched-block outlines. A CSS `border` on a --cdx-clip octagon is sliced
+    // off at the 45° notches; instead each notched block carries an SVG overlay
+    // whose single stroked <path> traces the SAME octagon geometry as the clip,
+    // sized to the block in px so the notches stay a fixed 9px and the line is a
+    // uniform 1px on every edge (see _cdxNotchOutlines).
+    this._cdxNotchOutlines(root);
+
+    // Eldritch marble: glue each block's marble to one content-anchored origin so
+    // the veins are continuous across blocks and scroll with the sheet.
+    cdxPositionMarble(this, root);
+
+    // Eldritch sigils: a per-actor procedural mask generated once and cached, fed
+    // to the header ornament as its CSS mask — Fate gets the dense "deco" wall,
+    // Scholar gets a single "medallion" sigil. Both seed off the actor + carry
+    // clouds/wear. Other schemes ignore it.
+    this._cdxFatedSigil();
+  }
+
+  /** Set the per-actor procedural sigil mask on the form (Fate → --cdx-fated-sigil,
+   *  Scholar → --cdx-scholar-sigil). Cleared for non-Eldritch schemes.
+   *  Generation (~a few 1024² passes) is deferred off the first-paint path so the
+   *  sheet opens instantly — the CSS transparent fallback hides the ornament until
+   *  the mask lands. Cached per (seed, style), and skipped when already set. */
+  _cdxFatedSigil() {
+    const form = this.form;
+    if (!form) return;
+    const scheme = this._cdxScheme();
+    const isFate = scheme === "eldritch-fate";
+    const isScholar = scheme === "eldritch-scholar";
+    if (!isFate) form.style.removeProperty("--cdx-fated-sigil");
+    if (!isScholar) form.style.removeProperty("--cdx-scholar-sigil");
+    if (!isFate && !isScholar) return;
+
+    const prop = isFate ? "--cdx-fated-sigil" : "--cdx-scholar-sigil";
+    if (form.style.getPropertyValue(prop)) return;   // already on this form — skip cheap re-renders
+
+    // Fate uses the 1024 deco wall (its 2× size breaks tiling); the Scholar single
+    // sigil is shown small, so 512 is ample and ~4x cheaper (cost is canvas area).
+    // Only the Fate wall is worn — the Scholar medallion is drawn clean, so it
+    // opts out of the wear pass entirely rather than inheriting the Fate default.
+    const opts = isFate
+      ? { style: "deco" }
+      : { style: "medallion", maskSize: 512, wearSource: "none" };
+    const seed = this.actor?.uuid ?? this.actor?.id ?? this.actor?.name ?? "codex";
+    this._cdxSigilCancel?.();
+    this._cdxSigilCancel = cdxDeferIdle(async () => {
+      this._cdxSigilCancel = null;
+      if (this.form !== form || this._cdxScheme() !== scheme) return;   // stale render / scheme changed
+      const url = await getFatedSigilMask(seed, opts);
+      // Re-check: the mask now decodes an image, so the sheet may have
+      // re-rendered or switched scheme while we awaited it.
+      if (this.form !== form || this._cdxScheme() !== scheme) return;
+      if (url) form.style.setProperty(prop, `url("${url}")`);
+    });
+  }
+
+  /** @see cdxBuildNotchOutlines — thin instance wrapper so the observer is
+   *  owned by (and torn down with) this sheet. */
+  _cdxNotchOutlines(root) {
+    cdxBuildNotchOutlines(this, root);
   }
 
   /**
@@ -713,7 +1028,57 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     if (!nodes.length) return;
     let data;
     try { data = await this.getData({}); } catch (e) { return; }
-    nodes.forEach((elem) => { try { DiceHelpers.addSkillDicePool(data, elem); } catch (e) { /* skip this weapon */ } });
+    // Hints live on the form, outside the cards, so they outlive a content re-render.
+    this.form?.querySelectorAll(".cdx-wpn-tip").forEach((n) => n.remove());
+    // Awaited (not forEach): the tooltip only exists once the pool has rendered.
+    for (const elem of nodes) {
+      // Resolve the weapon item from its card so its roll modifiers are folded
+      // into the previewed pool (matches what clicking the weapon rolls).
+      const card = elem.closest(".cdx-card.weapon[data-item-id]");
+      const item = card ? (this.actor?.items?.get(card.dataset.itemId) ?? null) : null;
+      try { await DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { continue; }
+      this._cdxWeaponPoolHint(elem);
+    }
+  }
+
+  /**
+   * Drive a weapon pool's source hint from its row, with the tooltip re-homed onto
+   * the form. Two things stop the shared `.hover:hover .tooltip2` mechanism working
+   * in place here:
+   *   - .cdx-card carries a clip-path (the notches), which clips its whole subtree —
+   *     a tooltip anchored inside the card is cut off at the card's edge.
+   *   - .cdx-wpn-pool is pointer-events:none, so it can never be :hover-ed. That is
+   *     deliberate: .roll-button has a global handler, and the pool sits one level
+   *     deeper than rollSkill's parent-walk expects, so a click there would roll a
+   *     bare skill instead of the weapon. Clicks must keep falling through to the
+   *     card's icon, which sits at the depth rollSkill wants.
+   * The form is unclipped, and an absolutely positioned child of it scrolls with the
+   * content, so the hint tracks its row. The `.hover` host keeps the shared
+   * `.starwarsffg .hover .tooltip2` styling matching, so it looks like the skill hint.
+   */
+  _cdxWeaponPoolHint(elem) {
+    const tip = elem.querySelector(".tooltip2");
+    const form = this.form;
+    if (!tip || !form) return;
+
+    const host = document.createElement("div");
+    host.className = "hover cdx-wpn-tip";
+    host.appendChild(tip);
+    form.appendChild(host);
+
+    const show = () => {
+      // Measure against offsetParent — by definition what position:absolute resolves
+      // to — rather than assuming the form is positioned. Adding position:relative to
+      // the form would silently re-anchor the sheet's other ~30 absolute elements.
+      const anchor = host.offsetParent ?? form;
+      const a = anchor.getBoundingClientRect();
+      const r = elem.getBoundingClientRect();
+      host.style.left = `${r.left - a.left + anchor.scrollLeft}px`;
+      host.style.top = `${r.bottom - a.top + anchor.scrollTop + 3}px`;
+      host.classList.add("cdx-tip-on");
+    };
+    elem.addEventListener("pointerenter", show);
+    elem.addEventListener("pointerleave", () => host.classList.remove("cdx-tip-on"));
   }
 
   /**
@@ -777,6 +1142,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // non-owner, who would then get a permission error on drop). The wiring in
     // _cdxWireReorder is gated by options.editable; with no grips rendered it's a no-op.
     ctx.cdxCanReorder = !!this.isEditable;
+    // Labels for the codex header/bio-stats. The codex templates render these via
+    // context vars (not bare {{localize}}) so they reliably reflect the optional
+    // label override settings: the configured override when set, otherwise the
+    // localized default. Covers the credits square (expanded + collapsed) and the
+    // Obligation / Morality / Conflict bio-stats.
+    const cdxLabel = (settingKey, i18nKey) =>
+      game.settings.get("starwarsffg", settingKey) || game.i18n.localize(i18nKey);
+    ctx.cdxCreditsLabel = cdxLabel("labelCredits", "SWFFG.DescriptionCredits");
+    ctx.cdxObligationLabel = cdxLabel("labelObligation", "SWFFG.DescriptionObligation");
+    ctx.cdxMoralityLabel = cdxLabel("labelMorality", "SWFFG.DescriptionMorality");
+    ctx.cdxConflictLabel = cdxLabel("labelConflict", "SWFFG.DescriptionConflict");
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
       // Header pill stacks (specializations / force powers / signature abilities):
@@ -945,52 +1321,111 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     return controls;
   }
 
-  /** Small DialogV2 to choose one of the six palettes; writes the actor flag. */
+  /** Categorised DialogV2 palette picker; writes the actor flag. */
   async _cdxPickScheme() {
-    const current = this._cdxScheme();
-    const buttons = CDX_SCHEMES.map((s) => ({
-      action: s,
-      label: CDX_SCHEME_LABELS[s] + (s === current ? " ✓" : ""),
-    }));
-    let choice;
-    try {
-      choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Codex II — Scheme" },
-        content: `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${this.actor.name}</b>:</p>`,
-        buttons,
-        rejectClose: false,
-      });
-    } catch (e) { return; }
-    if (choice && CDX_SCHEMES.includes(choice)) await this.actor.setFlag("starwarsffg", "scheme", choice);
+    const choice = await cdxPickScheme(this._cdxScheme(), this.actor?.name);
+    if (choice) await this.actor.setFlag("starwarsffg", "scheme", choice);
   }
 
   /**
-   * Open the token-action-hud-ffgsw "Post-Encounter strain recovery" utility (the
-   * Cool/Discipline dice-pool dialog) for this actor. That macro operates on the
-   * controlled token, so we select this actor's token first, then run the module's
-   * own macro script. Falls back to a plain strain reset if the module isn't
-   * active, and warns if the actor has no token on the canvas.
+   * Post-Encounter strain recovery for this actor. Ported from the
+   * token-action-hud-ffgsw "strainRecovery" macro (AdmiralDave/Wrycu) so the codex
+   * sheet no longer depends on that module: pops a Cool/Discipline dice-pool
+   * chooser, rolls the chosen pool, and removes strain equal to
+   * success + floor(advantage / 2). Operates directly on this actor (no token
+   * selection needed). No-op with a notice if there's no strain to heal.
    */
   async _cdxStrainRecovery() {
-    const MOD = "token-action-hud-ffgsw";
-    if (!game.modules.get(MOD)?.active) {
-      return this.actor.update({ "system.stats.strain.value": 0 });
-    }
-    const token = this.actor.getActiveTokens?.()?.[0]
-      ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === this.actor.id);
-    if (!token) {
-      ui.notifications?.warn(`Select ${this.actor.name}'s token on the canvas to use strain recovery.`);
+    const actor = this.actor;
+    const currentStrain = Number(actor?.system?.stats?.strain?.value) || 0;
+    if (currentStrain <= 0) {
+      ui.notifications?.info(game.i18n.format("SWFFG.Codex.StrainRecovery.NoStrain", { name: actor?.name ?? "" }));
       return;
     }
-    token.control({ releaseOthers: true });
-    try {
-      const command = await fetch(`modules/${MOD}/content/macros/strainRecovery.js`).then((r) => (r.ok ? r.text() : null));
-      if (!command) throw new Error("strainRecovery macro not found");
-      await new Macro({ name: "Strain Recovery", type: "script", command, img: "icons/svg/regen.svg" }).execute();
-    } catch (e) {
-      console.error("starwarsffg | Codex strain recovery failed", e);
-      ui.notifications?.error("Strain recovery utility failed to run.");
+
+    const skills = actor.system?.skills ?? {};
+    const coolSkill = skills["Cool"];
+    const disciplineSkill = skills["Discipline"];
+    const coolChar = coolSkill ? actor.system?.characteristics?.[coolSkill.characteristic] : null;
+    const disciplineChar = disciplineSkill ? actor.system?.characteristics?.[disciplineSkill.characteristic] : null;
+    if (!coolSkill || !disciplineSkill || !coolChar || !disciplineChar) {
+      ui.notifications?.error(game.i18n.format("SWFFG.Codex.StrainRecovery.MissingSkill", { name: actor?.name ?? "" }));
+      return;
     }
+
+    const buildPool = (skill, characteristic) => {
+      const pool = new DicePoolFFG({
+        ability: Math.max(characteristic?.value ?? 0, skill?.rank ?? 0),
+        boost: skill.boost,
+        setback: skill.setback,
+        remsetback: skill.remsetback,
+        force: skill.force ?? 0,
+        advantage: skill.advantage,
+        dark: skill.dark,
+        light: skill.light,
+        failure: skill.failure,
+        threat: skill.threat,
+        success: skill.success,
+        triumph: skill?.triumph ?? 0,
+        despair: skill?.despair ?? 0,
+      });
+      pool.upgrade(Math.min(characteristic.value ?? 0, skill.rank ?? 0));
+      return pool;
+    };
+
+    const coolPool = buildPool(coolSkill, coolChar);
+    const disciplinePool = buildPool(disciplineSkill, disciplineChar);
+
+    // Pre-select the stronger pool (more ability+proficiency+boost, proficiency breaks ties).
+    const weight = (p) => p.ability + p.proficiency + p.boost;
+    const coolBetter = weight(coolPool) > weight(disciplinePool)
+      || (weight(coolPool) === weight(disciplinePool) && coolPool.proficiency > disciplinePool.proficiency);
+
+    const content = `<form class="form cdx-strain-recovery">
+      <p>${game.i18n.localize("SWFFG.Codex.StrainRecovery.SelectSkill")}</p>
+      <div class="cdx-strain-choices">
+        <label><input type="radio" name="selected_skill" value="Cool"${coolBetter ? " checked" : ""} /> ${coolSkill.label} ${coolPool.renderPreview().outerHTML}</label>
+        <label><input type="radio" name="selected_skill" value="Discipline"${coolBetter ? "" : " checked"} /> ${disciplineSkill.label} ${disciplinePool.renderPreview().outerHTML}</label>
+      </div>
+    </form>`;
+
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Codex.StrainRecovery.Title"), icon: "fa-solid fa-laptop-medical" },
+      content,
+      modal: true,
+      rejectClose: false,
+      buttons: [{
+        action: "recover",
+        label: game.i18n.localize("SWFFG.Codex.StrainRecovery.Recover"),
+        default: true,
+        callback: async (event, button) => {
+          const chosen = button.form.elements.selected_skill.value === "Cool" ? coolPool : disciplinePool;
+          await this._cdxApplyStrainRecovery(chosen, currentStrain);
+        },
+      }],
+    });
+  }
+
+  /**
+   * Roll a recovery pool and remove the recovered strain from this actor.
+   * Healed = success (+ floor(advantage / 2) when the "advantages heal strain"
+   * house rule is enabled), capped at current strain.
+   */
+  async _cdxApplyStrainRecovery(pool, currentStrain) {
+    const actor = this.actor;
+    const message = await new game.ffg.RollFFG(pool.renderDiceExpression()).toMessage({
+      speaker: { actor },
+      flavor: `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize("SWFFG.Codex.StrainRecovery.Title")}...`,
+    });
+    const result = message.rolls?.[0]?.ffg ?? {};
+    const advantageHeals = game.settings.get("starwarsffg", "codexAdvantageHealsStrain");
+    const rolled = (result.success ?? 0) + (advantageHeals ? Math.floor((result.advantage ?? 0) / 2) : 0);
+    const healed = Math.min(currentStrain, Math.max(0, rolled));
+    await ChatMessage.create({
+      speaker: { actor },
+      content: game.i18n.format("SWFFG.Codex.StrainRecovery.Healed", { quantity: healed }),
+    });
+    await actor.update({ "system.stats.strain.value": currentStrain - healed });
   }
 };
 

@@ -6,6 +6,7 @@ import {
   xpSpendingSettings,
   localizationSettings,
   groupManagerSettings,
+  codexSettings,
 } from "./ui-settings.js";
 
 export default class SettingsHelpers {
@@ -81,6 +82,19 @@ export default class SettingsHelpers {
       icon: "fa-solid fa-user-group",
       type: groupManagerSettings,
       restricted: true,
+    });
+
+    // Not GM-restricted: the menu holds the per-client Default Sheet Theme, which
+    // every user sets for themselves. World-scoped (GM-only) settings inside it —
+    // e.g. the strain house rule — are filtered out for non-GMs in
+    // _buildSettingsContext, so players see only what they can change.
+    game.settings.registerMenu("starwarsffg", "codexSettings", {
+      name: game.i18n.localize("SWFFG.Settings.codex.Name"),
+      hint: game.i18n.localize("SWFFG.Settings.codex.Hint"),
+      label: game.i18n.localize("SWFFG.Settings.codex.Label"),
+      icon: "fa-solid fa-book-sparkles",
+      type: codexSettings,
+      restricted: false,
     });
 
     // Register dice theme setting
@@ -256,7 +270,7 @@ export default class SettingsHelpers {
       name: "Default Sheet Theme",
       hint: "Which sheet style (and Codex II colour scheme) to use by default. Stored locally per client. Documents with an explicitly chosen sheet/scheme keep that choice. Reloads on change.",
       scope: "client",
-      config: true,
+      config: false,
       default: "default",
       type: String,
       choices: {
@@ -266,7 +280,8 @@ export default class SettingsHelpers {
         "codex-dark": "Codex II — Dark",
         "codex-light": "Codex II — Light",
         "codex-mercenary": "Codex II — Mercenary",
-        "codex-eldritch": "Codex II — Eldritch Horror",
+        "codex-eldritch-scholar": "Codex II — Eldritch Horror - Scholar",
+        "codex-eldritch-fate": "Codex II — Eldritch Horror - Fate",
       },
       onChange: this.debouncedReload,
     });
@@ -382,6 +397,18 @@ export default class SettingsHelpers {
         }
         return this.debouncedReload();
       },
+    });
+
+    // Codex house rule: whether advantages recover strain during Post-Encounter
+    // strain recovery (every 2 advantages = 1 strain). On by default. Read by the
+    // codex sheet's _cdxApplyStrainRecovery.
+    game.settings.register("starwarsffg", "codexAdvantageHealsStrain", {
+      name: game.i18n.localize("SWFFG.Settings.codex.AdvantageHealsStrain.Name"),
+      hint: game.i18n.localize("SWFFG.Settings.codex.AdvantageHealsStrain.Hint"),
+      scope: "world",
+      config: false,
+      default: true,
+      type: Boolean,
     });
 
     // Increase compatibility with old versions (likely to make new games kinda weird as it updates items from chat data)
