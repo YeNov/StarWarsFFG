@@ -215,21 +215,45 @@ it can read backups and packs the same way.
       Note it *does* mean those docs rewrite their prose field on next save.
 
       **(b) Type normalisation — 13 paths.** template.json enforced no types,
-      so the importers stored numbers and booleans as strings:
-      `armour.soak.value` (685: `"3"`→`3`, `" "`→`0`),
-      `armour.defence.value` (189: `"1"`→`1`),
-      `forcepower.base_cost` (93) / `required_force_rating` (90),
-      `criticalinjury.severity` (71), `criticaldamage.severity` (39),
-      `signatureability.base_cost` (37), `character.stats.credits.value` (4),
-      `weapon.ammo.*` (1), `character.general.age`/`build` (1 — a number
-      coerced by the `StringField` added in 2.4). Accepted: these move stored
-      data *toward* its declared type, and widening the fields to preserve
-      strings would preserve the bugs.
+      so the OggDude importers stored numbers and booleans as strings. Every
+      distinct before→after pair was enumerated (`coercion-detail.mjs`), not
+      sampled, so nothing lossy could hide behind a representative row:
 
-      **`vehicle.stats.navicomputer.value` (311) is a latent bug this fixes.**
-      Stored as the **string** `"false"`, which is truthy in JS — so under
-      template.json every `if (…navicomputer.value)` read `true` on vehicles
-      that have no navicomputer. `BooleanField` coerces it to `false`.
+      - **~1,010 docs — clean string→number, zero information change.**
+        `armour.soak.value` (686: `"1"`→`1` ×414, `"2"` ×257, `"3"` ×14,
+        `"4"` ×1), `armour.defence.value` (189: `"1"` ×171, `"2"` ×18),
+        `forcepower.base_cost` (93: `"10"`/`"15"`/`"20"`/`"5"`/`"0"`),
+        `required_force_rating` (90), `criticalinjury.severity` (71),
+        `criticaldamage.severity` (39), `signatureability.base_cost` (37: all
+        `"30"`→`30`), `character.stats.credits.value` (4, e.g. `"12175"`→
+        `12175`), `weapon.ammo.max`/`value` (1 each).
+      - **311 docs — string→boolean**: `vehicle.stats.navicomputer.value`
+        (`"true"`→`true` ×197, `"false"`→`false` ×114).
+      - **3 docs** — `armour.soak.value` `" "`→`0`. Blank soak reading as 0 is
+        the intended meaning; accepted.
+      - **2 docs** — `character.general.age` / `.build`: **not** a number
+        coercion (an earlier note here said so, wrongly) — `StringField` trims
+        a trailing space (`"15 випуску "`→`"15 випуску"`). Cosmetic.
+      - **6 docs — genuinely lossy**, see 1.5: garbage single characters
+        (`"d"`, `","`, `"e"`, `"g"`) → `0`. The only entries where the coerced
+        value does not represent the stored one.
+
+      **Accepted, not widened — but the reason differs per path, and the
+      earlier blanket claim ("widening would preserve the bug") overstated it:**
+      - For the **numbers**, the system already defends itself: item soak /
+        defence go through `parseInt` before use
+        ([item-ffg.js:486-487](../../../modules/items/item-ffg.js) computing
+        `adjusted`, and again at
+        [modifiers.js:40/47](../../../modules/helpers/modifiers.js)). So the
+        strings were tolerated and the coercion is a **tidy-up, not a fix** —
+        it just means the stored type finally matches the declared one.
+      - For **`navicomputer`, it is a real fix**: nothing defends that read.
+        [codex-vehicle.html:59](../../../templates/actors/codex/codex-vehicle.html)
+        does `{{#if data.stats.navicomputer.value}}Yes{{else}}No{{/if}}` and
+        `{{checked …}}`, and the **string `"false"` is truthy in JS** — so
+        **114 vehicles displayed "Yes" (and a ticked box) for a navicomputer
+        they do not have.** Widening to a `StringField` here really would
+        preserve the bug.
 
       **Also disproves a second "verified" claim.** The migration plan's Stage 5
       states forcepower `base_cost`/`required_force_rating` "were already
