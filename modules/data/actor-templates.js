@@ -26,6 +26,17 @@ const STOCK_SKILLS = () => {
   return foundry.utils.deepClone(list?.skills ?? {});
 };
 
+/**
+ * The stimpack-use counter (`stats.medical.uses`). Not declared in
+ * template.json, but written by the `.medical` click handler in
+ * actor-sheet-ffg.js and read by every adversary/character sheet. Shared by the
+ * `stats` template and rival's own inline stats block.
+ */
+export function medicalField() {
+  const f = foundry.data.fields;
+  return new f.SchemaField({ uses: new f.NumberField({ initial: 0 }) });
+}
+
 /** template.json `biography` — a single rich-text field. */
 export const BiographyTemplate = (Base) =>
   class extends Base {
@@ -117,6 +128,10 @@ export const StatsTemplate = (Base) =>
             label: new f.StringField({ initial: "Credits" }),
             adjusted: num(),
           }),
+          // Not in template.json; written by the stimpack counter
+          // (actor-sheet-ffg.js `.medical` handler) and bound on the character /
+          // nemesis / rival / adversary sheets.
+          medical: medicalField(),
         }),
       };
     }
@@ -189,15 +204,38 @@ export const AttributesTemplate = (Base) =>
     }
   };
 
-/** template.json `general` — `{ general: { features } }`; features is rich text. */
+/**
+ * template.json `general` — declared there as `{ general: { features } }` only,
+ * but the character / nemesis / rival notes tabs bind and persist a full
+ * description block alongside it. Raw-DB counts (2026-07-14): age/build/eyes/
+ * gender/hair/height are stored on 86/86 actors, motivation1/2 on 74. Declaring
+ * only `features` made all of it read `undefined` and the fields render blank.
+ *
+ * `motivation1`/`motivation2` stay freeform `ObjectField`s: the sheets write
+ * `category`/`type`/`description` under them, and keeping them untyped is
+ * drop-proof if that inner shape ever grows.
+ *
+ * NOT declared (measured never-stored, so declaring would invent data rather
+ * than restore it): `general.notes` — 0/86 in both the live world and the
+ * pre-cutover 2026-07-04 backup.
+ */
 export const GeneralTemplate = (Base) =>
   class extends Base {
     static defineSchema() {
       const f = foundry.data.fields;
+      const str = () => new f.StringField({ initial: "" });
       return {
         ...super.defineSchema(),
         general: new f.SchemaField({
           features: new f.HTMLField({ initial: "<p></p>" }),
+          age: str(),
+          build: str(),
+          eyes: str(),
+          gender: str(),
+          hair: str(),
+          height: str(),
+          motivation1: new f.ObjectField(),
+          motivation2: new f.ObjectField(),
         }),
       };
     }

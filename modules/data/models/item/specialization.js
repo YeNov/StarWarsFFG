@@ -1,6 +1,6 @@
 import { mix, BaseItemDataModel } from "../../mix.js";
 import { CoreTemplate } from "../../item-templates.js";
-import { slotDictField, stringSlotField } from "./_tree-fields.js";
+import { slotDictField, stringSlotField, editingField } from "./_tree-fields.js";
 
 /**
  * `specialization` — template.json `templates: ["core"]` + a 20-slot `talents`
@@ -14,6 +14,7 @@ export class SpecializationDataModel extends mix(BaseItemDataModel, CoreTemplate
       ...super.defineSchema(),
       talents: slotDictField("talent", 20),
       careerSkills: stringSlotField("careerSkill", 5),
+      isEditing: editingField(),
       universal: new f.BooleanField({ initial: false }),
     };
   }

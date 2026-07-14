@@ -7,7 +7,15 @@ import {
   ItemAttachmentsTemplate,
   QualitiesTemplate,
 } from "../../item-templates.js";
-import { damageField, critField, rangeField, specialField } from "./_combat-fields.js";
+import {
+  damageField,
+  critField,
+  rangeField,
+  specialField,
+  skillField,
+  characteristicField,
+  statusField,
+} from "./_combat-fields.js";
 
 /**
  * `shipweapon` — template.json `templates: ["core", "basic", "hardpoints",
@@ -29,6 +37,12 @@ export class ShipWeaponDataModel extends mix(
     return {
       ...super.defineSchema(),
       label: new f.StringField({ initial: "Ship Weapon" }),
+      // Not in template.json's shipweapon body, but stored on 1026 shipweapons
+      // and required by DiceHelpers.rollItem, which resolves
+      // `actor.system.skills[itemData.skill.value]` for shipweapons too.
+      skill: skillField("Gunnery"),
+      characteristic: characteristicField(),
+      status: statusField(),
       firingarc: new f.SchemaField({
         fore: new f.BooleanField({ initial: false }),
         aft: new f.BooleanField({ initial: false }),

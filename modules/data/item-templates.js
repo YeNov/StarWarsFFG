@@ -69,6 +69,12 @@ export const BasicTemplate = (Base) =>
         }),
         rarity: new f.SchemaField({
           value: num(),
+          // Not in template.json, but written by every OggDude importer and bound
+          // as a checkbox on ~10 sheets; 1272 weapons / 1142 gear / 1024 shipweapons
+          // / 245 armour store it. Undeclared it reads `undefined`, so the
+          // restricted flag renders false everywhere and the character-creator
+          // shop filter stops excluding restricted gear.
+          isrestricted: new f.BooleanField({ initial: false }),
           type: str("Number"),
           label: str("Rarity"),
           adjusted: num(),

@@ -7,7 +7,15 @@ import {
   ItemAttachmentsTemplate,
   QualitiesTemplate,
 } from "../../item-templates.js";
-import { damageField, critField, rangeField, specialField } from "./_combat-fields.js";
+import {
+  damageField,
+  critField,
+  rangeField,
+  specialField,
+  skillField,
+  characteristicField,
+  statusField,
+} from "./_combat-fields.js";
 
 /**
  * `weapon` — template.json `templates: ["core", "basic", "hardpoints",
@@ -27,11 +35,9 @@ export class WeaponDataModel extends mix(
     const f = foundry.data.fields;
     return {
       ...super.defineSchema(),
-      skill: new f.SchemaField({
-        value: new f.StringField({ initial: "Ranged: Light" }),
-        type: new f.StringField({ initial: "String" }),
-        label: new f.StringField({ initial: "Skill" }),
-      }),
+      skill: skillField(),
+      characteristic: characteristicField(),
+      status: statusField(),
       damage: damageField(),
       crit: critField(),
       range: rangeField(),

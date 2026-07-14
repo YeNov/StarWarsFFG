@@ -46,3 +46,19 @@ export function boolSlotField(prefix, count) {
     initial: () => numbered(prefix, count, () => false),
   });
 }
+
+/**
+ * `isEditing` — the stock tree editor's edit-mode flag. Not in template.json,
+ * but the stock forcepower / specialization / signatureability sheets render it
+ * as a hidden input and round-trip it through the document
+ * (item-sheet-ffg.js toggles `input[name='data.isEditing']`), and it is stored
+ * on 43/43 forcepowers, 303 specializations and 138 more tree items.
+ *
+ * It is genuinely persisted, not transient — the Codex sheet deliberately uses
+ * its own in-memory flag *instead of* this path, which is what made it look
+ * transient. Declared so the stock editor keeps working.
+ */
+export function editingField() {
+  const f = foundry.data.fields;
+  return new f.BooleanField({ initial: false });
+}

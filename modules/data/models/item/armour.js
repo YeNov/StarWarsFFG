@@ -7,10 +7,12 @@ import {
   ItemAttachmentsTemplate,
   QualitiesTemplate,
 } from "../../item-templates.js";
+import { statusField } from "./_combat-fields.js";
 
 /**
  * `armour` — template.json `templates: ["core", "basic", "hardpoints",
- * "equippable", "itemattachments", "qualities"]` + `defence` and `soak`.
+ * "equippable", "itemattachments", "qualities"]` + `defence` and `soak`, plus
+ * the undeclared-but-stored `status` condition (see `statusField`).
  */
 export class ArmourDataModel extends mix(
   BaseItemDataModel,
@@ -25,6 +27,7 @@ export class ArmourDataModel extends mix(
     const f = foundry.data.fields;
     return {
       ...super.defineSchema(),
+      status: statusField(),
       defence: new f.SchemaField({
         value: new f.NumberField({ initial: 0 }),
         type: new f.StringField({ initial: "Number" }),

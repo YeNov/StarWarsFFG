@@ -1,6 +1,6 @@
 import { mix, BaseItemDataModel } from "../../mix.js";
 import { CoreTemplate } from "../../item-templates.js";
-import { slotDictField, boolSlotField } from "./_tree-fields.js";
+import { slotDictField, boolSlotField, editingField } from "./_tree-fields.js";
 
 /**
  * `signatureability` — template.json `templates: ["core"]` + an 8-slot
@@ -13,6 +13,7 @@ export class SignatureAbilityDataModel extends mix(BaseItemDataModel, CoreTempla
     return {
       ...super.defineSchema(),
       upgrades: slotDictField("upgrade", 8),
+      isEditing: editingField(),
       base_cost: new f.NumberField({ initial: 0 }),
       uplink_nodes: boolSlotField("uplink", 4),
     };

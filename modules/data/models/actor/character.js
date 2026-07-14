@@ -50,6 +50,13 @@ export class CharacterDataModel extends mix(
       morality: new f.SchemaField({ value: num(0), type: str("Number"), label: str("Morality") }),
       conflict: new f.SchemaField({ value: num(0), type: str("Number"), label: str("Conflict") }),
       experience: new f.SchemaField({ total: num(0), available: num(0) }),
+      // Not in template.json, but written by the OggDude character importer
+      // (import-helpers.js) and the sheet's add/remove-duty handlers, and read
+      // by the Group Manager's obligation/duty tables plus the derived totals in
+      // ActorFFG._prepareCharacterData. Freeform: randomID-keyed entries of
+      // `{key, type, magnitude, description}`.
+      obligationlist: new f.ObjectField(),
+      dutylist: new f.ObjectField(),
     };
   }
 }

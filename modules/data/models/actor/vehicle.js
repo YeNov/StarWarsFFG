@@ -36,7 +36,15 @@ export class VehicleDataModel extends mix(
         cost: new f.SchemaField({ value: num(0), type: str("Number"), label: str("Cost"), adjusted: num(0) }),
         rarity: new f.SchemaField({ value: num(0), isrestricted: new f.BooleanField({ initial: false }), type: str("Number"), label: str("Rarity"), adjusted: num(0) }),
         customizationHardPoints: new f.SchemaField({ value: num(0), type: str("Number"), label: str("Hard Points"), adjusted: num(0) }),
-        hyperdrive: new f.SchemaField({ value: num(1), type: str("Number"), label: str("SWFFG.Hyperdrive") }),
+        // `backup` is not in template.json but is bound on the vehicle sheet
+        // (HyperdriveBackup) and the Codex vehicle sheet, and stored on 457
+        // vehicles. Nullable: the stored value is `null` on many of them.
+        hyperdrive: new f.SchemaField({
+          value: num(1),
+          backup: new f.NumberField({ initial: null, nullable: true }),
+          type: str("Number"),
+          label: str("SWFFG.Hyperdrive"),
+        }),
         consumables: new f.SchemaField({ value: num(1), duration: str("months"), type: str("Number"), label: str("SWFFG.Consumables") }),
         navicomputer: new f.SchemaField({ value: new f.BooleanField({ initial: false }), type: str("Boolean"), label: str("SWFFG.VehicleNavicomputer") }),
       }),
