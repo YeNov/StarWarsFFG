@@ -50,6 +50,29 @@ export const CDX_FATED_DEFAULTS = {
   style: "deco",          // "deco" = ported mystic_patterns wall; "medallion" = bespoke sigil
   sigilSize: 512,
   fogSize: 1024,
+  // TEMP EXPERIMENT — wear source. "grunge" masks the sigil with the seamless
+  // photo-grunge scan (grunge-wear-seamless.png); "procedural" restores the
+  // original layered-noise fog + patches + scratches + grain below; "none" emits
+  // the sigil clean. This default only reaches the Fate wall — the Scholar
+  // medallion pins "none" at its call site (see _cdxFatedSigil), so every knob
+  // from here down is Fate-only art direction.
+  wearSource: "grunge",
+  // Blotch scale: px each copy of the scan occupies inside the fogSize canvas, so
+  // it scales independently of the deco wall (which sigilSize drives). Rounded to
+  // a whole number of copies to keep the mask tileable — see grungeWearFloat.
+  //   1024 = 1×1, biggest blotches (the deco tile is 512, i.e. 2×2, so the fog
+  //          reads at 2× the wall's scale) · 512 = 2×2, matches the wall · 256 = 4×4.
+  // For blotches BIGGER than 1×1, shrink the wall instead (sigilSize 256) and take
+  // --cdx-fated-tile up to compensate; the fog canvas can't zoom past its own tile.
+  grungeSize: 1024,
+  // Levels remap of the scan, applied BEFORE the floor. The raw scan only bottoms
+  // out (<0.02) on 0.7% of its area, so a plain multiply just dims the wall
+  // evenly instead of carving it — the remap is what turns the blotches into real
+  // holes, standing in for the procedural patches' `v -= patch[i]` subtraction.
+  // Widen the gap for a softer fog; raise both to erode harder.
+  grungeLow: 0.65,         // scan luma at/below this → fully eroded (41% of the tile; 0.5 → 22%, 0.2 → 4%)
+  grungeHigh: 0.85,        // scan luma at/above this → fully intact (the narrow 0.2 gap = crisp hole edges)
+  grungeFloor: 0.0,       // lift applied AFTER the remap; >0 keeps the wall faintly readable in the holes
   // cloud ramp: noise below cloudLow → visFloor, above cloudHigh → fully visible.
   // visFloor raised to 0.5 makes the cloud ~1.5x less impactful (swing 0.75→0.5).
   cloudLow: 0.34,
@@ -161,6 +184,63 @@ function grainFloat(rng, size) {
   const n = noiseFloat(rng, size, 128, 0.4);
   const out = new Float32Array(size * size);
   for (let i = 0; i < out.length; i++) out[i] = n[i] > 238 ? 1 : 0;
+  return out;
+}
+
+/* ---- grunge wear (TEMP EXPERIMENT) ----------------------------------------
+   A seamless scanned-grunge tile used in place of the procedural fog: light
+   paper = intact, dark blotches = eroded, so it drops straight into the same
+   0..1 visibility contract makeWear() returns. The file is a 1024 tile made
+   seamless via a periodic+smooth decomposition, so it survives the CSS
+   `mask-repeat:repeat` on the header. */
+const GRUNGE_URL = "/systems/starwarsffg/images/codex/eldritch/grunge-wear-seamless.png";
+let _grungeImg = null;
+const _grungeWear = new Map();          // size → Float32Array (0..1)
+
+function loadGrungeImage() {
+  if (!_grungeImg) {
+    _grungeImg = new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Codex | grunge wear failed to load: ${GRUNGE_URL}`));
+      img.src = GRUNGE_URL;
+    });
+  }
+  return _grungeImg;
+}
+
+/** Grunge visibility (Float 0..1, 1 = intact), resampled to `size` and cached.
+ *  The scan is laid n×n into the fog canvas (@see makeSigilVis) so its blotch
+ *  scale is independent of the deco wall's. n is forced to a whole number: the
+ *  fog canvas itself becomes the CSS `mask-repeat:repeat` tile, so anything but a
+ *  whole number of copies would land a partial tile against its own edge and
+ *  reintroduce the seam we removed from the scan. */
+async function grungeWearFloat(size, D) {
+  const key = `${size}::${D.grungeSize}::${D.grungeLow}::${D.grungeHigh}::${D.grungeFloor}`;
+  let out = _grungeWear.get(key);
+  if (out) return out;
+
+  const img = await loadGrungeImage();
+  const c = makeCanvas(size, size);
+  const x = c.getContext("2d");
+  x.imageSmoothingEnabled = true;
+  x.imageSmoothingQuality = "high";
+  const n = Math.max(1, Math.round(size / (D.grungeSize || size)));
+  const step = size / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    x.drawImage(img, 0, 0, img.width, img.height, i * step, j * step, step, step);
+  }
+
+  const lum = lumaFloat(c, size);
+  out = new Float32Array(size * size);
+  const floor = D.grungeFloor;
+  const span = (D.grungeHigh - D.grungeLow) || 1;
+  for (let i = 0; i < out.length; i++) {
+    let v = (lum[i] - D.grungeLow) / span;
+    v = v < 0 ? 0 : v > 1 ? 1 : v;
+    out[i] = floor + (1 - floor) * v;
+  }
+  _grungeWear.set(key, out);
   return out;
 }
 
@@ -392,12 +472,18 @@ function makeSigilVis(size, sigilSize, tile) {
 /**
  * Generate the fated-sigil alpha mask for a seed and return a PNG data-URL.
  * Visibility (sigil × wear) is written to the ALPHA channel, RGB = white.
+ * Async because the grunge wear source decodes an image (see wearSource).
  */
-export function generateFatedSigilMask(seedSource, opts = {}) {
+export async function generateFatedSigilMask(seedSource, opts = {}) {
   const D = { ...CDX_FATED_DEFAULTS, ...opts };
   const size = D.fogSize;
 
-  const vis = makeWear(size, D, rngFromSeed(seedSource, "fog"), rngFromSeed(seedSource, "patches"), rngFromSeed(seedSource, "scratches"), rngFromSeed(seedSource, "grain"));
+  // null = "none": the sigil is emitted clean, with no wear multiplied into it.
+  let vis = null;
+  if (D.wearSource === "grunge") vis = await grungeWearFloat(size, D);
+  else if (D.wearSource === "procedural") {
+    vis = makeWear(size, D, rngFromSeed(seedSource, "fog"), rngFromSeed(seedSource, "patches"), rngFromSeed(seedSource, "scratches"), rngFromSeed(seedSource, "grain"));
+  }
   // Build the sigil visibility per style: "deco" (default) is the ported
   // mystic_patterns dense wall, tiled 2×2; "medallion" is the bespoke sigil drawn
   // ONCE, filling the canvas (a single sigil — for the Scholar header).
@@ -417,7 +503,7 @@ export function generateFatedSigilMask(seedSource, opts = {}) {
   const oc = out.getContext("2d");
   const img = oc.createImageData(size, size);
   for (let i = 0; i < size * size; i++) {
-    let a = sig[i] * vis[i];
+    let a = vis ? sig[i] * vis[i] : sig[i];
     if (a < 0) a = 0; else if (a > 1) a = 1;
     img.data[i * 4] = 255; img.data[i * 4 + 1] = 255; img.data[i * 4 + 2] = 255;
     img.data[i * 4 + 3] = (a * 255) | 0;
@@ -426,19 +512,22 @@ export function generateFatedSigilMask(seedSource, opts = {}) {
   return out.toDataURL("image/png");
 }
 
-/** Session cache: generate once per (seed, version), reuse forever. */
+/** Session cache: generate once per (seed, art-direction), reuse forever. Caches
+ *  the PROMISE so concurrent openers share one generation pass.
+ *  The key covers every knob that changes the OUTPUT — not just style — so that
+ *  re-tuning CDX_FATED_DEFAULTS at runtime actually re-generates instead of
+ *  silently serving the first mask built this session. */
 const _fatedCache = new Map();
 export function getFatedSigilMask(seedSource, opts = {}) {
-  const key = `${seedSource}::${opts.style ?? "deco"}::v1`;
-  let url = _fatedCache.get(key);
-  if (!url) {
-    try {
-      url = generateFatedSigilMask(seedSource, opts);
-    } catch (e) {
+  const D = { ...CDX_FATED_DEFAULTS, ...opts };
+  const key = `${seedSource}::${JSON.stringify(D)}`;
+  let pending = _fatedCache.get(key);
+  if (!pending) {
+    pending = generateFatedSigilMask(seedSource, D).catch((e) => {
       console.error("Codex | fated sigil generation failed", e);
-      url = "";
-    }
-    _fatedCache.set(key, url);
+      return "";
+    });
+    _fatedCache.set(key, pending);
   }
-  return url;
+  return pending;
 }
