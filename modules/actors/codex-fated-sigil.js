@@ -63,7 +63,7 @@ export const CDX_FATED_DEFAULTS = {
   // linework from thinning below a whole pixel and washing out.
   medallionLineScale: 1.5,
   // TEMP EXPERIMENT — wear source. "grunge" masks the sigil with the seamless
-  // photo-grunge scan (grunge-wear-seamless.png); "procedural" restores the
+  // photo-grunge scan (grunge-wear-seamless.webp); "procedural" restores the
   // original layered-noise fog + patches + scratches + grain below; "none" emits
   // the sigil clean. This default only reaches the Fate wall — the Scholar
   // medallion pins "none" at its call site (see _cdxFatedSigil), so every knob
@@ -202,10 +202,14 @@ function grainFloat(rng, size) {
 /* ---- grunge wear (TEMP EXPERIMENT) ----------------------------------------
    A seamless scanned-grunge tile used in place of the procedural fog: light
    paper = intact, dark blotches = eroded, so it drops straight into the same
-   0..1 visibility contract makeWear() returns. The file is a 1024 tile made
-   seamless via a periodic+smooth decomposition, so it survives the CSS
-   `mask-repeat:repeat` on the header. */
-const GRUNGE_URL = "/systems/starwarsffg/images/codex/eldritch/grunge-wear-seamless.png";
+   0..1 visibility contract makeWear() returns. Made seamless via a
+   periodic+smooth decomposition, so it survives the CSS `mask-repeat:repeat` on
+   the header.
+   512 and LOSSLESS on purpose: the levels remap below divides by the
+   grungeHigh−grungeLow span, so it amplifies any codec error by ~5x at the
+   default tuning — right on the hole edges. 512 still supersamples the ~340px
+   on-screen tile, and grungeSize scales the draw independently of the file. */
+const GRUNGE_URL = "/systems/starwarsffg/images/codex/eldritch/grunge-wear-seamless.webp";
 let _grungeImg = null;
 const _grungeWear = new Map();          // size → Float32Array (0..1)
 
