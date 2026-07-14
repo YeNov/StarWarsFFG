@@ -303,7 +303,7 @@ played through 2026-07-14) and V13 prunes identically.
       `verified: 14` while these remain): roll visibility 2.10/2.11
       (public/gm/blind/self), owned-weapon hotbar macro, OggDude import with
       obligations + add-duty, wrap-up smoke + push.
-- [ ] **4.5 — Release note.** System data is now schema-validated: ad-hoc
+- [x] **4.5 — Release note. DONE** (CHANGELOG.md, 2.0.4).** System data is now schema-validated: ad-hoc
       `system.*` paths written by **modules/macros are invisible to the system**
       (though still stored). Point at `attributes` as the sanctioned freeform
       extension bag. Note this is a *visibility* contract change, not data loss.

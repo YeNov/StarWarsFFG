@@ -1,5 +1,15 @@
 `2.0.4`
+* System data is now schema-validated (`template.json` has been replaced by System Data Models):
+  * **For GMs:** no action needed, and nothing is lost. The schema is applied when the client reads a document; the stored data is untouched. A field the schema does not declare simply stops being visible to the system.
+  * **For module and macro authors:** ad-hoc `system.*` paths written by a module or macro are **no longer visible to the system** — they are still stored, but sheets and system code read them as `undefined`, and updates to them are dropped from the change set. Use `system.attributes`, which is a freeform bag by design, as the sanctioned extension point.
 * Fixes:
+  * Restricted gear (`rarity.isrestricted`) is shown and honoured again — the flag was reading as false everywhere, which also stopped the character creator filtering restricted items out of shops
+  * Item damage condition (`status`) works again on weapons, armour and ship weapons — a damaged item once more adds its Setback die, and too-damaged gear is blocked from being rolled
+  * Ship weapon attack rolls work again — the skill a ship weapon rolls with was not being read
+  * Rival token strain bars display again
+  * The stimpack/medical counter, character bio details (age, build, eyes, gender, hair, height, motivations), obligation and duty lists, vehicle backup hyperdrive, and the talent/force-power/signature-ability tree editor's edit mode all read their stored values again
+  * The Homestead Upgrade sheet works again — its description editor, modifiers tab and price were all inert
+  * Fixes the pre-V10 wounds/strain (`real_value`) upgrade path, which discarded the value it was meant to recover instead of writing it back
   * Fixes an issue where knowledge skills are consumed but ranks are not added ([#2239](https://github.com/StarWarsFoundryVTT/StarWarsFFG/issues/2239))
   * Fixes issues where active players filter being disabled is ignored by group manager and invalid actor types being included in group manager actor list ([#2174](https://github.com/StarWarsFoundryVTT/StarWarsFFG/issues/2174))
 
