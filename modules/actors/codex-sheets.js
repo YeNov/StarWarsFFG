@@ -787,12 +787,12 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     if (form.style.getPropertyValue(prop)) return;   // already on this form — skip cheap re-renders
 
     // Fate uses the 1024 deco wall (its 2× size breaks tiling); the Scholar single
-    // sigil is shown small, so 512 is ample and ~4x cheaper (wear scales with size).
+    // sigil is shown small, so 512 is ample and ~4x cheaper (cost is canvas area).
     // Only the Fate wall is worn — the Scholar medallion is drawn clean, so it
     // opts out of the wear pass entirely rather than inheriting the Fate default.
     const opts = isFate
       ? { style: "deco" }
-      : { style: "medallion", fogSize: 512, wearSource: "none" };
+      : { style: "medallion", maskSize: 512, wearSource: "none" };
     const seed = this.actor?.uuid ?? this.actor?.id ?? this.actor?.name ?? "codex";
     this._cdxSigilCancel?.();
     this._cdxSigilCancel = cdxDeferIdle(async () => {

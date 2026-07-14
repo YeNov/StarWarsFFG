@@ -1,15 +1,21 @@
 /**
- * Fated Sigils — Eldritch Horror · Fate.
+ * Fated Sigils — Eldritch Horror.
  *
- * A deterministic, per-actor "wall of worn sigils" generated at runtime on an
- * offscreen canvas and cached as a PNG data-URL, used as the ALPHA mask for the
- * Fate sheet-header ornament (the Fate counterpart to Scholar's static sigil.svg).
+ * Deterministic, per-actor header ornaments generated at runtime on an offscreen
+ * canvas and cached as PNG data-URLs, used as the ALPHA masks for the two
+ * Eldritch sheet headers. Both styles are built here:
  *
- * Ported from the crea "foundry_fated_sigils" handoff: a crisp 512 sigil tile is
- * laid 2×2 into a 1024 canvas, then multiplied by a fog/wear mask built from
- * layered value noise → soft threshold → empty patches → scratches → grain. Each
- * layer draws from its own salted PRNG so they vary independently but stay stable
- * for a given seed (so an actor sees the same sigil every time).
+ *  - "deco" (Fate) — a crisp 512 sigil tile laid 2×2 into the mask canvas, then
+ *    multiplied by a WEAR layer to erode it into a wall of worn sigils.
+ *  - "medallion" (Scholar) — one bespoke sigil drawn to fill the canvas. Drawn
+ *    CLEAN: its call site pins wearSource:"none", so no wear is multiplied in.
+ *
+ * The wear layer is selectable (see wearSource): "grunge" (default) remaps a
+ * seamless scanned texture, "procedural" builds the original layered value noise
+ * → soft threshold → empty patches → scratches → grain, each layer drawing from
+ * its own salted PRNG so they vary independently but stay stable for a given seed
+ * (so an actor sees the same sigil every time). The deco path is ported from the
+ * crea "foundry_fated_sigils" handoff.
  *
  * The output encodes visibility in the ALPHA channel (RGB = white), so it works
  * as a CSS alpha mask (mask-mode:alpha / -webkit-mask-image) over a coloured fill.
@@ -49,7 +55,13 @@ function rngFromSeed(source, salt = "") {
 export const CDX_FATED_DEFAULTS = {
   style: "deco",          // "deco" = ported mystic_patterns wall; "medallion" = bespoke sigil
   sigilSize: 512,
-  fogSize: 1024,
+  maskSize: 1024,
+  // Scholar medallion only ("medallion" style): scales its stroke weight. 1 =
+  // ~1.3px on the 512 canvas it's drawn at. The tile is then shown at
+  // --cdx-scholar-size (~260px), i.e. ~half its drawn size, so a stroke lands at
+  // roughly half this on screen — hence a default above 1, which keeps the
+  // linework from thinning below a whole pixel and washing out.
+  medallionLineScale: 1.5,
   // TEMP EXPERIMENT — wear source. "grunge" masks the sigil with the seamless
   // photo-grunge scan (grunge-wear-seamless.png); "procedural" restores the
   // original layered-noise fog + patches + scratches + grain below; "none" emits
@@ -57,13 +69,13 @@ export const CDX_FATED_DEFAULTS = {
   // medallion pins "none" at its call site (see _cdxFatedSigil), so every knob
   // from here down is Fate-only art direction.
   wearSource: "grunge",
-  // Blotch scale: px each copy of the scan occupies inside the fogSize canvas, so
+  // Blotch scale: px each copy of the scan occupies inside the maskSize canvas, so
   // it scales independently of the deco wall (which sigilSize drives). Rounded to
   // a whole number of copies to keep the mask tileable — see grungeWearFloat.
   //   1024 = 1×1, biggest blotches (the deco tile is 512, i.e. 2×2, so the fog
   //          reads at 2× the wall's scale) · 512 = 2×2, matches the wall · 256 = 4×4.
   // For blotches BIGGER than 1×1, shrink the wall instead (sigilSize 256) and take
-  // --cdx-fated-tile up to compensate; the fog canvas can't zoom past its own tile.
+  // --cdx-fated-tile up to compensate; the mask canvas can't zoom past its own tile.
   grungeSize: 1024,
   // Levels remap of the scan, applied BEFORE the floor. The raw scan only bottoms
   // out (<0.02) on 0.7% of its area, so a plain multiply just dims the wall
@@ -110,7 +122,7 @@ function noiseFloat(rng, size, cells, blur) {
   const bc = big.getContext("2d");
   bc.imageSmoothingEnabled = true;
   bc.imageSmoothingQuality = "high";
-  // Blur is a px amount tuned for 1024; scale it so smaller fogSize keeps the look.
+  // Blur is a px amount tuned for 1024; scale it so smaller maskSize keeps the look.
   if (blur > 0) bc.filter = `blur(${blur * size / 1024}px)`;
   bc.drawImage(small, 0, 0, cells, cells, 0, 0, size, size);
   bc.filter = "none";
@@ -210,9 +222,9 @@ function loadGrungeImage() {
 }
 
 /** Grunge visibility (Float 0..1, 1 = intact), resampled to `size` and cached.
- *  The scan is laid n×n into the fog canvas (@see makeSigilVis) so its blotch
+ *  The scan is laid n×n into the mask canvas (@see makeSigilVis) so its blotch
  *  scale is independent of the deco wall's. n is forced to a whole number: the
- *  fog canvas itself becomes the CSS `mask-repeat:repeat` tile, so anything but a
+ *  mask canvas itself becomes the CSS `mask-repeat:repeat` tile, so anything but a
  *  whole number of copies would land a partial tile against its own edge and
  *  reintroduce the seam we removed from the scan. */
 async function grungeWearFloat(size, D) {
@@ -279,15 +291,17 @@ function makeWear(size, D, rFog, rPat, rScr, rGrn) {
    (rings / polygons / orbital ellipses / spokes / stars). Kept as an alternative
    to the ported deco wall below; selected via opts.style = "medallion".
    ========================================================================== */
-/** One crisp geometric sigil (white linework on black), seeded for variety. */
-function makeSigilTile(rng, size) {
+/** One crisp geometric sigil (white linework on black), seeded for variety.
+ *  Every element below inherits this single lineWidth — none override it — so
+ *  medallionLineScale is the one control for the whole medallion's weight. */
+function makeSigilTile(rng, size, D) {
   const c = makeCanvas(size, size);
   const x = c.getContext("2d");
   x.fillStyle = "#000"; x.fillRect(0, 0, size, size);
   x.translate(size / 2, size / 2);
   x.strokeStyle = "#fff"; x.fillStyle = "#fff";
   x.lineCap = "round"; x.lineJoin = "round";
-  x.lineWidth = Math.max(1.1, size * 0.0026);
+  x.lineWidth = D.medallionLineScale * Math.max(1.1, size * 0.0026);
   const R = size * 0.42;
 
   // concentric rings, some dashed
@@ -457,7 +471,7 @@ function lumaFloat(c, size) {
   return out;
 }
 
-/** Sigil visibility (Float 0..1): a pre-built tile laid 2x2 into the fog canvas. */
+/** Sigil visibility (Float 0..1): a pre-built tile laid 2x2 into the mask canvas. */
 function makeSigilVis(size, sigilSize, tile) {
   const c = makeCanvas(size, size);
   const x = c.getContext("2d");
@@ -476,7 +490,7 @@ function makeSigilVis(size, sigilSize, tile) {
  */
 export async function generateFatedSigilMask(seedSource, opts = {}) {
   const D = { ...CDX_FATED_DEFAULTS, ...opts };
-  const size = D.fogSize;
+  const size = D.maskSize;
 
   // null = "none": the sigil is emitted clean, with no wear multiplied into it.
   let vis = null;
@@ -489,7 +503,7 @@ export async function generateFatedSigilMask(seedSource, opts = {}) {
   // ONCE, filling the canvas (a single sigil — for the Scholar header).
   let sig;
   if (D.style === "medallion") {
-    const tile = makeSigilTile(rngFromSeed(seedSource, "sigil"), size);
+    const tile = makeSigilTile(rngFromSeed(seedSource, "sigil"), size, D);
     sig = lumaFloat(tile, size);
   } else {
     const h = xmur3(`${seedSource}::sigil`)() >>> 0;
