@@ -26,7 +26,8 @@ Stop Foundry before copying.
 |---|---|
 | `probe.js <db>` | key layout / smoke test (keys look like `!items!<id>`) |
 | `audit.js <db>…` | per-path present/absent counts for a hand-listed path set |
-| `generic-audit.mjs <label>=<db>…` | **the useful one** — constructs every doc against its real model and reports every dropped leaf path, by construction rather than by hand |
+| `generic-audit.mjs <label>=<db>…` | constructs every doc against its real model and reports every **dropped** leaf path, by construction rather than by hand |
+| `changed-audit.mjs <label>=<db>…` | the other half — reports every leaf whose **value** the model changes (type coercion). `generic-audit` does not compare values, so run both |
 | `compare.js <bakDir> <liveDir>` | full-subtree diff of a pre-cutover backup vs live: the data-loss test |
 | `decisive.js <db>…` | do docs saved AFTER the cutover still carry undeclared fields? |
 | `newdocs.js <db>…` | same question for docs CREATED after the cutover |
@@ -59,3 +60,23 @@ and point the scripts at it. The 2026-07-04 backup's sidecar is noted `pre-14`.
 clone, so it always said CLEAN. It is now probe-based, but note the client's
 `_source` is itself already cleaned and materializes declared defaults, so it
 still cannot prove what the **database** holds. For that, read it offline.
+
+## Run both
+
+`generic-audit.mjs` answers "what does the schema drop?" and `changed-audit.mjs`
+answers "what does the schema alter?". They are disjoint: generic-audit never
+compares values, so a coercion is invisible to it. A clean generic-audit run was
+briefly mistaken for "no coercions" — it is not evidence about coercions at all.
+
+## Diagnostic run 2026-07-14 (post-fix, after a live session on the new schemas)
+
+- `compare.js` 20:15 snapshot vs live world after the 22:43-22:49 session:
+  **1693 docs, 0 lost paths.** The declarations damaged nothing.
+- `generic-audit.mjs` across 17,778 docs (live world + V14 world + 17 packs):
+  every declared path is gone from the dropped list; everything remaining is a
+  classified ignore (derived props, dead importer output, type-leakage).
+- `changed-audit.mjs` across 16,427 docs: **22 changed paths, all accepted** -
+  2811 docs lose insignificant leading whitespace to HTMLField trim, and 13
+  paths normalise importer-written strings to their declared type. One of those
+  is a latent bug fix: `vehicle.stats.navicomputer.value` was the string
+  `"false"`, which is truthy.

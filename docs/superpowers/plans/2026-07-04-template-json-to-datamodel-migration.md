@@ -469,9 +469,17 @@ applies).
       `talent0..19`; dicts: careerSkills (`stringSlotField`, `"(none)"`),
       uplink_nodes (`boolSlotField`), career specializations/signatureabilities
       (freeform). `required_force_rating`/`base_cost` are NumberFields (watch the
-      forcepower diff in case costs are string-stored). **Result:** forcepower
+      forcepower diff in case costs are string-stored). ~~**Result:** forcepower
       `_source` diff empty `dropped`/`changed` (base_cost/required_force_rating
-      were already numbers — no coercion), `invalidDocumentIds` 0; throwaway
+      were already numbers — no coercion)~~ **← WRONG, retracted 2026-07-14.**
+      That diff used the tautological `_source`-vs-`toObject()` comparison and
+      could not have reported a coercion. An offline probe finds **93 force
+      powers coerce `base_cost` and 90 coerce `required_force_rating`** from
+      strings — exactly what this stage told itself to watch for. The coercion
+      is accepted (it normalises toward the declared type), but the stage's
+      evidence was not evidence. See
+      [2026-07-14-datamodel-undeclared-paths-fix.md](2026-07-14-datamodel-undeclared-paths-fix.md)
+      §1.4. `invalidDocumentIds` 0; throwaway
       shapes exact for all four (16/20/0/8 slots, careerSkills, uplink_nodes).
       Two findings, both benign: (1) a floating "Item … does not exist" rejection
       during the throwaway create was a create-then-immediately-delete **race in

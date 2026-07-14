@@ -198,14 +198,52 @@ it can read backups and packs the same way.
         actor's own), `shipattachment.type`/`rank` (the sheet binds neither; the
         shipattachment case sets a derived `data.modTypeSelected` instead),
         `talent.<id>` (an id-keyed empty string).
-- [~] **1.4 — `changed`-path policy.** No coercions surfaced in the audit, but
-      it did surface **6 armour documents whose stored `defence.value` is not a
-      number** ("Armoured clothing", "Woven reed armour", …) — they throw on
-      strict construction. **Pre-existing** (identical before the schema
-      changes). Foundry loads documents non-strict with `fallback`, so they
-      resolve to `0` + a console warning rather than going invalid; under
-      template.json the raw `""` passed through and rendered as blank. Left
-      alone: it is a data-cleanup task, not a schema one. Worth a follow-up.
+- [x] **1.4 — `changed`-path policy. DONE 2026-07-14 — and the earlier claim
+      here was wrong.** This previously read "no coercions surfaced in the
+      audit". They never could have: `generic-audit.mjs` reports **dropped**
+      paths only and never compared values. Same blind-spot family as the
+      tautological reporter — an audit that cannot fail at something is not
+      evidence about it. Written and run
+      [changed-audit.mjs](artifacts/2026-07-14-datamodel-evidence/changed-audit.mjs)
+      (loads each model the way Foundry does — non-strict + `fallback`) over
+      16,427 docs. **22 changed paths.** All **accepted**, none widened:
+
+      **(a) Prose trim — 9 paths, 2811 docs.** `HTMLField` trims, so
+      `description` / `biography` / `longDesc` / `special.value` lose leading
+      whitespace (`"      Please see page 230…"` → `"Please see page 230…"`).
+      Insignificant in HTML and ProseMirror normalises it anyway. Accepted.
+      Note it *does* mean those docs rewrite their prose field on next save.
+
+      **(b) Type normalisation — 13 paths.** template.json enforced no types,
+      so the importers stored numbers and booleans as strings:
+      `armour.soak.value` (685: `"3"`→`3`, `" "`→`0`),
+      `armour.defence.value` (189: `"1"`→`1`),
+      `forcepower.base_cost` (93) / `required_force_rating` (90),
+      `criticalinjury.severity` (71), `criticaldamage.severity` (39),
+      `signatureability.base_cost` (37), `character.stats.credits.value` (4),
+      `weapon.ammo.*` (1), `character.general.age`/`build` (1 — a number
+      coerced by the `StringField` added in 2.4). Accepted: these move stored
+      data *toward* its declared type, and widening the fields to preserve
+      strings would preserve the bugs.
+
+      **`vehicle.stats.navicomputer.value` (311) is a latent bug this fixes.**
+      Stored as the **string** `"false"`, which is truthy in JS — so under
+      template.json every `if (…navicomputer.value)` read `true` on vehicles
+      that have no navicomputer. `BooleanField` coerces it to `false`.
+
+      **Also disproves a second "verified" claim.** The migration plan's Stage 5
+      states forcepower `base_cost`/`required_force_rating` "were already
+      numbers — no coercion", from the same tautological `_source`-vs-
+      `toObject()` diff. 93 and 90 documents respectively coerce.
+
+- [ ] **1.5 — Follow-up: 6 corrupt armour records.** In `v12-export-actors`,
+      `defence.value` holds `","`, `"d"`, `"e"` — non-numeric, so unlike the 189
+      `"1"`-style strings they cannot coerce and fall back to `0` with a console
+      warning. Pre-existing (identical before the schema work) and confined to a
+      legacy export pack, so out of scope here; it is a data-cleanup task.
+      (They surface as "failed" in `changed-audit.mjs` only because the probe
+      harness does not shim Foundry's `logger` global that the fallback path
+      logs through — they are not fatal in Foundry.)
 
 ## Stage 2 — Declare the fields + fix the tooling
 
