@@ -501,6 +501,45 @@ played through 2026-07-14) and V13 prunes identically.
       reasoning that left 2.6's skill-theme migration alone. Wants its own change
       with its own testing. (Schema side is fine and verified: `trees` is
       declared correctly and round-trips 303/303 — see 4.2.)
+- [ ] **4.9 — OPEN QUESTION (no defect): how do item sheets save at all?**
+      Not a bug — a hole in the documented model of the save path, recorded so
+      nobody re-derives the wrong answer. **Item sheet edits work**: verified
+      live 2026-07-14, a standalone talent (Tier) and a weapon (Damage) both
+      persist through sheet reopen and a full F5 reload.
+
+      Reading the code says they should not, and I briefly concluded they were
+      silently discarding edits — wrongly:
+      - sheets bind `name="data.tier"` (traced through
+        [ffg-block.html](../../../templates/parts/shared/ffg-block.html) to the
+        raw `<select name="{{name}}">`);
+      - [ItemHelpers.itemUpdate](../../../modules/helpers/item-helpers.js)
+        `expandObject`s that and calls `this.object.update(formData)` with the
+        `data` key intact, and **never calls `migrateDataToSystem`** — unlike
+        [ActorHelpers.updateActor:79](../../../modules/helpers/actor-helpers.js),
+        whose comment says "as of v12, 'data' is no longer shimmed into
+        'system', so we must do it ourselves";
+      - Foundry 14 has no shim either: no
+        `_addDataFieldMigration(x, "data", "system")`, nothing on
+        `BaseItem.migrateData`, no deprecation warning;
+      - `SchemaField.#cleanKeys` prunes unknown top-level keys on update
+        (`prune: true` in `_preUpdateSource`), so `{data:{tier:3}}` should vanish.
+
+      Counter-evidence that the keys *are* `system.*` by then:
+      [ItemFFG._preUpdate](../../../modules/items/item-ffg.js) reads `changed` at
+      `system.encumbrance.value` and works.
+
+      **Ruled out as the mapping site** (don't re-check): the sheet base
+      (`_getSubmitData` returns raw flattened form data); `CodexItemSheet` (no
+      `_updateObject`, same path); the `preUpdateItem` hook
+      ([actor-sheet-ffg.js:534](../../../modules/actors/actor-sheet-ffg.js) —
+      only stores sheet dimensions); Foundry's Document/BaseItem;
+      `migrateDataToSystem` (actor-helpers only).
+
+      **Next step if it ever matters:** confirm which field was edited (`name=`
+      is a real Document field and ProseMirror editors target `system.*`
+      directly — both bypass the question), then instrument `itemUpdate`'s
+      formData at runtime rather than reading further. Do **not** "fix" the
+      `data.*` bindings on the strength of the code read; behaviour is correct.
 - [ ] **4.6 — Open questions carried over:** custom `arraySkillList` worlds (new
       actors seed the stock list; Stage-0 TODO in
       [actor-templates.js](../../../modules/data/actor-templates.js) unresolved);
