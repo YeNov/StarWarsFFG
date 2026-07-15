@@ -13,16 +13,25 @@ import {
 /**
  * `rival` (Actor) — template.json `templates: ["biography", "species",
  * "characteristics", "skills", "attributes", "general", "meta_only"]` + its OWN
- * inline `stats` block. Rival does NOT use the shared `stats` template: the
- * shared block carries fields rival never had, so the block is declared here.
+ * inline `stats` block.
  *
- * `strain` IS declared despite template.json's rival omitting it. Two reasons,
- * both measured: 708 rivals store `stats.strain.value`/`.min` (the adversary
- * importer writes it), and `ActorFFG._onCreate` binds the rival prototype
- * token's bar2 to `stats.strain` (actor-ffg.js). Under template.json the stored
- * keys survived and that bar worked; pruning them broke it. `strainOverThreshold`
- * stays character/nemesis-only (actor-ffg.js:269), which is why the rival sheet
- * has no strain UI — the token bar is the consumer.
+ * Rival does NOT use the shared `stats` template, and `strain` is the *only*
+ * field that differs between them — i.e. the whole reason this block exists is
+ * to omit strain. That omission is deliberate and is kept: rivals have no
+ * strain threshold in FFG, the rival sheet has no strain UI, and
+ * `strainOverThreshold` is computed for character/nemesis only
+ * (actor-ffg.js:269).
+ *
+ * Do not be tempted to re-add it by the stored data: 711 rivals *do* carry a
+ * `stats.strain`, but 684 of those are `{value: 0, min: 0, max: undefined}` —
+ * an empty shell written by the adversary importer, not authored. A token bar
+ * needs a max to render, so it never displayed anyway.
+ *
+ * The one dissenting signal is `ActorFFG._onCreate`, which binds the rival
+ * prototype token's bar2 to `stats.strain`. That looks like a copy-paste from
+ * the character/nemesis cases: minion, which likewise has no strain, correctly
+ * gets no bar2 at all. Treated as a pre-existing upstream bug, not a reason to
+ * declare the field — see the fix plan.
  */
 export class RivalDataModel extends mix(
   BaseActorDataModel,
@@ -41,7 +50,6 @@ export class RivalDataModel extends mix(
       ...super.defineSchema(),
       stats: new f.SchemaField({
         wounds: new f.SchemaField({ value: num(), min: num(), max: num(), adjusted: num() }),
-        strain: new f.SchemaField({ value: num(), min: num(), max: num(), adjusted: num() }),
         medical: medicalField(),
         soak: new f.SchemaField({ value: num(), adjusted: num() }),
         defence: new f.SchemaField({ ranged: num(), melee: num(), adjusted: num() }),

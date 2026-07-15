@@ -132,15 +132,37 @@ it can read backups and packs the same way.
 > `weapon.skill.useBrawn` (3018), `weapon.characteristic.value` (1285),
 > `shipweapon.skill.value`/`useBrawn` (1026/988 — the shipweapon model has
 > `firingarc` but **no `skill` block at all**, yet every shipweapon stores one),
-> `rival.stats.strain.value`/`.min` (708 — rival's inline stats omit `strain`
-> per template.json, but real rivals store it), `vehicle.itemmodifier` /
+> ~~`rival.stats.strain.value`/`.min` (708 — rival's inline stats omit `strain`
+> per template.json, but real rivals store it)~~ **← WRONG, reverted; see
+> below**, `vehicle.itemmodifier` /
 > `itemattachment` (448 each), `weapon.hardpoints.current` (329),
 > `specialization.careerskills` (300), `shipattachment.type` (210).
-> **`weapon.adjusteditemmodifier` (329) is a data-integrity finding in its own
+> ~~**`weapon.adjusteditemmodifier` (329) is a data-integrity finding in its own
 > right**: the schema declares only the *misspelled* `adjusteditemmodifer`
 > (preserved deliberately), but 329 documents store the *correctly*-spelled
 > variant — i.e. both spellings exist on disk. Decide explicitly; do not
-> silently pick one.
+> silently pick one.~~ **← Dissolved in 1.3:** the misspelled one is the
+> *stored* field, the correct-spelled one is *derived* in `prepareData`. Not a
+> fork; nothing to decide.
+>
+> **REVERTED — `rival.stats.strain` (2026-07-14).** Declared here on the
+> strength of "708 rivals store it" plus `ActorFFG._onCreate` binding the rival
+> token's bar2 to `stats.strain`; corrected on the user's rules call ("rivals
+> don't have strain"). **Both justifications were bad.** Of the 711 stored
+> copies, **684 are `{value: 0, min: 0, max: undefined}`** — an empty shell the
+> adversary importer writes, never authored; and a token bar needs a `max` to
+> render, so that bar2 was never displaying regardless. Meanwhile rival's inline
+> `stats` block differs from the shared `StatsTemplate` in **strain and nothing
+> else** — omitting it is the entire reason the block exists — and the rival
+> sheet has no strain UI, and `strainOverThreshold` is character/nemesis-only.
+> Three signals say no strain; only bar2 said yes, and **minion, in the same
+> rules position, correctly has no bar2 at all** (see 4.7).
+>
+> **Lesson for the classification criterion:** "something reads it" and "it is
+> stored" are both necessary and neither is sufficient. A path stored on 711
+> documents whose values are 96% empty is *leakage*, and a reader that cannot
+> function (bar2 with no max) is not a reader. **Count the values, not the
+> documents.**
 >
 > **(b) Derived/transient junk that leaked into stored data** — correctly
 > dropped, must NOT be declared: `renderedDesc`, `enrichedDescription`,
@@ -399,6 +421,19 @@ played through 2026-07-14) and V13 prunes identically.
       `system.*` paths written by **modules/macros are invisible to the system**
       (though still stored). Point at `attributes` as the sanctioned freeform
       extension bag. Note this is a *visibility* contract change, not data loss.
+- [ ] **4.7 — Rival prototype token bar2 points at a stat rivals don't have.**
+      [actor-ffg.js](../../../modules/actors/actor-ffg.js) `_onCreate` gives the
+      rival prototype token `bar2.attribute = "stats.strain"`, but rivals have
+      no strain threshold (no sheet UI, no `strainOverThreshold`, and the inline
+      `stats` block exists precisely to omit it). **Minion — same rules
+      position — correctly gets `bar1` only and no bar2**, which is the pattern
+      rival should follow. Pre-existing and cosmetic: the bar needs a `max` to
+      render and rival strain has none, so nothing displays today either way.
+      Fix = drop the rival `bar2` block. Left alone here because it changes
+      prototype-token defaults, which is a behaviour change unrelated to the
+      schema work and wants its own decision. (Note it only becomes visible now
+      that `stats.strain` is *not* declared on rival — before, the empty stored
+      shell papered over it.)
 - [ ] **4.6 — Open questions carried over:** custom `arraySkillList` worlds (new
       actors seed the stock list; Stage-0 TODO in
       [actor-templates.js](../../../modules/data/actor-templates.js) unresolved);
