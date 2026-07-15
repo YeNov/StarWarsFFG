@@ -1,6 +1,11 @@
 # template.json → System Data Model Migration — Technical Plan
 
-> **Status: proposal, not started.** No code has been written against this plan.
+> **Status: COMPLETE (all 9 stages landed; Stage 9 retired template.json).**
+> Two of its "verified" results were later retracted — see the Compatibility
+> Constraint correction and the Bulk-rewrite-tool retraction below, and
+> [2026-07-14-datamodel-undeclared-paths-fix.md](2026-07-14-datamodel-undeclared-paths-fix.md)
+> for the follow-up work that closed the gaps.
+>
 > This is a distinct effort from the Foundry-version compatibility work in
 > [2026-07-04-v14-migration.md](2026-07-04-v14-migration.md) — that plan makes
 > the *existing* template.json-based system run on Foundry V14; this plan
@@ -109,8 +114,18 @@ silently folded in.
 > examples: `rarity.isrestricted` (written by every OggDude importer, read by
 > ~10 sheets), `weapon.status` (drives Setback / too-damaged rolls),
 > `shipweapon.skill` (rollItem resolves it; template.json's shipweapon has no
-> `skill` block at all), `rival.stats.strain` (the rival token's bar2 binds it;
-> template.json's rival has no `strain`).
+> `skill` block at all).
+>
+> **But the inverse trap is just as real**, and template.json is sometimes
+> *right* where the stored data is wrong: `rival.stats.strain` was declared on
+> exactly this reasoning (708 rivals store it; the rival token's bar2 binds it)
+> and then **reverted** — 684 of those 711 copies are empty shells from the
+> adversary importer, the bar2 could never render for want of a `max`, and
+> rivals have no strain threshold at all. template.json's rival omits `strain`
+> deliberately: it is the *only* field distinguishing rival's inline block from
+> the shared `stats` template. So "stored" and "something references it" are
+> each necessary and neither is sufficient. **Count the values, not the
+> documents**, and check the reference actually works.
 >
 > The right contract is **what the running system persists and reads**, which
 > only a raw-data audit reveals — not what template.json declared. See
