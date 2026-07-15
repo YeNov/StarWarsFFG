@@ -439,6 +439,29 @@ played through 2026-07-14) and V13 prunes identically.
       so existing rivals keep the token config baked in at their creation.
       Cleaning those up would need a migration and is not worth it for a bar
       that does not render — explicitly not doing it.
+
+      **NOT TESTED.** Unlike the schema work, this has no offline verification:
+      the audit harness constructs DataModels against stored data and never runs
+      `ActorFFG.create` (which needs the live Actor class, `game.settings` and
+      `super.create`). Evidence is a code read plus lint parity. It wants a live
+      check — create a rival, confirm no strain bar.
+
+      **Two things the review of this turned up, both worth knowing:**
+      - **"No bar2" is not what omitting `bar2` does.** V14's TokenDocument
+        schema defaults `bar2.attribute` to `game.system.secondaryTokenAttribute`.
+        So a new rival gets `bar2 = "strain"` from
+        [system.json](../../../system.json) — which is **not a real path** (the
+        data is at `stats.strain`), so no bar renders. The fix works *because*
+        the manifest value is stale, and minion has always relied on the same
+        accident. If anyone ever "fixes" `secondaryTokenAttribute` to
+        `stats.strain`, a strain bar returns on **both** minion and rival. A
+        manifest-proof alternative is `bar2: { attribute: null }` on both.
+      - **`primaryTokenAttribute: "wounds"` / `secondaryTokenAttribute: "strain"`
+        in system.json are stale** — every actor's data lives at `stats.wounds` /
+        `stats.strain`, which is precisely why `1e4bd0db` had to set the bars
+        explicitly per type. Stored proof: the actors that got pure manifest
+        defaults have `bar1="wounds" bar2="strain"` (1 rival, 1 nemesis) and
+        show no bars. Pre-existing; out of scope.
 - [ ] **4.6 — Open questions carried over:** custom `arraySkillList` worlds (new
       actors seed the stock list; Stage-0 TODO in
       [actor-templates.js](../../../modules/data/actor-templates.js) unresolved);

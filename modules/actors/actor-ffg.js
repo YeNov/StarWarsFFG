@@ -66,7 +66,11 @@ export class ActorFFG extends Actor {
         };
         break;
       case "rival":
-        // Rivals have no strain threshold, so no bar2 - as with minions above.
+        // Rivals have no strain threshold, so no explicit bar2 - as with minions
+        // above. Note this does not mean "no bar2": omitting it lets bar2 fall
+        // back to system.json's secondaryTokenAttribute ("strain"), which is not
+        // a real path on any actor here (the data lives at stats.strain), so no
+        // bar renders. Minion relies on the same fallback.
         createData.prototypeToken = {
           actorLink: false,
           disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,

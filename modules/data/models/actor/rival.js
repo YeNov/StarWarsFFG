@@ -27,11 +27,12 @@ import {
  * an empty shell written by the adversary importer, not authored. A token bar
  * needs a max to render, so it never displayed anyway.
  *
- * The one dissenting signal is `ActorFFG._onCreate`, which binds the rival
- * prototype token's bar2 to `stats.strain`. That looks like a copy-paste from
- * the character/nemesis cases: minion, which likewise has no strain, correctly
- * gets no bar2 at all. Treated as a pre-existing upstream bug, not a reason to
- * declare the field — see the fix plan.
+ * The one dissenting signal is `ActorFFG.create`, which bound the rival
+ * prototype token's bar2 to `stats.strain` (added deliberately in `1e4bd0db`,
+ * which gave minion bar1 only in the same commit — so this looks like a
+ * copy-paste from the character/nemesis cases, not an intent). A pre-existing
+ * upstream bug, fixed separately in `f2769056`, and not a reason to declare the
+ * field — see the fix plan.
  */
 export class RivalDataModel extends mix(
   BaseActorDataModel,
