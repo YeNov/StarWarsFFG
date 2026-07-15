@@ -421,19 +421,24 @@ played through 2026-07-14) and V13 prunes identically.
       `system.*` paths written by **modules/macros are invisible to the system**
       (though still stored). Point at `attributes` as the sanctioned freeform
       extension bag. Note this is a *visibility* contract change, not data loss.
-- [ ] **4.7 — Rival prototype token bar2 points at a stat rivals don't have.**
-      [actor-ffg.js](../../../modules/actors/actor-ffg.js) `_onCreate` gives the
-      rival prototype token `bar2.attribute = "stats.strain"`, but rivals have
-      no strain threshold (no sheet UI, no `strainOverThreshold`, and the inline
-      `stats` block exists precisely to omit it). **Minion — same rules
-      position — correctly gets `bar1` only and no bar2**, which is the pattern
-      rival should follow. Pre-existing and cosmetic: the bar needs a `max` to
-      render and rival strain has none, so nothing displays today either way.
-      Fix = drop the rival `bar2` block. Left alone here because it changes
-      prototype-token defaults, which is a behaviour change unrelated to the
-      schema work and wants its own decision. (Note it only becomes visible now
-      that `stats.strain` is *not* declared on rival — before, the empty stored
-      shell papered over it.)
+- [x] **4.7 — Rival prototype token bar2 pointed at a stat rivals don't have.
+      DONE 2026-07-14.** [ActorFFG.create](../../../modules/actors/actor-ffg.js)
+      gave the rival prototype token `bar2.attribute = "stats.strain"`, but
+      rivals have no strain threshold (no sheet UI, no `strainOverThreshold`,
+      and the inline `stats` block exists precisely to omit it). **Minion — same
+      rules position — already had `bar1` only**, so this was a copy-paste from
+      the `character`/`nemesis` cases directly below. Dropped the `bar2` block;
+      rival now matches minion. `prependAdjective` kept.
+
+      Surfaced by the `rival.stats.strain` revert: the empty stored shell had
+      been papering over it. Cosmetic either way — a token bar needs a `max` to
+      render and rival strain never had one, so nothing displayed before or
+      after. **Applies to newly created rivals only**: `create` bails early for
+      actors that already have `system` data
+      (`if (!(typeof data.system === "undefined")) return super.create(...)`),
+      so existing rivals keep the token config baked in at their creation.
+      Cleaning those up would need a migration and is not worth it for a bar
+      that does not render — explicitly not doing it.
 - [ ] **4.6 — Open questions carried over:** custom `arraySkillList` worlds (new
       actors seed the stock list; Stage-0 TODO in
       [actor-templates.js](../../../modules/data/actor-templates.js) unresolved);

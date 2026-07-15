@@ -66,14 +66,12 @@ export class ActorFFG extends Actor {
         };
         break;
       case "rival":
+        // Rivals have no strain threshold, so no bar2 - as with minions above.
         createData.prototypeToken = {
           actorLink: false,
           disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
           bar1: {
             attribute: "stats.wounds",
-          },
-          bar2: {
-            attribute: "stats.strain",
           },
           prependAdjective: game.settings.get("starwarsffg", "RivalTokenPrepend"),
         };
