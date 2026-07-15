@@ -535,11 +535,35 @@ played through 2026-07-14) and V13 prunes identically.
       only stores sheet dimensions); Foundry's Document/BaseItem;
       `migrateDataToSystem` (actor-helpers only).
 
-      **Next step if it ever matters:** confirm which field was edited (`name=`
-      is a real Document field and ProseMirror editors target `system.*`
-      directly — both bypass the question), then instrument `itemUpdate`'s
-      formData at runtime rather than reading further. Do **not** "fix" the
-      `data.*` bindings on the strength of the code read; behaviour is correct.
+      **The mundane explanation is ruled out.** The user confirmed the edited
+      fields were Tier, Activation and Rank on a talent and Damage on a weapon —
+      i.e. `data.tier`, `data.activation.value`, `data.ranks.current`,
+      `data.damage.value`, all genuine `data.*` bindings (not `name=`, not a
+      ProseMirror editor targeting `system.*`). All four persisted.
+
+      **And the mapping demonstrably happens.** All 2258 stored documents were
+      checked for a stray top-level `data` key: **zero**. Pruning would lose the
+      edit; passing it through would leave a junk `data` key. Neither. So
+      `data.*` really is converted to `system.*` somewhere.
+
+      Also ruled out since: the `object` Handlebars helper
+      ([swffg-main.js:1281](../../../modules/swffg-main.js) — returns its hash
+      untouched); `ModifierHelpers.applyActiveEffectOnUpdate` (deep-clones
+      formData, so it cannot mutate the caller's — and note it *bails* unless
+      formData has a `data` key, confirming `data` is present at update time);
+      and any `update()`/`migrateData` override on `ItemFFG` (it defines only
+      `_preCreate`, `_onCreate`, `_onCreateAEs`, `_preUpdate`, `_onUpdate`,
+      `prepareData` and helpers).
+
+      **Two candidates left, neither settleable by reading:** (a) a **module** —
+      ~15 are installed and one could libWrapper-patch the update path; (b) my
+      model of Foundry's update pipeline is simply wrong somewhere.
+
+      **Next step if it ever matters:** instrument at runtime — log `formData` at
+      the top of `ItemHelpers.itemUpdate` and `changed` in `ItemFFG._preUpdate`,
+      and repeat with all modules disabled. Static reading has now produced a
+      confident wrong answer once; do not trust a third code-read. Do **not**
+      "fix" the `data.*` bindings — behaviour is correct.
 - [ ] **4.6 — Open questions carried over:** custom `arraySkillList` worlds (new
       actors seed the stock list; Stage-0 TODO in
       [actor-templates.js](../../../modules/data/actor-templates.js) unresolved);
