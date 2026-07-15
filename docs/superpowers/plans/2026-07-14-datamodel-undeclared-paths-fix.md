@@ -1,7 +1,9 @@
 # DataModel Undeclared Paths — Fix Plan (rev. 6)
 
-> **Status (2026-07-14): Stages 1–2 landed and verified offline; Stage 3 (live
-> V13+V14 verification) is the open work.** Commits: `6196265e` (plan +
+> **Status (2026-07-14): Stages 1–3 done. Only 4.3 (`-=` V16-proofing) remains,
+> and it is not urgent.** Live-confirmed by the user: restricted items, ship
+> weapon rolls, biography, trees, and no rival bar2. Stimpack/homestead judged
+> low-stakes and not checked. Commits: `6196265e` (plan +
 > evidence), `0f4b9b50` (declarations), `bedaa51b` (reporter), `8863ddcb`
 > (real_value migration), plus the correction notes in the migration plan.
 > Nothing is pushed.
@@ -440,11 +442,19 @@ played through 2026-07-14) and V13 prunes identically.
       Cleaning those up would need a migration and is not worth it for a bar
       that does not render — explicitly not doing it.
 
-      **NOT TESTED.** Unlike the schema work, this has no offline verification:
-      the audit harness constructs DataModels against stored data and never runs
-      `ActorFFG.create` (which needs the live Actor class, `game.settings` and
-      `super.create`). Evidence is a code read plus lint parity. It wants a live
-      check — create a rival, confirm no strain bar.
+      **VERIFIED — user confirmed live (2026-07-14): rivals have no bar2.**
+      Corroborated offline: `getProperty(rivalSystem, "strain")` is `undefined`,
+      so `getBarAttribute` returns null and no bar renders; minion resolves the
+      same way, while nemesis and character keep `stats.strain` → bar renders
+      (no collateral damage). Script: `rival-bar2.mjs`.
+
+      **The schema revert alone was already sufficient**, which was not expected:
+      existing rivals have `bar2="stats.strain"` baked into their prototype token
+      at creation, but dropping `stats.strain` from `RivalDataModel` means that
+      path no longer resolves either — so they lose the phantom bar too, with **no
+      migration needed**. The declaration and the token config were the same bug
+      from two directions; removing either kills the bar. 4.7 is therefore
+      belt-and-braces (and the right shape for new rivals), not load-bearing.
 
       **Two things the review of this turned up, both worth knowing:**
       - **"No bar2" is not what omitting `bar2` does.** V14's TokenDocument
