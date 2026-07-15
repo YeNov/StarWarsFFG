@@ -403,9 +403,9 @@ played through 2026-07-14) and V13 prunes identically.
       mark the "Full live run: CLEAN across 17,925 documents" claim invalid
       (tautological method — it was right about data safety by luck, not
       measurement), link this plan, and record the offline methodology.
-- [ ] **4.2 — Migration-plan Stage 4 is still `[~]`**: talent/species live
+- [x] **4.2 — Migration-plan Stage 4. DONE 2026-07-14** (was the only stage never verified; its prescribed `_source` diff was the tautological one. Verified offline instead: 3318 talents, `trees` all string arrays, 303 non-empty round-trip with 0 failures and `.includes(spec.id)` intact; talent/species drop only derived props. Codex force-tree confirmed by the user.) ~~: talent/species live
       smoke-test (talent round-trip, tree membership, Codex force-tree renders —
-      memory `cdx-force-tree-design`).
+      memory `cdx-force-tree-design`).~~
 - [ ] **4.3 — `-=` deletion-key deprecation (V16-proofing).** V14 warns per
       legacy `-=` key (works until V16); fires on user edits, so load-log
       captures missed them. Sites: [actor-helpers.js:67](../../../modules/helpers/actor-helpers.js),

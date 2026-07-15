@@ -440,8 +440,8 @@ applies).
       `dropped` and `changed` list was empty — no silent field loss, no
       NumberField coercion (stored types were already correct). weapon + armour
       edit→save→reload round-trip held.
-- [~] **Stage 4 — Talent and Species. IMPLEMENTED 2026-07-09, pending live
-      smoke-test.** `TalentDataModel` + `SpeciesDataModel` under
+- [x] **Stage 4 — Talent and Species. IMPLEMENTED 2026-07-09; DATA VERIFIED
+      offline 2026-07-14 (see note below).** `TalentDataModel` + `SpeciesDataModel` under
       [models/item/](../../../modules/data/models/item/), registered in
       [index.js](../../../modules/data/index.js#registerSystemDataModels). Talent
       `trees` = `ArrayField(StringField)` (specialization id strings, confirmed
@@ -452,6 +452,24 @@ applies).
       stripped; `startingXP` a number. Verify via the same `_source` drop/change
       diff plus a round-trip on a talent (check tree membership survives) and the
       Codex force-tree widget still renders (memory `cdx-force-tree-design`).
+      **Verification note (2026-07-14).** This stage prescribed "the same
+      `_source` drop/change diff" — the tautological comparison that could never
+      report a finding (see the retraction at the top of this file), so the
+      smoke-test it was waiting on would not have proven anything anyway.
+      Verified properly instead, offline against raw LevelDB across every pack
+      and the live world: **3318 talents**, `trees` stored on all of them and
+      always an array, **667 elements, all strings** — so
+      `ArrayField(StringField)` is right; **303 talents with non-empty trees
+      round-trip identically, 0 failures**, and `system.trees.includes(spec.id)`
+      (the actual consumer in item-sheet-ffg.js) still holds for every one.
+      Nothing real is dropped from talent or species — only derived props that
+      leak into stored data (`renderedDesc`, `enrichedDescription`,
+      `hasLongDesc`, `doNotSubmit.qualities`) plus an id-keyed empty-string junk
+      key, all of which `prepareData` recreates or nothing reads. Species'
+      freeform `ObjectField`s preserve the importer's dicts intact.
+      The Codex force-tree widget was confirmed rendering by the user
+      (2026-07-14). Script: `talent-roundtrip.mjs` in
+      [2026-07-14 evidence](artifacts/2026-07-14-datamodel-evidence/).
 - [x] **Stage 5 — Tree types with dynamic numbered slots. DONE + VERIFIED on
       V14 (2026-07-09), incl. tree-editor round-trip.**
       `ForcePowerDataModel`,
