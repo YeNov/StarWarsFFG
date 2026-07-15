@@ -483,7 +483,13 @@ applies).
       key, all of which `prepareData` recreates or nothing reads. Species'
       freeform `ObjectField`s preserve the importer's dicts intact.
       The Codex force-tree widget was confirmed rendering by the user
-      (2026-07-14). Script: `talent-roundtrip.mjs` in
+      (2026-07-14). The live "round-trip a talent, check tree membership
+      survives" half was deliberately not run: the handler that writes
+      `system.trees` (`_onDropTalentToSpecialization`) has been broken since
+      the v12-support commit — its update calls are commented out, its
+      removal branch throws, and it targets `data.trees` — so that check
+      would have measured a pre-existing sheet bug, not the schema. Logged
+      as 4.8 in the fix plan; the schema side round-trips 303/303. Script: `talent-roundtrip.mjs` in
       [2026-07-14 evidence](artifacts/2026-07-14-datamodel-evidence/).
 - [x] **Stage 5 — Tree types with dynamic numbered slots. DONE + VERIFIED on
       V14 (2026-07-09), incl. tree-editor round-trip.**

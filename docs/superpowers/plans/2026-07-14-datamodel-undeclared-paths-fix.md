@@ -405,7 +405,7 @@ played through 2026-07-14) and V13 prunes identically.
       mark the "Full live run: CLEAN across 17,925 documents" claim invalid
       (tautological method — it was right about data safety by luck, not
       measurement), link this plan, and record the offline methodology.
-- [x] **4.2 — Migration-plan Stage 4. DONE 2026-07-14** (was the only stage never verified; its prescribed `_source` diff was the tautological one. Verified offline instead: 3318 talents, `trees` all string arrays, 303 non-empty round-trip with 0 failures and `.includes(spec.id)` intact; talent/species drop only derived props. Codex force-tree confirmed by the user.) ~~: talent/species live
+- [x] **4.2 — Migration-plan Stage 4. DONE 2026-07-14** (was the only stage never verified; its prescribed `_source` diff was the tautological one. Verified offline instead: 3318 talents, `trees` all string arrays, 303 non-empty round-trip with 0 failures and `.includes(spec.id)` intact; talent/species drop only derived props. Codex force-tree confirmed by the user.) **Scope note:** this verifies the *schema* preserves tree membership. The live edit->save->reload half was not run — and 4.8 records why it would not have proven much: the drop handler that writes `system.trees` is itself broken, pre-existing.) ~~: talent/species live
       smoke-test (talent round-trip, tree membership, Codex force-tree renders —
       memory `cdx-force-tree-design`).~~
 - [ ] **4.3 — `-=` deletion-key deprecation (V16-proofing).** V14 warns per
@@ -472,6 +472,35 @@ played through 2026-07-14) and V13 prunes identically.
         explicitly per type. Stored proof: the actors that got pure manifest
         defaults have `bar1="wounds" bar2="strain"` (1 rival, 1 nemesis) and
         show no bars. Pre-existing; out of scope.
+- [ ] **4.8 — `_onDropTalentToSpecialization` never maintains `system.trees`.**
+      Found while asking what a live smoke-test of 4.2 would actually cover.
+      [item-sheet-ffg.js:2058](../../../modules/items/item-sheet-ffg.js)
+      `_onDropTalentToSpecialization` has three compounding bugs in its
+      trees-write path, all pre-existing since `48b2e0ac` ("feat(v12): basic v12
+      support") — i.e. broken for ~2 majors, nothing to do with the DataModel
+      work:
+      - **adding** a spec reference to a talent: builds `formData` correctly,
+        then **both `itemObject.update(...)` calls are commented out** — the
+        write never happens. It does `tree.push(...)` on the live array, so it
+        appears to work in-memory until reload.
+      - **removing** a spec reference (last talent in the tree): `let formData;`
+        is `undefined`, and `foundry.utils.setProperty(undefined, "data.trees",
+        …)` **throws** — `parts.reduce` dereferences `undefined["data"]`.
+      - both target **`data.trees`, not `system.trees`**, so even uncommented
+        they would be pruned to a no-op (same class as the dormant skill-theme
+        migration in 2.6).
+
+      Consequence: talent↔specialization membership is only ever established by
+      the importer; the drop handler cannot persist it. The 303 talents with
+      non-empty `trees` are all import-authored. Explains why the migration's
+      Stage 4 "round-trip a talent, check tree membership survives" was never
+      completed — the path it targets does not work.
+
+      **Not fixing here.** It is unrelated to the schema work, and repairing it
+      would *activate* a dormant write path across every talent drop — the same
+      reasoning that left 2.6's skill-theme migration alone. Wants its own change
+      with its own testing. (Schema side is fine and verified: `trees` is
+      declared correctly and round-trips 303/303 — see 4.2.)
 - [ ] **4.6 — Open questions carried over:** custom `arraySkillList` worlds (new
       actors seed the stock list; Stage-0 TODO in
       [actor-templates.js](../../../modules/data/actor-templates.js) unresolved);
