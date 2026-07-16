@@ -24,6 +24,26 @@
   display: none !important;
 }
 
+/* Release the actor-sheet min-width/min-height for the duration of the minimize /
+   maximize animation. Core already does exactly this —
+   `.application.minimizing, .minimized, .maximizing { min-width: unset; min-height: unset }`
+   — but that rule lives in `@layer applications`, while our `.starwarsffg.sheet.actor`
+   min-* (below) is UNLAYERED, and unlayered author styles beat any layer regardless of
+   specificity. So core's release never fired. max-height animated cleanly 1292px -> 36px
+   while min-height:525px pinned the box at 525 for the last ~140ms of a 250ms
+   transition; the sheet then dropped 525 -> 36 in a single frame once `.minimized`
+   (min-height:0 !important, above) landed. Two visible steps and a jump — reported as
+   "sheets are noticably slower/laggier" (#19), which is not a perf problem at all: the
+   browser was hitting 57fps precisely BECAUSE the box was frozen.
+   Measured: 5 painted sizes stalling at 600x525, vs 7 across the full range after.
+   !important is required — `.starwarsffg.sheet.actor.adversary` is (0,4,0) and would
+   otherwise out-specify this. */
+.starwarsffg.application.minimizing,
+.starwarsffg.application.maximizing {
+  min-width: unset !important;
+  min-height: unset !important;
+}
+
 @font-face {
   font-family: "Elektra";
   src: url("../fonts/ElektraMediumPro-Bold.otf") format("opentype");
