@@ -35,6 +35,16 @@
 .cdx.scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box,
 .cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:var(--cdx-paper2); }
 
+/* Dark scheme: force-tree connector off-state. The base --cdx-dim (#9a8e88) at .8
+   lands at 4.30:1 on this near-black gap — brighter than a BOUGHT line, since this
+   scheme's --cdx-accent (#8a1714) is only 2.07:1 there. Left alone it would read as
+   inverted: unlearnt talents louder than learnt. .35 gives 1.73:1 — visible, and
+   still under the bought line. The usable band here is narrow (.30–.40) because the
+   accent itself is so dark; brightening THAT is the real cure, but it's a palette
+   change. :not(.on) confines this to the off state and keeps `.on` at full opacity. */
+.cdx.scheme-dark .cdx-ft-line:not(.on),
+.cdx .scheme-dark .cdx-ft-line:not(.on) { opacity:.35; }
+
 /* Dark scheme: render the defence setback dice like the setback die glyph — black
    fill with a white outline (rulebook-accurate) instead of the light currentColor
    fill. CSS fill/stroke override the rect's fill="currentColor" presentation attr. */

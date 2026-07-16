@@ -812,7 +812,11 @@
 }
 .cdx form.scheme-eldritch .cdx-ft-name { color:#9f937d; }
 .cdx form.scheme-eldritch .cdx-ft-foot { border-top-color:rgba(112,96,70,.18); }
-.cdx form.scheme-eldritch .cdx-ft-line { background:#514a3f; opacity:.72; }
+/* Off-state alpha only. This scheme takes the base --cdx-dim (#a39682) but at half
+   strength: at the base .8 it reads BRIGHTER than the bought line below (#786a4f),
+   inverting the meaning. :not(.on) is load-bearing -- as a bare (0,3,1) selector this
+   rule outranked the base `.on` (0,3,0) and was silently clamping bought lines to .72. */
+.cdx form.scheme-eldritch .cdx-ft-line:not(.on) { opacity:.5; }
 .cdx form.scheme-eldritch .cdx-ft-line.on,
 .cdx form.scheme-eldritch .cdx-ft-uplinkline.on {
   background:#786a4f;

@@ -1385,7 +1385,14 @@
 .cdx .cdx-ft-edit .cdx-ft-edit-actions { display:inline-flex; }
 
 /* --- Connector lines --- */
-.cdx .cdx-ft-line { background:var(--cdx-line); opacity:.5; border-radius:2px; }
+/* Off-state is --cdx-dim, NOT --cdx-line. --cdx-line is the hairline colour, tuned
+   for 1px borders drawn ON a card (--cdx-paper2) -- but connectors sit in the grid
+   gaps, over --cdx-bg. Those two are within ~1.2:1 in every scheme, so --cdx-line
+   at .5 composites to ~1.1:1 against the gap and the line is simply invisible; only
+   `.on` (both endpoints bought) ever showed. The dark schemes pin a lower alpha via
+   :not(.on) in their own sheets -- their accents are dark, so a full-strength
+   --cdx-dim there would out-shout the purchased lines it must stay below. */
+.cdx .cdx-ft-line { background:var(--cdx-dim); opacity:.8; border-radius:2px; }
 .cdx .cdx-ft-line.on { background:var(--cdx-accent); opacity:1; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
 /* up: a flex row sitting in the row-gap above the card, one cell per spanned column */
 .cdx .cdx-ft-uplinks { position:absolute; left:0; right:0; bottom:100%; height:var(--ft-rowgap); display:flex; z-index:1; pointer-events:none; }
