@@ -32,12 +32,22 @@ export class AdversarySheetFFG extends ActorSheetFFG {
    */
   async getData() {
     const data = await super.getData();
+    // FIRST RENDER ONLY — same reason as the base sheet's sizing block (see
+    // actor-sheet-ffg.js): re-applying every render snaps a resized sheet back to
+    // default (#14). This carries its OWN latch rather than reusing the base's:
+    // `await super.getData()` above has already consumed that one, and this block
+    // runs afterwards, so without a latch here it would overwrite the values the
+    // base just guarded and the fix would do nothing on adversary sheets.
+    const setInitialSize = !this._advSizeInitialized;
+    this._advSizeInitialized = true;
     switch (this.actor.type) {
       case "character":
-        this.position.width = 595;
-        this.position.height = 783;
-        if (data.limited) {
-          this.position.height = 165;
+        if (setInitialSize) {
+          this.position.width = 595;
+          this.position.height = 783;
+          if (data.limited) {
+            this.position.height = 165;
+          }
         }
 
         // we need to update all specialization talents with the latest talent information
