@@ -12,7 +12,11 @@ import { SheetInitialSizeTests } from "./v2-migration/sheet-initial-size.test.js
 export default class FFGFunctionalTests extends FormApplication {
   /** @override */
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    // foundry.utils.mergeObject, not the bare global: V13 dropped it (there is no
+    // globalThis alias), so the old call threw ReferenceError out of this static
+    // getter — i.e. before the window could even open. modules/ migrated long ago;
+    // this harness was the last holdout.
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: "functional-test",
       classes: ["starwarsffg"],
       title: "Functional Tests",
