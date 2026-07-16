@@ -262,10 +262,25 @@ export class ActorSheetFFG extends FFGActorSheet {
       enableCriticalInjuries: this.actor.flags?.starwarsffg?.config?.enableCriticalInjuries,
     };
 
-    // Establish sheet width and height using either saved persistent values or default values defined in swffg-config.js
+    // Establish sheet width and height using either saved persistent values or default values defined in swffg-config.js.
+    // FIRST RENDER ONLY. Re-applying this every render is what made a resized sheet
+    // snap back to default (#14), and it did so invisibly: `position` is a Proxy
+    // whose set trap re-runs _updatePosition but never #applyPosition, and
+    // _updatePosition only writes el.style for dimensions that are "auto" -- which
+    // these are not. So the write moved internal state while the DOM kept the size
+    // the user dragged, and nothing looked wrong until the next setPosition replayed
+    // the stale clone. Dragging the header is exactly that: #onWindowDragMove
+    // replays width and height, not just top/left. Hence the two-step repro (edit,
+    // THEN move).
+    // The guard mirrors item-sheet-ffg.js:248, where the same thing is already
+    // fixed. Ordering is safe: the render's own getData (via _prepareContext) runs
+    // before activateListeners, so it consumes the flag and the unawaited per-skill
+    // getData() calls further down become no-ops.
     // Skip while minimized/minimizing -- otherwise this fights the V13 minimize
     // collapse and snaps the sheet back to full size on the next render.
-    if (!this.minimized && !this._minimizing) {
+    const setInitialSize = !this._sizeInitialized;
+    this._sizeInitialized = true;
+    if (setInitialSize && !this.minimized && !this._minimizing) {
       this.position.width = this.sheetWidth || CONFIG.FFG.sheets.defaultWidth[this.actor.type];
       this.position.height = this.sheetHeight || CONFIG.FFG.sheets.defaultHeight[this.actor.type];
     }
@@ -274,7 +289,9 @@ export class ActorSheetFFG extends FFGActorSheet {
       case "character":
       case "nemesis":
       case "rival":
-        if (data.limited) {
+        // Same first-render guard as the sizing block above — without it a limited
+        // sheet re-poisons its height on every render and snaps on the next drag.
+        if (data.limited && setInitialSize) {
           this.position.height = 165;
         }
         // we need to update all specialization talents with the latest talent information
