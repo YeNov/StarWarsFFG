@@ -485,11 +485,12 @@
   .cdx .cdx-gs-label { flex:0 1 auto; text-align:center; }
 }
 .cdx .cdx-gs-counter { flex:none; gap:8px; }
-/* Digit-width reservation — same stepper-shift fix as .cdx-wp-count below, see the
-   rationale there. Only .cdx-gs-cur needs it: max is typed, not stepped, and its
-   edit-mode input (.cdx-gs-max-in) is already pinned at a fixed width. */
-.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; font-variant-numeric:tabular-nums; }
-.cdx .cdx-gs-cur { color:var(--cdx-ink); min-width:2ch; text-align:right; }
+/* Digit-width reservation — same stepper fix as .cdx-wp-count below, see the
+   rationale there. Reserving on the container also means the edit-mode <input>
+   (.cdx-gs-max-in, a fixed 1.5em) needs no special handling: it just centres with
+   everything else, so the steppers don't jump when edit mode toggles. */
+.cdx .cdx-gs-count { display:flex; align-items:baseline; justify-content:center; min-width:5.5ch; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; font-variant-numeric:tabular-nums; }
+.cdx .cdx-gs-cur { color:var(--cdx-ink); }
 .cdx .cdx-gs-max { color:var(--cdx-dim); }
 .cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-dim); padding:0; }
 /* nowrap (no min-width:0) so the label keeps its content width: it either fits
@@ -514,20 +515,30 @@
 .cdx .cdx-wp-unit-in { width:1.6em; text-align:center; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); border-radius:2px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; color:#fff; padding:0 2px; }
 .cdx .cdx-wp-body { padding:8px 12px 12px; }
 .cdx .cdx-wp-counter { gap:9px; }
-/* Digit-width reservation. Reserve two digits per value so the +/- steppers hold
-   still as the pool crosses a digit boundary: at 28px Orbitron 900, 9 -> 10 widens
-   the text by ~17px, most of the 24px button, and it slides out from under the
-   cursor mid-click. The row's only flexible item (.cdx-wp-label) sits AFTER the +
-   button, so every bit of slack collects to its right and the button's x is fixed
-   by whatever is to its left — unlike the character sheet, where .cdx-stepline-mid
-   is flex:1 and absorbs it. `ch` (not px) because it's font-relative and so
-   re-resolves under the Eldritch serif swap; tabular-nums forces every digit to the
-   "0" advance, which is what makes 2ch reserve exactly two. min-width is a floor,
-   so 3-digit pools (10 members x 12 wounds) still render — they just shift once,
-   at 99->100. */
-.cdx .cdx-wp-count { display:flex; align-items:baseline; justify-content:center; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; font-variant-numeric:tabular-nums; }
-.cdx .cdx-wp-cur { color:var(--cdx-ink); min-width:2ch; text-align:right; }
-.cdx .cdx-wp-max { color:var(--cdx-dim); min-width:2ch; text-align:left; }
+/* Digit-width reservation, on the CONTAINER rather than the value spans.
+   Reserve 5.5ch and centre the X/Y group. Two things fall out of that:
+   1. The box never changes width as digits are added, so the +/- steppers hold
+      still. (At 28px, 9 -> 10 widens the text by most of the 24px button, and it
+      slides out from under the cursor mid-click. This row is defenceless against
+      that on its own: its only flexible item, .cdx-wp-label, sits AFTER the +
+      button, so all slack collects to the button's right and its x is fixed by
+      whatever is to its left — unlike the character sheet, where .cdx-stepline-mid
+      is flex:1 and absorbs it.)
+   2. Centring splits the slack EVENLY, so both steppers stay the same distance
+      from the digits.
+   Reserving per-span instead (min-width:2ch on each) also pins the buttons, but
+   the slack then sits per-span: with a 1-digit cur and a 2-digit max ("9/12") it
+   all lands on the left, and the gaps differ by 11px (Orbitron) to 18px (Eldritch).
+   Measured, both faces.
+   5.5ch clears the widest 2+2-digit content — 5.37ch in the Eldritch display face,
+   5.06ch in Orbitron. `ch` (not px) because it is font-relative and so re-resolves
+   under the Eldritch serif swap, where a px value would be wrong; tabular-nums
+   holds every digit to the "0" advance, keeping that reservation exact. min-width
+   is a floor, so a 3-digit pool (10 members x 12 wounds) still renders — the box
+   just grows once, and the gaps stay equal. */
+.cdx .cdx-wp-count { display:flex; align-items:baseline; justify-content:center; min-width:5.5ch; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; font-variant-numeric:tabular-nums; }
+.cdx .cdx-wp-cur { color:var(--cdx-ink); }
+.cdx .cdx-wp-max { color:var(--cdx-dim); }
 .cdx .cdx-wp-label { flex:1; min-width:0; font-size:13px; color:var(--cdx-dim); }
 /* The track: each member is a group of unit_wounds segments; a wider gap between
    groups than within. Filled = wounds suffered (left-to-right). Filled colour is
