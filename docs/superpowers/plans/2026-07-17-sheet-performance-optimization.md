@@ -198,6 +198,11 @@ and modifiers.
 object in `ActorSheetFFG.getData()` instead of immediately calling
 `this.actor.toObject(false)` again.
 
+**Status note:** this must remain gated by template-data equivalence tests. A
+naive reuse of the base document context collapsed the legacy and Codex skill
+sections to headers only, because the actor sheet path depends on prepared actor
+skill data at this point.
+
 ### Tasks
 
 1. Treat the full document object returned as `context.data` by the shared base
@@ -210,7 +215,8 @@ object in `ActorSheetFFG.getData()` instead of immediately calling
 5. Verify actor item ordering independently for every legacy and Codex sheet.
 
 **Acceptance:** one `toObject(false)` per `getData()` and byte-equivalent
-template-facing data for all declared and derived fields.
+template-facing data for all declared and derived fields, including a rendered
+skill-row fixture for legacy and Codex actor sheets.
 
 ## Phase 3 - Fix Listener Ownership
 
