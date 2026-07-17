@@ -39,8 +39,6 @@ export class ActorSheetFFG extends FFGActorSheet {
     this._filters = {
       skills: new Set(),
     };
-    this.object.setFlag("starwarsffg", "config.enableEditMode", false);
-    this.object.setFlag("starwarsffg", "config.editModeActor", "");
   }
 
   pools = new Map();
