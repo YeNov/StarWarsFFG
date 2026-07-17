@@ -228,6 +228,14 @@ export class ActorSheetFFG extends FFGActorSheet {
     // into Document back-references); it is read from the live system directly
     // where consumed (see the effects mapping later in getData).
     const liveSystem = this.actor.system;
+    // These prepared fields may already exist on the raw serialized system as
+    // empty/default schema values, so the generic "missing keys only" overlay
+    // below is not enough to keep skill rows rendered.
+    for (const key of ["skills", "skilltypes"]) {
+      if (liveSystem[key] !== undefined) {
+        actorData.system[key] = foundry.utils.deepClone(liveSystem[key]);
+      }
+    }
     for (const key of Object.keys(liveSystem)) {
       if (key === "effects" || key in actorData.system) continue;
       actorData.system[key] = foundry.utils.deepClone(liveSystem[key]);
