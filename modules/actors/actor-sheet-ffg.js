@@ -520,16 +520,6 @@ export class ActorSheetFFG extends FFGActorSheet {
       await this._handleKillMinion(ev);
     });
 
-    new foundry.applications.ux.ContextMenu(htmlElement, "div.skillsHeader", [
-      {
-        name: game.i18n.localize("SWFFG.SkillAddContextItem"),
-        icon: '<i class="fas fa-plus-circle"></i>',
-        callback: (li) => {
-          this._onCreateSkill(li);
-        },
-      },
-    ], {jQuery: false, fixed: true});
-
     html.find(".ffg-purchase").click(async (ev) => {
       await this._buyCore(ev)
     });
@@ -542,54 +532,6 @@ export class ActorSheetFFG extends FFGActorSheet {
       const purchaseId = $(ev.currentTarget).children("a").data("id");
       await this._refundPurchase(purchaseId, "adjustment")
     });
-
-    // Send Item Details to chat.
-
-    const sendToChatContextItem = {
-      name: game.i18n.localize("SWFFG.SendToChat"),
-      icon: '<i class="far fa-comment"></i>',
-      callback: (el) => {
-        let itemId = el.getAttribute("data-item-id");
-        this._itemDetailsToChat(itemId);
-      },
-    };
-
-    const rollForceToChatContextItem = {
-      name: game.i18n.localize("SWFFG.SendForceRollToChat"),
-      icon: '<i class="fas fa-dice-d20"></i>',
-      callback: async (el) => {
-        let itemId = el.getAttribute("data-item-id");
-        let item = this.actor.items.get(itemId);
-        if (!item) {
-          item = game.items.get(itemId);
-        }
-        if (!item) {
-          item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
-        }
-        const forcedice = this.actor.system.stats.forcePool.max - this.actor.system.stats.forcePool.value;
-        if (forcedice > 0) {
-          let sheet = await this.getData();
-          const dicePool = new DicePoolFFG({
-            force: forcedice,
-          });
-          DiceHelpers.displayRollDialog(sheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${item.name}`, item.name, item);
-        } else {
-          ui.notifications.info(game.i18n.localize("SWFFG.Roll.ForcePowers.NoDice"));
-        }
-      },
-    };
-
-    // Codex header pills (species/career/spec/signature) are span.cdx-pill.item; force
-    // pills are span.cdx-pill.force.item -- neither matches li.item or div.item, so
-    // include them here so right-click "send to chat" (and force-roll) works on them
-    // too. Codex talent/gear cards are div.item and are already covered below.
-    // fixed:true positions the menu at document.body. Without it the menu is
-    // appended INSIDE the right-clicked element (Foundry's non-fixed path), and the
-    // codex talent/skill cards' constrained height/overflow squash it to a ~10px
-    // sliver -- so it "didn't appear".
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false, fixed: true});
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false, fixed: true});
-    new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false, fixed: true});
 
     if (["nemesis", "rival"].includes(this.actor.type)) {
       this.sheetoptions = new ActorOptions(this, html);
