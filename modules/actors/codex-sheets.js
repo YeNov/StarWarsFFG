@@ -390,10 +390,10 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 
   /** @override — add the Codex-only listeners on top of the stock ones. */
-  activateListeners(html) {
-    super.activateListeners(html);
+  async activateListeners(html, context, options) {
+    await super.activateListeners(html, context, options);
     this._cdxRegisterSheetOptions();
-    this._cdxActivate(html);
+    await this._cdxActivate(html, context);
   }
 
   /**
@@ -460,7 +460,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     return super._buyCore(event);
   }
 
-  _cdxActivate(html) {
+  async _cdxActivate(html, context) {
     const root = html?.[0] ?? this.form ?? this.element;
     if (!root) return;
 
@@ -578,7 +578,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     });
 
     // Weapon-card dice pools (skill roll preview) — render for viewers too.
-    this._cdxWeaponPools(root);
+    await this._cdxWeaponPools(root, context);
 
     // Equip toggle: consume clicks on the whole button so they never leak to the
     // card's expand handler. (Clicking the button box outside the glyph used to
@@ -1023,20 +1023,22 @@ export const CodexSchemeMixin = (Base) => class extends Base {
    * (so it's the real, full pool). The .roll-button node is display-only here
    * (pointer-events:none in CSS) — the weapon icon is the roll trigger.
    */
-  async _cdxWeaponPools(root) {
+  async _cdxWeaponPools(root, context) {
     const nodes = root.querySelectorAll(".cdx-wpn-skill[data-ability]");
     if (!nodes.length) return;
-    let data;
-    try { data = await this.getData({}); } catch (e) { return; }
+    if (!context) return;
+    const renderToken = this._ffgRenderToken;
     // Hints live on the form, outside the cards, so they outlive a content re-render.
     this.form?.querySelectorAll(".cdx-wpn-tip").forEach((n) => n.remove());
     // Awaited (not forEach): the tooltip only exists once the pool has rendered.
     for (const elem of nodes) {
+      if (renderToken !== this._ffgRenderToken || !root.isConnected || !elem.isConnected) return;
       // Resolve the weapon item from its card so its roll modifiers are folded
       // into the previewed pool (matches what clicking the weapon rolls).
       const card = elem.closest(".cdx-card.weapon[data-item-id]");
       const item = card ? (this.actor?.items?.get(card.dataset.itemId) ?? null) : null;
-      try { await DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { continue; }
+      try { await DiceHelpers.addSkillDicePool(context, elem, item); } catch (e) { continue; }
+      if (renderToken !== this._ffgRenderToken || !root.isConnected || !elem.isConnected) return;
       this._cdxWeaponPoolHint(elem);
     }
   }

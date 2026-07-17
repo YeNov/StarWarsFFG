@@ -204,6 +204,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+    this._ffgRenderToken = (this._ffgRenderToken ?? 0) + 1;
 
     const form = this.form;
     if (form) {
@@ -230,7 +231,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
 
     const html = $(form ?? this.element);
     this._activateCoreListeners(html);
-    this.activateListeners(html);
+    await this.activateListeners(html, context, options);
     this._callLegacyRenderHook(html, context);
     this._activateEditors();
 
@@ -467,7 +468,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     return super.render(options, _options);
   }
 
-  activateListeners(_html) {}
+  activateListeners(_html, _context, _options) {}
 
   _activateCoreListeners(html) {
     const root = html[0];

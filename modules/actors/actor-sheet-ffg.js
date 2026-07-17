@@ -413,7 +413,7 @@ export class ActorSheetFFG extends FFGActorSheet {
   /* -------------------------------------------- */
 
   /** @override */
-  activateListeners(html) {
+  activateListeners(html, context) {
     super.activateListeners(html);
     // convert jquery element to HTMLElement for usage with Foundry calls
     const htmlElement = html.get(0);
@@ -490,11 +490,9 @@ export class ActorSheetFFG extends FFGActorSheet {
     });
     html.find(".popout-editor .popout-editor-button").on("click", this._onPopoutEditor.bind(this));
 
-    // Setup dice pool image and hide filtered skills
-    html.find(".skill").each(async (_, elem) => {
-      await DiceHelpers.addSkillDicePool(await this.getData({}), elem);
-      const filters = this._filters.skills;
-    });
+    // Setup dice pool images and hide filtered skills using the render context
+    // already prepared for this render.
+    const skillPools = this._renderSkillPools(htmlElement, context);
 
     // Everything below here is only needed if the sheet is editable
     if (!this.isEditable) return;
@@ -1669,6 +1667,135 @@ export class ActorSheetFFG extends FFGActorSheet {
       }
       html.find(`.change-row.${event.currentTarget.id}`).toggleClass("hidden");
     });
+
+    return skillPools;
+  }
+
+  async _renderSkillPools(root, context) {
+    if (!root || !context) return;
+
+    const renderToken = this._ffgRenderToken;
+    const skillNodes = Array.from(root.querySelectorAll(".skill[data-ability]"));
+    const filters = this._filters?.skills;
+    const activeFilter = filters?.filter;
+
+    await Promise.all(skillNodes.map(async (elem) => {
+      if (renderToken !== this._ffgRenderToken || !root.isConnected || !elem.isConnected) return;
+
+      if (activeFilter && activeFilter !== "all") {
+        const skillType = elem.dataset.skilltype ?? elem.closest("[data-type]")?.dataset.type;
+        elem.hidden = !!skillType && skillType !== activeFilter;
+      } else {
+        elem.hidden = false;
+      }
+
+      try {
+        await DiceHelpers.addSkillDicePool(context, elem);
+      } catch (err) {
+        CONFIG.logger.warn(`Unable to render skill pool for ${elem.dataset.ability ?? "unknown skill"}`, err);
+      }
+    }));
+  }
+
+  _bindActorContextMenus(htmlElement) {
+    if (!htmlElement || this._actorContextMenuForm === htmlElement) return;
+
+    const contextMenuOptions = [
+      {
+        name: game.i18n.localize("SWFFG.SkillChangeCharacteristicContextItem"),
+        icon: '<i class="fas fa-wrench"></i>',
+        callback: (li) => {
+          this._onChangeSkillCharacteristic(li);
+        },
+      },
+      {
+        name: game.i18n.localize("SWFFG.SkillAddAsInitiative"),
+        icon: '<i class="fas fa-cog"></i>',
+        callback: (li) => {
+          this._onInitiativeSkill(li);
+        },
+      },
+      {
+        name: game.i18n.localize("SWFFG.SkillRemoveContextItem"),
+        icon: '<i class="fas fa-times"></i>',
+        callback: async (li) => {
+          await this._onRemoveSkill(li);
+        },
+      },
+    ];
+
+    if (this.actor.type === "character") {
+      contextMenuOptions.push({
+        name: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SkillRank.ContextMenuText"),
+        icon: '<i class="fa-regular fa-circle-up"></i>',
+        callback: (li) => {
+          if (!this.actor.verifyEditModeIsNotEnabled()) return false;
+          this._buySkillRank(li);
+        },
+      });
+    }
+
+    const sendToChatContextItem = {
+      name: game.i18n.localize("SWFFG.SendToChat"),
+      icon: '<i class="far fa-comment"></i>',
+      callback: (el) => {
+        let itemId = el.getAttribute("data-item-id");
+        this._itemDetailsToChat(itemId);
+      },
+    };
+
+    const rollForceToChatContextItem = {
+      name: game.i18n.localize("SWFFG.SendForceRollToChat"),
+      icon: '<i class="fas fa-dice-d20"></i>',
+      callback: async (el) => {
+        let itemId = el.getAttribute("data-item-id");
+        let item = this.actor.items.get(itemId);
+        if (!item) {
+          item = game.items.get(itemId);
+        }
+        if (!item) {
+          item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
+        }
+        const forcedice = this.actor.system.stats.forcePool.max - this.actor.system.stats.forcePool.value;
+        if (forcedice > 0) {
+          let sheet = await this.getData();
+          const dicePool = new DicePoolFFG({
+            force: forcedice,
+          });
+          DiceHelpers.displayRollDialog(sheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${item.name}`, item.name, item);
+        } else {
+          ui.notifications.info(game.i18n.localize("SWFFG.Roll.ForcePowers.NoDice"));
+        }
+      },
+    };
+
+    this._actorContextMenuForm = htmlElement;
+    this._actorContextMenus = [
+      new foundry.applications.ux.ContextMenu(
+        htmlElement,
+        // Codex skill rows (.cdx-skills .skill) carry the same data-ability/
+        // data-characteristic attributes the callbacks read, but live outside the
+        // stock .skillsGrid container, so include them here.
+        ".skillsGrid .skill, .cdx-skills .skill",
+        contextMenuOptions,
+        {jQuery: false, fixed: true},
+      ),
+      new foundry.applications.ux.ContextMenu(htmlElement, "div.skillsHeader", [
+        {
+          name: game.i18n.localize("SWFFG.SkillAddContextItem"),
+          icon: '<i class="fas fa-plus-circle"></i>',
+          callback: (li) => {
+            this._onCreateSkill(li);
+          },
+        },
+      ], {jQuery: false, fixed: true}),
+      // Codex header pills (species/career/spec/signature) are span.cdx-pill.item;
+      // force pills are span.cdx-pill.force.item. fixed:true keeps the menu out of
+      // clipped Codex cards.
+      new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false, fixed: true}),
+      new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false, fixed: true}),
+      new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false, fixed: true}),
+    ];
   }
 
   /**
