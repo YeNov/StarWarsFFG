@@ -422,7 +422,7 @@ export class ActorSheetFFG extends FFGActorSheet {
   /* -------------------------------------------- */
 
   /** @override */
-  activateListeners(html, context) {
+  activateListeners(html) {
     super.activateListeners(html);
     // convert jquery element to HTMLElement for usage with Foundry calls
     const htmlElement = html.get(0);
@@ -499,12 +499,14 @@ export class ActorSheetFFG extends FFGActorSheet {
     });
     html.find(".popout-editor .popout-editor-button").on("click", this._onPopoutEditor.bind(this));
 
-    // Setup dice pool images and hide filtered skills using the render context
-    // already prepared for this render.
-    const skillPools = this._renderSkillPools(htmlElement, context);
+    // Setup dice pool image and hide filtered skills.
+    html.find(".skill").each(async (_, elem) => {
+      await DiceHelpers.addSkillDicePool(await this.getData({}), elem);
+      const filters = this._filters.skills;
+    });
 
     // Everything below here is only needed if the sheet is editable
-    if (!this.isEditable) return skillPools;
+    if (!this.isEditable) return;
 
     this._bindActorContextMenus(htmlElement);
 
@@ -1517,33 +1519,6 @@ export class ActorSheetFFG extends FFGActorSheet {
       html.find(`.change-row.${event.currentTarget.id}`).toggleClass("hidden");
     });
 
-    return skillPools;
-  }
-
-  async _renderSkillPools(root, context) {
-    if (!root || !context) return;
-
-    const renderToken = this._ffgRenderToken;
-    const skillNodes = Array.from(root.querySelectorAll(".skill[data-ability]"));
-    const filters = this._filters?.skills;
-    const activeFilter = filters?.filter;
-
-    await Promise.all(skillNodes.map(async (elem) => {
-      if (renderToken !== this._ffgRenderToken || !root.isConnected || !elem.isConnected) return;
-
-      if (activeFilter && activeFilter !== "all") {
-        const skillType = elem.dataset.skilltype ?? elem.closest("[data-type]")?.dataset.type;
-        elem.hidden = !!skillType && skillType !== activeFilter;
-      } else {
-        elem.hidden = false;
-      }
-
-      try {
-        await DiceHelpers.addSkillDicePool(context, elem);
-      } catch (err) {
-        CONFIG.logger.warn(`Unable to render skill pool for ${elem.dataset.ability ?? "unknown skill"}`, err);
-      }
-    }));
   }
 
   _bindActorContextMenus(htmlElement) {
