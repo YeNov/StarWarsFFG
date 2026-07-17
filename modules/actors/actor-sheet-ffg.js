@@ -207,7 +207,7 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   /** @override */
   async getData(options) {
-    const data = await super.getData();
+    const data = await super.getData(options);
     // The sheet templates branch on `contains classType "V2"` to render the V2
     // layout (icon tab strip, refined panels, shown-by-default tabs). After the
     // Stage 4 collapse the real classes are `ActorSheetFFG`/`AdversarySheetFFG`
@@ -215,8 +215,10 @@ export class ActorSheetFFG extends FFGActorSheet {
     // sheets. Without it the templates fall back to the retired V1 layout.
     data.classType = this.constructor.name.includes("V2") ? this.constructor.name : `${this.constructor.name}V2`;
 
-    // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully) for 0.7.x
-    const actorData = this.actor.toObject(false);
+    // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully)
+    // for 0.7.x. The shared base already serialized the actor; reuse that
+    // plain object so a render prepares one actor object instead of two.
+    const actorData = data.data;
     // A registered system DataModel's toObject() serializes only declared schema
     // fields, so top-level derived data attached to `system` during
     // prepareDerivedData (skilltypes, …) is dropped — template.json's plain
