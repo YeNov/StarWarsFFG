@@ -587,12 +587,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
   }
 
   /** @override */
-  async close(options) {
+  async close(options = {}) {
+    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
     if (this._adversaryHookId) {
       Hooks.off("targetToken", this._adversaryHookId);
       this._adversaryHookId = null;
     }
-    return super.close(options);
+    return super.close(closeOptions);
   }
 
   /**

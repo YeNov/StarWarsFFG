@@ -171,12 +171,13 @@ export class FFGFormApplication extends HandlebarsApplicationMixin(ApplicationV2
 
   /** Submit-on-close (opt-in) + block re-render races while tearing down. */
   async close(options = {}) {
+    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
     this._closing = true;
     try {
-      if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
+      if (this.options.submitOnClose && closeOptions.submit !== false && this.form && this.isEditable) {
         await this._onSubmit(new Event("submit", { cancelable: true }));
       }
-      return await super.close(options);
+      return await super.close(closeOptions);
     } finally {
       this._closing = false;
     }
