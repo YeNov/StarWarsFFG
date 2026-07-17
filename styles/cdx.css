@@ -898,7 +898,7 @@
 .cdx .cdx-bio-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:10px; margin-bottom:10px; }
 .cdx .cdx-panel { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; margin-bottom:10px; }
 .cdx .cdx-panel-head { background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
-.cdx .cdx-bio-editor { padding:8px 10px; min-height:120px; font-size:13px; line-height:1.5; }
+.cdx .cdx-bio-editor { padding:8px 10px; min-height:120px; font-size:13px; line-height:1.5; flex:1 0 auto; }
 /* In edit mode the global `.editor{height:100%}` / `.tox-tinymce{height:100%}`
    rules resolve against this block, which has only a min-height (no definite
    height) — so 100% collapses to ~0 and the edit surface disappears while the
@@ -911,6 +911,12 @@
 /* View mode: override the global `.editor{height:100%}` so the rendered bio
    grows with its content instead of being clipped by `.cdx-panel{overflow:hidden}`. */
 .cdx .cdx-bio-editor > .editor { height:auto; }
+/* Make the bio panel a flex column so the editor body (flex:1 0 auto, above)
+   stretches to the panel's full height. In .cdx-bio-grid the Description field
+   grid is taller and stretches this panel; without this the recessed "well" on
+   the short editor covered only part of the block. flex-basis:auto keeps the
+   edit-mode height:320px (above) intact while grow fills the extra row height. */
+.cdx .cdx-panel:has(.cdx-bio-editor) { display:flex; flex-direction:column; }
 .cdx .cdx-desc-grid { display:grid; grid-template-columns:auto 1fr; gap:5px 8px; padding:8px 10px; align-items:center; }
 .cdx .cdx-desc-grid label { font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 .cdx .cdx-desc-grid input, .cdx .cdx-desc-grid select { background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:2px 6px; color:var(--cdx-ink); }
@@ -1363,8 +1369,9 @@
 .cdx .cdx-ft-node { position:relative; min-width:0; display:flex; flex-direction:column; }
 
 /* --- Node card --- */
-/* No border: a border + clip-path leaves notch-corner artifacts. Use a
-   drop-shadow (follows the clipped shape) for depth; bought nodes glow accent. */
+/* Outline comes from the shared <svg.cdx-notch> overlay (this card is in
+   CDX_NOTCH_SEL) — a plain border can't follow the clip notches. The filter is
+   kept for depth, and bought nodes swap it for an accent glow (see .on below). */
 /* flex:1 0 auto (in the flex-column node) fills the row height for short cards but
    NEVER shrinks below the card's own content (flex-shrink:0) — so the body can't be
    squeezed into the foot when content slightly exceeds the measured row. Replaces a
@@ -1521,7 +1528,7 @@
    ----------------------------------------------------------------------------
    A CSS `border` can't follow the --cdx-clip octagon's 45° notches (clip-path
    slices it off there). Instead every diamond block carries an <svg.cdx-notch>
-   overlay (prepended by _cdxNotchOutlines) whose single stroked <path> traces
+   overlay (appended by cdxBuildNotchOutlines) whose single stroked <path> traces
    the SAME octagon geometry as the clip fill — built per-block in px so the
    notches stay a fixed 9px and the outline can never drift from the fill. The
    CSS border is dropped; the stroke colour is --cdx-ol (defaults to --cdx-line,
@@ -1552,7 +1559,8 @@
 .cdx form:not(.scheme-eldritch) .cdx-veh-rarity,
 .cdx form:not(.scheme-eldritch) .cdx-ihead,
 .cdx form:not(.scheme-eldritch) .cdx-ipill,
-.cdx form:not(.scheme-eldritch) .cdx-ihead .cdx-status {
+.cdx form:not(.scheme-eldritch) .cdx-ihead .cdx-status,
+.cdx form:not(.scheme-eldritch) .cdx-ft-card {
   --cdx-ol:var(--cdx-line);
   border:none;
   position:relative;

@@ -647,6 +647,23 @@
   border-color:#514632;
   border-radius:0;
 }
+/* Biography body is a real text field, but on marble it read as static display
+   text — unlike the item-sheet description editor (same ProseMirror widget) and
+   the Description inputs beside it. Recess it into a dark framed field so it
+   clearly invites editing. The fill + inset shadows live on .cdx-bio-editor (it
+   flex-fills the panel below the header — flex:1 0 auto in cdx.css) and the editor
+   content is transparent, so the pressed-in recess shows across the whole field,
+   not just behind the short text. The crisp frame coincides with the panel's own
+   so it reads as one edge; the inset shadows (top, bottom and a full-perimeter
+   wash) sink the whole field so the entire block reads pressed-in, not just a top
+   band on a flat floor — like the non-Eldritch codex well. */
+.cdx form.scheme-eldritch .cdx-bio-editor {
+  background:#111411;
+  box-shadow:inset 0 0 0 3px #0e100e,inset 0 0 0 4px rgba(112,96,70,.09),
+             inset 0 6px 18px rgba(0,0,0,.6),inset 0 -6px 18px rgba(0,0,0,.45),
+             inset 0 0 30px rgba(0,0,0,.4);
+}
+.cdx form.scheme-eldritch .cdx-bio-editor .editor-content { background:transparent; color:#ddd4c6; }
 .cdx form.scheme-eldritch .cdx-table td,
 .cdx form.scheme-eldritch .cdx-pane.effects td {
   background:rgba(14,17,15,.72);
@@ -1008,7 +1025,8 @@
 .cdx form.scheme-eldritch .cdx-veh-rarity,
 .cdx form.scheme-eldritch .cdx-ihead,
 .cdx form.scheme-eldritch .cdx-ipill,
-.cdx form.scheme-eldritch .cdx-ihead .cdx-status {
+.cdx form.scheme-eldritch .cdx-ihead .cdx-status,
+.cdx form.scheme-eldritch .cdx-ft-card {
   --cdx-ol:var(--cdx-line);
   border:none;
   position:relative;
@@ -1023,6 +1041,7 @@
 .cdx form.scheme-eldritch .cdx-pill.sig { --cdx-ol:#665a45; }
 .cdx form.scheme-eldritch .cdx-forcepool { --cdx-ol:#7a523d; }
 .cdx form.scheme-eldritch .cdx-veh-rarity { --cdx-ol:#5d5240; }
+.cdx form.scheme-eldritch .cdx-ft-node.on .cdx-ft-card { --cdx-ol:#675b46; }
 .cdx form.scheme-eldritch .cdx-card:hover,
 .cdx form.scheme-eldritch .cdx-injury:hover,
 .cdx form.scheme-eldritch .cdx-item-body .item.force-power:hover { --cdx-ol:#625745; }
