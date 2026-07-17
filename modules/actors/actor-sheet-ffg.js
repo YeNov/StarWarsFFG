@@ -214,9 +214,10 @@ export class ActorSheetFFG extends FFGActorSheet {
     data.classType = this.constructor.name.includes("V2") ? this.constructor.name : `${this.constructor.name}V2`;
 
     // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully)
-    // for 0.7.x. The shared base already serialized the actor; reuse that
-    // plain object so a render prepares one actor object instead of two.
-    const actorData = data.data;
+    // for 0.7.x. Actor sheet templates depend on prepared actor data here; the
+    // base document context can omit prepared skill rows and collapse skill
+    // sections to headers only.
+    const actorData = this.actor.toObject(false);
     // A registered system DataModel's toObject() serializes only declared schema
     // fields, so top-level derived data attached to `system` during
     // prepareDerivedData (skilltypes, …) is dropped — template.json's plain
