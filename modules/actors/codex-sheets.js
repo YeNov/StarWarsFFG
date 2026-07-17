@@ -63,7 +63,7 @@ const CDX_NOTCH_SEL = [
   ".cdx-stat", ".cdx-card", ".cdx-injury", ".cdx-talent", ".cdx-panel",
   ".cdx-istat", ".cdx-icheck2", ".item.force-power", ".cdx-forcepool",
   ".cdx-header", ".cdx-pill", ".cdx-square", ".cdx-veh-rarity",
-  ".cdx-ihead", ".cdx-ipill", ".cdx-ihead .cdx-status",
+  ".cdx-ihead", ".cdx-ipill", ".cdx-ihead .cdx-status", ".cdx-ft-card",
 ].join(",");
 
 /**

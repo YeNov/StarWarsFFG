@@ -1008,7 +1008,8 @@
 .cdx form.scheme-eldritch .cdx-veh-rarity,
 .cdx form.scheme-eldritch .cdx-ihead,
 .cdx form.scheme-eldritch .cdx-ipill,
-.cdx form.scheme-eldritch .cdx-ihead .cdx-status {
+.cdx form.scheme-eldritch .cdx-ihead .cdx-status,
+.cdx form.scheme-eldritch .cdx-ft-card {
   --cdx-ol:var(--cdx-line);
   border:none;
   position:relative;
@@ -1023,6 +1024,7 @@
 .cdx form.scheme-eldritch .cdx-pill.sig { --cdx-ol:#665a45; }
 .cdx form.scheme-eldritch .cdx-forcepool { --cdx-ol:#7a523d; }
 .cdx form.scheme-eldritch .cdx-veh-rarity { --cdx-ol:#5d5240; }
+.cdx form.scheme-eldritch .cdx-ft-node.on .cdx-ft-card { --cdx-ol:#675b46; }
 .cdx form.scheme-eldritch .cdx-card:hover,
 .cdx form.scheme-eldritch .cdx-injury:hover,
 .cdx form.scheme-eldritch .cdx-item-body .item.force-power:hover { --cdx-ol:#625745; }
