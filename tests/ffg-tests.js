@@ -8,6 +8,7 @@ import { CodexSchemeTests } from "./codex-schemes.test.js";
 import { SheetTabCacheTests } from "./v2-migration/sheet-tab-cache.test.js";
 import { FormSubmitCoalesceTests } from "./v2-migration/form-submit-coalesce.test.js";
 import { SheetInitialSizeTests } from "./v2-migration/sheet-initial-size.test.js";
+import { SheetSkillDataTests } from "./v2-migration/sheet-skill-data.test.js";
 
 export default class FFGFunctionalTests extends FormApplication {
   /** @override */
@@ -42,6 +43,7 @@ export default class FFGFunctionalTests extends FormApplication {
     SheetTabCacheTests(suite, suiteInstance, Test, chai);
     FormSubmitCoalesceTests(suite, suiteInstance, Test, chai);
     SheetInitialSizeTests(suite, suiteInstance, Test, chai);
+    SheetSkillDataTests(suite, suiteInstance, Test, chai);
 
     // Run Tests
     const mochaRun = () => {
