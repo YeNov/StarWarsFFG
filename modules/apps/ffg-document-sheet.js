@@ -428,6 +428,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
   }
 
   async close(options = {}) {
+    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
     // Block any render attempts that fire while we're closing. The submit-on-
     // close path runs `document.update`, which can trigger BOTH Foundry's
     // auto-render-on-update hook AND an explicit `this.render(true)` from
@@ -437,7 +438,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     // by our overridden `render()` to bail out cleanly.
     this._closing = true;
     try {
-      if (this.options.submitOnClose && options.submit !== false && this.form && this.isEditable) {
+      if (this.options.submitOnClose && closeOptions.submit !== false && this.form && this.isEditable) {
         const event = new Event("submit", { cancelable: true });
         try {
           await this._onSubmit(event, { preventClose: true, render: false });
@@ -453,7 +454,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
       // Fire while the form is still in the DOM so legacy listeners can inspect it.
       const form = this.form;
       if (form) this._callLegacyCloseHook($(form));
-      return await super.close(options);
+      return await super.close(closeOptions);
     } catch (err) {
       console.error("starwarsffg | sheet failed to close (super.close threw)", err);
       throw err;

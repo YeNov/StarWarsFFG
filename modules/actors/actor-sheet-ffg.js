@@ -39,8 +39,6 @@ export class ActorSheetFFG extends FFGActorSheet {
     this._filters = {
       skills: new Set(),
     };
-    this.object.setFlag("starwarsffg", "config.enableEditMode", false);
-    this.object.setFlag("starwarsffg", "config.editModeActor", "");
   }
 
   pools = new Map();
@@ -207,7 +205,7 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   /** @override */
   async getData(options) {
-    const data = await super.getData();
+    const data = await super.getData(options);
     // The sheet templates branch on `contains classType "V2"` to render the V2
     // layout (icon tab strip, refined panels, shown-by-default tabs). After the
     // Stage 4 collapse the real classes are `ActorSheetFFG`/`AdversarySheetFFG`
@@ -215,7 +213,10 @@ export class ActorSheetFFG extends FFGActorSheet {
     // sheets. Without it the templates fall back to the retired V1 layout.
     data.classType = this.constructor.name.includes("V2") ? this.constructor.name : `${this.constructor.name}V2`;
 
-    // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully) for 0.7.x
+    // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully)
+    // for 0.7.x. Actor sheet templates depend on prepared actor data here; the
+    // base document context can omit prepared skill rows and collapse skill
+    // sections to headers only.
     const actorData = this.actor.toObject(false);
     // A registered system DataModel's toObject() serializes only declared schema
     // fields, so top-level derived data attached to `system` during
@@ -227,6 +228,14 @@ export class ActorSheetFFG extends FFGActorSheet {
     // into Document back-references); it is read from the live system directly
     // where consumed (see the effects mapping later in getData).
     const liveSystem = this.actor.system;
+    // These prepared fields may already exist on the raw serialized system as
+    // empty/default schema values, so the generic "missing keys only" overlay
+    // below is not enough to keep skill rows rendered.
+    for (const key of ["skills", "skilltypes"]) {
+      if (liveSystem[key] !== undefined) {
+        actorData.system[key] = foundry.utils.deepClone(liveSystem[key]);
+      }
+    }
     for (const key of Object.keys(liveSystem)) {
       if (key === "effects" || key in actorData.system) continue;
       actorData.system[key] = foundry.utils.deepClone(liveSystem[key]);
@@ -490,7 +499,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     });
     html.find(".popout-editor .popout-editor-button").on("click", this._onPopoutEditor.bind(this));
 
-    // Setup dice pool image and hide filtered skills
+    // Setup dice pool image and hide filtered skills.
     html.find(".skill").each(async (_, elem) => {
       await DiceHelpers.addSkillDicePool(await this.getData({}), elem);
       const filters = this._filters.skills;
@@ -499,109 +508,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     // Everything below here is only needed if the sheet is editable
     if (!this.isEditable) return;
 
-    if (Hooks.events.preCreateItem === undefined) {
-      Hooks.on("preCreateItem", (item, createData, options, userId) => {
-        // Save persistent sheet height and width for future use.
-        this.sheetWidth = this.position.width;
-        this.sheetHeight = this.position.height;
-
-        // Check that we are dealing with an Embedded Document
-        if (item.isEmbedded && item.parent.documentName === "Actor") {
-          const actor = item.actor
-          // we only allow one species and one career, find any other species and remove them.
-          if (item.type === "species" || item.type === "career") {
-            if (["character", "nemesis", "rival"].includes(actor.type)) {
-              const itemToDelete = actor.items.filter((i) => (i.type === item.type) && (i.id !== item.id));
-              itemToDelete.forEach((i) => {
-                actor.items.get(i.id).delete();
-              });
-            } else if (actor.type === "minion") {
-              ui.notifications.warn(`Item type '${item.type}' cannot be added to 'minion' actor types.`);
-              return false;
-            }
-          }
-
-          // Critical Damage can only be added to "vehicle" actors and Critical Injury can only be added to "character" actors.
-          if (item.type === "criticaldamage" && actor.type !== "vehicle") {
-            ui.notifications.warn("Critical Damage can only be added to 'vehicle' actor types.");
-            return false;
-          }
-          if (item.type === "criticalinjury" && !["character", "nemesis", "rival"].includes(actor.type)) {
-            ui.notifications.warn("Critical Injuries can only be added to 'character' actor types.");
-            return false;
-          }
-
-          // Prevent adding of character data type items to vehicles
-          if (["career", "forcepower", "talent", "signatureability", "specialization", "species", "ability"].includes(item.type.toString()) && actor.type === "vehicle") {
-            ui.notifications.warn(`Item type '${item.type}' cannot be added to 'vehicle' actor types.`);
-            return false;
-          }
-        }
-      });
-    }
-
-    if (Hooks.events.preDeleteItem === undefined) {
-      Hooks.on("preDeleteItem", (item, createData, options, userId) => {
-        // Save persistent sheet height and width for future use.
-        this.sheetWidth = this.position.width;
-        this.sheetHeight = this.position.height;
-      });
-    }
-
-    if (Hooks.events.preUpdateItem === undefined) {
-      Hooks.on("preUpdateItem", (item, createData, options, userId) => {
-        // Save persistent sheet height and width for future use.
-        this.sheetWidth = this.position.width;
-        this.sheetHeight = this.position.height;
-      });
-    }
-
-    let contextMenuOptions = [
-      {
-        name: game.i18n.localize("SWFFG.SkillChangeCharacteristicContextItem"),
-        icon: '<i class="fas fa-wrench"></i>',
-        callback: (li) => {
-          this._onChangeSkillCharacteristic(li);
-        },
-      },
-      {
-        name: game.i18n.localize("SWFFG.SkillAddAsInitiative"),
-        icon: '<i class="fas fa-cog"></i>',
-        callback: (li) => {
-          this._onInitiativeSkill(li);
-        },
-      },
-      {
-        name: game.i18n.localize("SWFFG.SkillRemoveContextItem"),
-        icon: '<i class="fas fa-times"></i>',
-        callback: async (li) => {
-          await this._onRemoveSkill(li);
-        },
-      },
-    ];
-
-    if (this.actor.type === "character") {
-      contextMenuOptions.push(
-        {
-          name: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SkillRank.ContextMenuText"),
-          icon: '<i class="fa-regular fa-circle-up"></i>',
-          callback: (li) => {
-            if(!this.actor.verifyEditModeIsNotEnabled()) return false;
-            this._buySkillRank(li);
-          },
-        },
-      );
-    }
-
-    new foundry.applications.ux.ContextMenu(
-        htmlElement,
-        // Codex skill rows (.cdx-skills .skill) carry the same data-ability/
-        // data-characteristic attributes the callbacks read, but live outside the
-        // stock .skillsGrid container, so include them here.
-        ".skillsGrid .skill, .cdx-skills .skill",
-        contextMenuOptions,
-      {jQuery: false, fixed: true},
-    );
+    this._bindActorContextMenus(htmlElement);
 
     html.find(".skill-purchase").click(async (ev) => {
       const target = $(ev.currentTarget).parents().filter("[data-ability]");
@@ -624,16 +531,6 @@ export class ActorSheetFFG extends FFGActorSheet {
       await this._handleKillMinion(ev);
     });
 
-    new foundry.applications.ux.ContextMenu(htmlElement, "div.skillsHeader", [
-      {
-        name: game.i18n.localize("SWFFG.SkillAddContextItem"),
-        icon: '<i class="fas fa-plus-circle"></i>',
-        callback: (li) => {
-          this._onCreateSkill(li);
-        },
-      },
-    ], {jQuery: false, fixed: true});
-
     html.find(".ffg-purchase").click(async (ev) => {
       await this._buyCore(ev)
     });
@@ -646,54 +543,6 @@ export class ActorSheetFFG extends FFGActorSheet {
       const purchaseId = $(ev.currentTarget).children("a").data("id");
       await this._refundPurchase(purchaseId, "adjustment")
     });
-
-    // Send Item Details to chat.
-
-    const sendToChatContextItem = {
-      name: game.i18n.localize("SWFFG.SendToChat"),
-      icon: '<i class="far fa-comment"></i>',
-      callback: (el) => {
-        let itemId = el.getAttribute("data-item-id");
-        this._itemDetailsToChat(itemId);
-      },
-    };
-
-    const rollForceToChatContextItem = {
-      name: game.i18n.localize("SWFFG.SendForceRollToChat"),
-      icon: '<i class="fas fa-dice-d20"></i>',
-      callback: async (el) => {
-        let itemId = el.getAttribute("data-item-id");
-        let item = this.actor.items.get(itemId);
-        if (!item) {
-          item = game.items.get(itemId);
-        }
-        if (!item) {
-          item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
-        }
-        const forcedice = this.actor.system.stats.forcePool.max - this.actor.system.stats.forcePool.value;
-        if (forcedice > 0) {
-          let sheet = await this.getData();
-          const dicePool = new DicePoolFFG({
-            force: forcedice,
-          });
-          DiceHelpers.displayRollDialog(sheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${item.name}`, item.name, item);
-        } else {
-          ui.notifications.info(game.i18n.localize("SWFFG.Roll.ForcePowers.NoDice"));
-        }
-      },
-    };
-
-    // Codex header pills (species/career/spec/signature) are span.cdx-pill.item; force
-    // pills are span.cdx-pill.force.item -- neither matches li.item or div.item, so
-    // include them here so right-click "send to chat" (and force-roll) works on them
-    // too. Codex talent/gear cards are div.item and are already covered below.
-    // fixed:true positions the menu at document.body. Without it the menu is
-    // appended INSIDE the right-clicked element (Foundry's non-fixed path), and the
-    // codex talent/skill cards' constrained height/overflow squash it to a ~10px
-    // sliver -- so it "didn't appear".
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false, fixed: true});
-    new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false, fixed: true});
-    new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false, fixed: true});
 
     if (["nemesis", "rival"].includes(this.actor.type)) {
       this.sheetoptions = new ActorOptions(this, html);
@@ -1669,6 +1518,108 @@ export class ActorSheetFFG extends FFGActorSheet {
       }
       html.find(`.change-row.${event.currentTarget.id}`).toggleClass("hidden");
     });
+
+  }
+
+  _bindActorContextMenus(htmlElement) {
+    if (!htmlElement || this._actorContextMenuForm === htmlElement) return;
+
+    const contextMenuOptions = [
+      {
+        name: game.i18n.localize("SWFFG.SkillChangeCharacteristicContextItem"),
+        icon: '<i class="fas fa-wrench"></i>',
+        callback: (li) => {
+          this._onChangeSkillCharacteristic(li);
+        },
+      },
+      {
+        name: game.i18n.localize("SWFFG.SkillAddAsInitiative"),
+        icon: '<i class="fas fa-cog"></i>',
+        callback: (li) => {
+          this._onInitiativeSkill(li);
+        },
+      },
+      {
+        name: game.i18n.localize("SWFFG.SkillRemoveContextItem"),
+        icon: '<i class="fas fa-times"></i>',
+        callback: async (li) => {
+          await this._onRemoveSkill(li);
+        },
+      },
+    ];
+
+    if (this.actor.type === "character") {
+      contextMenuOptions.push({
+        name: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.SkillRank.ContextMenuText"),
+        icon: '<i class="fa-regular fa-circle-up"></i>',
+        callback: (li) => {
+          if (!this.actor.verifyEditModeIsNotEnabled()) return false;
+          this._buySkillRank(li);
+        },
+      });
+    }
+
+    const sendToChatContextItem = {
+      name: game.i18n.localize("SWFFG.SendToChat"),
+      icon: '<i class="far fa-comment"></i>',
+      callback: (el) => {
+        let itemId = el.getAttribute("data-item-id");
+        this._itemDetailsToChat(itemId);
+      },
+    };
+
+    const rollForceToChatContextItem = {
+      name: game.i18n.localize("SWFFG.SendForceRollToChat"),
+      icon: '<i class="fas fa-dice-d20"></i>',
+      callback: async (el) => {
+        let itemId = el.getAttribute("data-item-id");
+        let item = this.actor.items.get(itemId);
+        if (!item) {
+          item = game.items.get(itemId);
+        }
+        if (!item) {
+          item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
+        }
+        const forcedice = this.actor.system.stats.forcePool.max - this.actor.system.stats.forcePool.value;
+        if (forcedice > 0) {
+          let sheet = await this.getData();
+          const dicePool = new DicePoolFFG({
+            force: forcedice,
+          });
+          DiceHelpers.displayRollDialog(sheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${item.name}`, item.name, item);
+        } else {
+          ui.notifications.info(game.i18n.localize("SWFFG.Roll.ForcePowers.NoDice"));
+        }
+      },
+    };
+
+    this._actorContextMenuForm = htmlElement;
+    this._actorContextMenus = [
+      new foundry.applications.ux.ContextMenu(
+        htmlElement,
+        // Codex skill rows (.cdx-skills .skill) carry the same data-ability/
+        // data-characteristic attributes the callbacks read, but live outside the
+        // stock .skillsGrid container, so include them here.
+        ".skillsGrid .skill, .cdx-skills .skill",
+        contextMenuOptions,
+        {jQuery: false, fixed: true},
+      ),
+      new foundry.applications.ux.ContextMenu(htmlElement, "div.skillsHeader", [
+        {
+          name: game.i18n.localize("SWFFG.SkillAddContextItem"),
+          icon: '<i class="fas fa-plus-circle"></i>',
+          callback: (li) => {
+            this._onCreateSkill(li);
+          },
+        },
+      ], {jQuery: false, fixed: true}),
+      // Codex header pills (species/career/spec/signature) are span.cdx-pill.item;
+      // force pills are span.cdx-pill.force.item. fixed:true keeps the menu out of
+      // clipped Codex cards.
+      new foundry.applications.ux.ContextMenu(htmlElement, "li.item:not(.forcepower), .cdx-pill.item:not(.force)", [sendToChatContextItem], {jQuery: false, fixed: true}),
+      new foundry.applications.ux.ContextMenu(htmlElement, "li.item.forcepower, .cdx-pill.force.item", [sendToChatContextItem, rollForceToChatContextItem], {jQuery: false, fixed: true}),
+      new foundry.applications.ux.ContextMenu(htmlElement, "div.item", [sendToChatContextItem], {jQuery: false, fixed: true}),
+    ];
   }
 
   /**

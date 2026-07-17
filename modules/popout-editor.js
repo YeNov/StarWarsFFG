@@ -83,6 +83,11 @@ export default class PopoutEditor extends HandlebarsApplicationMixin(Application
     return super.setPosition(clamped);
   }
 
+  async close(options = {}) {
+    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
+    return super.close(closeOptions);
+  }
+
   /**
    * Return a reference to the target attribute
    * @type {String}

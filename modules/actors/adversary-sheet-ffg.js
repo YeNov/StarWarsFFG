@@ -65,10 +65,10 @@ export class AdversarySheetFFG extends ActorSheetFFG {
   }
 
   /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
+  activateListeners(html, context, options) {
+    const skillPools = super.activateListeners(html, context, options);
 
-    if (!this.options.editable) return;
+    if (!this.options.editable) return skillPools;
 
     if (this.actor.type === "character") {
       this.sheetoptions.clear();
@@ -98,5 +98,6 @@ export class AdversarySheetFFG extends ActorSheetFFG {
         options: [game.i18n.localize("SWFFG.UseGlobalSetting"), game.i18n.localize("SWFFG.OptionValueYes"), game.i18n.localize("SWFFG.OptionValueNo")],
       });
     }
+    return skillPools;
   }
 }

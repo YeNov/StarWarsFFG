@@ -430,6 +430,10 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   async close(options = {}) {
     this._cdxPillStack?.destroy();
     this._cdxPillStack = null;
+    if (this._cdxTalentCardRoot && this._onCdxTalentCardClickBound) {
+      this._cdxTalentCardRoot.removeEventListener("click", this._onCdxTalentCardClickBound, true);
+    }
+    this._cdxTalentCardRoot = null;
     this._cdxNotchRO?.disconnect();
     this._cdxNotchRO = null;
     this._cdxMarbleRO?.disconnect();
@@ -609,16 +613,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // handler opens the sheet for these types; intercept in the capture phase so
     // we beat that bubble handler. Control clicks (edit/delete/roll) pass through;
     // clicks inside an already-open detail block don't toggle it shut.
-    root.addEventListener("click", (ev) => {
-      const card = ev.target.closest?.(".cdx-talent[data-item-id]");
-      if (!card || ev.target.closest(".item-control")) return;
-      const item = this.actor?.items?.get(card.dataset.itemId);
-      if (!item || !["forcepower", "signatureability"].includes(item.type)) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (ev.target.closest(".item-details")) return;
-      this._itemDisplayDetails(item, { preventDefault() {}, currentTarget: card });
-    }, true);
+    this._bindCdxTalentCardHandler(root);
 
     if (!this.options.editable) return;
     this._cdxWireReorder(root);
@@ -1015,6 +1010,26 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       return false;
     }
     return true;
+  }
+
+  _bindCdxTalentCardHandler(root) {
+    if (!root) return;
+    this._onCdxTalentCardClickBound ??= this._onCdxTalentCardClick.bind(this);
+    if (this._cdxTalentCardRoot === root) return;
+    this._cdxTalentCardRoot?.removeEventListener("click", this._onCdxTalentCardClickBound, true);
+    this._cdxTalentCardRoot = root;
+    root.addEventListener("click", this._onCdxTalentCardClickBound, true);
+  }
+
+  _onCdxTalentCardClick(ev) {
+    const card = ev.target.closest?.(".cdx-talent[data-item-id]");
+    if (!card || ev.target.closest(".item-control")) return;
+    const item = this.actor?.items?.get(card.dataset.itemId);
+    if (!item || !["forcepower", "signatureability"].includes(item.type)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (ev.target.closest(".item-details")) return;
+    this._itemDisplayDetails(item, { preventDefault() {}, currentTarget: card });
   }
 
   /**
