@@ -196,6 +196,12 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   /** @override */
+  async close(options = {}) {
+    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
+    return super.close(closeOptions);
+  }
+
+  /** @override */
   async _onRender(context, options) {
     /**
      * Used to activateListeners on ApplicationV2

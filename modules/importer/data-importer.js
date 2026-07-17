@@ -41,6 +41,12 @@ export default class DataImporter extends HandlebarsApplicationMixin(Application
     this.shouldImport = {};
   }
 
+  /** @override */
+  async close(options = {}) {
+    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
+    return super.close(closeOptions);
+  }
+
   /**
    * Return a reference to the target attribute
    * @type {String}

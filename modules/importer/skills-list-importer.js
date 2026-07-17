@@ -26,6 +26,12 @@ export default class SkillListImporter extends HandlebarsApplicationMixin(Applic
   };
 
   /** @override */
+  async close(options = {}) {
+    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
+    return super.close(closeOptions);
+  }
+
+  /** @override */
   async _prepareContext(_options) {
     $(".import-progress").addClass("import-hidden");
 
