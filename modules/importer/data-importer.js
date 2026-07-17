@@ -51,7 +51,7 @@ export default class DataImporter extends HandlebarsApplicationMixin(Application
 
   /** @override */
   async _prepareContext() {
-    let data = await foundry.applications.apps.FilePicker.browse("data", "", { bucket: null, extensions: [".zip", ".ZIP"], wildcard: false });
+    let data = await foundry.applications.apps.FilePicker.implementation.browse("data", "", { bucket: null, extensions: [".zip", ".ZIP"], wildcard: false });
     const files = data.files.map((file) => decodeURIComponent(file));
 
     document.querySelectorAll('.import-progress').forEach(el => el.classList.add('import-hidden'));

@@ -66,14 +66,16 @@ export class ActorFFG extends Actor {
         };
         break;
       case "rival":
+        // Rivals have no strain threshold, so no explicit bar2 - as with minions
+        // above. Note this does not mean "no bar2": omitting it lets bar2 fall
+        // back to system.json's secondaryTokenAttribute ("strain"), which is not
+        // a real path on any actor here (the data lives at stats.strain), so no
+        // bar renders. Minion relies on the same fallback.
         createData.prototypeToken = {
           actorLink: false,
           disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
           bar1: {
             attribute: "stats.wounds",
-          },
-          bar2: {
-            attribute: "stats.strain",
           },
           prependAdjective: game.settings.get("starwarsffg", "RivalTokenPrepend"),
         };
@@ -774,7 +776,7 @@ export class ActorFFG extends Actor {
   }
 
   /** @override **/
-  applyActiveEffects() {
+  applyActiveEffects(...args) {
     // Scale each item's modifiers by its quantity (e.g. carrying 2 of a gear item that grants
     // +1 Encumbrance capacity should grant +2). The Active Effect persists the per-item value;
     // we derive the scaled value here from the effect's source so that changing quantity updates
@@ -815,6 +817,10 @@ export class ActorFFG extends Actor {
         }
       }
     }
-    return super.applyActiveEffects();
+    // V14 made applyActiveEffects phase-based: core calls it with a string phase
+    // ("initial", ...) and super requires that argument (missing it logs a
+    // deprecation, removed in V16). Forward whatever core passes. The pre-super
+    // mutations above are idempotent, so running once per phase is safe.
+    return super.applyActiveEffects(...args);
   }
 }

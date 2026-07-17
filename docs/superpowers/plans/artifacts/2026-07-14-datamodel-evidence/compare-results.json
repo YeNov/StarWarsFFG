@@ -1,0 +1,29 @@
+{
+ "comparedDocs": 1655,
+ "docsWithLostPaths": 1,
+ "lostPaths": [
+  {
+   "col": "actors",
+   "id": "A1tMbqEKX7ORSnsN",
+   "name": "Human",
+   "type": "species",
+   "liveModified": "2026-07-10T18:31",
+   "lost": [
+    {
+     "path": "attributes.attr1782508479857.modtype",
+     "wasValue": "Skill Rank"
+    },
+    {
+     "path": "attributes.attr1782508479857.mod",
+     "wasValue": "Lightsaber"
+    },
+    {
+     "path": "attributes.attr1782508479857.value",
+     "wasValue": 0
+    }
+   ]
+  }
+ ],
+ "onlyInLive": 38,
+ "missingDocs": 6
+}

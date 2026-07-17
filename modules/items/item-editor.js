@@ -1,3 +1,4 @@
+import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ItemHelpers from "../helpers/item-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
@@ -120,14 +121,14 @@ export class itemEditor extends FFGFormApplication {
     let enriched = this.data;
     const co = enriched.clickedObject;
     if (co?.system?.description !== undefined) {
-      co.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(co.system.description);
+      co.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(co.system.description);
       for (let modification of co.system.itemmodifier ?? []) {
-        modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(modification.system.description);
+        modification.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(modification.system.description);
       }
     } else if (co?.description !== undefined) {
       // Force-power / signature upgrades (and specialization talents) carry the
       // description directly on the object, not under .system.
-      co.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(co.description);
+      co.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(co.description);
     }
     return enriched;
   }
@@ -551,7 +552,7 @@ export class itemEditor extends FFGFormApplication {
               for (const curMod of explodedMods) {
                 changes.push({
                   key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-                  mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                  mode: AE_MODES.ADD,
                   value: formData.system.attributes[modKey].value,
                 });
               }
@@ -605,7 +606,7 @@ export class itemEditor extends FFGFormApplication {
                 for (const curMod of explodedMods) {
                   changes.push({
                     key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-                    mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                    mode: AE_MODES.ADD,
                     value: modifier.system.attributes[modKey].value,
                   });
                 }
@@ -706,7 +707,7 @@ export class itemEditor extends FFGFormApplication {
         for (const curMod of explodedMods) {
           changes.push({
             key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-            mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+            mode: AE_MODES.ADD,
             value: formData.system.attributes[modKey].value,
           });
         }
@@ -833,7 +834,7 @@ export class talentEditor extends itemEditor {
    */
   async _enrichData() {
     let enriched = this.data;
-    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(this.data.clickedObject.description);
+    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.data.clickedObject.description);
     return enriched;
   }
 
@@ -894,7 +895,7 @@ export class talentEditor extends itemEditor {
         for (const curMod of explodedMods) {
           changes.push({
             key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-            mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+            mode: AE_MODES.ADD,
             value: formData.attributes[modKey].value,
           });
         }
@@ -1044,7 +1045,7 @@ export class forcePowerEditor extends itemEditor {
    */
   async _enrichData() {
     let enriched = this.data;
-    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.enrichHTML(this.data.clickedObject.description);
+    enriched.clickedObject.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.data.clickedObject.description);
     return enriched;
   }
 
@@ -1100,7 +1101,7 @@ export class forcePowerEditor extends itemEditor {
         for (const curMod of explodedMods) {
           changes.push({
             key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-            mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+            mode: AE_MODES.ADD,
             value: formData.attributes[modKey].value,
           });
         }

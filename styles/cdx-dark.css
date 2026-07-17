@@ -35,6 +35,18 @@
 .cdx.scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box,
 .cdx .scheme-dark .cdx-chip.derived.cdx-align-neutral .cdx-chip-box { background:var(--cdx-paper2); }
 
+/* Dark scheme: force-tree connector off-state. --cdx-dim (#9a8e88) is a LIGHT tint
+   on this near-black gap, so at full strength it hits 6.16:1 — far heavier than the
+   same token manages on the light schemes (3.3–4.1). .75 pulls it to 3.91, in line
+   with them. This equalises the off-state's weight ACROSS schemes; it is not the
+   learnt/unlearnt signal — hue and the `.on` glow carry that, as on the stock sheet.
+   :not(.on) confines this to the off state and keeps `.on` at full opacity.
+   Note this scheme's --cdx-accent (#8a1714) is only 2.07:1 on the gap, so a bought
+   line is now the FAINTER of the two and leans on its red glow to read as lit.
+   Brightening that accent is the real cure, but it's a palette decision. */
+.cdx.scheme-dark .cdx-ft-line:not(.on),
+.cdx .scheme-dark .cdx-ft-line:not(.on) { opacity:.75; }
+
 /* Dark scheme: render the defence setback dice like the setback die glyph — black
    fill with a white outline (rulebook-accurate) instead of the light currentColor
    fill. CSS fill/stroke override the rect's fill="currentColor" presentation attr. */

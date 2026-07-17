@@ -637,7 +637,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     const target = event.currentTarget;
     const attr = target.dataset.edit;
     const current = foundry.utils.getProperty(this.document._source, attr);
-    const fp = new foundry.applications.apps.FilePicker({
+    const fp = new foundry.applications.apps.FilePicker.implementation({
       current,
       type: "image",
       callback: (path) => {
@@ -659,7 +659,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     const button = event.currentTarget;
     const field = button.dataset.target;
     const input = this.form?.elements[field];
-    const fp = new foundry.applications.apps.FilePicker({
+    const fp = new foundry.applications.apps.FilePicker.implementation({
       type: button.dataset.type ?? "image",
       current: input?.value,
       callback: (path) => {

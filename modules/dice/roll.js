@@ -102,7 +102,7 @@ export class RollFFG extends Roll {
 
   async updateSymbols() {
     for (const addedResult of this.addedResults) {
-      addedResult.symbol = await foundry.applications.ux.TextEditor.enrichHTML(addedResult.symbol);
+      addedResult.symbol = await foundry.applications.ux.TextEditor.implementation.enrichHTML(addedResult.symbol);
     }
   }
 
@@ -342,17 +342,19 @@ export class RollFFG extends Roll {
 
   /* -------------------------------------------- */
   /** @override */
-  async toMessage(messageData = {}, { rollMode = null, create = true } = {}) {
+  async toMessage(messageData = {}, { messageMode = null, rollMode = null, create = true } = {}) {
     // Perform the roll, if it has not yet been rolled
     if (!this._evaluated) await this.evaluate();
 
-    const rMode = rollMode || messageData.rollMode || game.settings.get("core", "rollMode");
-
-    if (["gmroll", "blindroll"].includes(rMode)) {
-      messageData.whisper = ChatMessage.getWhisperRecipients("GM");
-    }
-    if (rMode === "blindroll") messageData.blind = true;
-    if (rMode === "selfroll") messageData.whisper = [game.user.id];
+    // V14 renamed the roll-visibility concept: the legacy `rollMode`
+    // (publicroll/gmroll/blindroll/selfroll) + `core.rollMode` setting became the
+    // string `messageMode` (public/gm/blind/self) + `core.messageMode`, and the
+    // whisper/blind handling moved from ChatMessage#applyRollMode to #applyMode.
+    // Both the setting read and applyRollMode log deprecation warnings on V14
+    // (removed in V16). Feature-detect so the system keeps working on its declared
+    // minimum (V13), and delegate whisper/blind entirely to the core handler rather
+    // than reimplementing visibility (a leaked private/blind roll would be a bug).
+    const isV14 = game.release.generation >= 14;
 
     // Prepare chat data
     messageData = foundry.utils.mergeObject(
@@ -370,10 +372,24 @@ export class RollFFG extends Roll {
     // Either create the message or just return the chat data
     const cls = getDocumentClass("ChatMessage");
     const msg = new cls(messageData);
-    if (rMode) msg.applyRollMode(rMode);
+    if (isV14) {
+      // Accept an explicit messageMode; fall back to a caller-supplied legacy
+      // rollMode (mapped) or the configured default.
+      let mMode = messageMode ?? messageData.messageMode;
+      const legacy = rollMode ?? messageData.rollMode;
+      if (!mMode) mMode = legacy ? this.constructor._mapLegacyRollMode(legacy) : game.settings.get("core", "messageMode");
+      if (mMode) msg.applyMode(mMode);
+    } else {
+      const rMode = rollMode ?? messageData.rollMode ?? game.settings.get("core", "rollMode");
+      if (rMode) msg.applyRollMode(rMode);
+    }
 
-    // Either create or return the data
-    return create ? await cls.create(msg) : msg;
+    // Either create or return the data. Pass chatBubble:false so a token-speaker'd roll
+    // doesn't pop a chat bubble over the token and pan the camera to it (core's sayBubble ->
+    // ChatBubbles.say defaults pan:true, with the chatBubblesPan setting also defaulting on).
+    // The `??=` in ChatMessage._preCreate preserves an explicit false. Matches the initiative
+    // path, which sets the same option on its own message creation downstream.
+    return create ? await cls.create(msg, { chatBubble: false }) : msg;
   }
 
   /** @override */

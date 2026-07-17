@@ -1,0 +1,95 @@
+=== CHANGED-VALUE AUDIT — 16427 docs (model loaded the way Foundry loads: non-strict + fallback) ===
+
+shipweapon . description                         918 docs
+      "      Please see page 230 of the Edge of the Empire Core Rulebook, or page 240 of the Age of Rebellion Core Rulebook, for details." -> "Please see page 230 of the Edge of the Empire Core Rulebook, or page 240 of the Age of Rebellion Core Rulebook, for details."
+      "      Please see page 188 of the Age of Rebellion Beta Rulebook for details." -> "Please see page 188 of the Age of Rebellion Beta Rulebook for details."
+      "      Please see page 70 of the Dangerous Covenants Sourcebook for details." -> "Please see page 70 of the Dangerous Covenants Sourcebook for details."
+      "      Please see page 49 of the Stay on Target Sourcebook, page 53 of the Lead by Example Sourcebook, or page 78 of the Rise of the Separatists Sourcebook, for details." -> "Please see page 49 of the Stay on Target Sourcebook, page 53 of the Lead by Example Sourcebook, or page 78 of the Rise of the Separatists Sourcebook, for details."
+weapon . description                             691 docs
+      "      Please see page 54 of the Rise of the Separatists Sourcebook for details." -> "Please see page 54 of the Rise of the Separatists Sourcebook for details."
+      "      Please see page 46 of the Unlimited Power Sourcebook for details." -> "Please see page 46 of the Unlimited Power Sourcebook for details."
+      "      Please see page 94 of the Suns of Fortune Sourcebook for details." -> "Please see page 94 of the Suns of Fortune Sourcebook for details."
+      "      Please see page 39 of the Cyphers and Masks Sourcebook for details." -> "Please see page 39 of the Cyphers and Masks Sourcebook for details."
+armour . soak.value                              685 docs
+      "3" -> 3
+      "1" -> 1
+      "2" -> 2
+      " " -> 0
+gear . description                               603 docs
+      "      Please see page 111 of the Lords of Nal Hutta Sourcebook for details.<br><br><h3>Base Mods</h3><div>[AD][AD] for Agility- and Willpower-related checks until end of encounter. After, suffer [THREAT] to Brawn-. Intellect-. and Cunning-related checks until end of session. </div>" -> "Please see page 111 of the Lords of Nal Hutta Sourcebook for details.<br><br><h3>Base Mods</h3><div>[AD][AD] for Agility- and Willpower-related checks until end of encounter. After, suffer [THREAT] to Brawn-. Intellect-. and Cunning-related checks until end of session. </div>"
+      "      Please see page 48 of the Enter the Unknown Sourcebook for details.<br><br><h3>Base Mods</h3><div>Grants [BOOST] to any Perception check made to locate prey </div><div>Removes up to [SETBACK][SETBACK] imposed due to concealment, darkness or fog, and mist from all Ranged-Light and Ranged-Heavy checks </div>" -> "Please see page 48 of the Enter the Unknown Sourcebook for details.<br><br><h3>Base Mods</h3><div>Grants [BOOST] to any Perception check made to locate prey </div><div>Removes up to [SETBACK][SETBACK] imposed due to concealment, darkness or fog, and mist from all Ranged-Light and Ranged-Heavy checks </div>"
+      "      Please see page 49 of the Cyphers and Masks Sourcebook for details." -> "Please see page 49 of the Cyphers and Masks Sourcebook for details."
+      "      Please see page 53 of the Desperate Allies Sourcebook for details.<br><br><h3>Base Mods</h3><div>Can conceal items up to half encumbrance of box. </div><div>Requires [B]Daunting ([DI][DI][DI][DI]) Perception check[b] to find something concealed in box. </div>" -> "Please see page 53 of the Desperate Allies Sourcebook for details.<br><br><h3>Base Mods</h3><div>Can conceal items up to half encumbrance of box. </div><div>Requires [B]Daunting ([DI][DI][DI][DI]) Perception check[b] to find something concealed in box. </div>"
+itemattachment . description                     314 docs
+      "      Please see page 55 of the Forged in Battle Sourcebook for details.<p><h3>Sources:</h3>Page 55 - Forged in Battle<br></p><h3>Base Mods</h3><div>May recharge a depleted piece of equipment as an action, or a droid or larger piece of machinery in two hours. </div><div>Once per encounter, wearer may ignore an \"out of ammo\" [DE] result in the same manner as an Extra Reload. </div>" -> "Please see page 55 of the Forged in Battle Sourcebook for details.<p><h3>Sources:</h3>Page 55 - Forged in Battle<br></p><h3>Base Mods</h3><div>May recharge a depleted piece of equipment as an action, or a droid or larger piece of machinery in two hours. </div><div>Once per encounter, wearer may ignore an \"out of ammo\" [DE] result in the same manner as an Extra Reload. </div>"
+      "      Please see page 48 of the Knights of Fate Sourcebook for details.<p><h3>Sources:</h3>Page 48 - Knights of Fate<br></p><h3>Base Mods</h3><div>Base Damage Mod - Changes Base Damage Count 7</div><div>Base Critical Rating Mod - Changes Critical Rating Count 3</div><div>Breach Quality - Breach {0} </div><div>Inaccurate Quality - Inaccurate {0} Count 2</div><div>Sunder Quality - Sunder </div><div>Vicious Quality - Vicious {0} </div>" -> "Please see page 48 of the Knights of Fate Sourcebook for details.<p><h3>Sources:</h3>Page 48 - Knights of Fate<br></p><h3>Base Mods</h3><div>Base Damage Mod - Changes Base Damage Count 7</div><div>Base Critical Rating Mod - Changes Critical Rating Count 3</div><div>Breach Quality - Breach {0} </div><div>Inaccurate Quality - Inaccurate {0} Count 2</div><div>Sunder Quality - Sunder </div><div>Vicious Quality - Vicious {0} </div>"
+      "      Please see page 51 of the Forged in Battle Sourcebook for details.<p><h3>Sources:</h3>Page 51 - Forged in Battle<br></p><h3>Base Mods</h3><div>Remove [SE] added by the Called Shot use of the Aim maneuver from Ranged Light and Ranged Heavy checks. </div>" -> "Please see page 51 of the Forged in Battle Sourcebook for details.<p><h3>Sources:</h3>Page 51 - Forged in Battle<br></p><h3>Base Mods</h3><div>Remove [SE] added by the Called Shot use of the Aim maneuver from Ranged Light and Ranged Heavy checks. </div>"
+      "      Please see page 57 of the Keeping the Peace sourcebook for details.<p><h3>Sources:</h3>Page 57 - Keeping the Peace<br></p><h3>Base Mods</h3><div>First time wearer is hit each encounter, reduce damage by 10.  After, armor suffers minor damage and must be repaired to function again. </div>" -> "Please see page 57 of the Keeping the Peace sourcebook for details.<p><h3>Sources:</h3>Page 57 - Keeping the Peace<br></p><h3>Base Mods</h3><div>First time wearer is hit each encounter, reduce damage by 10.  After, armor suffers minor damage and must be repaired to function again. </div>"
+vehicle . stats.navicomputer.value               311 docs
+      "false" -> false
+      "true" -> true
+armour . defence.value                           189 docs
+      "1" -> 1
+      "2" -> 2
+vehicle . biography                              164 docs
+      "    Please see page 65 of the Dangerous Covenants Sourcebook for details." -> "Please see page 65 of the Dangerous Covenants Sourcebook for details."
+      "      Please see page 262 of the Edge of the Empire Core Rulebook for details." -> "Please see page 262 of the Edge of the Empire Core Rulebook for details."
+      "    Please see sidebar on page 259 of the Force and Destiny Core Rulebook for details." -> "Please see sidebar on page 259 of the Force and Destiny Core Rulebook for details."
+      "    Please see page 254 of the Force and Destiny Core Rulebook for details." -> "Please see page 254 of the Force and Destiny Core Rulebook for details."
+shipattachment . description                     105 docs
+      "      Converts a walker to a paramilitary vehicle.  Please see page 71 of the Dangerous Covenants Sourcebook for details.<p><h3>Sources:</h3>Page 71 - Dangerous Covenants<br></p><h3>Base Mods</h3><div>Adds a forward medium laser cannon </div>" -> "Converts a walker to a paramilitary vehicle.  Please see page 71 of the Dangerous Covenants Sourcebook for details.<p><h3>Sources:</h3>Page 71 - Dangerous Covenants<br></p><h3>Base Mods</h3><div>Adds a forward medium laser cannon </div>"
+      "      Please see page 82 of the Fully Operational Sourcebook for details.<p><h3>Sources:</h3>Page 82 - Fully Operational<br></p><h3>Base Mods</h3><div>Changes armor to 0 and handling to +2 </div>" -> "Please see page 82 of the Fully Operational Sourcebook for details.<p><h3>Sources:</h3>Page 82 - Fully Operational<br></p><h3>Base Mods</h3><div>Changes armor to 0 and handling to +2 </div>"
+      "      Please see page 59 of the Endless Vigil Sourcebook for details.<p><h3>Sources:</h3>Page 59 - Endless Vigil<br></p>" -> "Please see page 59 of the Endless Vigil Sourcebook for details.<p><h3>Sources:</h3>Page 59 - Endless Vigil<br></p>"
+      "      Please see page 61 of the Dangerous Covenants Sourcebook for details.<p><h3>Sources:</h3>Page 61 - Dangerous Covenants<br></p><h3>Base Mods</h3><div>May cut a hole in a docked craft's hull or airlock. </div>" -> "Please see page 61 of the Dangerous Covenants Sourcebook for details.<p><h3>Sources:</h3>Page 61 - Dangerous Covenants<br></p><h3>Base Mods</h3><div>May cut a hole in a docked craft's hull or airlock. </div>"
+forcepower . base_cost                            93 docs
+      "15" -> 15
+      "5" -> 5
+      "10" -> 10
+      "20" -> 20
+forcepower . required_force_rating                90 docs
+      "1" -> 1
+      "3" -> 3
+      "2" -> 2
+      "0" -> 0
+criticalinjury . severity                         71 docs
+      "2" -> 2
+      "3" -> 3
+      "5" -> 5
+      "1" -> 1
+criticaldamage . severity                         39 docs
+      "5" -> 5
+      "1" -> 1
+      "2" -> 2
+      "4" -> 4
+signatureability . base_cost                      37 docs
+      "30" -> 30
+career . description                              13 docs
+      "    Please see page 88 of the Age of Rebellion Core Rulebook for details." -> "Please see page 88 of the Age of Rebellion Core Rulebook for details."
+      "    Please see page 74 of the Edge of the Empire Core Rulebook for details." -> "Please see page 74 of the Edge of the Empire Core Rulebook for details."
+      "    Please see page 94 of the Age of Rebellion Core Rulebook for details." -> "Please see page 94 of the Age of Rebellion Core Rulebook for details."
+      "    Please see page 80 of the Edge of the Empire Core Rulebook for details." -> "Please see page 80 of the Edge of the Empire Core Rulebook for details."
+character . stats.credits.value                    4 docs
+      "4350" -> 4350
+      "6260" -> 6260
+      "5108" -> 5108
+      "12175" -> 12175
+ability . description                              2 docs
+      "The ronto may spend :advantage: to hit an additional target with a successful Brawl check, provided the additional target is engaged with the first target. " -> "The ronto may spend :advantage: to hit an additional target with a successful Brawl check, provided the additional target is engaged with the first target."
+weapon . special.value                             1 docs
+      "Stun " -> "Stun"
+weapon . ammo.max                                  1 docs
+      "1" -> 1
+weapon . ammo.value                                1 docs
+      "1" -> 1
+character . general.age                            1 docs
+      "15 випуску " -> "15 випуску"
+character . general.build                          1 docs
+      "Skinny metallic " -> "Skinny metallic"
+
+=== FAILED EVEN WITH FALLBACK (6) ===
+  [pack-v12-export-actors] armour "Armoured clothing": logger is not defined
+  [pack-v12-export-actors] armour "Woven reed armour": logger is not defined
+  [pack-v12-export-actors] armour "Custom crimson ISB uniform w/light breas": logger is not defined
+  [pack-v12-export-actors] armour "Personal deflector shield": logger is not defined
+  [pack-v12-export-actors] armour "Woven reed armour": logger is not defined
+  [pack-v12-export-actors] armour "Scales": logger is not defined

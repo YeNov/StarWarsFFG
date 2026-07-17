@@ -121,15 +121,15 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     //get all possible sounds
     let sounds = [];
     const diceSymbols = {
-      advantage: await foundry.applications.ux.TextEditor.enrichHTML("[AD]"),
-      success: await foundry.applications.ux.TextEditor.enrichHTML("[SU]"),
-      threat: await foundry.applications.ux.TextEditor.enrichHTML("[TH]"),
-      failure: await foundry.applications.ux.TextEditor.enrichHTML("[FA]"),
-      upgrade: await foundry.applications.ux.TextEditor.enrichHTML("[PR]"),
-      triumph: await foundry.applications.ux.TextEditor.enrichHTML("[TR]"),
-      despair: await foundry.applications.ux.TextEditor.enrichHTML("[DE]"),
-      light: await foundry.applications.ux.TextEditor.enrichHTML("[LI]"),
-      dark: await foundry.applications.ux.TextEditor.enrichHTML("[DA]"),
+      advantage: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[AD]"),
+      success: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SU]"),
+      threat: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[TH]"),
+      failure: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FA]"),
+      upgrade: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[PR]"),
+      triumph: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[TR]"),
+      despair: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[DE]"),
+      light: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[LI]"),
+      dark: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[DA]"),
     };
 
     let canUserAddAudio = await game.settings.get("starwarsffg", "allowUsersAddRollAudio");
@@ -291,7 +291,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
                 };
               }
             }
-            setProperty(entityData, "flags.starwarsffg.ffgsound", sound);
+            foundry.utils.setProperty(entityData, "flags.starwarsffg.ffgsound", sound);
             entity.update(entityData);
           }
         }
@@ -325,7 +325,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
             if (actorEffects) {
               const toDelete = [];
               for (const activeEffect of actorEffects.contents) {
-                if (activeEffect?.system?.duration === "once") {
+                // duration marker moved to flags: V14's strict ActiveEffect system model
+                // strips unknown `system` keys. Fall back to the legacy location for safety.
+                const duration = activeEffect?.flags?.starwarsffg?.duration ?? activeEffect?.system?.duration;
+                if (duration === "once") {
                   toDelete.push(activeEffect._id);
                 }
               }

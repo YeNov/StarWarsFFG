@@ -485,7 +485,11 @@
   .cdx .cdx-gs-label { flex:0 1 auto; text-align:center; }
 }
 .cdx .cdx-gs-counter { flex:none; gap:8px; }
-.cdx .cdx-gs-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; }
+/* Digit-width reservation — same stepper fix as .cdx-wp-count below, see the
+   rationale there. Reserving on the container also means the edit-mode <input>
+   (.cdx-gs-max-in, a fixed 1.5em) needs no special handling: it just centres with
+   everything else, so the steppers don't jump when edit mode toggles. */
+.cdx .cdx-gs-count { display:flex; align-items:baseline; justify-content:center; min-width:5.5ch; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; font-variant-numeric:tabular-nums; }
 .cdx .cdx-gs-cur { color:var(--cdx-ink); }
 .cdx .cdx-gs-max { color:var(--cdx-dim); }
 .cdx .cdx-gs-max-in { width:1.5em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:30px; line-height:1; color:var(--cdx-dim); padding:0; }
@@ -511,7 +515,28 @@
 .cdx .cdx-wp-unit-in { width:1.6em; text-align:center; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); border-radius:2px; font-family:"Orbitron"; font-weight:700; font-size:9.5px; color:#fff; padding:0 2px; }
 .cdx .cdx-wp-body { padding:8px 12px 12px; }
 .cdx .cdx-wp-counter { gap:9px; }
-.cdx .cdx-wp-count { display:flex; align-items:baseline; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; }
+/* Digit-width reservation, on the CONTAINER rather than the value spans.
+   Reserve 5.5ch and centre the X/Y group. Two things fall out of that:
+   1. The box never changes width as digits are added, so the +/- steppers hold
+      still. (At 28px, 9 -> 10 widens the text by most of the 24px button, and it
+      slides out from under the cursor mid-click. This row is defenceless against
+      that on its own: its only flexible item, .cdx-wp-label, sits AFTER the +
+      button, so all slack collects to the button's right and its x is fixed by
+      whatever is to its left — unlike the character sheet, where .cdx-stepline-mid
+      is flex:1 and absorbs it.)
+   2. Centring splits the slack EVENLY, so both steppers stay the same distance
+      from the digits.
+   Reserving per-span instead (min-width:2ch on each) also pins the buttons, but
+   the slack then sits per-span: with a 1-digit cur and a 2-digit max ("9/12") it
+   all lands on the left, and the gaps differ by 11px (Orbitron) to 18px (Eldritch).
+   Measured, both faces.
+   5.5ch clears the widest 2+2-digit content — 5.37ch in the Eldritch display face,
+   5.06ch in Orbitron. `ch` (not px) because it is font-relative and so re-resolves
+   under the Eldritch serif swap, where a px value would be wrong; tabular-nums
+   holds every digit to the "0" advance, keeping that reservation exact. min-width
+   is a floor, so a 3-digit pool (10 members x 12 wounds) still renders — the box
+   just grows once, and the gaps stay equal. */
+.cdx .cdx-wp-count { display:flex; align-items:baseline; justify-content:center; min-width:5.5ch; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:28px; line-height:1; font-variant-numeric:tabular-nums; }
 .cdx .cdx-wp-cur { color:var(--cdx-ink); }
 .cdx .cdx-wp-max { color:var(--cdx-dim); }
 .cdx .cdx-wp-label { flex:1; min-width:0; font-size:13px; color:var(--cdx-dim); }
@@ -1385,7 +1410,20 @@
 .cdx .cdx-ft-edit .cdx-ft-edit-actions { display:inline-flex; }
 
 /* --- Connector lines --- */
-.cdx .cdx-ft-line { background:var(--cdx-line); opacity:.5; border-radius:2px; }
+/* Off-state is --cdx-dim, NOT --cdx-line. --cdx-line is the hairline colour, tuned
+   for 1px borders drawn ON a card (--cdx-paper2) -- but connectors sit in the grid
+   gaps, over --cdx-bg. Those two are within ~1.2:1 in every scheme, so --cdx-line
+   at .5 composited to ~1.1:1 against the gap and the line was simply invisible; only
+   `.on` (both endpoints bought) ever showed.
+   BOTH states are meant to read. Learnt vs unlearnt is carried by hue + the `.on`
+   glow -- the way the stock sheet does it (white bar, red or blue glow, neither
+   faint) -- and NOT by prominence. So the off-state runs at full --cdx-dim.
+   The dark schemes pin a lower alpha via :not(.on) in their own stylesheets, for a
+   different reason: --cdx-dim is a light tint on their near-black gap, so at full
+   strength it would carry far more weight there than the same token does on the
+   light schemes. That alpha equalises weight ACROSS SCHEMES; it is not a state
+   signal. */
+.cdx .cdx-ft-line { background:var(--cdx-dim); border-radius:2px; }
 .cdx .cdx-ft-line.on { background:var(--cdx-accent); opacity:1; box-shadow:0 0 5px var(--cdx-accent), 0 0 11px var(--cdx-accent); }
 /* up: a flex row sitting in the row-gap above the card, one cell per spanned column */
 .cdx .cdx-ft-uplinks { position:absolute; left:0; right:0; bottom:100%; height:var(--ft-rowgap); display:flex; z-index:1; pointer-events:none; }

@@ -1,0 +1,2111 @@
+=== GENERIC MODEL-DIFF AUDIT — 17696 docs constructed against their real model ===
+
+DROPPED PATH (stored but NOT in schema)                         DOCS  SAMPLE VALUE
+weapon . skill.useBrawn                                         3018  false
+weapon . characteristic.value                                   1285  ""
+weapon . rarity.isrestricted                                    1272  false
+gear . rarity.isrestricted                                      1142  false
+shipweapon . skill.value                                        1026  "Gunnery"
+shipweapon . rarity.isrestricted                                1024  false
+shipweapon . skill.useBrawn                                      988  false
+shipweapon . characteristic.value                                988  ""
+weapon . status                                                  896  "None"
+rival . stats.strain.value                                       708  0
+rival . stats.strain.min                                         708  0
+vehicle . stats.hyperdrive.backup                                457  null
+vehicle . itemmodifier                                           448  []
+vehicle . itemattachment                                         448  []
+weapon . hardpoints.current                                      329  0
+weapon . renderedDesc                                            329  {}
+weapon . adjusteditemmodifier                                    329  [{"name":"Blast Quality","type":"i
+specialization . collection.talent0.name                         303  "Intimidating"
+specialization . collection.talent0.description                  303  "<p>May suffer a number of strain 
+specialization . collection.talent0.activation                   303  "Active (Incidental, Out of Turn)"
+specialization . collection.talent0.activationLabel              303  "SWFFG.TalentActivationsActiveInci
+specialization . collection.talent0.isForceTalent                303  false
+specialization . collection.talent0.isRanked                     303  true
+specialization . collection.talent0.size                         303  "single"
+specialization . collection.talent0.canLinkTop                   303  true
+specialization . collection.talent0.canLinkRight                 303  true
+specialization . collection.talent0.itemId                       303  "OTgbuPFzv6MzvHED"
+specialization . collection.talent0.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent0.cost                         303  5
+specialization . collection.talent0.visible                      303  true
+specialization . collection.talent0.canSplit                     303  false
+specialization . collection.talent0.canCombine                   303  true
+specialization . collection.talent0.islearned                    303  false
+specialization . collection.talent0.links-top-1                  303  false
+specialization . collection.talent0.links-right                  303  false
+specialization . collection.talent1.name                         303  "Grit"
+specialization . collection.talent1.description                  303  "<p>Gain +1 strain threshold</p>"
+specialization . collection.talent1.activation                   303  "Passive"
+specialization . collection.talent1.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent1.isForceTalent                303  false
+specialization . collection.talent1.<id>                         303  false
+specialization . collection.talent1.isRanked                     303  true
+specialization . collection.talent1.size                         303  "single"
+specialization . collection.talent1.canLinkTop                   303  true
+specialization . collection.talent1.canLinkRight                 303  true
+specialization . collection.talent1.itemId                       303  "qzWP4mptX5ahJtDM"
+specialization . collection.talent1.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent1.cost                         303  5
+specialization . collection.talent1.visible                      303  true
+specialization . collection.talent1.canSplit                     303  false
+specialization . collection.talent1.canCombine                   303  true
+specialization . collection.talent1.islearned                    303  false
+specialization . collection.talent1.links-top-1                  303  false
+specialization . collection.talent1.links-right                  303  false
+specialization . collection.talent2.name                         303  "Surgeon"
+specialization . collection.talent2.description                  303  "<p>When making a Medicine check t
+specialization . collection.talent2.activation                   303  "Passive"
+specialization . collection.talent2.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent2.isForceTalent                303  false
+specialization . collection.talent2.isRanked                     303  true
+specialization . collection.talent2.size                         303  "single"
+specialization . collection.talent2.canLinkTop                   303  true
+specialization . collection.talent2.canLinkRight                 303  true
+specialization . collection.talent2.itemId                       303  "l8mfpMuipsR2GUpT"
+specialization . collection.talent2.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent2.cost                         303  5
+specialization . collection.talent2.visible                      303  true
+specialization . collection.talent2.canSplit                     303  false
+specialization . collection.talent2.canCombine                   303  true
+specialization . collection.talent2.islearned                    303  false
+specialization . collection.talent2.links-top-1                  303  false
+specialization . collection.talent2.links-right                  303  false
+specialization . collection.talent3.name                         303  "Nobody's Fool"
+specialization . collection.talent3.description                  303  "<p>The difficulty of any&nbsp;Cha
+specialization . collection.talent3.activation                   303  "Passive"
+specialization . collection.talent3.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent3.isForceTalent                303  false
+specialization . collection.talent3.<id>                         303  false
+specialization . collection.talent3.isRanked                     303  true
+specialization . collection.talent3.size                         303  "single"
+specialization . collection.talent3.canLinkTop                   303  true
+specialization . collection.talent3.canLinkRight                 303  false
+specialization . collection.talent3.itemId                       303  "6SK6hvMqllrrmcVh"
+specialization . collection.talent3.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent3.cost                         303  5
+specialization . collection.talent3.visible                      303  true
+specialization . collection.talent3.canSplit                     303  false
+specialization . collection.talent3.canCombine                   303  false
+specialization . collection.talent3.islearned                    303  false
+specialization . collection.talent3.links-top-1                  303  false
+specialization . collection.talent3.links-right                  303  false
+specialization . collection.talent4.name                         303  "Bad Cop"
+specialization . collection.talent4.description                  303  "<p>May spend [AD][AD] from a Dece
+specialization . collection.talent4.activation                   303  "Passive"
+specialization . collection.talent4.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent4.isForceTalent                303  false
+specialization . collection.talent4.isRanked                     303  true
+specialization . collection.talent4.size                         303  "single"
+specialization . collection.talent4.canLinkTop                   303  true
+specialization . collection.talent4.canLinkRight                 303  true
+specialization . collection.talent4.itemId                       303  "r8B069QlTKspJdeV"
+specialization . collection.talent4.links-top-1                  303  true
+specialization . collection.talent4.links-right                  303  true
+specialization . collection.talent4.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent4.cost                         303  10
+specialization . collection.talent4.visible                      303  true
+specialization . collection.talent4.canSplit                     303  false
+specialization . collection.talent4.canCombine                   303  true
+specialization . collection.talent4.islearned                    303  false
+specialization . collection.talent5.name                         303  "Grit"
+specialization . collection.talent5.description                  303  "<p>Gain +1 strain threshold</p>"
+specialization . collection.talent5.activation                   303  "Passive"
+specialization . collection.talent5.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent5.isForceTalent                303  false
+specialization . collection.talent5.<id>                         303  false
+specialization . collection.talent5.isRanked                     303  true
+specialization . collection.talent5.size                         303  "single"
+specialization . collection.talent5.canLinkTop                   303  true
+specialization . collection.talent5.canLinkRight                 303  true
+specialization . collection.talent5.itemId                       303  "qzWP4mptX5ahJtDM"
+specialization . collection.talent5.links-right                  303  true
+specialization . collection.talent5.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent5.cost                         303  10
+specialization . collection.talent5.visible                      303  true
+specialization . collection.talent5.canSplit                     303  false
+specialization . collection.talent5.canCombine                   303  true
+specialization . collection.talent5.islearned                    303  false
+specialization . collection.talent5.links-top-1                  303  false
+specialization . collection.talent6.name                         303  "Surgeon"
+specialization . collection.talent6.description                  303  "<p>When making a Medicine check t
+specialization . collection.talent6.activation                   303  "Passive"
+specialization . collection.talent6.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent6.isForceTalent                303  false
+specialization . collection.talent6.<id>                         303  false
+specialization . collection.talent6.isRanked                     303  true
+specialization . collection.talent6.size                         303  "single"
+specialization . collection.talent6.canLinkTop                   303  true
+specialization . collection.talent6.canLinkRight                 303  true
+specialization . collection.talent6.itemId                       303  "l8mfpMuipsR2GUpT"
+specialization . collection.talent6.links-right                  303  true
+specialization . collection.talent6.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent6.cost                         303  10
+specialization . collection.talent6.visible                      303  true
+specialization . collection.talent6.canSplit                     303  false
+specialization . collection.talent6.canCombine                   303  true
+specialization . collection.talent6.islearned                    303  false
+specialization . collection.talent6.links-top-1                  303  false
+specialization . collection.talent7.name                         303  "Good Cop"
+specialization . collection.talent7.description                  303  "<p>May spend [AD][AD] from a Char
+specialization . collection.talent7.activation                   303  "Passive"
+specialization . collection.talent7.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent7.isForceTalent                303  false
+specialization . collection.talent7.<id>                         303  false
+specialization . collection.talent7.isRanked                     303  true
+specialization . collection.talent7.size                         303  "single"
+specialization . collection.talent7.canLinkTop                   303  true
+specialization . collection.talent7.canLinkRight                 303  false
+specialization . collection.talent7.itemId                       303  "IyZjVYWBvU1Kaoo2"
+specialization . collection.talent7.links-top-1                  303  true
+specialization . collection.talent7.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent7.cost                         303  10
+specialization . collection.talent7.visible                      303  true
+specialization . collection.talent7.canSplit                     303  false
+specialization . collection.talent7.canCombine                   303  false
+specialization . collection.talent7.islearned                    303  false
+specialization . collection.talent7.links-right                  303  false
+specialization . collection.talent8.name                         303  "Resist Questioning"
+specialization . collection.talent8.description                  303  "<p>When targeted by an opposed so
+specialization . collection.talent8.activation                   303  "Active (Incidental, Out of Turn)"
+specialization . collection.talent8.activationLabel              303  "SWFFG.TalentActivationsActiveInci
+specialization . collection.talent8.isForceTalent                303  false
+specialization . collection.talent8.isRanked                     303  false
+specialization . collection.talent8.size                         303  "single"
+specialization . collection.talent8.canLinkTop                   303  true
+specialization . collection.talent8.canLinkRight                 303  true
+specialization . collection.talent8.itemId                       303  "iZyQCJAssORkAPcO"
+specialization . collection.talent8.links-top-1                  303  true
+specialization . collection.talent8.links-right                  303  true
+specialization . collection.talent8.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent8.cost                         303  15
+specialization . collection.talent8.visible                      303  true
+specialization . collection.talent8.canSplit                     303  false
+specialization . collection.talent8.canCombine                   303  true
+specialization . collection.talent8.islearned                    303  false
+specialization . collection.talent9.name                         303  "Bad Cop"
+specialization . collection.talent9.description                  303  "<p>May spend [AD][AD] from a Dece
+specialization . collection.talent9.activation                   303  "Passive"
+specialization . collection.talent9.activationLabel              303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent9.isForceTalent                303  false
+specialization . collection.talent9.isRanked                     303  true
+specialization . collection.talent9.size                         303  "single"
+specialization . collection.talent9.canLinkTop                   303  true
+specialization . collection.talent9.canLinkRight                 303  true
+specialization . collection.talent9.itemId                       303  "r8B069QlTKspJdeV"
+specialization . collection.talent9.links-top-1                  303  true
+specialization . collection.talent9.pack                         303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent9.cost                         303  15
+specialization . collection.talent9.visible                      303  true
+specialization . collection.talent9.canSplit                     303  false
+specialization . collection.talent9.canCombine                   303  true
+specialization . collection.talent9.islearned                    303  false
+specialization . collection.talent9.links-right                  303  false
+specialization . collection.talent10.name                        303  "Nobody's Fool"
+specialization . collection.talent10.description                 303  "<p>The difficulty of any&nbsp;Cha
+specialization . collection.talent10.activation                  303  "Passive"
+specialization . collection.talent10.activationLabel             303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent10.isForceTalent               303  false
+specialization . collection.talent10.isRanked                    303  true
+specialization . collection.talent10.size                        303  "single"
+specialization . collection.talent10.canLinkTop                  303  true
+specialization . collection.talent10.canLinkRight                303  true
+specialization . collection.talent10.itemId                      303  "6SK6hvMqllrrmcVh"
+specialization . collection.talent10.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent10.cost                        303  15
+specialization . collection.talent10.visible                     303  true
+specialization . collection.talent10.canSplit                    303  false
+specialization . collection.talent10.canCombine                  303  true
+specialization . collection.talent10.islearned                   303  false
+specialization . collection.talent10.links-top-1                 303  false
+specialization . collection.talent10.links-right                 303  false
+specialization . collection.talent11.name                        303  "Know Their Weakness"
+specialization . collection.talent11.description                 303  "<p>Once per session, may perform 
+specialization . collection.talent11.activation                  303  "Active (Action)"
+specialization . collection.talent11.activationLabel             303  "SWFFG.TalentActivationsActiveActi
+specialization . collection.talent11.isForceTalent               303  false
+specialization . collection.talent11.isRanked                    303  true
+specialization . collection.talent11.size                        303  "single"
+specialization . collection.talent11.canLinkTop                  303  true
+specialization . collection.talent11.canLinkRight                303  false
+specialization . collection.talent11.itemId                      303  "NqP1p0uIQLFuJm4Q"
+specialization . collection.talent11.links-top-1                 303  true
+specialization . collection.talent11.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent11.cost                        303  15
+specialization . collection.talent11.visible                     303  true
+specialization . collection.talent11.canSplit                    303  false
+specialization . collection.talent11.canCombine                  303  false
+specialization . collection.talent11.islearned                   303  false
+specialization . collection.talent11.links-right                 303  false
+specialization . collection.talent12.name                        303  "Resist Questioning"
+specialization . collection.talent12.description                 303  "<p>When targeted by an opposed so
+specialization . collection.talent12.activation                  303  "Active (Incidental, Out of Turn)"
+specialization . collection.talent12.activationLabel             303  "SWFFG.TalentActivationsActiveInci
+specialization . collection.talent12.isForceTalent               303  false
+specialization . collection.talent12.<id>                        303  false
+specialization . collection.talent12.isRanked                    303  false
+specialization . collection.talent12.size                        303  "single"
+specialization . collection.talent12.canLinkTop                  303  true
+specialization . collection.talent12.canLinkRight                303  true
+specialization . collection.talent12.itemId                      303  "iZyQCJAssORkAPcO"
+specialization . collection.talent12.links-right                 303  true
+specialization . collection.talent12.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent12.cost                        303  20
+specialization . collection.talent12.visible                     303  true
+specialization . collection.talent12.canSplit                    303  false
+specialization . collection.talent12.canCombine                  303  true
+specialization . collection.talent12.islearned                   303  false
+specialization . collection.talent12.links-top-1                 303  false
+specialization . collection.talent13.name                        303  "Intimidating"
+specialization . collection.talent13.description                 303  "<p>May suffer a number of strain 
+specialization . collection.talent13.activation                  303  "Active (Incidental, Out of Turn)"
+specialization . collection.talent13.activationLabel             303  "SWFFG.TalentActivationsActiveInci
+specialization . collection.talent13.isForceTalent               303  false
+specialization . collection.talent13.isRanked                    303  true
+specialization . collection.talent13.size                        303  "single"
+specialization . collection.talent13.canLinkTop                  303  true
+specialization . collection.talent13.canLinkRight                303  true
+specialization . collection.talent13.itemId                      303  "OTgbuPFzv6MzvHED"
+specialization . collection.talent13.links-top-1                 303  true
+specialization . collection.talent13.links-right                 303  true
+specialization . collection.talent13.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent13.cost                        303  20
+specialization . collection.talent13.visible                     303  true
+specialization . collection.talent13.canSplit                    303  false
+specialization . collection.talent13.canCombine                  303  true
+specialization . collection.talent13.islearned                   303  false
+specialization . collection.talent14.name                        303  "Know Their Weakness"
+specialization . collection.talent14.description                 303  "<p>Once per session, may perform 
+specialization . collection.talent14.activation                  303  "Active (Action)"
+specialization . collection.talent14.activationLabel             303  "SWFFG.TalentActivationsActiveActi
+specialization . collection.talent14.isForceTalent               303  false
+specialization . collection.talent14.isRanked                    303  true
+specialization . collection.talent14.size                        303  "single"
+specialization . collection.talent14.canLinkTop                  303  true
+specialization . collection.talent14.canLinkRight                303  true
+specialization . collection.talent14.itemId                      303  "NqP1p0uIQLFuJm4Q"
+specialization . collection.talent14.links-top-1                 303  true
+specialization . collection.talent14.links-right                 303  true
+specialization . collection.talent14.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent14.cost                        303  20
+specialization . collection.talent14.visible                     303  true
+specialization . collection.talent14.canSplit                    303  false
+specialization . collection.talent14.canCombine                  303  true
+specialization . collection.talent14.islearned                   303  false
+specialization . collection.talent15.name                        303  "Know Their Weakness (Improved)"
+specialization . collection.talent15.description                 303  "<p>The character may extend the e
+specialization . collection.talent15.activation                  303  "Passive"
+specialization . collection.talent15.activationLabel             303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent15.isForceTalent               303  false
+specialization . collection.talent15.<id>                        303  false
+specialization . collection.talent15.isRanked                    303  false
+specialization . collection.talent15.size                        303  "single"
+specialization . collection.talent15.canLinkTop                  303  true
+specialization . collection.talent15.canLinkRight                303  false
+specialization . collection.talent15.itemId                      303  "vQmsvi7zf2O5CKi6"
+specialization . collection.talent15.links-top-1                 303  true
+specialization . collection.talent15.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent15.cost                        303  20
+specialization . collection.talent15.visible                     303  true
+specialization . collection.talent15.canSplit                    303  false
+specialization . collection.talent15.canCombine                  303  false
+specialization . collection.talent15.islearned                   303  false
+specialization . collection.talent15.links-right                 303  false
+specialization . collection.talent16.name                        303  "Pressure Point"
+specialization . collection.talent16.description                 303  "<p>When making a Brawl check agai
+specialization . collection.talent16.activation                  303  "Active (Incidental)"
+specialization . collection.talent16.activationLabel             303  "SWFFG.TalentActivationsActiveInci
+specialization . collection.talent16.isForceTalent               303  false
+specialization . collection.talent16.<id>                        303  false
+specialization . collection.talent16.isRanked                    303  false
+specialization . collection.talent16.size                        303  "single"
+specialization . collection.talent16.canLinkTop                  303  true
+specialization . collection.talent16.canLinkRight                303  true
+specialization . collection.talent16.itemId                      303  "tlC8v3uYHHYiEOX8"
+specialization . collection.talent16.links-right                 303  true
+specialization . collection.talent16.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent16.cost                        303  25
+specialization . collection.talent16.visible                     303  true
+specialization . collection.talent16.canSplit                    303  false
+specialization . collection.talent16.canCombine                  303  true
+specialization . collection.talent16.islearned                   303  false
+specialization . collection.talent16.links-top-1                 303  false
+specialization . collection.talent17.name                        303  "Exhaustive Questioning"
+specialization . collection.talent17.description                 303  "<p>Whenever a character makes a s
+specialization . collection.talent17.activation                  303  "Active (Incidental)"
+specialization . collection.talent17.activationLabel             303  "SWFFG.TalentActivationsActiveInci
+specialization . collection.talent17.isForceTalent               303  false
+specialization . collection.talent17.isRanked                    303  false
+specialization . collection.talent17.size                        303  "single"
+specialization . collection.talent17.canLinkTop                  303  true
+specialization . collection.talent17.canLinkRight                303  true
+specialization . collection.talent17.itemId                      303  "i6qZO0hiq4wgyjqF"
+specialization . collection.talent17.links-top-1                 303  true
+specialization . collection.talent17.links-right                 303  true
+specialization . collection.talent17.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent17.cost                        303  25
+specialization . collection.talent17.visible                     303  true
+specialization . collection.talent17.canSplit                    303  false
+specialization . collection.talent17.canCombine                  303  true
+specialization . collection.talent17.islearned                   303  false
+specialization . collection.talent18.name                        303  "Made You Talk"
+specialization . collection.talent18.description                 303  "<p>Once per session, may make an 
+specialization . collection.talent18.activation                  303  "Active (Action)"
+specialization . collection.talent18.activationLabel             303  "SWFFG.TalentActivationsActiveActi
+specialization . collection.talent18.isForceTalent               303  false
+specialization . collection.talent18.<id>                        303  false
+specialization . collection.talent18.isRanked                    303  false
+specialization . collection.talent18.size                        303  "single"
+specialization . collection.talent18.canLinkTop                  303  true
+specialization . collection.talent18.canLinkRight                303  true
+specialization . collection.talent18.itemId                      303  "d3TQkPETtRzMpIiz"
+specialization . collection.talent18.links-top-1                 303  true
+specialization . collection.talent18.links-right                 303  true
+specialization . collection.talent18.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent18.cost                        303  25
+specialization . collection.talent18.visible                     303  true
+specialization . collection.talent18.canSplit                    303  false
+specialization . collection.talent18.canCombine                  303  true
+specialization . collection.talent18.islearned                   303  false
+specialization . collection.talent19.name                        303  "Dedication"
+specialization . collection.talent19.description                 303  "<p>Gain +1 to a single characteri
+specialization . collection.talent19.activation                  303  "Passive"
+specialization . collection.talent19.activationLabel             303  "SWFFG.TalentActivationsPassive"
+specialization . collection.talent19.isForceTalent               303  false
+specialization . collection.talent19.isRanked                    303  true
+specialization . collection.talent19.size                        303  "single"
+specialization . collection.talent19.canLinkTop                  303  true
+specialization . collection.talent19.canLinkRight                303  false
+specialization . collection.talent19.itemId                      303  "FQsxLlD95SATBaIs"
+specialization . collection.talent19.pack                        303  "yehors-sw-ffg-shared-data.yn-tale
+specialization . collection.talent19.cost                        303  25
+specialization . collection.talent19.visible                     303  true
+specialization . collection.talent19.canSplit                    303  false
+specialization . collection.talent19.canCombine                  303  false
+specialization . collection.talent19.islearned                   303  false
+specialization . collection.talent19.links-top-1                 303  false
+specialization . collection.talent19.links-right                 303  false
+specialization . isEditing                                       303  false
+specialization . collection.talent2.<id>                         301  false
+specialization . collection.talent11.<id>                        301  false
+specialization . collection.talent14.<id>                        301  false
+specialization . careerskills                                    300  {}
+specialization . isReadOnly                                      300  true
+specialization . collection.talent1.longDesc                     300  ""
+specialization . collection.talent3.longDesc                     300  ""
+specialization . collection.talent5.longDesc                     300  ""
+specialization . collection.talent6.longDesc                     300  ""
+specialization . collection.talent12.longDesc                    300  ""
+specialization . collection.talent15.longDesc                    300  ""
+specialization . collection.talent16.longDesc                    300  ""
+specialization . collection.talent18.longDesc                    300  ""
+specialization . collection.talent0.<id>                         299  false
+specialization . collection.talent4.<id>                         299  false
+specialization . collection.talent8.<id>                         299  false
+specialization . collection.talent9.<id>                         299  false
+specialization . collection.talent17.<id>                        299  false
+specialization . collection.talent19.<id>                        299  false
+specialization . collection.talent2.longDesc                     298  ""
+specialization . collection.talent7.longDesc                     298  ""
+specialization . collection.talent11.longDesc                    298  ""
+specialization . collection.talent14.longDesc                    298  ""
+specialization . collection.talent10.<id>                        297  false
+specialization . collection.talent0.longDesc                     296  ""
+specialization . collection.talent8.longDesc                     296  ""
+specialization . collection.talent9.longDesc                     296  ""
+specialization . collection.talent17.longDesc                    296  ""
+specialization . collection.talent19.longDesc                    296  ""
+specialization . collection.talent13.<id>                        295  false
+specialization . collection.talent4.longDesc                     294  ""
+specialization . collection.talent10.longDesc                    294  ""
+specialization . collection.talent13.longDesc                    292  ""
+specialization . collection.talent17.attributes                  268  {}
+specialization . collection.talent16.attributes                  263  {}
+specialization . collection.talent19.attributes                  257  {}
+specialization . collection.talent15.attributes                  253  {}
+armour . rarity.isrestricted                                     245  true
+specialization . collection.talent13.attributes                  243  {}
+specialization . collection.talent18.attributes                  243  {}
+specialization . collection.talent14.attributes                  237  {}
+specialization . collection.talent10.attributes                  231  {}
+specialization . collection.talent12.attributes                  226  {}
+specialization . collection.talent11.attributes                  219  {}
+specialization . collection.talent6.attributes                   218  {}
+specialization . collection.talent8.attributes                   215  {}
+specialization . collection.talent9.attributes                   214  {}
+itemattachment . rarity.isrestricted                             212  false
+shipattachment . type                                            210  "vehicle"
+talent . renderedDesc                                            210  "<p>When staggered or disoriented,
+specialization . collection.talent7.attributes                   208  {}
+specialization . collection.talent5.attributes                   207  {}
+specialization . collection.talent4.attributes                   186  {}
+gear . renderedDesc                                              184  {}
+specialization . collection.talent3.attributes                   181  {}
+specialization . collection.talent0.attributes.<id>.mod          166  "Wounds"
+specialization . collection.talent0.attributes.<id>.modtype      166  "Stat"
+specialization . collection.talent0.attributes.<id>.value        166  2
+specialization . collection.talent1.attributes                   163  {}
+specialization . collection.talent3.attributes.<id>.mod          161  "Strain"
+specialization . collection.talent3.attributes.<id>.modtype      161  "Stat"
+specialization . collection.talent3.attributes.<id>.value        161  1
+rival . general.gender                                           159  ""
+rival . general.age                                              159  ""
+rival . general.height                                           159  ""
+rival . general.build                                            159  ""
+rival . general.hair                                             159  ""
+rival . general.eyes                                             159  ""
+specialization . collection.talent0.attributes                   150  {}
+rival . general.motivation1.category                             149  ""
+rival . general.motivation1.type                                 149  ""
+rival . general.motivation1.description                          149  ""
+rival . general.motivation2.category                             149  ""
+rival . general.motivation2.type                                 149  ""
+rival . general.motivation2.description                          149  ""
+specialization . collection.talent2.attributes                   148  {}
+specialization . collection.talent0.enrichedDescription          142  "Gain +2 wound threshold."
+forcepower . collection.upgrade0.visible                         138  true
+forcepower . collection.upgrade0.size                            138  "single"
+forcepower . collection.upgrade0.canSplit                        138  false
+forcepower . collection.upgrade0.canCombine                      138  true
+forcepower . collection.upgrade0.canLinkTop                      138  true
+forcepower . collection.upgrade0.canLinkRight                    138  true
+forcepower . collection.upgrade1.visible                         138  true
+forcepower . collection.upgrade1.size                            138  "single"
+forcepower . collection.upgrade1.canCombine                      138  true
+forcepower . collection.upgrade1.canLinkTop                      138  true
+forcepower . collection.upgrade1.canLinkRight                    138  true
+forcepower . collection.upgrade2.visible                         138  true
+forcepower . collection.upgrade2.size                            138  "single"
+forcepower . collection.upgrade2.canCombine                      138  true
+forcepower . collection.upgrade2.canLinkTop                      138  true
+forcepower . collection.upgrade2.canLinkRight                    138  true
+forcepower . collection.upgrade3.visible                         138  true
+forcepower . collection.upgrade3.size                            138  "single"
+forcepower . collection.upgrade3.canCombine                      138  false
+forcepower . collection.upgrade3.canLinkTop                      138  true
+forcepower . collection.upgrade3.canLinkRight                    138  false
+forcepower . collection.upgrade4.visible                         138  true
+forcepower . collection.upgrade4.size                            138  "single"
+forcepower . collection.upgrade4.canSplit                        138  false
+forcepower . collection.upgrade4.canCombine                      138  true
+forcepower . collection.upgrade4.canLinkTop                      138  true
+forcepower . collection.upgrade4.canLinkRight                    138  true
+forcepower . collection.upgrade5.visible                         138  true
+forcepower . collection.upgrade5.size                            138  "single"
+forcepower . collection.upgrade5.canCombine                      138  true
+forcepower . collection.upgrade5.canLinkTop                      138  true
+forcepower . collection.upgrade5.canLinkRight                    138  true
+forcepower . collection.upgrade6.visible                         138  true
+forcepower . collection.upgrade6.size                            138  "single"
+forcepower . collection.upgrade6.canCombine                      138  true
+forcepower . collection.upgrade6.canLinkTop                      138  true
+forcepower . collection.upgrade6.canLinkRight                    138  true
+forcepower . collection.upgrade7.visible                         138  true
+forcepower . collection.upgrade7.size                            138  "single"
+forcepower . collection.upgrade7.canCombine                      138  false
+forcepower . collection.upgrade7.canLinkTop                      138  true
+forcepower . collection.upgrade7.canLinkRight                    138  false
+forcepower . collection.upgrade8.visible                         138  true
+forcepower . collection.upgrade8.size                            138  "single"
+forcepower . collection.upgrade8.canSplit                        138  false
+forcepower . collection.upgrade8.canCombine                      138  true
+forcepower . collection.upgrade8.canLinkTop                      138  true
+forcepower . collection.upgrade8.canLinkRight                    138  true
+forcepower . collection.upgrade9.visible                         138  true
+forcepower . collection.upgrade9.size                            138  "single"
+forcepower . collection.upgrade9.canCombine                      138  true
+forcepower . collection.upgrade9.canLinkTop                      138  true
+forcepower . collection.upgrade9.canLinkRight                    138  true
+forcepower . collection.upgrade10.visible                        138  true
+forcepower . collection.upgrade10.size                           138  "single"
+forcepower . collection.upgrade10.canCombine                     138  true
+forcepower . collection.upgrade10.canLinkTop                     138  true
+forcepower . collection.upgrade10.canLinkRight                   138  true
+forcepower . collection.upgrade11.visible                        138  true
+forcepower . collection.upgrade11.size                           138  "single"
+forcepower . collection.upgrade11.canCombine                     138  false
+forcepower . collection.upgrade11.canLinkTop                     138  true
+forcepower . collection.upgrade11.canLinkRight                   138  false
+forcepower . collection.upgrade12.visible                        138  false
+forcepower . collection.upgrade12.canCombine                     138  true
+forcepower . collection.upgrade12.canLinkTop                     138  true
+forcepower . collection.upgrade12.canLinkRight                   138  true
+forcepower . collection.upgrade12.size                           138  ""
+forcepower . collection.upgrade13.visible                        138  false
+forcepower . collection.upgrade13.canCombine                     138  true
+forcepower . collection.upgrade13.canLinkTop                     138  true
+forcepower . collection.upgrade13.canLinkRight                   138  true
+forcepower . collection.upgrade13.size                           138  ""
+forcepower . collection.upgrade14.visible                        138  false
+forcepower . collection.upgrade14.canCombine                     138  true
+forcepower . collection.upgrade14.canLinkTop                     138  true
+forcepower . collection.upgrade14.canLinkRight                   138  true
+forcepower . collection.upgrade14.size                           138  ""
+forcepower . collection.upgrade15.visible                        138  false
+forcepower . collection.upgrade15.canCombine                     138  true
+forcepower . collection.upgrade15.canLinkTop                     138  true
+forcepower . collection.upgrade15.canLinkRight                   138  true
+forcepower . collection.upgrade15.size                           138  ""
+forcepower . isEditing                                           138  false
+forcepower . collection.upgrade0.name                            136  "Range"
+forcepower . collection.upgrade0.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade0.cost                            136  "15"
+forcepower . collection.upgrade0.links-top-1                     136  true
+forcepower . collection.upgrade0.links-right                     136  true
+forcepower . collection.upgrade0.islearned                       136  false
+forcepower . collection.upgrade1.name                            136  "Magnitude"
+forcepower . collection.upgrade1.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade1.cost                            136  "5"
+forcepower . collection.upgrade1.links-top-1                     136  true
+forcepower . collection.upgrade1.links-right                     136  true
+forcepower . collection.upgrade1.islearned                       136  false
+forcepower . collection.upgrade2.name                            136  "Magnitude"
+forcepower . collection.upgrade2.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade2.cost                            136  "5"
+forcepower . collection.upgrade2.attributes                      136  {}
+forcepower . collection.upgrade2.links-top-1                     136  true
+forcepower . collection.upgrade2.links-right                     136  true
+forcepower . collection.upgrade2.islearned                       136  false
+forcepower . collection.upgrade3.name                            136  "Control: Strain"
+forcepower . collection.upgrade3.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade3.cost                            136  "20"
+forcepower . collection.upgrade3.attributes                      136  {}
+forcepower . collection.upgrade3.links-top-1                     136  true
+forcepower . collection.upgrade3.links-right                     136  true
+forcepower . collection.upgrade3.islearned                       136  false
+forcepower . collection.upgrade4.name                            136  "Range"
+forcepower . collection.upgrade4.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade4.cost                            136  "20"
+forcepower . collection.upgrade4.links-top-1                     136  true
+forcepower . collection.upgrade4.links-right                     136  true
+forcepower . collection.upgrade4.islearned                       136  false
+forcepower . collection.upgrade5.name                            136  "Magnitude"
+forcepower . collection.upgrade5.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade5.cost                            136  "10"
+forcepower . collection.upgrade5.links-top-1                     136  true
+forcepower . collection.upgrade5.links-right                     136  true
+forcepower . collection.upgrade5.islearned                       136  false
+forcepower . collection.upgrade6.name                            136  "Strength"
+forcepower . collection.upgrade6.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade6.cost                            136  "15"
+forcepower . collection.upgrade6.links-top-1                     136  true
+forcepower . collection.upgrade6.links-right                     136  true
+forcepower . collection.upgrade6.islearned                       136  false
+forcepower . collection.upgrade7.name                            136  "Control: Status"
+forcepower . collection.upgrade7.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade7.cost                            136  "20"
+forcepower . collection.upgrade7.attributes                      136  {}
+forcepower . collection.upgrade7.links-top-1                     136  true
+forcepower . collection.upgrade7.links-right                     136  true
+forcepower . collection.upgrade7.islearned                       136  false
+forcepower . collection.upgrade8.name                            136  "Control: Medicine"
+forcepower . collection.upgrade8.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade8.cost                            136  "20"
+forcepower . collection.upgrade8.links-top-1                     136  true
+forcepower . collection.upgrade8.links-right                     136  true
+forcepower . collection.upgrade8.islearned                       136  false
+forcepower . collection.upgrade9.name                            136  "Control: Critical"
+forcepower . collection.upgrade9.description                     136  "Please see page 292 of the Force 
+forcepower . collection.upgrade9.cost                            136  "20"
+forcepower . collection.upgrade9.attributes                      136  {}
+forcepower . collection.upgrade9.links-top-1                     136  true
+forcepower . collection.upgrade9.links-right                     136  true
+forcepower . collection.upgrade9.islearned                       136  false
+forcepower . collection.upgrade10.name                           136  "Mastery"
+forcepower . collection.upgrade10.description                    136  "Please see page 292 of the Force 
+forcepower . collection.upgrade10.cost                           136  "20"
+forcepower . collection.upgrade10.attributes                     136  {}
+forcepower . collection.upgrade10.links-top-1                    136  true
+forcepower . collection.upgrade10.links-right                    136  true
+forcepower . collection.upgrade10.islearned                      136  false
+forcepower . collection.upgrade11.name                           136  "Strength"
+forcepower . collection.upgrade11.description                    136  "Please see page 292 of the Force 
+forcepower . collection.upgrade11.cost                           136  "15"
+forcepower . collection.upgrade11.attributes                     136  {}
+forcepower . collection.upgrade11.links-top-1                    136  true
+forcepower . collection.upgrade11.links-right                    136  true
+forcepower . collection.upgrade11.islearned                      136  false
+forcepower . collection.upgrade12.islearned                      136  false
+forcepower . collection.upgrade12.name                           136  ""
+forcepower . collection.upgrade12.cost                           136  ""
+forcepower . collection.upgrade12.links-right                    136  false
+forcepower . collection.upgrade13.islearned                      136  false
+forcepower . collection.upgrade13.name                           136  ""
+forcepower . collection.upgrade13.cost                           136  ""
+forcepower . collection.upgrade13.links-right                    136  false
+forcepower . collection.upgrade14.islearned                      136  false
+forcepower . collection.upgrade14.name                           136  ""
+forcepower . collection.upgrade14.cost                           136  ""
+forcepower . collection.upgrade14.links-right                    136  false
+forcepower . collection.upgrade15.islearned                      136  false
+forcepower . collection.upgrade15.name                           136  ""
+forcepower . collection.upgrade15.cost                           136  ""
+forcepower . collection.upgrade15.links-right                    136  false
+forcepower . collection.upgrade12.links-top-1                    133  true
+forcepower . collection.upgrade13.links-top-1                    133  false
+forcepower . collection.upgrade14.links-top-1                    133  true
+forcepower . collection.upgrade15.links-top-1                    133  true
+forcepower . collection.upgrade12.canSplit                       132  true
+specialization . collection.talent2.attributes.<id>.mod          131  "Strain"
+specialization . collection.talent2.attributes.<id>.modtype      131  "Stat"
+specialization . collection.talent2.attributes.<id>.value        131  1
+forcepower . collection.upgrade12.description                    131  "Please see page 300 of the Age of
+forcepower . collection.upgrade12.attributes                     131  {}
+forcepower . collection.upgrade13.description                    131  "Please see page 300 of the Age of
+forcepower . collection.upgrade13.attributes                     131  {}
+forcepower . collection.upgrade14.description                    131  "Please see page 300 of the Age of
+forcepower . collection.upgrade14.attributes                     131  {}
+forcepower . collection.upgrade15.description                    131  "Please see page 300 of the Age of
+forcepower . collection.upgrade15.attributes                     131  {}
+forcepower . collection.upgrade11.canSplit                       126  false
+specialization . collection.talent2.enrichedDescription          123  "Gain +1 strain threshold"
+specialization . collection.talent1.attributes.<id>.mod          122  "Strain"
+specialization . collection.talent1.attributes.<id>.modtype      122  "Stat"
+specialization . collection.talent1.attributes.<id>.value        122  1
+forcepower . collection.upgrade2.canSplit                        122  false
+specialization . collection.talent4.attributes.<id>.mod          117  "Wounds"
+specialization . collection.talent4.attributes.<id>.modtype      117  "Stat"
+specialization . collection.talent4.attributes.<id>.value        117  2
+forcepower . collection.upgrade6.attributes                      117  {}
+forcepower . collection.upgrade9.canSplit                        117  false
+specialization . collection.talent3.enrichedDescription          116  "Gain +1 strain threshold"
+forcepower . collection.upgrade0.attributes                      116  {}
+forcepower . collection.upgrade1.attributes                      116  {}
+forcepower . collection.upgrade8.attributes                      116  {}
+specialization . collection.talent12.enrichedDescription         110  "When targeted by an opposed socia
+forcepower . collection.upgrade1.canSplit                        109  false
+forcepower . collection.upgrade10.canSplit                       109  false
+forcepower . collection.upgrade6.canSplit                        108  false
+specialization . collection.talent18.enrichedDescription         107  "Once per session, may make an opp
+specialization . collection.talent0.system                       106  {}
+forcepower . collection.upgrade14.canSplit                       104  false
+specialization . collection.talent7.attributes.<id>.mod          103  "Strain"
+specialization . collection.talent7.attributes.<id>.modtype      103  "Stat"
+specialization . collection.talent7.attributes.<id>.value        103  1
+specialization . collection.talent8.enrichedDescription          102  "When targeted by an opposed socia
+specialization . collection.talent11.enrichedDescription         102  "Once per session, may perform the
+forcepower . collection.upgrade5.canSplit                        101  false
+specialization . collection.talent1.enrichedDescription           98  "Gain +1 strain threshold"
+forcepower . collection.upgrade5.attributes                       98  {}
+specialization . collection.talent19.enrichedDescription          98  "Take Comprehend Technology action
+specialization . collection.talent12.attributes.<id>.mod          98  "Wounds"
+specialization . collection.talent12.attributes.<id>.modtype      98  "Stat"
+specialization . collection.talent12.attributes.<id>.value        98  2
+specialization . collection.talent5.attributes.<id>.mod           95  "Strain"
+specialization . collection.talent5.attributes.<id>.modtype       95  "Stat"
+specialization . collection.talent5.attributes.<id>.value         95  1
+specialization . collection.talent14.enrichedDescription          95  "Gain +1 strain threshold"
+specialization . collection.talent7.enrichedDescription           94  "May spend <span class=\"dietype s
+forcepower . collection.upgrade4.attributes                       94  {}
+specialization . collection.talent2.system                        91  {}
+forcepower . collection.upgrade7.canSplit                         91  false
+weapon . hasLongDesc                                              90  false
+weapon . enrichedSpecial                                          90  ""
+weapon . doNotSubmit.qualities                                    90  [{"name":"Cumbersome Quality","img
+specialization . collection.talent10.enrichedDescription          89  "Gain +1 strain threshold"
+specialization . collection.talent13.enrichedDescription          88  "Gain +1 strain threshold"
+specialization . collection.talent11.attributes.<id>.mod          88  "Strain"
+specialization . collection.talent11.attributes.<id>.modtype      88  "Stat"
+specialization . collection.talent11.attributes.<id>.value        88  1
+specialization . collection.talent6.attributes.<id>.mod           88  "Strain"
+specialization . collection.talent6.attributes.<id>.modtype       88  "Stat"
+specialization . collection.talent6.attributes.<id>.value         88  1
+specialization . collection.talent5.enrichedDescription           87  "Gain +1 strain threshold"
+specialization . collection.talent16.enrichedDescription          87  "When making a Brawl check against
+specialization . collection.talent14.attributes.<id>.mod          86  "Strain"
+specialization . collection.talent14.attributes.<id>.modtype      86  "Stat"
+specialization . collection.talent14.attributes.<id>.value        86  1
+specialization . collection.talent9.enrichedDescription           85  "Gain +1 strain threshold"
+specialization . collection.talent8.attributes.<id>.mod           85  "Wounds"
+specialization . collection.talent8.attributes.<id>.modtype       85  "Stat"
+specialization . collection.talent8.attributes.<id>.value         85  2
+specialization . collection.talent4.enrichedDescription           83  "May spend <span class=\"dietype s
+specialization . collection.talent3.system                        83  {}
+talent . enrichedDescription                                      83  "<p>When staggered or disoriented,
+talent . <id>                                                     83  ""
+talent . hasLongDesc                                              83  true
+talent . doNotSubmit.qualities                                    83  []
+specialization . collection.talent17.enrichedDescription          81  "Whenever a character makes a succ
+specialization . collection.talent18.attributes.<id>.mod          79  "Strain"
+specialization . collection.talent18.attributes.<id>.modtype      79  "Stat"
+specialization . collection.talent18.attributes.<id>.value        79  1
+specialization . collection.talent6.enrichedDescription           78  "Take the Inspiring Rhetoric actio
+nemesis . general.gender                                          75  ""
+nemesis . general.age                                             75  ""
+nemesis . general.height                                          75  ""
+nemesis . general.build                                           75  ""
+nemesis . general.hair                                            75  ""
+nemesis . general.eyes                                            75  ""
+specialization . collection.talent9.attributes.<id>.mod           74  "Strain"
+specialization . collection.talent9.attributes.<id>.modtype       74  "Stat"
+specialization . collection.talent9.attributes.<id>.value         74  1
+nemesis . general.motivation1.category                            73  ""
+nemesis . general.motivation1.type                                73  ""
+nemesis . general.motivation1.description                         73  ""
+nemesis . general.motivation2.category                            73  ""
+nemesis . general.motivation2.type                                73  ""
+nemesis . general.motivation2.description                         73  ""
+shipattachment . rank                                             73  1
+rival . stats.Brawn.value                                         73  3
+rival . stats.Willpower.value                                     73  3
+forcepower . collection.upgrade13.canSplit                        70  true
+forcepower . collection.upgrade14.links-top-2                     69  true
+forcepower . collection.upgrade3.canSplit                         68  false
+weapon . enrichedDescription                                      68  "      Please see page 164 of the 
+forcepower . collection.upgrade2.links-top-2                      67  true
+specialization . collection.talent13.attributes.<id>.mod          65  "Strain"
+specialization . collection.talent13.attributes.<id>.modtype      65  "Stat"
+specialization . collection.talent13.attributes.<id>.value        65  1
+specialization . collection.talent12.system                       65  {}
+specialization . collection.talent1.system                        64  {}
+forcepower . collection.upgrade12.links-top-2                     63  false
+specialization . collection.talent10.attributes.<id>.mod          61  "Strain"
+specialization . collection.talent10.attributes.<id>.modtype      61  "Stat"
+specialization . collection.talent10.attributes.<id>.value        61  1
+specialization . collection.talent16.attributes.<id>.mod          61  "Soak"
+specialization . collection.talent16.attributes.<id>.modtype      61  "Stat"
+specialization . collection.talent16.attributes.<id>.value        61  1
+specialization . collection.talent11.system                       60  {}
+specialization . collection.talent15.enrichedDescription          59  "The character may extend the effe
+specialization . collection.talent4.system                        59  {}
+specialization . collection.talent7.system                        59  {}
+specialization . collection.talent19.attributes.<id>.mod          56  "Wounds"
+specialization . collection.talent19.attributes.<id>.modtype      56  "Stat"
+specialization . collection.talent19.attributes.<id>.value        56  2
+specialization . collection.talent5.system                        55  {}
+specialization . collection.talent8.system                        55  {}
+specialization . collection.talent18.system                       54  {}
+forcepower . collection.upgrade15.canSplit                        52  false
+ability . renderedDesc                                            49  {}
+specialization . collection.talent9.system                        47  {}
+specialization . collection.talent6.system                        47  {}
+forcepower . collection.upgrade6.links-top-2                      47  true
+specialization . collection.talent14.system                       44  {}
+specialization . collection.talent10.system                       43  {}
+rival . stats.strain.max                                          42  0
+specialization . collection.talent19.system                       40  {}
+specialization . collection.talent17.attributes.<id>.mod          38  "ForcePool"
+specialization . collection.talent17.attributes.<id>.modtype      38  "Stat"
+specialization . collection.talent17.attributes.<id>.value        38  1
+specialization . collection.talent16.system                       38  {}
+signatureability . collection.upgrade0.name                       38  "Increase Effect (Setback)"
+signatureability . collection.upgrade0.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade0.visible                    38  true
+signatureability . collection.upgrade0.attributes                 38  {}
+signatureability . collection.upgrade0.size                       38  "single"
+signatureability . collection.upgrade0.canSplit                   38  false
+signatureability . collection.upgrade0.canCombine                 38  true
+signatureability . collection.upgrade0.canLinkTop                 38  true
+signatureability . collection.upgrade0.canLinkRight               38  true
+signatureability . collection.upgrade1.name                       38  "Increase Number"
+signatureability . collection.upgrade1.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade1.visible                    38  true
+signatureability . collection.upgrade1.attributes                 38  {}
+signatureability . collection.upgrade1.size                       38  "single"
+signatureability . collection.upgrade1.canSplit                   38  false
+signatureability . collection.upgrade1.canCombine                 38  true
+signatureability . collection.upgrade1.canLinkTop                 38  true
+signatureability . collection.upgrade1.canLinkRight               38  true
+signatureability . collection.upgrade2.name                       38  "Change Skill (Stealth)"
+signatureability . collection.upgrade2.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade2.visible                    38  true
+signatureability . collection.upgrade2.attributes                 38  {}
+signatureability . collection.upgrade2.size                       38  "single"
+signatureability . collection.upgrade2.canSplit                   38  false
+signatureability . collection.upgrade2.canCombine                 38  true
+signatureability . collection.upgrade2.canLinkTop                 38  true
+signatureability . collection.upgrade2.canLinkRight               38  true
+signatureability . collection.upgrade3.name                       38  "Change Skill (Skulduggery)"
+signatureability . collection.upgrade3.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade3.visible                    38  true
+signatureability . collection.upgrade3.attributes                 38  {}
+signatureability . collection.upgrade3.size                       38  "single"
+signatureability . collection.upgrade3.canSplit                   38  false
+signatureability . collection.upgrade3.canCombine                 38  false
+signatureability . collection.upgrade3.canLinkTop                 38  true
+signatureability . collection.upgrade3.canLinkRight               38  false
+signatureability . collection.upgrade4.name                       38  "Increase Effect (Challenge)"
+signatureability . collection.upgrade4.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade4.visible                    38  true
+signatureability . collection.upgrade4.attributes                 38  {}
+signatureability . collection.upgrade4.size                       38  "single"
+signatureability . collection.upgrade4.canSplit                   38  false
+signatureability . collection.upgrade4.canCombine                 38  true
+signatureability . collection.upgrade4.canLinkTop                 38  true
+signatureability . collection.upgrade4.canLinkRight               38  true
+signatureability . collection.upgrade5.name                       38  "Destiny"
+signatureability . collection.upgrade5.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade5.visible                    38  true
+signatureability . collection.upgrade5.attributes                 38  {}
+signatureability . collection.upgrade5.size                       38  "single"
+signatureability . collection.upgrade5.canSplit                   38  false
+signatureability . collection.upgrade5.canCombine                 38  true
+signatureability . collection.upgrade5.canLinkTop                 38  true
+signatureability . collection.upgrade5.canLinkRight               38  true
+signatureability . collection.upgrade6.name                       38  "Frequency"
+signatureability . collection.upgrade6.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade6.visible                    38  true
+signatureability . collection.upgrade6.attributes                 38  {}
+signatureability . collection.upgrade6.size                       38  "single"
+signatureability . collection.upgrade6.canSplit                   38  false
+signatureability . collection.upgrade6.canCombine                 38  true
+signatureability . collection.upgrade6.canLinkTop                 38  true
+signatureability . collection.upgrade6.canLinkRight               38  true
+signatureability . collection.upgrade7.name                       38  "Increase Number"
+signatureability . collection.upgrade7.description                38  "Please see page 35 of the Cyphers
+signatureability . collection.upgrade7.visible                    38  true
+signatureability . collection.upgrade7.attributes                 38  {}
+signatureability . collection.upgrade7.size                       38  "single"
+signatureability . collection.upgrade7.canSplit                   38  false
+signatureability . collection.upgrade7.canCombine                 38  false
+signatureability . collection.upgrade7.canLinkTop                 38  true
+signatureability . collection.upgrade7.canLinkRight               38  false
+minion . stats.Brawn.value                                        38  1
+minion . stats.Willpower.value                                    38  1
+minion . stats.Willpower.label                                    38  "Willpower"
+minion . stats.Willpower.abrev                                    38  "Will"
+minion . species.value                                            38  ""
+minion . species.type                                             38  "String"
+minion . general.features                                         38  "<p></p>"
+minion . general.gender                                           38  ""
+minion . general.age                                              38  ""
+minion . general.height                                           38  ""
+minion . general.build                                            38  ""
+minion . general.hair                                             38  ""
+minion . general.eyes                                             38  ""
+minion . general.motivation1.category                             38  ""
+minion . general.motivation1.type                                 38  ""
+minion . general.motivation1.description                          38  ""
+minion . general.motivation2.category                             38  ""
+minion . general.motivation2.type                                 38  ""
+minion . general.motivation2.description                          38  ""
+forcepower . collection.upgrade4.links-top-2                      37  true
+signatureability . collection.upgrade4.links-right                35  true
+signatureability . collection.upgrade5.links-right                35  true
+signatureability . collection.upgrade6.links-right                35  true
+minion . stats.Brawn.label                                        35  "Brawn"
+minion . stats.Brawn.abrev                                        35  "Br"
+specialization . collection.talent13.system                       34  {}
+signatureability . collection.upgrade1.links-top-1                34  true
+signatureability . collection.upgrade2.links-right                34  true
+specialization . collection.talent15.attributes.<id>.mod          33  "Wounds"
+specialization . collection.talent15.attributes.<id>.modtype      33  "Stat"
+specialization . collection.talent15.attributes.<id>.value        33  2
+signatureability . collection.upgrade2.links-top-1                33  true
+signatureability . collection.upgrade4.links-top-1                32  true
+signatureability . collection.upgrade7.links-top-1                31  true
+signatureability . collection.upgrade0.links-top-1                30  true
+signatureability . collection.upgrade6.links-top-1                30  true
+signatureability . collection.upgrade0.links-right                30  true
+signatureability . collection.upgrade5.links-top-1                30  true
+specialization . collection.talent17.system                       29  {}
+forcepower . collection.upgrade0.links-top-2                      29  true
+forcepower . collection.upgrade9.links-top-2                      29  false
+rival . stats.Brawn.label                                         29  "Brawn"
+rival . stats.Brawn.abrev                                         29  "Br"
+rival . stats.Willpower.label                                     29  "Willpower"
+rival . stats.Willpower.abrev                                     29  "Will"
+nemesis . stats.Brawn.value                                       29  2
+nemesis . stats.Willpower.value                                   29  4
+signatureability . collection.upgrade3.links-top-1                27  true
+character . general.gender                                        26  ""
+character . general.age                                           26  ""
+character . general.height                                        26  ""
+character . general.build                                         26  ""
+character . general.hair                                          26  ""
+character . general.eyes                                          26  ""
+armour . hardpoints.current                                       25  3
+armour . renderedDesc                                             25  {}
+armour . adjusteditemmodifier                                     25  []
+signatureability . collection.upgrade1.links-right                24  true
+specialization . collection.talent15.system                       22  {}
+forcepower . collection.upgrade8.links-top-2                      21  true
+forcepower . collection.upgrade13.links-top-2                     21  true
+forcepower . collection.upgrade4.links-top-3                      21  true
+forcepower . collection.upgrade0.attributes.Coordination.mod      20  "Coordination"
+forcepower . collection.upgrade0.attributes.Coordination.modtype    20  "Force Boost"
+forcepower . collection.upgrade0.attributes.Coordination.value    20  true
+forcepower . collection.upgrade1.attributes.Resilience.mod        20  "Resilience"
+forcepower . collection.upgrade1.attributes.Resilience.modtype    20  "Force Boost"
+forcepower . collection.upgrade1.attributes.Resilience.value      20  true
+forcepower . collection.upgrade4.attributes.Piloting:_Planetary.mod    20  "Piloting: Planetary"
+forcepower . collection.upgrade4.attributes.Piloting:_Planetary.modtype    20  "Force Boost"
+forcepower . collection.upgrade4.attributes.Piloting:_Planetary.value    20  true
+forcepower . collection.upgrade5.attributes.Brawl.mod             20  "Brawl"
+forcepower . collection.upgrade5.attributes.Brawl.modtype         20  "Force Boost"
+forcepower . collection.upgrade5.attributes.Brawl.value           20  true
+forcepower . collection.upgrade8.attributes.Piloting:_Space.mod    20  "Piloting: Space"
+forcepower . collection.upgrade8.attributes.Piloting:_Space.modtype    20  "Force Boost"
+forcepower . collection.upgrade8.attributes.Piloting:_Space.value    20  true
+signatureability . collection.upgrade3.links-right                19  true
+signatureability . collection.upgrade7.links-right                19  true
+specialization . collection.talent2.attributes.Knowledge: Core Worlds.mod    18  "Knowledge: Core Worlds"
+specialization . collection.talent2.attributes.Knowledge: Core Worlds.modtype    18  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge: Core Worlds.value    18  1
+specialization . collection.talent2.attributes.Knowledge: Education.mod    18  "Knowledge: Education"
+specialization . collection.talent2.attributes.Knowledge: Education.modtype    18  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge: Education.value    18  1
+specialization . collection.talent2.attributes.Knowledge: Lore.mod    18  "Knowledge: Lore"
+specialization . collection.talent2.attributes.Knowledge: Lore.modtype    18  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge: Lore.value    18  1
+specialization . collection.talent2.attributes.Knowledge: Outer Rim.mod    18  "Knowledge: Outer Rim"
+specialization . collection.talent2.attributes.Knowledge: Outer Rim.modtype    18  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge: Outer Rim.value    18  1
+specialization . collection.talent2.attributes.Knowledge: Underworld.mod    18  "Knowledge: Underworld"
+specialization . collection.talent2.attributes.Knowledge: Underworld.modtype    18  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge: Underworld.value    18  1
+specialization . collection.talent2.attributes.Knowledge: Warfare.mod    18  "Knowledge: Warfare"
+specialization . collection.talent2.attributes.Knowledge: Warfare.modtype    18  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge: Warfare.value    18  1
+specialization . collection.talent2.attributes.Knowledge: Xenology.mod    18  "Knowledge: Xenology"
+specialization . collection.talent2.attributes.Knowledge: Xenology.modtype    18  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge: Xenology.value    18  1
+forcepower . collection.upgrade4.attributes.Coercion.mod          18  "Coercion"
+forcepower . collection.upgrade4.attributes.Coercion.modtype      18  "Force Boost"
+forcepower . collection.upgrade4.attributes.Coercion.value        18  true
+forcepower . collection.upgrade4.attributes.Charm.mod             18  "Charm"
+forcepower . collection.upgrade4.attributes.Charm.modtype         18  "Force Boost"
+forcepower . collection.upgrade4.attributes.Charm.value           18  true
+forcepower . collection.upgrade4.attributes.Deception.mod         18  "Deception"
+forcepower . collection.upgrade4.attributes.Deception.modtype     18  "Force Boost"
+forcepower . collection.upgrade4.attributes.Deception.value       18  true
+forcepower . collection.upgrade4.attributes.Leadership.mod        18  "Leadership"
+forcepower . collection.upgrade4.attributes.Leadership.modtype    18  "Force Boost"
+forcepower . collection.upgrade4.attributes.Leadership.value      18  true
+forcepower . collection.upgrade4.attributes.Negotiation.mod       18  "Negotiation"
+forcepower . collection.upgrade4.attributes.Negotiation.modtype    18  "Force Boost"
+forcepower . collection.upgrade4.attributes.Negotiation.value     18  true
+forcepower . collection.upgrade5.attributes.Coercion.mod          18  "Coercion"
+forcepower . collection.upgrade5.attributes.Coercion.modtype      18  "Force Boost"
+forcepower . collection.upgrade5.attributes.Coercion.value        18  true
+forcepower . collection.upgrade5.attributes.Charm.mod             18  "Charm"
+forcepower . collection.upgrade5.attributes.Charm.modtype         18  "Force Boost"
+forcepower . collection.upgrade5.attributes.Charm.value           18  true
+forcepower . collection.upgrade5.attributes.Deception.mod         18  "Deception"
+forcepower . collection.upgrade5.attributes.Deception.modtype     18  "Force Boost"
+forcepower . collection.upgrade5.attributes.Deception.value       18  true
+forcepower . collection.upgrade5.attributes.Leadership.mod        18  "Leadership"
+forcepower . collection.upgrade5.attributes.Leadership.modtype    18  "Force Boost"
+forcepower . collection.upgrade5.attributes.Leadership.value      18  true
+forcepower . collection.upgrade5.attributes.Negotiation.mod       18  "Negotiation"
+forcepower . collection.upgrade5.attributes.Negotiation.modtype    18  "Force Boost"
+forcepower . collection.upgrade5.attributes.Negotiation.value     18  true
+forcepower . collection.upgrade6.attributes.Coercion.mod          18  "Coercion"
+forcepower . collection.upgrade6.attributes.Coercion.modtype      18  "Force Boost"
+forcepower . collection.upgrade6.attributes.Coercion.value        18  true
+forcepower . collection.upgrade6.attributes.Charm.mod             18  "Charm"
+forcepower . collection.upgrade6.attributes.Charm.modtype         18  "Force Boost"
+forcepower . collection.upgrade6.attributes.Charm.value           18  true
+forcepower . collection.upgrade6.attributes.Deception.mod         18  "Deception"
+forcepower . collection.upgrade6.attributes.Deception.modtype     18  "Force Boost"
+forcepower . collection.upgrade6.attributes.Deception.value       18  true
+forcepower . collection.upgrade6.attributes.Leadership.mod        18  "Leadership"
+forcepower . collection.upgrade6.attributes.Leadership.modtype    18  "Force Boost"
+forcepower . collection.upgrade6.attributes.Leadership.value      18  true
+forcepower . collection.upgrade6.attributes.Negotiation.mod       18  "Negotiation"
+forcepower . collection.upgrade6.attributes.Negotiation.modtype    18  "Force Boost"
+forcepower . collection.upgrade6.attributes.Negotiation.value     18  true
+specialization . collection.talent1.attributes.Deception.mod      16  "Deception"
+specialization . collection.talent1.attributes.Deception.modtype    16  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Deception.value    16  1
+specialization . collection.talent1.attributes.Leadership.mod     16  "Leadership"
+specialization . collection.talent1.attributes.Leadership.modtype    16  "Skill Boost"
+specialization . collection.talent1.attributes.Leadership.value    16  1
+gear . enrichedDescription                                        16  "<p>Standard medpacs allow a user 
+gear . hasLongDesc                                                16  false
+gear . doNotSubmit.qualities                                      16  []
+species . renderedDesc                                            13  {}
+armour . status                                                   13  "None"
+forcepower . collection.upgrade10.links-top-2                     12  false
+specialization . collection.talent0.attributes.Deception.mod      12  "Deception"
+specialization . collection.talent0.attributes.Deception.modtype    12  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Deception.value    12  1
+specialization . collection.talent2.attributes.Coordination.mod    12  "Coordination"
+specialization . collection.talent2.attributes.Coordination.modtype    12  "Skill Boost"
+specialization . collection.talent2.attributes.Coordination.value    12  1
+specialization . collection.talent9.attributes.Leadership.mod     12  "Leadership"
+specialization . collection.talent9.attributes.Leadership.modtype    12  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Leadership.value    12  1
+specialization . renderedDesc                                     12  {}
+character . stats.medical.uses                                    12  0
+specialization . collection.talent6.attributes.Deception.mod      11  "Deception"
+specialization . collection.talent6.attributes.Deception.modtype    11  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Deception.value    11  1
+forcepower . collection.upgrade13.links-top-3                     11  true
+shipweapon . hardpoints.current                                   11  0
+shipweapon . renderedDesc                                         11  ""
+shipweapon . adjusteditemmodifier                                 11  [{"name":"Ensnare Quality","type":
+specialization . collection.talent0.attributes.Athletics.mod      10  "Athletics"
+specialization . collection.talent0.attributes.Athletics.modtype    10  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Athletics.value    10  1
+specialization . collection.talent0.attributes.Coordination.mod    10  "Coordination"
+specialization . collection.talent0.attributes.Coordination.modtype    10  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Coordination.value    10  1
+specialization . collection.talent1.attributes.Coordination.mod    10  "Coordination"
+specialization . collection.talent1.attributes.Coordination.modtype    10  "Skill Boost"
+specialization . collection.talent1.attributes.Coordination.value    10  1
+specialization . collection.talent11.attributes.attr<id>.modtype    10  "Career Skill"
+specialization . collection.talent11.attributes.attr<id>.value    10  true
+specialization . collection.talent11.attributes.attr<id>.mod      10  "Astrogation"
+specialization . collection.talent0.attributes.Coercion.mod       10  "Coercion"
+specialization . collection.talent0.attributes.Coercion.modtype    10  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Coercion.value     10  1
+specialization . collection.talent2.attributes.Leadership.mod     10  "Leadership"
+specialization . collection.talent2.attributes.Leadership.modtype    10  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Leadership.value    10  1
+specialization . collection.talent4.attributes.Leadership.mod     10  "Leadership"
+specialization . collection.talent4.attributes.Leadership.modtype    10  "Skill Boost"
+specialization . collection.talent4.attributes.Leadership.value    10  1
+specialization . collection.talent5.attributes.Leadership.mod     10  "Leadership"
+specialization . collection.talent5.attributes.Leadership.modtype    10  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Leadership.value    10  1
+specialization . collection.talent3.attributes.Leadership.mod     10  "Leadership"
+specialization . collection.talent3.attributes.Leadership.modtype    10  "Skill Boost"
+specialization . collection.talent3.attributes.Leadership.value    10  1
+shipattachment . rarity.isrestricted                              10  false
+specialization . collection.talent1.attributes.Vigilance.mod      10  "Vigilance"
+specialization . collection.talent1.attributes.Vigilance.modtype    10  "Skill Boost"
+specialization . collection.talent1.attributes.Vigilance.value    10  1
+specialization . collection.talent1.attributes.Skulduggery.mod    10  "Skulduggery"
+specialization . collection.talent1.attributes.Skulduggery.modtype    10  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Skulduggery.value    10  1
+specialization . collection.talent1.attributes.attr<id>.modtype    10  "Stat"
+specialization . collection.talent1.attributes.attr<id>.mod       10  "Strain"
+specialization . collection.talent1.attributes.attr<id>.value     10  1
+forcepower . collection.upgrade12.links-top-3                      9  true
+specialization . collection.talent6.attributes.Skulduggery.mod     9  "Skulduggery"
+specialization . collection.talent6.attributes.Skulduggery.modtype     9  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Skulduggery.value     9  1
+forcepower . collection.upgrade5.links-top-2                       9  false
+specialization . collection.talent4.attributes.attr<id>.modtype     9  "Career Skill"
+specialization . collection.talent4.attributes.attr<id>.value      9  true
+specialization . collection.talent4.attributes.attr<id>.mod        9  "Astrogation"
+specialization . collection.talent10.attributes.attr<id>.value     9  1
+specialization . collection.talent10.attributes.attr<id>.modtype     9  "Skill Boost"
+specialization . collection.talent10.attributes.attr<id>.mod       9  "Brawl"
+specialization . collection.talent1.attributes.Athletics.mod       8  "Athletics"
+specialization . collection.talent1.attributes.Athletics.modtype     8  "Skill Boost"
+specialization . collection.talent1.attributes.Athletics.value     8  1
+specialization . collection.talent5.attributes.Coercion.mod        8  "Coercion"
+specialization . collection.talent5.attributes.Coercion.modtype     8  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Coercion.value      8  1
+specialization . collection.talent5.attributes.Deception.mod       8  "Deception"
+specialization . collection.talent5.attributes.Deception.modtype     8  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Deception.value     8  1
+forcepower . collection.upgrade0.links-top-3                       8  true
+specialization . collection.talent4.attributes.Knowledge: Core Worlds.mod     8  "Knowledge: Core Worlds"
+specialization . collection.talent4.attributes.Knowledge: Core Worlds.modtype     8  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge: Core Worlds.value     8  1
+specialization . collection.talent4.attributes.Knowledge: Education.mod     8  "Knowledge: Education"
+specialization . collection.talent4.attributes.Knowledge: Education.modtype     8  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge: Education.value     8  1
+specialization . collection.talent4.attributes.Knowledge: Lore.mod     8  "Knowledge: Lore"
+specialization . collection.talent4.attributes.Knowledge: Lore.modtype     8  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge: Lore.value     8  1
+specialization . collection.talent4.attributes.Knowledge: Outer Rim.mod     8  "Knowledge: Outer Rim"
+specialization . collection.talent4.attributes.Knowledge: Outer Rim.modtype     8  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge: Outer Rim.value     8  1
+specialization . collection.talent4.attributes.Knowledge: Underworld.mod     8  "Knowledge: Underworld"
+specialization . collection.talent4.attributes.Knowledge: Underworld.modtype     8  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge: Underworld.value     8  1
+specialization . collection.talent4.attributes.Knowledge: Warfare.mod     8  "Knowledge: Warfare"
+specialization . collection.talent4.attributes.Knowledge: Warfare.modtype     8  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge: Warfare.value     8  1
+specialization . collection.talent4.attributes.Knowledge: Xenology.mod     8  "Knowledge: Xenology"
+specialization . collection.talent4.attributes.Knowledge: Xenology.modtype     8  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge: Xenology.value     8  1
+specialization . collection.talent9.attributes.Deception.mod       8  "Deception"
+specialization . collection.talent9.attributes.Deception.modtype     8  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Deception.value     8  1
+specialization . collection.talent7.attributes.Coercion.mod        8  "Coercion"
+specialization . collection.talent7.attributes.Coercion.modtype     8  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Coercion.value      8  1
+specialization . collection.talent7.attributes.Deception.mod       8  "Deception"
+specialization . collection.talent7.attributes.Deception.modtype     8  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Deception.value     8  1
+specialization . collection.talent1.attributes.Cool.mod            8  "Cool"
+specialization . collection.talent1.attributes.Cool.modtype        8  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Cool.value          8  1
+specialization . collection.talent1.attributes.Charm.mod           8  "Charm"
+specialization . collection.talent1.attributes.Charm.modtype       8  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Charm.value         8  1
+specialization . collection.talent2.attributes.Athletics.mod       8  "Athletics"
+specialization . collection.talent2.attributes.Athletics.modtype     8  "Skill Boost"
+specialization . collection.talent2.attributes.Athletics.value     8  1
+forcepower . collection.upgrade1.links-top-2                       8  false
+specialization . collection.talent9.attributes.attr<id>.modtype     8  "Career Skill"
+specialization . collection.talent9.attributes.attr<id>.value      8  true
+specialization . collection.talent9.attributes.attr<id>.mod        8  "Astrogation"
+specialization . collection.talent2.attributes.attr<id>.modtype     8  "Stat"
+specialization . collection.talent2.attributes.attr<id>.mod        8  "Strain"
+specialization . collection.talent2.attributes.attr<id>.value      8  1
+specialization . collection.talent12.attributes.attr<id>.value     8  1
+specialization . collection.talent12.attributes.attr<id>.modtype     8  "Stat"
+specialization . collection.talent12.attributes.attr<id>.mod       8  "Defence-Ranged"
+shipweapon . status                                                8  "None"
+character . general.motivation1.category                           8  ""
+character . general.motivation1.type                               8  ""
+character . general.motivation1.description                        8  ""
+character . general.motivation2.category                           8  ""
+character . general.motivation2.type                               8  ""
+character . general.motivation2.description                        8  ""
+career . renderedDesc                                              8  {}
+specialization . collection.talent0.flags.ffg-star-wars-enhancements.associatedSkill     8  ["Survival"]
+specialization . collection.talent4.attributes.Deception.mod       7  "Deception"
+specialization . collection.talent4.attributes.Deception.modtype     7  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Deception.value     7  1
+specialization . collection.talent4.attributes.Skulduggery.mod     7  "Skulduggery"
+specialization . collection.talent4.attributes.Skulduggery.modtype     7  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Skulduggery.value     7  1
+forcepower . renderedDesc                                          7  {}
+specialization . collection.talent1.attributes.Resilience.mod      6  "Resilience"
+specialization . collection.talent1.attributes.Resilience.modtype     6  "Skill Boost"
+specialization . collection.talent1.attributes.Resilience.value     6  1
+specialization . collection.talent1.attributes.Coercion.mod        6  "Coercion"
+specialization . collection.talent1.attributes.Coercion.modtype     6  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Coercion.value      6  1
+specialization . collection.talent3.attributes.Streetwise.mod      6  "Streetwise"
+specialization . collection.talent3.attributes.Streetwise.modtype     6  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Streetwise.value     6  1
+specialization . collection.talent3.attributes.Knowledge:_Underworld.mod     6  "Knowledge: Underworld"
+specialization . collection.talent3.attributes.Knowledge:_Underworld.modtype     6  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge:_Underworld.value     6  1
+specialization . collection.talent9.attributes.Coercion.mod        6  "Coercion"
+specialization . collection.talent9.attributes.Coercion.modtype     6  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Coercion.value      6  1
+specialization . collection.talent4.attributes.Vigilance.mod       6  "Vigilance"
+specialization . collection.talent4.attributes.Vigilance.modtype     6  "Skill Boost"
+specialization . collection.talent4.attributes.Vigilance.value     6  1
+specialization . collection.talent8.attributes.Stealth.mod         6  "Stealth"
+specialization . collection.talent8.attributes.Stealth.modtype     6  "Skill Boost"
+specialization . collection.talent8.attributes.Stealth.value       6  1
+specialization . collection.talent3.attributes.attr<id>.modtype     6  "Career Skill"
+specialization . collection.talent3.attributes.attr<id>.value      6  true
+specialization . collection.talent3.attributes.attr<id>.mod        6  "Astrogation"
+specialization . collection.talent13.attributes.Leadership.mod     6  "Leadership"
+specialization . collection.talent13.attributes.Leadership.modtype     6  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Leadership.value     6  1
+specialization . collection.talent9.attributes.Vigilance.mod       6  "Vigilance"
+specialization . collection.talent9.attributes.Vigilance.modtype     6  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Vigilance.value     6  1
+specialization . collection.talent11.attributes.Vigilance.mod      6  "Vigilance"
+specialization . collection.talent11.attributes.Vigilance.modtype     6  "Skill Boost"
+specialization . collection.talent11.attributes.Vigilance.value     6  1
+specialization . collection.talent15.attributes.Charm.mod          6  "Charm"
+specialization . collection.talent15.attributes.Charm.modtype      6  "Force Boost"
+specialization . collection.talent15.attributes.Charm.value        6  true
+specialization . collection.talent15.attributes.Coercion.mod       6  "Coercion"
+specialization . collection.talent15.attributes.Coercion.modtype     6  "Force Boost"
+specialization . collection.talent15.attributes.Coercion.value     6  true
+specialization . collection.talent15.attributes.Deception.mod      6  "Deception"
+specialization . collection.talent15.attributes.Deception.modtype     6  "Force Boost"
+specialization . collection.talent15.attributes.Deception.value     6  true
+specialization . collection.talent9.attributes.Coordination.mod     6  "Coordination"
+specialization . collection.talent9.attributes.Coordination.modtype     6  "Skill Boost"
+specialization . collection.talent9.attributes.Coordination.value     6  1
+specialization . collection.talent0.attributes.Resilience.mod      6  "Resilience"
+specialization . collection.talent0.attributes.Resilience.modtype     6  "Skill Boost"
+specialization . collection.talent0.attributes.Resilience.value     6  1
+specialization . collection.talent2.attributes.Streetwise.mod      6  "Streetwise"
+specialization . collection.talent2.attributes.Streetwise.modtype     6  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Streetwise.value     6  1
+specialization . collection.talent2.attributes.Knowledge:_Underworld.mod     6  "Knowledge: Underworld"
+specialization . collection.talent2.attributes.Knowledge:_Underworld.modtype     6  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Knowledge:_Underworld.value     6  1
+specialization . collection.talent8.attributes.Leadership.mod      6  "Leadership"
+specialization . collection.talent8.attributes.Leadership.modtype     6  "Skill Boost"
+specialization . collection.talent8.attributes.Leadership.value     6  1
+specialization . collection.talent5.attributes.Perception.mod      6  "Perception"
+specialization . collection.talent5.attributes.Perception.modtype     6  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Perception.value     6  1
+specialization . collection.talent5.attributes.Vigilance.mod       6  "Vigilance"
+specialization . collection.talent5.attributes.Vigilance.modtype     6  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Vigilance.value     6  1
+specialization . collection.talent6.attributes.Vigilance.mod       6  "Vigilance"
+specialization . collection.talent6.attributes.Vigilance.modtype     6  "Skill Boost"
+specialization . collection.talent6.attributes.Vigilance.value     6  1
+specialization . collection.talent9.attributes.Cool.mod            6  "Cool"
+specialization . collection.talent9.attributes.Cool.modtype        6  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Cool.value          6  1
+specialization . collection.talent5.attributes.Charm.mod           6  "Charm"
+specialization . collection.talent5.attributes.Charm.modtype       6  "Force Boost"
+specialization . collection.talent5.attributes.Charm.value         6  true
+specialization . collection.talent0.attributes.Knowledge: Core Worlds.mod     6  "Knowledge: Core Worlds"
+specialization . collection.talent0.attributes.Knowledge: Core Worlds.modtype     6  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge: Core Worlds.value     6  1
+specialization . collection.talent0.attributes.Knowledge: Education.mod     6  "Knowledge: Education"
+specialization . collection.talent0.attributes.Knowledge: Education.modtype     6  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge: Education.value     6  1
+specialization . collection.talent0.attributes.Knowledge: Lore.mod     6  "Knowledge: Lore"
+specialization . collection.talent0.attributes.Knowledge: Lore.modtype     6  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge: Lore.value     6  1
+specialization . collection.talent0.attributes.Knowledge: Outer Rim.mod     6  "Knowledge: Outer Rim"
+specialization . collection.talent0.attributes.Knowledge: Outer Rim.modtype     6  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge: Outer Rim.value     6  1
+specialization . collection.talent0.attributes.Knowledge: Underworld.mod     6  "Knowledge: Underworld"
+specialization . collection.talent0.attributes.Knowledge: Underworld.modtype     6  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge: Underworld.value     6  1
+specialization . collection.talent0.attributes.Knowledge: Warfare.mod     6  "Knowledge: Warfare"
+specialization . collection.talent0.attributes.Knowledge: Warfare.modtype     6  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge: Warfare.value     6  1
+specialization . collection.talent0.attributes.Knowledge: Xenology.mod     6  "Knowledge: Xenology"
+specialization . collection.talent0.attributes.Knowledge: Xenology.modtype     6  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge: Xenology.value     6  1
+specialization . collection.talent6.attributes.attr<id>.modtype     6  "Career Skill"
+specialization . collection.talent6.attributes.attr<id>.value      6  true
+specialization . collection.talent6.attributes.attr<id>.mod        6  "Astrogation"
+specialization . collection.talent0.attributes.Leadership.mod      6  "Leadership"
+specialization . collection.talent0.attributes.Leadership.modtype     6  "Skill Boost"
+specialization . collection.talent0.attributes.Leadership.value     6  1
+specialization . collection.talent1.attributes.Streetwise.mod      6  "Streetwise"
+specialization . collection.talent1.attributes.Streetwise.modtype     6  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Streetwise.value     6  1
+specialization . collection.talent8.attributes.Coordination.mod     6  "Coordination"
+specialization . collection.talent8.attributes.Coordination.modtype     6  "Skill Boost"
+specialization . collection.talent8.attributes.Coordination.value     6  1
+specialization . collection.talent1.attributes.Perception.mod      6  "Perception"
+specialization . collection.talent1.attributes.Perception.modtype     6  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Perception.value     6  1
+specialization . collection.talent1.attributes.Piloting:_Planetary.mod     6  "Piloting: Planetary"
+specialization . collection.talent1.attributes.Piloting:_Planetary.modtype     6  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Piloting:_Planetary.value     6  1
+specialization . collection.talent1.attributes.Piloting:_Space.mod     6  "Piloting: Space"
+specialization . collection.talent1.attributes.Piloting:_Space.modtype     6  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Piloting:_Space.value     6  1
+specialization . collection.talent0.attributes.attr<id>.modtype     6  "Career Skill"
+specialization . collection.talent0.attributes.attr<id>.value      6  true
+specialization . collection.talent0.attributes.attr<id>.mod        6  "Astrogation"
+specialization . collection.talent1.attributes.attr<id>.key        6  "attr1766844284216"
+specialization . collection.talent4.attributes.attr<id>.key        6  "attr1766844228449"
+specialization . collection.talent10.attributes.attr<id>.key       6  "attr1766845242496"
+specialization . collection.talent12.attributes.attr<id>.key       6  "attr1766844266478"
+character . obligationlist.<id>.type                               6  "hz"
+character . obligationlist.<id>.magnitude                          6  "10"
+character . obligationlist.<id>.description                        6  "За кішечку\n"
+specialization . collection.talent5.attributes.attr<id>.value      5  1
+specialization . collection.talent5.attributes.attr<id>.modtype     5  "Stat"
+specialization . collection.talent5.attributes.attr<id>.mod        5  "Soak"
+specialization . collection.talent6.attributes.Athletics.mod       4  "Athletics"
+specialization . collection.talent6.attributes.Athletics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Athletics.value     4  1
+specialization . collection.talent8.attributes.Athletics.mod       4  "Athletics"
+specialization . collection.talent8.attributes.Athletics.modtype     4  "Skill Boost"
+specialization . collection.talent8.attributes.Athletics.value     4  1
+specialization . collection.talent7.attributes.Mechanics.mod       4  "Mechanics"
+specialization . collection.talent7.attributes.Mechanics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Mechanics.value     4  1
+specialization . collection.talent7.attributes.Piloting:_Planetary.mod     4  "Piloting: Planetary"
+specialization . collection.talent7.attributes.Piloting:_Planetary.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Piloting:_Planetary.value     4  1
+specialization . collection.talent7.attributes.Piloting:_Space.mod     4  "Piloting: Space"
+specialization . collection.talent7.attributes.Piloting:_Space.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Piloting:_Space.value     4  1
+specialization . collection.talent1.attributes.Stealth.mod         4  "Stealth"
+specialization . collection.talent1.attributes.Stealth.modtype     4  "Skill Boost"
+specialization . collection.talent1.attributes.Stealth.value       4  1
+specialization . collection.talent10.attributes.Coordination.mod     4  "Coordination"
+specialization . collection.talent10.attributes.Coordination.modtype     4  "Skill Boost"
+specialization . collection.talent10.attributes.Coordination.value     4  1
+specialization . collection.talent10.attributes.Stealth.mod        4  "Stealth"
+specialization . collection.talent10.attributes.Stealth.modtype     4  "Skill Boost"
+specialization . collection.talent10.attributes.Stealth.value      4  1
+specialization . collection.talent3.attributes.Perception.mod      4  "Perception"
+specialization . collection.talent3.attributes.Perception.modtype     4  "Skill Boost"
+specialization . collection.talent3.attributes.Perception.value     4  1
+specialization . collection.talent10.attributes.Perception.mod     4  "Perception"
+specialization . collection.talent10.attributes.Perception.modtype     4  "Skill Boost"
+specialization . collection.talent10.attributes.Perception.value     4  1
+specialization . collection.talent7.attributes.Knowledge: Core Worlds.mod     4  "Knowledge: Core Worlds"
+specialization . collection.talent7.attributes.Knowledge: Core Worlds.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Knowledge: Core Worlds.value     4  1
+specialization . collection.talent7.attributes.Knowledge: Education.mod     4  "Knowledge: Education"
+specialization . collection.talent7.attributes.Knowledge: Education.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Knowledge: Education.value     4  1
+specialization . collection.talent7.attributes.Knowledge: Lore.mod     4  "Knowledge: Lore"
+specialization . collection.talent7.attributes.Knowledge: Lore.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Knowledge: Lore.value     4  1
+specialization . collection.talent7.attributes.Knowledge: Outer Rim.mod     4  "Knowledge: Outer Rim"
+specialization . collection.talent7.attributes.Knowledge: Outer Rim.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Knowledge: Outer Rim.value     4  1
+specialization . collection.talent7.attributes.Knowledge: Underworld.mod     4  "Knowledge: Underworld"
+specialization . collection.talent7.attributes.Knowledge: Underworld.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Knowledge: Underworld.value     4  1
+specialization . collection.talent7.attributes.Knowledge: Warfare.mod     4  "Knowledge: Warfare"
+specialization . collection.talent7.attributes.Knowledge: Warfare.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Knowledge: Warfare.value     4  1
+specialization . collection.talent7.attributes.Knowledge: Xenology.mod     4  "Knowledge: Xenology"
+specialization . collection.talent7.attributes.Knowledge: Xenology.modtype     4  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Knowledge: Xenology.value     4  1
+specialization . collection.talent6.attributes.Coercion.mod        4  "Coercion"
+specialization . collection.talent6.attributes.Coercion.modtype     4  "Skill Add Advantage"
+specialization . collection.talent6.attributes.Coercion.value      4  1
+specialization . collection.talent10.attributes.Streetwise.mod     4  "Streetwise"
+specialization . collection.talent10.attributes.Streetwise.modtype     4  "Skill Remove Setback"
+specialization . collection.talent10.attributes.Streetwise.value     4  1
+specialization . collection.talent10.attributes.Knowledge:_Underworld.mod     4  "Knowledge: Underworld"
+specialization . collection.talent10.attributes.Knowledge:_Underworld.modtype     4  "Skill Remove Setback"
+specialization . collection.talent10.attributes.Knowledge:_Underworld.value     4  1
+specialization . collection.talent12.attributes.Coercion.mod       4  "Coercion"
+specialization . collection.talent12.attributes.Coercion.modtype     4  "Skill Add Advantage"
+specialization . collection.talent12.attributes.Coercion.value     4  1
+specialization . collection.talent2.attributes.Perception.mod      4  "Perception"
+specialization . collection.talent2.attributes.Perception.modtype     4  "Skill Boost"
+specialization . collection.talent2.attributes.Perception.value     4  1
+specialization . collection.talent2.attributes.Mechanics.mod       4  "Mechanics"
+specialization . collection.talent2.attributes.Mechanics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Mechanics.value     4  1
+specialization . collection.talent3.attributes.Astrogation.mod     4  "Astrogation"
+specialization . collection.talent3.attributes.Astrogation.modtype     4  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Astrogation.value     4  1
+specialization . collection.talent5.attributes.Cool.mod            4  "Cool"
+specialization . collection.talent5.attributes.Cool.modtype        4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Cool.value          4  1
+specialization . collection.talent2.attributes.Charm.mod           4  "Charm"
+specialization . collection.talent2.attributes.Charm.modtype       4  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Charm.value         4  1
+specialization . collection.talent4.attributes.Charm.mod           4  "Charm"
+specialization . collection.talent4.attributes.Charm.modtype       4  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Charm.value         4  1
+specialization . collection.talent3.attributes.Athletics.mod       4  "Athletics"
+specialization . collection.talent3.attributes.Athletics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Athletics.value     4  1
+specialization . collection.talent3.attributes.Coordination.mod     4  "Coordination"
+specialization . collection.talent3.attributes.Coordination.modtype     4  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Coordination.value     4  1
+specialization . collection.talent11.attributes.Deception.mod      4  "Deception"
+specialization . collection.talent11.attributes.Deception.modtype     4  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Deception.value     4  1
+specialization . collection.talent15.attributes.Athletics.mod      4  "Athletics"
+specialization . collection.talent15.attributes.Athletics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Athletics.value     4  1
+specialization . collection.talent15.attributes.Coordination.mod     4  "Coordination"
+specialization . collection.talent15.attributes.Coordination.modtype     4  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Coordination.value     4  1
+specialization . collection.talent3.attributes.Cool.mod            4  "Cool"
+specialization . collection.talent3.attributes.Cool.modtype        4  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Cool.value          4  1
+specialization . collection.talent3.attributes.Skulduggery.mod     4  "Skulduggery"
+specialization . collection.talent3.attributes.Skulduggery.modtype     4  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Skulduggery.value     4  1
+specialization . collection.talent13.attributes.Cool.mod           4  "Cool"
+specialization . collection.talent13.attributes.Cool.modtype       4  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Cool.value         4  1
+specialization . collection.talent5.attributes.Knowledge: Core Worlds.mod     4  "Knowledge: Core Worlds"
+specialization . collection.talent5.attributes.Knowledge: Core Worlds.modtype     4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge: Core Worlds.value     4  1
+specialization . collection.talent5.attributes.Knowledge: Education.mod     4  "Knowledge: Education"
+specialization . collection.talent5.attributes.Knowledge: Education.modtype     4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge: Education.value     4  1
+specialization . collection.talent5.attributes.Knowledge: Lore.mod     4  "Knowledge: Lore"
+specialization . collection.talent5.attributes.Knowledge: Lore.modtype     4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge: Lore.value     4  1
+specialization . collection.talent5.attributes.Knowledge: Outer Rim.mod     4  "Knowledge: Outer Rim"
+specialization . collection.talent5.attributes.Knowledge: Outer Rim.modtype     4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge: Outer Rim.value     4  1
+specialization . collection.talent5.attributes.Knowledge: Underworld.mod     4  "Knowledge: Underworld"
+specialization . collection.talent5.attributes.Knowledge: Underworld.modtype     4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge: Underworld.value     4  1
+specialization . collection.talent5.attributes.Knowledge: Warfare.mod     4  "Knowledge: Warfare"
+specialization . collection.talent5.attributes.Knowledge: Warfare.modtype     4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge: Warfare.value     4  1
+specialization . collection.talent5.attributes.Knowledge: Xenology.mod     4  "Knowledge: Xenology"
+specialization . collection.talent5.attributes.Knowledge: Xenology.modtype     4  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge: Xenology.value     4  1
+specialization . collection.talent9.attributes.Perception.mod      4  "Perception"
+specialization . collection.talent9.attributes.Perception.modtype     4  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Perception.value     4  1
+specialization . collection.talent6.attributes.Streetwise.mod      4  "Streetwise"
+specialization . collection.talent6.attributes.Streetwise.modtype     4  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Streetwise.value     4  1
+specialization . collection.talent6.attributes.Knowledge:_Underworld.mod     4  "Knowledge: Underworld"
+specialization . collection.talent6.attributes.Knowledge:_Underworld.modtype     4  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Knowledge:_Underworld.value     4  1
+specialization . collection.talent4.attributes.Brawl.mod           4  "Brawl"
+specialization . collection.talent4.attributes.Brawl.modtype       4  "Skill Boost"
+specialization . collection.talent4.attributes.Brawl.value         4  1
+specialization . collection.talent4.attributes.Discipline.mod      4  "Discipline"
+specialization . collection.talent4.attributes.Discipline.modtype     4  "Skill Boost"
+specialization . collection.talent4.attributes.Discipline.value     4  1
+specialization . collection.talent2.attributes.Resilience.mod      4  "Resilience"
+specialization . collection.talent2.attributes.Resilience.modtype     4  "Skill Boost"
+specialization . collection.talent2.attributes.Resilience.value     4  1
+specialization . collection.talent3.attributes.Streetwise.key      4  "Streetwise"
+specialization . collection.talent3.attributes.Knowledge:_Underworld.key     4  "Knowledge:_Underworld"
+specialization . collection.talent15.attributes.Mechanics.mod      4  "Mechanics"
+specialization . collection.talent15.attributes.Mechanics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Mechanics.value     4  1
+specialization . collection.talent2.attributes.Vigilance.mod       4  "Vigilance"
+specialization . collection.talent2.attributes.Vigilance.modtype     4  "Skill Boost"
+specialization . collection.talent2.attributes.Vigilance.value     4  1
+specialization . collection.talent7.attributes.Charm.mod           4  "Charm"
+specialization . collection.talent7.attributes.Charm.modtype       4  "Skill Boost"
+specialization . collection.talent7.attributes.Charm.value         4  1
+specialization . collection.talent2.attributes.Stealth.mod         4  "Stealth"
+specialization . collection.talent2.attributes.Stealth.modtype     4  "Skill Boost"
+specialization . collection.talent2.attributes.Stealth.value       4  1
+specialization . collection.talent0.attributes.Stealth.mod         4  "Stealth"
+specialization . collection.talent0.attributes.Stealth.modtype     4  "Skill Boost"
+specialization . collection.talent0.attributes.Stealth.value       4  1
+forcepower . collection.upgrade4.attributes.Mechanics.mod          4  "Mechanics"
+forcepower . collection.upgrade4.attributes.Mechanics.modtype      4  "Force Boost"
+forcepower . collection.upgrade4.attributes.Mechanics.value        4  true
+specialization . collection.talent9.attributes.Charm.mod           4  "Charm"
+specialization . collection.talent9.attributes.Charm.modtype       4  "Skill Boost"
+specialization . collection.talent9.attributes.Charm.value         4  1
+specialization . collection.talent10.attributes.Leadership.mod     4  "Leadership"
+specialization . collection.talent10.attributes.Leadership.modtype     4  "Force Boost"
+specialization . collection.talent10.attributes.Leadership.value     4  true
+specialization . collection.talent3.attributes.Charm.mod           4  "Charm"
+specialization . collection.talent3.attributes.Charm.modtype       4  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Charm.value         4  1
+specialization . collection.talent11.attributes.Knowledge:_Lore.mod     4  "Knowledge: Lore"
+specialization . collection.talent11.attributes.Knowledge:_Lore.modtype     4  "Skill Rank"
+specialization . collection.talent11.attributes.Knowledge:_Lore.value     4  0
+specialization . collection.talent15.attributes.Leadership.mod     4  "Leadership"
+specialization . collection.talent15.attributes.Leadership.modtype     4  "Skill Boost"
+specialization . collection.talent15.attributes.Leadership.value     4  1
+specialization . collection.talent15.attributes.Cool.mod           4  "Cool"
+specialization . collection.talent15.attributes.Cool.modtype       4  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Cool.value         4  1
+specialization . collection.talent1.attributes.Streetwise.key      4  "Streetwise"
+specialization . collection.talent1.attributes.Knowledge:_Underworld.mod     4  "Knowledge: Underworld"
+specialization . collection.talent1.attributes.Knowledge:_Underworld.modtype     4  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Knowledge:_Underworld.value     4  1
+specialization . collection.talent1.attributes.Knowledge:_Underworld.key     4  "Knowledge:_Underworld"
+specialization . collection.talent4.attributes.Piloting:_Planetary.mod     4  "Piloting: Planetary"
+specialization . collection.talent4.attributes.Piloting:_Planetary.modtype     4  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Piloting:_Planetary.value     4  1
+specialization . collection.talent4.attributes.Piloting:_Space.mod     4  "Piloting: Space"
+specialization . collection.talent4.attributes.Piloting:_Space.modtype     4  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Piloting:_Space.value     4  1
+specialization . collection.talent0.attributes.Streetwise.mod      4  "Streetwise"
+specialization . collection.talent0.attributes.Streetwise.modtype     4  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Streetwise.value     4  1
+specialization . collection.talent0.attributes.Streetwise.key      4  "Streetwise"
+specialization . collection.talent0.attributes.Knowledge:_Underworld.mod     4  "Knowledge: Underworld"
+specialization . collection.talent0.attributes.Knowledge:_Underworld.modtype     4  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Knowledge:_Underworld.value     4  1
+specialization . collection.talent0.attributes.Knowledge:_Underworld.key     4  "Knowledge:_Underworld"
+specialization . collection.talent14.attributes.Streetwise.mod     4  "Streetwise"
+specialization . collection.talent14.attributes.Streetwise.modtype     4  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Streetwise.value     4  1
+specialization . collection.talent6.attributes.Stealth.mod         4  "Stealth"
+specialization . collection.talent6.attributes.Stealth.modtype     4  "Skill Boost"
+specialization . collection.talent6.attributes.Stealth.value       4  1
+specialization . collection.talent8.attributes.Piloting:_Planetary.mod     4  "Piloting: Planetary"
+specialization . collection.talent8.attributes.Piloting:_Planetary.modtype     4  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Piloting:_Planetary.value     4  1
+specialization . collection.talent8.attributes.Piloting:_Space.mod     4  "Piloting: Space"
+specialization . collection.talent8.attributes.Piloting:_Space.modtype     4  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Piloting:_Space.value     4  1
+specialization . collection.talent0.attributes.Charm.mod           4  "Charm"
+specialization . collection.talent0.attributes.Charm.modtype       4  "Skill Boost"
+specialization . collection.talent0.attributes.Charm.value         4  1
+specialization . collection.talent1.attributes.Negotiation.mod     4  "Negotiation"
+specialization . collection.talent1.attributes.Negotiation.modtype     4  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Negotiation.value     4  1
+specialization . collection.talent2.attributes.Coercion.mod        4  "Coercion"
+specialization . collection.talent2.attributes.Coercion.modtype     4  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Coercion.value      4  1
+specialization . collection.talent2.attributes.Deception.mod       4  "Deception"
+specialization . collection.talent2.attributes.Deception.modtype     4  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Deception.value     4  1
+specialization . collection.talent4.attributes.Athletics.mod       4  "Athletics"
+specialization . collection.talent4.attributes.Athletics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Athletics.value     4  1
+specialization . collection.talent4.attributes.Coordination.mod     4  "Coordination"
+specialization . collection.talent4.attributes.Coordination.modtype     4  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Coordination.value     4  1
+specialization . collection.talent9.attributes.Athletics.mod       4  "Athletics"
+specialization . collection.talent9.attributes.Athletics.modtype     4  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Athletics.value     4  1
+specialization . collection.talent15.attributes.Survival.mod       4  "Survival"
+specialization . collection.talent15.attributes.Survival.modtype     4  "Force Boost"
+specialization . collection.talent15.attributes.Survival.value     4  true
+specialization . collection.talent15.attributes.Survival.key       4  "Survival"
+specialization . collection.talent15.attributes.Knowledge:_Xenology.mod     4  "Knowledge: Xenology"
+specialization . collection.talent15.attributes.Knowledge:_Xenology.modtype     4  "Force Boost"
+specialization . collection.talent15.attributes.Knowledge:_Xenology.value     4  true
+specialization . collection.talent15.attributes.Knowledge:_Xenology.key     4  "Knowledge:_Xenology"
+nemesis . stats.medical.uses                                       4  2
+character . stats.Willpower.value                                  4  5
+nemesis . stats.Brawn.label                                        4  "Brawn"
+nemesis . stats.Brawn.abrev                                        4  "Br"
+nemesis . stats.Willpower.label                                    4  "Willpower"
+nemesis . stats.Willpower.abrev                                    4  "Will"
+specialization . collection.talent7.flags.ffg-star-wars-enhancements.associatedSkill     4  ["Brawl","Gunnery","Lightsaber","M
+armour . enrichedDescription                                       4  "<h3>Riot Armor</h3>\n      Please
+armour . hasLongDesc                                               4  false
+armour . doNotSubmit.qualities                                     4  []
+specialization . collection.talent4.flags.ffg-star-wars-enhancements.associatedSkill     4  ["Vigilance","Cool"]
+specialization . collection.talent16.flags.ffg-star-wars-enhancements.associatedSkill     4  ["Vigilance","Cool"]
+signatureability . collection.upgrade0.islearned                   3  false
+signatureability . collection.upgrade0.cost                        3  "10"
+signatureability . collection.upgrade1.islearned                   3  false
+signatureability . collection.upgrade1.cost                        3  "10"
+signatureability . collection.upgrade2.islearned                   3  false
+signatureability . collection.upgrade2.cost                        3  "10"
+signatureability . collection.upgrade3.islearned                   3  false
+signatureability . collection.upgrade3.cost                        3  "10"
+signatureability . collection.upgrade4.islearned                   3  false
+signatureability . collection.upgrade4.cost                        3  "15"
+signatureability . collection.upgrade5.islearned                   3  false
+signatureability . collection.upgrade5.cost                        3  "15"
+signatureability . collection.upgrade6.islearned                   3  false
+signatureability . collection.upgrade6.cost                        3  "15"
+signatureability . collection.upgrade7.islearned                   3  false
+signatureability . collection.upgrade7.cost                        3  "15"
+signatureability . isEditing                                       3  false
+specialization . collection.talent8.attributes.attr<id>.modtype     3  "Career Skill"
+specialization . collection.talent8.attributes.attr<id>.value      3  true
+specialization . collection.talent8.attributes.attr<id>.mod        3  "Astrogation"
+forcepower . collection.upgrade1.links-top-3                       3  true
+specialization . collection.talent5.attributes.attr<id>.key        3  "attr1766844277433"
+specialization . collection.talent6.attributes.Coordination.mod     2  "Coordination"
+specialization . collection.talent6.attributes.Coordination.modtype     2  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Coordination.value     2  1
+specialization . collection.talent8.attributes.Resilience.mod      2  "Resilience"
+specialization . collection.talent8.attributes.Resilience.modtype     2  "Skill Boost"
+specialization . collection.talent8.attributes.Resilience.value     2  1
+specialization . collection.talent5.attributes.Athletics.mod       2  "Athletics"
+specialization . collection.talent5.attributes.Athletics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Athletics.value     2  1
+specialization . collection.talent5.attributes.Coordination.mod     2  "Coordination"
+specialization . collection.talent5.attributes.Coordination.modtype     2  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Coordination.value     2  1
+specialization . collection.talent8.attributes.Mechanics.mod       2  "Mechanics"
+specialization . collection.talent8.attributes.Mechanics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Mechanics.value     2  1
+specialization . collection.talent7.attributes.Cool.mod            2  "Cool"
+specialization . collection.talent7.attributes.Cool.modtype        2  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Cool.value          2  1
+specialization . collection.talent7.attributes.Leadership.mod      2  "Leadership"
+specialization . collection.talent7.attributes.Leadership.modtype     2  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Leadership.value     2  1
+specialization . collection.talent14.attributes.Cool.mod           2  "Cool"
+specialization . collection.talent14.attributes.Cool.modtype       2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Cool.value         2  1
+specialization . collection.talent14.attributes.Leadership.mod     2  "Leadership"
+specialization . collection.talent14.attributes.Leadership.modtype     2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Leadership.value     2  1
+specialization . collection.talent3.attributes.Knowledge: Core Worlds.mod     2  "Knowledge: Core Worlds"
+specialization . collection.talent3.attributes.Knowledge: Core Worlds.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge: Core Worlds.value     2  1
+specialization . collection.talent3.attributes.Knowledge: Education.mod     2  "Knowledge: Education"
+specialization . collection.talent3.attributes.Knowledge: Education.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge: Education.value     2  1
+specialization . collection.talent3.attributes.Knowledge: Lore.mod     2  "Knowledge: Lore"
+specialization . collection.talent3.attributes.Knowledge: Lore.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge: Lore.value     2  1
+specialization . collection.talent3.attributes.Knowledge: Outer Rim.mod     2  "Knowledge: Outer Rim"
+specialization . collection.talent3.attributes.Knowledge: Outer Rim.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge: Outer Rim.value     2  1
+specialization . collection.talent3.attributes.Knowledge: Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent3.attributes.Knowledge: Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge: Underworld.value     2  1
+specialization . collection.talent3.attributes.Knowledge: Warfare.mod     2  "Knowledge: Warfare"
+specialization . collection.talent3.attributes.Knowledge: Warfare.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge: Warfare.value     2  1
+specialization . collection.talent3.attributes.Knowledge: Xenology.mod     2  "Knowledge: Xenology"
+specialization . collection.talent3.attributes.Knowledge: Xenology.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Knowledge: Xenology.value     2  1
+specialization . collection.talent15.attributes.Knowledge: Core Worlds.mod     2  "Knowledge: Core Worlds"
+specialization . collection.talent15.attributes.Knowledge: Core Worlds.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge: Core Worlds.value     2  1
+specialization . collection.talent15.attributes.Knowledge: Education.mod     2  "Knowledge: Education"
+specialization . collection.talent15.attributes.Knowledge: Education.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge: Education.value     2  1
+specialization . collection.talent15.attributes.Knowledge: Lore.mod     2  "Knowledge: Lore"
+specialization . collection.talent15.attributes.Knowledge: Lore.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge: Lore.value     2  1
+specialization . collection.talent15.attributes.Knowledge: Outer Rim.mod     2  "Knowledge: Outer Rim"
+specialization . collection.talent15.attributes.Knowledge: Outer Rim.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge: Outer Rim.value     2  1
+specialization . collection.talent15.attributes.Knowledge: Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent15.attributes.Knowledge: Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge: Underworld.value     2  1
+specialization . collection.talent15.attributes.Knowledge: Warfare.mod     2  "Knowledge: Warfare"
+specialization . collection.talent15.attributes.Knowledge: Warfare.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge: Warfare.value     2  1
+specialization . collection.talent15.attributes.Knowledge: Xenology.mod     2  "Knowledge: Xenology"
+specialization . collection.talent15.attributes.Knowledge: Xenology.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge: Xenology.value     2  1
+specialization . collection.talent4.attributes.Streetwise.mod      2  "Streetwise"
+specialization . collection.talent4.attributes.Streetwise.modtype     2  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Streetwise.value     2  1
+specialization . collection.talent4.attributes.Knowledge:_Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent4.attributes.Knowledge:_Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Knowledge:_Underworld.value     2  1
+specialization . collection.talent5.attributes.Streetwise.mod      2  "Streetwise"
+specialization . collection.talent5.attributes.Streetwise.modtype     2  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Streetwise.value     2  1
+specialization . collection.talent5.attributes.Knowledge:_Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent5.attributes.Knowledge:_Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Knowledge:_Underworld.value     2  1
+specialization . collection.talent8.attributes.Deception.mod       2  "Deception"
+specialization . collection.talent8.attributes.Deception.modtype     2  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Deception.value     2  1
+specialization . collection.talent8.attributes.Skulduggery.mod     2  "Skulduggery"
+specialization . collection.talent8.attributes.Skulduggery.modtype     2  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Skulduggery.value     2  1
+specialization . collection.talent14.attributes.Mechanics.mod      2  "Mechanics"
+specialization . collection.talent14.attributes.Mechanics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Mechanics.value     2  1
+specialization . collection.talent2.attributes.Cool.mod            2  "Cool"
+specialization . collection.talent2.attributes.Cool.modtype        2  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Cool.value          2  1
+specialization . collection.talent14.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent14.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Astrogation.value     2  1
+specialization . collection.talent7.attributes.Vigilance.mod       2  "Vigilance"
+specialization . collection.talent7.attributes.Vigilance.modtype     2  "Skill Boost"
+specialization . collection.talent7.attributes.Vigilance.value     2  1
+specialization . collection.talent15.attributes.Stealth.mod        2  "Stealth"
+specialization . collection.talent15.attributes.Stealth.modtype     2  "Skill Boost"
+specialization . collection.talent15.attributes.Stealth.value      2  1
+specialization . collection.talent11.attributes.Skulduggery.mod     2  "Skulduggery"
+specialization . collection.talent11.attributes.Skulduggery.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Skulduggery.value     2  1
+specialization . collection.talent10.attributes.Cool.mod           2  "Cool"
+specialization . collection.talent10.attributes.Cool.modtype       2  "Skill Remove Setback"
+specialization . collection.talent10.attributes.Cool.value         2  1
+specialization . collection.talent10.attributes.Skulduggery.mod     2  "Skulduggery"
+specialization . collection.talent10.attributes.Skulduggery.modtype     2  "Skill Remove Setback"
+specialization . collection.talent10.attributes.Skulduggery.value     2  1
+specialization . collection.talent7.attributes.Perception.mod      2  "Perception"
+specialization . collection.talent7.attributes.Perception.modtype     2  "Skill Boost"
+specialization . collection.talent7.attributes.Perception.value     2  1
+specialization . collection.talent14.attributes.<id>.key           2  "RnyZBV4XgnBV3ceX"
+specialization . collection.talent18.attributes.Ranged:_Heavy.mod     2  "Ranged: Heavy"
+specialization . collection.talent18.attributes.Ranged:_Heavy.modtype     2  "Force Boost"
+specialization . collection.talent18.attributes.Ranged:_Heavy.value     2  true
+specialization . collection.talent18.attributes.Ranged:_Heavy.key     2  "Ranged:_Heavy"
+specialization . collection.talent18.attributes.Ranged:_Light.mod     2  "Ranged: Light"
+specialization . collection.talent18.attributes.Ranged:_Light.modtype     2  "Force Boost"
+specialization . collection.talent18.attributes.Ranged:_Light.value     2  true
+specialization . collection.talent18.attributes.Ranged:_Light.key     2  "Ranged:_Light"
+specialization . collection.talent11.attributes.Streetwise.mod     2  "Streetwise"
+specialization . collection.talent11.attributes.Streetwise.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Streetwise.value     2  1
+specialization . collection.talent11.attributes.Knowledge:_Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent11.attributes.Knowledge:_Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge:_Underworld.value     2  1
+specialization . collection.talent3.attributes.Deception.mod       2  "Deception"
+specialization . collection.talent3.attributes.Deception.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Deception.value     2  1
+specialization . collection.talent11.attributes.Brawl.mod          2  "Brawl"
+specialization . collection.talent11.attributes.Brawl.modtype      2  "Skill Boost"
+specialization . collection.talent11.attributes.Brawl.value        2  1
+specialization . collection.talent11.attributes.Discipline.mod     2  "Discipline"
+specialization . collection.talent11.attributes.Discipline.modtype     2  "Skill Boost"
+specialization . collection.talent11.attributes.Discipline.value     2  1
+specialization . collection.talent13.attributes.Streetwise.mod     2  "Streetwise"
+specialization . collection.talent13.attributes.Streetwise.modtype     2  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Streetwise.value     2  1
+specialization . collection.talent13.attributes.Streetwise.key     2  "Streetwise"
+specialization . collection.talent13.attributes.Knowledge:_Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent13.attributes.Knowledge:_Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Knowledge:_Underworld.value     2  1
+specialization . collection.talent13.attributes.Knowledge:_Underworld.key     2  "Knowledge:_Underworld"
+specialization . collection.talent7.attributes.Knowledge:_Lore.mod     2  "Knowledge: Lore"
+specialization . collection.talent7.attributes.Knowledge:_Lore.modtype     2  "Skill Rank"
+specialization . collection.talent7.attributes.Knowledge:_Lore.value     2  0
+specialization . collection.talent7.attributes.Knowledge:_Lore.key     2  "Knowledge:_Lore"
+specialization . collection.talent9.attributes.Knowledge:_Lore.mod     2  "Knowledge: Lore"
+specialization . collection.talent9.attributes.Knowledge:_Lore.modtype     2  "Skill Rank"
+specialization . collection.talent9.attributes.Knowledge:_Lore.value     2  0
+specialization . collection.talent9.attributes.Knowledge:_Lore.key     2  "Knowledge:_Lore"
+specialization . collection.talent18.attributes.Knowledge:_Lore.mod     2  "Knowledge: Lore"
+specialization . collection.talent18.attributes.Knowledge:_Lore.modtype     2  "Skill Rank"
+specialization . collection.talent18.attributes.Knowledge:_Lore.value     2  0
+specialization . collection.talent4.attributes.Mechanics.mod       2  "Mechanics"
+specialization . collection.talent4.attributes.Mechanics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Mechanics.value     2  1
+specialization . collection.talent9.attributes.Stealth.mod         2  "Stealth"
+specialization . collection.talent9.attributes.Stealth.modtype     2  "Skill Boost"
+specialization . collection.talent9.attributes.Stealth.value       2  1
+specialization . collection.talent12.attributes.Coordination.mod     2  "Coordination"
+specialization . collection.talent12.attributes.Coordination.modtype     2  "Skill Boost"
+specialization . collection.talent12.attributes.Coordination.value     2  1
+specialization . collection.talent12.attributes.Stealth.mod        2  "Stealth"
+specialization . collection.talent12.attributes.Stealth.modtype     2  "Skill Boost"
+specialization . collection.talent12.attributes.Stealth.value      2  1
+specialization . collection.talent6.attributes.Resilience.mod      2  "Resilience"
+specialization . collection.talent6.attributes.Resilience.modtype     2  "Skill Boost"
+specialization . collection.talent6.attributes.Resilience.value     2  1
+specialization . collection.talent13.attributes.Athletics.mod      2  "Athletics"
+specialization . collection.talent13.attributes.Athletics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Athletics.value     2  1
+specialization . collection.talent13.attributes.Coordination.mod     2  "Coordination"
+specialization . collection.talent13.attributes.Coordination.modtype     2  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Coordination.value     2  1
+specialization . collection.talent8.attributes.Charm.mod           2  "Charm"
+specialization . collection.talent8.attributes.Charm.modtype       2  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Charm.value         2  1
+specialization . collection.talent0.attributes.Mechanics.mod       2  "Mechanics"
+specialization . collection.talent0.attributes.Mechanics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Mechanics.value     2  1
+specialization . collection.talent6.attributes.Mechanics.mod       2  "Mechanics"
+specialization . collection.talent6.attributes.Mechanics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Mechanics.value     2  1
+specialization . collection.talent0.attributes.Vigilance.mod       2  "Vigilance"
+specialization . collection.talent0.attributes.Vigilance.modtype     2  "Skill Boost"
+specialization . collection.talent0.attributes.Vigilance.value     2  1
+specialization . collection.talent0.attributes.Perception.mod      2  "Perception"
+specialization . collection.talent0.attributes.Perception.modtype     2  "Skill Boost"
+specialization . collection.talent0.attributes.Perception.value     2  1
+specialization . collection.talent3.attributes.Vigilance.mod       2  "Vigilance"
+specialization . collection.talent3.attributes.Vigilance.modtype     2  "Skill Boost"
+specialization . collection.talent3.attributes.Vigilance.value     2  1
+specialization . collection.talent12.attributes.Streetwise.mod     2  "Streetwise"
+specialization . collection.talent12.attributes.Streetwise.modtype     2  "Skill Remove Setback"
+specialization . collection.talent12.attributes.Streetwise.value     2  1
+specialization . collection.talent12.attributes.Knowledge:_Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent12.attributes.Knowledge:_Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent12.attributes.Knowledge:_Underworld.value     2  1
+specialization . collection.talent13.attributes.Perception.mod     2  "Perception"
+specialization . collection.talent13.attributes.Perception.modtype     2  "Skill Boost"
+specialization . collection.talent13.attributes.Perception.value     2  1
+specialization . collection.talent14.attributes.Vigilance.mod      2  "Vigilance"
+specialization . collection.talent14.attributes.Vigilance.modtype     2  "Skill Boost"
+specialization . collection.talent14.attributes.Vigilance.value     2  1
+specialization . collection.talent15.attributes.Streetwise.mod     2  "Streetwise"
+specialization . collection.talent15.attributes.Streetwise.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Streetwise.value     2  1
+specialization . collection.talent15.attributes.Knowledge:_Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent15.attributes.Knowledge:_Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Knowledge:_Underworld.value     2  1
+specialization . collection.talent4.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent4.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Astrogation.value     2  1
+specialization . collection.talent12.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent12.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent12.attributes.Astrogation.value     2  1
+specialization . collection.talent17.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent17.attributes.Astrogation.modtype     2  "Force Boost"
+specialization . collection.talent17.attributes.Astrogation.value     2  true
+specialization . collection.talent17.attributes.Astrogation.key     2  "Astrogation"
+specialization . collection.talent17.attributes.Knowledge:_Outer Rim.mod     2  "Knowledge: Outer Rim"
+specialization . collection.talent17.attributes.Knowledge:_Outer Rim.modtype     2  "Force Boost"
+specialization . collection.talent17.attributes.Knowledge:_Outer Rim.value     2  true
+specialization . collection.talent17.attributes.Knowledge:_Outer Rim.key     2  "Knowledge:_Outer Rim"
+specialization . collection.talent11.attributes.Coercion.mod       2  "Coercion"
+specialization . collection.talent11.attributes.Coercion.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Coercion.value     2  1
+specialization . collection.talent14.attributes.Brawl.mod          2  "Brawl"
+specialization . collection.talent14.attributes.Brawl.modtype      2  "Skill Boost"
+specialization . collection.talent14.attributes.Brawl.value        2  1
+specialization . collection.talent14.attributes.Discipline.mod     2  "Discipline"
+specialization . collection.talent14.attributes.Discipline.modtype     2  "Skill Boost"
+specialization . collection.talent14.attributes.Discipline.value     2  1
+specialization . collection.talent2.attributes.Streetwise.key      2  "Streetwise"
+specialization . collection.talent2.attributes.Knowledge:_Underworld.key     2  "Knowledge:_Underworld"
+specialization . collection.talent6.attributes.Leadership.mod      2  "Leadership"
+specialization . collection.talent6.attributes.Leadership.modtype     2  "Skill Boost"
+specialization . collection.talent6.attributes.Leadership.value     2  1
+specialization . collection.talent9.attributes.Knowledge: Core Worlds.mod     2  "Knowledge: Core Worlds"
+specialization . collection.talent9.attributes.Knowledge: Core Worlds.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Knowledge: Core Worlds.value     2  1
+specialization . collection.talent9.attributes.Knowledge: Education.mod     2  "Knowledge: Education"
+specialization . collection.talent9.attributes.Knowledge: Education.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Knowledge: Education.value     2  1
+specialization . collection.talent9.attributes.Knowledge: Lore.mod     2  "Knowledge: Lore"
+specialization . collection.talent9.attributes.Knowledge: Lore.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Knowledge: Lore.value     2  1
+specialization . collection.talent9.attributes.Knowledge: Outer Rim.mod     2  "Knowledge: Outer Rim"
+specialization . collection.talent9.attributes.Knowledge: Outer Rim.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Knowledge: Outer Rim.value     2  1
+specialization . collection.talent9.attributes.Knowledge: Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent9.attributes.Knowledge: Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Knowledge: Underworld.value     2  1
+specialization . collection.talent9.attributes.Knowledge: Warfare.mod     2  "Knowledge: Warfare"
+specialization . collection.talent9.attributes.Knowledge: Warfare.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Knowledge: Warfare.value     2  1
+specialization . collection.talent9.attributes.Knowledge: Xenology.mod     2  "Knowledge: Xenology"
+specialization . collection.talent9.attributes.Knowledge: Xenology.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Knowledge: Xenology.value     2  1
+specialization . collection.talent8.attributes.Cool.mod            2  "Cool"
+specialization . collection.talent8.attributes.Cool.modtype        2  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Cool.value          2  1
+specialization . collection.talent0.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent0.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Astrogation.value     2  1
+specialization . collection.talent5.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent5.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Astrogation.value     2  1
+specialization . collection.talent2.attributes.Piloting:_Planetary.mod     2  "Piloting: Planetary"
+specialization . collection.talent2.attributes.Piloting:_Planetary.modtype     2  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Piloting:_Planetary.value     2  1
+specialization . collection.talent2.attributes.Piloting:_Space.mod     2  "Piloting: Space"
+specialization . collection.talent2.attributes.Piloting:_Space.modtype     2  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Piloting:_Space.value     2  1
+specialization . collection.talent12.attributes.Deception.mod      2  "Deception"
+specialization . collection.talent12.attributes.Deception.modtype     2  "Skill Remove Setback"
+specialization . collection.talent12.attributes.Deception.value     2  1
+specialization . collection.talent14.attributes.Streetwise.key     2  "Streetwise"
+specialization . collection.talent14.attributes.Knowledge:_Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent14.attributes.Knowledge:_Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Knowledge:_Underworld.value     2  1
+specialization . collection.talent14.attributes.Knowledge:_Underworld.key     2  "Knowledge:_Underworld"
+specialization . collection.talent6.attributes.Charm.mod           2  "Charm"
+specialization . collection.talent6.attributes.Charm.modtype       2  "Skill Boost"
+specialization . collection.talent6.attributes.Charm.value         2  1
+specialization . collection.talent13.attributes.Vigilance.mod      2  "Vigilance"
+specialization . collection.talent13.attributes.Vigilance.modtype     2  "Skill Boost"
+specialization . collection.talent13.attributes.Vigilance.value     2  1
+specialization . collection.talent10.attributes.Resilience.mod     2  "Resilience"
+specialization . collection.talent10.attributes.Resilience.modtype     2  "Skill Remove Setback"
+specialization . collection.talent10.attributes.Resilience.value     2  1
+specialization . collection.talent14.attributes.Athletics.mod      2  "Athletics"
+specialization . collection.talent14.attributes.Athletics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Athletics.value     2  1
+specialization . collection.talent14.attributes.Coordination.mod     2  "Coordination"
+specialization . collection.talent14.attributes.Coordination.modtype     2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Coordination.value     2  1
+specialization . collection.talent1.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent1.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent1.attributes.Astrogation.value     2  1
+specialization . collection.talent18.attributes.Piloting:_Planetary.mod     2  "Piloting: Planetary"
+specialization . collection.talent18.attributes.Piloting:_Planetary.modtype     2  "Skill Remove Setback"
+specialization . collection.talent18.attributes.Piloting:_Planetary.value     2  1
+specialization . collection.talent18.attributes.Piloting:_Space.mod     2  "Piloting: Space"
+specialization . collection.talent18.attributes.Piloting:_Space.modtype     2  "Skill Remove Setback"
+specialization . collection.talent18.attributes.Piloting:_Space.value     2  1
+specialization . collection.talent8.attributes.Negotiation.mod     2  "Negotiation"
+specialization . collection.talent8.attributes.Negotiation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Negotiation.value     2  1
+specialization . collection.talent8.attributes.Streetwise.mod      2  "Streetwise"
+specialization . collection.talent8.attributes.Streetwise.modtype     2  "Skill Remove Setback"
+specialization . collection.talent8.attributes.Streetwise.value     2  1
+specialization . collection.talent14.attributes.Negotiation.mod     2  "Negotiation"
+specialization . collection.talent14.attributes.Negotiation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent14.attributes.Negotiation.value     2  1
+specialization . collection.talent4.attributes.Perception.mod      2  "Perception"
+specialization . collection.talent4.attributes.Perception.modtype     2  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Perception.value     2  1
+specialization . collection.talent11.attributes.Stealth.mod        2  "Stealth"
+specialization . collection.talent11.attributes.Stealth.modtype     2  "Skill Boost"
+specialization . collection.talent11.attributes.Stealth.value      2  1
+specialization . collection.talent2.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent2.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent2.attributes.Astrogation.value     2  1
+specialization . collection.talent6.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent6.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent6.attributes.Astrogation.value     2  1
+specialization . collection.talent7.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent7.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Astrogation.value     2  1
+specialization . collection.talent15.attributes.Piloting:_Planetary.mod     2  "Piloting: Planetary"
+specialization . collection.talent15.attributes.Piloting:_Planetary.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Piloting:_Planetary.value     2  1
+specialization . collection.talent15.attributes.Piloting:_Space.mod     2  "Piloting: Space"
+specialization . collection.talent15.attributes.Piloting:_Space.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Piloting:_Space.value     2  1
+specialization . collection.talent6.attributes.Streetwise.key      2  "Streetwise"
+specialization . collection.talent6.attributes.Knowledge:_Underworld.key     2  "Knowledge:_Underworld"
+specialization . collection.talent10.attributes.Streetwise.key     2  "Streetwise"
+specialization . collection.talent10.attributes.Knowledge:_Underworld.key     2  "Knowledge:_Underworld"
+specialization . collection.talent0.attributes.Skulduggery.mod     2  "Skulduggery"
+specialization . collection.talent0.attributes.Skulduggery.modtype     2  "Skill Remove Setback"
+specialization . collection.talent0.attributes.Skulduggery.value     2  1
+specialization . collection.talent9.attributes.Skulduggery.mod     2  "Skulduggery"
+specialization . collection.talent9.attributes.Skulduggery.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Skulduggery.value     2  1
+specialization . collection.talent18.attributes.Coordination.mod     2  "Coordination"
+specialization . collection.talent18.attributes.Coordination.modtype     2  "Skill Boost"
+specialization . collection.talent18.attributes.Coordination.value     2  1
+specialization . collection.talent18.attributes.Stealth.mod        2  "Stealth"
+specialization . collection.talent18.attributes.Stealth.modtype     2  "Skill Boost"
+specialization . collection.talent18.attributes.Stealth.value      2  1
+specialization . collection.talent10.attributes.Coercion.mod       2  "Coercion"
+specialization . collection.talent10.attributes.Coercion.modtype     2  "Skill Remove Setback"
+specialization . collection.talent10.attributes.Coercion.value     2  1
+specialization . collection.talent10.attributes.Deception.mod      2  "Deception"
+specialization . collection.talent10.attributes.Deception.modtype     2  "Skill Remove Setback"
+specialization . collection.talent10.attributes.Deception.value     2  1
+specialization . collection.talent11.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent11.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Astrogation.value     2  1
+specialization . collection.talent19.attributes.Astrogation.mod     2  "Astrogation"
+specialization . collection.talent19.attributes.Astrogation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent19.attributes.Astrogation.value     2  1
+specialization . collection.talent4.attributes.Cool.mod            2  "Cool"
+specialization . collection.talent4.attributes.Cool.modtype        2  "Skill Remove Setback"
+specialization . collection.talent4.attributes.Cool.value          2  1
+specialization . collection.talent11.attributes.Athletics.mod      2  "Athletics"
+specialization . collection.talent11.attributes.Athletics.modtype     2  "Skill Boost"
+specialization . collection.talent11.attributes.Athletics.value     2  1
+specialization . collection.talent11.attributes.Resilience.mod     2  "Resilience"
+specialization . collection.talent11.attributes.Resilience.modtype     2  "Skill Boost"
+specialization . collection.talent11.attributes.Resilience.value     2  1
+specialization . collection.talent7.attributes.Athletics.mod       2  "Athletics"
+specialization . collection.talent7.attributes.Athletics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Athletics.value     2  1
+specialization . collection.talent7.attributes.Coordination.mod     2  "Coordination"
+specialization . collection.talent7.attributes.Coordination.modtype     2  "Skill Remove Setback"
+specialization . collection.talent7.attributes.Coordination.value     2  1
+specialization . collection.talent11.attributes.Knowledge: Core Worlds.mod     2  "Knowledge: Core Worlds"
+specialization . collection.talent11.attributes.Knowledge: Core Worlds.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge: Core Worlds.value     2  1
+specialization . collection.talent11.attributes.Knowledge: Education.mod     2  "Knowledge: Education"
+specialization . collection.talent11.attributes.Knowledge: Education.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge: Education.value     2  1
+specialization . collection.talent11.attributes.Knowledge: Lore.mod     2  "Knowledge: Lore"
+specialization . collection.talent11.attributes.Knowledge: Lore.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge: Lore.value     2  1
+specialization . collection.talent11.attributes.Knowledge: Outer Rim.mod     2  "Knowledge: Outer Rim"
+specialization . collection.talent11.attributes.Knowledge: Outer Rim.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge: Outer Rim.value     2  1
+specialization . collection.talent11.attributes.Knowledge: Underworld.mod     2  "Knowledge: Underworld"
+specialization . collection.talent11.attributes.Knowledge: Underworld.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge: Underworld.value     2  1
+specialization . collection.talent11.attributes.Knowledge: Warfare.mod     2  "Knowledge: Warfare"
+specialization . collection.talent11.attributes.Knowledge: Warfare.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge: Warfare.value     2  1
+specialization . collection.talent11.attributes.Knowledge: Xenology.mod     2  "Knowledge: Xenology"
+specialization . collection.talent11.attributes.Knowledge: Xenology.modtype     2  "Skill Remove Setback"
+specialization . collection.talent11.attributes.Knowledge: Xenology.value     2  1
+specialization . collection.talent9.attributes.Negotiation.mod     2  "Negotiation"
+specialization . collection.talent9.attributes.Negotiation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent9.attributes.Negotiation.value     2  1
+specialization . collection.talent15.attributes.Negotiation.mod     2  "Negotiation"
+specialization . collection.talent15.attributes.Negotiation.modtype     2  "Skill Remove Setback"
+specialization . collection.talent15.attributes.Negotiation.value     2  1
+specialization . collection.talent7.attributes.Stealth.mod         2  "Stealth"
+specialization . collection.talent7.attributes.Stealth.modtype     2  "Skill Boost"
+specialization . collection.talent7.attributes.Stealth.value       2  1
+specialization . collection.talent8.attributes.Perception.mod      2  "Perception"
+specialization . collection.talent8.attributes.Perception.modtype     2  "Skill Boost"
+specialization . collection.talent8.attributes.Perception.value     2  1
+specialization . collection.talent3.attributes.Mechanics.mod       2  "Mechanics"
+specialization . collection.talent3.attributes.Mechanics.modtype     2  "Skill Remove Setback"
+specialization . collection.talent3.attributes.Mechanics.value     2  1
+specialization . collection.talent5.attributes.Piloting:_Planetary.mod     2  "Piloting: Planetary"
+specialization . collection.talent5.attributes.Piloting:_Planetary.modtype     2  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Piloting:_Planetary.value     2  1
+specialization . collection.talent5.attributes.Piloting:_Space.mod     2  "Piloting: Space"
+specialization . collection.talent5.attributes.Piloting:_Space.modtype     2  "Skill Remove Setback"
+specialization . collection.talent5.attributes.Piloting:_Space.value     2  1
+specialization . collection.talent13.attributes.Piloting:_Planetary.mod     2  "Piloting: Planetary"
+specialization . collection.talent13.attributes.Piloting:_Planetary.modtype     2  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Piloting:_Planetary.value     2  1
+specialization . collection.talent13.attributes.Piloting:_Space.mod     2  "Piloting: Space"
+specialization . collection.talent13.attributes.Piloting:_Space.modtype     2  "Skill Remove Setback"
+specialization . collection.talent13.attributes.Piloting:_Space.value     2  1
+forcepower . collection.upgrade0.enrichedDescription               2  "<p>Spend a <span class=\"dietype 
+forcepower . collection.upgrade1.enrichedDescription               2  "<p>Spend <span class=\"dietype st
+forcepower . collection.upgrade2.enrichedDescription               2  "<p>Spend a <span class=\"dietype 
+forcepower . collection.upgrade3.enrichedDescription               2  "<p>Spend <span class=\"dietype st
+forcepower . collection.upgrade4.enrichedDescription               2  "<p>Spend a <span class=\"dietype 
+forcepower . collection.upgrade5.enrichedDescription               2  "<p>Spend <span class=\"dietype st
+forcepower . collection.upgrade6.enrichedDescription               2  "<p>Spend a <span class=\"dietype 
+forcepower . collection.upgrade7.enrichedDescription               2  "<p>The power gains the ongoing ef
+forcepower . collection.upgrade8.enrichedDescription               2  "<p>Spend <span class=\"dietype st
+forcepower . collection.upgrade9.enrichedDescription               2  "<p>Spend <span class=\"dietype st
+forcepower . collection.upgrade10.enrichedDescription              2  "<p>Spend a <span class=\"dietype 
+forcepower . collection.upgrade11.enrichedDescription              2  "Please see page 286 of the Force 
+forcepower . collection.upgrade12.enrichedDescription              2  "<p>Spend a <span class=\"dietype 
+forcepower . collection.upgrade13.enrichedDescription              2  "<p>When the user is making a&nbsp
+forcepower . collection.upgrade14.enrichedDescription              2  "Please see page 286 of the Force 
+forcepower . collection.upgrade15.enrichedDescription              2  "Please see page 286 of the Force 
+forcepower . enrichedDescription                                   2  "<p>Bind's basic power allows the 
+forcepower . hasLongDesc                                           2  false
+forcepower . doNotSubmit.qualities                                 2  []
+rival . stats.strain.adjusted                                      2  0
+rival . quantity.value                                             2  1
+rival . quantity.max                                               2  1
+rival . quantity.type                                              2  "Number"
+rival . quantity.label                                             2  "Quantity"
+rival . quantity.abrev                                             2  "Qty"
+rival . unit_wounds.value                                          2  3
+rival . unit_wounds.type                                           2  "Number"
+rival . unit_wounds.label                                          2  "Unit Wounds"
+character . stats.Brawn.value                                      2  5
+character . morality.strength                                      2  "<p>Dedication</p>"
+character . morality.weakness                                      2  "<p>Obsession</p>"
+character . stats.Willpower.label                                  2  "Willpower"
+character . stats.Willpower.abrev                                  2  "Will"
+specialization . collection.talent8.flags.ffg-star-wars-enhancements.associatedSkill     2  ["Brawl","Gunnery","Lightsaber","M
+specialization . collection.talent3.flags.ffg-star-wars-enhancements.associatedSkill     2  ["Survival"]
+specialization . collection.talent10.flags.ffg-star-wars-enhancements.associatedSkill     2  ["Survival"]
+specialization . collection.talent15.flags.ffg-star-wars-enhancements.associatedSkill     2  ["Survival","Knowledge: Xenology"]
+itemmodifier . renderedDesc                                        2  "Pierce {0}"
+specialization . collection.talent0.isTopLearned                   2  false
+specialization . collection.talent0.isRightLearned                 2  false
+specialization . collection.talent1.isTopLearned                   2  false
+specialization . collection.talent1.isRightLearned                 2  false
+specialization . collection.talent2.isTopLearned                   2  false
+specialization . collection.talent2.isRightLearned                 2  false
+specialization . collection.talent3.isTopLearned                   2  false
+specialization . collection.talent3.isRightLearned                 2  false
+specialization . collection.talent4.isTopLearned                   2  false
+specialization . collection.talent4.isRightLearned                 2  false
+specialization . collection.talent5.isTopLearned                   2  false
+specialization . collection.talent5.isRightLearned                 2  false
+specialization . collection.talent6.isTopLearned                   2  false
+specialization . collection.talent6.isRightLearned                 2  false
+specialization . collection.talent7.isTopLearned                   2  false
+specialization . collection.talent7.isRightLearned                 2  false
+specialization . collection.talent8.isTopLearned                   2  false
+specialization . collection.talent8.isRightLearned                 2  false
+specialization . collection.talent9.isTopLearned                   2  false
+specialization . collection.talent9.isRightLearned                 2  false
+specialization . collection.talent10.isTopLearned                  2  false
+specialization . collection.talent10.isRightLearned                2  false
+specialization . collection.talent11.isTopLearned                  2  false
+specialization . collection.talent11.isRightLearned                2  false
+specialization . collection.talent12.isTopLearned                  2  false
+specialization . collection.talent12.isRightLearned                2  false
+specialization . collection.talent13.isTopLearned                  2  false
+specialization . collection.talent13.isRightLearned                2  false
+specialization . collection.talent14.isTopLearned                  2  false
+specialization . collection.talent14.isRightLearned                2  false
+specialization . collection.talent15.isTopLearned                  2  false
+specialization . collection.talent15.isRightLearned                2  false
+specialization . collection.talent16.isTopLearned                  2  false
+specialization . collection.talent16.isRightLearned                2  false
+specialization . collection.talent17.isTopLearned                  2  false
+specialization . collection.talent17.isRightLearned                2  false
+specialization . collection.talent18.isTopLearned                  2  false
+specialization . collection.talent18.isRightLearned                2  false
+specialization . collection.talent19.isTopLearned                  2  false
+specialization . collection.talent19.isRightLearned                2  false
+specialization . enrichedDescription                               2  "<h3>Sith Lord</h3>\nA Sith Lord i
+specialization . hasLongDesc                                       2  false
+specialization . doNotSubmit.qualities                             2  []
+shipattachment . enrichedDescription                               2  "<p>Allows a ship or vehicle to ca
+shipattachment . hasLongDesc                                       2  false
+shipattachment . doNotSubmit.qualities                             2  []
+shipattachment . renderedDesc                                      2  "<p>Allows a ship or vehicle to ca
+forcepower . collection.upgrade4.system                            2  {}
+forcepower . collection.upgrade6.attributes.Perception.mod         1  "Perception"
+forcepower . collection.upgrade6.attributes.Perception.modtype     1  "Force Boost"
+forcepower . collection.upgrade6.attributes.Perception.value       1  true
+forcepower . collection.upgrade6.attributes.Vigilance.mod          1  "Vigilance"
+forcepower . collection.upgrade6.attributes.Vigilance.modtype      1  "Force Boost"
+forcepower . collection.upgrade6.attributes.Vigilance.value        1  true
+specialization . collection.talent18.attributes.attr<id>.modtype     1  "Stat"
+specialization . collection.talent18.attributes.attr<id>.mod       1  "ForcePool"
+specialization . collection.talent18.attributes.attr<id>.value     1  1
+
+=== CONSTRUCTION ERRORS (6) ===
+  armour "Armoured clothing": [ArmourDataModel] validation errors: SchemaField#_validateRecursive
+  defence: SchemaField#_validateRecursive
+    value: must be a number
+  armour "Woven reed armour": [ArmourDataModel] validation errors: SchemaField#_validateRecursive
+  defence: SchemaField#_validateRecursive
+    value: must be a number
+  armour "Custom crimson ISB uniform w/light breastplate and latigo belt & boots": [ArmourDataModel] validation errors: SchemaField#_validateRecursive
+  soak: SchemaField#_validateRecursive
+    value: must be a number
+  armour "Personal deflector shield": [ArmourDataModel] validation errors: SchemaField#_validateRecursive
+  defence: SchemaField#_validateRecursive
+    value: must be a number
+  armour "Woven reed armour": [ArmourDataModel] validation errors: SchemaField#_validateRecursive
+  defence: SchemaField#_validateRecursive
+    value: must be a number
+  armour "Scales": [ArmourDataModel] validation errors: SchemaField#_validateRecursive
+  defence: SchemaField#_validateRecursive
+    value: must be a number

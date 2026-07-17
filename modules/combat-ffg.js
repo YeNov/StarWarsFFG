@@ -223,14 +223,14 @@ export class CombatFFG extends Combat {
       }
 
       const diceSymbols = {
-        boost: await foundry.applications.ux.TextEditor.enrichHTML("[BO]"),
-        setback: await foundry.applications.ux.TextEditor.enrichHTML("[SE]"),
-        advantage: await foundry.applications.ux.TextEditor.enrichHTML("[AD]"),
-        success: await foundry.applications.ux.TextEditor.enrichHTML("[SU]"),
-        threat: await foundry.applications.ux.TextEditor.enrichHTML("[TH]"),
-        failure: await foundry.applications.ux.TextEditor.enrichHTML("[FA]"),
-        upgrade: await foundry.applications.ux.TextEditor.enrichHTML("[PR]"),
-        force: await foundry.applications.ux.TextEditor.enrichHTML("[FO]"),
+        boost: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[BO]"),
+        setback: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SE]"),
+        advantage: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[AD]"),
+        success: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SU]"),
+        threat: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[TH]"),
+        failure: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FA]"),
+        upgrade: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[PR]"),
+        force: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FO]"),
       };
 
       const title = game.i18n.localize("SWFFG.InitiativeRoll") + ` ${whosInitiative}...`;
@@ -315,9 +315,22 @@ export class CombatFFG extends Combat {
                   // Roll initiative
                   updates.push({ _id: id, initiative: roll.total });
 
-                  // Determine the roll mode
-                  let rollMode = messageOptions.rollMode || game.settings.get("core", "rollMode");
-                  if ((c.token.hidden || c.hidden) && rollMode === "roll") rollMode = "gmroll";
+                  // Determine the roll mode. V14 renamed core.rollMode ->
+                  // core.messageMode with a new value vocabulary (public/gm/blind/
+                  // self) and applies it via ChatMessage#applyMode; feature-detect so
+                  // hidden combatants still roll privately on both V13 and V14, and
+                  // map any legacy caller-supplied rollMode.
+                  const isV14 = game.release.generation >= 14;
+                  const modeKey = isV14 ? "messageMode" : "rollMode";
+                  let rollMode;
+                  if (isV14) {
+                    rollMode = messageOptions.messageMode
+                      ?? (messageOptions.rollMode ? Roll._mapLegacyRollMode(messageOptions.rollMode) : game.settings.get("core", "messageMode"));
+                    if ((c.token.hidden || c.hidden) && (rollMode === "public" || rollMode === "ic")) rollMode = "gm";
+                  } else {
+                    rollMode = messageOptions.rollMode || game.settings.get("core", "rollMode");
+                    if ((c.token.hidden || c.hidden) && rollMode === "roll") rollMode = "gmroll";
+                  }
 
                   // Construct chat message data
                   let messageData = foundry.utils.mergeObject(
@@ -333,7 +346,7 @@ export class CombatFFG extends Combat {
                     },
                     messageOptions
                   );
-                  const chatData = await roll.toMessage(messageData, { create: false, rollMode });
+                  const chatData = await roll.toMessage(messageData, { create: false, [modeKey]: rollMode });
 
                   // Play 1 sound for the whole rolled set
                   if (i > 0) chatData.sound = null;
@@ -354,8 +367,13 @@ export class CombatFFG extends Combat {
                 await initiative.update({ turn: initiative.turns.findIndex((t) => t.id === currentId) });
               }
 
-              // Create multiple chat messages
-              await CONFIG.ChatMessage.documentClass.create(messages);
+              // Create multiple chat messages. Pass chatBubble:false so these initiative rolls
+              // don't pop a chat bubble over each combatant's token and pan the camera to it:
+              // core styles speaker'd messages as in-character, and ChatMessage._preCreate then
+              // auto-enables chatBubble for IC/EMOTE, whose sayBubble -> bubbles.say defaults
+              // pan:true (with the chatBubblesPan setting also defaulting on). The `??=` in core
+              // means an explicit false here is preserved.
+              await CONFIG.ChatMessage.documentClass.create(messages, { chatBubble: false });
 
               resolve(initiative);
             },
@@ -860,7 +878,10 @@ export class CombatFFG extends Combat {
 
         const effects = new Set();
         if (claimant.token) {
-          claimant.token.effects.forEach((e) => effects.add(e))
+          // V14 removed the legacy TokenDocument#effects icon array and #overlayEffect;
+          // token status icons now derive from the actor's active effects (handled below).
+          // Guard both so worlds/modules that still expose them keep working.
+          claimant.token.effects?.forEach((e) => effects.add(e));
           if (claimant.token.overlayEffect) {
             effects.add(claimant.token.overlayEffect);
           }
@@ -871,8 +892,10 @@ export class CombatFFG extends Combat {
             defeated = true;
           }
           for (const effect of claimant.actor.temporaryEffects) {
-            if (effect?.icon) {
-              effects.add(effect.icon);
+            // V14: ActiveEffect#icon was replaced by #img
+            const effectImg = effect?.img ?? effect?.icon;
+            if (effectImg) {
+              effects.add(effectImg);
             }
           }
         }
@@ -972,13 +995,13 @@ export class CombatFFG extends Combat {
         const advantages = initiativeParts.substring(decimalPosition + 2, decimalPosition + 3);
 
         for (let x = 0; x < successes; x++) {
-          initiativeImage['successes'] += await foundry.applications.ux.TextEditor.enrichHTML("[su]");
+          initiativeImage['successes'] += await foundry.applications.ux.TextEditor.implementation.enrichHTML("[su]");
         }
         for (let x = 0; x < advantages; x++) {
-          initiativeImage['advantages'] += await foundry.applications.ux.TextEditor.enrichHTML("[ad]");
+          initiativeImage['advantages'] += await foundry.applications.ux.TextEditor.implementation.enrichHTML("[ad]");
         }
         for (let x = 0; x < triumphs; x++) {
-          initiativeImage['triumphs'] += await foundry.applications.ux.TextEditor.enrichHTML("[tr]");
+          initiativeImage['triumphs'] += await foundry.applications.ux.TextEditor.implementation.enrichHTML("[tr]");
         }
       }
 
@@ -1410,7 +1433,9 @@ export default class CombatantFFG extends Combatant {
     }
     CONFIG.logger.debug(`Removing combat-length status effects from ${this.actor.name} on combatant removal`);
     const effects = this.actor.getEmbeddedCollection("ActiveEffect");
-    const toDelete = effects.filter(e => e?.system?.duration === "combat");
+    // duration marker moved to flags: V14's strict ActiveEffect system model strips unknown
+    // `system` keys. Fall back to the legacy location for safety.
+    const toDelete = effects.filter(e => (e?.flags?.starwarsffg?.duration ?? e?.system?.duration) === "combat");
     if (toDelete) {
       await this.actor.deleteEmbeddedDocuments("ActiveEffect", toDelete.map(i => i.id));
     }

@@ -224,7 +224,7 @@ export default class EmbeddedItemHelpers {
     if (!isNaN(modifierId)) {
       modifierIndex = modifierId;
     } else {
-      modifierIndex = ownedItem.data.data[modifierType].findIndex((i) => i.id === modifierId);
+      modifierIndex = ownedItem.system[modifierType].findIndex((i) => i.id === modifierId);
     }
 
     let item;
@@ -273,7 +273,7 @@ export default class EmbeddedItemHelpers {
 
     delete temp._id;
     delete temp.id;
-    let tempItem = await new Item(temp, { temporary: true });
+    let tempItem = await new Item.implementation(temp, { temporary: true });
     tempItem.sheet.render(true);
   }
 
@@ -302,13 +302,25 @@ export default class EmbeddedItemHelpers {
     return tempItem;
   }
 
+  // Only descend into plain objects/arrays when walking for `-=attr` keys. Live
+  // Documents, DataModels and EmbeddedCollections carry parent/collection back-
+  // references that form cycles; on V14 for...in reaches those (the getData
+  // context now holds the live item Document) and the recursion overflows the
+  // stack. The keys we care about only ever live in plain data anyway.
+  static _isWalkable(value) {
+    if (Array.isArray(value)) return true;
+    if (value === null || typeof value !== "object") return false;
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+  }
+
   // totally not ripped from phind telling me how to do this
   static removeKeyFromObject(obj, keyToRemove) {
     for (let key in obj) {
       if (obj.hasOwnProperty(key)) {
         if (key === keyToRemove) {
           delete obj[key];
-        } else if (typeof obj[key] === 'object') {
+        } else if (EmbeddedItemHelpers._isWalkable(obj[key])) {
           EmbeddedItemHelpers.removeKeyFromObject(obj[key], keyToRemove);
         }
       }
@@ -323,7 +335,7 @@ export default class EmbeddedItemHelpers {
         if (key.includes(str)) {
           keys.push(key);
         }
-        if (typeof obj[key] === 'object') {
+        if (EmbeddedItemHelpers._isWalkable(obj[key])) {
           keys = keys.concat(EmbeddedItemHelpers.findKeysIncludingStringRecursively(obj[key], str));
         }
       }

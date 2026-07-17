@@ -1,3 +1,4 @@
+import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ItemBaseFFG from "./itembase-ffg.js";
 import PopoutEditor from "../popout-editor.js";
 import ActorOptions from "../actors/actor-ffg-options.js";
@@ -117,7 +118,7 @@ export class ItemFFG extends ItemBaseFFG {
               );
               effects.changes.push({
                 key: path,
-                mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                mode: AE_MODES.ADD,
                 value: this.system.attributes[attribute].value,
               });
             }
@@ -134,7 +135,7 @@ export class ItemFFG extends ItemBaseFFG {
             );
             effects.changes.push({
               key: path,
-              mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+              mode: AE_MODES.ADD,
               value: 0,
             });
           }
@@ -151,7 +152,7 @@ export class ItemFFG extends ItemBaseFFG {
               );
               effects.changes.push({
                 key: path,
-                mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+                mode: AE_MODES.ADD,
                 value: 0,
               });
             }
@@ -168,7 +169,7 @@ export class ItemFFG extends ItemBaseFFG {
             );
             effects.changes.push({
               key: path,
-              mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+              mode: AE_MODES.ADD,
               value: 0,
             });
           }
@@ -176,7 +177,7 @@ export class ItemFFG extends ItemBaseFFG {
           for (let i = 0; i < 8; i++) {
             effects.changes.push({
               key: "(none)",
-              mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+              mode: AE_MODES.ADD,
               value: true,
             });
           }
@@ -184,7 +185,7 @@ export class ItemFFG extends ItemBaseFFG {
           for (let i = 0; i < 5; i++) {
             effects.changes.push({
               key: "(none)",
-              mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+              mode: AE_MODES.ADD,
               value: true,
             });
           }
@@ -275,7 +276,7 @@ export class ItemFFG extends ItemBaseFFG {
         for (const curMod of explodedMods) {
           changes.push({
             key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
-            mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+            mode: AE_MODES.ADD,
             value: attr?.value,
           });
         }
@@ -449,21 +450,24 @@ export class ItemFFG extends ItemBaseFFG {
           });
         }
 
-        if (this.isEmbedded && this.actor) {
+        // Weapon Stat / damage modifiers listed on the weapon itself. Each modifier row is
+        // backed by an Active Effect whose disabled state is driven by the sheet's "enabled"
+        // checkbox, so skip any whose backing effect is disabled -- otherwise an unchecked
+        // modifier keeps adding its damage. This runs for standalone items too (not only when
+        // embedded) so the adjusted damage is shown before the weapon is owned by an actor.
+        if (this.actor?.type !== "vehicle") {
           let damageAdd = 0;
           for (let attr in data.attributes) {
             if (data.attributes[attr].mod === "damage" && data.attributes[attr].modtype === "Weapon Stat") {
+              const backingEffect = this.effects.find((e) => e.name === attr);
+              if (backingEffect?.disabled) continue;
               damageAdd += parseInt(data.attributes[attr].value, 10);
             }
           }
-          if (this.actor.type !== "vehicle") {
-            if (ModifierHelpers.shouldApplyCharacteristicToDamage(data)) {
-              const extraDamage = parseInt(actor.system.characteristics[data.characteristic.value].value, 10) + damageAdd;
-              data.damage.adjusted += extraDamage;
-            } else {
-              data.damage.value = parseInt(data.damage.value, 10);
-              data.damage.adjusted += damageAdd;
-            }
+          data.damage.adjusted += damageAdd;
+          // Adding the wielder's characteristic to damage (e.g. Brawn for melee) needs an actor.
+          if (this.isEmbedded && this.actor && ModifierHelpers.shouldApplyCharacteristicToDamage(data)) {
+            data.damage.adjusted += parseInt(actor.system.characteristics[data.characteristic.value].value, 10);
           }
         }
 
@@ -537,11 +541,18 @@ export class ItemFFG extends ItemBaseFFG {
           });
         }
 
-        if (this.isEmbedded && this.actor && this.actor.system) {
+        // Armor Stat / Stat modifiers listed on the armour itself. Each modifier row is backed
+        // by an Active Effect whose disabled state is driven by the sheet's "enabled" checkbox,
+        // so skip any whose backing effect is disabled -- otherwise an unchecked modifier keeps
+        // applying. Runs for standalone items too (not only when embedded) so the adjusted
+        // values are shown before the armour is owned by an actor.
+        if (this.actor?.type !== "vehicle") {
           let soakAdd = 0, defenceAdd = 0, encumbranceAdd = 0;
           for (let attr in data.attributes) {
             let modtype = data.attributes[attr].modtype;
             if (modtype === "Armor Stat" || modtype === "Stat" || modtype === "Stat All") {
+              const backingEffect = this.effects.find((e) => e.name === attr);
+              if (backingEffect?.disabled) continue;
               switch (data.attributes[attr].mod.toLocaleLowerCase()) {
                 case "soak":
                   soakAdd += parseInt(data.attributes[attr].value, 10);
@@ -557,14 +568,9 @@ export class ItemFFG extends ItemBaseFFG {
               }
             }
           }
-          if (this.actor.type !== "vehicle") {
-            data.soak.value = parseInt(data.soak.value, 10);
-            data.soak.adjusted += soakAdd;
-            data.defence.value = parseInt(data.defence.value, 10);
-            data.defence.adjusted += defenceAdd;
-            data.encumbrance.value = parseInt(data.encumbrance.value, 10);
-            data.encumbrance.adjusted += encumbranceAdd;
-          }
+          data.soak.adjusted += soakAdd;
+          data.defence.adjusted += defenceAdd;
+          data.encumbrance.adjusted += encumbranceAdd;
         }
         break;
       case "talent":
@@ -753,6 +759,13 @@ export class ItemFFG extends ItemBaseFFG {
 
     data.prettyDesc = await PopoutEditor.renderDiceImages(data.description, this.actor);
 
+    // Weapons/ship weapons carry a "special" HTML field that can contain FFG dice
+    // codes ([AD], [TH], …). Pre-render it to glyphs here so the roll card can output
+    // the enriched field directly rather than relying on a Handlebars helper.
+    if (["weapon", "shipweapon"].includes(this.type) && data.special?.value) {
+      data.enrichedSpecial = await PopoutEditor.renderDiceImages(data.special.value, this.actor);
+    }
+
     if (["weapon", "armor", "armour", "shipweapon"].includes(this.type)) {
       data.doNotSubmit = (await this.sheet.getData()).data.doNotSubmit;
     }
@@ -818,7 +831,7 @@ export class ItemFFG extends ItemBaseFFG {
         const qualities = [];
         for (const modifier of modifiers) {
           qualities.push(`
-          <div class='item-pill-hover hover-tooltip' data-item-type="itemmodifier" data-item-embed-name="${ modifier.name }" data-item-embed-img="${ modifier.img }" data-desc="${ (await foundry.applications.ux.TextEditor.enrichHTML(modifier.description)).replaceAll('"', "'") }" data-item-ranks="${ modifier.totalRanks }" data-tooltip="Loading...">
+          <div class='item-pill-hover hover-tooltip' data-item-type="itemmodifier" data-item-embed-name="${ modifier.name }" data-item-embed-img="${ modifier.img }" data-desc="${ (await foundry.applications.ux.TextEditor.implementation.enrichHTML(modifier.description)).replaceAll('"', "'") }" data-item-ranks="${ modifier.totalRanks }" data-tooltip="Loading...">
             ${modifier.name} ${modifier.totalRanks === null || modifier.totalRanks === 0 ? "" : modifier.totalRanks}
           </div>
           `);

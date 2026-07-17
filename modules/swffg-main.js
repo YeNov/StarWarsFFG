@@ -1,3 +1,4 @@
+import { AE_MODES } from "./config/ffg-active-effect-modes.js";
 /**
  * A systems implementation of the Star Wars RPG by Fantasy Flight Games.
  * Author: Esrin
@@ -56,6 +57,7 @@ import SWAImporter from "./importer/swa-importer.js";
 import {CharacterCreator} from "./helpers/character-creator.js";
 import {xpLogUndo} from "./helpers/actor-helpers.js";
 import {register_system_tours} from "./helpers/tours.js";
+import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -142,6 +144,8 @@ Hooks.once("init", async function () {
     },
     diceterms: [AbilityDie, BoostDie, ChallengeDie, DifficultyDie, ForceDie, ProficiencyDie, SetbackDie],
     ActiveEffectFFG,
+    // Read-only migration self-check: await game.ffg.reportDataModelConformance()
+    reportDataModelConformance,
   };
 
   // Define custom log prefix and logger
@@ -153,6 +157,11 @@ Hooks.once("init", async function () {
   CONFIG.Actor.documentClass = ActorFFG;
   CONFIG.Item.documentClass = ItemFFG;
   CONFIG.ActiveEffect.documentClass = ActiveEffectFFG;
+
+  // System Data Models — template.json → DataModel migration (Stage 0: no-op).
+  // Registers per-sub-type schemas into CONFIG.*.dataModels as stages land;
+  // until then template.json remains the sole schema source.
+  registerSystemDataModels();
 
   // we do not want the legacy active effect transfer mode
   // also, reeeeeeeeeeeeeeeee
@@ -448,6 +457,22 @@ Hooks.once("init", async function () {
     // override the token placeable object so we can control turn indicators
     CONFIG.Token.objectClass = TokenFFG;
   }
+
+  // The token HUD status menu runs Object.values(CONFIG.statusEffects) in _getStatusEffectChoices;
+  // under V14 that throws if the list holds a duplicate id (see dedupeStatusEffectsById). We keep
+  // our own effects unique, but other packages append to the list afterwards -- Condition Lab
+  // concatenates our effects back onto itself, re-adding every id -- and its rebuild lands after
+  // the initial canvas draw, so the canvasInit dedup can't cover this consumer. hudClass is the
+  // supported override point (sibling of objectClass above), so sanitise the list right before
+  // the menu reads it. Scoped to this one consumer; we do not touch the global CONFIG setter.
+  CONFIG.Token.hudClass = class extends CONFIG.Token.hudClass {
+    _getStatusEffectChoices(...args) {
+      const current = CONFIG.statusEffects;
+      const cleaned = dedupeStatusEffectsById(current);
+      if (cleaned.length !== current.length) CONFIG.statusEffects = cleaned;
+      return super._getStatusEffectChoices(...args);
+    }
+  };
 
   /**
    * Register action to take when a user removes a combatant from combat
@@ -800,37 +825,37 @@ Hooks.once("init", async function () {
     for (const skill of Object.keys(CONFIG.FFG.skills)) {
       allSkillChanges['boost'].push({
         key: `system.skills.${skill}.boost`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['setback'].push({
         key: `system.skills.${skill}.setback`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['upgrade'].push({
         key: `system.skills.${skill}.upgrades`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['success'].push({
         key: `system.skills.${skill}.success`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['upgradeDifficulty'].push({
         key: `system.skills.${skill}.upgradeDifficulty`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['difficulty'].push({
         key: `system.skills.${skill}.difficulty`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
       allSkillChanges['advantage'].push({
         key: `system.skills.${skill}.advantage`,
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: "1",
       });
     }
@@ -844,8 +869,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/blue.png`,
       name: "SWFFG.Status.Boost.Next",
       changes: allSkillChanges['boost'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -853,8 +882,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/black.png`,
       name: "SWFFG.Status.Setback.Next",
       changes: allSkillChanges['setback'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -862,8 +895,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/yellow.png`,
       name: "SWFFG.Status.Upgrade.Next",
       changes: allSkillChanges['upgrade'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -871,8 +908,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/red.png`,
       name: "SWFFG.Status.UpgradeDifficulty.Next",
       changes: allSkillChanges['upgradeDifficulty'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -880,8 +921,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/success.png`,
       name: "SWFFG.Status.Success.Next",
       changes: allSkillChanges['success'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -889,8 +934,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/advantage.png`,
       name: "SWFFG.Status.Advantage.Next",
       changes: allSkillChanges['advantage'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -898,8 +947,12 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/purple.png`,
       name: "SWFFG.Status.Difficulty.Next",
       changes: allSkillChanges['difficulty'],
-      system: {
-        duration: "once",
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
       }
     });
     // dice statuses — this combat
@@ -908,8 +961,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/blue.png`,
       name: "SWFFG.Status.Boost.Combat",
       changes: allSkillChanges['boost'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -917,8 +973,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/black.png`,
       name: "SWFFG.Status.Setback.Combat",
       changes: allSkillChanges['setback'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -926,8 +985,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/yellow.png`,
       name: "SWFFG.Status.Upgrade.Combat",
       changes: allSkillChanges['upgrade'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -935,8 +997,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/red.png`,
       name: "SWFFG.Status.UpgradeDifficulty.Combat",
       changes: allSkillChanges['upgradeDifficulty'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -944,8 +1009,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/success.png`,
       name: "SWFFG.Status.Success.Combat",
       changes: allSkillChanges['success'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -953,8 +1021,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/advantage.png`,
       name: "SWFFG.Status.Advantage.Combat",
       changes: allSkillChanges['advantage'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
     CONFIG.statusEffects.push({
@@ -962,8 +1033,11 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/status/purple.png`,
       name: "SWFFG.Status.Difficulty.Combat",
       changes: allSkillChanges['difficulty'],
-      system: {
-        duration: "combat",
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
       }
     });
 
@@ -981,12 +1055,12 @@ Hooks.once("init", async function () {
       changes: [
         {
           key: "system.stats.defence.melee",
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: "2",
         },
         {
           key: "system.stats.defence.ranged",
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: "2",
         },
       ],
@@ -1013,7 +1087,23 @@ Hooks.once("init", async function () {
     // custom statuses defined by the user
     try {
       const addedStatuses = $.parseJSON(game.settings.get("starwarsffg", "additionalStatuses"));
-      for (const status of addedStatuses) {
+      // In V14 CONFIG.statusEffects is a Proxy keyed by each effect's `id`; its `ownKeys` trap
+      // returns one key per entry, so a status with a missing or duplicate `id` makes the trap
+      // return duplicate/undefined keys and throw ("'ownKeys' on proxy: trap returned duplicate
+      // entries"). That crashes the canvas on every scene draw (TextureLoader.loadSceneTextures
+      // does Object.values(CONFIG.statusEffects)). Guard the user-supplied list so bad JSON can
+      // no longer take down map rendering.
+      const seenIds = new Set(CONFIG.statusEffects.map((e) => e?.id));
+      for (const status of (Array.isArray(addedStatuses) ? addedStatuses : [])) {
+        if (!status?.id || typeof status.id !== "string") {
+          ui.notifications.warn("Skipped a custom status with a missing or invalid id");
+          continue;
+        }
+        if (seenIds.has(status.id)) {
+          ui.notifications.warn(`Skipped duplicate custom status id "${status.id}"`);
+          continue;
+        }
+        seenIds.add(status.id);
         CONFIG.statusEffects.push(status);
       }
 
@@ -1188,12 +1278,6 @@ Hooks.once("init", async function () {
     return array.indexOf(value) >= 0;
   });
 
-  Handlebars.registerHelper("ffgDiceSymbols", function (text) {
-    //return PopoutEditor.renderDiceImages(text);
-    CONFIG.logger.warn("This function is no longer needed and should not be called. Please notify the devs if you see this message.");
-    return text;
-  });
-
   Handlebars.registerHelper("object", function ({ hash }) {
     return hash;
   });
@@ -1218,6 +1302,46 @@ Hooks.once("init", async function () {
   await TemplateHelpers.preload();
 });
 
+/**
+ * Return a copy of a status-effect list with duplicate ids removed (first entry per id kept) and
+ * id-less entries dropped. V14 backs CONFIG.statusEffects with a Proxy whose `ownKeys` trap emits
+ * one key per entry, so a duplicate/missing id makes Object.values() throw ("'ownKeys' on proxy:
+ * trap returned duplicate entries") and crash the two consumers that iterate it: the canvas
+ * texture load (map view) and the token HUD status menu. We register unique ids ourselves, but
+ * other packages (e.g. Condition Lab) reassign the list afterwards and re-add our ids, so we
+ * sanitise it at each of those consumers -- the canvasInit hook below and the TokenHUD subclass in
+ * init -- rather than redefining the global CONFIG.statusEffects setter. Iterating the input uses
+ * the array protocol, not `ownKeys`, so it is safe even while the list holds duplicates.
+ */
+function dedupeStatusEffectsById(value) {
+  const list = Array.isArray(value) ? value : Object.values(value ?? {});
+  const seen = new Set();
+  const cleaned = [];
+  let dropped = 0;
+  for (const effect of list) {
+    const id = effect?.id;
+    if (!id || seen.has(id)) {
+      dropped += 1;
+      continue;
+    }
+    seen.add(id);
+    cleaned.push(effect);
+  }
+  if (dropped > 0) {
+    CONFIG.logger?.warn?.(`Removed ${dropped} duplicate/invalid status effect(s) to avoid a V14 proxy crash`);
+  }
+  return cleaned;
+}
+// Sanitise the list before each canvas draw: canvasInit fires ahead of TextureLoader.loadSceneTextures
+// in the same Canvas#draw, so a duplicate id reintroduced since the last draw can't crash the map
+// view. Reassigns only when duplicates are actually present, so once the list is clean this is a
+// no-op. `.length` reads the array target, not the ownKeys trap.
+Hooks.on("canvasInit", () => {
+  const current = CONFIG.statusEffects;
+  const cleaned = dedupeStatusEffectsById(current);
+  if (cleaned.length !== current.length) CONFIG.statusEffects = cleaned;
+});
+
 Hooks.on("renderChatInput", (app, html, data) => {
   if (app.id === "chat") {
     // add in the chat dice roller
@@ -1229,8 +1353,19 @@ Hooks.on("renderChatInput", (app, html, data) => {
       rollButton.type = "button";
       rollButton.classList.add("ui-control", "icon", "fa-light", "fa-dice-d20");
 
-      const rollPrivacyElement = document.querySelector("#roll-privacy");
-      rollPrivacyElement.appendChild(rollButton);
+      // V14 renamed/relocated the chat roll-mode controls (formerly "#roll-privacy"),
+      // so the old global querySelector returned null and appendChild threw -- which
+      // aborted the renderChatInput hook and dropped the button. Scope the lookup to
+      // the chat-input element the hook hands us and fall back gracefully so a further
+      // DOM change can never throw here again.
+      const root = html instanceof HTMLElement ? html : (html?.[0] ?? document);
+      const anchor =
+        root.querySelector("#roll-privacy") ||
+        document.querySelector("#roll-privacy") ||
+        root.querySelector(".control-buttons") ||
+        root.querySelector(".chat-controls") ||
+        root;
+      anchor.appendChild(rollButton);
 
       rollButton.onclick = async function () {
         const dicePool = new DicePoolFFG();
@@ -1410,19 +1545,28 @@ Hooks.once("ready", async () => {
 
     // Calculating wound and strain .value from .real_value is no longer necessary due to the Token._drawBar() override in swffg-main.js
     // This is a temporary migration check to transfer existing actors .real_value back into the correct .value location.
-    game.actors.forEach((actor) => {
+    //
+    // This used to assign the transferred value onto `actor.system.stats.*.value`
+    // and then send an update carrying only `real_value: null`. The assignment
+    // targets prepared data -- SchemaField#initialize builds a fresh object, so
+    // writing to it never reaches _source -- meaning the transfer was thrown away
+    // and only the tombstone persisted. It also ran inside `forEach(async ...)`,
+    // which the migration never awaited, so version bookkeeping could race the
+    // writes. Both halves now go in one awaited update per actor, read from
+    // _source (the declared `legacyRealValue` field is what keeps it readable).
+    for (const actor of game.actors) {
       if (actor.type === "character" || actor.type === "minion") {
-        if (actor.system.stats.wounds.real_value != null) {
-          actor.system.stats.wounds.value = actor.system.stats.wounds.real_value;
-          game.actors.get(actor.id).update({ ["system.stats.wounds.real_value"]: null });
-          CONFIG.logger.log("Migrated stats.wounds.value from stats.wounds.real_value");
-          CONFIG.logger.log(actor.system.stats.wounds);
+        const legacyStats = actor._source?.system?.stats;
+        const realValueUpdate = {};
+        for (const track of ["wounds", "strain"]) {
+          const realValue = legacyStats?.[track]?.real_value;
+          if (realValue == null) continue;
+          realValueUpdate[`system.stats.${track}.value`] = realValue;
+          realValueUpdate[`system.stats.${track}.real_value`] = null;
         }
-        if (actor.system.stats.strain.real_value != null) {
-          actor.system.stats.strain.value = actor.system.stats.strain.real_value;
-          game.actors.get(actor.id).update({ ["system.stats.strain.real_value"]: null });
-          CONFIG.logger.log("Migrated stats.strain.value from stats.strain.real_value");
-          CONFIG.logger.log(actor.system.stats.strain);
+        if (!foundry.utils.isEmpty(realValueUpdate)) {
+          await actor.update(realValueUpdate);
+          CONFIG.logger.log(`Migrated ${actor.name} stats .value from .real_value`, realValueUpdate);
         }
 
         // migrate all character to using current skill list if not default.
@@ -1444,7 +1588,14 @@ Hooks.once("ready", async () => {
               }
             });
 
-            actor.update({
+            // NOTE: this writes to `data`, not `system`. Since V10 `data` is not
+            // shimmed, so the Actor schema discards the key and this update is a
+            // no-op -- the skill-theme migration has silently done nothing for
+            // several majors. Left as-is deliberately: switching to `system`
+            // would un-dormant it and start rewriting every actor's skills on
+            // the next load, which needs its own decision and testing rather
+            // than riding along with an unrelated fix.
+            await actor.update({
               data: {
                 skills: skills.skills,
               },
@@ -1454,14 +1605,14 @@ Hooks.once("ready", async () => {
           }
         }
       }
-    });
+    }
 
     if (isAlpha || isCurrentVersionNullOrBlank(currentVersion) || parseFloat(currentVersion) < 1.1) {
       // Migrate alternate skill lists from file if found
       try {
         let skillList = [];
 
-        let data = await foundry.applications.apps.FilePicker.browse("data", `worlds/${game.world.id}`, { bucket: null, extensions: [".json", ".JSON"], wildcard: false });
+        let data = await foundry.applications.apps.FilePicker.implementation.browse("data", `worlds/${game.world.id}`, { bucket: null, extensions: [".json", ".JSON"], wildcard: false });
         if (data.files.includes(`worlds/${game.world.id}/skills.json`)) {
           // if the skills.json file is found AND the skillsList in setting is the default skill list then read the data from the file.
           // This will make sure that the data from the JSON file overwrites the data in the setting.

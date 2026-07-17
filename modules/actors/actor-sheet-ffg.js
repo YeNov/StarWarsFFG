@@ -1,3 +1,4 @@
+import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 /**
  * The system's Actor sheet — native ApplicationV2 DocumentSheetV2 (via the
  * shared FFGActorSheet → FFGDocumentSheet bases). Handles every FFG actor type.
@@ -216,6 +217,20 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     // Compatibility for Foundry 0.8.x with backwards compatibility (hopefully) for 0.7.x
     const actorData = this.actor.toObject(false);
+    // A registered system DataModel's toObject() serializes only declared schema
+    // fields, so top-level derived data attached to `system` during
+    // prepareDerivedData (skilltypes, …) is dropped — template.json's plain
+    // object retained it, and the templates/helpers expect it. Overlay those
+    // derived props from the live system. `effects` is skipped on purpose: it
+    // holds live ActiveEffect Documents, which must not be placed on this plain
+    // copy (it gets deep-cloned/merged below and elsewhere, which would recurse
+    // into Document back-references); it is read from the live system directly
+    // where consumed (see the effects mapping later in getData).
+    const liveSystem = this.actor.system;
+    for (const key of Object.keys(liveSystem)) {
+      if (key === "effects" || key in actorData.system) continue;
+      actorData.system[key] = foundry.utils.deepClone(liveSystem[key]);
+    }
     data.actor = actorData;
     data.data = actorData.system;
     data.talentList = this.actor.talentList;
@@ -247,10 +262,25 @@ export class ActorSheetFFG extends FFGActorSheet {
       enableCriticalInjuries: this.actor.flags?.starwarsffg?.config?.enableCriticalInjuries,
     };
 
-    // Establish sheet width and height using either saved persistent values or default values defined in swffg-config.js
+    // Establish sheet width and height using either saved persistent values or default values defined in swffg-config.js.
+    // FIRST RENDER ONLY. Re-applying this every render is what made a resized sheet
+    // snap back to default (#14), and it did so invisibly: `position` is a Proxy
+    // whose set trap re-runs _updatePosition but never #applyPosition, and
+    // _updatePosition only writes el.style for dimensions that are "auto" -- which
+    // these are not. So the write moved internal state while the DOM kept the size
+    // the user dragged, and nothing looked wrong until the next setPosition replayed
+    // the stale clone. Dragging the header is exactly that: #onWindowDragMove
+    // replays width and height, not just top/left. Hence the two-step repro (edit,
+    // THEN move).
+    // The guard mirrors item-sheet-ffg.js:248, where the same thing is already
+    // fixed. Ordering is safe: the render's own getData (via _prepareContext) runs
+    // before activateListeners, so it consumes the flag and the unawaited per-skill
+    // getData() calls further down become no-ops.
     // Skip while minimized/minimizing -- otherwise this fights the V13 minimize
     // collapse and snaps the sheet back to full size on the next render.
-    if (!this.minimized && !this._minimizing) {
+    const setInitialSize = !this._sizeInitialized;
+    this._sizeInitialized = true;
+    if (setInitialSize && !this.minimized && !this._minimizing) {
       this.position.width = this.sheetWidth || CONFIG.FFG.sheets.defaultWidth[this.actor.type];
       this.position.height = this.sheetHeight || CONFIG.FFG.sheets.defaultHeight[this.actor.type];
     }
@@ -259,7 +289,9 @@ export class ActorSheetFFG extends FFGActorSheet {
       case "character":
       case "nemesis":
       case "rival":
-        if (data.limited) {
+        // Same first-render guard as the sizing block above — without it a limited
+        // sheet re-poisons its height on every render and snaps on the next drag.
+        if (data.limited && setInitialSize) {
           this.position.height = 165;
         }
         // we need to update all specialization talents with the latest talent information
@@ -272,9 +304,9 @@ export class ActorSheetFFG extends FFGActorSheet {
         if (data.data.stats.credits.value > 999) {
           data.data.stats.credits.value = data.data.stats.credits.value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
-        data.data.enrichedBio = await foundry.applications.ux.TextEditor.enrichHTML(this.actor.system.biography, {secrets: !data.limited});
-        data.data.general.enrichedNotes = await foundry.applications.ux.TextEditor.enrichHTML(this.actor.system.general?.notes) || "";
-        data.data.general.enrichedFeatures = await foundry.applications.ux.TextEditor.enrichHTML(this.actor.system.general?.features) || "";
+        data.data.enrichedBio = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.biography, {secrets: !data.limited});
+        data.data.general.enrichedNotes = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.general?.notes) || "";
+        data.data.general.enrichedFeatures = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.general?.features) || "";
         data.maxAttribute = game.settings.get("starwarsffg", "maxAttribute");
         data.obligationItems = {
           obligations: data.items.filter(i => i.system?.type === "obligation"),
@@ -283,7 +315,7 @@ export class ActorSheetFFG extends FFGActorSheet {
         };
         break;
       case "vehicle":
-        data.data.enrichedBio = await foundry.applications.ux.TextEditor.enrichHTML(this.actor.system.biography);
+        data.data.enrichedBio = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.biography);
         // add the crew to the items of the vehicle
         data.crew = [];
         // look up the flag data
@@ -357,8 +389,12 @@ export class ActorSheetFFG extends FFGActorSheet {
     data.modifierTypes = CONFIG.FFG.allowableModifierTypes;
     data.modifierChoices = CONFIG.FFG.allowableModifierChoices;
 
-    // Include active effects
-    data.effects = actorData.system.effects.map(EffectHelpers.transformEffects);
+    // Include active effects. `effects` is derived data attached to system in
+    // prepareDerivedData (a list of live ActiveEffect Documents), not a schema
+    // field — so a registered system DataModel's toObject() (used for actorData
+    // above) drops it. Read it from the live system instead. `?? []` guards any
+    // actor whose prepare hasn't populated it.
+    data.effects = (this.actor.system.effects ?? []).map(EffectHelpers.transformEffects);
 
     return data;
   }
@@ -913,7 +949,7 @@ export class ActorSheetFFG extends FFGActorSheet {
                 default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
               }
             };
-            const tempItem = await new Item(itemData, { temporary: true });
+            const tempItem = await new Item.implementation(itemData, { temporary: true });
             tempItem.sheet.render(true);
           } else {
             CONFIG.logger.debug(`Unknown item type: ${itemType}, or lacking new embed system`);
@@ -1595,7 +1631,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       const a = event.currentTarget;
       const form = this.form;
 
-      const nk = randomID();
+      const nk = foundry.utils.randomID();
       let newKey = document.createElement("div");
       newKey.innerHTML = `<input type="text" name="data.dutylist.${nk}.type" value="" style="display:none;"/><input class="attribute-value" type="text" name="data.dutylist.${nk}.magnitude" value="0" data-dtype="Number" placeholder="0"/>`;
       form.appendChild(newKey);
@@ -1711,7 +1747,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       let details = li.children(".item-details");
       details.slideUp(200, () => details.remove());
     } else {
-      let div = $(`<div class="item-details">${await foundry.applications.ux.TextEditor.enrichHTML(desc)}</div>`);
+      let div = $(`<div class="item-details">${await foundry.applications.ux.TextEditor.implementation.enrichHTML(desc)}</div>`);
       li.append(div.hide());
       div.slideDown(200);
     }
@@ -1777,7 +1813,7 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     const messageData = {
       user: game.user.id,
-      type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+      style: CONST.CHAT_MESSAGE_STYLES.OTHER,
       content: html,
       speaker: {
         actor: this.actor.id,
@@ -1807,7 +1843,7 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     const messageData = {
       user: game.user.id,
-      type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+      style: CONST.CHAT_MESSAGE_STYLES.OTHER,
       content: html,
       speaker: {
         actor: this.actor.id,
@@ -1852,7 +1888,7 @@ export class ActorSheetFFG extends FFGActorSheet {
             CONFIG.logger.debug(`Updating ${ability} Characteristic from ${characteristic} to ${newCharacteristic}`);
 
             let updateData = {};
-            setProperty(updateData, `system.skills.${ability}.characteristic`, newCharacteristic);
+            foundry.utils.setProperty(updateData, `system.skills.${ability}.characteristic`, newCharacteristic);
 
             this.object.update(updateData);
           },
@@ -1985,12 +2021,12 @@ export class ActorSheetFFG extends FFGActorSheet {
       changes: [
         {
           key: boughtPath,
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: boughtValue,
         },
         {
           key: "system.experience.available",
-          mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+          mode: AE_MODES.ADD,
           value: spentXP * -1,
         }
       ],
@@ -2000,7 +2036,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     if (boughtPath === "system.characteristics.Brawn.value") {
       effects.changes.push({
         key: "system.stats.soak.value",
-        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        mode: AE_MODES.ADD,
         value: 1,
       });
     }

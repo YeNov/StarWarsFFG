@@ -253,6 +253,18 @@ img {
 
 .starwarsffg.application.sheet > form.window-content {
   overflow: visible !important;
+  /* Trap sheet content in its own stacking context so it cannot paint over the
+     window chrome. Core puts the header and the ⋮ controls-dropdown at z-index:1
+     inside .application and expects content to stay below them — but
+     .talent-background carries z-index:10 and nothing between it and .application
+     establishes a stacking context, so the talent cards were compared directly
+     against the dropdown's 1, won, and occluded the open menu. Isolating fixes
+     that WITHOUT touching the card's z-index, which is load-bearing:
+     .talent-connections is a sibling at z-index:5 and would paint over the cards
+     if the 10 were simply dropped. Also pre-empts the same clash from
+     .item-controls / .tooltip at z-index:500 elsewhere. Stacking only — this
+     changes no layout or appearance. */
+  isolation: isolate;
 }
 
 .starwarsffg.application.sheet nav.sheet-tabs {
@@ -3474,4 +3486,15 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
      that governs the HUD). In the light scheme they keep their original black via
      the true-colour rule above. */
   filter: brightness(0) invert(1);
+}
+/* V14 sizes the status palette's rows to fill the token-HUD column height, so its
+   grid-template-rows resolves to ~51px per row while our icons are 24px — leaving a
+   big vertical gap in every row (looks like empty rows). Pack the rows to icon height
+   and top-align so the grid hugs the icons. Unlayered, so it beats core's @layer rule
+   without !important (same approach as the colour rules above). */
+#token-hud .status-effects.palette {
+  grid-template-rows: none;
+  grid-auto-rows: 24px;
+  align-content: start;
+  height: max-content;
 }
