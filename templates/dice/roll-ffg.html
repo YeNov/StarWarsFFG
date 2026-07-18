@@ -35,21 +35,6 @@
       {{#if modified}}
       <div class="ffg-modified-row">
         <span class="ffg-modified-badge" title="{{localize "SWFFG.ReplaceDie.ModifiedBadge"}}">✎ {{localize "SWFFG.ReplaceDie.ModifiedBadge"}}</span>
-        <details class="ffg-modified-details">
-          <summary>{{localize "SWFFG.ReplaceDie.ModifiedBadge"}}</summary>
-          <ul>
-            {{#each modifications}}
-            <li title="{{this.at}}">
-              <strong>{{this.byName}}</strong>:
-              {{#if (eq this.mode "reroll")}}{{this.original.label}} → {{this.replacement.label}}
-              {{else if (eq this.mode "add-die")}}+{{this.replacement.count}} {{this.replacement.label}}
-              {{else if (eq this.mode "add-result")}}{{#if this.replacement.negative}}-{{else}}+{{/if}}{{this.replacement.value}}{{{this.replacement.symbol}}}
-              {{else if (eq this.mode "remove")}}{{localize "SWFFG.ReplaceDie.Audit.Removed"}} {{this.original.label}}
-              {{else}}{{this.original.label}}{{/if}}
-            </li>
-            {{/each}}
-          </ul>
-        </details>
       </div>
       {{/if}}
     {{/if}}
