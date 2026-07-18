@@ -45,6 +45,7 @@ import { createFFGMacro, updateMacro } from "./helpers/macros.js";
 import EmbeddedItemHelpers from "./helpers/embeddeditem-helpers.js";
 import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
+import { ReplaceDie } from "./helpers/replace-die.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
 import DataImporter from "./importer/data-importer.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -1480,6 +1481,7 @@ Hooks.on("renderChatMessageHTML", async (message, html) => {
 
   ApplyDamage.bindChatMessage(message, $html);
   ApplyCrit.bindChatMessage(message, $html);
+  ReplaceDie.bindChatMessage(message, $html);
 
   $html.on("click", ".ffg-pool-to-player", () => {
     const poolData = message.flags.starwarsffg;
