@@ -1453,6 +1453,18 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   width: 24px;
   float: left;
 }
+.ffg-die {
+  cursor: context-menu;
+}
+.ffg-modified-badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255, 100, 0, 0.15);
+  border: 1px solid rgba(255, 100, 0, 0.4);
+  cursor: default;
+}
 .starwarsffg .dice-result .roll-success {
   color: darkgreen;
 }
