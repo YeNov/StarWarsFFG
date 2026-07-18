@@ -72,7 +72,8 @@ function diceButtonsHtml() {
 function resultButtonsHtml() {
   return RESULT_TYPES.map(
     ({ type, icon, label }) => `
-      <button type="button" class="rd-result-btn" data-type="${type}" style="${BTN_STYLE}">
+      <button type="button" class="rd-result-btn" data-type="${type}" data-count="0" style="${BTN_STYLE}">
+        <span class="rd-badge" style="${BADGE_STYLE}"></span>
         <span style="${ICON_BOX}"><img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px;" /></span>
         <span style="${LABEL_STYLE}">${game.i18n.localize(label)}</span>
       </button>`
@@ -95,16 +96,17 @@ function wireSelection(root, selector) {
   );
 }
 
-// Add mode: LMB increments a tile's pending-add count, RMB decrements it (floor 0).
-// The count shows as a "+N" badge on the die icon; 0 hides the badge and outline.
-function wireCounters(root, selector) {
+// Counter tiles: LMB increments a tile's count, RMB decrements it. The signed
+// count shows as a "+N" / "-N" badge; 0 hides the badge and outline. Dice-add
+// counts floor at 0 (allowNegative false); result counts may go negative.
+function wireCounters(root, selector, { allowNegative = false } = {}) {
   root.querySelectorAll(selector).forEach((btn) => {
     const badge = btn.querySelector(".rd-badge");
     const update = () => {
       const n = Number(btn.dataset.count) || 0;
-      badge.textContent = n > 0 ? `+${n}` : "";
-      badge.style.display = n > 0 ? "" : "none";
-      btn.style.outline = n > 0 ? "2px solid var(--color-border-highlight, #ff6400)" : "";
+      badge.textContent = n > 0 ? `+${n}` : n < 0 ? String(n) : "";
+      badge.style.display = n !== 0 ? "" : "none";
+      btn.style.outline = n !== 0 ? "2px solid var(--color-border-highlight, #ff6400)" : "";
     };
     btn.addEventListener("click", (ev) => {
       ev.preventDefault();
@@ -113,7 +115,8 @@ function wireCounters(root, selector) {
     });
     btn.addEventListener("contextmenu", (ev) => {
       ev.preventDefault();
-      btn.dataset.count = String(Math.max(0, (Number(btn.dataset.count) || 0) - 1));
+      const next = (Number(btn.dataset.count) || 0) - 1;
+      btn.dataset.count = String(allowNegative ? next : Math.max(0, next));
       update();
     });
     update();
@@ -294,16 +297,9 @@ export class ReplaceDie {
    */
   static async showResultWindow(message) {
     if (!ReplaceDie._canModify(message)) return;
-    const quantityLabel = game.i18n.localize("SWFFG.ReplaceDie.Quantity");
     const content = `
-      <div class="rd-result-panel dice-pool" style="display:flex; flex-direction:column; gap:8px; padding:4px 8px;">
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${resultButtonsHtml()}
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label>${quantityLabel}</label>
-          <input type="number" class="rd-qty" min="1" value="1" style="width:60px;" />
-        </div>
+      <div class="rd-result-panel dice-pool" style="display:flex; flex-wrap:wrap; gap:8px; padding:4px 8px;">
+        ${resultButtonsHtml()}
       </div>`;
 
     DialogV2.wait({
@@ -316,25 +312,24 @@ export class ReplaceDie {
           label: game.i18n.localize("SWFFG.ReplaceDie.Confirm"),
           default: true,
           callback: (event, button, dialog) => {
-            const root = dialog.element;
-            const picked = root.querySelector(".rd-result-btn.selected");
-            if (!picked) {
+            // Collect the per-result signed counts built by LMB/RMB (may be negative).
+            const counts = {};
+            dialog.element.querySelectorAll(".rd-result-btn").forEach((btn) => {
+              const n = Number(btn.dataset.count) || 0;
+              if (n !== 0) counts[btn.dataset.type] = n;
+            });
+            if (!Object.keys(counts).length) {
               ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
               return;
             }
-            const qty = parseInt(root.querySelector(".rd-qty")?.value, 10);
-            if (!Number.isSafeInteger(qty) || qty < 1) {
-              ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
-              return;
-            }
-            ReplaceDie.applyAddResult(message, picked.dataset.type, qty).catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
+            ReplaceDie.applyAddResults(message, counts).catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
           },
         },
         { action: "cancel", icon: "fas fa-times", label: game.i18n.localize("SWFFG.ReplaceDie.Cancel") },
       ],
       render: (event, dialog) => {
         dialog.element.classList.add("cdx-dice");
-        wireSelection(dialog.element, ".rd-result-btn");
+        wireCounters(dialog.element, ".rd-result-btn", { allowNegative: true });
       },
       rejectClose: false,
     });
@@ -461,24 +456,30 @@ export class ReplaceDie {
     await ReplaceDie._finalize(message, rolls, roll, { ...ReplaceDie._meta("remove"), original });
   }
 
-  /** Add result: append `qty` of a chosen symbol to the roll's totals. */
-  static async applyAddResult(message, type, qty) {
+  /**
+   * Add results: append the chosen per-type signed counts to the roll's totals.
+   * `counts` maps result type -> signed integer; negatives subtract (including
+   * Triumph/Despair, whose success/failure coupling the pure core applies to
+   * negative added results too).
+   */
+  static async applyAddResults(message, counts) {
     const rolls = message.rolls;
     const roll = rolls?.[0];
     if (!roll) return;
-    if (!TOKEN[type]) {
+    const entries = Object.entries(counts).filter(([type, n]) => TOKEN[type] && Number.isSafeInteger(n) && n !== 0);
+    if (!entries.length) {
       ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
       return;
     }
-    if (!Number.isSafeInteger(qty) || qty < 1) {
-      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
-      return;
+    const audit = [];
+    for (const [type, n] of entries) {
+      roll.addedResults.push({ type, symbol: TOKEN[type], value: Math.abs(n), negative: n < 0 });
+      audit.push({
+        ...ReplaceDie._meta("add-result"),
+        replacement: { kind: "result", type, symbol: TOKEN[type], value: Math.abs(n), negative: n < 0 },
+      });
     }
-    roll.addedResults.push({ type, symbol: TOKEN[type], value: qty, negative: false });
-    await ReplaceDie._finalize(message, rolls, roll, {
-      ...ReplaceDie._meta("add-result"),
-      replacement: { kind: "result", type, symbol: TOKEN[type], value: qty },
-    });
+    await ReplaceDie._finalize(message, rolls, roll, audit);
   }
 
   /* -------------------------------------------------------------- helpers */
