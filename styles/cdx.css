@@ -751,10 +751,10 @@
 .cdx-dice .pool-additional-container td:nth-child(3n) { width: 24%; }
 .cdx-dice .pool-additional-container input[type="button"] { width: 100%; min-width: 0; margin: 0; box-sizing: border-box; }
 /* Pool ICON images: black setback / remove-setback / dark-pip keep a white outline; the
-   black result glyphs (incl. the Light-side pip, whose fill is the "light" one) invert to
-   white. Dark-pip stays dark+outlined so Light/Dark read apart. Mirrors the filters above. */
+   dark result icons invert to white. The Light-side pip is a white-filled ring that already
+   reads on both light and dark backgrounds, so it deliberately gets NO rule. Mirrors above. */
 .cdx-dice .dice-pool img[src*="black.png"], .cdx-dice .dice-pool img[src*="black-minus"], .cdx-dice .dice-pool img[src*="darkpip"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
-.cdx-dice .dice-pool img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"],[src*="lightpip"]) { filter: brightness(0) invert(1); }
+.cdx-dice .dice-pool img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) { filter: brightness(0) invert(1); }
 /* The dice-SELECTION table (.pool-dice-pool) also lists the black setback die — give it
    the same white outline so it reads on the dark dialog. Only black.png needs it; the
    other rows (yellow/green/red/purple/blue/whiteHex) are coloured and stay untouched. */
