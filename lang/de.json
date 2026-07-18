@@ -565,5 +565,7 @@
   "SWFFG.ReplaceDie.Cancel": "Cancel",
   "SWFFG.ReplaceDie.ModifiedBadge": "Modified",
   "SWFFG.ReplaceDie.NoSelection": "Choose a die or a result first.",
-  "SWFFG.ReplaceDie.NoGM": "No active GM is connected to apply this change."
+  "SWFFG.ReplaceDie.NoGM": "No active GM is connected to apply this change.",
+  "SWFFG.ReplaceDie.InvalidQuantity": "Enter a quantity of 1 or more.",
+  "SWFFG.ReplaceDie.Stale": "This roll changed; please try again."
 }

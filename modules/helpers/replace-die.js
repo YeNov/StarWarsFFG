@@ -147,15 +147,19 @@ export class ReplaceDie {
                 ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
                 return;
               }
-              await ReplaceDie.applyReplacement(message, { dieIndex, resultIndex }, { mode: "dice", denom: picked.dataset.denom });
+              await ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "dice", denom: picked.dataset.denom });
             } else {
               const picked = root.querySelector(".rd-result-btn.selected");
               if (!picked) {
                 ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
                 return;
               }
-              const qty = parseInt(root.querySelector(".rd-qty")?.value, 10) || 1;
-              await ReplaceDie.applyReplacement(message, { dieIndex, resultIndex }, { mode: "result", type: picked.dataset.type, qty });
+              const qty = parseInt(root.querySelector(".rd-qty")?.value, 10);
+              if (!Number.isSafeInteger(qty) || qty < 1) {
+                ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
+                return;
+              }
+              await ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "result", type: picked.dataset.type, qty });
             }
           },
         },
@@ -202,10 +206,11 @@ export class ReplaceDie {
    * Mutate the persisted roll in place (recompute + splice), record the
    * audit entry, and persist for every client. See design §5.2/§5.5/§5.7.
    * @param {ChatMessage} message
-   * @param {{dieIndex: number, resultIndex: number}} coords
+   * @param {{dieIndex: number, resultIndex: number, sourceDenom: string}} coords — `sourceDenom`
+   *   is the clicked die's denomination, re-checked at mutation time against a possibly re-rendered card.
    * @param {{mode: "dice", denom: string}|{mode: "result", type: string, qty: number}} choice
    */
-  static async applyReplacement(message, { dieIndex, resultIndex }, choice) {
+  static async applyReplacement(message, { dieIndex, resultIndex, sourceDenom }, choice) {
     // 1. Capture the rolls array ONCE — all mutation and the later serialize use this same rolls/roll.
     const rolls = message.rolls;
     const roll = rolls?.[0];
@@ -213,6 +218,30 @@ export class ReplaceDie {
 
     // 2. Locate the term. `ti` indexes roll.terms (operators excluded from roll.dice).
     const term = roll.dice[dieIndex];
+
+    // 2a. Revalidate at MUTATION time (not just when the dialog opened): a concurrent
+    // edit may have re-rendered the card while this dialog was open, so the captured
+    // indices could now point at a different die or a removed face. Bail if so.
+    if (!term || term.constructor?.DENOMINATION !== sourceDenom || !term.results?.[resultIndex]) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
+      return;
+    }
+
+    // 2b. Validate the Result-mode choice — the dialog's HTML min/allow-list is not
+    // trustworthy inside a custom DialogV2 callback (a negative qty is truthy and
+    // would recompute as the OPPOSITE symbol via cancellation; an unknown type would
+    // persist an undefined token).
+    if (choice.mode === "result") {
+      if (!TOKEN[choice.type]) {
+        ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+        return;
+      }
+      if (!Number.isSafeInteger(choice.qty) || choice.qty < 1) {
+        ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
+        return;
+      }
+    }
+
     const ti = roll.terms.indexOf(term);
     if (ti === -1) {
       // Defensive-only: the clicked die lives inside a nested inner-RollFFG
@@ -273,15 +302,20 @@ export class ReplaceDie {
           : { kind: "result", type: choice.type, symbol: TOKEN[choice.type], value: choice.qty },
     });
 
-    // 7. Persist from the SAME rolls captured in step 1. Author owns their own message and a GM
-    // updates any, so V13 (and V14 GMs) write directly; a non-GM author on V14 goes through the
-    // requestor-validated gm-bridge fallback (Stage 8) if that generation blocks the direct write.
+    // 7. Persist from the SAME rolls captured in step 1. A GM and the message's
+    // own author are both OWNER on V13 AND V14 (BaseChatMessage#getUserLevel grants
+    // the author OWNER, and updates require OWNER), so they write directly on either
+    // generation. Only a non-owner falls back to the requestor-validated gm-bridge
+    // forward (Stage 8) — gate on the actual update capability, not the generation.
     const update = {
       rolls: rolls.map((r, i) => (i === 0 ? JSON.stringify(roll) : JSON.stringify(r))),
       flags: { starwarsffg: { diceModified: true, modifiedBy: game.user.id } },
     };
-    const needsForward = !game.user.isGM && game.release.generation >= 14;
-    if (needsForward) await forwardMessageUpdateToGM(message, update);
-    else await message.update(update);
+    const canDirect =
+      typeof message.canUserModify === "function"
+        ? message.canUserModify(game.user, "update")
+        : (message.isOwner || game.user.isGM);
+    if (canDirect) await message.update(update);
+    else await forwardMessageUpdateToGM(message, update);
   }
 }
