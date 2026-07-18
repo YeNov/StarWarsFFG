@@ -157,7 +157,11 @@ export class ReplaceDie {
                 ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
                 return;
               }
-              await ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "dice", denom: picked.dataset.denom });
+              // Fire-and-forget: the dialog closes the instant this callback returns,
+              // so don't await — the dice animation and persistence run after the
+              // window is already gone.
+              ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "dice", denom: picked.dataset.denom })
+                .catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
             } else {
               const picked = root.querySelector(".rd-result-btn.selected");
               if (!picked) {
@@ -169,7 +173,9 @@ export class ReplaceDie {
                 ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
                 return;
               }
-              await ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "result", type: picked.dataset.type, qty });
+              // Fire-and-forget so the dialog closes immediately (see dice branch).
+              ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "result", type: picked.dataset.type, qty })
+                .catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
             }
           },
         },
