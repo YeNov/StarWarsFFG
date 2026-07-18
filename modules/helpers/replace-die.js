@@ -92,36 +92,27 @@ export class ReplaceDie {
     const iconBox = "height:36px; display:flex; align-items:center; justify-content:center;";
     const labelStyle = "font-size:11px; line-height:1.1; text-align:center; word-break:break-word;";
 
-    const diceButtons = DICE_ORDER.map((d) => {
-      // The Setback die art is near-black and vanishes on the dark dialog; give it
-      // a thin light outline so it reads (same trick as the token-HUD Setback icon).
-      const dieImg = d === "s"
-        ? "width:32px; height:32px; box-shadow:0 0 0 1px #fff; border-radius:3px;"
-        : "width:32px; height:32px;";
-      return `
+    // Dice/symbol icons are recoloured for the dark dialog by the SHARED
+    // `.cdx-dice .dice-pool` rules in cdx.css (keyed on image src) — the same rule
+    // the roll-builder dialog and adversary preview use (black setback die & dark
+    // pip get a white outline, dark symbols invert to white). We opt in via the
+    // `.cdx-dice` root class (added in render) + the `.dice-pool` panels below, so
+    // there is no per-window recolour to maintain here.
+    const diceButtons = DICE_ORDER.map(
+      (d) => `
       <button type="button" class="rd-dice-btn" data-denom="${d}" style="${btnStyle}">
-        <span style="${iconBox}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="${dieImg}" /></span>
+        <span style="${iconBox}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="width:32px; height:32px;" /></span>
         <span style="${labelStyle}">${game.i18n.localize(DIE_NAME[d])}</span>
-      </button>`;
-    }).join("");
+      </button>`
+    ).join("");
 
-    // Most result symbols are solid-black glyphs that vanish on the dark dialog, so
-    // invert them to white (same intent as the token-HUD status-icon whitening).
-    // EXCEPT the Force pips: Light (hollow ring) and Dark (solid disk) are told
-    // apart by their FILL, not colour — inverting both to white erases that and
-    // makes Dark read as "light". Show those two in their true black art on a light
-    // chip instead, so hollow=Light / solid=Dark stay distinct and correct.
-    const resultButtons = RESULT_TYPES.map(({ type, icon, label }) => {
-      const isPip = type === "Light" || type === "Dark";
-      const symInner = isPip
-        ? `<span style="width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:#d9d9d9; border-radius:50%;"><img src="${CONFIG.FFG[icon]}" alt="" style="width:22px; height:22px;" /></span>`
-        : `<img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px; filter:brightness(0) invert(1);" />`;
-      return `
+    const resultButtons = RESULT_TYPES.map(
+      ({ type, icon, label }) => `
       <button type="button" class="rd-result-btn" data-type="${type}" style="${btnStyle}">
-        <span style="${iconBox}">${symInner}</span>
+        <span style="${iconBox}"><img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px;" /></span>
         <span style="${labelStyle}">${game.i18n.localize(label)}</span>
-      </button>`;
-    }).join("");
+      </button>`
+    ).join("");
 
     const content = `
       <div style="display:flex; flex-direction:column; gap:12px;">
@@ -133,10 +124,10 @@ export class ReplaceDie {
             <input type="radio" name="rd-mode" value="result" /> ${modeResultLabel}
           </label>
         </div>
-        <div class="rd-dice-panel" style="display:flex; flex-wrap:wrap; gap:8px; padding:4px 8px;">
+        <div class="rd-dice-panel dice-pool" style="display:flex; flex-wrap:wrap; gap:8px; padding:4px 8px;">
           ${diceButtons}
         </div>
-        <div class="rd-result-panel" style="display:none; flex-direction:column; gap:8px; padding:4px 8px;">
+        <div class="rd-result-panel dice-pool" style="display:none; flex-direction:column; gap:8px; padding:4px 8px;">
           <div style="display:flex; flex-wrap:wrap; gap:8px;">
             ${resultButtons}
           </div>
@@ -190,6 +181,10 @@ export class ReplaceDie {
       ],
       render: (event, dialog) => {
         const root = dialog.element;
+        // Opt into the shared dark-surface dice/symbol treatment (see cdx.css
+        // `.cdx-dice`). A dedicated marker, so it recolours the pool icons without
+        // pulling the broad `.cdx` form styling onto the dialog controls.
+        root.classList.add("cdx-dice");
         const dicePanel = root.querySelector(".rd-dice-panel");
         const resultPanel = root.querySelector(".rd-result-panel");
         const applyMode = () => {
