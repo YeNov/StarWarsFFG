@@ -13,6 +13,7 @@ export class RollFFG extends Roll {
     this.hasFFG = false;
     this.hasStandard = false;
     this.addedResults = [];
+    this.modifications = [];
 
     this.terms = this.parseShortHand(this.terms);
 
@@ -290,13 +291,16 @@ export class RollFFG extends Roll {
       ffg: isPrivate ? {} : this.ffg,
       ffgDice: isPrivate
         ? {}
-        : this.dice.map((d) => {
+        : this.dice.map((d, dieIndex) => {
             const cls = d.constructor;
             return {
               isFFG: game.ffg.diceterms.includes(cls),
-              rolls: d.results.map((r) => {
+              dieIndex,
+              denom: cls.DENOMINATION,
+              rolls: d.results.map((r, resultIndex) => {
                 return {
                   result: d.getResultLabel(r),
+                  resultIndex,
                 };
               }),
             };
@@ -307,6 +311,8 @@ export class RollFFG extends Roll {
       diceresults: CONFIG.FFG.diceresults,
       data: this.data,
       addedResults: this.addedResults,
+      modified: (this.modifications?.length ?? 0) > 0,
+      modifications: this.modifications,
       publicRoll: !chatOptions.isPrivate,
     };
     if (chatData?.data?.flags?.starwarsffg.hasOwnProperty('crew')) {
@@ -401,6 +407,7 @@ export class RollFFG extends Roll {
     json.data = this.data;
     json.addedResults = this.addedResults;
     json.flavorText = this.flavorText;
+    json.modifications = this.modifications ?? [];
     return json;
   }
 
@@ -413,6 +420,7 @@ export class RollFFG extends Roll {
     roll.data = data.data;
     roll.addedResults = data.addedResults;
     roll.flavorText = data.flavorText;
+    roll.modifications = data.modifications ?? [];
     return roll;
   }
 

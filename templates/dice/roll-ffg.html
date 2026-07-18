@@ -23,7 +23,7 @@
       <div class="ffgDiceArray">
         <ol class="dice-rolls">
           {{#each ffgDice}} {{#if this.isFFG}} {{#each this.rolls}}
-          <li class="roll">{{{this.result}}}</li>
+          <li class="roll ffg-die" data-die-index="{{../dieIndex}}" data-result-index="{{this.resultIndex}}" data-denom="{{../denom}}">{{{this.result}}}</li>
           {{/each}} {{/if}} {{/each}}
         </ol>
       </div>
@@ -32,6 +32,26 @@
         <div>{{#if this.negative}}-{{else}}+{{/if}}{{this.value}}{{{this.symbol}}}</div>
         {{/if}} {{/each}}
       </div>
+      {{#if modified}}
+      <div class="ffg-modified-row">
+        <span class="ffg-modified-badge" title="{{localize "SWFFG.ReplaceDie.ModifiedBadge"}}">✎ {{localize "SWFFG.ReplaceDie.ModifiedBadge"}}</span>
+        <details class="ffg-modified-details">
+          <summary>{{localize "SWFFG.ReplaceDie.ModifiedBadge"}}</summary>
+          <ul>
+            {{#each modifications}}
+            <li>
+              <strong>{{this.byName}}</strong> ({{this.at}}): {{this.original.label}} →
+              {{#if (eq this.replacement.kind "die")}}
+              {{this.replacement.label}}
+              {{else}}
+              +{{this.replacement.value}}{{{this.replacement.symbol}}}
+              {{/if}}
+            </li>
+            {{/each}}
+          </ul>
+        </details>
+      </div>
+      {{/if}}
     {{/if}}
     {{{tooltip}}}
     {{#if hasStandard}}
