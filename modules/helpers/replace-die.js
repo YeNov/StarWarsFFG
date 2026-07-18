@@ -275,6 +275,17 @@ export class ReplaceDie {
       // 4. Dice mode: a fresh random die of the chosen type, spliced into the clicked slot.
       const D = new CONFIG.Dice.terms[choice.denom](1);
       await D.evaluate();
+      // Play the 3D dice animation for the freshly-rolled die (Dice So Nice). A
+      // replacement persists via message.update, not toMessage, so the animation
+      // that a normal roll gets never fires — trigger it explicitly and broadcast
+      // (synchronize=true) so every client sees the die land before the card updates.
+      if (game.dice3d?.showForRoll) {
+        try {
+          await game.dice3d.showForRoll(Roll.fromTerms([D]), game.user, true);
+        } catch (err) {
+          CONFIG.logger?.warn?.("ReplaceDie: dice animation failed", err);
+        }
+      }
       roll.terms = spliceReplacement(roll.terms, ti, resultIndex, D, {
         getDenom: (t) => t?.constructor?.DENOMINATION,
         makeOperator: () => new foundry.dice.terms.OperatorTerm({ operator: "+" }),
