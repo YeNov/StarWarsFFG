@@ -488,6 +488,26 @@ export class ReplaceDie {
     return { by: game.user.id, byName: game.user.name, at: new Date().toISOString(), mode };
   }
 
+  /**
+   * Recount the fixed-results (`addedResults`) block: fold every entry of the same
+   * type into a single net entry (first-occurrence order preserved, net-zero types
+   * dropped) so e.g. +2 Success then -1 Success renders as one +1 Success. Also
+   * re-normalises each symbol to its `[XX]` token (undoing render-time enrichment)
+   * before persistence — so this replaces the plain symbol pass.
+   */
+  static _foldAddedResults(roll) {
+    const order = [];
+    const net = new Map();
+    for (const r of roll.addedResults ?? []) {
+      const signed = (r.negative ? -1 : 1) * (Number(r.value) || 0);
+      if (!net.has(r.type)) order.push(r.type);
+      net.set(r.type, (net.get(r.type) || 0) + signed);
+    }
+    roll.addedResults = order
+      .map((type) => ({ type, symbol: TOKEN[type], value: Math.abs(net.get(type)), negative: net.get(type) < 0 }))
+      .filter((r) => r.value !== 0);
+  }
+
   /** Capture a removed face defensively (same path recompute uses), for the audit. */
   static _original(term, removed, sourceDenom) {
     return {
@@ -527,7 +547,7 @@ export class ReplaceDie {
    * `audit` is a single entry or an array (batch add records one entry per type).
    */
   static async _finalize(message, rolls, roll, audit) {
-    for (const entry of roll.addedResults) entry.symbol = TOKEN[entry.type];
+    ReplaceDie._foldAddedResults(roll);
     recomputeRollFFG(roll);
     if (typeof roll.resetFormula === "function") roll.resetFormula();
     else if (typeof Roll.getFormula === "function") roll._formula = Roll.getFormula(roll.terms);
