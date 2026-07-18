@@ -848,5 +848,16 @@
   "SWFFG.ReplaceDie.NoSelection": "Choose a die or a result first.",
   "SWFFG.ReplaceDie.NoGM": "No active GM is connected to apply this change.",
   "SWFFG.ReplaceDie.InvalidQuantity": "Enter a quantity of 1 or more.",
-  "SWFFG.ReplaceDie.Stale": "This roll changed; please try again."
+  "SWFFG.ReplaceDie.Stale": "This roll changed; please try again.",
+  "SWFFG.ReplaceDie.Confirm": "Confirm",
+  "SWFFG.ReplaceDie.Menu.Reroll": "Reroll die",
+  "SWFFG.ReplaceDie.Menu.AddDie": "Add a die",
+  "SWFFG.ReplaceDie.Menu.RemoveDie": "Remove die",
+  "SWFFG.ReplaceDie.Menu.AddResult": "Add result",
+  "SWFFG.ReplaceDie.RerollTitle": "Reroll {die}",
+  "SWFFG.ReplaceDie.AddDieTitle": "Add a die",
+  "SWFFG.ReplaceDie.AddResultTitle": "Add a result",
+  "SWFFG.ReplaceDie.RemoveTitle": "Remove die",
+  "SWFFG.ReplaceDie.RemoveConfirm": "Remove {die} from this roll?",
+  "SWFFG.ReplaceDie.Audit.Removed": "Removed"
 }

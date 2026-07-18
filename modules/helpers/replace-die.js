@@ -1,9 +1,14 @@
 /**
- * Replace Die chat interaction — right-click a rendered FFG die glyph to
- * swap it for a fresh die of a chosen type (in place) or remove it and
- * append a chosen symbol, then persist the mutated roll for everyone.
+ * Replace-Die chat interactions. Two context menus drive four operations on a
+ * posted FFG roll:
+ *   - Right-click a die glyph  -> die menu:  Reroll die / Add a die / Remove die.
+ *   - Right-click the message  -> core menu gains:  Add result / Add a die.
+ * Reroll and Add-a-die open the die window (pick one of the 7 FFG dice); Add
+ * result opens the result window (pick a symbol + quantity); Remove die confirms
+ * first. Every edit recomputes the roll, records an audit entry, and persists the
+ * ChatMessage for all clients (Dice So Nice animates a freshly-rolled die).
  *
- * See docs/superpowers/specs/2026-07-18-dice-replacement-design_doc_v3.md §5.
+ * See docs/superpowers/specs/2026-07-18-dice-replacement-design.md.
  */
 import {
   faceTally,
@@ -19,6 +24,7 @@ import {
 import { forwardMessageUpdateToGM } from "./gm-bridge.js";
 
 const { DialogV2 } = foundry.applications.api;
+const { ContextMenu } = foundry.applications.ux;
 
 const DIE_ICON = {
   p: "PROFICIENCY_ICON",
@@ -42,310 +48,414 @@ const RESULT_TYPES = [
   { type: "Dark", icon: "DARK_ICON", label: "SWFFG.RollResultDark" },
 ];
 
+// Shared picker-window styles. Icons are recoloured for the dark dialog by the
+// shared `.cdx-dice .dice-pool` rules in cdx.css (added via the `.cdx-dice` marker
+// in render + the `.dice-pool` panel class) — no per-window recolour here.
+const BTN_STYLE = "display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:6px; padding:6px 4px; width:70px; height:72px; box-sizing:border-box; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
+const ICON_BOX = "height:36px; display:flex; align-items:center; justify-content:center;";
+const LABEL_STYLE = "font-size:11px; line-height:1.1; text-align:center; word-break:break-word;";
+
+function diceButtonsHtml() {
+  return DICE_ORDER.map(
+    (d) => `
+      <button type="button" class="rd-dice-btn" data-denom="${d}" style="${BTN_STYLE}">
+        <span style="${ICON_BOX}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="width:32px; height:32px;" /></span>
+        <span style="${LABEL_STYLE}">${game.i18n.localize(DIE_NAME[d])}</span>
+      </button>`
+  ).join("");
+}
+
+function resultButtonsHtml() {
+  return RESULT_TYPES.map(
+    ({ type, icon, label }) => `
+      <button type="button" class="rd-result-btn" data-type="${type}" style="${BTN_STYLE}">
+        <span style="${ICON_BOX}"><img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px;" /></span>
+        <span style="${LABEL_STYLE}">${game.i18n.localize(label)}</span>
+      </button>`
+  ).join("");
+}
+
+// Single-select highlight for a group of picker tiles.
+function wireSelection(root, selector) {
+  const buttons = Array.from(root.querySelectorAll(selector));
+  buttons.forEach((b) =>
+    b.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      buttons.forEach((o) => {
+        o.classList.remove("selected");
+        o.style.outline = "";
+      });
+      b.classList.add("selected");
+      b.style.outline = "2px solid var(--color-border-highlight, #ff6400)";
+    })
+  );
+}
+
 export class ReplaceDie {
+  /* ---------------------------------------------------------------- wiring */
+
   /**
-   * Called from the renderChatMessageHTML hook. Gate exactly like ApplyCrit
-   * (GM or the message's own author); delegate a contextmenu listener onto
-   * every FFG die glyph so right-clicking one opens the replace modal.
+   * Called from renderChatMessageHTML. Gate to GM-or-author on an FFG roll, then
+   * attach the per-die context menu (Reroll / Add a die / Remove die). Foundry's
+   * ContextMenu calls `stopImmediatePropagation` when its selector matches, and
+   * this menu's listener sits inside the message (ahead of core's on the chat-log
+   * root), so right-clicking a die opens THIS menu and suppresses the core message
+   * menu; right-clicking elsewhere on the message falls through to core (whose menu
+   * gains the message-level options — see addMessageContextOptions).
    * @param {ChatMessage} message
-   * @param {jQuery} html
+   * @param {jQuery|HTMLElement} html
    */
   static bindChatMessage(message, html) {
-    const authorId = message.author?.id ?? message.user;
-    if (game.user.id !== authorId && !game.user.isGM) return;
+    if (!ReplaceDie._canModify(message)) return;
+    const root = html?.[0] ?? html;
+    if (!root?.querySelector || root.dataset?.rdMenuBound) return;
+    // Only worth a menu if the card actually has FFG die glyphs to click.
+    if (!root.querySelector("li.roll.ffg-die[data-die-index]")) return;
+    root.dataset.rdMenuBound = "1";
 
-    html.on("contextmenu", ".ffgDiceArray li.roll.ffg-die[data-die-index]", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation(); // block core ChatLog's own (delete-message) ContextMenu
-      const target = ev.currentTarget;
-      const dieIndex = Number(target.dataset.dieIndex);
-      const resultIndex = Number(target.dataset.resultIndex);
-      const denom = target.dataset.denom;
-      ReplaceDie.show(message, { dieIndex, resultIndex, denom });
-    });
+    new ContextMenu(
+      root,
+      "li.roll.ffg-die[data-die-index]",
+      [
+        {
+          name: game.i18n.localize("SWFFG.ReplaceDie.Menu.Reroll"),
+          icon: '<i class="fas fa-rotate"></i>',
+          callback: (li) => ReplaceDie.showDieWindow(message, { mode: "reroll", coords: ReplaceDie._coords(li) }),
+        },
+        {
+          name: game.i18n.localize("SWFFG.ReplaceDie.Menu.AddDie"),
+          icon: '<i class="fas fa-plus"></i>',
+          callback: () => ReplaceDie.showDieWindow(message, { mode: "add" }),
+        },
+        {
+          name: game.i18n.localize("SWFFG.ReplaceDie.Menu.RemoveDie"),
+          icon: '<i class="fas fa-trash"></i>',
+          callback: (li) => ReplaceDie.confirmRemove(message, ReplaceDie._coords(li)),
+        },
+      ],
+      { jQuery: false, fixed: true }
+    );
   }
 
   /**
-   * Open the two-mode replace modal for the clicked die/face.
-   * @param {ChatMessage} message
-   * @param {{dieIndex: number, resultIndex: number, denom: string}} coords
+   * Append the message-level options (Add result / Add a die) to the core chat
+   * context menu. Registered on the getChatMessageContextOptions hook; the caller
+   * passes the menu-items array. Each entry gates to an FFG roll owned-or-GM.
+   * @param {ContextMenuEntry[]} options
    */
-  static async show(message, { dieIndex, resultIndex, denom }) {
-    const roll = message.rolls?.[0];
-    const term = roll?.dice?.[dieIndex];
-    // Guard against a stale click target (e.g. the card re-rendered from a
-    // concurrent edit while the context menu was open).
-    if (!term || term.constructor?.DENOMINATION !== denom || !term.results?.[resultIndex]) return;
-    const removed = term.results[resultIndex];
-    const faceLabel = localizeFaceLabel(term, removed);
-    const title = game.i18n.format("SWFFG.ReplaceDie.DialogTitle", { die: faceLabel });
+  static addMessageContextOptions(options) {
+    const gate = (li) => ReplaceDie._canModify(game.messages.get(li?.dataset?.messageId));
+    const msg = (li) => game.messages.get(li?.dataset?.messageId);
+    options.push(
+      {
+        name: "SWFFG.ReplaceDie.Menu.AddResult",
+        icon: '<i class="fas fa-plus-circle"></i>',
+        condition: gate,
+        callback: (li) => ReplaceDie.showResultWindow(msg(li)),
+      },
+      {
+        name: "SWFFG.ReplaceDie.Menu.AddDie",
+        icon: '<i class="fas fa-dice-d6"></i>',
+        condition: gate,
+        callback: (li) => ReplaceDie.showDieWindow(msg(li), { mode: "add" }),
+      }
+    );
+  }
 
-    const modeDieLabel = game.i18n.localize("SWFFG.ReplaceDie.ModeDie");
-    const modeResultLabel = game.i18n.localize("SWFFG.ReplaceDie.ModeResult");
-    const quantityLabel = game.i18n.localize("SWFFG.ReplaceDie.Quantity");
-    const replaceLabel = game.i18n.localize("SWFFG.ReplaceDie.Replace");
-    const cancelLabel = game.i18n.localize("SWFFG.ReplaceDie.Cancel");
+  /** GM or the message's own author may modify, and it must be an FFG roll. */
+  static _canModify(message) {
+    const roll = message?.rolls?.[0];
+    if (!roll?.hasFFG) return false;
+    const authorId = message.author?.id ?? message.user;
+    return game.user.id === authorId || game.user.isGM;
+  }
 
-    // Fixed-size buttons with a fixed-height icon box so the glyph and the label
-    // stay vertically centered and the boxes line up in an even grid.
-    const btnStyle = "display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:6px; padding:6px 4px; width:70px; height:72px; box-sizing:border-box; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
-    const iconBox = "height:36px; display:flex; align-items:center; justify-content:center;";
-    const labelStyle = "font-size:11px; line-height:1.1; text-align:center; word-break:break-word;";
+  static _coords(li) {
+    return {
+      dieIndex: Number(li.dataset.dieIndex),
+      resultIndex: Number(li.dataset.resultIndex),
+      sourceDenom: li.dataset.denom,
+    };
+  }
 
-    // Dice/symbol icons are recoloured for the dark dialog by the SHARED
-    // `.cdx-dice .dice-pool` rules in cdx.css (keyed on image src) — the same rule
-    // the roll-builder dialog and adversary preview use (black setback die & dark
-    // pip get a white outline, dark symbols invert to white). We opt in via the
-    // `.cdx-dice` root class (added in render) + the `.dice-pool` panels below, so
-    // there is no per-window recolour to maintain here.
-    const diceButtons = DICE_ORDER.map(
-      (d) => `
-      <button type="button" class="rd-dice-btn" data-denom="${d}" style="${btnStyle}">
-        <span style="${iconBox}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="width:32px; height:32px;" /></span>
-        <span style="${labelStyle}">${game.i18n.localize(DIE_NAME[d])}</span>
-      </button>`
-    ).join("");
+  /* -------------------------------------------------------------- windows */
 
-    const resultButtons = RESULT_TYPES.map(
-      ({ type, icon, label }) => `
-      <button type="button" class="rd-result-btn" data-type="${type}" style="${btnStyle}">
-        <span style="${iconBox}"><img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px;" /></span>
-        <span style="${labelStyle}">${game.i18n.localize(label)}</span>
-      </button>`
-    ).join("");
+  /**
+   * Die picker window (pick one of the 7 FFG dice, then confirm). Shared by
+   * Reroll (replaces the clicked die in place) and Add (appends a new die).
+   * @param {ChatMessage} message
+   * @param {{mode:"reroll"|"add", coords?:object}} opts
+   */
+  static async showDieWindow(message, { mode, coords }) {
+    if (!ReplaceDie._canModify(message)) return;
+    if (mode === "reroll" && !ReplaceDie._validCoords(message, coords)) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
+      return;
+    }
+    const title =
+      mode === "reroll"
+        ? game.i18n.format("SWFFG.ReplaceDie.RerollTitle", { die: ReplaceDie._coordLabel(message, coords) })
+        : game.i18n.localize("SWFFG.ReplaceDie.AddDieTitle");
 
     const content = `
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div style="display:flex; gap:16px; padding:4px 8px;">
-          <label style="display:flex; align-items:center; gap:4px;">
-            <input type="radio" name="rd-mode" value="dice" checked /> ${modeDieLabel}
-          </label>
-          <label style="display:flex; align-items:center; gap:4px;">
-            <input type="radio" name="rd-mode" value="result" /> ${modeResultLabel}
-          </label>
-        </div>
-        <div class="rd-dice-panel dice-pool" style="display:flex; flex-wrap:wrap; gap:8px; padding:4px 8px;">
-          ${diceButtons}
-        </div>
-        <div class="rd-result-panel dice-pool" style="display:none; flex-direction:column; gap:8px; padding:4px 8px;">
-          <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            ${resultButtons}
-          </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <label>${quantityLabel}</label>
-            <input type="number" class="rd-qty" min="1" value="1" style="width:60px;" />
-          </div>
-        </div>
-      </div>
-    `;
+      <div class="rd-dice-panel dice-pool" style="display:flex; flex-wrap:wrap; gap:8px; padding:4px 8px;">
+        ${diceButtonsHtml()}
+      </div>`;
 
     DialogV2.wait({
       window: { title },
       content,
       buttons: [
         {
-          action: "replace",
+          action: "confirm",
           icon: "fas fa-check",
-          label: replaceLabel,
+          label: game.i18n.localize("SWFFG.ReplaceDie.Confirm"),
           default: true,
-          callback: async (event, button, dialog) => {
-            const root = dialog.element;
-            const mode = root.querySelector('input[name="rd-mode"]:checked')?.value;
-            if (mode === "dice") {
-              const picked = root.querySelector(".rd-dice-btn.selected");
-              if (!picked) {
-                ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
-                return;
-              }
-              // Fire-and-forget: the dialog closes the instant this callback returns,
-              // so don't await — the dice animation and persistence run after the
-              // window is already gone.
-              ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "dice", denom: picked.dataset.denom })
-                .catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
-            } else {
-              const picked = root.querySelector(".rd-result-btn.selected");
-              if (!picked) {
-                ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
-                return;
-              }
-              const qty = parseInt(root.querySelector(".rd-qty")?.value, 10);
-              if (!Number.isSafeInteger(qty) || qty < 1) {
-                ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
-                return;
-              }
-              // Fire-and-forget so the dialog closes immediately (see dice branch).
-              ReplaceDie.applyReplacement(message, { dieIndex, resultIndex, sourceDenom: denom }, { mode: "result", type: picked.dataset.type, qty })
-                .catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
+          callback: (event, button, dialog) => {
+            const picked = dialog.element.querySelector(".rd-dice-btn.selected");
+            if (!picked) {
+              ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+              return;
             }
+            const denom = picked.dataset.denom;
+            // Fire-and-forget so the window closes immediately; the animation and
+            // persistence run after it's gone.
+            const op = mode === "reroll" ? ReplaceDie.applyReroll(message, coords, denom) : ReplaceDie.applyAddDie(message, denom);
+            op.catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
           },
         },
-        {
-          action: "cancel",
-          icon: "fas fa-times",
-          label: cancelLabel,
-        },
+        { action: "cancel", icon: "fas fa-times", label: game.i18n.localize("SWFFG.ReplaceDie.Cancel") },
       ],
       render: (event, dialog) => {
-        const root = dialog.element;
-        // Opt into the shared dark-surface dice/symbol treatment (see cdx.css
-        // `.cdx-dice`). A dedicated marker, so it recolours the pool icons without
-        // pulling the broad `.cdx` form styling onto the dialog controls.
-        root.classList.add("cdx-dice");
-        const dicePanel = root.querySelector(".rd-dice-panel");
-        const resultPanel = root.querySelector(".rd-result-panel");
-        const applyMode = () => {
-          const mode = root.querySelector('input[name="rd-mode"]:checked')?.value;
-          dicePanel.style.display = mode === "dice" ? "flex" : "none";
-          resultPanel.style.display = mode === "result" ? "flex" : "none";
-        };
-        root.querySelectorAll('input[name="rd-mode"]').forEach((r) => r.addEventListener("change", applyMode));
-        applyMode();
-
-        const wireSelection = (selector) => {
-          const buttons = Array.from(root.querySelectorAll(selector));
-          buttons.forEach((b) =>
-            b.addEventListener("click", (ev) => {
-              ev.preventDefault();
-              buttons.forEach((o) => {
-                o.classList.remove("selected");
-                o.style.outline = "";
-              });
-              b.classList.add("selected");
-              b.style.outline = "2px solid var(--color-border-highlight, #ff6400)";
-            })
-          );
-        };
-        wireSelection(".rd-dice-btn");
-        wireSelection(".rd-result-btn");
+        dialog.element.classList.add("cdx-dice");
+        wireSelection(dialog.element, ".rd-dice-btn");
       },
       rejectClose: false,
     });
   }
 
   /**
-   * Mutate the persisted roll in place (recompute + splice), record the
-   * audit entry, and persist for every client. See design §5.2/§5.5/§5.7.
+   * Result picker window (pick a symbol + quantity, then confirm) → Add result.
    * @param {ChatMessage} message
-   * @param {{dieIndex: number, resultIndex: number, sourceDenom: string}} coords — `sourceDenom`
-   *   is the clicked die's denomination, re-checked at mutation time against a possibly re-rendered card.
-   * @param {{mode: "dice", denom: string}|{mode: "result", type: string, qty: number}} choice
    */
-  static async applyReplacement(message, { dieIndex, resultIndex, sourceDenom }, choice) {
-    // 1. Capture the rolls array ONCE — all mutation and the later serialize use this same rolls/roll.
-    const rolls = message.rolls;
-    const roll = rolls?.[0];
-    if (!roll) return;
+  static async showResultWindow(message) {
+    if (!ReplaceDie._canModify(message)) return;
+    const quantityLabel = game.i18n.localize("SWFFG.ReplaceDie.Quantity");
+    const content = `
+      <div class="rd-result-panel dice-pool" style="display:flex; flex-direction:column; gap:8px; padding:4px 8px;">
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          ${resultButtonsHtml()}
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label>${quantityLabel}</label>
+          <input type="number" class="rd-qty" min="1" value="1" style="width:60px;" />
+        </div>
+      </div>`;
 
-    // 2. Locate the term. `ti` indexes roll.terms (operators excluded from roll.dice).
-    const term = roll.dice[dieIndex];
+    DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.ReplaceDie.AddResultTitle") },
+      content,
+      buttons: [
+        {
+          action: "confirm",
+          icon: "fas fa-check",
+          label: game.i18n.localize("SWFFG.ReplaceDie.Confirm"),
+          default: true,
+          callback: (event, button, dialog) => {
+            const root = dialog.element;
+            const picked = root.querySelector(".rd-result-btn.selected");
+            if (!picked) {
+              ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+              return;
+            }
+            const qty = parseInt(root.querySelector(".rd-qty")?.value, 10);
+            if (!Number.isSafeInteger(qty) || qty < 1) {
+              ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
+              return;
+            }
+            ReplaceDie.applyAddResult(message, picked.dataset.type, qty).catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
+          },
+        },
+        { action: "cancel", icon: "fas fa-times", label: game.i18n.localize("SWFFG.ReplaceDie.Cancel") },
+      ],
+      render: (event, dialog) => {
+        dialog.element.classList.add("cdx-dice");
+        wireSelection(dialog.element, ".rd-result-btn");
+      },
+      rejectClose: false,
+    });
+  }
 
-    // 2a. Revalidate at MUTATION time (not just when the dialog opened): a concurrent
-    // edit may have re-rendered the card while this dialog was open, so the captured
-    // indices could now point at a different die or a removed face. Bail if so.
-    if (!term || term.constructor?.DENOMINATION !== sourceDenom || !term.results?.[resultIndex]) {
+  /**
+   * Confirm, then remove the clicked die's result entirely.
+   * @param {ChatMessage} message
+   * @param {object} coords
+   */
+  static async confirmRemove(message, coords) {
+    if (!ReplaceDie._canModify(message) || !ReplaceDie._validCoords(message, coords)) {
       ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
       return;
     }
+    const ok = await DialogV2.confirm({
+      window: { title: game.i18n.localize("SWFFG.ReplaceDie.RemoveTitle") },
+      content: `<p>${game.i18n.format("SWFFG.ReplaceDie.RemoveConfirm", { die: ReplaceDie._coordLabel(message, coords) })}</p>`,
+      rejectClose: false,
+    });
+    if (ok) ReplaceDie.applyRemove(message, coords).catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
+  }
 
-    // 2b. Validate the Result-mode choice — the dialog's HTML min/allow-list is not
-    // trustworthy inside a custom DialogV2 callback (a negative qty is truthy and
-    // would recompute as the OPPOSITE symbol via cancellation; an unknown type would
-    // persist an undefined token).
-    if (choice.mode === "result") {
-      if (!TOKEN[choice.type]) {
-        ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
-        return;
-      }
-      if (!Number.isSafeInteger(choice.qty) || choice.qty < 1) {
-        ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
-        return;
-      }
+  /* ----------------------------------------------------------- operations */
+
+  /** Reroll: replace the clicked die in place with a fresh die of `denom`. */
+  static async applyReroll(message, coords, denom) {
+    const rolls = message.rolls;
+    const roll = rolls?.[0];
+    if (!roll || !ReplaceDie._validCoords(message, coords)) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
+      return;
     }
-
+    const { dieIndex, resultIndex, sourceDenom } = coords;
+    const term = roll.dice[dieIndex];
     const ti = roll.terms.indexOf(term);
     if (ti === -1) {
-      // Defensive-only: the clicked die lives inside a nested inner-RollFFG
-      // pool, not a top-level term. Out of scope for this feature (design §7 risk 2).
-      CONFIG.logger?.warn?.("ReplaceDie: clicked die is not a top-level roll term, aborting", { dieIndex });
       ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
       return;
     }
+    const original = ReplaceDie._original(term, term.results[resultIndex], sourceDenom);
 
-    // 3. Audit capture BEFORE mutating, through the same defensive path recompute uses.
-    const removed = term.results[resultIndex];
-    const originalTally = foundry.utils.deepClone(faceTally(term, removed) ?? zeroTally());
-    const originalDenom = term.constructor?.DENOMINATION;
-    const originalLabel = localizeFaceLabel(term, removed);
+    const D = await ReplaceDie._rollAndAnimate(denom);
+    roll.terms = spliceReplacement(roll.terms, ti, resultIndex, D, {
+      getDenom: (t) => t?.constructor?.DENOMINATION,
+      makeOperator: () => new foundry.dice.terms.OperatorTerm({ operator: "+" }),
+      makeTerm: (src, res) => cloneEvaluatedTerm(src.constructor, res),
+    });
+    await ReplaceDie._finalize(message, rolls, roll, {
+      ...ReplaceDie._meta("reroll"),
+      original,
+      replacement: { kind: "die", denom, label: game.i18n.localize(DIE_NAME[denom]) },
+    });
+  }
 
-    if (choice.mode === "dice") {
-      // 4. Dice mode: a fresh random die of the chosen type, spliced into the clicked slot.
-      const D = new CONFIG.Dice.terms[choice.denom](1);
-      await D.evaluate();
-      // Play the 3D dice animation for the freshly-rolled die (Dice So Nice). A
-      // replacement persists via message.update, not toMessage, so the animation
-      // that a normal roll gets never fires — trigger it explicitly and broadcast
-      // (synchronize=true) so every client sees the die land before the card updates.
-      if (game.dice3d?.showForRoll) {
-        try {
-          await game.dice3d.showForRoll(Roll.fromTerms([D]), game.user, true);
-        } catch (err) {
-          CONFIG.logger?.warn?.("ReplaceDie: dice animation failed", err);
-        }
-      }
-      roll.terms = spliceReplacement(roll.terms, ti, resultIndex, D, {
-        getDenom: (t) => t?.constructor?.DENOMINATION,
-        makeOperator: () => new foundry.dice.terms.OperatorTerm({ operator: "+" }),
-        makeTerm: (src, res) => cloneEvaluatedTerm(src.constructor, res),
-      });
-    } else {
-      // 5. Result mode: remove the clicked face and append the chosen symbol.
-      term.results.splice(resultIndex, 1);
-      term.number = Math.max(0, (term.number ?? term.results.length + 1) - 1);
-      if (term.results.length === 0) {
-        // Drop the now-empty term plus one flanking operator.
-        roll.terms.splice(ti, 1);
-        const op = roll.terms[ti] ?? roll.terms[ti - 1];
-        if (op instanceof foundry.dice.terms.OperatorTerm) roll.terms.splice(roll.terms.indexOf(op), 1);
-      } else {
-        recomputeTermFFG(term);
-      }
-      roll.addedResults.push({ type: choice.type, symbol: TOKEN[choice.type], value: choice.qty, negative: false });
+  /** Add a die: roll a fresh die of `denom` and append it to the pool. */
+  static async applyAddDie(message, denom) {
+    const rolls = message.rolls;
+    const roll = rolls?.[0];
+    if (!roll) return;
+    const D = await ReplaceDie._rollAndAnimate(denom);
+    if (roll.terms.length) roll.terms.push(new foundry.dice.terms.OperatorTerm({ operator: "+" }));
+    roll.terms.push(D);
+    await ReplaceDie._finalize(message, rolls, roll, {
+      ...ReplaceDie._meta("add-die"),
+      replacement: { kind: "die", denom, label: game.i18n.localize(DIE_NAME[denom]) },
+    });
+  }
+
+  /** Remove: drop the clicked die's result from the roll. */
+  static async applyRemove(message, coords) {
+    const rolls = message.rolls;
+    const roll = rolls?.[0];
+    if (!roll || !ReplaceDie._validCoords(message, coords)) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
+      return;
     }
+    const { dieIndex, resultIndex, sourceDenom } = coords;
+    const term = roll.dice[dieIndex];
+    const ti = roll.terms.indexOf(term);
+    if (ti === -1) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+      return;
+    }
+    const original = ReplaceDie._original(term, term.results[resultIndex], sourceDenom);
 
-    // 6. Finalize: normalize addedResults symbols (undo updateSymbols() HTML enrichment before persisting),
-    // recompute the roll totals, keep the formula tidy, and record the audit entry.
+    term.results.splice(resultIndex, 1);
+    term.number = Math.max(0, (term.number ?? term.results.length + 1) - 1);
+    if (term.results.length === 0) {
+      // Drop the now-empty term plus one flanking operator.
+      roll.terms.splice(ti, 1);
+      const op = roll.terms[ti] ?? roll.terms[ti - 1];
+      if (op instanceof foundry.dice.terms.OperatorTerm) roll.terms.splice(roll.terms.indexOf(op), 1);
+    } else {
+      recomputeTermFFG(term);
+    }
+    await ReplaceDie._finalize(message, rolls, roll, { ...ReplaceDie._meta("remove"), original });
+  }
+
+  /** Add result: append `qty` of a chosen symbol to the roll's totals. */
+  static async applyAddResult(message, type, qty) {
+    const rolls = message.rolls;
+    const roll = rolls?.[0];
+    if (!roll) return;
+    if (!TOKEN[type]) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+      return;
+    }
+    if (!Number.isSafeInteger(qty) || qty < 1) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.InvalidQuantity"));
+      return;
+    }
+    roll.addedResults.push({ type, symbol: TOKEN[type], value: qty, negative: false });
+    await ReplaceDie._finalize(message, rolls, roll, {
+      ...ReplaceDie._meta("add-result"),
+      replacement: { kind: "result", type, symbol: TOKEN[type], value: qty },
+    });
+  }
+
+  /* -------------------------------------------------------------- helpers */
+
+  static _meta(mode) {
+    return { by: game.user.id, byName: game.user.name, at: new Date().toISOString(), mode };
+  }
+
+  /** Capture a removed face defensively (same path recompute uses), for the audit. */
+  static _original(term, removed, sourceDenom) {
+    return {
+      denom: sourceDenom,
+      face: removed?.result,
+      label: localizeFaceLabel(term, removed),
+      ffg: foundry.utils.deepClone(faceTally(term, removed) ?? zeroTally()),
+    };
+  }
+
+  static _validCoords(message, coords) {
+    const term = message.rolls?.[0]?.dice?.[coords?.dieIndex];
+    return !!term && term.constructor?.DENOMINATION === coords?.sourceDenom && !!term.results?.[coords?.resultIndex];
+  }
+
+  static _coordLabel(message, coords) {
+    const term = message.rolls?.[0]?.dice?.[coords?.dieIndex];
+    return term ? localizeFaceLabel(term, term.results[coords.resultIndex]) : "";
+  }
+
+  /** Roll a fresh die of `denom` and play its 3D animation (Dice So Nice, broadcast). */
+  static async _rollAndAnimate(denom) {
+    const D = new CONFIG.Dice.terms[denom](1);
+    await D.evaluate();
+    if (game.dice3d?.showForRoll) {
+      try {
+        await game.dice3d.showForRoll(Roll.fromTerms([D]), game.user, true);
+      } catch (err) {
+        CONFIG.logger?.warn?.("ReplaceDie: dice animation failed", err);
+      }
+    }
+    return D;
+  }
+
+  /** Normalise symbols, recompute totals, tidy the formula, record audit, persist. */
+  static async _finalize(message, rolls, roll, auditEntry) {
     for (const entry of roll.addedResults) entry.symbol = TOKEN[entry.type];
     recomputeRollFFG(roll);
     if (typeof roll.resetFormula === "function") roll.resetFormula();
     else if (typeof Roll.getFormula === "function") roll._formula = Roll.getFormula(roll.terms);
+    roll.modifications.push(auditEntry);
 
-    roll.modifications.push({
-      by: game.user.id,
-      byName: game.user.name,
-      at: new Date().toISOString(),
-      mode: choice.mode,
-      original: { denom: originalDenom, face: removed?.result, label: originalLabel, ffg: originalTally },
-      // `label` is precomputed/stored (not re-derived at render time) for the same reason
-      // `original.label` is: a stable audit line even if CONFIG.FFG's theme/tables change later.
-      replacement:
-        choice.mode === "dice"
-          ? { kind: "die", denom: choice.denom, label: game.i18n.localize(DIE_NAME[choice.denom]) }
-          : { kind: "result", type: choice.type, symbol: TOKEN[choice.type], value: choice.qty },
-    });
-
-    // 7. Persist from the SAME rolls captured in step 1. A GM and the message's
-    // own author are both OWNER on V13 AND V14 (BaseChatMessage#getUserLevel grants
-    // the author OWNER, and updates require OWNER), so they write directly on either
-    // generation. Only a non-owner falls back to the requestor-validated gm-bridge
-    // forward (Stage 8) — gate on the actual update capability, not the generation.
     const update = {
       rolls: rolls.map((r, i) => (i === 0 ? JSON.stringify(roll) : JSON.stringify(r))),
       flags: { starwarsffg: { diceModified: true, modifiedBy: game.user.id } },
     };
+    // Author and GM are OWNER on V13 and V14, so they update directly; a non-owner
+    // falls back to the requestor-validated gm-bridge forward.
     const canDirect =
-      typeof message.canUserModify === "function"
-        ? message.canUserModify(game.user, "update")
-        : (message.isOwner || game.user.isGM);
+      typeof message.canUserModify === "function" ? message.canUserModify(game.user, "update") : message.isOwner || game.user.isGM;
     if (canDirect) await message.update(update);
     else await forwardMessageUpdateToGM(message, update);
   }

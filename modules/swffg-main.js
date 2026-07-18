@@ -1515,6 +1515,15 @@ Hooks.on("renderChatMessageHTML", async (message, html) => {
   });
 });
 
+// Add the Replace-Die message-level options (Add result / Add a die) to the core
+// chat context menu. Registered once; the per-die menu is bound per message in the
+// renderChatMessageHTML hook above (ReplaceDie.bindChatMessage). The options array
+// is located among the hook args (its position varies across core versions).
+Hooks.on("getChatMessageContextOptions", (...args) => {
+  const options = args.find((a) => Array.isArray(a));
+  if (options) ReplaceDie.addMessageContextOptions(options);
+});
+
 // Handle crew registration
 Hooks.on("dropActorSheetData", (...args) => {
     register_crew(...args);
