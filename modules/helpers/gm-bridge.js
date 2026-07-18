@@ -19,6 +19,7 @@ import { killMinion } from "./minions.js";
 
 const FFG_SOCKET = "system.starwarsffg";
 const APPLY_EVENT = "ffgApplyToTarget";
+const MESSAGE_EVENT = "ffgUpdateMessage";
 
 /**
  * Perform the actual privileged operation against an actor the current client
@@ -72,21 +73,70 @@ export async function applyToTargetActor(actor, op) {
 }
 
 /**
+ * Forward a ChatMessage update to the active GM — the V14 fallback for the
+ * Replace Die feature (see docs/superpowers/specs/2026-07-18-dice-replacement-
+ * design_doc_v3.md §5.6/§8), used only when a non-GM message author cannot
+ * write to their own message directly. No auth data is sent: the GM-side
+ * listener authorizes against the Foundry-injected sender id (see
+ * {@link registerGMBridge}), not anything the client claims.
+ * @param {ChatMessage} message
+ * @param {object} update — a `ChatMessage#update` payload; narrowed GM-side to
+ *   this feature's shape (`rolls` / `flags.starwarsffg` only).
+ * @returns {Promise<"forwarded"|false>}
+ */
+export async function forwardMessageUpdateToGM(message, update) {
+  if (!game.users.activeGM) {
+    ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoGM"));
+    return false;
+  }
+  game.socket.emit(FFG_SOCKET, { event: MESSAGE_EVENT, messageUuid: message.uuid, update });
+  return "forwarded";
+}
+
+/**
  * Register the GM-side listener. Safe to call on every client; only the single
  * active GM acts on a forwarded request.
  */
 export function registerGMBridge() {
-  game.socket.on(FFG_SOCKET, async (data) => {
-    if (data?.event !== APPLY_EVENT) return;
-    if (game.user.id !== game.users.activeGM?.id) return;
+  // requestorId: Foundry appends the authenticated sender's user id as the
+  // socket callback's second argument (verified in-repo: the emit at
+  // character-creator.js:1076-1079 passes only one payload object, and the
+  // existing PC-wizard GM handler at swffg-main.js:2026-2030 reads args[1] as
+  // the requestor) — so it is trusted and not spoofable by the emitting client.
+  game.socket.on(FFG_SOCKET, async (data, requestorId) => {
+    if (game.user.id !== game.users.activeGM?.id) return; // only the active GM acts
     try {
-      const actor = await fromUuid(data.actorUuid);
-      if (!actor) return;
-      await performApply(actor, data);
-      // Posted GM-side so a GM-only whisper is authored by the GM, not the
-      // forwarding player (who would otherwise see their own whisper).
-      if (data.gmChat) {
-        await ChatMessage.create(data.gmChat);
+      if (data?.event === MESSAGE_EVENT) {
+        const message = await fromUuid(data.messageUuid);
+        if (!message) return;
+        // AUTHORIZE: requestor must be a GM or the message's own author (mirrors
+        // the client-side gate and the locked GM-or-owner rule).
+        const authorId = message.author?.id ?? message.user?.id ?? message.user;
+        const requestor = game.users.get(requestorId);
+        if (!(requestor?.isGM || requestorId === authorId)) {
+          CONFIG.logger?.warn?.("FFG GM bridge: refused unauthorized message update", { requestorId, messageUuid: data.messageUuid });
+          return;
+        }
+        // NARROW: only this feature's payload shape is permitted (no author/whisper/etc. escalation).
+        const upd = data.update ?? {};
+        const topOk = Object.keys(upd).every((k) => k === "rolls" || k === "flags");
+        const flagsOk = !upd.flags || Object.keys(upd.flags).every((k) => k === "starwarsffg");
+        if (!topOk || !flagsOk) {
+          CONFIG.logger?.warn?.("FFG GM bridge: refused out-of-scope message update", { keys: Object.keys(upd) });
+          return;
+        }
+        await message.update(upd);
+        return;
+      }
+      if (data?.event === APPLY_EVENT) {
+        const actor = await fromUuid(data.actorUuid);
+        if (!actor) return;
+        await performApply(actor, data);
+        // Posted GM-side so a GM-only whisper is authored by the GM, not the
+        // forwarding player (who would otherwise see their own whisper).
+        if (data.gmChat) {
+          await ChatMessage.create(data.gmChat);
+        }
       }
     } catch (err) {
       CONFIG.logger?.warn?.("FFG GM bridge: failed to apply forwarded request", err);

@@ -45,6 +45,7 @@ import { createFFGMacro, updateMacro } from "./helpers/macros.js";
 import EmbeddedItemHelpers from "./helpers/embeddeditem-helpers.js";
 import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
+import { ReplaceDie } from "./helpers/replace-die.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
 import DataImporter from "./importer/data-importer.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -1480,6 +1481,7 @@ Hooks.on("renderChatMessageHTML", async (message, html) => {
 
   ApplyDamage.bindChatMessage(message, $html);
   ApplyCrit.bindChatMessage(message, $html);
+  ReplaceDie.bindChatMessage(message, $html);
 
   $html.on("click", ".ffg-pool-to-player", () => {
     const poolData = message.flags.starwarsffg;
@@ -1511,6 +1513,15 @@ Hooks.on("renderChatMessageHTML", async (message, html) => {
   $html.find(".starwarsffg.item-card .item-pill, .starwarsffg .specials .hover-tooltip").on("mouseover", (event) => {
     itemPillHover(event);
   });
+});
+
+// Add the Replace-Die message-level options (Add result / Add a die) to the core
+// chat context menu. Registered once; the per-die menu is bound per message in the
+// renderChatMessageHTML hook above (ReplaceDie.bindChatMessage). The options array
+// is located among the hook args (its position varies across core versions).
+Hooks.on("getChatMessageContextOptions", (...args) => {
+  const options = args.find((a) => Array.isArray(a));
+  if (options) ReplaceDie.addMessageContextOptions(options);
 });
 
 // Handle crew registration
