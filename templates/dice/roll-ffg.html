@@ -42,7 +42,7 @@
             <li title="{{this.at}}">
               <strong>{{this.byName}}</strong>:
               {{#if (eq this.mode "reroll")}}{{this.original.label}} → {{this.replacement.label}}
-              {{else if (eq this.mode "add-die")}}+ {{this.replacement.label}}
+              {{else if (eq this.mode "add-die")}}+{{this.replacement.count}} {{this.replacement.label}}
               {{else if (eq this.mode "add-result")}}+ {{this.replacement.value}}{{{this.replacement.symbol}}}
               {{else if (eq this.mode "remove")}}{{localize "SWFFG.ReplaceDie.Audit.Removed"}} {{this.original.label}}
               {{else}}{{this.original.label}}{{/if}}

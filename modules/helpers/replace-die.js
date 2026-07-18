@@ -51,14 +51,18 @@ const RESULT_TYPES = [
 // Shared picker-window styles. Icons are recoloured for the dark dialog by the
 // shared `.cdx-dice .dice-pool` rules in cdx.css (added via the `.cdx-dice` marker
 // in render + the `.dice-pool` panel class) — no per-window recolour here.
-const BTN_STYLE = "display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:6px; padding:6px 4px; width:70px; height:72px; box-sizing:border-box; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
+const BTN_STYLE = "position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:6px; padding:6px 4px; width:70px; height:72px; box-sizing:border-box; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
 const ICON_BOX = "height:36px; display:flex; align-items:center; justify-content:center;";
 const LABEL_STYLE = "font-size:11px; line-height:1.1; text-align:center; word-break:break-word;";
+const BADGE_STYLE = "position:absolute; top:2px; right:4px; font-size:12px; font-weight:bold; color:var(--color-border-highlight, #ff6400); display:none;";
 
+// Die tiles carry a hidden count badge; Add mode wires LMB/RMB counters onto it
+// (see wireCounters), while Reroll mode leaves it hidden and single-selects.
 function diceButtonsHtml() {
   return DICE_ORDER.map(
     (d) => `
-      <button type="button" class="rd-dice-btn" data-denom="${d}" style="${BTN_STYLE}">
+      <button type="button" class="rd-dice-btn" data-denom="${d}" data-count="0" style="${BTN_STYLE}">
+        <span class="rd-badge" style="${BADGE_STYLE}"></span>
         <span style="${ICON_BOX}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="width:32px; height:32px;" /></span>
         <span style="${LABEL_STYLE}">${game.i18n.localize(DIE_NAME[d])}</span>
       </button>`
@@ -75,7 +79,7 @@ function resultButtonsHtml() {
   ).join("");
 }
 
-// Single-select highlight for a group of picker tiles.
+// Single-select highlight for a group of picker tiles (Reroll / Add result).
 function wireSelection(root, selector) {
   const buttons = Array.from(root.querySelectorAll(selector));
   buttons.forEach((b) =>
@@ -89,6 +93,42 @@ function wireSelection(root, selector) {
       b.style.outline = "2px solid var(--color-border-highlight, #ff6400)";
     })
   );
+}
+
+// Add mode: LMB increments a tile's pending-add count, RMB decrements it (floor 0).
+// The count shows as a "+N" badge on the die icon; 0 hides the badge and outline.
+function wireCounters(root, selector) {
+  root.querySelectorAll(selector).forEach((btn) => {
+    const badge = btn.querySelector(".rd-badge");
+    const update = () => {
+      const n = Number(btn.dataset.count) || 0;
+      badge.textContent = n > 0 ? `+${n}` : "";
+      badge.style.display = n > 0 ? "" : "none";
+      btn.style.outline = n > 0 ? "2px solid var(--color-border-highlight, #ff6400)" : "";
+    };
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      btn.dataset.count = String((Number(btn.dataset.count) || 0) + 1);
+      update();
+    });
+    btn.addEventListener("contextmenu", (ev) => {
+      ev.preventDefault();
+      btn.dataset.count = String(Math.max(0, (Number(btn.dataset.count) || 0) - 1));
+      update();
+    });
+    update();
+  });
+}
+
+// A throwaway Roll wrapping already-evaluated dice (with additive operators between
+// them), used only to hand a batch of freshly-rolled dice to Dice So Nice at once.
+function animRollFromDice(dice) {
+  const terms = [];
+  dice.forEach((d, i) => {
+    if (i) terms.push(new foundry.dice.terms.OperatorTerm({ operator: "+" }));
+    terms.push(d);
+  });
+  return Roll.fromTerms(terms);
 }
 
 export class ReplaceDie {
@@ -212,15 +252,28 @@ export class ReplaceDie {
           label: game.i18n.localize("SWFFG.ReplaceDie.Confirm"),
           default: true,
           callback: (event, button, dialog) => {
-            const picked = dialog.element.querySelector(".rd-dice-btn.selected");
-            if (!picked) {
-              ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
-              return;
+            let op;
+            if (mode === "reroll") {
+              const picked = dialog.element.querySelector(".rd-dice-btn.selected");
+              if (!picked) {
+                ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+                return;
+              }
+              op = ReplaceDie.applyReroll(message, coords, picked.dataset.denom);
+            } else {
+              // Add mode: collect the per-die pending-add counts built by LMB/RMB.
+              const counts = {};
+              dialog.element.querySelectorAll(".rd-dice-btn").forEach((btn) => {
+                const n = Number(btn.dataset.count) || 0;
+                if (n > 0) counts[btn.dataset.denom] = n;
+              });
+              if (!Object.keys(counts).length) {
+                ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+                return;
+              }
+              op = ReplaceDie.applyAddDice(message, counts);
             }
-            const denom = picked.dataset.denom;
-            // Fire-and-forget so the window closes immediately; the animation and
-            // persistence run after it's gone.
-            const op = mode === "reroll" ? ReplaceDie.applyReroll(message, coords, denom) : ReplaceDie.applyAddDie(message, denom);
+            // Fire-and-forget so the window closes immediately; animation + persist run after.
             op.catch((err) => CONFIG.logger?.warn?.("ReplaceDie: apply failed", err));
           },
         },
@@ -228,7 +281,8 @@ export class ReplaceDie {
       ],
       render: (event, dialog) => {
         dialog.element.classList.add("cdx-dice");
-        wireSelection(dialog.element, ".rd-dice-btn");
+        if (mode === "reroll") wireSelection(dialog.element, ".rd-dice-btn");
+        else wireCounters(dialog.element, ".rd-dice-btn");
       },
       rejectClose: false,
     });
@@ -336,18 +390,45 @@ export class ReplaceDie {
     });
   }
 
-  /** Add a die: roll a fresh die of `denom` and append it to the pool. */
-  static async applyAddDie(message, denom) {
+  /**
+   * Add dice: roll fresh dice per the chosen per-type counts and append them all
+   * to the pool in one edit. `counts` maps denomination -> how many to add.
+   */
+  static async applyAddDice(message, counts) {
     const rolls = message.rolls;
     const roll = rolls?.[0];
     if (!roll) return;
-    const D = await ReplaceDie._rollAndAnimate(denom);
-    if (roll.terms.length) roll.terms.push(new foundry.dice.terms.OperatorTerm({ operator: "+" }));
-    roll.terms.push(D);
-    await ReplaceDie._finalize(message, rolls, roll, {
+
+    const newDice = [];
+    for (const denom of DICE_ORDER) {
+      for (let i = 0; i < (counts[denom] || 0); i++) {
+        const D = new CONFIG.Dice.terms[denom](1);
+        await D.evaluate();
+        newDice.push(D);
+      }
+    }
+    if (!newDice.length) return;
+
+    // Animate the whole batch of freshly-rolled dice together.
+    if (game.dice3d?.showForRoll) {
+      try {
+        await game.dice3d.showForRoll(animRollFromDice(newDice), game.user, true);
+      } catch (err) {
+        CONFIG.logger?.warn?.("ReplaceDie: dice animation failed", err);
+      }
+    }
+
+    for (const D of newDice) {
+      if (roll.terms.length) roll.terms.push(new foundry.dice.terms.OperatorTerm({ operator: "+" }));
+      roll.terms.push(D);
+    }
+
+    // One audit entry per die type (with its count).
+    const audit = DICE_ORDER.filter((d) => counts[d] > 0).map((denom) => ({
       ...ReplaceDie._meta("add-die"),
-      replacement: { kind: "die", denom, label: game.i18n.localize(DIE_NAME[denom]) },
-    });
+      replacement: { kind: "die", denom, count: counts[denom], label: game.i18n.localize(DIE_NAME[denom]) },
+    }));
+    await ReplaceDie._finalize(message, rolls, roll, audit);
   }
 
   /** Remove: drop the clicked die's result from the roll. */
@@ -440,13 +521,16 @@ export class ReplaceDie {
     return D;
   }
 
-  /** Normalise symbols, recompute totals, tidy the formula, record audit, persist. */
-  static async _finalize(message, rolls, roll, auditEntry) {
+  /**
+   * Normalise symbols, recompute totals, tidy the formula, record audit, persist.
+   * `audit` is a single entry or an array (batch add records one entry per type).
+   */
+  static async _finalize(message, rolls, roll, audit) {
     for (const entry of roll.addedResults) entry.symbol = TOKEN[entry.type];
     recomputeRollFFG(roll);
     if (typeof roll.resetFormula === "function") roll.resetFormula();
     else if (typeof Roll.getFormula === "function") roll._formula = Roll.getFormula(roll.terms);
-    roll.modifications.push(auditEntry);
+    roll.modifications.push(...(Array.isArray(audit) ? audit : [audit]));
 
     const update = {
       rolls: rolls.map((r, i) => (i === 0 ? JSON.stringify(roll) : JSON.stringify(r))),
