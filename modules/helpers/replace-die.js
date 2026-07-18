@@ -86,21 +86,28 @@ export class ReplaceDie {
     const replaceLabel = game.i18n.localize("SWFFG.ReplaceDie.Replace");
     const cancelLabel = game.i18n.localize("SWFFG.ReplaceDie.Cancel");
 
-    const btnStyle = "display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px; width:64px; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
+    // Fixed-size buttons with a fixed-height icon box so the glyph and the label
+    // stay vertically centered and the boxes line up in an even grid.
+    const btnStyle = "display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:6px; padding:6px 4px; width:70px; height:72px; box-sizing:border-box; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
+    const iconBox = "height:36px; display:flex; align-items:center; justify-content:center;";
+    const labelStyle = "font-size:11px; line-height:1.1; text-align:center; word-break:break-word;";
 
     const diceButtons = DICE_ORDER.map(
       (d) => `
       <button type="button" class="rd-dice-btn" data-denom="${d}" style="${btnStyle}">
-        <img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="width:32px; height:32px;" />
-        <span style="font-size:11px;">${game.i18n.localize(DIE_NAME[d])}</span>
+        <span style="${iconBox}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="width:32px; height:32px;" /></span>
+        <span style="${labelStyle}">${game.i18n.localize(DIE_NAME[d])}</span>
       </button>`
     ).join("");
 
+    // Result symbols are solid-black glyphs (color:black in both stylesheets) and
+    // vanish on the dark dialog background. Invert them to white so they read —
+    // the same intent as the token-HUD status-icon whitening in the CSS.
     const resultButtons = RESULT_TYPES.map(
       ({ type, icon, label }) => `
       <button type="button" class="rd-result-btn" data-type="${type}" style="${btnStyle}">
-        <img src="${CONFIG.FFG[icon]}" alt="" style="width:24px; height:24px;" />
-        <span style="font-size:11px;">${game.i18n.localize(label)}</span>
+        <span style="${iconBox}"><img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px; filter:brightness(0) invert(1);" /></span>
+        <span style="${labelStyle}">${game.i18n.localize(label)}</span>
       </button>`
     ).join("");
 
