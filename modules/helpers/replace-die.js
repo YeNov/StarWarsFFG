@@ -92,24 +92,36 @@ export class ReplaceDie {
     const iconBox = "height:36px; display:flex; align-items:center; justify-content:center;";
     const labelStyle = "font-size:11px; line-height:1.1; text-align:center; word-break:break-word;";
 
-    const diceButtons = DICE_ORDER.map(
-      (d) => `
+    const diceButtons = DICE_ORDER.map((d) => {
+      // The Setback die art is near-black and vanishes on the dark dialog; give it
+      // a thin light outline so it reads (same trick as the token-HUD Setback icon).
+      const dieImg = d === "s"
+        ? "width:32px; height:32px; box-shadow:0 0 0 1px #fff; border-radius:3px;"
+        : "width:32px; height:32px;";
+      return `
       <button type="button" class="rd-dice-btn" data-denom="${d}" style="${btnStyle}">
-        <span style="${iconBox}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="width:32px; height:32px;" /></span>
+        <span style="${iconBox}"><img src="${CONFIG.FFG[DIE_ICON[d]]}" alt="" style="${dieImg}" /></span>
         <span style="${labelStyle}">${game.i18n.localize(DIE_NAME[d])}</span>
-      </button>`
-    ).join("");
+      </button>`;
+    }).join("");
 
-    // Result symbols are solid-black glyphs (color:black in both stylesheets) and
-    // vanish on the dark dialog background. Invert them to white so they read —
-    // the same intent as the token-HUD status-icon whitening in the CSS.
-    const resultButtons = RESULT_TYPES.map(
-      ({ type, icon, label }) => `
+    // Most result symbols are solid-black glyphs that vanish on the dark dialog, so
+    // invert them to white (same intent as the token-HUD status-icon whitening).
+    // EXCEPT the Force pips: Light (hollow ring) and Dark (solid disk) are told
+    // apart by their FILL, not colour — inverting both to white erases that and
+    // makes Dark read as "light". Show those two in their true black art on a light
+    // chip instead, so hollow=Light / solid=Dark stay distinct and correct.
+    const resultButtons = RESULT_TYPES.map(({ type, icon, label }) => {
+      const isPip = type === "Light" || type === "Dark";
+      const symInner = isPip
+        ? `<span style="width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:#d9d9d9; border-radius:50%;"><img src="${CONFIG.FFG[icon]}" alt="" style="width:22px; height:22px;" /></span>`
+        : `<img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px; filter:brightness(0) invert(1);" />`;
+      return `
       <button type="button" class="rd-result-btn" data-type="${type}" style="${btnStyle}">
-        <span style="${iconBox}"><img src="${CONFIG.FFG[icon]}" alt="" style="width:26px; height:26px; filter:brightness(0) invert(1);" /></span>
+        <span style="${iconBox}">${symInner}</span>
         <span style="${labelStyle}">${game.i18n.localize(label)}</span>
-      </button>`
-    ).join("");
+      </button>`;
+    }).join("");
 
     const content = `
       <div style="display:flex; flex-direction:column; gap:12px;">
