@@ -1131,5 +1131,16 @@
   "SWFFG.Tours.Character.spending-xp-3.content": "<p>Skill ranks may be purchased by clicking this icon.</p>",
   "SWFFG.Migrate.Unsupported.Button": "Ok",
   "SWFFG.Migrate.Unsupported.Title": "Unsupported world",
-  "SWFFG.Migrate.Unsupported.Text": "Worlds created before v2 are not supported in v2+.<br>Please create a new world."
+  "SWFFG.Migrate.Unsupported.Text": "Worlds created before v2 are not supported in v2+.<br>Please create a new world.",
+
+  "SWFFG.ReplaceDie.ContextLabel": "Replace with dice / result",
+  "SWFFG.ReplaceDie.DialogTitle": "Replace {die}",
+  "SWFFG.ReplaceDie.ModeDie": "Replace with a die",
+  "SWFFG.ReplaceDie.ModeResult": "Replace with a result",
+  "SWFFG.ReplaceDie.Quantity": "Quantity",
+  "SWFFG.ReplaceDie.Replace": "Replace",
+  "SWFFG.ReplaceDie.Cancel": "Cancel",
+  "SWFFG.ReplaceDie.ModifiedBadge": "Modified",
+  "SWFFG.ReplaceDie.NoSelection": "Choose a die or a result first.",
+  "SWFFG.ReplaceDie.NoGM": "No active GM is connected to apply this change."
 }

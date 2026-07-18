@@ -835,5 +835,16 @@
   "SWFFG.Status.Staggered": "Збитий з ніг",
   "SWFFG.Status.Defeated": "Переможений",
   "SWFFG.Roll.ForcePowers.NoDice": "Не може зробити кидок, всі Кістки Сили зарезервовані!",
-  "SWFFG.CareerSkills.None": "(відсутні)"
+  "SWFFG.CareerSkills.None": "(відсутні)",
+
+  "SWFFG.ReplaceDie.ContextLabel": "Replace with dice / result",
+  "SWFFG.ReplaceDie.DialogTitle": "Replace {die}",
+  "SWFFG.ReplaceDie.ModeDie": "Replace with a die",
+  "SWFFG.ReplaceDie.ModeResult": "Replace with a result",
+  "SWFFG.ReplaceDie.Quantity": "Quantity",
+  "SWFFG.ReplaceDie.Replace": "Replace",
+  "SWFFG.ReplaceDie.Cancel": "Cancel",
+  "SWFFG.ReplaceDie.ModifiedBadge": "Modified",
+  "SWFFG.ReplaceDie.NoSelection": "Choose a die or a result first.",
+  "SWFFG.ReplaceDie.NoGM": "No active GM is connected to apply this change."
 }
