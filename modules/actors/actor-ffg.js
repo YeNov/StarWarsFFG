@@ -800,9 +800,16 @@ export class ActorFFG extends Actor {
       }
     }
 
-    // collect force pool modifications since it appears the stat value is without AEs active
-    let maxForceRating = parseInt(this.system?.stats?.forcePool?.max);
+    // Compute the effective Force rating so we can fill in the Force-Boost skill dice below.
+    // IMPORTANT: allApplicableEffects() also yields *inactive* (disabled/suppressed) effects.
+    // Core skips those inside applyActiveEffects via `!effect.active`, and we must do the same:
+    // unlearned talent-tree nodes are stored as disabled "Force Rating" effects (see
+    // ItemHelpers.syncTreeActiveEffects, disabled: !node.islearned), so counting them would
+    // inflate the pool and hand out extra Force dice. Start from the stored base (_source is never
+    // mutated by AEs) and add only the active forcePool.max changes.
+    let maxForceRating = parseInt(this._source?.system?.stats?.forcePool?.max) || 0;
     for (const effect of this.allApplicableEffects()) {
+      if (!effect.active) continue;
       for (const change of effect.changes) {
         if (change.key === "system.stats.forcePool.max") {
           maxForceRating += parseInt(change.value);
@@ -811,6 +818,7 @@ export class ActorFFG extends Actor {
     }
     // apply the resulting value (minus any committed dice)
     for (const effect of this.allApplicableEffects()) {
+      if (!effect.active) continue;
       for (const change of effect.changes) {
         if (change.key.includes("system.skills") && change.key.includes(".force")) {
           change.value = Math.max(maxForceRating - parseInt(this.system?.stats?.forcePool?.value), 0);
