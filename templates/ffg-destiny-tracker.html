@@ -12,9 +12,9 @@
       {{/if}}
       <section id="destinyLight" class="destiny-points {{#if isGM}}display-menu{{/if}} theme-{{ this.theme }}" data-value="{{destinyPool.light}}" data-group="dPoolLight">{{destinyPool.light}}<span>{{localize destinyPoolLabel.light }}</span></section>
       <section id="destinyDark" class="destiny-points theme-{{ this.theme }}" data-value="{{destinyPool.dark}}" data-group="dPoolDark">{{destinyPool.dark}}<span>{{localize destinyPoolLabel.dark }}</span></section>
+      {{!-- Campaign-day readout: kept INSIDE .swffg-destiny (so it sits on the panel
+           background) but wrapped to its own full-width row BELOW the pool. --}}
+      <section id="ffg-campaign-day"><span class="ffg-campaign-day-value">{{localize "SWFFG.Codex.CritTrauma.Day"}} {{campaignDay}}</span>{{#if isGM}}<a class="ffg-campaign-day-advance">[+]</a>{{/if}}</section>
     </div>
-    {{!-- Campaign-day readout sits BELOW the destiny pool (own row in the container,
-         not inside the flex pool row). --}}
-    <section id="ffg-campaign-day"><span class="ffg-campaign-day-value">{{localize "SWFFG.Codex.CritTrauma.Day"}} {{campaignDay}}</span>{{#if isGM}}<a class="ffg-campaign-day-advance">[+]</a>{{/if}}</section>
   </div>
 </form>

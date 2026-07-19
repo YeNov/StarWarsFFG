@@ -4608,6 +4608,7 @@ img {
   text-align: center;
   width: auto;
   display: flex;
+  flex-wrap: wrap;
   z-index: 70;
 }
 
@@ -4672,9 +4673,9 @@ img {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  flex: 0 0 auto;
+  flex: 1 0 100%;   /* own full-width row below the destiny orbs */
   margin: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.1rem 0.5rem 0.25rem;
   font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
   font-size: 0.8rem;
   white-space: nowrap;

@@ -3367,6 +3367,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   min-width: 84px;
   width: 100%;
   display: flex;
+  flex-wrap: wrap;
   z-index: 70;
 }
 .swffg-destiny.swffg-groupmanager {
@@ -3375,7 +3376,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   position: relative;
   padding: 0 0 5px 0;
   pointer-events: auto;
-  height: 55px;
+  min-height: 55px;   /* was height:55px — allow the wrapped Day row to grow the panel */
 }
 .swffg-destiny .group-manager {
   padding: 5px 0px 0px 5px;
@@ -3412,8 +3413,8 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   align-items: center;
   justify-content: center;
   gap: 6px;
-  flex: 0 0 auto;
-  padding: 6px 8px;
+  flex: 1 0 100%;   /* own full-width row below the destiny orbs, inside the panel */
+  padding: 2px 8px 4px;
   font-size: 12px;
   white-space: nowrap;
   pointer-events: auto;
