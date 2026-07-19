@@ -854,6 +854,10 @@
 .cdx .cdx-inj-mechfail:hover { border-color:var(--cdx-accent, var(--cdx-ink)); color:var(--cdx-accent, var(--cdx-ink)); }
 .cdx .cdx-inj-resilience:disabled { opacity:.5; cursor:default; }
 .cdx .cdx-inj-cooldown { font-size:11px; font-style:italic; color:var(--cdx-dim); white-space:nowrap; }
+/* Neutralise the legacy V1 crit-list hover wash (.starwarsffg .injuries div.item:hover
+   sets a muddy background; that selector still matches our div.item.cdx-injury). Keep
+   the card's resting paper on hover — the codex card has no hover state of its own. */
+.cdx .cdx-pane.injuries div.item.cdx-injury:hover { background:var(--cdx-paper2); }
 
 /* ---- Talents ---- */
 .cdx .cdx-forcepool { display:flex; align-items:center; gap:6px; margin-bottom:10px; padding:6px 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-career-line); clip-path:var(--cdx-clip); }
