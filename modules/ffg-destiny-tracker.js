@@ -68,6 +68,7 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
       isGM: game.user.isGM,
       menu,
       theme: game.settings.get("starwarsffg", "dicetheme"),
+      campaignDay: game.settings.get("starwarsffg", "campaignDay"),
     };
   }
 
@@ -194,6 +195,29 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
         user: game.user.id,
         content: messageText,
       });
+    });
+
+    // Campaign-day advance ([+], GM only): prompt for a day count and bump the
+    // world setting. The setting's onChange rewrites the .ffg-campaign-day-value
+    // span in place (live-refresh path 2), so this handler never touches the DOM —
+    // leaving the [+] node and its listener intact (no widget re-render).
+    html.find(".ffg-campaign-day-advance").click(async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const n = await foundry.applications.api.DialogV2.wait({
+        window: { title: game.i18n.localize("SWFFG.Codex.CritTrauma.AdvancePromptTitle") },
+        content: `<form class="form"><div class="form-group"><label>${game.i18n.localize("SWFFG.Codex.CritTrauma.AdvancePromptLabel")}</label><input type="number" name="days" value="7" min="1" step="1" autofocus /></div></form>`,
+        rejectClose: false,
+        buttons: [{
+          action: "advance",
+          label: game.i18n.localize("SWFFG.Codex.CritTrauma.AdvancePromptTitle"),
+          default: true,
+          callback: (ev, button) => Math.floor(Number(button.form.elements.days.value) || 0),
+        }],
+      });
+      if (!n || n < 1) return;
+      const current = Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
+      await game.settings.set("starwarsffg", "campaignDay", current + n);
     });
 
     // handle previously created roll destiny chat messages

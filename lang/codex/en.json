@@ -31,5 +31,16 @@
   "SWFFG.Codex.StrainRecovery.Recover": "Recover",
   "SWFFG.Codex.StrainRecovery.Healed": "{quantity} strain healed",
   "SWFFG.Codex.StrainRecovery.NoStrain": "{name} has no strain to heal",
-  "SWFFG.Codex.StrainRecovery.MissingSkill": "{name} is missing the Cool or Discipline skill"
+  "SWFFG.Codex.StrainRecovery.MissingSkill": "{name} is missing the Cool or Discipline skill",
+  "SWFFG.Codex.CritTrauma.Day": "Day",
+  "SWFFG.Codex.CritTrauma.RollResilience": "Roll Resilience",
+  "SWFFG.Codex.CritTrauma.Failed": "Failed",
+  "SWFFG.Codex.CritTrauma.SelfHealIn": "Self-heal in {days} days",
+  "SWFFG.Codex.CritTrauma.MedicineIn": "Medicine in {days} days",
+  "SWFFG.Codex.CritTrauma.MechanicsIn": "Mechanics in {days} days",
+  "SWFFG.Codex.CritTrauma.AdvancePromptTitle": "Advance Campaign Day",
+  "SWFFG.Codex.CritTrauma.AdvancePromptLabel": "Advance by how many days?",
+  "SWFFG.Codex.CritTrauma.NoResilienceSkill": "This actor has no Resilience skill to roll.",
+  "SWFFG.Codex.CritTrauma.RollFailedNoMessage": "The recovery roll could not be posted, but the weekly attempt was used.",
+  "SWFFG.Codex.CritTrauma.AttemptUnavailable": "This recovery attempt is not available yet."
 }

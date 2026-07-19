@@ -137,6 +137,17 @@
     <div class="item cdx-injury" data-item-id="{{item._id}}">
       <div class="cdx-inj-name">{{item.name}}</div>
       <div class="cdx-inj-sev">{{renderMultiple item.system.severity '<img class="cdx-sev-img" src="systems/starwarsffg/images/dice/starwars/purple.png" />'}}</div>
+      {{#with (critAvailability item) as |avail|}}
+      {{#if avail.mechanics}}
+      <div class="cdx-inj-recovery">
+        {{#if avail.mechanics.attemptable}}
+          <button type="button" class="cdx-inj-mechfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.Failed"}}</button>
+        {{else}}
+          <span class="cdx-inj-cooldown">{{localize "SWFFG.Codex.CritTrauma.MechanicsIn" days=avail.mechanics.daysLeft}}</span>
+        {{/if}}
+      </div>
+      {{/if}}
+      {{/with}}
       <div class="cdx-card-ctl item-controls"><a class="item-control item-edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete"><i class="fas fa-trash"></i></a></div>
     </div>
     {{/iff}} {{/each}}

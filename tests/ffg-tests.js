@@ -11,6 +11,7 @@ import { FormSubmitCoalesceTests } from "./v2-migration/form-submit-coalesce.tes
 import { SheetInitialSizeTests } from "./v2-migration/sheet-initial-size.test.js";
 import { SheetSkillDataTests } from "./v2-migration/sheet-skill-data.test.js";
 import { MinimizedCloseTests } from "./v2-migration/minimized-close.test.js";
+import { CritTraumaCounterTests } from "./crit-trauma-counter.test.js";
 
 export default class FFGFunctionalTests extends FormApplication {
   /** @override */
@@ -48,6 +49,7 @@ export default class FFGFunctionalTests extends FormApplication {
     SheetInitialSizeTests(suite, suiteInstance, Test, chai);
     SheetSkillDataTests(suite, suiteInstance, Test, chai);
     MinimizedCloseTests(suite, suiteInstance, Test, chai);
+    CritTraumaCounterTests(suite, suiteInstance, Test, chai);
 
     // Run Tests
     const mochaRun = () => {

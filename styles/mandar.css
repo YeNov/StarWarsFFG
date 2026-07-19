@@ -4665,6 +4665,33 @@ img {
   width: 80px;
 }
 
+/* Crit-Trauma campaign-day readout — mandar-themed compact chip beside the
+   destiny orbs; the GM-only [+] advances the world day. */
+#ffg-campaign-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  text-shadow: 1px 2px 1px black;
+  pointer-events: auto;
+}
+#ffg-campaign-day .ffg-campaign-day-value {
+  font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
+}
+#ffg-campaign-day .ffg-campaign-day-advance {
+  cursor: pointer;
+  font-weight: bold;
+}
+#ffg-campaign-day .ffg-campaign-day-advance:hover {
+  text-shadow: 0 0 0.5rem #ff6400;
+}
+
 .swffg-destiny #context-menu {
   font-size: 0.875rem;
 }

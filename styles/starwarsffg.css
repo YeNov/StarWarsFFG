@@ -3405,6 +3405,27 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   font-size: 0.875rem;
 }
 
+/* Crit-Trauma campaign-day readout — a compact inline chip beside the destiny
+   points; the GM-only [+] advances the world day. */
+#ffg-campaign-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+#ffg-campaign-day .ffg-campaign-day-value {
+  font-family: "Signika", "Palatino Linotype", serif;
+}
+#ffg-campaign-day .ffg-campaign-day-advance {
+  cursor: pointer;
+  font-weight: bold;
+}
+
 .ffg-destiny-roll {
   cursor: pointer;
 }

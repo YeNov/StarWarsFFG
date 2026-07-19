@@ -307,6 +307,7 @@ export class codexSettings extends ffgSettings {
     const includeSettingsNames = [
       "starwarsffg.defaultSheetTheme",
       "starwarsffg.codexAdvantageHealsStrain",
+      "starwarsffg.vehicleCritWeeklyLimit",
     ];
     return this._buildSettingsContext(includeSettingsNames);
   }

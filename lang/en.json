@@ -534,6 +534,8 @@
   "SWFFG.Settings.codex.Label": "Configure Codex",
   "SWFFG.Settings.codex.AdvantageHealsStrain.Name": "Advantages Heal Strain (House Rule)",
   "SWFFG.Settings.codex.AdvantageHealsStrain.Hint": "During Post-Encounter strain recovery, every 2 advantages recovers 1 additional strain. This is a house rule — by the book, only successes recover strain. On by default; disable for by-the-book recovery.",
+  "SWFFG.Settings.codex.VehicleCritWeeklyLimit.Name": "Vehicle Crit Weekly Limit (House Rule)",
+  "SWFFG.Settings.codex.VehicleCritWeeklyLimit.Hint": "Apply the once-per-week Mechanics cooldown to vehicle critical hits. RAW allows unlimited Mechanics retries, so this is Off by default.",
   "SWFFG.SkillsNameAlchemy": "Alchemy",
   "SWFFG.SkillsNameAstrocartography": "Astrocartography",
   "SWFFG.SkillsNameDriving": "Driving",

@@ -827,7 +827,7 @@
 .cdx .cdx-card.cdx-drop-after { box-shadow:inset 0 -3px 0 var(--cdx-accent); }
 
 /* ---- Injuries ---- */
-.cdx .cdx-injury { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:11px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; margin-bottom:7px; }
+.cdx .cdx-injury { display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:11px; background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); padding:9px 13px; margin-bottom:7px; }
 /* Expanded description spans the full card width (not just the name column). */
 .cdx .cdx-injury .item-details { grid-column:1 / -1; }
 .cdx .cdx-inj-name { font-family:"Orbitron"; font-weight:700; font-size:13px; color:var(--cdx-ink); }
@@ -841,6 +841,19 @@
    against this stylesheet (/styles/) rather than the document. */
 .cdx .cdx-inj-sev .ffg-die-icon { flex:none; --ffg-die-mask:url("/systems/starwarsffg/images/dice/starwars/purple.png"); }
 .cdx .cdx-sev-img { height:16px; flex:none; }
+
+/* ---- Crit-Trauma weekly recovery controls ---- */
+/* Roll Resilience / Failed buttons + the muted cooldown countdown, sitting in the
+   crit card's recovery column. Sized/coloured to sit with the .cdx-card-ctl chrome. */
+.cdx .cdx-inj-recovery { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.cdx .cdx-inj-resilience,
+.cdx .cdx-inj-medfail,
+.cdx .cdx-inj-mechfail { font-family:"Orbitron"; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; line-height:1; color:var(--cdx-ink); background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:4px 8px; cursor:pointer; white-space:nowrap; }
+.cdx .cdx-inj-resilience:hover,
+.cdx .cdx-inj-medfail:hover,
+.cdx .cdx-inj-mechfail:hover { border-color:var(--cdx-accent, var(--cdx-ink)); color:var(--cdx-accent, var(--cdx-ink)); }
+.cdx .cdx-inj-resilience:disabled { opacity:.5; cursor:default; }
+.cdx .cdx-inj-cooldown { font-size:11px; font-style:italic; color:var(--cdx-dim); white-space:nowrap; }
 
 /* ---- Talents ---- */
 .cdx .cdx-forcepool { display:flex; align-items:center; gap:6px; margin-bottom:10px; padding:6px 10px; background:var(--cdx-paper2); border:1px solid var(--cdx-career-line); clip-path:var(--cdx-clip); }
