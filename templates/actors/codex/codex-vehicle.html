@@ -140,11 +140,13 @@
       {{#with (critAvailability item) as |avail|}}
       {{#if avail.mechanics}}
       <div class="cdx-inj-recovery">
-        {{#if avail.mechanics.attemptable}}
-          <button type="button" class="cdx-inj-mechfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.Failed"}}</button>
-        {{else}}
-          <div class="cdx-inj-cooldown cdx-track pips" title="{{localize "SWFFG.Codex.CritTrauma.MechanicsIn" days=avail.mechanics.daysLeft}}">{{#each avail.mechanics.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</div>
-        {{/if}}
+        <div class="cdx-inj-slot">
+          {{#if avail.mechanics.attemptable}}
+            <button type="button" class="cdx-inj-mechfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.Failed"}}</button>
+          {{else}}
+            <div class="cdx-inj-cd" title="{{localize "SWFFG.Codex.CritTrauma.MechanicsIn" days=avail.mechanics.daysLeft}}"><span class="cdx-inj-cdlabel">{{localize "SWFFG.Codex.CritTrauma.MechanicsLabel"}}</span><span class="cdx-track pips">{{#each avail.mechanics.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</span></div>
+          {{/if}}
+        </div>
       </div>
       {{/if}}
       {{/with}}

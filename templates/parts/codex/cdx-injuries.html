@@ -5,19 +5,25 @@
   <div class="cdx-inj-name">{{item.name}}</div>
   {{!-- Recovery controls sit to the LEFT of the severity die, on one line. --}}
   {{#with (critAvailability item) as |avail|}}
+  {{!-- Each path is a fixed-width slot: a button when actionable, a labelled pip
+       bar when cooling. Same footprint either way so the card never reflows. --}}
   <div class="cdx-inj-recovery">
     {{#if avail.resilience.canSelfHeal}}
+    <div class="cdx-inj-slot">
       {{#if avail.resilience.attemptable}}
         <button type="button" class="cdx-inj-resilience" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.RollResilience"}}</button>
       {{else}}
-        <div class="cdx-inj-cooldown cdx-track pips" title="{{localize "SWFFG.Codex.CritTrauma.SelfHealIn" days=avail.resilience.daysLeft}}">{{#each avail.resilience.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</div>
+        <div class="cdx-inj-cd" title="{{localize "SWFFG.Codex.CritTrauma.SelfHealIn" days=avail.resilience.daysLeft}}"><span class="cdx-inj-cdlabel">{{localize "SWFFG.Codex.CritTrauma.ResilienceLabel"}}</span><span class="cdx-track pips">{{#each avail.resilience.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</span></div>
       {{/if}}
+    </div>
     {{/if}}
-    {{#if avail.medicine.attemptable}}
-      <button type="button" class="cdx-inj-medfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.MedicineFailed"}}</button>
-    {{else}}
-      <div class="cdx-inj-cooldown cdx-track pips" title="{{localize "SWFFG.Codex.CritTrauma.MedicineIn" days=avail.medicine.daysLeft}}">{{#each avail.medicine.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</div>
-    {{/if}}
+    <div class="cdx-inj-slot">
+      {{#if avail.medicine.attemptable}}
+        <button type="button" class="cdx-inj-medfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.MedicineFailed"}}</button>
+      {{else}}
+        <div class="cdx-inj-cd" title="{{localize "SWFFG.Codex.CritTrauma.MedicineIn" days=avail.medicine.daysLeft}}"><span class="cdx-inj-cdlabel">{{localize "SWFFG.Codex.CritTrauma.MedicineLabel"}}</span><span class="cdx-track pips">{{#each avail.medicine.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</span></div>
+      {{/if}}
+    </div>
   </div>
   {{/with}}
   {{!-- Wrapped in .ffg-die-icon (same as the dice pools build via pool.js) so the

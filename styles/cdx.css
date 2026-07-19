@@ -853,11 +853,18 @@
 .cdx .cdx-inj-medfail:hover,
 .cdx .cdx-inj-mechfail:hover { border-color:var(--cdx-accent, var(--cdx-ink)); color:var(--cdx-accent, var(--cdx-ink)); }
 .cdx .cdx-inj-resilience:disabled { opacity:.5; cursor:default; }
-.cdx .cdx-inj-cooldown { font-size:11px; font-style:italic; color:var(--cdx-dim); white-space:nowrap; }
-/* Cooldown shown as a 7-segment codex pip track (mirrors wounds/strain): one pip
-   per day, the elapsed days filled. Inline in the recovery row (no top margin),
-   compact, elapsed pips in the scheme accent. Hover title carries the "in N days" text. */
-.cdx .cdx-inj-recovery .cdx-track { margin-top:0; width:64px; }
+/* Fixed recovery slot: a button OR a labelled pip bar always fills the same
+   width, so the card never reflows as a path flips between actionable and cooling. */
+.cdx .cdx-inj-slot { flex:0 0 auto; width:var(--cdx-recovery-slot, 128px); display:flex; align-items:center; justify-content:center; }
+.cdx .cdx-inj-slot > .cdx-inj-resilience,
+.cdx .cdx-inj-slot > .cdx-inj-medfail,
+.cdx .cdx-inj-slot > .cdx-inj-mechfail { width:100%; text-align:center; }
+/* Cooldown = short path label + a 7-segment codex pip track (mirrors wounds/strain):
+   one pip per day, the elapsed days filled in the scheme accent. The label names the
+   path so a lone bar is legible; the hover title carries the "in N days" text. */
+.cdx .cdx-inj-cd { display:flex; align-items:center; gap:5px; width:100%; }
+.cdx .cdx-inj-cdlabel { font-family:"Orbitron"; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; color:var(--cdx-dim); white-space:nowrap; }
+.cdx .cdx-inj-cd .cdx-track { flex:1 1 auto; margin-top:0; width:auto; }
 .cdx .cdx-inj-recovery .cdx-pip.on { background:var(--cdx-accent, var(--cdx-ink)); }
 /* Neutralise the legacy V1 crit-list hover wash (.starwarsffg .injuries div.item:hover
    sets a muddy background; that selector still matches our div.item.cdx-injury). Keep
