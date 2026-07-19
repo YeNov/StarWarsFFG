@@ -210,11 +210,13 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
 
     // Campaign-day edit (GM only): right-click the readout for a one-item "Edit"
     // context menu that opens a dialog to OVERRIDE the current day with any value.
+    // Delegated from the widget root so it survives any re-query of the readout.
     if (game.user.isGM) {
-      html.find("#ffg-campaign-day").on("contextmenu", (event) => {
+      html.on("contextmenu", "#ffg-campaign-day", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        this._openCampaignDayMenu(event.clientX, event.clientY);
+        const oe = event.originalEvent || event;
+        this._openCampaignDayMenu(oe.clientX, oe.clientY);
       });
     }
 
@@ -317,6 +319,10 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
     document.querySelector(".ffg-campaign-day-menu")?.remove();
     const menu = document.createElement("div");
     menu.className = "ffg-campaign-day-menu";
+    // Position pinned inline so the menu is cursor-anchored even if the stylesheet
+    // rule is absent for the active theme.
+    menu.style.position = "fixed";
+    menu.style.zIndex = "1000";
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
     const edit = document.createElement("a");
@@ -325,25 +331,33 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
     menu.appendChild(edit);
     document.body.appendChild(menu);
 
-    const dismiss = () => {
+    // Keep it on-screen if opened near the right/bottom edge.
+    const r = menu.getBoundingClientRect();
+    if (r.right > window.innerWidth) menu.style.left = `${Math.max(0, window.innerWidth - r.width - 4)}px`;
+    if (r.bottom > window.innerHeight) menu.style.top = `${Math.max(0, window.innerHeight - r.height - 4)}px`;
+
+    const cleanup = () => {
       menu.remove();
-      document.removeEventListener("pointerdown", dismiss, true);
-      document.removeEventListener("wheel", dismiss, true);
-      window.removeEventListener("blur", dismiss);
+      document.removeEventListener("pointerdown", onDoc, true);
+      document.removeEventListener("wheel", cleanup, true);
+      window.removeEventListener("blur", cleanup);
       document.removeEventListener("keydown", onKey, true);
     };
-    const onKey = (ev) => { if (ev.key === "Escape") dismiss(); };
+    // A click inside the menu (i.e. on "Edit") must NOT dismiss before its own
+    // handler runs — only outside interactions dismiss.
+    const onDoc = (ev) => { if (!menu.contains(ev.target)) cleanup(); };
+    const onKey = (ev) => { if (ev.key === "Escape") cleanup(); };
     edit.addEventListener("click", (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      dismiss();
+      cleanup();
       this._openSetDayDialog();
     });
     // Defer so the right-click that opened the menu doesn't immediately dismiss it.
     setTimeout(() => {
-      document.addEventListener("pointerdown", dismiss, true);
-      document.addEventListener("wheel", dismiss, true);
-      window.addEventListener("blur", dismiss);
+      document.addEventListener("pointerdown", onDoc, true);
+      document.addEventListener("wheel", cleanup, true);
+      window.addEventListener("blur", cleanup);
       document.addEventListener("keydown", onKey, true);
     }, 0);
   }
