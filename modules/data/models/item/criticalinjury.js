@@ -13,6 +13,9 @@ export class CriticalInjuryDataModel extends mix(BaseItemDataModel, CoreTemplate
       min: new f.NumberField({ initial: 0 }),
       max: new f.NumberField({ initial: 0 }),
       severity: new f.NumberField({ initial: 1 }),
+      receivedDay: new f.NumberField({ nullable: true, initial: null, integer: true }),
+      resilienceLastAttemptDay: new f.NumberField({ nullable: true, initial: null, integer: true }),
+      medicineLastAttemptDay: new f.NumberField({ nullable: true, initial: null, integer: true }),
     };
   }
 }

@@ -1,17 +1,23 @@
 <form autocomplete="off" onsubmit="event.preventDefault();">
   <div class="swffg-destiny-container">
     <div class="swffg-destiny {{#if isGM}}swffg-groupmanager{{/if}}" title="{{localize 'SWFFG.DestinyTrackerHint'}}">
-      {{#if isGM}}
-      <section id="destinyMenu" class="group-manager">
-        <div class="dropdown-content">
-          {{#each menu as |item id|}}
-          <a href="#" data-value="{{id}}" title="{{item.name}}">{{{item.icon}}}</a>
-          {{/each}}
-        </div>
-      </section>
-      {{/if}}
-      <section id="destinyLight" class="destiny-points {{#if isGM}}display-menu{{/if}} theme-{{ this.theme }}" data-value="{{destinyPool.light}}" data-group="dPoolLight">{{destinyPool.light}}<span>{{localize destinyPoolLabel.light }}</span></section>
-      <section id="destinyDark" class="destiny-points theme-{{ this.theme }}" data-value="{{destinyPool.dark}}" data-group="dPoolDark">{{destinyPool.dark}}<span>{{localize destinyPoolLabel.dark }}</span></section>
+      {{!-- Orbs (+ GM menu) on their own row; the panel shrink-wraps to this row. --}}
+      <div class="swffg-destiny-main">
+        {{#if isGM}}
+        <section id="destinyMenu" class="group-manager">
+          <div class="dropdown-content">
+            {{#each menu as |item id|}}
+            <a href="#" data-value="{{id}}" title="{{item.name}}">{{{item.icon}}}</a>
+            {{/each}}
+          </div>
+        </section>
+        {{/if}}
+        <section id="destinyLight" class="destiny-points {{#if isGM}}display-menu{{/if}} theme-{{ this.theme }}" data-value="{{destinyPool.light}}" data-group="dPoolLight">{{destinyPool.light}}<span>{{localize destinyPoolLabel.light }}</span></section>
+        <section id="destinyDark" class="destiny-points theme-{{ this.theme }}" data-value="{{destinyPool.dark}}" data-group="dPoolDark">{{destinyPool.dark}}<span>{{localize destinyPoolLabel.dark }}</span></section>
+      </div>
+      {{!-- Campaign-day readout: its own row BELOW the orbs, centred, inside the panel.
+           Does not stretch the panel wider than the orbs row. --}}
+      <section id="ffg-campaign-day"><span class="ffg-campaign-day-value">{{localize "SWFFG.Codex.CritTrauma.Day"}} {{campaignDay}}</span>{{#if isGM}}<a class="ffg-campaign-day-advance">[+]</a>{{/if}}</section>
     </div>
   </div>
 </form>

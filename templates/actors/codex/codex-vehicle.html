@@ -136,6 +136,20 @@
     {{#each items as |item id|}} {{#iff item.type '==' 'criticaldamage'}}
     <div class="item cdx-injury" data-item-id="{{item._id}}">
       <div class="cdx-inj-name">{{item.name}}</div>
+      {{!-- Recovery control sits to the LEFT of the severity die, on one line. --}}
+      {{#with (critAvailability item) as |avail|}}
+      {{#if avail.mechanics}}
+      <div class="cdx-inj-recovery">
+        <div class="cdx-inj-slot">
+          {{#if avail.mechanics.attemptable}}
+            <button type="button" class="cdx-inj-mechfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.Failed"}}</button>
+          {{else}}
+            <div class="cdx-inj-cd" title="{{localize "SWFFG.Codex.CritTrauma.MechanicsIn" days=avail.mechanics.daysLeft}}"><span class="cdx-inj-cdlabel">{{localize "SWFFG.Codex.CritTrauma.MechanicsLabel"}}</span><span class="cdx-track pips">{{#each avail.mechanics.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</span></div>
+          {{/if}}
+        </div>
+      </div>
+      {{/if}}
+      {{/with}}
       <div class="cdx-inj-sev">{{renderMultiple item.system.severity '<img class="cdx-sev-img" src="systems/starwarsffg/images/dice/starwars/purple.png" />'}}</div>
       <div class="cdx-card-ctl item-controls"><a class="item-control item-edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete"><i class="fas fa-trash"></i></a></div>
     </div>

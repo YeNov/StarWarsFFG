@@ -16,6 +16,7 @@
  */
 
 import { killMinion } from "./minions.js";
+import { availFor } from "./crit-availability.js";
 
 const FFG_SOCKET = "system.starwarsffg";
 const APPLY_EVENT = "ffgApplyToTarget";
@@ -94,6 +95,24 @@ export async function forwardMessageUpdateToGM(message, update) {
 }
 
 /**
+ * Forward a crit-recovery weekly-cooldown stamp to the active GM. Used by the
+ * Codex crit-card Medicine/Mechanics markers when the clicking user is NOT the
+ * owner of the crit's actor (an ally with ≥OBSERVER). The GM-side branch in
+ * {@link registerGMBridge} re-authorizes (OBSERVER) and re-checks availability
+ * before writing — no auth data is sent; the sender id comes from Foundry's
+ * socket transport. Mirrors {@link applyToTargetActor}'s forward contract.
+ * @param {Actor} actor  The crit's parent actor.
+ * @param {string} itemId  The crit item id.
+ * @param {"medicine"|"mechanics"} path  Which weekly stamp to set.
+ * @returns {Promise<"forwarded"|false>}
+ */
+export async function applyCritRecoveryAttempt(actor, itemId, path) {
+  if (!game.users.activeGM) { ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM")); return false; }
+  game.socket.emit(FFG_SOCKET, { event: "ffgCritRecovery", actorUuid: actor.uuid, itemId, path });
+  return "forwarded";
+}
+
+/**
  * Register the GM-side listener. Safe to call on every client; only the single
  * active GM acts on a forwarded request.
  */
@@ -137,6 +156,26 @@ export function registerGMBridge() {
         if (data.gmChat) {
           await ChatMessage.create(data.gmChat);
         }
+        return;
+      }
+      if (data?.event === "ffgCritRecovery") {
+        const actor = await fromUuid(data.actorUuid);
+        const item = actor?.items.get(data.itemId);
+        if (!actor || !item) return;
+        const requestor = game.users.get(requestorId);
+        if (!actor.testUserPermission(requestor, "OBSERVER")) {           // OBSERVER, not LIMITED (crit card hidden from limited)
+          CONFIG.logger?.warn?.("FFG GM bridge: refused unauthorized crit-recovery", { requestorId }); return;
+        }
+        const map = { medicine: { type: "criticalinjury", field: "medicineLastAttemptDay" },
+                      mechanics: { type: "criticaldamage", field: "mechanicsLastAttemptDay" } };
+        const m = map[data.path];
+        if (!m || item.type !== m.type) return;
+        if (data.path === "mechanics" && !game.settings.get("starwarsffg", "vehicleCritWeeklyLimit")) return;
+        const day = Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
+        const stamp = item.system?.[m.field] ?? null;                     // live stamp
+        if (!availFor(stamp, day).attemptable) return;                    // SHARED module — one implementation of the null/rewind/>=7 math
+        await item.update({ [`system.${m.field}`]: day });
+        return;
       }
     } catch (err) {
       CONFIG.logger?.warn?.("FFG GM bridge: failed to apply forwarded request", err);

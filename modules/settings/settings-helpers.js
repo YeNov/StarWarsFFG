@@ -8,6 +8,7 @@ import {
   groupManagerSettings,
   codexSettings,
 } from "./ui-settings.js";
+import { refreshOpenCodexSheets } from "../actors/codex-sheets.js";
 
 export default class SettingsHelpers {
   // Initialize System Settings after the Init Hook
@@ -409,6 +410,33 @@ export default class SettingsHelpers {
       config: false,
       default: true,
       type: Boolean,
+    });
+
+    // Crit-Trauma weekly recovery counter: the campaign day drives the once-per-week
+    // cooldown on crit self-heal / Medicine / Mechanics attempts. Advanced from the
+    // Destiny Tracker [+] control; not shown in the config menu.
+    game.settings.register("starwarsffg", "campaignDay", {
+      name: "SWFFG.Codex.CritTrauma.Day",
+      scope: "world",
+      config: false,
+      default: 1,
+      type: Number,
+      onChange: () => {
+        refreshOpenCodexSheets();                                   // path 1
+        const el = document.querySelector("#ffg-campaign-day .ffg-campaign-day-value");   // path 2 (null-guarded)
+        if (el) el.textContent = `${game.i18n.localize("SWFFG.Codex.CritTrauma.Day")} ${Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0)}`;
+      },
+    });
+    // House rule: apply the weekly Mechanics cooldown to vehicle criticals (RAW is
+    // unlimited retries). Off by default. Listed in the Codex settings menu.
+    game.settings.register("starwarsffg", "vehicleCritWeeklyLimit", {
+      name: "SWFFG.Settings.codex.VehicleCritWeeklyLimit.Name",
+      hint: "SWFFG.Settings.codex.VehicleCritWeeklyLimit.Hint",
+      scope: "world",
+      config: false,
+      default: false,
+      type: Boolean,
+      onChange: () => refreshOpenCodexSheets(),
     });
 
     // Increase compatibility with old versions (likely to make new games kinda weird as it updates items from chat data)

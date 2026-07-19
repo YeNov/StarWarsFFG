@@ -4606,9 +4606,16 @@ img {
   margin: 0.5rem;
   pointer-events: none;
   text-align: center;
-  width: auto;
+  width: fit-content;
   display: flex;
+  flex-direction: column;   /* orbs row, then the Day row beneath */
+  align-items: center;
   z-index: 70;
+}
+
+.swffg-destiny .swffg-destiny-main {
+  display: flex;
+  align-items: center;
 }
 
 .swffg-destiny.swffg-groupmanager {
@@ -4663,6 +4670,59 @@ img {
   position: absolute;
   transform: translateX(-50%);
   width: 80px;
+}
+
+/* Crit-Trauma campaign-day readout — mandar-themed compact chip beside the
+   destiny orbs; the GM-only [+] advances the world day. */
+#ffg-campaign-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;   /* own row below the orbs (column parent), centred */
+  margin: 0.25rem;
+  padding: 0.1rem 0.5rem 0.25rem;
+  font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  text-shadow: 1px 2px 1px black;
+  pointer-events: auto;
+}
+#ffg-campaign-day .ffg-campaign-day-value {
+  font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
+}
+#ffg-campaign-day .ffg-campaign-day-advance {
+  cursor: pointer;
+  font-weight: bold;
+}
+#ffg-campaign-day .ffg-campaign-day-advance:hover {
+  text-shadow: 0 0 0.5rem #ff6400;
+}
+/* Right-click "Edit" context menu for the Day readout (appended to <body>). */
+.ffg-campaign-day-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 88px;
+  background: url(../../../ui/denim075.png) repeat;
+  border: 1px solid #000;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  padding: 3px;
+}
+.ffg-campaign-day-edit {
+  display: block;
+  padding: 0.25rem 0.6rem;
+  color: #eee;
+  font-size: 0.85rem;
+  font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
+  text-shadow: 1px 1px 1px black;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 3px;
+}
+.ffg-campaign-day-edit:hover {
+  background: rgba(255, 100, 0, 0.5);
+  color: #fff;
 }
 
 .swffg-destiny #context-menu {

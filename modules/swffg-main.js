@@ -59,6 +59,7 @@ import {CharacterCreator} from "./helpers/character-creator.js";
 import {xpLogUndo} from "./helpers/actor-helpers.js";
 import {register_system_tours} from "./helpers/tours.js";
 import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
+import { computeCritAvailability } from "./helpers/crit-availability.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -108,6 +109,14 @@ function registerActorItemValidationHooks() {
     if (["career", "forcepower", "talent", "signatureability", "specialization", "species", "ability"].includes(item.type.toString()) && actor.type === "vehicle") {
       ui.notifications.warn(`Item type '${item.type}' cannot be added to 'vehicle' actor types.`);
       return false;
+    }
+
+    // Crit-Trauma counter: stamp the day a character crit was received so Resilience
+    // self-heal is gated for a week. Stamp-iff-null — a copied crit with an existing
+    // receivedDay keeps its timeline. criticaldamage (vehicles) is NOT stamped.
+    if (item.type === "criticalinjury" && item.parent?.documentName === "Actor" && (item.system?.receivedDay === null || item.system?.receivedDay === undefined)) {
+      const day = Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
+      item.updateSource({ "system.receivedDay": day });
     }
   });
 }
@@ -1254,6 +1263,13 @@ Hooks.once("init", async function () {
     }
 
     return new Handlebars.SafeString(items.join(""));
+  });
+
+  Handlebars.registerHelper("critAvailability", function (item) {
+    const currentDay = Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
+    const vehicleLimit = game.settings.get("starwarsffg", "vehicleCritWeeklyLimit");
+    const canSelfHeal = !!(item?.parent?.isOwner || game.user?.isGM);
+    return computeCritAvailability(item?.system, currentDay, vehicleLimit, canSelfHeal);
   });
 
   Handlebars.registerHelper("calculateSpecializationTalentCost", function (idString) {

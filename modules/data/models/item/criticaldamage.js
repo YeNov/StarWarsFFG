@@ -13,6 +13,7 @@ export class CriticalDamageDataModel extends mix(BaseItemDataModel, CoreTemplate
       min: new f.NumberField({ initial: 0 }),
       max: new f.NumberField({ initial: 0 }),
       severity: new f.NumberField({ initial: 1 }),
+      mechanicsLastAttemptDay: new f.NumberField({ nullable: true, initial: null, integer: true }),
     };
   }
 }

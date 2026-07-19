@@ -26,6 +26,8 @@ import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { getFatedSigilMask } from "./codex-fated-sigil.js";
+import { availFor } from "../helpers/crit-availability.js";
+import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -614,6 +616,11 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // we beat that bubble handler. Control clicks (edit/delete/roll) pass through;
     // clicks inside an already-open detail block don't toggle it shut.
     this._bindCdxTalentCardHandler(root);
+
+    // Crit-Trauma weekly recovery controls (Resilience self-heal / Medicine /
+    // Mechanics markers). Bound for viewers too so a permitted ally (≥OBSERVER,
+    // non-owner) can mark the Medicine failure, which is forwarded to the GM.
+    this._cdxWireCritRecovery(root);
 
     if (!this.options.editable) return;
     this._cdxWireReorder(root);
@@ -1442,6 +1449,118 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     });
     await actor.update({ "system.stats.strain.value": currentStrain - healed });
   }
+
+  /**
+   * Wire the crit-card weekly-recovery controls. Elements are recreated every
+   * render, so close() needs no teardown; handlers re-check permission and
+   * availability live (the marker may be stale mid-refresh). All availability
+   * math routes through the shared `availFor` (same as the Handlebars wrapper,
+   * the GM bridge, and the unit suite).
+   */
+  _cdxWireCritRecovery(root) {
+    this._cdxCritInFlight ??= new Set();
+    const currentDay = () => Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
+    const critItem = (ev) => {
+      const card = ev.target.closest(".cdx-injury");
+      const id = card?.dataset.itemId;
+      return { id, item: id ? this.actor?.items?.get(id) : null };
+    };
+
+    // Resilience self-heal — owner-only, gated. Strict ordering: every locally
+    // constructible prerequisite (permission, availability, skill, pool, roll)
+    // runs BEFORE the reservation stamp so a stamp is never spent on a
+    // pre-roll failure; a post-reservation toMessage failure KEEPS the stamp.
+    root.querySelectorAll(".cdx-inj-resilience").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const { id: itemId, item } = critItem(ev);
+        if (!item) return;
+        if (this._cdxCritInFlight.has(itemId)) return;     // 1. in-flight guard
+        this._cdxCritInFlight.add(itemId);
+        btn.disabled = true;
+        try {
+          if (!(item.parent?.isOwner || game.user.isGM)) return;   // 2. permission
+          const day = currentDay();
+          const stamp = item.system?.resilienceLastAttemptDay ?? item.system?.receivedDay ?? null;
+          if (!availFor(stamp, day).attemptable) {                 // 3. availability
+            ui.notifications.warn(game.i18n.localize("SWFFG.Codex.CritTrauma.AttemptUnavailable"));
+            return;
+          }
+          // 4. ALL non-dice prerequisites BEFORE any stamp.
+          const actor = this.actor;
+          const skill = actor?.system?.skills?.["Resilience"];
+          const characteristic = skill ? actor?.system?.characteristics?.[skill.characteristic] : null;
+          if (!skill || !characteristic) {
+            ui.notifications.warn(game.i18n.localize("SWFFG.Codex.CritTrauma.NoResilienceSkill"));
+            return;   // no stamp
+          }
+          const pool = new DicePoolFFG({
+            ability: Math.max(characteristic?.value ?? 0, skill?.rank ?? 0),
+            boost: skill.boost, setback: skill.setback, remsetback: skill.remsetback,
+            force: skill.force ?? 0, advantage: skill.advantage, dark: skill.dark, light: skill.light,
+            failure: skill.failure, threat: skill.threat, success: skill.success,
+            triumph: skill?.triumph ?? 0, despair: skill?.despair ?? 0,
+          });
+          pool.upgrade(Math.min(characteristic.value ?? 0, skill.rank ?? 0));
+          const flavor = `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize("SWFFG.Codex.CritTrauma.RollResilience")}...`;
+          const roll = new game.ffg.RollFFG(pool.renderDiceExpression());   // may throw here → BEFORE the stamp
+          // 5. Stamp the reservation.
+          await item.update({ "system.resilienceLastAttemptDay": day });
+          // 6. Roll + read back, preserving the stamp on any post-reservation failure.
+          let message;
+          try {
+            message = await roll.toMessage({
+              speaker: { actor }, flavor,
+              flags: { starwarsffg: { critTraumaRecovery: { actorUuid: actor.uuid, itemId, path: "resilience" } } },
+            });
+          } catch (err) {
+            CONFIG.logger?.warn?.("Crit-trauma: resilience roll message failed post-reservation", err);
+            ui.notifications.warn(game.i18n.localize("SWFFG.Codex.CritTrauma.RollFailedNoMessage"));
+            return;   // KEEP the stamp — a genuine attempt occurred, no free reroll
+          }
+          const net = message.rolls?.[0]?.ffg?.success ?? 0;   // net of failures
+          // 7. Resolve — no equality-based rollback anywhere.
+          if (net >= 1) await item.delete();
+        } finally {
+          this._cdxCritInFlight.delete(itemId);
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Medicine failure marker — always shown to permitted viewers. Owner stamps
+    // locally; a permitted non-owner forwards to the GM.
+    root.querySelectorAll(".cdx-inj-medfail").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const { id: itemId, item } = critItem(ev);
+        if (!item) return;
+        const day = currentDay();
+        if (!availFor(item.system?.medicineLastAttemptDay ?? null, day).attemptable) return;
+        if (item.isOwner) await item.update({ "system.medicineLastAttemptDay": day });
+        else await applyCritRecoveryAttempt(this.actor, itemId, "medicine");
+      });
+    });
+
+    // Vehicle Mechanics failure marker — house-rule + type gated (the owner-local
+    // path bypasses the GM bridge, and the button can be stale mid-refresh).
+    root.querySelectorAll(".cdx-inj-mechfail").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const { id: itemId, item } = critItem(ev);
+        if (!item) return;
+        if (game.settings.get("starwarsffg", "vehicleCritWeeklyLimit") !== true) return;
+        if (item.type !== "criticaldamage") return;
+        const day = currentDay();
+        if (!availFor(item.system?.mechanicsLastAttemptDay ?? null, day).attemptable) return;
+        if (item.isOwner) await item.update({ "system.mechanicsLastAttemptDay": day });
+        else await applyCritRecoveryAttempt(this.actor, itemId, "mechanics");
+      });
+    });
+  }
 };
 
 /** Codex sheet for character / rival / nemesis / minion / vehicle. */
@@ -1466,5 +1585,17 @@ export class CodexAdversarySheet extends CodexSchemeMixin(AdversarySheetFFG) {
   /** @override */
   get template() {
     return `${CDX_TEMPLATES}/codex-character.html`;
+  }
+}
+
+/**
+ * Re-render every open Codex sheet — used by the campaignDay / vehicleCritWeeklyLimit
+ * setting onChange handlers (live-refresh path 1) so open crit cards recompute their
+ * availability countdowns. Self-contained; imported by settings-helpers.js (cycle-safe
+ * direction — settings-helpers is not imported here).
+ */
+export function refreshOpenCodexSheets() {
+  for (const app of foundry.applications.instances.values()) {
+    if (app.rendered && (app instanceof CodexActorSheet || app instanceof CodexAdversarySheet)) app.render();
   }
 }

@@ -3,6 +3,29 @@
 {{#each items as |item id|}} {{#iff item.type '==' 'criticalinjury'}}
 <div class="item cdx-injury" data-item-id="{{item._id}}">
   <div class="cdx-inj-name">{{item.name}}</div>
+  {{!-- Recovery controls sit to the LEFT of the severity die, on one line. --}}
+  {{#with (critAvailability item) as |avail|}}
+  {{!-- Each path is a fixed-width slot: a button when actionable, a labelled pip
+       bar when cooling. Same footprint either way so the card never reflows. --}}
+  <div class="cdx-inj-recovery">
+    {{#if avail.resilience.canSelfHeal}}
+    <div class="cdx-inj-slot">
+      {{#if avail.resilience.attemptable}}
+        <button type="button" class="cdx-inj-resilience" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.RollResilience"}}</button>
+      {{else}}
+        <div class="cdx-inj-cd" title="{{localize "SWFFG.Codex.CritTrauma.SelfHealIn" days=avail.resilience.daysLeft}}"><span class="cdx-inj-cdlabel">{{localize "SWFFG.Codex.CritTrauma.ResilienceLabel"}}</span><span class="cdx-track pips">{{#each avail.resilience.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</span></div>
+      {{/if}}
+    </div>
+    {{/if}}
+    <div class="cdx-inj-slot">
+      {{#if avail.medicine.attemptable}}
+        <button type="button" class="cdx-inj-medfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.MedicineFailed"}}</button>
+      {{else}}
+        <div class="cdx-inj-cd" title="{{localize "SWFFG.Codex.CritTrauma.MedicineIn" days=avail.medicine.daysLeft}}"><span class="cdx-inj-cdlabel">{{localize "SWFFG.Codex.CritTrauma.MedicineLabel"}}</span><span class="cdx-track pips">{{#each avail.medicine.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</span></div>
+      {{/if}}
+    </div>
+  </div>
+  {{/with}}
   {{!-- Wrapped in .ffg-die-icon (same as the dice pools build via pool.js) so the
        severity dice inherit the per-scheme die treatment; --ffg-die-mask is set in
        cdx.css since this die is always the purple difficulty die. --}}

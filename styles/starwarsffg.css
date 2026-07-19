@@ -3365,17 +3365,23 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   pointer-events: none;
   text-align: center;
   min-width: 84px;
-  width: 100%;
+  width: fit-content;
   display: flex;
+  flex-direction: column;   /* orbs row, then the Day row beneath — panel shrink-wraps to the orbs row */
+  align-items: center;
   z-index: 70;
+}
+/* The orbs (+ GM menu) sit in a horizontal row; the panel width follows this row. */
+.swffg-destiny .swffg-destiny-main {
+  display: flex;
+  align-items: center;
 }
 .swffg-destiny.swffg-groupmanager {
   min-width: 125px;
-  flex: 1;
   position: relative;
   padding: 0 0 5px 0;
   pointer-events: auto;
-  height: 55px;
+  min-height: 55px;
 }
 .swffg-destiny .group-manager {
   padding: 5px 0px 0px 5px;
@@ -3403,6 +3409,52 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 }
 .swffg-destiny #context-menu {
   font-size: 0.875rem;
+}
+
+/* Crit-Trauma campaign-day readout — a compact inline chip beside the destiny
+   points; the GM-only [+] advances the world day. */
+#ffg-campaign-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;   /* own row below the orbs (column parent); centred, doesn't widen the panel */
+  padding: 2px 8px 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+#ffg-campaign-day .ffg-campaign-day-value {
+  font-family: "Signika", "Palatino Linotype", serif;
+}
+#ffg-campaign-day .ffg-campaign-day-advance {
+  cursor: pointer;
+  font-weight: bold;
+}
+/* Right-click "Edit" context menu for the Day readout (appended to <body>). */
+.ffg-campaign-day-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 88px;
+  background: #1b1b1b url(../../../ui/denim075.png) repeat;
+  border: 1px solid #000;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  padding: 3px;
+}
+.ffg-campaign-day-edit {
+  display: block;
+  padding: 4px 10px;
+  color: #eee;
+  font-size: 13px;
+  font-family: "Signika", "Palatino Linotype", serif;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 3px;
+}
+.ffg-campaign-day-edit:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 .ffg-destiny-roll {
