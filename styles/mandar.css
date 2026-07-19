@@ -4698,6 +4698,32 @@ img {
 #ffg-campaign-day .ffg-campaign-day-advance:hover {
   text-shadow: 0 0 0.5rem #ff6400;
 }
+/* Right-click "Edit" context menu for the Day readout (appended to <body>). */
+.ffg-campaign-day-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 88px;
+  background: url(../../../ui/denim075.png) repeat;
+  border: 1px solid #000;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  padding: 3px;
+}
+.ffg-campaign-day-edit {
+  display: block;
+  padding: 0.25rem 0.6rem;
+  color: #eee;
+  font-size: 0.85rem;
+  font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
+  text-shadow: 1px 1px 1px black;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 3px;
+}
+.ffg-campaign-day-edit:hover {
+  background: rgba(255, 100, 0, 0.5);
+  color: #fff;
+}
 
 .swffg-destiny #context-menu {
   font-size: 0.875rem;

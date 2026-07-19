@@ -208,6 +208,16 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
       await game.settings.set("starwarsffg", "campaignDay", current + 1);
     });
 
+    // Campaign-day edit (GM only): right-click the readout for a one-item "Edit"
+    // context menu that opens a dialog to OVERRIDE the current day with any value.
+    if (game.user.isGM) {
+      html.find("#ffg-campaign-day").on("contextmenu", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this._openCampaignDayMenu(event.clientX, event.clientY);
+      });
+    }
+
     // handle previously created roll destiny chat messages
     $(".ffg-destiny-roll").on("click", this.OnClickRollDestiny.bind(this));
 
@@ -294,6 +304,69 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
         }
       });
     }
+  }
+
+  /**
+   * Show a tiny one-item ("Edit") context menu at the cursor for the campaign-day
+   * readout. Appended to <body> (the widget body is pointer-events:none), and
+   * dismissed on the next click/right-click/scroll/Escape anywhere.
+   * @param {number} x  clientX
+   * @param {number} y  clientY
+   */
+  _openCampaignDayMenu(x, y) {
+    document.querySelector(".ffg-campaign-day-menu")?.remove();
+    const menu = document.createElement("div");
+    menu.className = "ffg-campaign-day-menu";
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    const edit = document.createElement("a");
+    edit.className = "ffg-campaign-day-edit";
+    edit.innerHTML = `<i class="fas fa-pen"></i> ${game.i18n.localize("SWFFG.Codex.CritTrauma.EditDay")}`;
+    menu.appendChild(edit);
+    document.body.appendChild(menu);
+
+    const dismiss = () => {
+      menu.remove();
+      document.removeEventListener("pointerdown", dismiss, true);
+      document.removeEventListener("wheel", dismiss, true);
+      window.removeEventListener("blur", dismiss);
+      document.removeEventListener("keydown", onKey, true);
+    };
+    const onKey = (ev) => { if (ev.key === "Escape") dismiss(); };
+    edit.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      dismiss();
+      this._openSetDayDialog();
+    });
+    // Defer so the right-click that opened the menu doesn't immediately dismiss it.
+    setTimeout(() => {
+      document.addEventListener("pointerdown", dismiss, true);
+      document.addEventListener("wheel", dismiss, true);
+      window.addEventListener("blur", dismiss);
+      document.addEventListener("keydown", onKey, true);
+    }, 0);
+  }
+
+  /**
+   * Dialog to OVERRIDE the campaign day with an explicit value (GM only). Sets the
+   * world setting directly; its onChange refreshes the readout + open Codex sheets.
+   */
+  async _openSetDayDialog() {
+    const current = Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
+    const n = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Codex.CritTrauma.EditDayTitle") },
+      content: `<form class="form"><div class="form-group"><label>${game.i18n.localize("SWFFG.Codex.CritTrauma.EditDayLabel")}</label><input type="number" name="day" value="${current}" min="0" step="1" autofocus /></div></form>`,
+      rejectClose: false,
+      buttons: [{
+        action: "set",
+        label: game.i18n.localize("SWFFG.Codex.CritTrauma.EditDaySet"),
+        default: true,
+        callback: (ev, button) => Math.floor(Number(button.form.elements.day.value)),
+      }],
+    });
+    if (n === null || n === undefined || Number.isNaN(n)) return;
+    await game.settings.set("starwarsffg", "campaignDay", Math.max(0, n));
   }
 
   /**

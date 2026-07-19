@@ -3431,6 +3431,31 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   cursor: pointer;
   font-weight: bold;
 }
+/* Right-click "Edit" context menu for the Day readout (appended to <body>). */
+.ffg-campaign-day-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 88px;
+  background: #1b1b1b url(../../../ui/denim075.png) repeat;
+  border: 1px solid #000;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  padding: 3px;
+}
+.ffg-campaign-day-edit {
+  display: block;
+  padding: 4px 10px;
+  color: #eee;
+  font-size: 13px;
+  font-family: "Signika", "Palatino Linotype", serif;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 3px;
+}
+.ffg-campaign-day-edit:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
 
 .ffg-destiny-roll {
   cursor: pointer;
