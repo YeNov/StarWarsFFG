@@ -143,7 +143,7 @@
         {{#if avail.mechanics.attemptable}}
           <button type="button" class="cdx-inj-mechfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.Failed"}}</button>
         {{else}}
-          <span class="cdx-inj-cooldown">{{localize "SWFFG.Codex.CritTrauma.MechanicsIn" days=avail.mechanics.daysLeft}}</span>
+          <div class="cdx-inj-cooldown cdx-track pips" title="{{localize "SWFFG.Codex.CritTrauma.MechanicsIn" days=avail.mechanics.daysLeft}}">{{#each avail.mechanics.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</div>
         {{/if}}
       </div>
       {{/if}}

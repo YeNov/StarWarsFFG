@@ -10,13 +10,13 @@
       {{#if avail.resilience.attemptable}}
         <button type="button" class="cdx-inj-resilience" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.RollResilience"}}</button>
       {{else}}
-        <span class="cdx-inj-cooldown">{{localize "SWFFG.Codex.CritTrauma.SelfHealIn" days=avail.resilience.daysLeft}}</span>
+        <div class="cdx-inj-cooldown cdx-track pips" title="{{localize "SWFFG.Codex.CritTrauma.SelfHealIn" days=avail.resilience.daysLeft}}">{{#each avail.resilience.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</div>
       {{/if}}
     {{/if}}
     {{#if avail.medicine.attemptable}}
       <button type="button" class="cdx-inj-medfail" data-item-id="{{item._id}}">{{localize "SWFFG.Codex.CritTrauma.MedicineFailed"}}</button>
     {{else}}
-      <span class="cdx-inj-cooldown">{{localize "SWFFG.Codex.CritTrauma.MedicineIn" days=avail.medicine.daysLeft}}</span>
+      <div class="cdx-inj-cooldown cdx-track pips" title="{{localize "SWFFG.Codex.CritTrauma.MedicineIn" days=avail.medicine.daysLeft}}">{{#each avail.medicine.pips}}<span class="cdx-pip{{#if this}} on{{/if}}"></span>{{/each}}</div>
     {{/if}}
   </div>
   {{/with}}
