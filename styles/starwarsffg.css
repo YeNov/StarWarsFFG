@@ -3365,18 +3365,23 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   pointer-events: none;
   text-align: center;
   min-width: 84px;
-  width: 100%;
+  width: fit-content;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;   /* orbs row, then the Day row beneath — panel shrink-wraps to the orbs row */
+  align-items: center;
   z-index: 70;
+}
+/* The orbs (+ GM menu) sit in a horizontal row; the panel width follows this row. */
+.swffg-destiny .swffg-destiny-main {
+  display: flex;
+  align-items: center;
 }
 .swffg-destiny.swffg-groupmanager {
   min-width: 125px;
-  flex: 1;
   position: relative;
   padding: 0 0 5px 0;
   pointer-events: auto;
-  min-height: 55px;   /* was height:55px — allow the wrapped Day row to grow the panel */
+  min-height: 55px;
 }
 .swffg-destiny .group-manager {
   padding: 5px 0px 0px 5px;
@@ -3413,7 +3418,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   align-items: center;
   justify-content: center;
   gap: 6px;
-  flex: 1 0 100%;   /* own full-width row below the destiny orbs, inside the panel */
+  flex: 0 0 auto;   /* own row below the orbs (column parent); centred, doesn't widen the panel */
   padding: 2px 8px 4px;
   font-size: 12px;
   white-space: nowrap;

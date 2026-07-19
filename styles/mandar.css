@@ -4606,10 +4606,16 @@ img {
   margin: 0.5rem;
   pointer-events: none;
   text-align: center;
-  width: auto;
+  width: fit-content;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;   /* orbs row, then the Day row beneath */
+  align-items: center;
   z-index: 70;
+}
+
+.swffg-destiny .swffg-destiny-main {
+  display: flex;
+  align-items: center;
 }
 
 .swffg-destiny.swffg-groupmanager {
@@ -4673,7 +4679,7 @@ img {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  flex: 1 0 100%;   /* own full-width row below the destiny orbs */
+  flex: 0 0 auto;   /* own row below the orbs (column parent), centred */
   margin: 0.25rem;
   padding: 0.1rem 0.5rem 0.25rem;
   font-family: "mason-serif", "Nodesto", "Signika", "Palatino Linotype", serif;
