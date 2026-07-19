@@ -136,7 +136,7 @@
     {{#each items as |item id|}} {{#iff item.type '==' 'criticaldamage'}}
     <div class="item cdx-injury" data-item-id="{{item._id}}">
       <div class="cdx-inj-name">{{item.name}}</div>
-      <div class="cdx-inj-sev">{{renderMultiple item.system.severity '<img class="cdx-sev-img" src="systems/starwarsffg/images/dice/starwars/purple.png" />'}}</div>
+      {{!-- Recovery control sits to the LEFT of the severity die, on one line. --}}
       {{#with (critAvailability item) as |avail|}}
       {{#if avail.mechanics}}
       <div class="cdx-inj-recovery">
@@ -148,6 +148,7 @@
       </div>
       {{/if}}
       {{/with}}
+      <div class="cdx-inj-sev">{{renderMultiple item.system.severity '<img class="cdx-sev-img" src="systems/starwarsffg/images/dice/starwars/purple.png" />'}}</div>
       <div class="cdx-card-ctl item-controls"><a class="item-control item-edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete"><i class="fas fa-trash"></i></a></div>
     </div>
     {{/iff}} {{/each}}

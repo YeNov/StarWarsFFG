@@ -3,10 +3,7 @@
 {{#each items as |item id|}} {{#iff item.type '==' 'criticalinjury'}}
 <div class="item cdx-injury" data-item-id="{{item._id}}">
   <div class="cdx-inj-name">{{item.name}}</div>
-  {{!-- Wrapped in .ffg-die-icon (same as the dice pools build via pool.js) so the
-       severity dice inherit the per-scheme die treatment; --ffg-die-mask is set in
-       cdx.css since this die is always the purple difficulty die. --}}
-  <div class="cdx-inj-sev">{{renderMultiple item.system.severity '<span class="ffg-die-icon"><img class="cdx-sev-img" src="systems/starwarsffg/images/dice/starwars/purple.png" /></span>'}}</div>
+  {{!-- Recovery controls sit to the LEFT of the severity die, on one line. --}}
   {{#with (critAvailability item) as |avail|}}
   <div class="cdx-inj-recovery">
     {{#if avail.resilience.canSelfHeal}}
@@ -23,6 +20,10 @@
     {{/if}}
   </div>
   {{/with}}
+  {{!-- Wrapped in .ffg-die-icon (same as the dice pools build via pool.js) so the
+       severity dice inherit the per-scheme die treatment; --ffg-die-mask is set in
+       cdx.css since this die is always the purple difficulty die. --}}
+  <div class="cdx-inj-sev">{{renderMultiple item.system.severity '<span class="ffg-die-icon"><img class="cdx-sev-img" src="systems/starwarsffg/images/dice/starwars/purple.png" /></span>'}}</div>
   <div class="cdx-card-ctl item-controls"><a class="item-control item-edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete"><i class="fas fa-trash"></i></a></div>
 </div>
 {{/iff}} {{/each}}

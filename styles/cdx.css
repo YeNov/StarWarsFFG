@@ -845,7 +845,7 @@
 /* ---- Crit-Trauma weekly recovery controls ---- */
 /* Roll Resilience / Failed buttons + the muted cooldown countdown, sitting in the
    crit card's recovery column. Sized/coloured to sit with the .cdx-card-ctl chrome. */
-.cdx .cdx-inj-recovery { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.cdx .cdx-inj-recovery { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; justify-content:flex-start; }
 .cdx .cdx-inj-resilience,
 .cdx .cdx-inj-medfail,
 .cdx .cdx-inj-mechfail { font-family:"Orbitron"; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; line-height:1; color:var(--cdx-ink); background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:4px 8px; cursor:pointer; white-space:nowrap; }
