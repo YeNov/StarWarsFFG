@@ -9,15 +9,19 @@ Plan: `pc_wizard_implementation_plan.md` v10, §2 Stage 1 work items 3–5, §0.
 
 ---
 
-## ⚠ Status of this file: MEASURED, but Stage 1 is NOT complete
+## Status of this file: MEASURED. Stage 1 machine-side work is COMPLETE; Stage 1H is not started
 
-The previous revision of this file recorded two gates as **BLOCKED** because Node and npm could
+The first revision of this file recorded two gates as **BLOCKED** because Node and npm could
 not be executed. **That block is cleared** — the owner granted `Bash(npm test)`,
 `Bash(npm run check:imports)`, `Bash(node --test *)` and `Bash(node tools/check-imports.mjs *)`.
 Every value below is now from a run observed in this session. Nothing is carried forward.
 
-**GATE-NODE passes. GATE-IMPORTS does not**, on one finding that is a **real defect in the tree**,
-not a checker bug — see §4. Stage 1 stays open until that is resolved.
+**GATE-NODE passes** (76/76). **GATE-IMPORTS passes** under the DEV-17 pass condition — zero
+unpinned findings, carrying one issue-tracked pin (§4, §4d). The pinned defect is **not fixed**;
+it is out of scope and tracked as [#29](https://github.com/YeNov/StarWarsFFG/issues/29).
+
+**Stage 1 is not the end of the gate.** Stage 1H — the mandatory human Foundry-side baseline pass —
+has **not** started, and Stage 2 may not begin until it completes and commits its four baselines.
 
 ---
 
@@ -93,12 +97,22 @@ asserted by the same test file, so a regression surfaces immediately rather than
 
 ## 3. GATE-NODE — PASSES
 
-`npm test` → 58 tests, 58 pass, 0 fail, 0 skipped, 0 todo. Exit 0.
+`npm test` → 76 tests, 76 pass, 0 fail, 0 skipped, 0 todo. Exit 0.
+(58 at first capture; DEV-17 added the 18 pin tests in §4c. All 58 originals still pass.)
 **Isolation mode: DEFAULT (per-file child process).** No `--test-isolation=none`.
 
 Full record, including why the isolation mode matters here: `node-baseline.txt`.
 
-## 4. GATE-IMPORTS — FAILS on one REAL finding
+## 4. GATE-IMPORTS — PASSES, carrying one pinned finding
+
+**Status at Stage 1 close (DEV-17 applied):** `npm run check:imports` → **0 unpinned findings, 1
+pinned and tracked**. Exit 0.
+
+The history below is kept as written, because it is the evidence for *why* exactly one finding is
+pinnable and 29 others were not. Read §4a with §4d: the finding is unchanged and still unfixed —
+what changed is the gate's pass condition, by owner decision, not the finding's status.
+
+### 4. (as first recorded) GATE-IMPORTS — FAILS on one REAL finding
 
 `npm run check:imports` reported **30 findings on its first real run**. **29 were checker bugs**
 and are fixed; the rules were re-proved from both directions afterwards
@@ -133,6 +147,15 @@ catch, in the same document that says *"Keep it strong; do not weaken it to make
 
 `imports-baseline.txt` is therefore **deliberately absent**. The plan requires it to record a
 clean run; recording a dirty one would normalise the finding.
+
+> **Owner decision, 2026-07-20 — DEV-17.** The finding stands and is still not fixed. What was
+> wrong was the *gate*: *"exit 0, zero findings"* on a repo-wide scan is unreachable by
+> construction, the same absolute-zero defect `GATE-LINT` had already been through. The finding is
+> now **pinned** in `imports-baseline.txt` against
+> [YeNov/StarWarsFFG#29](https://github.com/YeNov/StarWarsFFG/issues/29), which also tracks a second
+> live `template.json` reference this analysis missed: `.github/workflows/main.yml:123` still lists
+> it in the release packaging list. `getTemplate()` is **not** fixed here — out of scope, tracked.
+> See §4d for why the pin cannot widen.
 
 ### 4b. The 29 false positives — three checker bugs, all fixed
 
@@ -207,3 +230,37 @@ still fails:
 | 5 | a genuine bare specifier in `modules/**` | `import` occurring inside unrelated string content; bare specifiers outside `modules/**` |
 
 Rules 6 and 7 were untouched by these fixes; their existing 23 tests still pass.
+
+### 4d. Pin support (DEV-17) — proved from both sides
+
+Pin support is the same hazard one level up: a pin file that matches too much turns a repo-wide
+boot defence into a gate that reports nothing, and the exit code looks identical either way. So it
+gets the same treatment as the rules. `tests/node/check-imports-pins.test.mjs` (18 tests):
+
+| Property | Test |
+|---|---|
+| a pinned finding passes | the mechanism works at all |
+| an **unpinned** finding fails | the pin did not swallow the rest of the tree |
+| a **second** defect one line from the pin fails | **rule 2 still runs everywhere** — the load-bearing DEV-17 property |
+| a **moved** finding fails **twice** | the pin vanishes *and* the new line is unpinned |
+| a **vanished** pin fails, even on a clean tree | a fixed defect must be de-pinned deliberately |
+| a **changed** message fails | the exact message is part of the pin |
+| a **multiplied** triple fails | one pin covers exactly one finding |
+| a **rule-wide** pin (`2`, `2 \| * \| …`, `* \| … `) is malformed | there is no rule-wide form |
+| a **file-wide** pin (no `:line`, `:*`, a `*` in the path) is malformed | there is no file-wide form |
+| a pin with **no tracking issue** is malformed | an untracked finding is not pinnable |
+| an empty message, or a **duplicate** triple, is malformed | a pin must name one exact finding |
+| **no baseline file** ⇒ every finding counts | absence of pins is the strict direction |
+
+A malformed pin is an **error, not a skip**: it produces no pin *and* fails the gate, so a typo can
+never silently widen into a suppression. Findings with no line (rules 4 and 6 report at file level)
+have no exact triple and are therefore **never pinnable**.
+
+Two tests run against the **real repo**: the committed baseline must parse with zero errors and
+every pin must carry an issue, and the live gate must report zero unpinned findings with the pin
+count asserted at exactly 1. Growing the pin list is an owner decision, and that assertion is what
+stops it being a quiet edit.
+
+**The rule that made this trustworthy is unchanged: a finding caused by a checker bug is fixed,
+never pinned.** 29 of the first run's 30 findings were checker bugs and every one was fixed. Only
+the 30th — confirmed real, pre-existing, out of scope, issue-tracked — is pinned.

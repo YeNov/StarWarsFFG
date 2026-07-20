@@ -10,15 +10,18 @@
  * to avoid.
  *
  * Usage:
- *   node tools/check-imports.mjs [--cutover] [--root <dir>] [--json]
+ *   node tools/check-imports.mjs [--cutover] [--root <dir>] [--baseline <file>] [--json]
  *
  *   --cutover   Activates rule 6 (the Stage 18 shim assertion). Inactive by default so that a
  *               malformed shim can never silently skip the assertion (plan §0.4 rule 6).
  *   --root      Alternate repo root. Used by the rule-6/rule-7 meta-tests to run the real rule
  *               logic against throwaway fixture trees instead of mutating this repo.
- *   --json      Emit findings as JSON.
+ *   --baseline  Alternate pin file. Defaults to `<root>/<BASELINE_REL>`; a root with no baseline
+ *               file has no pins, which is the strict direction.
+ *   --json      Emit the full evaluation (findings, pins, unpinned, problems) as JSON.
  *
- * Exit code 0 with zero findings = pass.
+ * Pass condition (plan DEV-17): **zero findings that are not pinned** in the baseline, no pin
+ * problem, and no malformed pin. Exit code 0 = pass.
  */
 
 import fs from "node:fs";
@@ -575,6 +578,206 @@ function foundryStyleTarget(spec) {
 }
 
 // ---------------------------------------------------------------------------
+// DEV-17 — baseline pins
+// ---------------------------------------------------------------------------
+
+/**
+ * GATE-IMPORTS is repo-wide by design (it is the Stage 18 boot defence), so it necessarily
+ * surfaces pre-existing defects in code this feature never touches. The original pass condition —
+ * "exit 0, zero findings" — was therefore unreachable, the same absolute-zero defect GATE-LINT
+ * already had to fix. The pass condition is now zero **unpinned** findings.
+ *
+ * The pin format is deliberately the narrowest one that can express an exception:
+ *
+ *   <rule> | <file>:<line> | <issue> | <exact finding message>
+ *
+ * There is no rule-wide and no file-wide form, and no wildcard is accepted anywhere — a pin names
+ * one triple and one message. Rule 2 therefore keeps running over the whole tree, and a *second*
+ * `template.json`-shaped defect one line away is still a failure.
+ *
+ * The gate also fails when a pinned finding CHANGED (message differs), MOVED (its triple no longer
+ * matches, so the pin vanishes and the new location is unpinned — two failures, not zero),
+ * MULTIPLIED (the triple now yields more than one finding), or DISAPPEARED. A vanished pin means
+ * the tree moved under the baseline; the pin has to be re-verified, never silently kept or dropped.
+ *
+ * A finding caused by a checker bug is FIXED, never pinned. That rule caught 30 false positives on
+ * the checker's first genuine run and is what makes the remainder worth pinning at all.
+ */
+const BASELINE_REL = "superpowers/docs/plans/PcWizard/baselines/imports-baseline.txt";
+
+/** `owner/repo#123`, `#123`, or a full URL. Anything else is not a tracking issue. */
+const ISSUE_RE = /^(?:[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)?#\d+$|^https?:\/\/\S+$/;
+
+/**
+ * Parse the pin file.
+ *
+ * Blank lines and `#`-prefixed lines are commentary. Every other line must be a well-formed pin;
+ * a malformed line is an ERROR, not a skip, so a typo can never silently widen into "no pin" (a
+ * missing pin then reads as an unexpected finding) or, worse, be read as a looser match.
+ *
+ * @returns {{pins: Array<{rule: number, file: string, line: number, issue: string,
+ *            message: string, source: number}>, errors: string[]}}
+ */
+export function parseBaseline(text) {
+  const pins = [];
+  const errors = [];
+  const seen = new Map();
+  const lines = text.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i++) {
+    const at = i + 1;
+    const trimmed = lines[i].trim();
+    if (trimmed === "" || trimmed.startsWith("#")) continue;
+
+    const fields = trimmed.split("|");
+    if (fields.length < 4) {
+      errors.push(`line ${at}: expected "<rule> | <file>:<line> | <issue> | <message>", got: ${trimmed}`);
+      continue;
+    }
+    const rawRule = fields[0].trim();
+    const rawLoc = fields[1].trim();
+    const rawIssue = fields[2].trim();
+    // The message is the remainder verbatim — a finding message may legitimately contain "|".
+    const message = fields.slice(3).join("|").trim();
+
+    if (!/^[1-9]\d*$/.test(rawRule)) {
+      errors.push(`line ${at}: rule must be a single rule number, got "${rawRule}" — ` +
+        "there is no rule-wide pin");
+      continue;
+    }
+
+    // A file-wide pin (`path/to/file.js`, or `path:*`) fails this match by construction.
+    const locMatch = /^(.+):([1-9]\d*)$/.exec(rawLoc);
+    if (!locMatch) {
+      errors.push(`line ${at}: location must be an exact "<file>:<line>", got "${rawLoc}" — ` +
+        "there is no file-wide pin");
+      continue;
+    }
+    const file = locMatch[1].trim();
+    if (file === "" || file.includes("*") || file.includes("?")) {
+      errors.push(`line ${at}: location "${rawLoc}" is not an exact file path — wildcards are not pins`);
+      continue;
+    }
+
+    if (!ISSUE_RE.test(rawIssue)) {
+      errors.push(`line ${at}: "${rawIssue}" is not a tracking issue reference — ` +
+        "a finding with no issue is not pinnable");
+      continue;
+    }
+
+    if (message === "") {
+      errors.push(`line ${at}: the pinned finding message is empty — a pin must name the exact finding`);
+      continue;
+    }
+
+    const key = `${rawRule}:${file}:${locMatch[2]}`;
+    if (seen.has(key)) {
+      errors.push(`line ${at}: duplicate pin for ${key} (already pinned on line ${seen.get(key)})`);
+      continue;
+    }
+    seen.set(key, at);
+
+    pins.push({
+      rule: Number(rawRule),
+      file,
+      line: Number(locMatch[2]),
+      issue: rawIssue,
+      message,
+      source: at,
+    });
+  }
+
+  return { pins, errors };
+}
+
+const pinKey = (rule, file, line) => `${rule}:${file}:${line}`;
+
+/**
+ * Match findings against pins.
+ *
+ * A finding with no line (rules 4 and 6 report file-level) is never pinnable — there is no exact
+ * triple to name it with — so it always lands in `unpinned`.
+ *
+ * @returns {{unpinned: object[], problems: Array<{kind: string, pin: object, message: string}>}}
+ */
+export function applyPins(findings, pins) {
+  const byKey = new Map();
+  for (const f of findings) {
+    if (f.line === null || f.line === undefined) continue;
+    const key = pinKey(f.rule, f.file, f.line);
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(f);
+  }
+
+  const problems = [];
+  const pinned = new Set();
+
+  for (const pin of pins) {
+    const key = pinKey(pin.rule, pin.file, pin.line);
+    const matches = byKey.get(key) ?? [];
+
+    if (matches.length === 0) {
+      problems.push({
+        kind: "vanished",
+        pin,
+        message: `pinned finding ${key} no longer occurs. The tree moved under the baseline — ` +
+          `re-verify the pin against ${pin.issue} and update or remove it deliberately.`,
+      });
+      continue;
+    }
+
+    for (const m of matches) pinned.add(m);
+
+    if (matches.length > 1) {
+      problems.push({
+        kind: "multiplied",
+        pin,
+        message: `pinned location ${key} now yields ${matches.length} findings; a pin covers one.`,
+      });
+      continue;
+    }
+
+    if (matches[0].message !== pin.message) {
+      problems.push({
+        kind: "changed",
+        pin,
+        message: `pinned finding ${key} changed.\n      baseline: ${pin.message}` +
+          `\n      observed: ${matches[0].message}`,
+      });
+    }
+  }
+
+  return { unpinned: findings.filter((f) => !pinned.has(f)), problems };
+}
+
+/**
+ * Run the rules and evaluate them against the pin file — the DEV-17 pass condition.
+ *
+ * `ok` is true only when there are no unpinned findings, no pin problems, and no malformed pins.
+ */
+export function evaluateImports({ root = REPO_ROOT, cutover = false, baselinePath } = {}) {
+  const resolved = baselinePath ?? path.join(root, BASELINE_REL);
+  const exists = isFile(resolved);
+  const { pins, errors } = exists
+    ? parseBaseline(fs.readFileSync(resolved, "utf8"))
+    : { pins: [], errors: [] };
+
+  const findings = checkImports({ root, cutover });
+  const { unpinned, problems } = applyPins(findings, pins);
+
+  return {
+    findings,
+    pins,
+    unpinned,
+    problems,
+    baselineErrors: errors,
+    baselinePath: resolved,
+    baselineExists: exists,
+    ok: unpinned.length === 0 && problems.length === 0 && errors.length === 0,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
@@ -583,24 +786,59 @@ function main(argv) {
   const json = argv.includes("--json");
   const rootIdx = argv.indexOf("--root");
   const root = rootIdx !== -1 ? path.resolve(argv[rootIdx + 1]) : REPO_ROOT;
+  const baseIdx = argv.indexOf("--baseline");
+  const baselinePath = baseIdx !== -1 ? path.resolve(argv[baseIdx + 1]) : undefined;
 
-  const findings = checkImports({ root, cutover });
+  const result = evaluateImports({ root, cutover, baselinePath });
 
   if (json) {
-    process.stdout.write(`${JSON.stringify(findings, null, 2)}\n`);
-  } else {
-    const mode = cutover ? "rules 1-7 (rule 6 ACTIVE)" : "rules 1-5, 7 (rule 6 inactive)";
-    process.stdout.write(`GATE-IMPORTS — root ${root}\nmode: ${mode}\n`);
-    for (const f of findings) {
-      const where = f.line ? `${f.file}:${f.line}` : f.file;
-      process.stdout.write(`  [rule ${f.rule}] ${where} — ${f.message}\n`);
-    }
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return result.ok ? 0 : 1;
+  }
+
+  const where = (f) => (f.line ? `${f.file}:${f.line}` : f.file);
+  const mode = cutover ? "rules 1-7 (rule 6 ACTIVE)" : "rules 1-5, 7 (rule 6 inactive)";
+  process.stdout.write(`GATE-IMPORTS — root ${root}\nmode: ${mode}\n`);
+  process.stdout.write(
+    result.baselineExists
+      ? `baseline: ${result.baselinePath} (${result.pins.length} pin(s))\n`
+      : `baseline: none at ${result.baselinePath} — no pins, every finding counts\n`,
+  );
+
+  for (const err of result.baselineErrors) {
+    process.stdout.write(`  [baseline] MALFORMED PIN — ${err}\n`);
+  }
+  for (const p of result.problems) {
+    process.stdout.write(`  [pin ${p.kind.toUpperCase()}] ${p.message}\n`);
+  }
+  for (const f of result.unpinned) {
+    process.stdout.write(`  [rule ${f.rule}] ${where(f)} — ${f.message}\n`);
+  }
+
+  // Pins that matched cleanly are reported so a pass is never silent about what it is carrying.
+  const carried = result.pins.filter(
+    (pin) => !result.problems.some((p) => p.pin === pin),
+  );
+  for (const pin of carried) {
     process.stdout.write(
-      findings.length === 0 ? "PASS — 0 findings\n" : `FAIL — ${findings.length} finding(s)\n`,
+      `  [pinned] rule ${pin.rule} ${pin.file}:${pin.line} — tracked by ${pin.issue}\n`,
     );
   }
 
-  return findings.length === 0 ? 0 : 1;
+  if (result.ok) {
+    process.stdout.write(
+      `PASS — 0 unpinned finding(s), ${carried.length} pinned and tracked\n`,
+    );
+  } else {
+    const counts = [
+      `${result.unpinned.length} unpinned finding(s)`,
+      `${result.problems.length} pin problem(s)`,
+      `${result.baselineErrors.length} malformed pin(s)`,
+    ];
+    process.stdout.write(`FAIL — ${counts.join(", ")}\n`);
+  }
+
+  return result.ok ? 0 : 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {

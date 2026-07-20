@@ -8,7 +8,9 @@ Environment
 Date            2026-07-20
 Repo            D:\SW FFG\Portable FVTT\Data\systems\starwarsffg
 Branch          pc-wizard-rewrite
-HEAD at capture 37994243  test(cypress): commit DEV-9 fail-closed baseUrl guard
+HEAD at capture 5f669ebe  docs(pc-wizard): DEV-17 — GATE-IMPORTS uses a pinned baseline-delta
+                (re-recorded after DEV-17 added tests/node/check-imports-pins.test.mjs;
+                 first recorded at 37994243 with 58 tests, all of which still pass)
 Node            v24.15.0
 Shell           Git Bash (POSIX sh). Under PowerShell use `npm.cmd test` (plan §0.4).
 Command         npm test
@@ -20,7 +22,7 @@ DEFAULT: per-file child-process isolation.
 
 `--test-isolation=none` was NOT added and must not be. Spawning works correctly in this shell;
 the `spawn EPERM` noted in an earlier review was an artifact of a read-only review sandbox and
-did not reproduce here. Every one of the 58 tests below ran under default isolation.
+did not reproduce here. Every one of the 76 tests below ran under default isolation.
 
 This is load-bearing twice over: tests/node/import-graph.test.mjs deliberately spawns child
 processes to observe module-load failures, and tests/node/stub-boundary.test.mjs's guarantee
@@ -28,30 +30,33 @@ depends on files not sharing a module cache.
 
 Result
 ------
-tests       58
+tests       76
 suites      0
-pass        58
+pass        76
 fail        0
 cancelled   0
 skipped     0
 todo        0
-duration_ms 438.5902
+duration_ms 456.3722
 
 exit code 0.
 
 PASS CONDITION (plan §0.4): every test passes; zero failures and zero unexpected skips. Met.
 There is no inherited baseline for this tier — it started empty at Stage 1 and only grows, so
-its bar is absolute. The 58 above is the floor, not a target.
+its bar is absolute. The 76 above is the floor, not a target.
 
-Composition of the 58
+Composition of the 76
 ---------------------
 tests/node/smoke.test.mjs                    2   the tier runs; the stub loads
 tests/node/stub-boundary.test.mjs            8   the §0.6.6 boundary meta-test
 tests/node/check-imports-activation.test.mjs 9   rule 6 activation (--cutover)
 tests/node/check-imports-purity.test.mjs    14   rule 7 negative tests
 tests/node/check-imports-rules.test.mjs     16   rules 1/2/5, both directions
+tests/node/check-imports-pins.test.mjs      18   DEV-17 pin support, both directions
 tests/node/import-graph.test.mjs             9   the §0.6.1 sweep, executed
 
-Note on the last two files: neither is in plan §2's original Stage 1 file list. Both were added
-in response to defects found on the gates' first real run — see node-coverage.md and the Stage 1
-report for why each exists.
+Note on import-graph.test.mjs and check-imports-rules.test.mjs: neither is in plan §2's original
+Stage 1 file list. Both were added in response to defects found on the gates' first real run — see
+node-coverage.md and the Stage 1 report for why each exists. check-imports-pins.test.mjs was added
+by the DEV-17 amendment: pin support is a mechanism whose failure mode is silence, so it is held to
+the same both-directions standard as rules 1-7.
