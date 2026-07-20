@@ -186,7 +186,32 @@ It walks `modules/**/*.js`, `tests/**/*.js`, `tests/node/**/*.mjs` and `template
    transitive over the whole Covered closure**. **Rule 7 has its own negative tests**
    (`tests/node/check-imports-purity.test.mjs`, Stage 1).
 
-**Pass condition:** exit 0, zero findings. Run at **every** stage.
+**Pass condition (DEV-17 — baseline-delta, mirroring GATE-LINT):** **zero findings that are not
+pinned in `baselines/imports-baseline.txt`.** Run at **every** stage.
+
+Rationale for the amendment (2026-07-20, owner decision): the original condition was *"exit 0, zero
+findings"*. That is the same unreachable-absolute-zero defect `GATE-LINT` already cost two Blocker
+rounds to fix — and it went unnoticed here only because the checker did not exist until Stage 1, so
+nobody could observe that the untouched tree is **not** clean. `GATE-IMPORTS` is repo-wide by design
+(it is the Stage 18 boot defence), so it necessarily surfaces pre-existing defects in code this
+feature never touches. Blocking the rewrite on those is not rigour.
+
+**Pinning rules — narrow by construction, so nothing is blinded:**
+
+- A pin is an **exact `rule:file:line` triple**, never a rule-wide or file-wide suppression. Rule 2
+  keeps running everywhere and would still catch a *second* `template.json`-shaped defect tomorrow.
+- **Every pin must carry a tracking issue reference.** A finding with no issue is not pinnable.
+- The gate **fails** if a pinned finding changes, moves, multiplies, or **disappears** — a vanished
+  pin means the tree changed under the baseline and the pin must be re-verified, not silently kept.
+- **Only findings confirmed as real, pre-existing, and out of scope may be pinned.** A finding
+  caused by a checker bug is **fixed, never pinned** — that rule caught 30 false positives on the
+  first genuine run and is unchanged.
+
+**Pinned at Stage 1 (one entry):**
+
+| rule | location | issue | why out of scope |
+|---|---|---|---|
+| 2 | `modules/importer/import-helpers.js:2961` | [#29](https://github.com/YeNov/StarWarsFFG/issues/29) | `ImportHelpers.getTemplate()` fetches `template.json`, deleted by `c8d29d86`. Live defect in the **Adversaries importer** (`swa-importer.js:573`, armed adversaries only) — unrelated to this feature, needs a DataModel-derived replacement, unverifiable without a running world. |
 
 > **Known blind spot, and why `GATE-CUTOVER-BOOT` exists:** rule 4 proves a partial is *listed*, not
 > that Handlebars *registered* it at runtime. Only a real render catches that.
@@ -631,16 +656,20 @@ alone.
 4. **Prove `npm test` runs green in this shell**, and **record which isolation mode it ran under** in
    `baselines/node-baseline.txt`. If spawning genuinely fails here, **stop and report to the owner**;
    do not silently switch to `--test-isolation=none`.
-5. Write `tools/check-imports.mjs` to the **seven** rules. Run it on the untouched tree (without
-   `--cutover`) and record `baselines/imports-baseline.txt`. **It must be clean**; do not "baseline"
-   real findings away.
+5. Write `tools/check-imports.mjs` to the **seven** rules, with **pin support (DEV-17)**: the checker
+   reads `baselines/imports-baseline.txt`, treats each pinned `rule:file:line` as expected, and exits
+   non-zero on any **unpinned** finding — or if a pinned one changed, moved, multiplied, or vanished.
+   Run it on the untouched tree (without `--cutover`) and record the baseline. **A finding caused by
+   a checker bug is fixed, never pinned**; only a confirmed real, pre-existing, out-of-scope defect
+   with a tracking issue may be pinned. One pin is expected at Stage 1 — see the GATE-IMPORTS table.
 6. Write the stub and the three meta-tests (boundary, rule 6 activation, rule 7 purity).
 7. **Owner decision needed before Stage 13** — the **draft-size thresholds**. Proposed, in **binary
    KiB** measured in **UTF-8 bytes**: **≤ 64 KiB (65 536 bytes)** and median `setFlag` round-trip
    **≤ 150 ms over 10 samples**.
 
 **Verification:** GATE-LINT (L1 vacuous — `modules/package.json` is not linted; L3 unchanged);
-**GATE-NODE** green with the isolation mode recorded; **GATE-IMPORTS** clean and recorded; the
+**GATE-NODE** green with the isolation mode recorded; **GATE-IMPORTS** passing under DEV-17 (no
+unpinned findings) with `imports-baseline.txt` recorded and its single pin issue-linked; the
 import-graph results recorded in `node-coverage.md`; **the DEV-9 guard is committed** (step 0).
 **"All baseline files exist" here means the Stage-1-owned files only** — `lint-baseline*.json`,
 `node-baseline.txt`, `imports-baseline.txt`, `node-coverage.md`. The four Foundry-side baselines are
@@ -1523,8 +1552,10 @@ actor, ruleset/pool/filter, console-clean) → **§7.5**. **Neither invokes Cypr
 13. **Future hardening, deliberately not built:** the server-arbitrated exactly-once commit via a
     GM-owned ledger, and the **keyed-object `xpLog` refactor** (**out of scope per D10**).
 
-**Verification:** GATE-LINT (L1/L2/L3); GATE-NODE (full suite green); GATE-IMPORTS `--cutover` clean;
-`git status` clean; the branch diff touches only files enumerated in this plan. **No Cypress run
+**Verification:** GATE-LINT (L1/L2/L3); GATE-NODE (full suite green); GATE-IMPORTS `--cutover`
+passing under DEV-17 (no **unpinned** findings; the pin list must still be exactly the Stage 1 entry
+unless the owner has approved another); `git status` clean; the branch diff touches only files
+enumerated in this plan. **No Cypress run
 here** — Stage 23 §7.6 owns the single post-change run (§8 sweep).
 **Commit:** `docs(char-creator): user guide, GM disambiguation procedure, recorded limitations`
 
