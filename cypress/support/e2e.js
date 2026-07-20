@@ -18,3 +18,17 @@ import "./commands";
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
+
+// FORK-LOCAL SAFETY GUARD — PC Wizard implementation plan v4, Stage 1.
+// Fails closed if the resolved baseUrl is not the expected local throwaway host,
+// so a mis-set override can never point the destructive specs at a live world.
+before(() => {
+  const expected = Cypress.env("expectBaseUrl");
+  const actual = Cypress.config("baseUrl");
+  if (!expected) {
+    throw new Error("Refusing to run: --env expectBaseUrl=<url> is required (see plan §0.3).");
+  }
+  if (actual !== expected) {
+    throw new Error(`Refusing to run: resolved baseUrl is ${actual}, expected ${expected}.`);
+  }
+});
