@@ -1,5 +1,6 @@
 import ModifierHelpers from "./modifiers.js";
 import {migrateDataToSystem} from "./migration.js";
+import {buildXpSpendEntry, buildXpEarnEntry} from "./xp-entry-builders.js";
 
 export default class ActorHelpers {
   static async updateActor(event, formData, { render = false } = {}) {
@@ -211,17 +212,7 @@ export default class ActorHelpers {
 export async function xpLogSpend(actor, action, cost, available, total, statusId=undefined) {
   const xpLog = actor.getFlag("starwarsffg", "xpLog") || [];
   const date = new Date().toISOString().slice(0, 10);
-  const newEntry = {
-    action: 'purchased',
-    id: statusId,
-    xp: {
-      cost: cost,
-      available: available,
-      total: total,
-    },
-    date: date,
-    description: action,
-  };
+  const newEntry = buildXpSpendEntry({ description: action, cost, available, total, statusId, date });
   await actor.setFlag("starwarsffg", "xpLog", [newEntry, ...xpLog]);
   await notifyXpSpend(actor, action);
 }
@@ -258,23 +249,8 @@ async function notifyXpSpend(actor, action) {
 export async function xpLogEarn(actor, grant, available, total, note, granter="GM", statusId=undefined) {
   const xpLog = actor.getFlag("starwarsffg", "xpLog") || [];
   const date = new Date().toISOString().slice(0, 10);
-  let action;
-  if (granter === "GM") {
-    action = "granted";
-  } else {
-    action = "adjusted";
-  }
-  const newEntry = {
-    action: action,
-    id: statusId, // XP grants are not done by Active Effects
-    xp: {
-      cost: grant,
-      available: available,
-      total: total,
-    },
-    date: date,
-    description: note,
-  };
+  // id is passed through because XP grants are not done by Active Effects
+  const newEntry = buildXpEarnEntry({ grant, available, total, note, statusId, date, granter });
   await actor.setFlag("starwarsffg", "xpLog", [newEntry, ...xpLog]);
 }
 
