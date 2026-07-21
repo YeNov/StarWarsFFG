@@ -5,7 +5,7 @@
 | **Status** | Draft v7 — final design artifact. In-system architecture (2026-07-20 pivot) confirmed sound by review round 6; this revision closes the three remaining mechanical findings R6-1 (entry-point wiring), R6-2 (deterministic embedded ids in preview), R6-3 (D9 notification lifecycle), and adopts the corrected brief §8 (the fork **has** a test harness). R5-1's cross-GM residual remains accepted product policy. Supersedes v1–v6 entirely. |
 | **Date** | 2026-07-20 |
 | **Author** | Design session (Claude), for product owner YeNov |
-| **Inputs** | [Requirements brief **v2** (2026-07-20, §8 corrected)](pc_wizard_requirements_brief.md) — BINDING; [Implementation audit](../../pc-wizard-implementation-audit.md); design reviews rounds 1–6; the `starwarsffg` fork source; the installed Foundry v13 core source |
+| **Inputs** | [Requirements brief **v2** (2026-07-20, §8 corrected)](pc_wizard_requirements_brief.md) — BINDING; the pre-pivot implementation audit (its issue register A–H / N-1..N-7 is fully carried into §6 here — the audit itself was the cancelled module-architecture spec and was removed in Phase 4 cleanup); design reviews rounds 1–6 (removed with the bounce scratch); the `starwarsffg` fork source; the installed Foundry v13 core source |
 | **Successor doc** | A separate step-by-step implementation plan (not this document) |
 
 ## 0. Grounding & verification status
