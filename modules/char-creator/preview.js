@@ -8,14 +8,14 @@
  * is the single root that assembles buildDeps. Verified live at Stage 23.
  *
  * The legacy wizard deleted and recreated a DB actor on every keystroke (the "trillion
- * temp actors" bug). This constructs an UNSAVED in-memory actor instead:
+ * throwaway actors" bug). This constructs an UNSAVED in-memory actor instead:
  *  - Preview actors are constructed only at/after `ready`. CONSTRUCTION IS PREPARATION.
  *  - Never call prepareData() a second time on a preview actor; if ever needed, reset()
  *    must precede it.
  *  - Each render builds a FRESH actor (with identical deterministic ids) and discards
  *    the previous one.
  *  - Zero DB writes, zero socket traffic, zero orphan actors, zero flicker while editing.
- *    The `temp actor - <user>` mechanism and its deleteCharacter cleanup have NO successor.
+ *    The old per-user throwaway-actor create/delete mechanism has NO successor.
  */
 
 import { applyBuild } from "./apply-build.js";

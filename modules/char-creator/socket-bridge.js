@@ -20,10 +20,21 @@ const seenStarts = new Set();
 const seenFinishes = new Set();
 
 /**
- * Register the wizard's socket listener once.
- * @param {{pending?: Map, onCommitResponse?: Function}} [hooks]
+ * Shared module-level session state, so the bridge can be registered ONCE at ready on
+ * every client (issue F / N-3) while the open wizard still receives its own ACKs and
+ * commit responses. The wizard writes its pending sessions here and installs a response
+ * handler; it does NOT register a second listener.
  */
-export function registerSocketBridge({ pending, onCommitResponse } = {}) {
+export const wizardPending = new Map();
+let commitResponseHandler = null;
+
+/** The open wizard installs its commit-response handler here (cleared with null on close). */
+export function setCommitResponseHandler(handler) {
+  commitResponseHandler = handler;
+}
+
+/** Register the wizard's socket listener once — called at ready on every client. */
+export function registerSocketBridge() {
   if (registered) return;
   registered = true;
 
@@ -35,13 +46,13 @@ export function registerSocketBridge({ pending, onCommitResponse } = {}) {
         await handleStartNotice(data, sender, seenStarts);
         break;
       case SOCKET_EVENTS.startNoticeAck:
-        if (pending) handleStartNoticeAck(data, sender, pending);
+        handleStartNoticeAck(data, sender, wizardPending);
         break;
       case SOCKET_EVENTS.commitRequest:
         if (game.user.id === game.users.activeGM?.id) await processCommitRequest(data, sender);
         break;
       case SOCKET_EVENTS.commitResponse:
-        onCommitResponse?.(data);
+        commitResponseHandler?.(data);
         break;
       default:
         break;

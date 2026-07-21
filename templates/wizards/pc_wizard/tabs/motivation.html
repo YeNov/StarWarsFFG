@@ -1,4 +1,4 @@
-<section class="tab-motivation">
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="motivation">
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.Motivation.Label" }}</p>
   {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
       (object rows=pools.motivation poolKey="motivation")}}

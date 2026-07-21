@@ -18,6 +18,10 @@
 
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 
+/** Placeholder name so a not-yet-named draft still constructs/validates (core fills the
+ *  prototypeToken name from this — actor.mjs:95 only derives it from a truthy name). */
+const DEFAULT_NAME = "New Character";
+
 /**
  * Build the actor source from a wizard draft.
  * @param {object} data  the wizard state
@@ -31,7 +35,7 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   //    ActorFFG.create's token block, so the partial prototypeToken (NO name /
   //    texture.src) and the default image must be set here explicitly.
   const actorData = {
-    name: data.identity.name,
+    name: data.identity.name || DEFAULT_NAME,
     type: "character",
     img: data.identity.img || creationDefaults.img,
     system: foundry.utils.deepClone(creationDefaults.system),

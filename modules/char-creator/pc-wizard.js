@@ -23,7 +23,7 @@ import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { loadSource } from "./load-source.js";
 import { DraftStore } from "./draft-store.js";
 import { NewerSchemaError, CorruptDraftError } from "./draft-schema.js";
-import { registerSocketBridge, emitCommitRequest } from "./socket-bridge.js";
+import { emitCommitRequest, wizardPending, setCommitResponseHandler } from "./socket-bridge.js";
 import { mintSessionNoticeId, emitStartNotice, showSubmitToast } from "./notify.js";
 import { setPending, clearPending } from "./notify-policy.js";
 import { COMMIT_TIMEOUT_MS } from "./constants.js";
@@ -100,7 +100,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   #commitPhase = "editing";
   #draft = { commit: null };
-  #pending = new Map();
   #sessionNoticeId = mintSessionNoticeId();
   #pools = {};
   #commitTimer = null;
@@ -118,7 +117,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
     this.draftStore = new DraftStore();
     this.data = createInitialData();
-    registerSocketBridge({ pending: this.#pending, onCommitResponse: (response) => this._onCommitResponse(response) });
+    // The listener is registered once at ready (swffg-main); the open wizard only installs
+    // its response handler and shares the module-level pending map.
+    setCommitResponseHandler((response) => this._onCommitResponse(response));
   }
 
   /** @override */
@@ -141,6 +142,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
 
     return {
+      tabs: this._prepareTabs("primary"),
       data: this.data,
       pools: this.#pools,
       isForceAndDestiny: this.data.selected.rules === "fad",
@@ -154,6 +156,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       warnings: validation.warnings,
       actor: preview,
     };
+  }
+
+  /** @override — hand each tabbed part its active-tab descriptor so it can show/hide. */
+  async _preparePartContext(partId, context, options) {
+    const partContext = await super._preparePartContext(partId, context, options);
+    partContext.tab = partContext.tabs?.[partId];
+    return partContext;
   }
 
   /** @override — bind change/input listeners per part, scoped to the part element (issue B). */
@@ -284,7 +293,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       this.draftStore.setCommit(this.#draft.commit);
     }
 
-    setPending(this.#pending, this.#sessionNoticeId, { commitId: this.data.commitId });
+    setPending(wizardPending, this.#sessionNoticeId, { commitId: this.data.commitId });
     emitStartNotice(this.#sessionNoticeId, this.data.commitId); // unconditional preCommit flush
     await this.draftStore.saveNow({ data: this.data, commit: this.#draft.commit });
 
@@ -319,7 +328,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override — preserve the minimized-animation guard verbatim, then D9 cleanup + a final save. */
   async close(options = {}) {
-    clearPending(this.#pending, this.#sessionNoticeId);
+    clearPending(wizardPending, this.#sessionNoticeId);
     if (this.#commitPhase === "editing") {
       this.draftStore.unlock();
       await this.draftStore.saveNow({ data: this.data, commit: this.#draft.commit });
