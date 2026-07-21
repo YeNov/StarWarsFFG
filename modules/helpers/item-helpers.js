@@ -423,6 +423,72 @@ export default class ItemHelpers {
   }
 
   /**
+   * Materialize a tree item's purchased nodes on a plain item SOURCE (no document),
+   * for the PC wizard's in-memory build. Deep-clones the source, sets `islearned` for
+   * the purchased node keys (specialization → system.talents; forcepower /
+   * signatureability → system.upgrades, per the syncAEStatus dispatch), then reconciles
+   * the clone's `effects` with the SAME pure algorithm the sheet uses
+   * (reconcileTreeEffects). N-7: flipping `islearned` alone leaves a node stat-inert —
+   * the effects must be re-synced so learned nodes are enabled.
+   *
+   * The production wizard binds this by injection through build-deps.js (DEV-16); the
+   * wizard's to-item-data.js must never import this poisoned module directly.
+   *
+   * @param {object} itemSource   a plain item source (e.g. a SelectionRef snapshot)
+   * @param {string[]} learnedKeys  purchased node keys
+   * @returns {object} a new, materialized item source
+   */
+  static materializeTreePurchases(itemSource, learnedKeys) {
+    const source = foundry.utils.deepClone(itemSource);
+
+    let treeKey;
+    let nodeLabel;
+    if (source.type === "specialization") {
+      treeKey = "talents";
+      nodeLabel = "talent";
+    } else if (source.type === "forcepower" || source.type === "signatureability") {
+      treeKey = "upgrades";
+      nodeLabel = "upgrade";
+    } else {
+      return source; // not a tree item — nothing to materialize
+    }
+
+    const tree = source.system?.[treeKey] ?? {};
+    const learned = new Set(learnedKeys ?? []);
+    for (const nodeKey of Object.keys(tree)) {
+      if (nodeKey.startsWith("-=")) continue;
+      tree[nodeKey].islearned = learned.has(nodeKey);
+    }
+
+    const existingEffects = Array.isArray(source.effects) ? source.effects : (source.effects = []);
+    const effectSources = existingEffects.map((effect) => ({
+      id: effect._id,
+      name: effect.name,
+      flags: effect.flags ?? {},
+    }));
+    const { updates, creates } = ItemHelpers.reconcileTreeEffects(effectSources, tree, nodeLabel, source.img);
+
+    const byId = new Map(existingEffects.map((effect) => [effect._id, effect]));
+    for (const patch of updates) {
+      const effect = byId.get(patch.id);
+      effect.changes = patch.changes;
+      effect.disabled = patch.disabled;
+      effect.flags = patch.flags;
+    }
+    for (const create of creates) {
+      existingEffects.push({
+        name: create.name,
+        img: create.img,
+        changes: create.changes,
+        disabled: create.disabled,
+        flags: create.flags,
+      });
+    }
+
+    return source;
+  }
+
+  /**
    * Convert a modifier attribute into Active Effect changes.
    *
    * @param attribute
