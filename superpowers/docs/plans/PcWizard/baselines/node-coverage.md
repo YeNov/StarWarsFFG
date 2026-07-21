@@ -55,22 +55,34 @@ none of which ESLint sees.
 
 Plan work item 3 requires confirming **by execution** which modules import cleanly in Node once
 `modules/package.json` exists. Every row below was observed by importing the module in its own
-child process. All eight §0.6.1 verdicts are confirmed; none was contradicted.
+child process.
 
-| Module | Observed | §0.6.1 predicts |
+> **UPDATED 2026-07-21 — the poison chain was deliberately untangled** (owner-requested, before
+> Stage 2). `helpers/modifiers.js` now imports `popout-modifiers.js` **lazily** (two async UI
+> handlers), and `actors/actor-ffg.js`'s **dead** `PopoutEditor` import was removed. The original
+> §0.6.1 verdicts (all six "POISONED") were correct **at capture**; three have since changed by
+> design. The table below is the CURRENT observed state; the standing test
+> `tests/node/import-graph.test.mjs` asserts exactly this.
+
+| Module | Observed (current) | Category |
 |---|---|---|
-| `modules/apps/ffg-form-application.js` | `ReferenceError: foundry is not defined` | POISON ROOT ✔ |
-| `modules/popout-modifiers.js` | `ReferenceError: foundry is not defined` | POISONED ✔ |
-| `modules/helpers/modifiers.js` | `ReferenceError: foundry is not defined` | POISONED ✔ |
-| `modules/helpers/actor-helpers.js` | `ReferenceError: foundry is not defined` | POISONED ✔ |
-| `modules/helpers/item-helpers.js` | `ReferenceError: foundry is not defined` | POISONED ✔ |
-| `modules/actors/actor-ffg.js` | `ReferenceError: foundry is not defined` | POISONED ✔ |
+| `modules/apps/ffg-form-application.js` | `ReferenceError: foundry is not defined` | POISON ROOT (UI, not a Node target) ✔ |
+| `modules/popout-modifiers.js` | `ReferenceError: foundry is not defined` | POISONED (UI, not a Node target) ✔ |
+| `modules/helpers/modifiers.js` | imports cleanly | **UNPOISONED 2026-07-21** (lazy import) ✔ |
+| `modules/helpers/actor-helpers.js` | imports cleanly | **UNPOISONED 2026-07-21** (was transitive) ✔ |
+| `modules/helpers/item-helpers.js` | imports cleanly | **UNPOISONED 2026-07-21** (was transitive) ✔ |
+| `modules/actors/actor-ffg.js` | `ReferenceError: Actor is not defined` | **poison cut, but `extends Actor` global** — still not Node-importable (inherent) ✔ |
 | `modules/config/ffg-active-effect-modes.js` | imports cleanly | CLEAN ✔ |
 | `modules/config/ffg-character-creator.js` | imports cleanly | CLEAN ✔ |
 
-The two poison-chain intermediates (`ffg-form-application.js`, `popout-modifiers.js`) were probed
-here for the first time; the owner's own reference measurement covered the other six and agrees
-with all six.
+**Plan implication, flagged not applied:** with `actor-helpers`/`item-helpers` now importable and
+`actor-ffg` no longer *foundry*-poisoned (though still not importable), the premises behind DEV-14,
+DEV-15 and GATE-IMPORTS rule 7 have partly dissolved — exactly the collapse the plan anticipated
+("if the poisoned chain is ever untangled, the injections could collapse back into plain imports").
+`applyCharacteristicDeltas`/`getActorCreationDefaults` live in `actor-ffg.js` and **must stay
+injected** (still not importable). The tree materializer (`item-helpers.js`) and the XP builders
+(`actor-helpers.js`) **could** become plain imports. Whether to simplify is a Stage-2 design
+decision — **left to the owner, not auto-applied here.**
 
 **This sweep is no longer a one-off measurement.** It now lives as
 `tests/node/import-graph.test.mjs` and runs on every `npm test`. The reason it became a standing

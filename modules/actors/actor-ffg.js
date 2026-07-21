@@ -1,4 +1,3 @@
-import PopoutEditor from "../popout-editor.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 
 /**
@@ -285,6 +284,10 @@ export class ActorFFG extends Actor {
 
   _prepareSharedData(actorData) {
     const data = actorData.system;
+    // If the line below is ever restored, import PopoutEditor LAZILY (await
+    // import("../popout-editor.js")) inside an async caller — a module-scope
+    // import re-poisons this file for Node (popout-editor.js destructures
+    // foundry.applications.api at load). See helpers/modifiers.js for the pattern.
     //data.biography = PopoutEditor.replaceRollTags(data.biography, actorData);
 
     // localize characteristic names
