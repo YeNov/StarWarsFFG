@@ -447,9 +447,12 @@ Stage 18 as a one-line shim:
 export { CharacterCreator } from "../char-creator/pc-wizard.js";
 ```
 
-Both importers stay **unchanged**. The minimized-close behaviour asserted by
-`tests/v2-migration/minimized-close.test.js:17-55` (implemented today at
-`modules/helpers/character-creator.js:199-202`) must be **preserved verbatim**.
+Both importers stay **unchanged**. The minimized-close behaviour at
+`modules/helpers/character-creator.js:199-202` must be **preserved verbatim** in the new
+`pc-wizard.js`. NB: the assertions in `minimized-close.test.js:17-55` do **not** currently exercise
+that behaviour — the suite is baselined RED on stale setup (§7.2, owner decision 2026-07-21). The
+shim-resolution protection survives (see §7.2); the behaviour itself is only re-verified live at the
+Stage 18 `GATE-CUTOVER-BOOT` render check.
 
 > **Do not confuse these with unrelated files that legitimately survive:**
 > `modules/config/ffg-character-creator.js` and `modules/helpers/gm-bridge.js` (which mentions
@@ -692,7 +695,11 @@ stops before Stage 2.**
 #### Path A — ordinary capture against the current (unmodified) tree
 
 1. **GATE-MOCHA baseline** (invocation in §7.2): record the total pass count and **the identity of
-   every failing test** → `baselines/mocha-baseline.json`. Expect roughly ~47 pass / ~2 fail.
+   every failing test** → `baselines/mocha-baseline.json`. **MEASURED 2026-07-21: 77 pass / 19 fail**
+   (an earlier "~47/~2" estimate was wrong — captured, not assumed). The 19 = 2 known-stale Modifier
+   tests + 1 Replace-Die (a different in-flight feature) + **all 16 `minimized-close` cases**, which
+   fail on stale test *setup* (`app.form = null` at `minimized-close.test.js:31`; `.form` is
+   getter-only in this Foundry). **Owner decision 2026-07-21: baseline as-is, do NOT fix the test.**
 2. **Console baseline**: load the world, record every existing console error/warning →
    `baselines/console-baseline.txt`. **This is the file Stage 18 compares against.**
 3. **GATE-CYPRESS baseline**, against the owner's normal instance on **port 30000**:
@@ -703,10 +710,17 @@ stops before Stage 2.**
       ```bash
       npx cypress run --env baseUrl=http://localhost:30000,expectBaseUrl=http://localhost:30000
       ```
-   3. Record the result → `baselines/cypress-baseline.txt`. **These three upstream specs have never
-      been run against this fork and may be red.** If so, record the exact failures and decide: adopt
-      the red baseline as the comparison reference, or repair the specs as separately scoped work.
-      **Record, do not silently adopt.**
+   3. Record the result → `baselines/cypress-baseline.txt`. **CAPTURED 2026-07-21: `3/3` failed
+      (100%), all in setup / before-hooks** — `00_init` on `(intermediate value).difference is not a
+      function` (ES2024 `Set.difference`; likely Cypress's older Chromium), `01`/`02` cascade
+      (no `/join` screen → `select[name="userid"]` timeout). The guard held (targeted 30000, no
+      `Refusing`). **Owner decision 2026-07-21: ADOPT the `3/3`-red baseline as the Stage 18/23
+      reference; the spec repair is tracked as [#30](https://github.com/YeNov/StarWarsFFG/issues/30),
+      separate world-dependent work.** ⚠ **Consequence, recorded not hidden:** with all specs dying in
+      setup, GATE-CYPRESS is **mostly inert** — at Stage 18/23 it can only assert "still broken the
+      same way," and cannot catch a regression in the entity/item behaviour the specs never reach.
+      It becomes a real regression gate only once #30 lands and the baseline is re-captured
+      deliberately.
    4. **The run leaves the throwaway world active** — return Foundry to `/setup` before any later
       Cypress run (§0.12).
 4. **Playwright inventory**: `npx playwright test --list` → `baselines/playwright-inventory.txt`.
@@ -1605,8 +1619,15 @@ The `?v=` is the cache-buster. **Importing alone runs nothing** — mocha runs i
 (`tests/ffg-tests.js:32-33`), i.e. on **render**. Read failures from the JSON reporter blob —
 **`Error` properties are non-enumerable**.
 
-- **`tests/v2-migration/minimized-close.test.js` must pass.**
-- Pass condition: failure set **identical to `baselines/mocha-baseline.json`**.
+- **`tests/v2-migration/minimized-close.test.js` is baselined RED** (16 failures, stale setup — see
+  `mocha-baseline.json`; owner decision 2026-07-21, not fixed). It still guards the cutover: the file
+  **imports `CharacterCreator` through the shim**, so a broken shim fails the import and collapses the
+  **whole** harness to a different signature (all tests fail to load), which the identical-failure-set
+  gate catches loudly. What is NOT covered is the minimized-close *behaviour* assertion — already dead
+  because setup throws before it runs. If the stale test is ever repaired, its failure set changes and
+  this gate fires — the intended prompt to re-baseline deliberately.
+- Pass condition: failure set **identical to `baselines/mocha-baseline.json`** (the operative gate —
+  supersedes any "must pass" phrasing elsewhere).
 
 ### 7.3 Parity and behaviour (design §11-3, §11-4, §11-6)
 

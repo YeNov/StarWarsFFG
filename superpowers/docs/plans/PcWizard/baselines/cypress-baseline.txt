@@ -1,0 +1,182 @@
+
+D:\SW FFG\Portable FVTT\Data\systems\starwarsffg>npx cypress run --env baseUrl=http://localhost:30000,expectBaseUrl=http://localhost:30000
+It looks like this is your first time using Cypress: 13.14.2
+
+√  Verified Cypress! C:\Users\novak\AppData\Local\Cypress\Cache\13.14.2\Cypress
+
+Opening Cypress...
+
+
+DevTools listening on ws://127.0.0.1:60222/devtools/browser/b29f2cfa-6193-4b2f-ab43-6b6f6d5fccee
+Couldn't find tsconfig.json. tsconfig-paths will be skipped
+
+====================================================================================================
+
+  (Run Starting)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Cypress:        13.14.2                                                                        │
+  │ Browser:        Electron 118 (headless)                                                        │
+  │ Node Version:   v24.15.0 (D:\Program Files\nodejs\node.exe)                                    │
+  │ Specs:          3 found (00_init.cy.js, 01_create_entities.cy.js, 02_test_items.cy.js)         │
+  │ Searched:       cypress/e2e/**/*.cy.{js,jsx,ts,tsx}                                            │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Running:  00_init.cy.js                                                                   (1 of 3)
+
+
+  ffg-star-wars init
+    1) "before all" hook for "initializes the world"
+
+
+  0 passing (929ms)
+  1 failing
+
+  1) ffg-star-wars init
+       "before all" hook for "initializes the world":
+     TypeError: The following error originated from your application code, not from Cypress.
+
+  > (intermediate value).difference is not a function
+
+When Cypress detects uncaught errors originating from your application it will automatically fail the current test.
+
+This behavior is configurable, and you can choose to turn this off by listening to the `uncaught:exception` event.
+
+https://on.cypress.io/uncaught-exception-from-application
+
+Because this error occurred during a `before all` hook we are skipping the remaining tests in the current suite: `ffg-star-wars init`
+      at <static_initializer> (http://localhost:30000/scripts/foundry.mjs:74696:67)
+      at <unknown> (http://localhost:30000/scripts/foundry.mjs:74660:35)
+
+
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        1                                                                                │
+  │ Passing:      0                                                                                │
+  │ Failing:      1                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  1                                                                                │
+  │ Video:        false                                                                            │
+  │ Duration:     0 seconds                                                                        │
+  │ Spec Ran:     00_init.cy.js                                                                    │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+  (Screenshots)
+
+  -  D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\cypress\screenshots\00_init.cy.     (1280x720)
+     js\ffg-star-wars init -- initializes the world -- before all hook (failed).png
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Running:  01_create_entities.cy.js                                                        (2 of 3)
+
+
+  ffg-star-wars create entities
+
+    1) "before each" hook for "creates actors"
+
+
+  0 passing (1m)
+  1 failing
+
+  1) ffg-star-wars create entities
+       "before each" hook for "creates actors":
+     AssertionError: Timed out retrying after 60000ms: Expected to find element: `select[name="userid"]`, but never found it.
+
+Because this error occurred during a `before each` hook we are skipping the remaining tests in the current suite: `ffg-star-wars create entities`
+      at join (webpack://starwarsffg/./cypress/support/commands.js:142:7)
+      at Context.eval (webpack://starwarsffg/./cypress/support/commands.js:176:4)
+
+
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        1                                                                                │
+  │ Passing:      0                                                                                │
+  │ Failing:      1                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  1                                                                                │
+  │ Video:        false                                                                            │
+  │ Duration:     1 minute, 0 seconds                                                              │
+  │ Spec Ran:     01_create_entities.cy.js                                                         │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+  (Screenshots)
+
+  -  D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\cypress\screenshots\01_create_e     (1280x720)
+     ntities.cy.js\ffg-star-wars create entities -- creates actors -- before each hoo
+     k (failed).png
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Running:  02_test_items.cy.js                                                             (3 of 3)
+
+
+  ffg-star-wars create items
+    1) "before each" hook for "sets up the folder"
+
+
+  0 passing (1m)
+  1 failing
+
+  1) ffg-star-wars create items
+       "before each" hook for "sets up the folder":
+     AssertionError: Timed out retrying after 60000ms: Expected to find element: `select[name="userid"]`, but never found it.
+
+Because this error occurred during a `before each` hook we are skipping the remaining tests in the current suite: `ffg-star-wars create items`
+      at join (webpack://starwarsffg/./cypress/support/commands.js:142:7)
+      at Context.eval (webpack://starwarsffg/./cypress/support/commands.js:176:4)
+
+
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        1                                                                                │
+  │ Passing:      0                                                                                │
+  │ Failing:      1                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  1                                                                                │
+  │ Video:        false                                                                            │
+  │ Duration:     1 minute, 0 seconds                                                              │
+  │ Spec Ran:     02_test_items.cy.js                                                              │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+  (Screenshots)
+
+  -  D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\cypress\screenshots\02_test_ite     (1280x720)
+     ms.cy.js\ffg-star-wars create items -- sets up the folder -- before each hook (f
+     ailed).png
+
+
+====================================================================================================
+
+  (Run Finished)
+
+
+       Spec                                              Tests  Passing  Failing  Pending  Skipped
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ ×  00_init.cy.js                            930ms        1        -        1        -        - │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ×  01_create_entities.cy.js                 01:00        1        -        1        -        - │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ×  02_test_items.cy.js                      01:00        1        -        1        -        - │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+    ×  3 of 3 failed (100%)                     02:01        3        -        3        -        -

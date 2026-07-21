@@ -1,0 +1,285 @@
+foundry.mjs:6727 Error: You are accessing the global "BaseSamplerShader" which is now namespaced under foundry.canvas.rendering.shaders.BaseSamplerShader
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at helpers.js:184:33
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+(anonymous) @ helpers.js:184
+foundry.mjs:6727 Error: You are accessing the global "ActiveEffectConfig" which is now namespaced under foundry.applications.sheets.ActiveEffectConfig
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at enhanced-effect-config.js:1:51
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+(anonymous) @ enhanced-effect-config.js:1
+foundry.mjs:6727 Error: You are accessing the global "ClientSettings" which is now namespaced under foundry.helpers.ClientSettings
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at initWorldToClient (worldToClient.js:14:5)
+    at main.js:19:1
+    at main.js:39:1
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+initWorldToClient @ worldToClient.js:14
+(anonymous) @ main.js:19
+(anonymous) @ main.js:39
+foundry.mjs:6727 Error: You are accessing the global "ClientSettings" which is now namespaced under foundry.helpers.ClientSettings
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at wrapRegister (worldToClient.js:54:5)
+    at initWorldToClient (worldToClient.js:16:5)
+    at main.js:19:1
+    at main.js:39:1
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+wrapRegister @ worldToClient.js:54
+initWorldToClient @ worldToClient.js:16
+(anonymous) @ main.js:19
+(anonymous) @ main.js:39
+foundry.mjs:6727 Error: You are accessing the global "ClientSettings" which is now namespaced under foundry.helpers.ClientSettings
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at unwrapRegister (worldToClient.js:73:5)
+    at updateRegisterWrapper (worldToClient.js:28:9)
+    at ClientSettings.registerFirst (worldToClient.js:50:5)
+    at ClientSettings.register (worldToClient.js:56:27)
+    at LibWrapperSettings.init (libWrapper-settings.js:77:17)
+    at 🎁libWrapperInit (libWrapper-api.js:810:23)
+    at 🎁call_listeners [as call_listeners] (libWrapper-wrapper.js:767:7)
+    at 🎁foundry.Game.prototype.initialize#0 (libWrapper-wrapper.js:184:12)
+    at window.addEventListener.once (foundry.mjs:181096:25)
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+unwrapRegister @ worldToClient.js:73
+updateRegisterWrapper @ worldToClient.js:28
+registerFirst @ worldToClient.js:50
+ClientSettings.register @ worldToClient.js:56
+init @ libWrapper-settings.js:77
+🎁libWrapperInit @ libWrapper-api.js:810
+🎁call_listeners @ libWrapper-wrapper.js:767
+🎁foundry.Game.prototype.initialize#0 @ libWrapper-wrapper.js:184
+window.addEventListener.once @ foundry.mjs:181096
+foundry.mjs:6727 Error: You are accessing the global "CanvasOcclusionMask" which is now namespaced under foundry.canvas.layers.CanvasOcclusionMask
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at libWrapper-misc.js:16:10
+    at ue (libWrapper-api.js:133:16)
+    at ge (libWrapper-api.js:152:19)
+    at 🎁register [as register] (libWrapper-api.js:539:14)
+    at Object.fn (occlusionlink.js:2:14)
+    at #call (foundry.mjs:23832:20)
+    at Hooks.callAll (foundry.mjs:23791:17)
+    at Game.initialize (foundry.mjs:169006:13)
+    at 🎁foundry.Game.prototype.initialize#0 (libWrapper-wrapper.js:188:54)
+    at window.addEventListener.once (foundry.mjs:181096:25)
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+(anonymous) @ libWrapper-misc.js:16
+ue @ libWrapper-api.js:133
+ge @ libWrapper-api.js:152
+🎁register @ libWrapper-api.js:539
+(anonymous) @ occlusionlink.js:2
+#call @ foundry.mjs:23832
+callAll @ foundry.mjs:23791
+initialize @ foundry.mjs:169006
+🎁foundry.Game.prototype.initialize#0 @ libWrapper-wrapper.js:188
+window.addEventListener.once @ foundry.mjs:181096
+foundry.mjs:6727 Error: The V1 Application framework is deprecated, and will be removed in a later core software version. Please use the V2 version of the Application framework available under foundry.applications.api.ApplicationV2.
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 16
+    at Object.logCompatibilityWarning (foundry.mjs:6715:17)
+    at new Application (foundry.mjs:37008:21)
+    at new FormApplication (foundry.mjs:38040:5)
+    at new LevelsUI (ui.js:3:5)
+    at Object.fn (config.js:118:24)
+    at #call (foundry.mjs:23832:20)
+    at Hooks.callAll (foundry.mjs:23791:17)
+    at Game.initialize (foundry.mjs:169006:13)
+    at 🎁foundry.Game.prototype.initialize#0 (libWrapper-wrapper.js:188:54)
+    at window.addEventListener.once (foundry.mjs:181096:25)
+logCompatibilityWarning @ foundry.mjs:6727
+Application @ foundry.mjs:37008
+FormApplication @ foundry.mjs:38040
+LevelsUI @ ui.js:3
+(anonymous) @ config.js:118
+#call @ foundry.mjs:23832
+callAll @ foundry.mjs:23791
+initialize @ foundry.mjs:169006
+🎁foundry.Game.prototype.initialize#0 @ libWrapper-wrapper.js:188
+window.addEventListener.once @ foundry.mjs:181096
+foundry.mjs:6727 Error: You are accessing the global "loadTemplates" which is now namespaced under foundry.applications.handlebars.loadTemplates
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at Sidekick.loadTemplates (sidekick.js:134:3)
+    at Object.fn (condition-lab-triggler.js:32:11)
+    at #call (foundry.mjs:23832:20)
+    at Hooks.callAll (foundry.mjs:23791:17)
+    at Localization.initialize (foundry.mjs:167566:13)
+    at async Game.initialize (foundry.mjs:169017:5)
+    at async window.addEventListener.once (foundry.mjs:181096:3)
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+loadTemplates @ sidekick.js:134
+(anonymous) @ condition-lab-triggler.js:32
+#call @ foundry.mjs:23832
+callAll @ foundry.mjs:23791
+initialize @ foundry.mjs:167566
+await in initialize
+initialize @ foundry.mjs:169017
+🎁foundry.Game.prototype.initialize#0 @ libWrapper-wrapper.js:188
+window.addEventListener.once @ foundry.mjs:181096
+foundry.mjs:6727 Error: You are accessing the global "Token" which is now namespaced under foundry.canvas.placeables.Token
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at libWrapper-misc.js:16:10
+    at ue (libWrapper-api.js:133:16)
+    at ge (libWrapper-api.js:152:19)
+    at 🎁register [as register] (libWrapper-api.js:539:14)
+    at Object.fn (condition-lab-triggler.js:72:14)
+    at #call (foundry.mjs:23832:20)
+    at Hooks.callAll (foundry.mjs:23791:17)
+    at Localization.initialize (foundry.mjs:167566:13)
+    at async Game.initialize (foundry.mjs:169017:5)
+    at async window.addEventListener.once (foundry.mjs:181096:3)
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+(anonymous) @ libWrapper-misc.js:16
+ue @ libWrapper-api.js:133
+ge @ libWrapper-api.js:152
+🎁register @ libWrapper-api.js:539
+(anonymous) @ condition-lab-triggler.js:72
+#call @ foundry.mjs:23832
+callAll @ foundry.mjs:23791
+initialize @ foundry.mjs:167566
+await in initialize
+initialize @ foundry.mjs:169017
+🎁foundry.Game.prototype.initialize#0 @ libWrapper-wrapper.js:188
+window.addEventListener.once @ foundry.mjs:181096
+foundry.mjs:6727 Error: The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead, which now passes an HTMLElement argument instead of jQuery.
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at Object.logCompatibilityWarning (foundry.mjs:6715:17)
+    at ChatMessage.renderHTML (foundry.mjs:43281:21)
+    at async #doRenderBatch (foundry.mjs:102325:23)
+    at async #try (foundry.mjs:7169:17)
+logCompatibilityWarning @ foundry.mjs:6727
+renderHTML @ foundry.mjs:43281
+await in renderHTML
+renderMessage @ foundry.mjs:103515
+#doRenderBatch @ foundry.mjs:102325
+#try @ foundry.mjs:7169
+(anonymous) @ foundry.mjs:7142
+add @ foundry.mjs:7140
+renderBatch @ foundry.mjs:103209
+_onFirstRender @ foundry.mjs:102408
+await in _onFirstRender
+_doEvent @ foundry.mjs:27926
+#render @ foundry.mjs:27261
+await in #render
+#try @ foundry.mjs:7169
+(anonymous) @ foundry.mjs:7142
+add @ foundry.mjs:7140
+render @ foundry.mjs:27190
+render @ foundry.mjs:101978
+#renderTabs @ foundry.mjs:113770
+_onFirstRender @ foundry.mjs:113710
+await in _onFirstRender
+_doEvent @ foundry.mjs:27926
+#render @ foundry.mjs:27261
+foundry.mjs:6727 Error: You are accessing the global "FilePicker" which is now namespaced under foundry.applications.apps.FilePicker.implementation
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at Sidekick.fetchJsons (sidekick.js:13:14)
+    at EnhancedConditions._loadDefaultMaps (enhanced-conditions.js:328:32)
+    at Object.fn (condition-lab-triggler.js:147:42)
+    at #call (foundry.mjs:23832:20)
+    at Hooks.callAll (foundry.mjs:23791:17)
+    at Game.setupGame (foundry.mjs:169132:13)
+    at async #initializeGameView (foundry.mjs:170576:5)
+    at async Game.initialize (foundry.mjs:169026:5)
+    at async window.addEventListener.once (foundry.mjs:181096:3)
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+fetchJsons @ sidekick.js:13
+_loadDefaultMaps @ enhanced-conditions.js:328
+(anonymous) @ condition-lab-triggler.js:147
+#call @ foundry.mjs:23832
+callAll @ foundry.mjs:23791
+setupGame @ foundry.mjs:169132
+foundry.mjs:6727 Error: You are accessing the global "renderTemplate" which is now namespaced under foundry.applications.handlebars.renderTemplate
+Deprecated since Version 13
+Backwards-compatible support will be removed in Version 15
+    at logCompatibilityWarning (foundry.mjs:6715:17)
+    at get (foundry.mjs:181053:9)
+    at TheRipperPremiumHUB._callee4$ (TheRipperPremiumHUB.js:127:28)
+    at tryCatch (TheRipperPremiumHUB.js:2:1)
+    at Generator.<anonymous> (TheRipperPremiumHUB.js:2:1)
+    at Generator.next (TheRipperPremiumHUB.js:2:1)
+    at TheRipperPremiumHUB_asyncGeneratorStep (TheRipperPremiumHUB.js:2:1)
+    at _next (TheRipperPremiumHUB.js:2:1)
+    at TheRipperPremiumHUB.js:2:1
+    at new Promise (<anonymous>)
+    at TheRipperPremiumHUB.<anonymous> (TheRipperPremiumHUB.js:2:1)
+    at TheRipperPremiumHUB.displayAnnouncements (TheRipperPremiumHUB.js:141:6)
+    at TheRipperPremiumHUB._callee$ (TheRipperPremiumHUB.js:73:14)
+    at tryCatch (TheRipperPremiumHUB.js:2:1)
+    at Generator.<anonymous> (TheRipperPremiumHUB.js:2:1)
+    at Generator.next (TheRipperPremiumHUB.js:2:1)
+    at TheRipperPremiumHUB_asyncGeneratorStep (TheRipperPremiumHUB.js:2:1)
+    at _next (TheRipperPremiumHUB.js:2:1)
+logCompatibilityWarning @ foundry.mjs:6727
+get @ foundry.mjs:181053
+_callee4$ @ TheRipperPremiumHUB.js:127
+tryCatch @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+TheRipperPremiumHUB_asyncGeneratorStep @ TheRipperPremiumHUB.js:2
+_next @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+displayAnnouncements @ TheRipperPremiumHUB.js:141
+_callee$ @ TheRipperPremiumHUB.js:73
+tryCatch @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+TheRipperPremiumHUB_asyncGeneratorStep @ TheRipperPremiumHUB.js:2
+_next @ TheRipperPremiumHUB.js:2
+Promise.then
+TheRipperPremiumHUB_asyncGeneratorStep @ TheRipperPremiumHUB.js:2
+_next @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+(anonymous) @ TheRipperPremiumHUB.js:2
+init @ TheRipperPremiumHUB.js:74
+TheRipperPremiumHUB @ TheRipperPremiumHUB.js:9
+(anonymous) @ main.js:38
+#call @ foundry.mjs:23832
+callAll @ foundry.mjs:23791
+setupGame @ foundry.mjs:169132
+data-access.ts:1512 [foundry-mcp-bridge] Failed to rebuild enhanced creature index: Error: Enhanced creature index not supported for system: starwarsffg. Only D&D 5e, Pathfinder 2e, and Cosmere RPG are currently supported.
+    at PersistentCreatureIndex.buildEnhancedIndex (data-access.ts:607:13)
+    at PersistentCreatureIndex.rebuildIndex (data-access.ts:338:23)
+    at FoundryDataAccess.rebuildEnhancedCreatureIndex (data-access.ts:1505:52)
+    at FoundryMCPBridge.checkAndBuildEnhancedIndex (main.ts:138:49)
+    at async FoundryMCPBridge.onReady (main.ts:97:7)
+    at async Object.fn (main.ts:515:5)
+rebuildEnhancedCreatureIndex @ data-access.ts:1512
+await in rebuildEnhancedCreatureIndex
+checkAndBuildEnhancedIndex @ main.ts:138

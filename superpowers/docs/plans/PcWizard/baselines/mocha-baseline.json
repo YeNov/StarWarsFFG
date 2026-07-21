@@ -1,0 +1,127 @@
+{
+  "_provenance": "Stage 1H GATE-MOCHA baseline. Transcribed by Claude from a screenshot of the in-Foundry Functional Tests window (the window does not permit text copy). OCR/transcription risk applies — if a later diff shows a one-character discrepancy in a test title or line number, suspect transcription before assuming a real change.",
+  "_capturedAt": "2026-07-21",
+  "_tree": "pc-wizard-rewrite @ a7d81e58 (untouched by wizard code — Stage 1 added only test tooling)",
+  "_invocation": "F12 console as GM after hard reload: await import('/systems/starwarsffg/tests/ffg-tests.js?v='+Date.now()); new mod.default(); tester.render(true)",
+  "_note": "This differs materially from the plan's §7.2 assumption of '~47 pass / ~2 fail' and its claim that minimized-close.test.js passes. See the two flagged findings in the accompanying report. The counts here are the actual observed baseline; the plan text was an unverified estimate.",
+  "totals": {
+    "passes": 77,
+    "failures": 19
+  },
+  "failures": [
+    {
+      "suite": "Replace Die",
+      "title": "spliceReplacement (live): cross-denom split produces real, serializable RollTerms in order",
+      "error": "AssertionError: expected 3 to equal 5",
+      "at": "tests/replace-die.test.js:229:34"
+    },
+    {
+      "suite": "Modifier Helpers",
+      "title": "Should calculate value from attributes and items",
+      "error": "TypeError: ModifierHelpers.getCalculateValueForAttribute is not a function",
+      "at": "tests/modifiers.test.js:828:35"
+    },
+    {
+      "suite": "Modifier Helpers",
+      "title": "Should calculate the base values based only on species",
+      "error": "TypeError: Cannot read properties of undefined (reading 'attributes')",
+      "at": "modules/helpers/modifiers.js:214:54 (Array.forEach) <- getBaseValue modifiers.js:212:11 <- tests/modifiers.test.js:1646:35"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "document sheets close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<FFGDocumentSheet> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "document sheets keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<FFGDocumentSheet> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "form applications close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "form applications keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "data importer close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "data importer keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "SWA importer close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "SWA importer keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "skill-list importer close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "skill-list importer keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "character creator close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "character creator keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "pop-out editor close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "pop-out editor keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "roll builder close instantly when already minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :51:29"
+    },
+    {
+      "suite": "V2 Migration - Minimized Close",
+      "title": "roll builder keep normal close animation when not minimized",
+      "error": "TypeError: Cannot set property form of #<ApplicationV2> which has only a getter",
+      "at": "captureParentCloseOptions tests/v2-migration/minimized-close.test.js:31:16 <- :56:29"
+    }
+  ]
+}
