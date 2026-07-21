@@ -5,10 +5,11 @@
  * calcCredits (:1633-1645) and calcObligation (:1554-1600). Each takes the wizard
  * `data` state and returns plain numbers — no `this`, no documents, no async.
  *
- * Covered (plan §0.6.2). At Stage 7 this module gains a single Covered→Covered
- * import of starting-bonus.js (allowed by the rule-7 closure); until that file
- * exists, calcObligation keeps the inline per-choice branches (the KEEP-4 seam).
+ * Covered (plan §0.6.2). Imports starting-bonus.js (Covered→Covered, allowed by the
+ * rule-7 closure) so calcObligation reads its adjustment from the one table.
  */
+
+import { getStartingBonus } from "./starting-bonus.js";
 
 /**
  * Total and remaining XP.
@@ -68,10 +69,11 @@ export function calcCredits(data) {
  * The `key` is "morality" (fad), "obligation" (eote) or "duty" (aor). The starting
  * value comes from initial.*; the starting-bonus choice then shifts `available`.
  *
- * KEEP-4 seam: at Stage 5 the per-choice adjustments are still the inline branches
- * transcribed from calcObligation:1563-1593. Stage 7 imports starting-bonus.js and
- * replaces the inline branch bodies with a read from the STARTING_BONUS table so it
- * is the single source of truth — the branches below mark exactly where that lands.
+ * KEEP-4 (closed at Stage 7): the per-choice adjustment is read from the one
+ * STARTING_BONUS table, the same cell the grants.bonus display uses, so the two can
+ * never drift. The ruleset supplies the sign convention transcribed from the legacy
+ * calcObligation branches (:1554-1600): morality and obligation ADD their bonus,
+ * duty SUBTRACTS it — matching the original numbers exactly.
  *
  * @param {object} data  wizard state
  * @returns {{starting: number, available: number, key: (string|undefined)}}
@@ -82,43 +84,20 @@ export function calcObligation(data) {
   let key;
 
   const rules = data.selected.rules;
-  const choice = data.selected.startingBonus;
+  const bonus = getStartingBonus(rules, data.selected.startingBonus);
 
   if (rules === "fad") {
     starting = data.initial.morality;
-    available = starting;
     key = "morality";
-    if (choice === "21_plus_morality") {
-      available += 21;
-    } else if (choice === "21_minus_morality") {
-      available -= 21;
-    }
+    available = starting + (bonus.morality ?? 0);
   } else if (rules === "eote") {
     starting = data.initial.obligation;
-    available = starting;
     key = "obligation";
-    if (choice === "5xp") {
-      available += 5;
-    } else if (choice === "10xp") {
-      available += 10;
-    } else if (choice === "1k_credits") {
-      available += 5;
-    } else if (choice === "2k_credits") {
-      available += 10;
-    }
+    available = starting + (bonus.obligation ?? 0);
   } else if (rules === "aor") {
     starting = data.initial.duty;
-    available = starting;
     key = "duty";
-    if (choice === "5xp") {
-      available -= 5;
-    } else if (choice === "10xp") {
-      available -= 10;
-    } else if (choice === "1k_credits") {
-      available -= 5;
-    } else if (choice === "2k_credits") {
-      available -= 10;
-    }
+    available = starting - (bonus.duty ?? 0);
   }
 
   return { starting, available, key };
