@@ -1,0 +1,19 @@
+{{!-- Reusable selectable list — replaces the seven per-render DataTables instances.
+      Context: (object rows=<SelectionRef[]> poolKey=<string> selectedUuid=<string>) --}}
+<table class="pickable-table" data-table="{{ poolKey }}">
+  <tbody>
+    {{#each rows as |row|}}
+      <tr class="pickable-row {{#if (eq row.uuid ../selectedUuid)}}is-selected{{/if}}" data-uuid="{{ row.uuid }}">
+        <td class="pickable-pill">
+          {{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=row)}}
+        </td>
+        <td class="pickable-name">{{ row.name }}</td>
+        <td class="pickable-action">
+          <button type="button" data-action="select" data-table="{{ ../poolKey }}" data-uuid="{{ row.uuid }}">
+            {{ localize "SWFFG.CharacterCreator.Wizard.Career.Select" }}
+          </button>
+        </td>
+      </tr>
+    {{/each}}
+  </tbody>
+</table>

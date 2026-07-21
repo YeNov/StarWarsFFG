@@ -43,6 +43,15 @@ export default class TemplateHelpers {
       "systems/starwarsffg/templates/wizards/char_creator/preview/skills.html",
       "systems/starwarsffg/templates/wizards/char_creator/preview/specialization.html",
       "systems/starwarsffg/templates/wizards/char_creator/preview/forcepower.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/actor_preview.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/preview/skills.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/preview/specialization.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/preview/forcepower.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/parts/gear-filters.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/parts/sources-panel.html",
+      "systems/starwarsffg/templates/wizards/pc_wizard/parts/draft-banner.html",
     ];
     return foundry.applications.handlebars.loadTemplates(templatePaths);
   }

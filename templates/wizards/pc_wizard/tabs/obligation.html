@@ -1,0 +1,13 @@
+<section class="tab-obligation">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Obligation.Label" }}</p>
+  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+      (object rows=pools.obligation poolKey="obligation")}}
+  <ul class="selected-obligations">
+    {{#each data.selected.obligations as |obligation|}}
+      <li data-uuid="{{ obligation.uuid }}">
+        {{ obligation.name }}
+        <i class="fas fa-trash" data-action="remove-obligation" data-uuid="{{ obligation.uuid }}"></i>
+      </li>
+    {{/each}}
+  </ul>
+</section>

@@ -1,0 +1,19 @@
+<section class="tab-background">
+  <div class="background-group" data-part="background-culture">
+    <h4>Culture</h4>
+    {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+        (object rows=pools.culture poolKey="culture" selectedUuid=data.selected.background.culture.uuid)}}
+  </div>
+  <div class="background-group" data-part="background-hook">
+    <h4>Hook</h4>
+    {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+        (object rows=pools.hook poolKey="hook" selectedUuid=data.selected.background.hook.uuid)}}
+  </div>
+  {{#if isForceAndDestiny}}
+    <div class="background-group" data-part="background-forceAttitude">
+      <h4>Force Attitude</h4>
+      {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+          (object rows=pools.forceAttitude poolKey="forceAttitude" selectedUuid=data.selected.background.forceAttitude.uuid)}}
+    </div>
+  {{/if}}
+</section>

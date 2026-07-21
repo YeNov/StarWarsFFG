@@ -1,0 +1,6 @@
+<section class="tab-career">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Career.Select" }} {{ localize "SWFFG.CharacterCreator.Wizard.Career.Label" }}</p>
+  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+      (object rows=pools.career poolKey="career" selectedUuid=data.selected.career.uuid)}}
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.CareerRanks.Label" }}</p>
+</section>

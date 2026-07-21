@@ -1,0 +1,22 @@
+{{!-- Sources panel (D7) — a header-button overlay, not a tab. Default all-on; persistence
+      is stored as exclusions so new GM packs default on. --}}
+<div class="sources-panel" data-part="sources-panel" style="display: none;">
+  <h3>{{ localize "SWFFG.CharacterCreator.Sources.Title" }}</h3>
+  <p>{{ localize "SWFFG.CharacterCreator.Sources.Description" }}</p>
+  {{#each sourceGroups as |group|}}
+    <fieldset class="source-group" data-pool="{{ group.poolKey }}">
+      <legend>{{ group.label }}</legend>
+      {{#each group.sources as |source|}}
+        <label class="source-toggle">
+          <input type="checkbox" data-action="toggle-source" data-table="{{ ../group.poolKey }}"
+                 data-field="{{ source.id }}" {{#if source.enabled}}checked{{/if}}>
+          {{#if (eq source.id "world")}}
+            {{ localize "SWFFG.CharacterCreator.Sources.World" }}
+          {{else}}
+            {{ source.label }}
+          {{/if}}
+        </label>
+      {{/each}}
+    </fieldset>
+  {{/each}}
+</div>

@@ -1,0 +1,5 @@
+<section class="tab-species">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Species.Label" }}</p>
+  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+      (object rows=pools.species poolKey="species" selectedUuid=data.selected.species.uuid)}}
+</section>

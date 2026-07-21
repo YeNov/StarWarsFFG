@@ -1,0 +1,21 @@
+<section class="tab-review">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Review.Label" }}</p>
+  <ul class="review-steps">
+    {{#each steps as |step|}}
+      <li class="review-step is-{{ step.status }}">
+        <span class="review-status">{{ step.status }}</span>
+        <span class="review-label">{{ localize step.labelKey }}</span>
+      </li>
+    {{/each}}
+  </ul>
+  {{#if warnings.length}}
+    <ul class="review-warnings">
+      {{#each warnings as |warningKey|}}
+        <li>{{ localize warningKey }}</li>
+      {{/each}}
+    </ul>
+  {{/if}}
+  <button type="button" class="create-actor" data-action="commit">
+    {{ localize "SWFFG.CharacterCreator.Entry.Button" }}
+  </button>
+</section>

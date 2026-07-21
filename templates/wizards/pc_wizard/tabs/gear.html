@@ -1,0 +1,15 @@
+<section class="tab-gear">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Credits.Label" }}</p>
+  <div class="gear-summary">Credits: {{ availableCredits }} / {{ totalCredits }}</div>
+  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/gear-filters.html"}}
+  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+      (object rows=pools.gear poolKey="gear")}}
+  <ul class="purchased-gear">
+    {{#each data.purchases.credits as |purchase|}}
+      <li data-uuid="{{ purchase.ref.uuid }}">
+        {{ purchase.ref.name }} ({{ purchase.cost }})
+        <i class="fas fa-trash" data-action="refund-gear" data-uuid="{{ purchase.ref.uuid }}"></i>
+      </li>
+    {{/each}}
+  </ul>
+</section>

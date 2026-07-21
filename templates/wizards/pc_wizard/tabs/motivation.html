@@ -1,0 +1,13 @@
+<section class="tab-motivation">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Motivation.Label" }}</p>
+  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+      (object rows=pools.motivation poolKey="motivation")}}
+  <ul class="selected-motivations">
+    {{#each data.selected.motivations as |motivation|}}
+      <li data-uuid="{{ motivation.uuid }}">
+        {{ motivation.name }}
+        <i class="fas fa-trash" data-action="remove-motivation" data-uuid="{{ motivation.uuid }}"></i>
+      </li>
+    {{/each}}
+  </ul>
+</section>

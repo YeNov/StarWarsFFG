@@ -1,0 +1,14 @@
+<section class="tab-xp-spend">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.XP.Label" }}</p>
+  <div class="xp-summary">XP: {{ availableXp }} / {{ totalXp }}</div>
+  <div class="xp-skills">
+    {{#each skillsList as |skill|}}
+      <div class="xp-skill-row" data-field="{{ skill.key }}">
+        <span class="xp-skill-name">{{ skill.label }}</span>
+        <span class="xp-skill-rank">{{ skill.rank }}</span>
+        <i class="far fa-plus-square" data-action="buy-skill" data-field="{{ skill.key }}"></i>
+        <i class="far fa-minus-square" data-action="refund-skill" data-field="{{ skill.key }}"></i>
+      </div>
+    {{/each}}
+  </div>
+</section>
