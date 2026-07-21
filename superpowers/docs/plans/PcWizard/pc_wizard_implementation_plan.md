@@ -1,10 +1,10 @@
-# PC Wizard rewrite — Implementation Plan v10
+# PC Wizard rewrite — Implementation Plan
 
 | | |
 |---|---|
-| **Status** | Draft v10 — supersedes v1–v9. Addresses the [round-8 review](pc_wizard_implementation_plan_review_v9.md) (1 Blocker: Path B ran Cypress three times before its mandatory `/setup` pre-flight), plus a full ordering sweep of every Cypress invocation in the document (§8). **Everything else in v9 is accepted and carried forward unchanged.** |
-| **Date** | 2026-07-20 |
-| **Authorities** | [Requirements brief v2](../pc_wizard_requirements_brief.md) (BINDING) · [Design doc v7](pc_wizard_design_doc_v7.md) (APPROVED) · [Design review v7](pc_wizard_design_doc_review_v7.md) (READY; R7-1, R7-2 folded in) |
+| **Status** | **FINAL** — this is the authoritative implementation plan. Produced by a 10-round write/review bounce (the round-8 review's last Blocker: Path B ran Cypress three times before its mandatory `/setup` pre-flight), promoted from bounce v10, then amended post-approval: **DEV-17** (GATE-IMPORTS pinned baseline-delta) and the Stage 1H measured-baseline reconciliation. The bounce drafts and reviews were removed in Phase 4 cleanup — their outcomes are captured in the DEV-* entries and per-stage notes below. |
+| **Date** | 2026-07-20 (amended 2026-07-21) |
+| **Authorities** | [Requirements brief v2](pc_wizard_requirements_brief.md) (BINDING) · [Design doc v7](pc_wizard_design_doc.md) (APPROVED; R7-1, R7-2 folded into this plan as DEV-2/DEV-3 — the design text does not reflect them) |
 | **Repo** | `D:\SW FFG\Portable FVTT\Data\systems\starwarsffg` — git, branch **`pc-wizard-rewrite`** (off `main` at `a1621c00`; planning docs committed as `ce76311e`). Remote `YeNov/StarWarsFFG`. `upstream` is read-only. **Never** target `StarWarsFoundryVTT/StarWarsFFG`. |
 | **Reference** | Foundry v13 core, read-only: `D:\SW FFG\Portable FVTT\App\resources\app` |
 
