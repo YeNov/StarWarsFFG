@@ -2,5 +2,18 @@
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.Career.Select" }} {{ localize "SWFFG.CharacterCreator.Wizard.Career.Label" }}</p>
   {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
       (object rows=pools.career poolKey="career" selectedUuid=data.selected.career.uuid)}}
-  <p>{{ localize "SWFFG.CharacterCreator.Wizard.CareerRanks.Label" }}</p>
+  {{#if data.selected.career}}
+    <div class="free-ranks" data-part="career-free-ranks">
+      <h4>Free career skill ranks ({{ careerFreeUsed }} / 4)</h4>
+      <ul>
+        {{#each careerFreeRanks as |skill|}}
+          <li class="free-rank {{#if skill.picked}}is-picked{{/if}}">
+            <button type="button" data-action="toggle-career-rank" data-field="{{ skill.key }}"
+                    {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+            {{ skill.key }}
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
 </section>

@@ -86,6 +86,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "refund-gear": CharacterCreator._onRefundGear,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
+      "toggle-career-rank": CharacterCreator._onToggleCareerRank,
+      "toggle-spec-rank": CharacterCreator._onToggleSpecRank,
       "open-sources": CharacterCreator._onOpenSources,
       "resume-draft": CharacterCreator._onResumeDraft,
       "discard-draft": CharacterCreator._onDiscardDraft,
@@ -182,6 +184,22 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const careerSpecializations = specPool.filter((ref) => careerSpecNames.has(ref.name));
     const universalSpecializations = specPool.filter((ref) => ref.snapshot?.system?.universal && !careerSpecNames.has(ref.name));
 
+    // Free skill ranks: 4 chosen from the career's career-skills, 2 from the specialization's.
+    // These feed rankGrants -> toItemData (baked as +1-rank AEs on the career/spec item), so
+    // applyBuild already applies them to the built actor; the picker only drives the arrays.
+    const careerSkillNames = Object.values(this.data.selected.career?.snapshot?.system?.careerSkills ?? {}).filter(Boolean);
+    const careerPicked = this.data.selected.careerCareerSkillRanks;
+    const careerFreeRanks = careerSkillNames.map((name) => {
+      const picked = careerPicked.includes(name);
+      return { key: name, picked, canToggle: picked || careerPicked.length < 4 };
+    });
+    const specSkillNames = Object.values(this.data.selected.specialization?.snapshot?.system?.careerSkills ?? {}).filter(Boolean);
+    const specPicked = this.data.selected.specializationCareerSkillRanks;
+    const specFreeRanks = specSkillNames.map((name) => {
+      const picked = specPicked.includes(name);
+      return { key: name, picked, canToggle: picked || specPicked.length < 2 };
+    });
+
     return {
       tabs: this._prepareTabs("primary"),
       data: this.data,
@@ -191,6 +209,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       xpSkills,
       careerSpecializations,
       universalSpecializations,
+      careerFreeRanks,
+      careerFreeUsed: careerPicked.length,
+      specFreeRanks,
+      specFreeUsed: specPicked.length,
       totalXp: xp.total,
       availableXp: xp.available,
       totalCredits: credits.total,
@@ -321,6 +343,26 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => {
       const index = data.purchases.xp.skills.findIndex((purchase) => purchase.key === key && purchase.value === curValue);
       if (index >= 0) data.purchases.xp.skills.splice(index, 1);
+    });
+  }
+
+  static _onToggleCareerRank(event, target) {
+    const skill = target.dataset.field;
+    this.#mutate((data) => {
+      const list = data.selected.careerCareerSkillRanks;
+      const index = list.indexOf(skill);
+      if (index >= 0) list.splice(index, 1); // remove a free rank
+      else if (list.length < 4) list.push(skill); // add, capped at 4
+    });
+  }
+
+  static _onToggleSpecRank(event, target) {
+    const skill = target.dataset.field;
+    this.#mutate((data) => {
+      const list = data.selected.specializationCareerSkillRanks;
+      const index = list.indexOf(skill);
+      if (index >= 0) list.splice(index, 1); // remove a free rank
+      else if (list.length < 2) list.push(skill); // add, capped at 2
     });
   }
 
