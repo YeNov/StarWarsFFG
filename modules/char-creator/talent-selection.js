@@ -116,6 +116,7 @@ export function prepareTalentTree(talents, learnedKeys, availableXp) {
       key,
       name: node?.name ?? "",
       activation: node?.activationLabel ?? node?.activation ?? "",
+      description: node?.description ?? "",
       islearned,
       canPurchase,
       cost,

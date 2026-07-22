@@ -3681,6 +3681,7 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .pcw-tt-name {
   font-weight: bold;
   font-size: 0.84em;
+  padding-right: 16px; /* clear the corner "?" help button */
 }
 .charCreator .pcw-tt-activation {
   font-size: 0.72em;
@@ -3727,4 +3728,23 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 .charCreator .pcw-tt-cell.right-active::after {
   background: #3a7d3a;
+}
+.charCreator .pcw-tt-cell .pcw-tt-help {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a1a1a;
+  font: bold 12px/1 sans-serif;
+  cursor: help;
+  user-select: none;
 }
