@@ -51,16 +51,15 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   }
   actorData.system = applyCharacteristicDeltas(actorData.system, deltas);
 
-  // Skill purchases → a PARTIAL skills override (only purchased skills). Carrying the full,
-  // already-prepared skills dictionary through a fresh Actor construction makes the DataModel
-  // drop the ranks (even in _source); a partial dict survives — exactly like the legacy's
-  // targeted actor.update(). prepareDerivedData re-adds every other skill from CONFIG.FFG.skills
-  // at its base rank, so nothing is lost. One purchase entry == one +1 rank.
-  const skillOverrides = {};
+  // Skill purchases → +1 rank each, applied to the CLEAN full skills dict from
+  // getActorCreationDefaults (which now seeds from the throwaway's _source system). Keep the
+  // FULL dict, not a partial override: a skill's characteristic / groupskill / careerskill /
+  // type / max come from the STOCK skills (_source), NOT from CONFIG.FFG.skills — so a partial
+  // dict would strip those and break the sheet's dice pools. Clean _source skills preserve the
+  // incremented rank through Actor construction (the prepared system did not — hence _source).
   for (const purchase of data.purchases.xp.skills) {
-    skillOverrides[purchase.key] = { rank: (skillOverrides[purchase.key]?.rank ?? 0) + 1 };
+    actorData.system.skills[purchase.key].rank += 1;
   }
-  actorData.system.skills = skillOverrides;
 
   // 3. Other system fields, from the shared calculators.
   const xp = calcXp(data);

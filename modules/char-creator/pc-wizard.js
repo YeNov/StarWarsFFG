@@ -24,6 +24,7 @@ import { loadSource } from "./load-source.js";
 import { DraftStore } from "./draft-store.js";
 import { NewerSchemaError, CorruptDraftError } from "./draft-schema.js";
 import { emitCommitRequest, wizardPending, setCommitResponseHandler } from "./socket-bridge.js";
+import { commitBuild } from "./commit-service.js";
 import { mintSessionNoticeId, emitStartNotice, showSubmitToast } from "./notify.js";
 import { setPending, clearPending } from "./notify-policy.js";
 import { COMMIT_TIMEOUT_MS } from "./constants.js";
@@ -379,7 +380,23 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     await this.draftStore.saveNow({ data: this.data, commit: this.#draft.commit });
 
     const built = await buildPreviewActor(this.data, this.buildDeps);
-    emitCommitRequest(built.previewActor.toObject(), this.#draft.commit);
+    const source = built.previewActor.toObject();
+
+    if (game.user.isGM) {
+      // A GM can create the actor directly — game.socket.emit does NOT deliver back to
+      // the sender, so a GM must never round-trip its own request through the bridge.
+      try {
+        const actor = await commitBuild(source, this.#draft.commit);
+        this._onCommitResponse({ ok: true, requesterId: game.user.id, commitId: this.data.commitId, actorId: actor.id, actorName: actor.name });
+      } catch (err) {
+        CONFIG.logger?.warn?.(`PC wizard commit failed: ${err.message}`);
+        this._onCommitResponse({ ok: false, requesterId: game.user.id, commitId: this.data.commitId });
+      }
+      return;
+    }
+
+    // Players ask the active GM to create the actor, then await the authenticated response.
+    emitCommitRequest(source, this.#draft.commit);
     this.#commitTimer = window.setTimeout(() => this._onCommitTimeout(), COMMIT_TIMEOUT_MS);
   }
 

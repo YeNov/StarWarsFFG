@@ -60,6 +60,26 @@ verification.
   ×5+5), + disables at the rank-2 creation cap, − refunds. Fixes the committed actor too, not just the
   preview.
 
+## Finding 5 — Create/commit flow (end-to-end now working)
+
+- **Symptom A:** clicking Create as a GM logged "Submitting… — not confirmed" and never created an
+  actor.
+- **Cause A:** `#runCommit` always emitted a `commitRequest` over the socket, but `game.socket.emit`
+  does NOT deliver back to the sender — so a GM emitted a request only the GM processes and never
+  received it → timeout. **Fix:** branch on `game.user.isGM` — a GM calls `commitBuild(source, commit)`
+  directly (legacy did the same, character-creator.js:1678); players still emit to the active GM.
+  Also relabeled the review button ("PC Wizard" → "Create character").
+- **Symptom B:** the created actor's sheet threw `addSkillDicePool … reading 'value'` ×35 (all skills);
+  the skills had no `characteristic` field.
+- **Cause B:** the Finding-4 **partial** skills override (`{Astrogation:{rank:N}}`) stripped the skill
+  fields (`characteristic/groupskill/careerskill/type/max`) — those come from the STOCK skills
+  (`_source`), NOT from `CONFIG.FFG.skills` (the merge fallback), so every skill lost its characteristic.
+  **Fix:** revert to the FULL skills dict + `rank += 1` increment. Safe now because
+  `getActorCreationDefaults` seeds from clean `_source` (probe: clean-full preserves BOTH rank and
+  characteristic; only the *prepared* system reset ranks).
+- **Verified live:** GM builds a character (species/career/spec/skills), Create produces a correct
+  actor — sheet renders cleanly, skill ranks + characteristics intact.
+
 ## Still pending (Stage 23)
 
 Free career/specialization skill-rank picker (unbuilt); species/career skill grants via AEs verified
