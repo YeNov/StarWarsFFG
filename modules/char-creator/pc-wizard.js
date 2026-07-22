@@ -83,7 +83,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "refund-gear": CharacterCreator._onRefundGear,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
-      "select-starting-bonus": CharacterCreator._onSelectStartingBonus,
       "open-sources": CharacterCreator._onOpenSources,
       "resume-draft": CharacterCreator._onResumeDraft,
       "discard-draft": CharacterCreator._onDiscardDraft,
@@ -96,6 +95,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   /** Per-part change/input bindings (issue B) — attached only within each part's element. */
   static PART_BINDINGS = {
     gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
+    startingBonus: [{ selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" }],
   };
 
   #commitPhase = "editing";
@@ -141,11 +141,41 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       CONFIG.logger?.warn?.(`PC wizard preview build failed: ${err.message}`);
     }
 
+    // Background pool is bucketed by the item's system.type (culture / hook / attitude),
+    // matching the legacy getBackgrounds() split. forceAttitude uses the "attitude" type.
+    const backgroundRefs = this.#pools.background ?? [];
+    const ofType = (type) => backgroundRefs.filter((ref) => ref.snapshot?.system?.type === type);
+    const pools = { ...this.#pools, culture: ofType("culture"), hook: ofType("hook"), forceAttitude: ofType("attitude") };
+
+    // Starting-bonus radio choices for the current ruleset (i18n keys → localized labels).
+    const bonusTable = CONFIG.FFG?.characterCreator?.startingBonusesRadio?.[this.data.selected.rules] ?? {};
+    const startingBonusChoices = Object.entries(bonusTable).map(([key, labelKey]) => ({ key, label: game.i18n.localize(labelKey) }));
+
+    // Flat skill list for the XP-spend tab (the preview panel's column layout is separate).
+    // Each row carries the prepared rank, whether it's a career skill, and the cost of the
+    // NEXT rank (career rank*5, non-career rank*5 + 5).
+    const skillPurchases = this.data.purchases.xp.skills;
+    const xpSkills = preview?.system?.skills
+      ? Object.entries(preview.system.skills).map(([key, skill]) => {
+        const rank = skill.rank ?? 0;
+        const careerskill = Boolean(skill.careerskill);
+        const nextValue = rank + 1;
+        const nextCost = careerskill ? nextValue * 5 : nextValue * 5 + 5;
+        // Creation cap: skills may be raised to rank 2 with starting XP. A rank can be
+        // refunded only if the CURRENT top rank was itself an XP purchase.
+        const canBuy = rank < 2;
+        const canRefund = skillPurchases.some((purchase) => purchase.key === key && purchase.value === rank);
+        return { key, label: skill.label ?? key, rank, careerskill, nextValue, nextCost, canBuy, canRefund };
+      })
+      : [];
+
     return {
       tabs: this._prepareTabs("primary"),
       data: this.data,
-      pools: this.#pools,
+      pools,
       isForceAndDestiny: this.data.selected.rules === "fad",
+      startingBonusChoices,
+      xpSkills,
       totalXp: xp.total,
       availableXp: xp.available,
       totalCredits: credits.total,
@@ -175,13 +205,18 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
-  /** The single mutation funnel + commit barrier. */
-  #mutate(fn) {
+  /**
+   * The single mutation funnel + commit barrier. Click actions do a full re-render (they
+   * are low-frequency and must refresh whichever tab is active); the high-frequency gear
+   * filter passes an explicit `parts` list so typing never re-renders the whole window.
+   */
+  #mutate(fn, { parts } = {}) {
     if (this.#commitPhase !== "editing") return false;
     if (this.#draft.commit) this.#remintCommitId(); // edit after an attempt ⇒ new identity
     fn(this.data);
     this.draftStore.scheduleSave({ data: this.data, commit: this.#draft.commit });
-    this.render({ parts: ["header", "preview"] }); // targeted, never a full re-render per keystroke
+    if (parts) this.render({ parts });
+    else this.render();
     return true;
   }
 
@@ -201,9 +236,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   _onGearFilterChange(event) {
     const field = event.currentTarget.dataset.field;
+    const value = event.currentTarget.value;
     this.#mutate((data) => {
-      data.gearFilters = { ...(data.gearFilters ?? {}), [field]: event.currentTarget.value };
-    });
+      data.gearFilters = { ...(data.gearFilters ?? {}), [field]: value };
+    }, { parts: ["gear"] });
   }
 
   // --- click actions (bound with `this` = the app instance) --------------------------
@@ -232,18 +268,29 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static _onBuySkill(event, target) {
-    this.#mutate((data) => { data.purchases.xp.skills.push({ key: target.dataset.field, cost: 5 }); });
+    // The button carries the pre-computed next rank + its scaled cost (career = rank*5,
+    // non-career = rank*5 + 5; see xpSkills in _prepareContext / handleSkillModify). Each
+    // purchase records its rank value so a refund can remove exactly the top rank.
+    const key = target.dataset.field;
+    const value = Number(target.dataset.value);
+    const cost = Number(target.dataset.cost);
+    if (!key || !Number.isFinite(value)) return;
+    this.#mutate((data) => { data.purchases.xp.skills.push({ key, value, cost }); });
   }
 
   static _onRefundSkill(event, target) {
+    // data-value on the minus button is the current (top) rank — remove that purchase.
+    const key = target.dataset.field;
+    const curValue = Number(target.dataset.value);
     this.#mutate((data) => {
-      const index = data.purchases.xp.skills.findIndex((purchase) => purchase.key === target.dataset.field);
+      const index = data.purchases.xp.skills.findIndex((purchase) => purchase.key === key && purchase.value === curValue);
       if (index >= 0) data.purchases.xp.skills.splice(index, 1);
     });
   }
 
-  static _onSelectStartingBonus(event, target) {
-    this.#mutate((data) => { applyStartingBonus(data, target.dataset.field); });
+  _onStartingBonusChange(event) {
+    const choice = event.currentTarget.value || null;
+    this.#mutate((data) => { applyStartingBonus(data, choice); });
   }
 
   static _onOpenSources() {

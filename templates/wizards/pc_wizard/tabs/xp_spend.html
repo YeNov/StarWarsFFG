@@ -1,14 +1,36 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="xp_spend">
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.XP.Label" }}</p>
-  <div class="xp-summary">XP: {{ availableXp }} / {{ totalXp }}</div>
-  <div class="xp-skills">
-    {{#each skillsList as |skill|}}
-      <div class="xp-skill-row" data-field="{{ skill.key }}">
-        <span class="xp-skill-name">{{ skill.label }}</span>
-        <span class="xp-skill-rank">{{ skill.rank }}</span>
-        <i class="far fa-plus-square" data-action="buy-skill" data-field="{{ skill.key }}"></i>
-        <i class="far fa-minus-square" data-action="refund-skill" data-field="{{ skill.key }}"></i>
-      </div>
-    {{/each}}
-  </div>
+  <div class="xp-summary">XP available: <b>{{ availableXp }}</b> / {{ totalXp }}</div>
+
+  <table class="xp-skills">
+    <thead>
+      <tr>
+        <th class="xp-col-name">Skill</th>
+        <th class="xp-col-career">Career</th>
+        <th class="xp-col-rank">Rank</th>
+        <th class="xp-col-buttons"></th>
+        <th class="xp-col-cost">Next rank</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each xpSkills as |skill|}}
+        <tr data-field="{{ skill.key }}">
+          <td class="xp-col-name">{{ skill.label }}</td>
+          <td class="xp-col-career">{{#if skill.careerskill}}✓{{/if}}</td>
+          <td class="xp-col-rank">{{ skill.rank }}</td>
+          <td class="xp-col-buttons">
+            <button type="button" class="xp-skill-btn" data-action="refund-skill"
+                    data-field="{{ skill.key }}" data-value="{{ skill.rank }}"
+                    {{#unless skill.canRefund}}disabled{{/unless}}>&minus;</button>
+            <button type="button" class="xp-skill-btn" data-action="buy-skill"
+                    data-field="{{ skill.key }}" data-value="{{ skill.nextValue }}" data-cost="{{ skill.nextCost }}"
+                    {{#unless skill.canBuy}}disabled{{/unless}}>&plus;</button>
+          </td>
+          <td class="xp-col-cost">
+            {{#if skill.canBuy}}{{ skill.nextCost }} XP{{else}}&mdash;{{/if}}
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
 </section>

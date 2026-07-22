@@ -1,13 +1,11 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="startingBonus">
-  <p>Select a starting bonus.</p>
-  <div class="starting-bonus-choices">
-    {{#each startingBonusChoices as |choice|}}
-      <label class="starting-bonus-choice">
-        <input type="radio" name="startingBonus" value="{{ choice.key }}"
-               data-action="select-starting-bonus" data-field="{{ choice.key }}"
-               {{#if (eq choice.key ../data.selected.startingBonus)}}checked{{/if}}>
-        {{ choice.label }}
-      </label>
-    {{/each}}
+  <div class="starting-bonus">
+    <label for="pcw-startingBonus">{{ localize "SWFFG.CharacterCreator.startingBonus.Label" }}</label>
+    <select id="pcw-startingBonus" name="startingBonus" data-field="startingBonus">
+      <option value=""></option>
+      {{#each startingBonusChoices as |choice|}}
+        <option value="{{ choice.key }}" {{#if (eq choice.key @root.data.selected.startingBonus)}}selected{{/if}}>{{ choice.label }}</option>
+      {{/each}}
+    </select>
   </div>
 </section>

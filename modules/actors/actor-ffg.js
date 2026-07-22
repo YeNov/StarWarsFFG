@@ -889,7 +889,11 @@ export function getActorCreationDefaults(type) {
   let system;
   try {
     const throwaway = new Actor.implementation({ type, name: "New Actor" });
-    system = foundry.utils.deepClone(throwaway.system);
+    // Use the CLEAN _source system, not the prepared `.system`: feeding an
+    // already-prepared system back into a fresh Actor construction makes the
+    // DataModel drop source skill ranks (derived artifacts confuse the re-prep).
+    // prepareDerivedData recomputes every derived value from this clean source.
+    system = foundry.utils.deepClone(throwaway._source.system);
   } catch (e) {
     system = undefined;
   }
