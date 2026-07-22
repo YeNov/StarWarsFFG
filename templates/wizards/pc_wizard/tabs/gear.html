@@ -1,15 +1,41 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="gear">
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.Credits.Label" }}</p>
-  <div class="gear-summary">Credits: {{ availableCredits }} / {{ totalCredits }}</div>
-  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/gear-filters.html"}}
-  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
-      (object rows=pools.gear poolKey="gear")}}
-  <ul class="purchased-gear">
-    {{#each data.purchases.credits as |purchase|}}
-      <li data-uuid="{{ purchase.ref.uuid }}">
-        {{ purchase.ref.name }} ({{ purchase.cost }})
-        <i class="fas fa-trash" data-action="refund-gear" data-uuid="{{ purchase.ref.uuid }}"></i>
-      </li>
+  <div class="gear-summary">Credits: <b>{{ availableCredits }}</b> / {{ totalCredits }}</div>
+
+  <div class="inv-switcher">
+    <button type="button" class="inv-switch{{#if (eq inventoryView "weapon")}} is-active{{/if}}" data-action="inventory-view" data-view="weapon">Weapons</button>
+    <button type="button" class="inv-switch{{#if (eq inventoryView "armour")}} is-active{{/if}}" data-action="inventory-view" data-view="armour">Armor</button>
+    <button type="button" class="inv-switch{{#if (eq inventoryView "gear")}} is-active{{/if}}" data-action="inventory-view" data-view="gear">Gear</button>
+  </div>
+
+  <div class="inv-filters">
+    <input type="search" data-field="search" value="{{ inventoryFilters.search }}" placeholder="Search by name">
+    <label>Max price <input type="number" min="0" data-field="maxPrice" value="{{ inventoryFilters.maxPrice }}"></label>
+  </div>
+
+  <div class="inv-owned">
+    <div class="inv-title">Owned</div>
+    {{#each ownedItems as |item|}}
+      <div class="inv-row" data-uuid="{{ item.uuid }}">
+        <span class="inv-name">{{ item.name }}</span>
+        <span class="inv-cost">{{ item.cost }} cr</span>
+        <button type="button" class="inv-btn inv-refund" data-action="refund-gear" data-uuid="{{ item.uuid }}" title="Refund">&minus;</button>
+      </div>
+    {{else}}
+      <div class="inv-empty">Nothing owned in this category.</div>
     {{/each}}
-  </ul>
+  </div>
+
+  <div class="inv-shop">
+    <div class="inv-title">Shop</div>
+    {{#each shopItems as |item|}}
+      <div class="inv-row" data-uuid="{{ item.uuid }}">
+        <span class="inv-name">{{ item.name }}</span>
+        <span class="inv-cost">{{ item.price }} cr</span>
+        <button type="button" class="inv-btn inv-buy" data-action="buy-gear" data-uuid="{{ item.uuid }}" {{#unless item.affordable}}disabled{{/unless}}>Buy</button>
+      </div>
+    {{else}}
+      <div class="inv-empty">No items match.</div>
+    {{/each}}
+  </div>
 </section>

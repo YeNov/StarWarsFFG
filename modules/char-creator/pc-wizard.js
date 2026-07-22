@@ -71,7 +71,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         { id: "specialization", label: "specialization" },
         { id: "xp_spend", label: "xp_spend" },
         { id: "forcePower", label: "forcePower" },
-        { id: "gear", label: "gear" },
+        { id: "gear", label: "Inventory" },
         { id: "motivation", label: "motivation" },
         { id: "review", label: "review" },
       ],
@@ -87,6 +87,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "remove-obligation": CharacterCreator._onRemoveObligation,
       "remove-motivation": CharacterCreator._onRemoveMotivation,
       "refund-gear": CharacterCreator._onRefundGear,
+      "buy-gear": CharacterCreator._onBuyGear,
+      "inventory-view": CharacterCreator._onInventoryView,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
       "characteristic-control": CharacterCreator._onCharacteristicControl,
@@ -119,6 +121,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #pools = {};
   #commitTimer = null;
   #xpView = "skills"; // xp_spend sub-view: "skills" | "talents" (transient, not persisted to draft)
+  #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
 
   constructor(options = {}) {
     super(options);
@@ -244,6 +247,24 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available)
       : null;
 
+    // Inventory tab — a Weapons / Armor / Gear switcher. Each sub-view shows the owned and the
+    // shop (buyable) items of that type, filtered by name search + a max-price cap (data.gearFilters).
+    const invView = this.#inventoryView; // "weapon" | "armour" | "gear"
+    const invFilters = this.data.gearFilters ?? {};
+    const invSearch = (invFilters.search ?? "").toLowerCase();
+    const invMaxPrice = Number(invFilters.maxPrice) || 0;
+    const priceOf = (ref) => Number(ref?.snapshot?.system?.price?.value) || 0;
+    const matchesSearch = (ref) => !invSearch || (ref?.name ?? "").toLowerCase().includes(invSearch);
+    const shopItems = (this.#pools.gear ?? [])
+      .filter((ref) => ref.type === invView && matchesSearch(ref) && (!invMaxPrice || priceOf(ref) <= invMaxPrice))
+      .map((ref) => {
+        const price = priceOf(ref);
+        return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available };
+      });
+    const ownedItems = this.data.purchases.credits
+      .filter((purchase) => purchase.ref?.type === invView && matchesSearch(purchase.ref))
+      .map((purchase) => ({ uuid: purchase.ref.uuid, name: purchase.ref.name, cost: purchase.cost }));
+
     return {
       tabs,
       data: this.data,
@@ -266,6 +287,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       availableXp: xp.available,
       totalCredits: credits.total,
       availableCredits: credits.available,
+      inventoryView: invView,
+      inventoryFilters: invFilters,
+      shopItems,
+      ownedItems,
       obligationKey: obligation.key,
       availableObligation: obligation.available,
       steps: validation.steps,
@@ -386,7 +411,26 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static _onRefundGear(event, target) {
-    this.#mutate((data) => { data.purchases.credits = data.purchases.credits.filter((purchase) => purchase.ref?.uuid !== target.dataset.uuid); });
+    const { uuid } = target.dataset;
+    this.#mutate((data) => {
+      const index = data.purchases.credits.findIndex((purchase) => purchase.ref?.uuid === uuid);
+      if (index >= 0) data.purchases.credits.splice(index, 1); // remove ONE owned instance
+    });
+  }
+
+  static _onBuyGear(event, target) {
+    const { uuid } = target.dataset;
+    const ref = (this.#pools.gear ?? []).find((entry) => entry.uuid === uuid);
+    if (!ref) return;
+    const cost = Number(ref.snapshot?.system?.price?.value) || 0;
+    this.#mutate((data) => { data.purchases.credits.push({ ref, cost }); });
+  }
+
+  static _onInventoryView(event, target) {
+    // Pure view toggle — no data change, so bypass #mutate.
+    const view = target.dataset.view;
+    this.#inventoryView = ["weapon", "armour", "gear"].includes(view) ? view : "weapon";
+    this.render({ parts: ["gear"] });
   }
 
   static _onBuySkill(event, target) {
