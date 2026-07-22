@@ -89,6 +89,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "refund-gear": CharacterCreator._onRefundGear,
       "buy-gear": CharacterCreator._onBuyGear,
       "inventory-view": CharacterCreator._onInventoryView,
+      "clear-gear-filters": CharacterCreator._onClearGearFilters,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
       "characteristic-control": CharacterCreator._onCharacteristicControl,
@@ -252,11 +253,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const invView = this.#inventoryView; // "weapon" | "armour" | "gear"
     const invFilters = this.data.gearFilters ?? {};
     const invSearch = (invFilters.search ?? "").toLowerCase();
+    const invMinPrice = Number(invFilters.minPrice) || 0;
     const invMaxPrice = Number(invFilters.maxPrice) || 0;
     const priceOf = (ref) => Number(ref?.snapshot?.system?.price?.value) || 0;
     const matchesSearch = (ref) => !invSearch || (ref?.name ?? "").toLowerCase().includes(invSearch);
     const shopItems = (this.#pools.gear ?? [])
-      .filter((ref) => ref.type === invView && matchesSearch(ref) && (!invMaxPrice || priceOf(ref) <= invMaxPrice))
+      .filter((ref) => ref.type === invView && matchesSearch(ref)
+        && priceOf(ref) >= invMinPrice && (!invMaxPrice || priceOf(ref) <= invMaxPrice))
       .map((ref) => {
         const price = priceOf(ref);
         return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available };
@@ -264,6 +267,14 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const ownedItems = this.data.purchases.credits
       .filter((purchase) => purchase.ref?.type === invView && matchesSearch(purchase.ref))
       .map((purchase) => ({ uuid: purchase.ref.uuid, name: purchase.ref.name, cost: purchase.cost }));
+
+    // Encumbrance — read the built preview actor's derived stat (current from carried items, max
+    // from Brawn + mods). It rebuilds on every buy/refund, so this tracks purchases automatically.
+    const encumbrance = {
+      value: Number(preview?.system?.stats?.encumbrance?.value) || 0,
+      max: Number(preview?.system?.stats?.encumbrance?.max) || 0,
+    };
+    encumbrance.over = encumbrance.value > encumbrance.max;
 
     return {
       tabs,
@@ -291,6 +302,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       inventoryFilters: invFilters,
       shopItems,
       ownedItems,
+      encumbrance,
       obligationKey: obligation.key,
       availableObligation: obligation.available,
       steps: validation.steps,
@@ -431,6 +443,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const view = target.dataset.view;
     this.#inventoryView = ["weapon", "armour", "gear"].includes(view) ? view : "weapon";
     this.render({ parts: ["gear"] });
+  }
+
+  static _onClearGearFilters() {
+    this.#mutate((data) => { data.gearFilters = {}; }, { parts: ["gear"] });
   }
 
   static _onBuySkill(event, target) {

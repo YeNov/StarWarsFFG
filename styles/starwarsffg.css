@@ -3776,13 +3776,24 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   margin-bottom: 10px;
 }
 .charCreator .inv-filters input[type="search"] {
-  flex: 1 1 160px;
+  flex: 0 1 180px;
 }
 .charCreator .inv-filters input[type="number"] {
-  width: 80px;
+  width: 68px;
+}
+.charCreator .inv-price {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.charCreator .inv-columns {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
 }
 .charCreator .inv-owned,
 .charCreator .inv-shop {
+  flex: 1 1 0;
+  min-width: 0;
   margin-bottom: 12px;
   padding: 6px 8px;
   border: 1px solid rgba(0, 0, 0, 0.2);
@@ -3820,4 +3831,10 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   font-style: italic;
   font-size: 0.9em;
   opacity: 0.7;
+}
+.charCreator .inv-encumbrance {
+  margin-left: 16px;
+}
+.charCreator .inv-encumbrance.is-over b {
+  color: #b02a2a;
 }
