@@ -51,10 +51,14 @@ export async function loadSource(poolKey, { exclusions = readExclusions() } = {}
 
   const refs = [];
 
-  // Compendium packs named in the pool's setting.
-  const packIds = game.settings.get(FLAG_SCOPE, descriptor.settingKey) || [];
-  for (const packId of packIds) {
-    if (!packId) continue; // falsy pack ids skipped
+  // Compendium packs named in the pool's setting. The `<type>Compendiums` settings
+  // store a COMMA-SEPARATED STRING (legacy getSources split on ","), so split it;
+  // tolerate an array too, in case a future migration changes the storage type.
+  const settingValue = game.settings.get(FLAG_SCOPE, descriptor.settingKey);
+  const packIds = typeof settingValue === "string" ? settingValue.split(",") : (settingValue || []);
+  for (const rawPackId of packIds) {
+    const packId = typeof rawPackId === "string" ? rawPackId.trim() : rawPackId;
+    if (!packId) continue; // falsy / empty pack ids skipped
     const pack = game.packs.get(packId);
     if (!pack) continue;
     const sourceId = sourceIdOf(pack);
