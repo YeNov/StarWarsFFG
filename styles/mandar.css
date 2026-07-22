@@ -6106,5 +6106,13 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .inv-encumbrance.is-over b {
   color: #b02a2a;
 }
+.charCreator .pickable-pill .item-pill-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border: none;
+  border-radius: 3px;
+  vertical-align: middle;
+}
 
 
