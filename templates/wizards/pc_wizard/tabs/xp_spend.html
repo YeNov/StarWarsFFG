@@ -2,35 +2,70 @@
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.XP.Label" }}</p>
   <div class="xp-summary">XP available: <b>{{ availableXp }}</b> / {{ totalXp }}</div>
 
-  <table class="xp-skills">
-    <thead>
-      <tr>
-        <th class="xp-col-name">Skill</th>
-        <th class="xp-col-career">Career</th>
-        <th class="xp-col-rank">Rank</th>
-        <th class="xp-col-buttons"></th>
-        <th class="xp-col-cost">Next rank</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{#each xpSkills as |skill|}}
-        <tr data-field="{{ skill.key }}">
-          <td class="xp-col-name">{{ skill.label }}</td>
-          <td class="xp-col-career">{{#if skill.careerskill}}✓{{/if}}</td>
-          <td class="xp-col-rank">{{ skill.rank }}</td>
-          <td class="xp-col-buttons">
-            <button type="button" class="xp-skill-btn" data-action="refund-skill"
-                    data-field="{{ skill.key }}" data-value="{{ skill.rank }}"
-                    {{#unless skill.canRefund}}disabled{{/unless}}>&minus;</button>
-            <button type="button" class="xp-skill-btn" data-action="buy-skill"
-                    data-field="{{ skill.key }}" data-value="{{ skill.nextValue }}" data-cost="{{ skill.nextCost }}"
-                    {{#unless skill.canBuy}}disabled{{/unless}}>&plus;</button>
-          </td>
-          <td class="xp-col-cost">
-            {{#if skill.canBuy}}{{ skill.nextCost }} XP{{else}}&mdash;{{/if}}
-          </td>
+  <div class="xp-switcher">
+    <button type="button" class="xp-switch{{#if (eq xpView "talents")}}{{else}} is-active{{/if}}" data-action="xp-view" data-view="skills">Buy skills</button>
+    <button type="button" class="xp-switch{{#if (eq xpView "talents")}} is-active{{/if}}" data-action="xp-view" data-view="talents">Talents</button>
+  </div>
+
+  {{#if (eq xpView "talents")}}
+    {{#if talentTree}}
+      <div class="pcw-tt">
+        <div class="pcw-tt-title">{{ talentSpecName }}</div>
+        {{#each talentTree as |row|}}
+          <div class="pcw-tt-row">
+            <div class="pcw-tt-tier">Tier {{ row.tier }}<span class="pcw-tt-tiercost">{{ row.cost }} XP</span></div>
+            <div class="pcw-tt-cells">
+              {{#each row.cells as |cell|}}
+                <div class="pcw-tt-cell{{#if cell.islearned}} is-learned{{else if cell.canPurchase}} is-open{{else}} is-locked{{/if}}{{#if cell.linkTop}} has-top{{/if}}{{#if cell.linkTopActive}} top-active{{/if}}{{#if cell.linkRight}} has-right{{/if}}{{#if cell.linkRightActive}} right-active{{/if}}">
+                  <div class="pcw-tt-name">{{ cell.name }}</div>
+                  {{#if cell.activation}}<div class="pcw-tt-activation">{{ localize cell.activation }}</div>{{/if}}
+                  {{#if cell.islearned}}
+                    <button type="button" class="pcw-tt-btn pcw-tt-unlearn" data-action="unlearn-talent" data-key="{{ cell.key }}">&minus; Unlearn</button>
+                  {{else if cell.canPurchase}}
+                    <button type="button" class="pcw-tt-btn pcw-tt-buy" data-action="learn-talent" data-key="{{ cell.key }}" {{#unless cell.affordable}}disabled{{/unless}}>Buy ({{ cell.cost }} XP)</button>
+                  {{else}}
+                    <div class="pcw-tt-cost">{{ cell.cost }} XP</div>
+                  {{/if}}
+                </div>
+              {{/each}}
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <p class="pcw-tt-empty">Select a specialization first (on the Specialization tab) to buy its talents.</p>
+    {{/if}}
+  {{else}}
+    <table class="xp-skills">
+      <thead>
+        <tr>
+          <th class="xp-col-name">Skill</th>
+          <th class="xp-col-career">Career</th>
+          <th class="xp-col-rank">Rank</th>
+          <th class="xp-col-buttons"></th>
+          <th class="xp-col-cost">Next rank</th>
         </tr>
-      {{/each}}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {{#each xpSkills as |skill|}}
+          <tr data-field="{{ skill.key }}">
+            <td class="xp-col-name">{{ skill.label }}</td>
+            <td class="xp-col-career">{{#if skill.careerskill}}✓{{/if}}</td>
+            <td class="xp-col-rank">{{ skill.rank }}</td>
+            <td class="xp-col-buttons">
+              <button type="button" class="xp-skill-btn" data-action="refund-skill"
+                      data-field="{{ skill.key }}" data-value="{{ skill.rank }}"
+                      {{#unless skill.canRefund}}disabled{{/unless}}>&minus;</button>
+              <button type="button" class="xp-skill-btn" data-action="buy-skill"
+                      data-field="{{ skill.key }}" data-value="{{ skill.nextValue }}" data-cost="{{ skill.nextCost }}"
+                      {{#unless skill.canBuy}}disabled{{/unless}}>&plus;</button>
+            </td>
+            <td class="xp-col-cost">
+              {{#if skill.canBuy}}{{ skill.nextCost }} XP{{else}}&mdash;{{/if}}
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{/if}}
 </section>

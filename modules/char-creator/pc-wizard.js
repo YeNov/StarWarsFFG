@@ -18,6 +18,7 @@ import { makeBuildDependencies } from "./build-deps.js";
 import { buildPreviewActor } from "./preview.js";
 import { createInitialData } from "./wizard-state.js";
 import { applyStartingBonus } from "./starting-bonus.js";
+import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { validateDraft } from "./validate.js";
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { loadSource } from "./load-source.js";
@@ -89,6 +90,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
       "characteristic-control": CharacterCreator._onCharacteristicControl,
+      "xp-view": CharacterCreator._onXpView,
+      "learn-talent": CharacterCreator._onLearnTalent,
+      "unlearn-talent": CharacterCreator._onUnlearnTalent,
       "toggle-career-rank": CharacterCreator._onToggleCareerRank,
       "toggle-spec-rank": CharacterCreator._onToggleSpecRank,
       "buy-forcepower": CharacterCreator._onBuyForcePower,
@@ -114,6 +118,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #sessionNoticeId = mintSessionNoticeId();
   #pools = {};
   #commitTimer = null;
+  #xpView = "skills"; // xp_spend sub-view: "skills" | "talents" (transient, not persisted to draft)
 
   constructor(options = {}) {
     super(options);
@@ -230,6 +235,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const tabs = this._prepareTabs("primary");
     if (!hasForceRating) delete tabs.forcePower;
 
+    // Talent tree for the selected specialization, consumed by the xp_spend "talents" sub-view.
+    // Learned talents come from data.purchases.xp.talents (the single source of truth), never a
+    // ref-stored list — so the tree cannot survive a wizard reopen.
+    const specForTree = this.data.selected.specialization;
+    const learnedTalentKeys = this.data.purchases.xp.talents.map((purchase) => purchase.key);
+    const talentTree = specForTree?.snapshot?.system?.talents
+      ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available)
+      : null;
+
     return {
       tabs,
       data: this.data,
@@ -239,6 +253,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       forcePowers,
       startingBonusChoices,
       xpSkills,
+      xpView: this.#xpView,
+      talentTree,
+      talentSpecName: specForTree?.name ?? null,
       careerSpecializations,
       universalSpecializations,
       careerFreeRanks,
@@ -346,8 +363,14 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           if (!stillValid) {
             data.selected.specialization = null;
             data.selected.specializationCareerSkillRanks = [];
+            data.purchases.xp.talents = []; // the dropped spec's purchased talents go with it
           }
           data.selected.careerCareerSkillRanks = [];
+        }
+        // Switching to a different specialization abandons the previous tree's talents (learned
+        // talents live only in data.purchases.xp.talents, never on the ref).
+        if (table === "specialization" && data.selected.specialization?.uuid !== ref.uuid) {
+          data.purchases.xp.talents = [];
         }
         data.selected[table] = ref;
       }
@@ -436,6 +459,41 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         const idx = steps.findIndex((p) => p.key === key && p.value === curValue);
         if (idx >= 0) steps.splice(idx, 1);
       }
+    });
+  }
+
+  static _onXpView(event, target) {
+    // Pure view toggle — no data change, so bypass #mutate (no draft save / commit re-mint).
+    this.#xpView = target.dataset.view === "talents" ? "talents" : "skills";
+    this.render({ parts: ["xp_spend"] });
+  }
+
+  // Learned talents live ONLY in data.purchases.xp.talents ({ key, cost }) — never written onto
+  // the specialization ref (which is the shared, module-cached pool object). That single source of
+  // truth lives in this.data, which is rebuilt fresh on every wizard open, so nothing survives a
+  // close/reopen.
+  static _onLearnTalent(event, target) {
+    const key = target.dataset.key;
+    this.#mutate((data) => {
+      const talents = data.selected.specialization?.snapshot?.system?.talents;
+      if (!talents) return;
+      const learned = new Set(data.purchases.xp.talents.map((purchase) => purchase.key));
+      if (!canLearn(talents, learned, key)) return; // gated by the shared connected-to-root rule
+      data.purchases.xp.talents.push({ key, cost: talentTierCost(Number(key.slice(6))) });
+    });
+  }
+
+  static _onUnlearnTalent(event, target) {
+    const key = target.dataset.key;
+    this.#mutate((data) => {
+      const talents = data.selected.specialization?.snapshot?.system?.talents;
+      if (!talents) return;
+      const learned = new Set(data.purchases.xp.talents.map((purchase) => purchase.key));
+      if (!learned.delete(key)) return;
+      // Safe unlearn: keep only talents still connected to the root row; anything orphaned by
+      // this removal is dropped (and refunded) alongside it.
+      const keep = rootConnectedKeys(talents, learned);
+      data.purchases.xp.talents = data.purchases.xp.talents.filter((purchase) => keep.has(purchase.key));
     });
   }
 

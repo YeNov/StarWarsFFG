@@ -3609,3 +3609,122 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   opacity: 0.75;
   font-size: 0.9em;
 }
+
+/* ------------------------------------------------------------------ *
+ * PC Wizard — xp_spend view switcher + specialization talent tree     *
+ * ------------------------------------------------------------------ */
+.charCreator .xp-switcher {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.charCreator .xp-switch {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 4px 12px;
+  opacity: 0.65;
+}
+.charCreator .xp-switch.is-active {
+  opacity: 1;
+  font-weight: bold;
+  box-shadow: inset 0 -2px 0 currentColor;
+}
+.charCreator .pcw-tt-title {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.charCreator .pcw-tt-empty {
+  opacity: 0.8;
+  font-style: italic;
+}
+.charCreator .pcw-tt-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.charCreator .pcw-tt-tier {
+  flex: 0 0 68px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 0.78em;
+  opacity: 0.8;
+}
+.charCreator .pcw-tt-tiercost {
+  font-weight: bold;
+  opacity: 1;
+}
+.charCreator .pcw-tt-cells {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.charCreator .pcw-tt-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  min-height: 62px;
+}
+.charCreator .pcw-tt-cell.is-learned {
+  border-color: #3a7d3a;
+  background: rgba(60, 140, 60, 0.18);
+}
+.charCreator .pcw-tt-cell.is-locked {
+  opacity: 0.45;
+}
+.charCreator .pcw-tt-name {
+  font-weight: bold;
+  font-size: 0.84em;
+}
+.charCreator .pcw-tt-activation {
+  font-size: 0.72em;
+  opacity: 0.75;
+}
+.charCreator .pcw-tt-cost {
+  font-size: 0.75em;
+  opacity: 0.7;
+  margin-top: auto;
+}
+.charCreator .pcw-tt-btn {
+  flex: 0 0 auto;
+  width: auto;
+  margin-top: auto;
+  padding: 2px 6px;
+  font-size: 0.78em;
+}
+/* Tree connectors — drawn in the grid gaps on the lower/left node (has-top joins upward,
+   has-right joins to the next column); solid green when both endpoints are learned. */
+.charCreator .pcw-tt-cell.has-top::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -7px;
+  width: 2px;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.charCreator .pcw-tt-cell.top-active::before {
+  background: #3a7d3a;
+}
+.charCreator .pcw-tt-cell.has-right::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: -6px;
+  width: 8px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.charCreator .pcw-tt-cell.right-active::after {
+  background: #3a7d3a;
+}

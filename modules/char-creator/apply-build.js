@@ -95,7 +95,7 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   // selected specialization + free spec skill ranks + purchased talent nodes
   addItem(data.selected.specialization, {
     rankGrants: data.selected.specializationCareerSkillRanks ?? [],
-    learnedKeys: data.selected.specialization?.learnedKeys ?? [],
+    learnedKeys: data.purchases.xp.talents.map((purchase) => purchase.key),
   });
 
   // purchased extra specializations and Force powers (N-5)
