@@ -16,30 +16,44 @@
   </div>
 
   <div class="inv-columns">
-  <div class="inv-owned">
-    <div class="inv-title">Owned</div>
-    {{#each ownedItems as |item|}}
-      <div class="inv-row" data-uuid="{{ item.uuid }}">
-        <span class="inv-name">{{ item.name }}</span>
-        <span class="inv-cost">{{ item.cost }} cr</span>
-        <button type="button" class="inv-btn inv-refund" data-action="refund-gear" data-uuid="{{ item.uuid }}" title="Refund">&minus;</button>
-      </div>
-    {{else}}
-      <div class="inv-empty">Nothing owned in this category.</div>
-    {{/each}}
-  </div>
+    <div class="inv-owned">
+      <div class="inv-title">Owned</div>
+      {{#if ownedItems.length}}
+        <table class="pickable-table">
+          <tbody>
+            {{#each ownedItems as |item|}}
+              <tr class="pickable-row" data-uuid="{{ item.uuid }}">
+                <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=item)}}</td>
+                <td class="pickable-name">{{ item.name }}</td>
+                <td class="pickable-cost">{{ item.cost }} cr</td>
+                <td class="pickable-action"><button type="button" data-action="refund-gear" data-uuid="{{ item.uuid }}">Refund</button></td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <div class="inv-empty">Nothing owned in this category.</div>
+      {{/if}}
+    </div>
 
-  <div class="inv-shop">
-    <div class="inv-title">Shop</div>
-    {{#each shopItems as |item|}}
-      <div class="inv-row" data-uuid="{{ item.uuid }}">
-        <span class="inv-name">{{ item.name }}</span>
-        <span class="inv-cost">{{ item.price }} cr</span>
-        <button type="button" class="inv-btn inv-buy" data-action="buy-gear" data-uuid="{{ item.uuid }}" {{#unless item.affordable}}disabled{{/unless}}>Buy</button>
-      </div>
-    {{else}}
-      <div class="inv-empty">No items match.</div>
-    {{/each}}
-  </div>
+    <div class="inv-shop">
+      <div class="inv-title">Shop</div>
+      {{#if shopItems.length}}
+        <table class="pickable-table">
+          <tbody>
+            {{#each shopItems as |item|}}
+              <tr class="pickable-row" data-uuid="{{ item.uuid }}">
+                <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=item)}}</td>
+                <td class="pickable-name">{{ item.name }}</td>
+                <td class="pickable-cost">{{ item.price }} cr</td>
+                <td class="pickable-action"><button type="button" data-action="buy-gear" data-uuid="{{ item.uuid }}" {{#unless item.affordable}}disabled{{/unless}}>Buy</button></td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <div class="inv-empty">No items match.</div>
+      {{/if}}
+    </div>
   </div>
 </section>

@@ -231,7 +231,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           const discounted = Boolean(fpDiscounts[ref.uuid]); // mentor discount: flat -5 XP
           const cost = discounted ? Math.max(0, baseCost - 5) : baseCost;
           const bought = boughtFpUuids.has(ref.uuid);
-          return { uuid: ref.uuid, name: ref.name, baseCost, discounted, cost, requiredRating: ref.snapshot?.system?.required_force_rating, bought, canBuy: !bought && cost <= xp.available };
+          return { uuid: ref.uuid, name: ref.name, img: ref.img, baseCost, discounted, cost, requiredRating: ref.snapshot?.system?.required_force_rating, bought, canBuy: !bought && cost <= xp.available };
         })
       : [];
 
@@ -266,7 +266,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       });
     const ownedItems = this.data.purchases.credits
       .filter((purchase) => purchase.ref?.type === invView && matchesSearch(purchase.ref))
-      .map((purchase) => ({ uuid: purchase.ref.uuid, name: purchase.ref.name, cost: purchase.cost }));
+      .map((purchase) => ({ uuid: purchase.ref.uuid, name: purchase.ref.name, img: purchase.ref.img, cost: purchase.cost }));
 
     // Encumbrance — read the built preview actor's derived stat (current from carried items, max
     // from Brawn + mods). It rebuilds on every buy/refund, so this tracks purchases automatically.

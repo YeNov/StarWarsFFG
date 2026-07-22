@@ -2,25 +2,27 @@
   <p>Force powers <span class="fp-rating">(Force rating {{ forceRating }})</span></p>
   <div class="fp-summary">XP available: <b>{{ availableXp }}</b> / {{ totalXp }}</div>
 
-  <ul class="fp-buyable">
-    {{#each forcePowers as |fp|}}
-      <li class="fp-row{{#if fp.bought}} is-owned{{/if}}" data-uuid="{{ fp.uuid }}">
-        <div class="fp-label">
-          <span class="fp-name">{{ fp.name }}</span>
-          <span class="fp-hint">&mdash; {{ fp.cost }} XP{{#if fp.discounted}} (mentor &minus;5){{/if}}{{#if fp.requiredRating}}, req FR {{ fp.requiredRating }}{{/if}}{{#if fp.bought}} (owned){{/if}}</span>
-        </div>
-        {{#if fp.bought}}
-          <button type="button" class="fp-btn fp-refund" data-action="refund-forcepower" data-uuid="{{ fp.uuid }}" title="Refund this power">&minus;</button>
-        {{else}}
-          <span class="fp-controls">
-            <button type="button" class="fp-btn fp-buy" data-action="buy-forcepower" data-uuid="{{ fp.uuid }}" data-cost="{{ fp.cost }}"
-                    {{#unless fp.canBuy}}disabled{{/unless}}>Buy</button>
-            <label class="fp-discount" title="Mentor discount: -5 XP">
-              <input type="checkbox" data-discount data-uuid="{{ fp.uuid }}" {{#if fp.discounted}}checked{{/if}}> Mentor discount
-            </label>
-          </span>
-        {{/if}}
-      </li>
-    {{/each}}
-  </ul>
+  <table class="pickable-table">
+    <tbody>
+      {{#each forcePowers as |fp|}}
+        <tr class="pickable-row" data-uuid="{{ fp.uuid }}">
+          <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=fp)}}</td>
+          <td class="pickable-name">{{ fp.name }}</td>
+          <td class="pickable-cost">{{ fp.cost }} XP{{#if fp.discounted}} (mentor &minus;5){{/if}}{{#if fp.requiredRating}} &middot; FR {{ fp.requiredRating }}{{/if}}</td>
+          <td class="pickable-mentor">
+            {{#unless fp.bought}}
+              <label class="fp-discount" title="Mentor discount: -5 XP"><input type="checkbox" data-discount data-uuid="{{ fp.uuid }}" {{#if fp.discounted}}checked{{/if}}> Mentor discount</label>
+            {{/unless}}
+          </td>
+          <td class="pickable-action">
+            {{#if fp.bought}}
+              <button type="button" data-action="refund-forcepower" data-uuid="{{ fp.uuid }}">Refund</button>
+            {{else}}
+              <button type="button" data-action="buy-forcepower" data-uuid="{{ fp.uuid }}" data-cost="{{ fp.cost }}" {{#unless fp.canBuy}}disabled{{/unless}}>Buy</button>
+            {{/if}}
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
 </section>
