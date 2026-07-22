@@ -48,6 +48,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     career: { template: `${PC_WIZARD}/tabs/career.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
     specialization: { template: `${PC_WIZARD}/tabs/specialization.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`, `${PC_WIZARD}/item_pill.html`], scrollable: [""] },
     xp_spend: { template: `${PC_WIZARD}/tabs/xp_spend.html`, scrollable: [""] },
+    forcePower: { template: `${PC_WIZARD}/tabs/forcePower.html`, scrollable: [""] },
     gear: { template: `${PC_WIZARD}/tabs/gear.html`, templates: [`${PC_WIZARD}/parts/gear-filters.html`, `${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
     motivation: { template: `${PC_WIZARD}/tabs/motivation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
     review: { template: `${PC_WIZARD}/tabs/review.html`, scrollable: [""] },
@@ -68,6 +69,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         { id: "career", label: "career" },
         { id: "specialization", label: "specialization" },
         { id: "xp_spend", label: "xp_spend" },
+        { id: "forcePower", label: "forcePower" },
         { id: "gear", label: "gear" },
         { id: "motivation", label: "motivation" },
         { id: "review", label: "review" },
@@ -88,6 +90,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "refund-skill": CharacterCreator._onRefundSkill,
       "toggle-career-rank": CharacterCreator._onToggleCareerRank,
       "toggle-spec-rank": CharacterCreator._onToggleSpecRank,
+      "buy-forcepower": CharacterCreator._onBuyForcePower,
+      "refund-forcepower": CharacterCreator._onRefundForcePower,
       "open-sources": CharacterCreator._onOpenSources,
       "resume-draft": CharacterCreator._onResumeDraft,
       "discard-draft": CharacterCreator._onDiscardDraft,
@@ -101,6 +105,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static PART_BINDINGS = {
     gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
     startingBonus: [{ selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" }],
+    forcePower: [{ selector: "input[data-discount]", event: "change", handler: "_onToggleForcePowerDiscount" }],
   };
 
   #commitPhase = "editing";
@@ -129,7 +134,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext() {
-    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization"]) {
+    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]) {
       try { await this.#ensurePool(poolKey); } catch { /* pool unavailable in this world */ }
     }
 
@@ -200,11 +205,37 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       return { key: name, picked, canToggle: picked || specPicked.length < 2 };
     });
 
+    // Force powers — gated by the character's Force rating (system.stats.forcePool.max on the
+    // built actor, which includes item-granted rating). Rating 0 → the tab is hidden entirely;
+    // rating 1+ → show powers whose required_force_rating is within reach.
+    const forceRating = Number(preview?.system?.stats?.forcePool?.max) || 0;
+    const hasForceRating = forceRating >= 1;
+    const fpPurchases = this.data.purchases.xp.forcePowers;
+    const boughtFpUuids = new Set(fpPurchases.map((p) => p.ref?.uuid));
+    const fpDiscounts = this.data.forcePowerDiscounts ?? {};
+    const forcePowers = hasForceRating
+      ? (this.#pools.forcePower ?? [])
+        .filter((ref) => (Number(ref.snapshot?.system?.required_force_rating) || 0) <= forceRating)
+        .map((ref) => {
+          const baseCost = Number(ref.snapshot?.system?.base_cost) || 0;
+          const discounted = Boolean(fpDiscounts[ref.uuid]); // mentor discount: flat -5 XP
+          const cost = discounted ? Math.max(0, baseCost - 5) : baseCost;
+          const bought = boughtFpUuids.has(ref.uuid);
+          return { uuid: ref.uuid, name: ref.name, baseCost, discounted, cost, requiredRating: ref.snapshot?.system?.required_force_rating, bought, canBuy: !bought && cost <= xp.available };
+        })
+      : [];
+
+    // Hide the Force Powers tab from the nav when the character has no Force rating.
+    const tabs = this._prepareTabs("primary");
+    if (!hasForceRating) delete tabs.forcePower;
+
     return {
-      tabs: this._prepareTabs("primary"),
+      tabs,
       data: this.data,
       pools,
       isForceAndDestiny: this.data.selected.rules === "fad",
+      forceRating,
+      forcePowers,
       startingBonusChoices,
       xpSkills,
       careerSpecializations,
@@ -279,6 +310,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => {
       data.gearFilters = { ...(data.gearFilters ?? {}), [field]: value };
     }, { parts: ["gear"] });
+  }
+
+  _onToggleForcePowerDiscount(event) {
+    const uuid = event.currentTarget.dataset.uuid;
+    const checked = event.currentTarget.checked;
+    this.#mutate((data) => {
+      if (!data.forcePowerDiscounts) data.forcePowerDiscounts = {};
+      data.forcePowerDiscounts[uuid] = checked;
+    });
   }
 
   // --- click actions (bound with `this` = the app instance) --------------------------
@@ -364,6 +404,19 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       if (index >= 0) list.splice(index, 1); // remove a free rank
       else if (list.length < 2) list.push(skill); // add, capped at 2
     });
+  }
+
+  static _onBuyForcePower(event, target) {
+    const { uuid } = target.dataset;
+    const cost = Number(target.dataset.cost);
+    const ref = (this.#pools.forcePower ?? []).find((entry) => entry.uuid === uuid);
+    if (!ref) return;
+    this.#mutate((data) => { data.purchases.xp.forcePowers.push({ ref, cost }); });
+  }
+
+  static _onRefundForcePower(event, target) {
+    const { uuid } = target.dataset;
+    this.#mutate((data) => { data.purchases.xp.forcePowers = data.purchases.xp.forcePowers.filter((purchase) => purchase.ref?.uuid !== uuid); });
   }
 
 

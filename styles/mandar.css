@@ -5831,4 +5831,51 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   filter: brightness(0) invert(1);
 }
 
+/* ------------------------------------------------------------------ *
+ * PC Wizard — Force Powers tab: single-list rows with inline controls *
+ * ------------------------------------------------------------------ */
+.charCreator .fp-buyable {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.charCreator .fp-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 0;
+}
+.charCreator .fp-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.charCreator .fp-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 44px;
+  line-height: normal;
+}
+.charCreator .fp-discount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+.charCreator .fp-discount input {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+}
+.charCreator .fp-row.is-owned .fp-name {
+  font-weight: bold;
+}
+.charCreator .fp-hint {
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
 
