@@ -41,16 +41,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       templates: [`${PC_WIZARD}/parts/draft-banner.html`, `${PC_WIZARD}/parts/sources-panel.html`],
     },
     tabs: { template: "templates/generic/tab-navigation.hbs" },
-    background: { template: `${PC_WIZARD}/tabs/background.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`, `${PC_WIZARD}/item_pill.html`] },
-    startingBonus: { template: `${PC_WIZARD}/tabs/startingBonus.html` },
-    obligation: { template: `${PC_WIZARD}/tabs/obligation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
-    species: { template: `${PC_WIZARD}/tabs/species.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
-    career: { template: `${PC_WIZARD}/tabs/career.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
-    specialization: { template: `${PC_WIZARD}/tabs/specialization.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`, `${PC_WIZARD}/item_pill.html`] },
-    xp_spend: { template: `${PC_WIZARD}/tabs/xp_spend.html` },
-    gear: { template: `${PC_WIZARD}/tabs/gear.html`, templates: [`${PC_WIZARD}/parts/gear-filters.html`, `${PC_WIZARD}/parts/pickable-table.html`] },
-    motivation: { template: `${PC_WIZARD}/tabs/motivation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
-    review: { template: `${PC_WIZARD}/tabs/review.html` },
+    background: { template: `${PC_WIZARD}/tabs/background.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`, `${PC_WIZARD}/item_pill.html`], scrollable: [""] },
+    startingBonus: { template: `${PC_WIZARD}/tabs/startingBonus.html`, scrollable: [""] },
+    obligation: { template: `${PC_WIZARD}/tabs/obligation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
+    species: { template: `${PC_WIZARD}/tabs/species.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
+    career: { template: `${PC_WIZARD}/tabs/career.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
+    specialization: { template: `${PC_WIZARD}/tabs/specialization.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`, `${PC_WIZARD}/item_pill.html`], scrollable: [""] },
+    xp_spend: { template: `${PC_WIZARD}/tabs/xp_spend.html`, scrollable: [""] },
+    gear: { template: `${PC_WIZARD}/tabs/gear.html`, templates: [`${PC_WIZARD}/parts/gear-filters.html`, `${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
+    motivation: { template: `${PC_WIZARD}/tabs/motivation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
+    review: { template: `${PC_WIZARD}/tabs/review.html`, scrollable: [""] },
     preview: {
       template: `${PC_WIZARD}/actor_preview.html`,
       templates: [`${PC_WIZARD}/preview/skills.html`, `${PC_WIZARD}/preview/specialization.html`, `${PC_WIZARD}/preview/forcepower.html`],
@@ -230,6 +230,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     if (this.#draft.commit) this.#remintCommitId(); // edit after an attempt ⇒ new identity
     fn(this.data);
     this.draftStore.scheduleSave({ data: this.data, commit: this.#draft.commit });
+    // Per-part `scrollable: [""]` (PARTS) preserves each tab section's scroll across the
+    // re-render, so a long tab (e.g. the skills list) keeps its position on every click.
     if (parts) this.render({ parts });
     else this.render();
     return true;
