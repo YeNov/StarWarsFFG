@@ -45,6 +45,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     obligation: { template: `${PC_WIZARD}/tabs/obligation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
     species: { template: `${PC_WIZARD}/tabs/species.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
     career: { template: `${PC_WIZARD}/tabs/career.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
+    specialization: { template: `${PC_WIZARD}/tabs/specialization.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`, `${PC_WIZARD}/item_pill.html`] },
     xp_spend: { template: `${PC_WIZARD}/tabs/xp_spend.html` },
     gear: { template: `${PC_WIZARD}/tabs/gear.html`, templates: [`${PC_WIZARD}/parts/gear-filters.html`, `${PC_WIZARD}/parts/pickable-table.html`] },
     motivation: { template: `${PC_WIZARD}/tabs/motivation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`] },
@@ -64,6 +65,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         { id: "obligation", label: "obligation" },
         { id: "species", label: "species" },
         { id: "career", label: "career" },
+        { id: "specialization", label: "specialization" },
         { id: "xp_spend", label: "xp_spend" },
         { id: "gear", label: "gear" },
         { id: "motivation", label: "motivation" },
@@ -124,7 +126,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext() {
-    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background"]) {
+    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization"]) {
       try { await this.#ensurePool(poolKey); } catch { /* pool unavailable in this world */ }
     }
 
@@ -169,6 +171,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       : [];
 
+    // Specialization tab: the selected career's in-career specializations + every
+    // universal specialization from the pool (matched by name, as the legacy did).
+    // Selecting one sets data.selected.specialization via the shared _onSelect action.
+    const specPool = this.#pools.specialization ?? [];
+    const careerSpecNames = new Set(
+      Object.values(this.data.selected.career?.snapshot?.system?.specializations ?? {}).map((spec) => spec.name),
+    );
+    const careerSpecializations = specPool.filter((ref) => careerSpecNames.has(ref.name));
+    const universalSpecializations = specPool.filter((ref) => ref.snapshot?.system?.universal && !careerSpecNames.has(ref.name));
+
     return {
       tabs: this._prepareTabs("primary"),
       data: this.data,
@@ -176,6 +188,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       isForceAndDestiny: this.data.selected.rules === "fad",
       startingBonusChoices,
       xpSkills,
+      careerSpecializations,
+      universalSpecializations,
       totalXp: xp.total,
       availableXp: xp.available,
       totalCredits: credits.total,
@@ -249,9 +263,28 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const ref = (this.#pools[table] ?? []).find((entry) => entry.uuid === uuid);
     if (!ref) return;
     this.#mutate((data) => {
-      if (["obligation", "motivation"].includes(table)) data.selected[`${table}s`].push(ref);
-      else if (["culture", "hook", "forceAttitude"].includes(table)) data.selected.background[table] = ref;
-      else data.selected[table] = ref;
+      if (["obligation", "motivation"].includes(table)) {
+        data.selected[`${table}s`].push(ref);
+      } else if (["culture", "hook", "forceAttitude"].includes(table)) {
+        data.selected.background[table] = ref;
+      } else {
+        // Changing the career invalidates career-tied choices. Clear the selected
+        // specialization + its free ranks UNLESS it's still valid for the new career
+        // (an in-career spec of the new career, or a universal spec).
+        if (table === "career" && data.selected.career?.uuid !== ref.uuid) {
+          const newCareerSpecNames = new Set(
+            Object.values(ref.snapshot?.system?.specializations ?? {}).map((spec) => spec.name),
+          );
+          const chosen = data.selected.specialization;
+          const stillValid = chosen && (newCareerSpecNames.has(chosen.name) || chosen.snapshot?.system?.universal);
+          if (!stillValid) {
+            data.selected.specialization = null;
+            data.selected.specializationCareerSkillRanks = [];
+          }
+          data.selected.careerCareerSkillRanks = [];
+        }
+        data.selected[table] = ref;
+      }
     });
   }
 
@@ -287,6 +320,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       if (index >= 0) data.purchases.xp.skills.splice(index, 1);
     });
   }
+
 
   _onStartingBonusChange(event) {
     const choice = event.currentTarget.value || null;
