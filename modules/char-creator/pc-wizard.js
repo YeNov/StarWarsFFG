@@ -88,6 +88,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "refund-gear": CharacterCreator._onRefundGear,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
+      "characteristic-control": CharacterCreator._onCharacteristicControl,
       "toggle-career-rank": CharacterCreator._onToggleCareerRank,
       "toggle-spec-rank": CharacterCreator._onToggleSpecRank,
       "buy-forcepower": CharacterCreator._onBuyForcePower,
@@ -417,6 +418,25 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static _onRefundForcePower(event, target) {
     const { uuid } = target.dataset;
     this.#mutate((data) => { data.purchases.xp.forcePowers = data.purchases.xp.forcePowers.filter((purchase) => purchase.ref?.uuid !== uuid); });
+  }
+
+  static _onCharacteristicControl(event, target) {
+    const key = target.dataset.target;
+    const curValue = parseInt(target.dataset.value, 10);
+    const increase = target.dataset.direction === "increase";
+    if (increase && curValue >= 5) return; // FFG caps creation-time characteristic raises at 5
+    this.#mutate((data) => {
+      const steps = data.purchases.xp.characteristics;
+      if (increase) {
+        const newValue = curValue + 1;
+        steps.push({ key, value: newValue, cost: newValue * 10 }); // FFG: raising to rating N costs N×10 XP
+      } else {
+        // Remove only the purchased step that produced the current value — never drop below the
+        // species base. (Guards the legacy unguarded splice(-1) that removed the wrong step.)
+        const idx = steps.findIndex((p) => p.key === key && p.value === curValue);
+        if (idx >= 0) steps.splice(idx, 1);
+      }
+    });
   }
 
 
