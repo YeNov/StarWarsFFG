@@ -80,9 +80,32 @@ verification.
 - **Verified live:** GM builds a character (species/career/spec/skills), Create produces a correct
   actor — sheet renders cleanly, skill ranks + characteristics intact.
 
-## Still pending (Stage 23)
+## Last-stage deliverables
 
-Free career/specialization skill-rank picker (unbuilt); species/career skill grants via AEs verified
-against this same skills-prep path; preview↔final parity, effect transfer, tree materialization /
-the DEV-16 binding, draft persistence + setFlag latency, the socket round-trip + R7-2 replay, the
-single Cypress run, and the deferred CSS polish. (Stages 20/21 fold in here.)
+### Design pass (CSS / styling) — REQUIRED deliverable of the final stage (owner-added 2026-07-22)
+
+The wizard is functionally complete but ships **unstyled** — every new template uses new class
+names (`.pc-wizard-header`, `.tab-*`, `.pickable-table`, `.xp-skills`, `.free-ranks`, `.starting-bonus`,
+`.gear-filters`, `.sources-panel`, `.draft-banner`, `.specialization-group`, …) with no CSS. A full
+**design pass** is part of the last stage:
+
+- Style the whole wizard to match the system look. **CSS is hand-maintained** — do NOT run
+  `gulp css` / `npm run compile`; edit both `starwarsffg.css` AND `mandar.css` (the active theme is
+  `mandar`, which disables `starwarsffg.css`). See memory `[[css-is-hand-maintained]]` /
+  `[[active-theme-is-mandar]]`.
+- Make each tab section scroll cleanly (it already carries `scrollable:[""]`); give the long lists
+  (skills, gear 1111 rows, specs) sensible max-heights / columns instead of one tall page.
+- Style the pickable tables, the +/- and toggle buttons, the free-rank pickers, the starting-bonus
+  select, the review checklist, and the (still-sparse) preview panel.
+
+### Functional verification still pending
+
+Species/career skill grants via AEs across the full skills-prep path; preview↔final parity; effect
+transfer; tree materialization / the DEV-16 binding; draft persistence + setFlag latency; the socket
+round-trip + R7-2 replay (two-client); the single Cypress run. (Stages 20/21 fold in here.)
+
+### Built since cutover (functional, live-verified)
+
+Content pools load; all selection tabs; starting bonus; XP skill purchases (scaled cost + rank-2 cap);
+specialization tab (career + universal); **free career (4) + spec (2) skill-rank pickers**; GM-direct
+Create → correct actor; scroll preservation. Backlog of enhancements in repo-root `nice_to_improve.md`.
