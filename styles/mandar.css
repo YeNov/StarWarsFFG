@@ -5832,19 +5832,42 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 
 /* PC Wizard — Force Powers: mentor-discount checkbox (rows use the shared pickable-table). */
-.charCreator .fp-discount {
+.charCreator .pickable-mentor .fp-discount {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin: 0;
+  border: 0 none;
   white-space: nowrap;
   font-size: 0.85em;
+  font-weight: normal;
+  letter-spacing: normal;
   text-transform: none;
+  color: inherit;
   cursor: pointer;
 }
 .charCreator .fp-discount input {
   flex: 0 0 auto;
   width: auto;
   margin: 0;
+}
+/* A spacer cell after the cost absorbs the slack, so name/mentor/cost stay packed on the left
+   and the cost column grows rightward (toggling the discount changes its width) into the spacer
+   without shifting the checkbox, the cost's left edge, or the Buy button. */
+.charCreator .pickable-spacer {
+  width: 100%;
+}
+.charCreator .pickable-cost {
+  white-space: nowrap;
+}
+/* Right-align the Buy/Refund button so its right edge is fixed (the column is sized to the wider
+   "Refund", so a "Buy" would otherwise stop short and appear to jump). The buttons are block-level
+   (display:flex) in this theme, so text-align can't move them — margin-left:auto does. */
+.charCreator .pickable-action {
+  text-align: right;
+}
+.charCreator .pickable-action button {
+  margin-left: auto;
 }
 
 /* ------------------------------------------------------------------ *
