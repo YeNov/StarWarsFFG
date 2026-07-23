@@ -4093,10 +4093,12 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .pcw-tt-title {
   font-weight: bold;
   margin-bottom: 6px;
+  color: #191813;
 }
 .charCreator .pcw-tt-empty {
   opacity: 0.8;
   font-style: italic;
+  color: #191813;
 }
 .charCreator .pcw-tt-row {
   display: flex;
@@ -4110,11 +4112,11 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   flex-direction: column;
   justify-content: center;
   font-size: 0.78em;
-  opacity: 0.8;
+  color: #191813;
 }
 .charCreator .pcw-tt-tiercost {
   font-weight: bold;
-  opacity: 1;
+  color: #4f251f;
 }
 .charCreator .pcw-tt-cells {
   flex: 1 1 auto;
@@ -4128,30 +4130,38 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   flex-direction: column;
   gap: 3px;
   padding: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(45, 36, 31, 0.35);
   border-radius: 3px;
   min-height: 62px;
+  background: rgba(118, 99, 82, 0.16);
+  color: #191813;
+}
+.charCreator .pcw-tt-cell.is-open {
+  border-color: rgba(84, 105, 78, 0.65);
+  background: rgba(116, 137, 100, 0.34);
 }
 .charCreator .pcw-tt-cell.is-learned {
-  border-color: #3a7d3a;
-  background: rgba(60, 140, 60, 0.18);
+  border-color: #315f34;
+  background: rgba(75, 120, 71, 0.52);
 }
 .charCreator .pcw-tt-cell.is-locked {
-  opacity: 0.45;
+  border-color: rgba(65, 80, 100, 0.28);
+  background: rgba(65, 80, 100, 0.18);
 }
 .charCreator .pcw-tt-name {
   font-weight: bold;
   font-size: 0.84em;
   padding-right: 16px; /* clear the corner "?" help button */
+  color: #191813;
 }
 .charCreator .pcw-tt-activation {
   font-size: 0.72em;
-  opacity: 0.75;
+  color: #4f3b31;
 }
 .charCreator .pcw-tt-cost {
   font-size: 0.75em;
-  opacity: 0.7;
   margin-top: auto;
+  color: #5b4a40;
 }
 .charCreator .pcw-tt-btn {
   flex: 0 0 auto;
