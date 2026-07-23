@@ -64,6 +64,28 @@ const SOURCE_GROUP_LABELS = Object.freeze({
 });
 
 export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) {
+  static #activeInstance = null;
+
+  static get isOpen() {
+    return Boolean(CharacterCreator.#activeInstance);
+  }
+
+  static open(options = {}) {
+    const active = CharacterCreator.#activeInstance;
+    if (active) {
+      if (active.minimized) active.maximize?.();
+      active.bringToFront?.();
+      active.bringToTop?.();
+      active.render(true);
+      return active;
+    }
+
+    const app = new CharacterCreator(options);
+    CharacterCreator.#activeInstance = app;
+    app.render(true);
+    return app;
+  }
+
   /** @override */
   static PARTS = {
     header: {
@@ -871,12 +893,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override — preserve the minimized-animation guard verbatim, then D9 cleanup + a final save. */
   async close(options = {}) {
-    clearPending(wizardPending, this.#sessionNoticeId);
-    if (this.#commitPhase === "editing") {
-      this.draftStore.unlock();
-      await this.draftStore.saveNow({ data: this.data, commit: this.#draft.commit });
+    try {
+      clearPending(wizardPending, this.#sessionNoticeId);
+      if (this.#commitPhase === "editing") {
+        this.draftStore.unlock();
+        await this.draftStore.saveNow({ data: this.data, commit: this.#draft.commit });
+      }
+      const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
+      return await super.close(closeOptions);
+    } finally {
+      if (CharacterCreator.#activeInstance === this) CharacterCreator.#activeInstance = null;
     }
-    const closeOptions = this.minimized && options.animate !== false ? { ...options, animate: false } : options;
-    return super.close(closeOptions);
   }
 }

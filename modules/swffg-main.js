@@ -1466,9 +1466,8 @@ Hooks.on("renderActorDirectory", (app, html) => {
       folderElement.appendChild(wizardButton);
 
       wizardButton.onclick = async function () {
-        ui.notifications.info(game.i18n.localize("SWFFG.CharacterCreator.Entry.Loading"));
-        const create = new CharacterCreator();
-        create.render(true);
+        if (!CharacterCreator.isOpen) ui.notifications.info(game.i18n.localize("SWFFG.CharacterCreator.Entry.Loading"));
+        CharacterCreator.open();
       }
     }
   }
