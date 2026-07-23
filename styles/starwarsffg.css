@@ -3651,6 +3651,29 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 
 /* PC Wizard — Background accordion. */
+.charCreator section.tab > p,
+.charCreator .empty-hint,
+.charCreator .pcw-tt-empty,
+.charCreator .xp-summary,
+.charCreator .gear-summary,
+.charCreator .starting-bonus > label,
+.charCreator .inv-filters > label,
+.charCreator .specialization-group > h4,
+.charCreator .bonus-block > h4,
+.charCreator .species-bonus-choice > h5,
+.charCreator .inv-title,
+.charCreator .inv-empty,
+.charCreator .sources-panel > h3,
+.charCreator .sources-panel > p {
+  color: #191813;
+  text-decoration: none;
+}
+.charCreator .starting-bonus > label,
+.charCreator .inv-filters > label {
+  border: 0;
+  background: transparent;
+}
+
 .charCreator .background-accordion {
   display: flex;
   flex-direction: column;
@@ -3972,21 +3995,38 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .ffg-skill-info span.dietype:is(.advantage, .despair, .forcepoint, .failure, .force, .light, .success, .threat, .triumph) {
   color: #fff;
 }
-/* Review tab: RAW skill-cap highlight (non-blocking). */
-.charCreator .review-skillcap {
-  margin: 8px 0;
-  padding: 6px 10px;
-  border: 1px solid #b02a2a;
-  border-radius: 4px;
-  background: rgba(176, 42, 42, 0.12);
+/* Review tab status checklist. */
+.charCreator .review-steps {
+  color: #191813;
 }
-.charCreator .review-skillcap-title {
-  font-weight: bold;
-  color: #b02a2a;
-}
-.charCreator .review-skillcap ul {
-  margin: 4px 0 0;
+.charCreator .review-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 12px;
   padding-left: 18px;
+}
+.charCreator .review-step {
+  line-height: 1.35;
+}
+.charCreator .review-status {
+  display: inline-flex;
+  min-width: 96px;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(65, 80, 100, 0.18);
+  color: #191813;
+  font-size: 0.82em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.charCreator .review-step.is-complete .review-status {
+  background: rgba(42, 110, 42, 0.22);
+}
+.charCreator .review-step.is-incomplete .review-status {
+  background: rgba(176, 42, 42, 0.18);
+  color: #8b1e1e;
 }
 
 /* ------------------------------------------------------------------ *

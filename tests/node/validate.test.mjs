@@ -141,6 +141,27 @@ test("species skill-rank choices are validated against exact selected counts", (
   assert.ok(!result.warnings.includes("SWFFG.CharacterCreator.Validate.SpeciesRanks"));
 });
 
+test("species skill-rank review step appears only when the species provides choices", () => {
+  const plain = emptyDraft();
+  plain.selected.species = { uuid: "s1", snapshot: { system: { creation: {} } } };
+  let byId = Object.fromEntries(validateDraft(plain).steps.map((s) => [s.id, s.status]));
+  assert.equal(byId.speciesRanks, undefined);
+
+  const withChoices = emptyDraft();
+  withChoices.selected.species = {
+    uuid: "s2",
+    snapshot: {
+      system: {
+        creation: {
+          skillRankChoices: [{ id: "choice-1", label: "Choice 1", count: 1 }],
+        },
+      },
+    },
+  };
+  byId = Object.fromEntries(validateDraft(withChoices).steps.map((s) => [s.id, s.status]));
+  assert.equal(byId.speciesRanks, "incomplete");
+});
+
 test("BINDING: every returned label and warning is an i18n KEY (SWFFG. prefix), never localized text", () => {
   const { steps, warnings } = validateDraft(emptyDraft());
   for (const step of steps) assert.match(step.labelKey, /^SWFFG\./);

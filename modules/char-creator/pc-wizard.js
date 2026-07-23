@@ -23,7 +23,6 @@ import { validateDraft, getFreeRankCaps } from "./validate.js";
 import { normalizeXpSkillPurchases } from "./skill-purchases.js";
 import {
   clearSpeciesSkillRankChoices,
-  getSpeciesSkillRankChoiceStatus,
   prepareSpeciesSkillRankChoiceSections,
   selectSpeciesSkillRankChoiceBranch,
   toggleSpeciesSkillRankChoice,
@@ -423,10 +422,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       : [];
 
-    // Review verification (RAW): a skill cannot exceed rank 2 at character creation. Flag — never
-    // block — any that do, so the review tab can highlight them.
-    const skillCapWarnings = xpSkills.filter((skill) => skill.rank > 2).map((skill) => ({ label: skill.label, rank: skill.rank }));
-
     // Specialization tab: the selected career's in-career specializations + every
     // universal specialization from the pool (matched by name, as the legacy did).
     // Selecting one sets data.selected.specialization via the shared _onSelect action.
@@ -454,16 +449,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       return { key: name, picked, canToggle: picked || specPicked.length < freeRankCaps.specialization };
     });
     const speciesFreeRankChoiceSections = prepareSpeciesSkillRankChoiceSections(this.data, xpSkills);
-    const speciesFreeRankStatus = getSpeciesSkillRankChoiceStatus(this.data);
-    const bonusSkillWarnings = [
-      { label: "Career bonus skills", used: careerPicked.length, expected: freeRankCaps.career },
-      { label: "Specialization bonus skills", used: specPicked.length, expected: freeRankCaps.specialization },
-      ...speciesFreeRankStatus.entries.map((entry) => ({
-        label: `Species bonus skills: ${entry.label}`,
-        used: entry.used,
-        expected: entry.expected,
+    const reviewVerificationSteps = [
+      ...validation.warnings.map((warningKey) => ({
+        status: "incomplete",
+        statusKey: "SWFFG.CharacterCreator.Validate.Status.incomplete",
+        label: game.i18n.localize(warningKey),
       })),
-    ].filter((entry) => entry.used !== entry.expected);
+    ];
 
     // Force powers — gated by the character's Force rating (system.stats.forcePool.max on the
     // built actor, which includes item-granted rating). Rating 0 → the tab is hidden entirely;
@@ -630,9 +622,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       obligationKey: obligation.key,
       availableObligation: obligation.available,
       steps: validation.steps,
-      warnings: validation.warnings,
-      bonusSkillWarnings,
-      skillCapWarnings,
+      reviewVerificationSteps,
       sourceGroups,
       sourcesOpen: this.#sourcesOpen,
       actor: preview,

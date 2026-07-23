@@ -10,9 +10,10 @@
  */
 
 import { calcXp, calcCredits } from "./calculators.js";
-import { getSpeciesSkillRankChoiceStatus } from "./species-skill-choices.js";
+import { getSpeciesSkillRankChoices, getSpeciesSkillRankChoiceStatus } from "./species-skill-choices.js";
 
 const WIZARD = "SWFFG.CharacterCreator.Wizard";
+const REVIEW = "SWFFG.CharacterCreator.review";
 const VALIDATE = "SWFFG.CharacterCreator.Validate";
 
 export const DEFAULT_CAREER_RANK_CHOICES = 4;
@@ -70,28 +71,33 @@ function isSet(value) {
 export function validateDraft(data) {
   const sel = data.selected;
   const status = (complete) => (complete ? "complete" : "incomplete");
+  const step = (id, labelKey, complete) => {
+    const statusValue = typeof complete === "string" ? complete : status(complete);
+    return { id, labelKey, status: statusValue, statusKey: `${VALIDATE}.Status.${statusValue}` };
+  };
   const freeRankCaps = getFreeRankCaps(data);
   const speciesRankChoices = getSpeciesSkillRankChoiceStatus(data);
+  const hasSpeciesRankChoices = getSpeciesSkillRankChoices(data).length > 0;
 
   const steps = [
-    { id: "rules", labelKey: `${WIZARD}.Rules.Label`, status: status(isSet(sel.rules)) },
-    { id: "obligation", labelKey: `${WIZARD}.Obligation.Label`, status: status(sel.obligations.length > 0) },
-    { id: "species", labelKey: `${WIZARD}.Species.Label`, status: status(isSet(sel.species)) },
-    { id: "speciesRanks", labelKey: `${WIZARD}.SpeciesRanks.Label`, status: status(speciesRankChoices.complete) },
-    { id: "career", labelKey: `${WIZARD}.Career.Label`, status: status(isSet(sel.career)) },
-    { id: "careerRanks", labelKey: `${WIZARD}.CareerRanks.Label`, status: status(sel.careerCareerSkillRanks.length === freeRankCaps.career) },
-    { id: "specialization", labelKey: `${WIZARD}.Specialization.Label`, status: status(isSet(sel.specialization)) },
-    { id: "specializationRanks", labelKey: `${WIZARD}.SpecializationRanks.Label`, status: status(sel.specializationCareerSkillRanks.length === freeRankCaps.specialization) },
-    { id: "xp", labelKey: `${WIZARD}.XP.Label`, status: "complete" }, // spending is optional
-    { id: "credits", labelKey: `${WIZARD}.Credits.Label`, status: "complete" },
-    { id: "motivation", labelKey: `${WIZARD}.Motivation.Label`, status: status(sel.motivations.length > 0) },
-    { id: "review", labelKey: `${WIZARD}.Review.Label`, status: "complete" },
+    step("rules", `${REVIEW}.rules`, isSet(sel.rules)),
+    step("obligation", `${REVIEW}.morality_duty_obligation`, sel.obligations.length > 0),
+    step("species", `${REVIEW}.species`, isSet(sel.species)),
+    ...(hasSpeciesRankChoices ? [step("speciesRanks", `${REVIEW}.speciesRanks`, speciesRankChoices.complete)] : []),
+    step("career", `${REVIEW}.career`, isSet(sel.career)),
+    step("careerRanks", `${REVIEW}.careerRanks`, sel.careerCareerSkillRanks.length === freeRankCaps.career),
+    step("specialization", `${REVIEW}.specialization`, isSet(sel.specialization)),
+    step("specializationRanks", `${REVIEW}.specializationRanks`, sel.specializationCareerSkillRanks.length === freeRankCaps.specialization),
+    step("xp", `${REVIEW}.purchases.xp`, "complete"), // spending is optional
+    step("credits", `${REVIEW}.purchases.credits`, "complete"),
+    step("motivation", `${REVIEW}.motivation`, sel.motivations.length > 0),
+    step("review", `${REVIEW}.Confirm`, "complete"),
   ];
 
   const warnings = [];
   if (sel.careerCareerSkillRanks.length !== freeRankCaps.career) warnings.push(`${VALIDATE}.CareerRanks`);
   if (sel.specializationCareerSkillRanks.length !== freeRankCaps.specialization) warnings.push(`${VALIDATE}.SpecRanks`);
-  if (!speciesRankChoices.complete) warnings.push(`${VALIDATE}.SpeciesRanks`);
+  if (hasSpeciesRankChoices && !speciesRankChoices.complete) warnings.push(`${VALIDATE}.SpeciesRanks`);
 
   const xp = calcXp(data);
   const credits = calcCredits(data);

@@ -3,38 +3,17 @@
   <ul class="review-steps">
     {{#each steps as |step|}}
       <li class="review-step is-{{ step.status }}">
-        <span class="review-status">{{ step.status }}</span>
+        <span class="review-status">{{ localize step.statusKey }}</span>
         <span class="review-label">{{ localize step.labelKey }}</span>
       </li>
     {{/each}}
+    {{#each reviewVerificationSteps as |step|}}
+      <li class="review-step is-{{ step.status }}">
+        <span class="review-status">{{ localize step.statusKey }}</span>
+        <span class="review-label">{{ step.label }}</span>
+      </li>
+    {{/each}}
   </ul>
-  {{#if warnings.length}}
-    <ul class="review-warnings">
-      {{#each warnings as |warningKey|}}
-        <li>{{ localize warningKey }}</li>
-      {{/each}}
-    </ul>
-  {{/if}}
-  {{#if bonusSkillWarnings.length}}
-    <div class="review-skillcap">
-      <div class="review-skillcap-title">&#9888; Bonus skill picks need attention:</div>
-      <ul>
-        {{#each bonusSkillWarnings as |entry|}}
-          <li>{{ entry.label }} &mdash; selected {{ entry.used }} of {{ entry.expected }}</li>
-        {{/each}}
-      </ul>
-    </div>
-  {{/if}}
-  {{#if skillCapWarnings.length}}
-    <div class="review-skillcap">
-      <div class="review-skillcap-title">⚠ Not allowed RAW — a skill cannot exceed rank 2 at character creation:</div>
-      <ul>
-        {{#each skillCapWarnings as |skill|}}
-          <li>{{ skill.label }} — rank {{ skill.rank }}</li>
-        {{/each}}
-      </ul>
-    </div>
-  {{/if}}
   <button type="button" class="create-actor" data-action="commit">
     Create character
   </button>
