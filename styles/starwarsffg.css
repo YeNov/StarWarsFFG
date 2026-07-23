@@ -3769,6 +3769,49 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   flex: 0 0 auto;
   cursor: pointer;
 }
+.charCreator .list-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.charCreator .list-group {
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.45);
+}
+.charCreator .list-group h4 {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+}
+.charCreator .list-toggle {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0 none;
+  border-radius: 0;
+  background: #415064;
+  color: #fff;
+  text-align: left;
+  text-transform: uppercase;
+}
+.charCreator .list-toggle:hover,
+.charCreator .list-group.is-active .list-toggle {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .list-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.charCreator .list-body {
+  padding: 6px;
+}
 
 /* PC Wizard — Content sources panel. */
 .charCreator .sources-panel {

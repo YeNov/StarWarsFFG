@@ -9,7 +9,7 @@
         </td>
         <td class="pickable-name">{{ row.name }}</td>
         <td class="pickable-action">
-          <button type="button" data-action="select" data-table="{{ ../poolKey }}" data-uuid="{{ row.uuid }}">
+          <button type="button" data-action="select" data-table="{{ ../poolKey }}" data-uuid="{{ row.uuid }}" {{#if row.disableSelect}}disabled{{/if}}>
             {{ localize "SWFFG.CharacterCreator.Wizard.Career.Select" }}
           </button>
         </td>

@@ -141,6 +141,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "buy-gear": CharacterCreator._onBuyGear,
       "inventory-view": CharacterCreator._onInventoryView,
       "clear-gear-filters": CharacterCreator._onClearGearFilters,
+      "obligation-view": CharacterCreator._onObligationView,
+      "random-obligation": CharacterCreator._onRandomObligation,
       "open-item": CharacterCreator._onOpenItem,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
@@ -171,7 +173,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   /** Per-part change/input bindings (issue B) — attached only within each part's element. */
   static PART_BINDINGS = {
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
-    obligation: [{ selector: "input[data-field='listSearch']", event: "input", handler: "_onListSearchInput" }],
+    obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
     gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
     startingBonus: [{ selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" }],
@@ -188,7 +190,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
   #backgroundView = "culture"; // Background accordion: "culture" | "hook" | "forceAttitude" (transient)
   #backgroundSearch = { culture: "", hook: "", forceAttitude: "" }; // Background accordion name filters (transient)
-  #listSearch = { obligation: "", motivation: "" }; // Obligation/Motivation tab name filters (transient)
+  #obligationView = "obligation"; // Obligation accordion: "obligation" | "duty" | "morality" (transient)
+  #obligationSearch = { obligation: "", duty: "", morality: "" }; // Obligation accordion name filters (transient)
+  #listSearch = { motivation: "" }; // Motivation tab name filter (transient)
   #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
@@ -296,19 +300,48 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }));
     const speciesMatchCount = speciesRows.filter((ref) => !ref.hidden).length;
     const speciesNoMatches = speciesRows.length === 0 || speciesMatchCount === 0;
+    const obligationSectionDefs = [
+      { key: "obligation", label: "Obligation" },
+      { key: "duty", label: "Duty" },
+      { key: "morality", label: "Morality" },
+    ];
+    const selectedObligationUuids = new Set(this.data.selected.obligations.map((entry) => entry.uuid));
+    const obligationSections = obligationSectionDefs.map((def) => {
+      const search = (this.#obligationSearch[def.key] ?? "").trim().toLowerCase();
+      const rows = (this.#pools.obligation ?? [])
+        .filter((ref) => ref.snapshot?.system?.type === def.key)
+        .map((ref) => ({
+          ...ref,
+          selected: selectedObligationUuids.has(ref.uuid),
+          disableSelect: selectedObligationUuids.has(ref.uuid),
+          hidden: !!search && !(ref.name ?? "").toLowerCase().includes(search),
+        }));
+      const selectedEntries = this.data.selected.obligations.filter((entry) => entry.snapshot?.system?.type === def.key);
+      const matchCount = rows.filter((row) => !row.hidden).length;
+      const randomCount = rows.filter((row) => !row.hidden && !row.selected).length;
+      return {
+        ...def,
+        rows,
+        search: this.#obligationSearch[def.key],
+        selectedEntries,
+        active: def.key === this.#obligationView,
+        expanded: def.key === this.#obligationView ? "true" : "false",
+        headerLabel: selectedEntries.length ? `${def.label} (${selectedEntries.length})` : def.label,
+        noMatches: rows.length === 0 || matchCount === 0,
+        canRandom: randomCount > 0,
+      };
+    });
+    if (!obligationSections.some((section) => section.key === this.#obligationView)) this.#obligationView = null;
     const prepareListRows = (poolKey, selectedEntries) => {
       const search = (this.#listSearch[poolKey] ?? "").trim().toLowerCase();
       const selectedUuids = new Set(selectedEntries.map((entry) => entry.uuid));
       return (this.#pools[poolKey] ?? []).map((ref) => ({
         ...ref,
         selected: selectedUuids.has(ref.uuid),
+        disableSelect: selectedUuids.has(ref.uuid),
         hidden: !!search && !(ref.name ?? "").toLowerCase().includes(search),
       }));
     };
-    const obligationRows = prepareListRows("obligation", this.data.selected.obligations);
-    const obligationMatchCount = obligationRows.filter((ref) => !ref.hidden).length;
-    const obligationRandomCount = obligationRows.filter((ref) => !ref.hidden && !ref.selected).length;
-    const obligationNoMatches = obligationRows.length === 0 || obligationMatchCount === 0;
     const motivationRows = prepareListRows("motivation", this.data.selected.motivations);
     const motivationMatchCount = motivationRows.filter((ref) => !ref.hidden).length;
     const motivationRandomCount = motivationRows.filter((ref) => !ref.hidden && !ref.selected).length;
@@ -456,10 +489,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       speciesSearch: this.#speciesSearch,
       isForceAndDestiny,
       backgroundSections,
-      obligationRows,
-      obligationSearch: this.#listSearch.obligation,
-      obligationNoMatches,
-      obligationCanRandom: obligationRandomCount > 0,
+      obligationSections,
       motivationRows,
       motivationSearch: this.#listSearch.motivation,
       motivationNoMatches,
@@ -652,7 +682,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   _onListSearchInput(event) {
     const poolKey = event.currentTarget.dataset.poolKey;
-    if (!["obligation", "motivation"].includes(poolKey)) return;
+    if (poolKey !== "motivation") return;
     const search = event.currentTarget.value ?? "";
     this.#listSearch[poolKey] = search;
     const needle = search.trim().toLowerCase();
@@ -674,6 +704,30 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     if (random) random.disabled = randomable <= 0;
   }
 
+  _onObligationSearchInput(event) {
+    const sectionKey = event.currentTarget.dataset.obligationKey;
+    if (!["obligation", "duty", "morality"].includes(sectionKey)) return;
+    const search = event.currentTarget.value ?? "";
+    this.#obligationSearch[sectionKey] = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest(".list-body");
+    let visible = 0;
+    let randomable = 0;
+    for (const row of root?.querySelectorAll(".pickable-row") ?? []) {
+      const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+      const match = !needle || name.includes(needle);
+      row.hidden = !match;
+      if (match) {
+        visible += 1;
+        if (!row.classList.contains("is-selected")) randomable += 1;
+      }
+    }
+    const empty = root?.querySelector("[data-obligation-empty]");
+    if (empty) empty.hidden = visible > 0;
+    const random = root?.querySelector("[data-action='random-obligation']");
+    if (random) random.disabled = randomable <= 0;
+  }
+
   _onToggleForcePowerDiscount(event) {
     const uuid = event.currentTarget.dataset.uuid;
     const checked = event.currentTarget.checked;
@@ -687,12 +741,20 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static _onSelect(event, target) {
     const { uuid, table } = target.dataset;
-    const sourcePool = ["culture", "hook", "forceAttitude"].includes(table) ? this.#pools.background : this.#pools[table];
+    const sourcePool = ["culture", "hook", "forceAttitude"].includes(table)
+      ? this.#pools.background
+      : ["obligation", "duty", "morality"].includes(table)
+        ? this.#pools.obligation
+        : this.#pools[table];
     const ref = (sourcePool ?? []).find((entry) => entry.uuid === uuid);
     if (!ref) return;
     this.#mutate((data) => {
-      if (["obligation", "motivation"].includes(table)) {
-        data.selected[`${table}s`].push(ref);
+      if (["obligation", "duty", "morality"].includes(table)) {
+        if (data.selected.obligations.some((entry) => entry.uuid === ref.uuid)) return;
+        data.selected.obligations.push(ref);
+      } else if (table === "motivation") {
+        if (data.selected.motivations.some((entry) => entry.uuid === ref.uuid)) return;
+        data.selected.motivations.push(ref);
       } else if (["culture", "hook", "forceAttitude"].includes(table)) {
         data.selected.background[table] = ref;
       } else {
@@ -879,9 +941,31 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => { data.selected.background[sectionKey] = ref; });
   }
 
+  static _onObligationView(event, target) {
+    const view = target.dataset.view;
+    if (!["obligation", "duty", "morality"].includes(view)) return;
+    this.#obligationView = this.#obligationView === view ? null : view;
+    this.render({ parts: ["obligation"] });
+  }
+
+  static _onRandomObligation(event, target) {
+    const sectionKey = target.dataset.view;
+    if (!["obligation", "duty", "morality"].includes(sectionKey)) return;
+    const search = (this.#obligationSearch[sectionKey] ?? "").trim().toLowerCase();
+    const selected = new Set(this.data.selected.obligations.map((entry) => entry.uuid));
+    const choices = (this.#pools.obligation ?? []).filter((ref) => {
+      if (ref.snapshot?.system?.type !== sectionKey) return false;
+      if (selected.has(ref.uuid)) return false;
+      return !search || (ref.name ?? "").toLowerCase().includes(search);
+    });
+    if (!choices.length) return;
+    const ref = choices[Math.floor(Math.random() * choices.length)];
+    this.#mutate((data) => { data.selected.obligations.push(ref); });
+  }
+
   static _onRandomListPick(event, target) {
     const poolKey = target.dataset.poolKey;
-    if (!["obligation", "motivation"].includes(poolKey)) return;
+    if (poolKey !== "motivation") return;
     const search = (this.#listSearch[poolKey] ?? "").trim().toLowerCase();
     const selected = new Set(this.data.selected[`${poolKey}s`].map((entry) => entry.uuid));
     const choices = (this.#pools[poolKey] ?? []).filter((ref) => {

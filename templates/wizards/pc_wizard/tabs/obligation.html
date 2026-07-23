@@ -1,20 +1,35 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="obligation">
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.Obligation.Label" }}</p>
-  <div class="list-filters">
-    <input type="search" data-field="listSearch" data-pool-key="obligation" value="{{obligationSearch}}" placeholder="Search name">
-    <button type="button" class="list-random" data-action="random-list-pick" data-pool-key="obligation" data-tooltip="Pick random obligation" {{#unless obligationCanRandom}}disabled{{/unless}}>
-      <i class="fas fa-dice"></i>
-    </button>
-    <ul class="list-selected selected-obligations">
-      {{#each data.selected.obligations as |obligation|}}
-        <li data-uuid="{{ obligation.uuid }}">
-          {{ obligation.name }}
-          <i class="fas fa-trash" data-action="remove-obligation" data-uuid="{{ obligation.uuid }}"></i>
-        </li>
-      {{/each}}
-    </ul>
+  <div class="list-accordion">
+    {{#each obligationSections as |section|}}
+      <div class="list-group {{#if section.active}}is-active{{else}}is-collapsed{{/if}}" data-part="obligation-{{section.key}}">
+        <h4 class="list-heading">
+          <button type="button" class="list-toggle" data-action="obligation-view" data-view="{{section.key}}" aria-expanded="{{section.expanded}}">
+            <span class="list-title">{{section.headerLabel}}</span>
+          </button>
+        </h4>
+        {{#if section.active}}
+          <div class="list-body">
+            <div class="list-filters">
+              <input type="search" data-field="obligationSearch" data-obligation-key="{{section.key}}" value="{{section.search}}" placeholder="Search name">
+              <button type="button" class="list-random" data-action="random-obligation" data-view="{{section.key}}" data-tooltip="Pick random {{section.label}}" {{#unless section.canRandom}}disabled{{/unless}}>
+                <i class="fas fa-dice"></i>
+              </button>
+              <ul class="list-selected selected-obligations">
+                {{#each section.selectedEntries as |obligation|}}
+                  <li data-uuid="{{obligation.uuid}}">
+                    {{obligation.name}}
+                    <i class="fas fa-trash" data-action="remove-obligation" data-uuid="{{obligation.uuid}}"></i>
+                  </li>
+                {{/each}}
+              </ul>
+            </div>
+            {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+                (object rows=section.rows poolKey=section.key)}}
+            <p class="empty-hint" data-obligation-empty {{#unless section.noMatches}}hidden{{/unless}}>No {{section.label}} entries match.</p>
+          </div>
+        {{/if}}
+      </div>
+    {{/each}}
   </div>
-  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
-      (object rows=obligationRows poolKey="obligation")}}
-  <p class="empty-hint" data-list-empty {{#unless obligationNoMatches}}hidden{{/unless}}>No obligations match.</p>
 </section>
