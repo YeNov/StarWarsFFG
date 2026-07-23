@@ -53,6 +53,40 @@ function isPurchasableShopRef(ref) {
   return price !== null && price > 0;
 }
 
+function statValue(block) {
+  const adjusted = Number(block?.adjusted);
+  if (Number.isFinite(adjusted) && adjusted !== 0) return adjusted;
+  const value = Number(block?.value);
+  return Number.isFinite(value) ? value : "-";
+}
+
+function rangeLabel(value) {
+  const range = value || "Short";
+  const entry = CONFIG.FFG?.ranges?.[range];
+  return entry?.label ? game.i18n.localize(entry.label) : range;
+}
+
+function inventoryStats(ref) {
+  const system = ref?.snapshot?.system ?? {};
+  if (ref?.type === "weapon") {
+    const adjustedRange = system.range?.adjusted && system.range.adjusted !== system.range.value
+      ? system.range.adjusted
+      : system.range?.value;
+    return [
+      { label: "Damage", value: statValue(system.damage) },
+      { label: "Crit", value: statValue(system.crit) },
+      { label: "Range", value: rangeLabel(adjustedRange) },
+    ];
+  }
+  if (ref?.type === "armour") {
+    return [
+      { label: "Soak", value: statValue(system.soak) },
+      { label: "Defence", value: statValue(system.defence) },
+    ];
+  }
+  return [];
+}
+
 const SOURCE_GROUP_LABELS = Object.freeze({
   species: "Species",
   career: "Careers",
@@ -167,7 +201,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "discard-draft": CharacterCreator._onDiscardDraft,
       commit: CharacterCreator._onCommit,
     },
-    position: { width: 950, height: 800 },
+    position: { width: 1180, height: 800 },
     classes: ["starwarsffg", "wizard", "charCreator"],
   };
 
@@ -466,11 +500,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       .map((ref) => {
         const price = shopPriceOf(ref);
-        return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available };
+        return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref) };
       });
     const ownedItems = this.data.purchases.credits
       .filter((purchase) => purchase.ref?.type === invView && matchesSearch(purchase.ref))
-      .map((purchase) => ({ uuid: purchase.ref.uuid, name: purchase.ref.name, img: purchase.ref.img, cost: purchase.cost }));
+      .map((purchase) => ({ uuid: purchase.ref.uuid, name: purchase.ref.name, img: purchase.ref.img, cost: purchase.cost, stats: inventoryStats(purchase.ref) }));
 
     // Encumbrance — read the built preview actor's derived stat (current from carried items, max
     // from Brawn + mods). It rebuilds on every buy/refund, so this tracks purchases automatically.
@@ -517,6 +551,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       totalCredits: credits.total,
       availableCredits: credits.available,
       inventoryView: invView,
+      showInventoryStats: ["weapon", "armour"].includes(invView),
       inventoryFilters: invFilters,
       shopItems,
       ownedItems,

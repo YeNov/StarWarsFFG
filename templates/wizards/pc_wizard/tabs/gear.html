@@ -25,6 +25,13 @@
               <tr class="pickable-row" data-uuid="{{ item.uuid }}">
                 <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=item)}}</td>
                 <td class="pickable-name">{{ item.name }}</td>
+                {{#if ../showInventoryStats}}
+                <td class="pickable-stats">
+                  {{#each item.stats as |stat|}}
+                    <span class="inv-stat"><span class="inv-stat-label">{{stat.label}}</span><b>{{stat.value}}</b></span>
+                  {{/each}}
+                </td>
+                {{/if}}
                 <td class="pickable-cost">{{ item.cost }} cr</td>
                 <td class="pickable-action"><button type="button" data-action="refund-gear" data-uuid="{{ item.uuid }}">Refund</button></td>
               </tr>
@@ -45,6 +52,13 @@
               <tr class="pickable-row" data-uuid="{{ item.uuid }}">
                 <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=item)}}</td>
                 <td class="pickable-name">{{ item.name }}</td>
+                {{#if ../showInventoryStats}}
+                <td class="pickable-stats">
+                  {{#each item.stats as |stat|}}
+                    <span class="inv-stat"><span class="inv-stat-label">{{stat.label}}</span><b>{{stat.value}}</b></span>
+                  {{/each}}
+                </td>
+                {{/if}}
                 <td class="pickable-cost">{{ item.price }} cr</td>
                 <td class="pickable-action"><button type="button" data-action="buy-gear" data-uuid="{{ item.uuid }}" {{#unless item.affordable}}disabled{{/unless}}>Buy</button></td>
               </tr>

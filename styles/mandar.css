@@ -6155,6 +6155,24 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .pickable-cost {
   white-space: nowrap;
 }
+.charCreator .pickable-stats {
+  min-width: 0;
+}
+.charCreator .inv-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 1px 6px 1px 0;
+  white-space: nowrap;
+}
+.charCreator .inv-stat-label {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.charCreator .inv-stat b {
+  font-weight: bold;
+}
 /* Right-align the Buy/Refund button so its right edge is fixed (the column is sized to the wider
    "Refund", so a "Buy" would otherwise stop short and appear to jump). The buttons are block-level
    (display:flex) in this theme, so text-align can't move them — margin-left:auto does. */
@@ -6415,18 +6433,47 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   white-space: nowrap;
 }
 .charCreator .inv-columns {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr));
   gap: 10px;
   align-items: flex-start;
 }
 .charCreator .inv-owned,
 .charCreator .inv-shop {
-  flex: 1 1 0;
   min-width: 0;
   margin-bottom: 12px;
   padding: 6px 8px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 4px;
+  overflow: hidden;
+}
+.charCreator .inv-columns .pickable-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.charCreator .inv-columns .pickable-pill {
+  width: 42px;
+}
+.charCreator .inv-columns .pickable-name {
+  width: 28%;
+  overflow-wrap: anywhere;
+}
+.charCreator .inv-columns .pickable-stats {
+  width: 30%;
+  white-space: normal;
+}
+.charCreator .inv-columns .pickable-cost {
+  width: 70px;
+  text-align: right;
+}
+.charCreator .inv-columns .pickable-action {
+  width: 74px;
+}
+.charCreator .inv-columns .pickable-action button {
+  min-width: 0;
+  width: auto;
+  padding-right: 8px;
+  padding-left: 8px;
 }
 .charCreator .inv-title {
   margin-bottom: 4px;
