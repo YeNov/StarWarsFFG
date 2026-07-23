@@ -42,6 +42,12 @@
           {{!-- Starting XP Box --}}
           {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.StartingXP" type="Number" name="data.startingXP" value=data.startingXP)}}
         </div>
+        <div class="container flex-group-center">
+          <label>Bonus career skill ranks</label>
+          <input type="number" step="1" name="data.creation.careerSkillRankChoicesBonus" value="{{data.creation.careerSkillRankChoicesBonus}}" data-dtype="Number" />
+          <label>Bonus specialization skill ranks</label>
+          <input type="number" step="1" name="data.creation.specializationSkillRankChoicesBonus" value="{{data.creation.specializationSkillRankChoicesBonus}}" data-dtype="Number" />
+        </div>
       </div>
     </div>
   </header>

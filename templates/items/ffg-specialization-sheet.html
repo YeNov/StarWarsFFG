@@ -123,6 +123,11 @@
       </div>
     </div>
     <div class="tab" data-group="primary" data-tab="skills">
+      <h2>Character Creation</h2>
+      <div class="container">
+        <label>Starting free specialization skill ranks</label>
+        <input type="number" min="0" step="1" name="data.creation.skillRankChoices" value="{{data.creation.skillRankChoices}}" data-dtype="Number" placeholder="Default" />
+      </div>
       <h2>{{ localize "SWFFG.Spec.CareerSkills" }}</h2>
       <div class="container career-skills">
         {{#each data.careerSkills as |skill index|}}

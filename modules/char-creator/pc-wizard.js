@@ -19,7 +19,7 @@ import { buildPreviewActor } from "./preview.js";
 import { createInitialData } from "./wizard-state.js";
 import { applyStartingBonus } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
-import { validateDraft } from "./validate.js";
+import { validateDraft, getFreeRankCaps } from "./validate.js";
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { loadSource } from "./load-source.js";
 import { DraftStore } from "./draft-store.js";
@@ -122,7 +122,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #sessionNoticeId = mintSessionNoticeId();
   #pools = {};
   #commitTimer = null;
-  #xpView = "skills"; // xp_spend sub-view: "skills" | "talents" (transient, not persisted to draft)
+  #xpView = "bonus"; // xp_spend sub-view: "bonus" | "skills" | "talents" (transient, not persisted to draft)
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
 
@@ -208,21 +208,26 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const careerSpecializations = specPool.filter((ref) => careerSpecNames.has(ref.name));
     const universalSpecializations = specPool.filter((ref) => ref.snapshot?.system?.universal && !careerSpecNames.has(ref.name));
 
-    // Free skill ranks: 4 chosen from the career's career-skills, 2 from the specialization's.
+    // Free skill ranks: chosen from the career's career-skills and the specialization's.
     // These feed rankGrants -> toItemData (baked as +1-rank AEs on the career/spec item), so
     // applyBuild already applies them to the built actor; the picker only drives the arrays.
+    const freeRankCaps = getFreeRankCaps(this.data);
     const careerSkillNames = Object.values(this.data.selected.career?.snapshot?.system?.careerSkills ?? {}).filter(Boolean);
     const careerPicked = this.data.selected.careerCareerSkillRanks;
     const careerFreeRanks = careerSkillNames.map((name) => {
       const picked = careerPicked.includes(name);
-      return { key: name, picked, canToggle: picked || careerPicked.length < 4 };
+      return { key: name, picked, canToggle: picked || careerPicked.length < freeRankCaps.career };
     });
     const specSkillNames = Object.values(this.data.selected.specialization?.snapshot?.system?.careerSkills ?? {}).filter(Boolean);
     const specPicked = this.data.selected.specializationCareerSkillRanks;
     const specFreeRanks = specSkillNames.map((name) => {
       const picked = specPicked.includes(name);
-      return { key: name, picked, canToggle: picked || specPicked.length < 2 };
+      return { key: name, picked, canToggle: picked || specPicked.length < freeRankCaps.specialization };
     });
+    const bonusSkillWarnings = [
+      { label: "Career bonus skills", used: careerPicked.length, expected: freeRankCaps.career },
+      { label: "Specialization bonus skills", used: specPicked.length, expected: freeRankCaps.specialization },
+    ].filter((entry) => entry.used !== entry.expected);
 
     // Force powers — gated by the character's Force rating (system.stats.forcePool.max on the
     // built actor, which includes item-granted rating). Rating 0 → the tab is hidden entirely;
@@ -301,8 +306,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       universalSpecializations,
       careerFreeRanks,
       careerFreeUsed: careerPicked.length,
+      careerFreeCap: freeRankCaps.career,
       specFreeRanks,
       specFreeUsed: specPicked.length,
+      specFreeCap: freeRankCaps.specialization,
       totalXp: xp.total,
       availableXp: xp.available,
       totalCredits: credits.total,
@@ -316,6 +323,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       availableObligation: obligation.available,
       steps: validation.steps,
       warnings: validation.warnings,
+      bonusSkillWarnings,
       skillCapWarnings,
       actor: preview,
     };
@@ -532,20 +540,22 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static _onToggleCareerRank(event, target) {
     const skill = target.dataset.field;
     this.#mutate((data) => {
+      const cap = getFreeRankCaps(data).career;
       const list = data.selected.careerCareerSkillRanks;
       const index = list.indexOf(skill);
       if (index >= 0) list.splice(index, 1); // remove a free rank
-      else if (list.length < 4) list.push(skill); // add, capped at 4
+      else if (list.length < cap) list.push(skill); // add, capped by selected data
     });
   }
 
   static _onToggleSpecRank(event, target) {
     const skill = target.dataset.field;
     this.#mutate((data) => {
+      const cap = getFreeRankCaps(data).specialization;
       const list = data.selected.specializationCareerSkillRanks;
       const index = list.indexOf(skill);
       if (index >= 0) list.splice(index, 1); // remove a free rank
-      else if (list.length < 2) list.push(skill); // add, capped at 2
+      else if (list.length < cap) list.push(skill); // add, capped by selected data
     });
   }
 
@@ -584,7 +594,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static _onXpView(event, target) {
     // Pure view toggle — no data change, so bypass #mutate (no draft save / commit re-mint).
     const view = target.dataset.view;
-    this.#xpView = ["skills", "bonus", "talents"].includes(view) ? view : "skills";
+    this.#xpView = ["bonus", "skills", "talents"].includes(view) ? view : "bonus";
     this.render({ parts: ["xp_spend"] });
   }
 

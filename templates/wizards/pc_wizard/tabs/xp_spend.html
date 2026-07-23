@@ -39,7 +39,7 @@
     {{/if}}
   {{else if (eq xpView "bonus")}}
     <div class="bonus-block">
-      <h4>Career bonus skills ({{ careerFreeUsed }} / 4)</h4>
+      <h4>Career bonus skills ({{ careerFreeUsed }} / {{ careerFreeCap }})</h4>
       {{#if data.selected.career}}
         <table class="xp-skills bonus-skills">
           <thead>
@@ -66,7 +66,7 @@
     </div>
 
     <div class="bonus-block">
-      <h4>Specialization bonus skills ({{ specFreeUsed }} / 2)</h4>
+      <h4>Specialization bonus skills ({{ specFreeUsed }} / {{ specFreeCap }})</h4>
       {{#if data.selected.specialization}}
         <table class="xp-skills bonus-skills">
           <thead>

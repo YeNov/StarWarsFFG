@@ -88,6 +88,31 @@ test("wrong free-rank counts produce advisory warnings", () => {
   assert.ok(warnings.includes("SWFFG.CharacterCreator.Validate.SpecRanks"));
 });
 
+test("free-rank validation follows selected item creation caps", () => {
+  const draft = emptyDraft();
+  draft.selected.career = { uuid: "c1", snapshot: { system: { creation: { skillRankChoices: 3 } } } };
+  draft.selected.species = {
+    uuid: "s1",
+    snapshot: {
+      system: {
+        creation: {
+          careerSkillRankChoicesBonus: 2,
+          specializationSkillRankChoicesBonus: 1,
+        },
+      },
+    },
+  };
+  draft.selected.specialization = { uuid: "sp1", snapshot: { system: { creation: { skillRankChoices: 2 } } } };
+  draft.selected.careerCareerSkillRanks = ["a", "b", "c", "d", "e"];
+  draft.selected.specializationCareerSkillRanks = ["x", "y", "z"];
+  const { steps, warnings } = validateDraft(draft);
+  const byId = Object.fromEntries(steps.map((s) => [s.id, s.status]));
+  assert.equal(byId.careerRanks, "complete");
+  assert.equal(byId.specializationRanks, "complete");
+  assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.CareerRanks"));
+  assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.SpecRanks"));
+});
+
 test("BINDING: every returned label and warning is an i18n KEY (SWFFG. prefix), never localized text", () => {
   const { steps, warnings } = validateDraft(emptyDraft());
   for (const step of steps) assert.match(step.labelKey, /^SWFFG\./);

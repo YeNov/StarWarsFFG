@@ -16,6 +16,9 @@ export class CareerDataModel extends mix(BaseItemDataModel, CoreTemplate) {
       specializations: new f.ObjectField(),
       signatureabilities: new f.ObjectField(),
       careerSkills: stringSlotField("careerSkill", 8),
+      creation: new f.SchemaField({
+        skillRankChoices: new f.NumberField({ initial: null, nullable: true, integer: true, min: 0 }),
+      }),
     };
   }
 }
