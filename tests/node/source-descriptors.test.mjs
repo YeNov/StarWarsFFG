@@ -11,6 +11,8 @@ import {
   getDescriptor,
   sourceIdOf,
   isSourceEnabled,
+  sourceSettingPackIds,
+  setSourceEnabled,
   UnknownPoolKeyError,
 } from "../../modules/char-creator/source-descriptors.js";
 
@@ -57,14 +59,46 @@ test("sourceIdOf derives a pack collection id and the world sentinel", () => {
   assert.equal(sourceIdOf("world"), "world");
 });
 
-test("isSourceEnabled defaults on and honours per-pool exclusions (D7)", () => {
-  assert.equal(isSourceEnabled("species", "pack1"), true); // no exclusions → on
+test("isSourceEnabled defaults compendiums on and honours per-pool exclusions (D7)", () => {
+  assert.equal(isSourceEnabled("species", "pack1"), true);
   assert.equal(isSourceEnabled("species", "pack1", {}), true);
   assert.equal(isSourceEnabled("species", "pack1", { species: ["pack1"] }), false);
   // an exclusion in one pool does not disable another pool's same-id source
   assert.equal(isSourceEnabled("gear", "pack1", { species: ["pack1"] }), true);
   // a new (unlisted) pack stays enabled even when the pool has other exclusions
   assert.equal(isSourceEnabled("species", "packNew", { species: ["pack1"] }), true);
+});
+
+test("world items default off and require an explicit per-pool enable", () => {
+  assert.equal(isSourceEnabled("gear", "world"), false);
+  assert.equal(isSourceEnabled("gear", "world", { gear: ["enabled:world"] }), true);
+  assert.equal(isSourceEnabled("gear", "world", { species: ["enabled:world"] }), false);
+  assert.equal(isSourceEnabled("gear", "world", { gear: ["world", "enabled:world"] }), false);
+});
+
+test("sourceSettingPackIds normalises comma-separated and array settings", () => {
+  assert.deepEqual(sourceSettingPackIds(" pack.one,pack.two ,, "), ["pack.one", "pack.two"]);
+  assert.deepEqual(sourceSettingPackIds(["pack.one", " pack.two ", "", null]), ["pack.one", "pack.two"]);
+  assert.deepEqual(sourceSettingPackIds(null), []);
+});
+
+test("setSourceEnabled updates exclusion flags without mutating the input", () => {
+  const original = { species: ["pack.old"], gear: ["world"] };
+  const disabled = setSourceEnabled(original, "species", "pack.new", false);
+  assert.deepEqual(disabled, { species: ["pack.old", "pack.new"], gear: ["world"] });
+  assert.deepEqual(original, { species: ["pack.old"], gear: ["world"] });
+
+  const enabled = setSourceEnabled(disabled, "species", "pack.old", true);
+  assert.deepEqual(enabled, { species: ["pack.new"], gear: ["world"] });
+
+  const cleaned = setSourceEnabled({ species: ["pack.new"] }, "species", "pack.new", true);
+  assert.deepEqual(cleaned, {});
+});
+
+test("setSourceEnabled stores world item opt-in explicitly", () => {
+  assert.deepEqual(setSourceEnabled({}, "gear", "world", true), { gear: ["enabled:world"] });
+  assert.deepEqual(setSourceEnabled({ gear: ["world"] }, "gear", "world", true), { gear: ["enabled:world"] });
+  assert.deepEqual(setSourceEnabled({ gear: ["enabled:world"] }, "gear", "world", false), {});
 });
 
 test("the descriptor table is frozen", () => {

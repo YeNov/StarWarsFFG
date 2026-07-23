@@ -28,18 +28,40 @@ import {
   toggleSpeciesSkillRankChoice,
 } from "./species-skill-choices.js";
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
-import { loadSource } from "./load-source.js";
+import { invalidateSourceCache, loadSource, readExclusions } from "./load-source.js";
+import { SOURCE_DESCRIPTORS, isSourceEnabled, sourceIdOf, sourceSettingPackIds, setSourceEnabled } from "./source-descriptors.js";
 import { DraftStore } from "./draft-store.js";
 import { NewerSchemaError, CorruptDraftError } from "./draft-schema.js";
 import { emitCommitRequest, wizardPending, setCommitResponseHandler } from "./socket-bridge.js";
 import { commitBuild } from "./commit-service.js";
 import { mintSessionNoticeId, emitStartNotice, showSubmitToast } from "./notify.js";
 import { setPending, clearPending } from "./notify-policy.js";
-import { COMMIT_TIMEOUT_MS } from "./constants.js";
+import { COMMIT_TIMEOUT_MS, FLAG_SCOPE, FLAGS } from "./constants.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const PC_WIZARD = "systems/starwarsffg/templates/wizards/pc_wizard";
+
+function shopPriceOf(ref) {
+  const price = Number(ref?.snapshot?.system?.price?.value);
+  return Number.isFinite(price) ? price : null;
+}
+
+function isPurchasableShopRef(ref) {
+  const price = shopPriceOf(ref);
+  return price !== null && price > 0;
+}
+
+const SOURCE_GROUP_LABELS = Object.freeze({
+  species: "Species",
+  career: "Careers",
+  specialization: "Specializations",
+  forcePower: "Force Powers",
+  background: "Backgrounds",
+  obligation: "Obligations / Duty / Morality",
+  motivation: "Motivations",
+  gear: "Inventory",
+});
 
 export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @override */
@@ -111,6 +133,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "buy-forcepower": CharacterCreator._onBuyForcePower,
       "refund-forcepower": CharacterCreator._onRefundForcePower,
       "open-sources": CharacterCreator._onOpenSources,
+      "toggle-source": CharacterCreator._onToggleSource,
       "resume-draft": CharacterCreator._onResumeDraft,
       "discard-draft": CharacterCreator._onDiscardDraft,
       commit: CharacterCreator._onCommit,
@@ -136,6 +159,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
   #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
+  #sourcesOpen = false; // Content-source overlay state (transient)
 
   constructor(options = {}) {
     super(options);
@@ -165,6 +189,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const credits = calcCredits(this.data);
     const obligation = calcObligation(this.data);
     const validation = validateDraft(this.data);
+    const sourceGroups = this.#prepareSourceGroups(readExclusions());
 
     let preview = null;
     try {
@@ -291,18 +316,22 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
     // Inventory tab — a Weapons / Armor / Gear switcher. Each sub-view shows the owned and the
     // shop (buyable) items of that type, filtered by name search + a max-price cap (data.gearFilters).
+    // "Buyable" is explicit: helpers granted by attachments often have no price or 0cr and are
+    // not standalone starting-gear purchases.
     const invView = this.#inventoryView; // "weapon" | "armour" | "gear"
     const invFilters = this.data.gearFilters ?? {};
     const invSearch = (invFilters.search ?? "").toLowerCase();
     const invMinPrice = Number(invFilters.minPrice) || 0;
     const invMaxPrice = Number(invFilters.maxPrice) || 0;
-    const priceOf = (ref) => Number(ref?.snapshot?.system?.price?.value) || 0;
     const matchesSearch = (ref) => !invSearch || (ref?.name ?? "").toLowerCase().includes(invSearch);
     const shopItems = (this.#pools.gear ?? [])
-      .filter((ref) => ref.type === invView && matchesSearch(ref)
-        && priceOf(ref) >= invMinPrice && (!invMaxPrice || priceOf(ref) <= invMaxPrice))
+      .filter((ref) => {
+        const price = shopPriceOf(ref);
+        return ref.type === invView && isPurchasableShopRef(ref) && matchesSearch(ref)
+          && price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
+      })
       .map((ref) => {
-        const price = priceOf(ref);
+        const price = shopPriceOf(ref);
         return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available };
       });
     const ownedItems = this.data.purchases.credits
@@ -358,6 +387,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       warnings: validation.warnings,
       bonusSkillWarnings,
       skillCapWarnings,
+      sourceGroups,
+      sourcesOpen: this.#sourcesOpen,
       actor: preview,
     };
   }
@@ -408,6 +439,33 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   async #ensurePool(poolKey) {
     if (this.#pools[poolKey]) return;
     this.#pools[poolKey] = await loadSource(poolKey);
+  }
+
+  #prepareSourceGroups(exclusions) {
+    return Object.entries(SOURCE_DESCRIPTORS).map(([poolKey, descriptor]) => {
+      const packIds = sourceSettingPackIds(game.settings.get(FLAG_SCOPE, descriptor.settingKey));
+      const sources = packIds.map((packId) => {
+        const pack = game.packs.get(packId);
+        const sourceId = pack ? sourceIdOf(pack) : packId;
+        return {
+          id: sourceId,
+          label: pack?.metadata?.label ?? pack?.title ?? pack?.metadata?.id ?? packId,
+          enabled: isSourceEnabled(poolKey, sourceId, exclusions),
+        };
+      });
+
+      sources.push({
+        id: "world",
+        label: game.i18n.localize("SWFFG.CharacterCreator.Sources.World"),
+        enabled: isSourceEnabled(poolKey, "world", exclusions),
+      });
+
+      return {
+        poolKey,
+        label: SOURCE_GROUP_LABELS[poolKey] ?? poolKey,
+        sources,
+      };
+    });
   }
 
   /**
@@ -537,8 +595,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static _onBuyGear(event, target) {
     const { uuid } = target.dataset;
     const ref = (this.#pools.gear ?? []).find((entry) => entry.uuid === uuid);
-    if (!ref) return;
-    const cost = Number(ref.snapshot?.system?.price?.value) || 0;
+    if (!ref || !isPurchasableShopRef(ref)) return;
+    const cost = shopPriceOf(ref);
     this.#mutate((data) => { data.purchases.credits.push({ ref, cost }); });
   }
 
@@ -703,8 +761,21 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static _onOpenSources() {
-    const panel = this.element.querySelector(".sources-panel");
-    if (panel) panel.style.display = panel.style.display === "none" ? "" : "none";
+    this.#sourcesOpen = !this.#sourcesOpen;
+    this.render({ parts: ["header"] });
+  }
+
+  static async _onToggleSource(event, target) {
+    const poolKey = target?.dataset?.table;
+    const sourceId = target?.dataset?.field;
+    if (!poolKey || !sourceId) return;
+
+    const exclusions = setSourceEnabled(readExclusions(), poolKey, sourceId, target.checked);
+    await game.user.setFlag(FLAG_SCOPE, FLAGS.sourceSelection, exclusions);
+    invalidateSourceCache(poolKey);
+    delete this.#pools[poolKey];
+    this.#sourcesOpen = true;
+    this.render();
   }
 
   static async _onResumeDraft() {

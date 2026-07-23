@@ -95,10 +95,13 @@ export function sourceIdOf(source) {
   return source?.collection ?? source?.metadata?.id ?? String(source);
 }
 
+const WORLD_SOURCE_ID = "world";
+const WORLD_SOURCE_ENABLED = "enabled:world";
+
 /**
- * Whether a source is enabled for a pool. Persistence is stored as EXCLUSIONS so a
- * newly-added GM pack defaults ON (D7): a source is enabled unless the user's
- * exclusion list for that pool names it.
+ * Whether a source is enabled for a pool. Compendiums default ON so newly-added
+ * GM packs are visible; world items default OFF so the wizard is driven by the
+ * XP-spending compendium settings unless the user explicitly opts world items in.
  * @param {string} poolKey
  * @param {string} sourceId
  * @param {Object<string, string[]>} [exclusions]  { [poolKey]: [sourceId, …] }
@@ -106,5 +109,54 @@ export function sourceIdOf(source) {
  */
 export function isSourceEnabled(poolKey, sourceId, exclusions = {}) {
   const excluded = exclusions?.[poolKey] ?? [];
+  if (sourceId === WORLD_SOURCE_ID) return excluded.includes(WORLD_SOURCE_ENABLED) && !excluded.includes(WORLD_SOURCE_ID);
   return !excluded.includes(sourceId);
+}
+
+/**
+ * Normalise a source setting into a trimmed list of compendium ids. The legacy
+ * settings are comma-separated strings, but accepting arrays keeps the UI ready
+ * for a future settings migration.
+ * @param {(string|string[]|null|undefined)} settingValue
+ * @returns {string[]}
+ */
+export function sourceSettingPackIds(settingValue) {
+  const values = typeof settingValue === "string" ? settingValue.split(",") : (settingValue || []);
+  return values
+    .map((value) => typeof value === "string" ? value.trim() : value)
+    .filter((value) => typeof value === "string" && value.length > 0);
+}
+
+/**
+ * Return a clean copy of the source-selection flag after enabling/disabling one
+ * source. Compendiums are stored as exclusions; world items use an explicit
+ * enable sentinel because their default is disabled.
+ * @param {Object<string, string[]>} exclusions
+ * @param {string} poolKey
+ * @param {string} sourceId
+ * @param {boolean} enabled
+ * @returns {Object<string, string[]>}
+ */
+export function setSourceEnabled(exclusions = {}, poolKey, sourceId, enabled) {
+  const next = {};
+  for (const [key, values] of Object.entries(exclusions ?? {})) {
+    const clean = Array.isArray(values) ? [...new Set(values.filter(Boolean))] : [];
+    if (clean.length) next[key] = clean;
+  }
+
+  const current = new Set(next[poolKey] ?? []);
+  if (sourceId === WORLD_SOURCE_ID) {
+    current.delete(WORLD_SOURCE_ID);
+    current.delete(WORLD_SOURCE_ENABLED);
+    if (enabled) current.add(WORLD_SOURCE_ENABLED);
+  } else if (enabled) {
+    current.delete(sourceId);
+  } else {
+    current.add(sourceId);
+  }
+
+  if (current.size) next[poolKey] = [...current];
+  else delete next[poolKey];
+
+  return next;
 }

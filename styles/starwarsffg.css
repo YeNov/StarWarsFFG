@@ -3617,6 +3617,51 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   height: max-content;
 }
 
+/* PC Wizard — Content sources panel. */
+.charCreator .sources-panel {
+  margin: 8px;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(245, 241, 232, 0.94);
+  color: #1f2933;
+}
+.charCreator .sources-panel h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+.charCreator .sources-panel p {
+  margin: 0 0 8px;
+}
+.charCreator .source-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 4px 12px;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+.charCreator .source-group legend {
+  padding: 0 4px;
+  font-weight: bold;
+}
+.charCreator label.source-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  border: 0 none;
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.charCreator .source-toggle input {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+}
+
 /* PC Wizard — Force Powers: mentor-discount checkbox (rows use the shared pickable-table). */
 .charCreator .pickable-mentor .fp-discount {
   display: inline-flex;
