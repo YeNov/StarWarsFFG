@@ -128,6 +128,31 @@ export function sourceSettingPackIds(settingValue) {
 }
 
 /**
+ * Return configured pack ids that cannot be resolved by the caller.
+ * @param {(string|string[]|null|undefined)} settingValue
+ * @param {(packId: string) => boolean} hasPack
+ * @returns {string[]}
+ */
+export function missingSourcePackIds(settingValue, hasPack) {
+  return sourceSettingPackIds(settingValue).filter((packId) => !hasPack(packId));
+}
+
+/**
+ * Summarise whether a source setting is empty or points at unavailable packs.
+ * @param {(string|string[]|null|undefined)} settingValue
+ * @param {(packId: string) => boolean} hasPack
+ * @returns {{packIds: string[], noConfiguredCompendiums: boolean, missingPackIds: string[]}}
+ */
+export function sourcePackStatus(settingValue, hasPack) {
+  const packIds = sourceSettingPackIds(settingValue);
+  return {
+    packIds,
+    noConfiguredCompendiums: packIds.length === 0,
+    missingPackIds: packIds.filter((packId) => !hasPack(packId)),
+  };
+}
+
+/**
  * Return a clean copy of the source-selection flag after enabling/disabling one
  * source. Compendiums are stored as exclusions; world items use an explicit
  * enable sentinel because their default is disabled.

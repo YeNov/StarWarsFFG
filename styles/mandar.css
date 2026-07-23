@@ -6143,6 +6143,10 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   letter-spacing: normal;
   text-transform: none;
 }
+.charCreator .source-missing {
+  color: #8b1e1e;
+  font-weight: bold;
+}
 .charCreator .source-toggle input {
   flex: 0 0 auto;
   width: auto;

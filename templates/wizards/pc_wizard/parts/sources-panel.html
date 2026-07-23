@@ -4,7 +4,10 @@
   <p>{{ localize "SWFFG.CharacterCreator.Sources.Description" }}</p>
   {{#each sourceGroups as |group|}}
     <fieldset class="source-group" data-pool="{{ group.poolKey }}">
-      <legend>{{ group.label }}</legend>
+      <legend>
+        {{ group.label }}
+        {{#if group.noConfiguredCompendiums}}<span class="source-missing">{{ localize "SWFFG.CharacterCreator.Sources.Missing.NoneConfigured" }}</span>{{/if}}
+      </legend>
       {{#each group.sources as |source|}}
         <label class="source-toggle">
           <input type="checkbox" data-action="toggle-source" data-table="{{ ../poolKey }}"
@@ -13,6 +16,7 @@
             {{ localize "SWFFG.CharacterCreator.Sources.World" }}
           {{else}}
             {{ source.label }}
+            {{#if source.missing}}<span class="source-missing">{{ localize "SWFFG.CharacterCreator.Sources.Missing.Tag" }}</span>{{/if}}
           {{/if}}
         </label>
       {{/each}}

@@ -29,7 +29,7 @@ import {
 } from "./species-skill-choices.js";
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { invalidateSourceCache, loadSource, readExclusions } from "./load-source.js";
-import { SOURCE_DESCRIPTORS, isSourceEnabled, sourceIdOf, sourceSettingPackIds, setSourceEnabled } from "./source-descriptors.js";
+import { SOURCE_DESCRIPTORS, isSourceEnabled, sourceIdOf, sourcePackStatus, setSourceEnabled } from "./source-descriptors.js";
 import {
   attachedTo,
   attachmentAppliesTo,
@@ -245,6 +245,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #attachmentTargetId = null; // Expanded owned gear purchase id for attachment shopping.
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
+  #missingSourceWarningShown = false; // One-shot warning for stale compendium settings.
+  #missingSourceWarningGroups = null; // Prepared during context, shown after the wizard renders.
 
   constructor(options = {}) {
     super(options);
@@ -276,6 +278,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const obligation = calcObligation(this.data);
     const validation = validateDraft(this.data);
     const sourceGroups = this.#prepareSourceGroups(readExclusions());
+    this.#prepareMissingSourceWarning(sourceGroups);
 
     let preview = null;
     try {
@@ -629,6 +632,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    this.#showMissingSourceWarning();
+  }
+
   /** @override — hand each tabbed part its active-tab descriptor so it can show/hide. */
   async _preparePartContext(partId, context, options) {
     const partContext = await super._preparePartContext(partId, context, options);
@@ -689,13 +697,17 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   #prepareSourceGroups(exclusions) {
     return Object.entries(SOURCE_DESCRIPTORS).map(([poolKey, descriptor]) => {
-      const packIds = sourceSettingPackIds(game.settings.get(FLAG_SCOPE, descriptor.settingKey));
-      const sources = packIds.map((packId) => {
+      const settingValue = game.settings.get(FLAG_SCOPE, descriptor.settingKey);
+      const sourceStatus = sourcePackStatus(settingValue, (packId) => Boolean(game.packs.get(packId)));
+      const missingPackIds = new Set(sourceStatus.missingPackIds);
+      const noConfiguredCompendiums = sourceStatus.noConfiguredCompendiums;
+      const sources = sourceStatus.packIds.map((packId) => {
         const pack = game.packs.get(packId);
         const sourceId = pack ? sourceIdOf(pack) : packId;
         return {
           id: sourceId,
           label: pack?.metadata?.label ?? pack?.title ?? pack?.metadata?.id ?? packId,
+          missing: missingPackIds.has(packId),
           enabled: isSourceEnabled(poolKey, sourceId, exclusions),
         };
       });
@@ -709,9 +721,61 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       return {
         poolKey,
         label: SOURCE_GROUP_LABELS[poolKey] ?? poolKey,
+        noConfiguredCompendiums,
+        missingPackIds: [...missingPackIds],
         sources,
       };
     });
+  }
+
+  #prepareMissingSourceWarning(sourceGroups) {
+    if (this.#missingSourceWarningShown) return;
+    const groups = sourceGroups.filter((group) => group.noConfiguredCompendiums || group.missingPackIds.length > 0);
+    if (!groups.length) return;
+    this.#missingSourceWarningGroups = groups;
+  }
+
+  #showMissingSourceWarning() {
+    const groups = this.#missingSourceWarningGroups;
+    if (this.#missingSourceWarningShown || !groups?.length) return;
+    this.#missingSourceWarningShown = true;
+    this.#missingSourceWarningGroups = null;
+
+    const escape = foundry.utils.escapeHTML ?? ((value) => String(value).replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
+    }[char])));
+    const items = groups.map((group) => {
+      const details = [];
+      if (group.noConfiguredCompendiums) details.push(game.i18n.localize("SWFFG.CharacterCreator.Sources.Missing.NoneConfigured"));
+      if (group.missingPackIds.length) details.push(`${game.i18n.localize("SWFFG.CharacterCreator.Sources.Missing.MissingIds")} ${group.missingPackIds.map(escape).join(", ")}`);
+      return `<li><b>${escape(group.label)}</b>: ${details.join("; ")}</li>`;
+    }).join("");
+    const content = `
+      <div class="pcw-source-warning">
+        <p>${game.i18n.localize("SWFFG.CharacterCreator.Sources.Missing.Description")}</p>
+        <ul>${items}</ul>
+      </div>
+    `;
+
+    window.setTimeout(() => {
+      const dialog = new foundry.applications.api.DialogV2({
+        window: { title: game.i18n.localize("SWFFG.CharacterCreator.Sources.Missing.Title") },
+        classes: ["starwarsffg", "charCreator"],
+        content,
+        buttons: [{ action: "close", label: game.i18n.localize("SWFFG.CharacterCreator.Sources.Missing.Close"), default: true }],
+      });
+      dialog.render({ force: true });
+      dialog.bringToFront?.();
+      dialog.bringToTop?.();
+      requestAnimationFrame(() => {
+        dialog.bringToFront?.();
+        dialog.bringToTop?.();
+      });
+    }, 0);
   }
 
   /**

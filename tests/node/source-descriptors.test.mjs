@@ -9,7 +9,9 @@ import "./_stub/foundry-stub.mjs";
 import {
   SOURCE_DESCRIPTORS,
   getDescriptor,
+  missingSourcePackIds,
   sourceIdOf,
+  sourcePackStatus,
   isSourceEnabled,
   sourceSettingPackIds,
   setSourceEnabled,
@@ -80,6 +82,31 @@ test("sourceSettingPackIds normalises comma-separated and array settings", () =>
   assert.deepEqual(sourceSettingPackIds(" pack.one,pack.two ,, "), ["pack.one", "pack.two"]);
   assert.deepEqual(sourceSettingPackIds(["pack.one", " pack.two ", "", null]), ["pack.one", "pack.two"]);
   assert.deepEqual(sourceSettingPackIds(null), []);
+});
+
+test("missingSourcePackIds returns configured pack ids that do not resolve", () => {
+  const present = new Set(["pack.one", "pack.three"]);
+  assert.deepEqual(
+    missingSourcePackIds("pack.one, pack.two, pack.three", (packId) => present.has(packId)),
+    ["pack.two"],
+  );
+});
+
+test("sourcePackStatus flags empty source settings", () => {
+  assert.deepEqual(sourcePackStatus("", () => true), {
+    packIds: [],
+    noConfiguredCompendiums: true,
+    missingPackIds: [],
+  });
+});
+
+test("sourcePackStatus reports missing ids without treating configured settings as empty", () => {
+  const present = new Set(["pack.one"]);
+  assert.deepEqual(sourcePackStatus("pack.one, pack.two", (packId) => present.has(packId)), {
+    packIds: ["pack.one", "pack.two"],
+    noConfiguredCompendiums: false,
+    missingPackIds: ["pack.two"],
+  });
 });
 
 test("setSourceEnabled updates exclusion flags without mutating the input", () => {
