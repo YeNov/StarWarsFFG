@@ -107,6 +107,15 @@ const SOURCE_GROUP_LABELS = Object.freeze({
   gear: "Inventory",
 });
 
+function bringElementAboveApplications(app) {
+  const element = app?.element instanceof HTMLElement ? app.element : app?.element?.[0];
+  if (!element) return;
+  const zIndices = [...document.querySelectorAll(".application, .app, .dialog")]
+    .map((node) => Number.parseInt(getComputedStyle(node).zIndex, 10))
+    .filter(Number.isFinite);
+  element.style.zIndex = String(Math.max(100, ...zIndices) + 1);
+}
+
 export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) {
   static #activeInstance = null;
 
@@ -115,8 +124,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static open(options = {}) {
+    invalidateSourceCache();
     const active = CharacterCreator.#activeInstance;
     if (active) {
+      active.#pools = {};
       if (active.minimized) active.maximize?.();
       active.bringToFront?.();
       active.bringToTop?.();
@@ -269,7 +280,12 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   /** @override */
   async _prepareContext() {
     for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]) {
-      try { await this.#ensurePool(poolKey); } catch { /* pool unavailable in this world */ }
+      try {
+        await this.#ensurePool(poolKey);
+      } catch (err) {
+        delete this.#pools[poolKey];
+        CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} sources: ${err.message}`);
+      }
     }
     this.#ensureCreditPurchaseIds(this.data);
 
@@ -689,9 +705,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
-  /** Load a content pool once and re-render the parts that display it. */
+  /** Load a content pool through the signature-aware source cache. */
   async #ensurePool(poolKey) {
-    if (this.#pools[poolKey]) return;
     this.#pools[poolKey] = await loadSource(poolKey);
   }
 
@@ -769,12 +784,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         buttons: [{ action: "close", label: game.i18n.localize("SWFFG.CharacterCreator.Sources.Missing.Close"), default: true }],
       });
       dialog.render({ force: true });
-      dialog.bringToFront?.();
-      dialog.bringToTop?.();
-      requestAnimationFrame(() => {
-        dialog.bringToFront?.();
-        dialog.bringToTop?.();
-      });
+      bringElementAboveApplications(dialog);
+      requestAnimationFrame(() => bringElementAboveApplications(dialog));
     }, 0);
   }
 
@@ -1273,6 +1284,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       if (record) {
         this.data = record.data;
         this.#draft.commit = record.commit ?? null;
+        invalidateSourceCache();
+        this.#pools = {};
         this.render(true);
       }
     } catch (err) {
@@ -1285,6 +1298,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static async _onDiscardDraft() {
     await this.draftStore.clear();
     this.data = createInitialData();
+    invalidateSourceCache();
+    this.#pools = {};
     this.render(true);
   }
 

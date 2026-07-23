@@ -8,10 +8,10 @@
  */
 
 import { FLAG_SCOPE, FLAGS } from "./constants.js";
-import { getDescriptor, sourceIdOf, isSourceEnabled } from "./source-descriptors.js";
+import { getDescriptor, sourceIdOf, isSourceEnabled, sourceSettingPackIds } from "./source-descriptors.js";
 import { toSelectionRef } from "./wizard-state.js";
 
-/** poolKey → SelectionRef[] cache, invalidated when the pool's inputs change. */
+/** poolKey → { signature, refs } cache, invalidated when the pool's inputs change. */
 const poolCache = new Map();
 
 /** Drop the cache for one pool (or all pools when called with no argument). */
@@ -23,6 +23,25 @@ export function invalidateSourceCache(poolKey) {
 /** Read this user's per-pool source exclusions from their own User flag (D7). */
 export function readExclusions() {
   return game.user.getFlag(FLAG_SCOPE, FLAGS.sourceSelection) ?? {};
+}
+
+function sourceCacheSignature(poolKey, descriptor, { exclusions, maxRarity, allowRestricted }) {
+  const settingValue = game.settings.get(FLAG_SCOPE, descriptor.settingKey);
+  const packs = sourceSettingPackIds(settingValue).map((packId) => {
+    const pack = game.packs.get(packId);
+    return {
+      id: packId,
+      available: !!pack,
+      sourceId: pack ? sourceIdOf(pack) : packId,
+      size: pack?.index?.size ?? pack?.index?.contents?.length ?? null,
+    };
+  });
+  return JSON.stringify({
+    packs,
+    exclusions: [...new Set(exclusions?.[poolKey] ?? [])].sort(),
+    maxRarity,
+    allowRestricted: !!allowRestricted,
+  });
 }
 
 /**
@@ -37,11 +56,12 @@ export function readExclusions() {
  * @returns {Promise<Array<object>>} SelectionRefs
  */
 export async function loadSource(poolKey, { exclusions = readExclusions() } = {}) {
-  if (poolCache.has(poolKey)) return poolCache.get(poolKey);
-
   const descriptor = getDescriptor(poolKey);
   const maxRarity = game.settings.get("starwarsffg", "maxRarity");
   const allowRestricted = game.settings.get("starwarsffg", "allowRestricted");
+  const signature = sourceCacheSignature(poolKey, descriptor, { exclusions, maxRarity, allowRestricted });
+  const cached = poolCache.get(poolKey);
+  if (cached?.signature === signature) return cached.refs;
 
   const passesGmGate = (item) => {
     if (item.system?.rarity?.value > maxRarity) return false;
@@ -55,15 +75,18 @@ export async function loadSource(poolKey, { exclusions = readExclusions() } = {}
   // store a COMMA-SEPARATED STRING (legacy getSources split on ","), so split it;
   // tolerate an array too, in case a future migration changes the storage type.
   const settingValue = game.settings.get(FLAG_SCOPE, descriptor.settingKey);
-  const packIds = typeof settingValue === "string" ? settingValue.split(",") : (settingValue || []);
-  for (const rawPackId of packIds) {
-    const packId = typeof rawPackId === "string" ? rawPackId.trim() : rawPackId;
-    if (!packId) continue; // falsy / empty pack ids skipped
+  for (const packId of sourceSettingPackIds(settingValue)) {
     const pack = game.packs.get(packId);
     if (!pack) continue;
     const sourceId = sourceIdOf(pack);
     if (!isSourceEnabled(poolKey, sourceId, exclusions)) continue;
-    const docs = await pack.getDocuments();
+    let docs = [];
+    try {
+      docs = await pack.getDocuments();
+    } catch (err) {
+      CONFIG.logger?.warn?.(`PC wizard failed to load compendium ${packId}: ${err.message}`);
+      continue;
+    }
     for (const item of docs) {
       if (!descriptor.worldItemTypes.includes(item.type)) continue;
       if (passesGmGate(item)) refs.push(toSelectionRef(item));
@@ -78,6 +101,6 @@ export async function loadSource(poolKey, { exclusions = readExclusions() } = {}
     }
   }
 
-  poolCache.set(poolKey, refs);
+  poolCache.set(poolKey, { signature, refs });
   return refs;
 }
