@@ -15,6 +15,16 @@
       {{/each}}
     </ul>
   {{/if}}
+  {{#if skillCapWarnings.length}}
+    <div class="review-skillcap">
+      <div class="review-skillcap-title">⚠ Not allowed RAW — a skill cannot exceed rank 2 at character creation:</div>
+      <ul>
+        {{#each skillCapWarnings as |skill|}}
+          <li>{{ skill.label }} — rank {{ skill.rank }}</li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
   <button type="button" class="create-actor" data-action="commit">
     Create character
   </button>

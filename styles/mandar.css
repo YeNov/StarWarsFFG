@@ -5917,6 +5917,22 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .ffg-skill-info span.dietype:is(.advantage, .despair, .forcepoint, .failure, .force, .light, .success, .threat, .triumph) {
   color: #fff;
 }
+/* Review tab: RAW skill-cap highlight (non-blocking). */
+.charCreator .review-skillcap {
+  margin: 8px 0;
+  padding: 6px 10px;
+  border: 1px solid #b02a2a;
+  border-radius: 4px;
+  background: rgba(176, 42, 42, 0.12);
+}
+.charCreator .review-skillcap-title {
+  font-weight: bold;
+  color: #b02a2a;
+}
+.charCreator .review-skillcap ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
 
 /* ------------------------------------------------------------------ *
  * PC Wizard — xp_spend view switcher + specialization talent tree     *

@@ -194,6 +194,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       : [];
 
+    // Review verification (RAW): a skill cannot exceed rank 2 at character creation. Flag — never
+    // block — any that do, so the review tab can highlight them.
+    const skillCapWarnings = xpSkills.filter((skill) => skill.rank > 2).map((skill) => ({ label: skill.label, rank: skill.rank }));
+
     // Specialization tab: the selected career's in-career specializations + every
     // universal specialization from the pool (matched by name, as the legacy did).
     // Selecting one sets data.selected.specialization via the shared _onSelect action.
@@ -312,6 +316,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       availableObligation: obligation.available,
       steps: validation.steps,
       warnings: validation.warnings,
+      skillCapWarnings,
       actor: preview,
     };
   }
