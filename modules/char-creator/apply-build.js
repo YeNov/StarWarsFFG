@@ -23,6 +23,20 @@ import { getSpeciesSkillRankGrants } from "./species-skill-choices.js";
  *  prototypeToken name from this — actor.mjs:95 only derives it from a truthy name). */
 const DEFAULT_NAME = "New Character";
 
+function isAttachmentPurchase(purchase) {
+  return purchase?.ref?.type === "itemattachment" && Boolean(purchase.attachTo);
+}
+
+function attachmentPurchasesByTarget(data) {
+  const map = new Map();
+  for (const purchase of data.purchases?.credits ?? []) {
+    if (!isAttachmentPurchase(purchase)) continue;
+    if (!map.has(purchase.attachTo)) map.set(purchase.attachTo, []);
+    map.get(purchase.attachTo).push(purchase);
+  }
+  return map;
+}
+
 /**
  * Build the actor source from a wizard draft.
  * @param {object} data  the wizard state
@@ -110,8 +124,22 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   // motivations — plain SelectionRefs through the same toItemData (BUG-1)
   for (const motivation of data.selected.motivations) addItem(motivation);
 
-  // credit-purchased gear (N-6)
-  for (const purchase of data.purchases.credits) addItem(purchase.ref);
+  // credit-purchased gear (N-6). Attachment purchases are nested into their target
+  // item via system.itemattachment[], matching the item sheet's drag-drop shape.
+  const attachmentsByTarget = attachmentPurchasesByTarget(data);
+  for (const purchase of data.purchases.credits) {
+    if (isAttachmentPurchase(purchase)) continue;
+    if (!purchase.ref?.uuid) continue;
+    const item = toItemData(purchase.ref);
+    for (const attachment of attachmentsByTarget.get(purchase.id) ?? []) {
+      const attachmentItem = toItemData(attachment.ref);
+      item.system ??= {};
+      item.system.itemattachment ??= [];
+      item.system.itemattachment.push(attachmentItem);
+      if (attachmentItem.effects?.length) item.effects = [...(item.effects ?? []), ...attachmentItem.effects];
+    }
+    actorData.items.push(item);
+  }
 
   return { actorData, warnings };
 }

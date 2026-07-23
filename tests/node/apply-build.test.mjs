@@ -158,3 +158,45 @@ test("the input draft is not mutated", () => {
   applyBuild(draft, makeDeps());
   assert.deepEqual(draft, before);
 });
+
+test("credit-purchased attachments are nested into their target item", () => {
+  const draft = makeDraft();
+  draft.purchases.credits = [
+    {
+      id: "weapon-purchase",
+      cost: 400,
+      ref: {
+        uuid: "weapon-1",
+        name: "Training Lightsaber",
+        type: "weapon",
+        snapshot: { name: "Training Lightsaber", type: "weapon", system: { itemattachment: [] }, effects: [] },
+      },
+    },
+    {
+      id: "attachment-purchase",
+      attachTo: "weapon-purchase",
+      cost: 100,
+      ref: {
+        uuid: "attachment-1",
+        name: "Balanced Hilt",
+        type: "itemattachment",
+        snapshot: {
+          name: "Balanced Hilt",
+          type: "itemattachment",
+          system: { hardpoints: { value: 1 }, itemattachment: [] },
+          effects: [{ name: "Balanced Hilt Effect" }],
+        },
+      },
+    },
+  ];
+  const deps = makeDeps();
+  deps.toItemData = (ref) => structuredClone(ref.snapshot);
+
+  const { actorData } = applyBuild(draft, deps);
+  const weapon = actorData.items.find((item) => item.name === "Training Lightsaber");
+
+  assert.equal(actorData.items.some((item) => item.name === "Balanced Hilt"), false);
+  assert.equal(weapon.system.itemattachment.length, 1);
+  assert.equal(weapon.system.itemattachment[0].name, "Balanced Hilt");
+  assert.equal(weapon.effects[0].name, "Balanced Hilt Effect");
+});

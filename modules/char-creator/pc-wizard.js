@@ -31,6 +31,15 @@ import {
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { invalidateSourceCache, loadSource, readExclusions } from "./load-source.js";
 import { SOURCE_DESCRIPTORS, isSourceEnabled, sourceIdOf, sourceSettingPackIds, setSourceEnabled } from "./source-descriptors.js";
+import {
+  attachedTo,
+  attachmentHardpoints,
+  canAttach,
+  hardpointValue,
+  isAttachablePurchase,
+  remainingHardpoints,
+  usedHardpoints,
+} from "./attachment-purchases.js";
 import { DraftStore } from "./draft-store.js";
 import { NewerSchemaError, CorruptDraftError } from "./draft-schema.js";
 import { emitCommitRequest, wizardPending, setCommitResponseHandler } from "./socket-bridge.js";
@@ -174,6 +183,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "remove-motivation": CharacterCreator._onRemoveMotivation,
       "refund-gear": CharacterCreator._onRefundGear,
       "buy-gear": CharacterCreator._onBuyGear,
+      "attachment-target": CharacterCreator._onAttachmentTarget,
+      "buy-attachment": CharacterCreator._onBuyAttachment,
+      "refund-attachment": CharacterCreator._onRefundAttachment,
       "inventory-view": CharacterCreator._onInventoryView,
       "clear-gear-filters": CharacterCreator._onClearGearFilters,
       "obligation-view": CharacterCreator._onObligationView,
@@ -229,6 +241,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #obligationSearch = { obligation: "", duty: "", morality: "" }; // Obligation accordion name filters (transient)
   #listSearch = { motivation: "" }; // Motivation tab name filter (transient)
   #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
+  #attachmentTargetId = null; // Expanded owned gear purchase id for attachment shopping.
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
 
@@ -255,6 +268,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]) {
       try { await this.#ensurePool(poolKey); } catch { /* pool unavailable in this world */ }
     }
+    this.#ensureCreditPurchaseIds(this.data);
 
     const xp = calcXp(this.data);
     const credits = calcCredits(this.data);
@@ -502,9 +516,56 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         const price = shopPriceOf(ref);
         return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref) };
       });
+    const targetPurchase = this.data.purchases.credits.find((purchase) => purchase.id === this.#attachmentTargetId && isAttachablePurchase(purchase));
+    if (!targetPurchase) this.#attachmentTargetId = null;
+    const availableAttachments = targetPurchase
+      ? (this.#pools.gear ?? [])
+        .filter((ref) => ref.type === "itemattachment" && isPurchasableShopRef(ref))
+        .filter((ref) => canAttach(this.data, targetPurchase, ref))
+        .filter((ref) => {
+          const price = shopPriceOf(ref);
+          return matchesSearch(ref) && price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
+        })
+        .map((ref) => {
+          const price = shopPriceOf(ref);
+          return {
+            uuid: ref.uuid,
+            name: ref.name,
+            img: ref.img,
+            targetId: targetPurchase.id,
+            price,
+            hardpoints: attachmentHardpoints(ref),
+            affordable: price <= credits.available,
+          };
+        })
+      : [];
     const ownedItems = this.data.purchases.credits
-      .filter((purchase) => purchase.ref?.type === invView && matchesSearch(purchase.ref))
-      .map((purchase) => ({ uuid: purchase.ref.uuid, name: purchase.ref.name, img: purchase.ref.img, cost: purchase.cost, stats: inventoryStats(purchase.ref) }));
+      .filter((purchase) => !purchase.attachTo && purchase.ref?.type === invView && matchesSearch(purchase.ref))
+      .map((purchase) => {
+        const attachable = isAttachablePurchase(purchase);
+        const attachedItems = attachedTo(this.data, purchase.id).map((attachment) => ({
+          id: attachment.id,
+          uuid: attachment.ref.uuid,
+          name: attachment.ref.name,
+          img: attachment.ref.img,
+          cost: attachment.cost,
+          hardpoints: attachmentHardpoints(attachment.ref),
+        }));
+        return {
+          id: purchase.id,
+          uuid: purchase.ref.uuid,
+          name: purchase.ref.name,
+          img: purchase.ref.img,
+          cost: purchase.cost,
+          stats: inventoryStats(purchase.ref),
+          attachable,
+          attachmentsOpen: attachable && purchase.id === this.#attachmentTargetId,
+          hardpoints: attachable ? hardpointValue(purchase.ref) : 0,
+          usedHardpoints: attachable ? usedHardpoints(this.data, purchase.id) : 0,
+          remainingHardpoints: attachable ? remainingHardpoints(this.data, purchase) : 0,
+          attachedItems,
+        };
+      });
 
     // Encumbrance — read the built preview actor's derived stat (current from carried items, max
     // from Brawn + mods). It rebuilds on every buy/refund, so this tracks purchases automatically.
@@ -555,6 +616,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       inventoryFilters: invFilters,
       shopItems,
       ownedItems,
+      availableAttachments,
       encumbrance,
       obligationKey: obligation.key,
       availableObligation: obligation.available,
@@ -612,6 +674,12 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   #normalizeXpSkillPurchases(data) {
     normalizeXpSkillPurchases(data, this.buildDeps.creationDefaults.system.skills);
+  }
+
+  #ensureCreditPurchaseIds(data) {
+    for (const purchase of data.purchases?.credits ?? []) {
+      purchase.id ??= foundry.utils.randomID(16);
+    }
   }
 
   /** Load a content pool once and re-render the parts that display it. */
@@ -840,10 +908,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static _onRefundGear(event, target) {
-    const { uuid } = target.dataset;
+    const { purchaseId } = target.dataset;
     this.#mutate((data) => {
-      const index = data.purchases.credits.findIndex((purchase) => purchase.ref?.uuid === uuid);
-      if (index >= 0) data.purchases.credits.splice(index, 1); // remove ONE owned instance
+      this.#ensureCreditPurchaseIds(data);
+      const index = data.purchases.credits.findIndex((purchase) => purchase.id === purchaseId);
+      if (index < 0) return;
+      data.purchases.credits = data.purchases.credits.filter((purchase) => purchase.id !== purchaseId && purchase.attachTo !== purchaseId);
+      if (this.#attachmentTargetId === purchaseId) this.#attachmentTargetId = null;
     });
   }
 
@@ -852,7 +923,32 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const ref = (this.#pools.gear ?? []).find((entry) => entry.uuid === uuid);
     if (!ref || !isPurchasableShopRef(ref)) return;
     const cost = shopPriceOf(ref);
-    this.#mutate((data) => { data.purchases.credits.push({ ref, cost }); });
+    this.#mutate((data) => { data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost }); });
+  }
+
+  static _onAttachmentTarget(event, target) {
+    const { purchaseId } = target.dataset;
+    this.#attachmentTargetId = this.#attachmentTargetId === purchaseId ? null : purchaseId;
+    this.render({ parts: ["gear"] });
+  }
+
+  static _onBuyAttachment(event, target) {
+    const { uuid, targetId } = target.dataset;
+    const ref = (this.#pools.gear ?? []).find((entry) => entry.uuid === uuid);
+    if (!ref || !isPurchasableShopRef(ref)) return;
+    this.#mutate((data) => {
+      this.#ensureCreditPurchaseIds(data);
+      const targetPurchase = data.purchases.credits.find((purchase) => purchase.id === targetId);
+      if (!canAttach(data, targetPurchase, ref)) return;
+      data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost: shopPriceOf(ref), attachTo: targetId });
+    });
+  }
+
+  static _onRefundAttachment(event, target) {
+    const { purchaseId } = target.dataset;
+    this.#mutate((data) => {
+      data.purchases.credits = data.purchases.credits.filter((purchase) => purchase.id !== purchaseId);
+    });
   }
 
   static _onInventoryView(event, target) {
