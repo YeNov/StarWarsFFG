@@ -245,7 +245,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #sessionNoticeId = mintSessionNoticeId();
   #pools = {};
   #commitTimer = null;
-  #xpView = "bonus"; // xp_spend sub-view: "bonus" | "skills" | "talents" (transient, not persisted to draft)
+  #xpView = "characteristics"; // xp_spend sub-view: "characteristics" | "bonus" | "skills" | "talents" (transient, not persisted to draft)
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
   #backgroundView = "culture"; // Background accordion: "culture" | "hook" | "forceAttitude" (transient)
   #backgroundSearch = { culture: "", hook: "", forceAttitude: "" }; // Background accordion name filters (transient)
@@ -440,6 +440,22 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         return { key, label, rank, careerskill, type: skill.type, nextValue, nextCost, canBuy, canRefund, description };
       })
       : [];
+    const characteristicPurchases = this.data.purchases.xp.characteristics;
+    const xpCharacteristics = preview?.system?.characteristics
+      ? Object.entries(preview.system.characteristics).map(([key, characteristic]) => {
+        const value = characteristic.value ?? 0;
+        const nextValue = value + 1;
+        return {
+          key,
+          label: key,
+          value,
+          nextValue,
+          nextCost: nextValue * 10,
+          canBuy: value < 5,
+          canRefund: characteristicPurchases.some((purchase) => purchase.key === key && purchase.value === value),
+        };
+      })
+      : [];
 
     // Specialization tab: the selected career's in-career specializations + every
     // universal specialization from the pool (matched by name, as the legacy did).
@@ -612,6 +628,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       forceRating,
       forcePowers,
       startingBonusChoices,
+      xpCharacteristics,
       xpSkills,
       xpView: this.#xpView,
       talentTree,
@@ -1221,7 +1238,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static _onXpView(event, target) {
     // Pure view toggle — no data change, so bypass #mutate (no draft save / commit re-mint).
     const view = target.dataset.view;
-    this.#xpView = ["bonus", "skills", "talents"].includes(view) ? view : "bonus";
+    this.#xpView = ["characteristics", "bonus", "skills", "talents"].includes(view) ? view : "characteristics";
     this.render({ parts: ["xp_spend"] });
   }
 

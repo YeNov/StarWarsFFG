@@ -3,12 +3,37 @@
   <div class="xp-summary">XP available: <b>{{ availableXp }}</b> / {{ totalXp }}</div>
 
   <div class="xp-switcher">
+    <button type="button" class="xp-switch{{#if (eq xpView "characteristics")}} is-active{{/if}}" data-action="xp-view" data-view="characteristics">Characteristics</button>
     <button type="button" class="xp-switch{{#if (eq xpView "bonus")}} is-active{{/if}}" data-action="xp-view" data-view="bonus">Bonus skills</button>
     <button type="button" class="xp-switch{{#if (eq xpView "skills")}} is-active{{/if}}" data-action="xp-view" data-view="skills">Buy skills</button>
     <button type="button" class="xp-switch{{#if (eq xpView "talents")}} is-active{{/if}}" data-action="xp-view" data-view="talents">Talents</button>
   </div>
 
-  {{#if (eq xpView "talents")}}
+  {{#if (eq xpView "characteristics")}}
+    <div class="xp-characteristics characteristics grid grid-6col">
+      {{#each xpCharacteristics as |characteristic|}}
+        <div class="characteristic-item flex-group-center">
+          <button type="button" class="xp-characteristic-btn" data-action="characteristic-control" data-direction="decrease"
+                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.value }}"
+                  {{#unless characteristic.canRefund}}disabled{{/unless}}>&minus;</button>
+          <button type="button" class="xp-characteristic-btn" data-action="characteristic-control" data-direction="increase"
+                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.value }}"
+                  {{#unless characteristic.canBuy}}disabled{{/unless}}>+</button>
+          <div class="characteristic">
+            <div class="characteristic-value">
+              <input type="number" value="{{ characteristic.value }}" disabled="">
+            </div>
+          </div>
+          <div class="characteristic-label">
+            {{ characteristic.label }}
+          </div>
+          <div class="xp-characteristic-cost">
+            {{#if characteristic.canBuy}}{{ characteristic.nextCost }} XP{{else}}Max{{/if}}
+          </div>
+        </div>
+      {{/each}}
+    </div>
+  {{else if (eq xpView "talents")}}
     {{#if talentTree}}
       <div class="pcw-tt">
         <div class="pcw-tt-title">{{ talentSpecName }}</div>
