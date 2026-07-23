@@ -23,18 +23,4 @@
     <p class="empty-hint">Select a career first, then choose your specialization here.</p>
   {{/if}}
 
-  {{#if data.selected.specialization}}
-    <div class="free-ranks" data-part="spec-free-ranks">
-      <h4>Free specialization skill ranks ({{ specFreeUsed }} / 2)</h4>
-      <ul>
-        {{#each specFreeRanks as |skill|}}
-          <li class="free-rank {{#if skill.picked}}is-picked{{/if}}">
-            <button type="button" data-action="toggle-spec-rank" data-field="{{ skill.key }}"
-                    {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
-            {{ skill.key }}
-          </li>
-        {{/each}}
-      </ul>
-    </div>
-  {{/if}}
 </section>

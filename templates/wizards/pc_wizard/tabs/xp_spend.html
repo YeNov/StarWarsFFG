@@ -3,7 +3,8 @@
   <div class="xp-summary">XP available: <b>{{ availableXp }}</b> / {{ totalXp }}</div>
 
   <div class="xp-switcher">
-    <button type="button" class="xp-switch{{#if (eq xpView "talents")}}{{else}} is-active{{/if}}" data-action="xp-view" data-view="skills">Buy skills</button>
+    <button type="button" class="xp-switch{{#if (eq xpView "bonus")}} is-active{{/if}}" data-action="xp-view" data-view="bonus">Bonus skills</button>
+    <button type="button" class="xp-switch{{#if (eq xpView "skills")}} is-active{{/if}}" data-action="xp-view" data-view="skills">Buy skills</button>
     <button type="button" class="xp-switch{{#if (eq xpView "talents")}} is-active{{/if}}" data-action="xp-view" data-view="talents">Talents</button>
   </div>
 
@@ -36,6 +37,60 @@
     {{else}}
       <p class="pcw-tt-empty">Select a specialization first (on the Specialization tab) to buy its talents.</p>
     {{/if}}
+  {{else if (eq xpView "bonus")}}
+    <div class="bonus-block">
+      <h4>Career bonus skills ({{ careerFreeUsed }} / 4)</h4>
+      {{#if data.selected.career}}
+        <table class="xp-skills bonus-skills">
+          <thead>
+            <tr>
+              <th class="xp-col-name">Skill</th>
+              <th class="xp-col-buttons">Bonus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each careerFreeRanks as |skill|}}
+              <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                <td class="xp-col-name">{{ skill.key }}</td>
+                <td class="xp-col-buttons">
+                  <button type="button" class="xp-skill-btn" data-action="toggle-career-rank" data-field="{{ skill.key }}"
+                          {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p class="empty-hint">Select a career first.</p>
+      {{/if}}
+    </div>
+
+    <div class="bonus-block">
+      <h4>Specialization bonus skills ({{ specFreeUsed }} / 2)</h4>
+      {{#if data.selected.specialization}}
+        <table class="xp-skills bonus-skills">
+          <thead>
+            <tr>
+              <th class="xp-col-name">Skill</th>
+              <th class="xp-col-buttons">Bonus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each specFreeRanks as |skill|}}
+              <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                <td class="xp-col-name">{{ skill.key }}</td>
+                <td class="xp-col-buttons">
+                  <button type="button" class="xp-skill-btn" data-action="toggle-spec-rank" data-field="{{ skill.key }}"
+                          {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p class="empty-hint">Select a specialization first.</p>
+      {{/if}}
+    </div>
   {{else}}
     <table class="xp-skills">
       <thead>

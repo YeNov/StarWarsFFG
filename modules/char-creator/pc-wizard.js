@@ -583,7 +583,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static _onXpView(event, target) {
     // Pure view toggle — no data change, so bypass #mutate (no draft save / commit re-mint).
-    this.#xpView = target.dataset.view === "talents" ? "talents" : "skills";
+    const view = target.dataset.view;
+    this.#xpView = ["skills", "bonus", "talents"].includes(view) ? view : "skills";
     this.render({ parts: ["xp_spend"] });
   }
 
