@@ -200,3 +200,38 @@ test("credit-purchased attachments are nested into their target item", () => {
   assert.equal(weapon.system.itemattachment[0].name, "Balanced Hilt");
   assert.equal(weapon.effects[0].name, "Balanced Hilt Effect");
 });
+
+test("only the highest-soak purchased armor is equipped for derived soak calculation", () => {
+  const draft = makeDraft();
+  draft.purchases.credits = [
+    {
+      id: "armour-light",
+      cost: 200,
+      ref: {
+        uuid: "armor-1",
+        name: "Padded Armor",
+        type: "armour",
+        snapshot: { name: "Padded Armor", type: "armour", system: { soak: { value: 1 }, equippable: { equipped: false } } },
+      },
+    },
+    {
+      id: "armour-heavy",
+      cost: 400,
+      ref: {
+        uuid: "armor-2",
+        name: "Heavy Clothing",
+        type: "armour",
+        snapshot: { name: "Heavy Clothing", type: "armour", system: { soak: { value: 2 }, equippable: { equipped: false } } },
+      },
+    },
+  ];
+  const deps = makeDeps();
+  deps.toItemData = (ref) => structuredClone(ref.snapshot);
+
+  const { actorData } = applyBuild(draft, deps);
+  const light = actorData.items.find((item) => item.name === "Padded Armor");
+  const heavy = actorData.items.find((item) => item.name === "Heavy Clothing");
+
+  assert.equal(light.system.equippable.equipped, false);
+  assert.equal(heavy.system.equippable.equipped, true);
+});

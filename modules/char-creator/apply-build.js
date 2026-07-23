@@ -37,6 +37,21 @@ function attachmentPurchasesByTarget(data) {
   return map;
 }
 
+function armorSoakValue(item) {
+  const adjusted = Number(item?.system?.soak?.adjusted);
+  if (Number.isFinite(adjusted)) return adjusted;
+  const value = Number(item?.system?.soak?.value);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function equipBestPurchasedArmor(items) {
+  const armor = items.filter((item) => item?.type === "armour");
+  if (!armor.length) return;
+
+  armor.forEach((item) => foundry.utils.setProperty(item, "system.equippable.equipped", false));
+  armor.sort((a, b) => armorSoakValue(b) - armorSoakValue(a))[0].system.equippable.equipped = true;
+}
+
 /**
  * Build the actor source from a wizard draft.
  * @param {object} data  the wizard state
@@ -128,6 +143,7 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   // credit-purchased gear (N-6). Attachment purchases are nested into their target
   // item via system.itemattachment[], matching the item sheet's drag-drop shape.
   const attachmentsByTarget = attachmentPurchasesByTarget(data);
+  const purchasedItems = [];
   for (const purchase of data.purchases.credits) {
     if (isAttachmentPurchase(purchase)) continue;
     if (!purchase.ref?.uuid) continue;
@@ -139,8 +155,10 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
       item.system.itemattachment.push(attachmentItem);
       if (attachmentItem.effects?.length) item.effects = [...(item.effects ?? []), ...attachmentItem.effects];
     }
-    actorData.items.push(item);
+    purchasedItems.push(item);
   }
+  equipBestPurchasedArmor(purchasedItems);
+  actorData.items.push(...purchasedItems);
 
   return { actorData, warnings };
 }
