@@ -20,6 +20,7 @@ import { createInitialData } from "./wizard-state.js";
 import { applyStartingBonus } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
+import { normalizeXpSkillPurchases } from "./skill-purchases.js";
 import {
   clearSpeciesSkillRankChoices,
   getSpeciesSkillRankChoiceStatus,
@@ -574,6 +575,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     CONFIG.logger?.debug?.(`PC wizard: superseded commit ${superseded} — reminted ${this.data.commitId}`);
   }
 
+  #normalizeXpSkillPurchases(data) {
+    normalizeXpSkillPurchases(data, this.buildDeps.creationDefaults.system.skills);
+  }
+
   /** Load a content pool once and re-render the parts that display it. */
   async #ensurePool(poolKey) {
     if (this.#pools[poolKey]) return;
@@ -786,6 +791,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           clearSpeciesSkillRankChoices(data);
         }
         data.selected[table] = ref;
+        if (["species", "career", "specialization"].includes(table)) this.#normalizeXpSkillPurchases(data);
       }
     });
   }
@@ -879,6 +885,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       const index = list.indexOf(skill);
       if (index >= 0) list.splice(index, 1); // remove a free rank
       else if (list.length < cap) list.push(skill); // add, capped by selected data
+      this.#normalizeXpSkillPurchases(data);
     });
   }
 
@@ -890,6 +897,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       const index = list.indexOf(skill);
       if (index >= 0) list.splice(index, 1); // remove a free rank
       else if (list.length < cap) list.push(skill); // add, capped by selected data
+      this.#normalizeXpSkillPurchases(data);
     });
   }
 
@@ -897,6 +905,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const { choice, field } = target.dataset;
     this.#mutate((data) => {
       toggleSpeciesSkillRankChoice(data, choice, field);
+      this.#normalizeXpSkillPurchases(data);
     });
   }
 
@@ -904,6 +913,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const { group, choice } = target.dataset;
     this.#mutate((data) => {
       selectSpeciesSkillRankChoiceBranch(data, group, choice);
+      this.#normalizeXpSkillPurchases(data);
     });
   }
 
