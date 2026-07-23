@@ -141,6 +141,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "buy-gear": CharacterCreator._onBuyGear,
       "inventory-view": CharacterCreator._onInventoryView,
       "clear-gear-filters": CharacterCreator._onClearGearFilters,
+      "open-item": CharacterCreator._onOpenItem,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
       "skill-info": CharacterCreator._onSkillInfo,
@@ -154,6 +155,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "toggle-species-rank": CharacterCreator._onToggleSpeciesRank,
       "buy-forcepower": CharacterCreator._onBuyForcePower,
       "refund-forcepower": CharacterCreator._onRefundForcePower,
+      "background-view": CharacterCreator._onBackgroundView,
+      "random-background": CharacterCreator._onRandomBackground,
       "open-sources": CharacterCreator._onOpenSources,
       "toggle-source": CharacterCreator._onToggleSource,
       "resume-draft": CharacterCreator._onResumeDraft,
@@ -166,6 +169,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** Per-part change/input bindings (issue B) — attached only within each part's element. */
   static PART_BINDINGS = {
+    background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
     gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
     startingBonus: [{ selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" }],
@@ -179,6 +183,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #commitTimer = null;
   #xpView = "bonus"; // xp_spend sub-view: "bonus" | "skills" | "talents" (transient, not persisted to draft)
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
+  #backgroundView = "culture"; // Background accordion: "culture" | "hook" | "forceAttitude" (transient)
+  #backgroundSearch = { culture: "", hook: "", forceAttitude: "" }; // Background accordion name filters (transient)
   #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
@@ -225,7 +231,58 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // matching the legacy getBackgrounds() split. forceAttitude uses the "attitude" type.
     const backgroundRefs = this.#pools.background ?? [];
     const ofType = (type) => backgroundRefs.filter((ref) => ref.snapshot?.system?.type === type);
+    const isForceAndDestiny = this.data.selected.rules === "fad";
     const pools = { ...this.#pools, culture: ofType("culture"), hook: ofType("hook"), forceAttitude: ofType("attitude") };
+    const prepareBackgroundRows = (rows, selectedUuid, sectionKey) => {
+      const search = (this.#backgroundSearch[sectionKey] ?? "").trim().toLowerCase();
+      return rows.map((row) => ({
+        ...row,
+        selected: row.uuid === selectedUuid,
+        hidden: !!search && !(row.name ?? "").toLowerCase().includes(search),
+      }));
+    };
+    const selectedCultureUuid = this.data.selected.background.culture?.uuid;
+    const selectedHookUuid = this.data.selected.background.hook?.uuid;
+    const selectedForceAttitudeUuid = this.data.selected.background.forceAttitude?.uuid;
+    const backgroundSections = [
+      {
+        key: "culture",
+        label: "Culture",
+        rows: prepareBackgroundRows(pools.culture, selectedCultureUuid, "culture"),
+        selectedUuid: selectedCultureUuid,
+        selectedName: this.data.selected.background.culture?.name,
+        search: this.#backgroundSearch.culture,
+      },
+      {
+        key: "hook",
+        label: "Hook",
+        rows: prepareBackgroundRows(pools.hook, selectedHookUuid, "hook"),
+        selectedUuid: selectedHookUuid,
+        selectedName: this.data.selected.background.hook?.name,
+        search: this.#backgroundSearch.hook,
+      },
+    ];
+    if (isForceAndDestiny) {
+      backgroundSections.push({
+        key: "forceAttitude",
+        label: "Force Attitude",
+        rows: prepareBackgroundRows(pools.forceAttitude, selectedForceAttitudeUuid, "forceAttitude"),
+        selectedUuid: selectedForceAttitudeUuid,
+        selectedName: this.data.selected.background.forceAttitude?.name,
+        search: this.#backgroundSearch.forceAttitude,
+      });
+    }
+    const activeBackgroundKey = backgroundSections.some((section) => section.key === this.#backgroundView)
+      ? this.#backgroundView
+      : null;
+    for (const section of backgroundSections) {
+      section.active = section.key === activeBackgroundKey;
+      section.expanded = section.active ? "true" : "false";
+      section.headerLabel = section.selectedName ? `${section.label} - ${section.selectedName}` : section.label;
+      section.matchCount = section.rows.filter((row) => !row.hidden).length;
+      section.noMatches = section.rows.length === 0 || section.matchCount === 0;
+      section.canRandom = section.matchCount > 0;
+    }
     const speciesSearch = this.#speciesSearch.trim().toLowerCase();
     const speciesRows = [...(this.#pools.species ?? [])]
       .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" }))
@@ -376,7 +433,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       speciesMatchCount,
       speciesNoMatches,
       speciesSearch: this.#speciesSearch,
-      isForceAndDestiny: this.data.selected.rules === "fad",
+      isForceAndDestiny,
+      backgroundSections,
       forceRating,
       forcePowers,
       startingBonusChoices,
@@ -545,6 +603,24 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     if (empty) empty.hidden = visible > 0;
   }
 
+  _onBackgroundSearchInput(event) {
+    const sectionKey = event.currentTarget.dataset.backgroundKey;
+    if (!["culture", "hook", "forceAttitude"].includes(sectionKey)) return;
+    const search = event.currentTarget.value ?? "";
+    this.#backgroundSearch[sectionKey] = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest(".background-body");
+    let visible = 0;
+    for (const row of root?.querySelectorAll(".pickable-row") ?? []) {
+      const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+      const match = !needle || name.includes(needle);
+      row.hidden = !match;
+      if (match) visible += 1;
+    }
+    const empty = root?.querySelector("[data-background-empty]");
+    if (empty) empty.hidden = visible > 0;
+  }
+
   _onToggleForcePowerDiscount(event) {
     const uuid = event.currentTarget.dataset.uuid;
     const checked = event.currentTarget.checked;
@@ -558,7 +634,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static _onSelect(event, target) {
     const { uuid, table } = target.dataset;
-    const ref = (this.#pools[table] ?? []).find((entry) => entry.uuid === uuid);
+    const sourcePool = ["culture", "hook", "forceAttitude"].includes(table) ? this.#pools.background : this.#pools[table];
+    const ref = (sourcePool ?? []).find((entry) => entry.uuid === uuid);
     if (!ref) return;
     this.#mutate((data) => {
       if (["obligation", "motivation"].includes(table)) {
@@ -631,6 +708,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static _onClearGearFilters() {
     this.#mutate((data) => { data.gearFilters = {}; }, { parts: ["gear"] });
+  }
+
+  static async _onOpenItem(event, target) {
+    const { uuid } = target.dataset;
+    if (!uuid) return;
+    const document = await fromUuid(uuid);
+    document?.sheet?.render(true);
   }
 
   static _onBuySkill(event, target) {
@@ -719,6 +803,27 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static _onRefundForcePower(event, target) {
     const { uuid } = target.dataset;
     this.#mutate((data) => { data.purchases.xp.forcePowers = data.purchases.xp.forcePowers.filter((purchase) => purchase.ref?.uuid !== uuid); });
+  }
+
+  static _onBackgroundView(event, target) {
+    const view = target.dataset.view;
+    if (!["culture", "hook", "forceAttitude"].includes(view)) return;
+    this.#backgroundView = this.#backgroundView === view ? null : view;
+    this.render({ parts: ["background"] });
+  }
+
+  static _onRandomBackground(event, target) {
+    const sectionKey = target.dataset.view;
+    const type = { culture: "culture", hook: "hook", forceAttitude: "attitude" }[sectionKey];
+    if (!type) return;
+    const search = (this.#backgroundSearch[sectionKey] ?? "").trim().toLowerCase();
+    const choices = (this.#pools.background ?? []).filter((ref) => {
+      if (ref.snapshot?.system?.type !== type) return false;
+      return !search || (ref.name ?? "").toLowerCase().includes(search);
+    });
+    if (!choices.length) return;
+    const ref = choices[Math.floor(Math.random() * choices.length)];
+    this.#mutate((data) => { data.selected.background[sectionKey] = ref; });
   }
 
   static _onCharacteristicControl(event, target) {

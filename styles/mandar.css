@@ -5918,6 +5918,83 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   filter: brightness(0) invert(1);
 }
 
+/* PC Wizard — Background accordion. */
+.charCreator .background-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.charCreator .background-group {
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.45);
+}
+.charCreator .background-group h4 {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+}
+.charCreator .background-toggle {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0 none;
+  border-radius: 0;
+  background: #415064;
+  color: #fff;
+  text-align: left;
+  text-transform: uppercase;
+}
+.charCreator .background-toggle:hover {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .background-group.is-active .background-toggle {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .background-random {
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0 none;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0;
+  background: #415064;
+  color: #fff;
+}
+.charCreator .background-random:hover {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .background-random:disabled {
+  color: rgba(255, 255, 255, 0.45);
+  cursor: default;
+}
+.charCreator .background-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.charCreator .background-body {
+  padding: 6px;
+}
+.charCreator .pickable-row.is-selected {
+  background: rgba(60, 140, 60, 0.18);
+}
+.charCreator .pickable-row.is-selected td {
+  background: rgba(60, 140, 60, 0.18);
+}
+.charCreator .item-pill-img[data-action="open-item"] {
+  cursor: pointer;
+}
+
 /* PC Wizard — Content sources panel. */
 .charCreator .sources-panel {
   margin: 8px;
