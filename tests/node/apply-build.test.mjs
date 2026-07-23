@@ -52,6 +52,8 @@ function makeDraft(overrides = {}) {
       startingBonus: null,
       obligations: [],
       species: { uuid: "sp1", name: "Human", type: "species", snapshot: { system: { startingXP: 100 } } },
+      speciesSkillRankChoices: {},
+      speciesSkillRankChoiceBranches: {},
       career: null,
       careerCareerSkillRanks: [],
       specialization: null,
@@ -121,6 +123,26 @@ test("items are built via the injected toItemData (species + forceAttitude prese
   const names = actorData.items.map((it) => it.name);
   assert.ok(names.includes("Human"));
   assert.ok(names.includes("Guardian"));
+});
+
+test("species skill-rank choices are baked onto the species item", () => {
+  const calls = { deltas: [], items: [] };
+  const draft = makeDraft();
+  draft.selected.species.snapshot.system.creation = {
+    skillRankChoices: [
+      { id: "human-additional-non-career-skills", count: 2, rank: 1, pool: "nonCareer" },
+      { id: "specialist-double-rank", count: 1, rank: 2, pool: "list", skills: ["Coordination"] },
+    ],
+  };
+  draft.selected.speciesSkillRankChoices = {
+    "human-additional-non-career-skills": ["Astrogation", "Coordination"],
+    "specialist-double-rank": ["Coordination"],
+  };
+
+  applyBuild(draft, makeDeps(calls));
+
+  const speciesCall = calls.items.find((call) => call.ref.uuid === "sp1");
+  assert.deepEqual(speciesCall.options.rankGrants, ["Astrogation", "Coordination", "Coordination", "Coordination"]);
 });
 
 test("the injected applyCharacteristicDeltas is called once with aggregated deltas", () => {

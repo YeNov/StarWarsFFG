@@ -17,6 +17,7 @@
  */
 
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
+import { getSpeciesSkillRankGrants } from "./species-skill-choices.js";
 
 /** Placeholder name so a not-yet-named draft still constructs/validates (core fills the
  *  prototypeToken name from this — actor.mjs:95 only derives it from a truthy name). */
@@ -86,8 +87,8 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   // obligations (their snapshots carry the user's edits)
   for (const obligation of data.selected.obligations) addItem(obligation);
 
-  // species
-  addItem(data.selected.species);
+  // species + species-granted free skill ranks
+  addItem(data.selected.species, { rankGrants: getSpeciesSkillRankGrants(data) });
 
   // career + free career skill ranks
   addItem(data.selected.career, { rankGrants: data.selected.careerCareerSkillRanks ?? [] });

@@ -20,6 +20,13 @@ import { createInitialData } from "./wizard-state.js";
 import { applyStartingBonus } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
+import {
+  clearSpeciesSkillRankChoices,
+  getSpeciesSkillRankChoiceStatus,
+  prepareSpeciesSkillRankChoiceSections,
+  selectSpeciesSkillRankChoiceBranch,
+  toggleSpeciesSkillRankChoice,
+} from "./species-skill-choices.js";
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { loadSource } from "./load-source.js";
 import { DraftStore } from "./draft-store.js";
@@ -99,6 +106,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "unlearn-talent": CharacterCreator._onUnlearnTalent,
       "toggle-career-rank": CharacterCreator._onToggleCareerRank,
       "toggle-spec-rank": CharacterCreator._onToggleSpecRank,
+      "select-species-rank-choice-branch": CharacterCreator._onSelectSpeciesRankChoiceBranch,
+      "toggle-species-rank": CharacterCreator._onToggleSpeciesRank,
       "buy-forcepower": CharacterCreator._onBuyForcePower,
       "refund-forcepower": CharacterCreator._onRefundForcePower,
       "open-sources": CharacterCreator._onOpenSources,
@@ -201,7 +210,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         const canRefund = skillPurchases.some((purchase) => purchase.key === key && purchase.value === rank);
         const label = skill.label ?? key;
         const description = skillDescriptions[label.toLowerCase()] ?? skillDescriptions[key.toLowerCase()] ?? "";
-        return { key, label, rank, careerskill, nextValue, nextCost, canBuy, canRefund, description };
+        return { key, label, rank, careerskill, type: skill.type, nextValue, nextCost, canBuy, canRefund, description };
       })
       : [];
 
@@ -235,9 +244,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       const picked = specPicked.includes(name);
       return { key: name, picked, canToggle: picked || specPicked.length < freeRankCaps.specialization };
     });
+    const speciesFreeRankChoiceSections = prepareSpeciesSkillRankChoiceSections(this.data, xpSkills);
+    const speciesFreeRankStatus = getSpeciesSkillRankChoiceStatus(this.data);
     const bonusSkillWarnings = [
       { label: "Career bonus skills", used: careerPicked.length, expected: freeRankCaps.career },
       { label: "Specialization bonus skills", used: specPicked.length, expected: freeRankCaps.specialization },
+      ...speciesFreeRankStatus.entries.map((entry) => ({
+        label: `Species bonus skills: ${entry.label}`,
+        used: entry.used,
+        expected: entry.expected,
+      })),
     ].filter((entry) => entry.used !== entry.expected);
 
     // Force powers — gated by the character's Force rating (system.stats.forcePool.max on the
@@ -325,6 +341,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       specFreeRanks,
       specFreeUsed: specPicked.length,
       specFreeCap: freeRankCaps.specialization,
+      speciesFreeRankChoiceSections,
+      speciesFreeRankChoiceCount: speciesFreeRankChoiceSections.length,
       totalXp: xp.total,
       availableXp: xp.available,
       totalCredits: credits.total,
@@ -483,11 +501,17 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
             data.purchases.xp.talents = []; // the dropped spec's purchased talents go with it
           }
           data.selected.careerCareerSkillRanks = [];
+          clearSpeciesSkillRankChoices(data);
         }
         // Switching to a different specialization abandons the previous tree's talents (learned
         // talents live only in data.purchases.xp.talents, never on the ref).
         if (table === "specialization" && data.selected.specialization?.uuid !== ref.uuid) {
           data.purchases.xp.talents = [];
+          data.selected.specializationCareerSkillRanks = [];
+          clearSpeciesSkillRankChoices(data);
+        }
+        if (table === "species" && data.selected.species?.uuid !== ref.uuid) {
+          clearSpeciesSkillRankChoices(data);
         }
         data.selected[table] = ref;
       }
@@ -587,6 +611,20 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       const index = list.indexOf(skill);
       if (index >= 0) list.splice(index, 1); // remove a free rank
       else if (list.length < cap) list.push(skill); // add, capped by selected data
+    });
+  }
+
+  static _onToggleSpeciesRank(event, target) {
+    const { choice, field } = target.dataset;
+    this.#mutate((data) => {
+      toggleSpeciesSkillRankChoice(data, choice, field);
+    });
+  }
+
+  static _onSelectSpeciesRankChoiceBranch(event, target) {
+    const { group, choice } = target.dataset;
+    this.#mutate((data) => {
+      selectSpeciesSkillRankChoiceBranch(data, group, choice);
     });
   }
 

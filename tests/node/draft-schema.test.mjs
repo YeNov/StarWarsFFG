@@ -39,6 +39,8 @@ function sampleData({ gearCount = 2, snapshotPad = 40 } = {}) {
       startingBonus: null,
       obligations: [],
       species: { uuid: "Compendium.pack.Item.human", name: "Human", type: "species", snapshot: { system: { startingXP: 100 } } },
+      speciesSkillRankChoices: {},
+      speciesSkillRankChoiceBranches: {},
       career: null,
       careerCareerSkillRanks: [],
       specialization: null,

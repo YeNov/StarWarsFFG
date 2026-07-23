@@ -91,6 +91,83 @@
         <p class="empty-hint">Select a specialization first.</p>
       {{/if}}
     </div>
+
+    <div class="bonus-block">
+      <h4>Species bonus skills</h4>
+      {{#if data.selected.species}}
+        {{#if speciesFreeRankChoiceCount}}
+          {{#each speciesFreeRankChoiceSections as |section|}}
+            {{#if (eq section.type "group")}}
+              <div class="species-bonus-choice">
+                <h5>{{ section.label }}</h5>
+                <div class="xp-switcher species-choice-switcher">
+                  {{#each section.choices as |choice|}}
+                    <button type="button" class="xp-switch{{#if choice.active}} is-active{{/if}}" data-action="select-species-rank-choice-branch" data-group="{{ ../id }}" data-choice="{{ choice.id }}">
+                      {{ choice.label }}
+                    </button>
+                  {{/each}}
+                </div>
+                {{#with section.activeChoice as |choice|}}
+                  <h5>{{ choice.label }} ({{ choice.used }} / {{ choice.count }})</h5>
+                  <table class="xp-skills bonus-skills">
+                    <thead>
+                      <tr>
+                        <th class="xp-col-name">Skill</th>
+                        <th class="xp-col-rank">Rank</th>
+                        <th class="xp-col-buttons">Bonus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{#each choice.rows as |skill|}}
+                        <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                          <td class="xp-col-name">{{ skill.label }}</td>
+                          <td class="xp-col-rank">{{ skill.rank }}</td>
+                          <td class="xp-col-buttons">
+                            <button type="button" class="xp-skill-btn" data-action="toggle-species-rank" data-choice="{{ ../id }}" data-field="{{ skill.key }}"
+                                    {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                          </td>
+                        </tr>
+                      {{/each}}
+                    </tbody>
+                  </table>
+                {{/with}}
+              </div>
+            {{else}}
+              {{#with section.choice as |choice|}}
+                <div class="species-bonus-choice">
+                  <h5>{{ choice.label }} ({{ choice.used }} / {{ choice.count }})</h5>
+                  <table class="xp-skills bonus-skills">
+                    <thead>
+                      <tr>
+                        <th class="xp-col-name">Skill</th>
+                        <th class="xp-col-rank">Rank</th>
+                        <th class="xp-col-buttons">Bonus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{#each choice.rows as |skill|}}
+                        <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                          <td class="xp-col-name">{{ skill.label }}</td>
+                          <td class="xp-col-rank">{{ skill.rank }}</td>
+                          <td class="xp-col-buttons">
+                            <button type="button" class="xp-skill-btn" data-action="toggle-species-rank" data-choice="{{ ../id }}" data-field="{{ skill.key }}"
+                                    {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                          </td>
+                        </tr>
+                      {{/each}}
+                    </tbody>
+                  </table>
+                </div>
+              {{/with}}
+            {{/if}}
+          {{/each}}
+        {{else}}
+          <p class="empty-hint">This species has no bonus skill choices.</p>
+        {{/if}}
+      {{else}}
+        <p class="empty-hint">Select a species first.</p>
+      {{/if}}
+    </div>
   {{else}}
     <table class="xp-skills">
       <thead>

@@ -10,6 +10,7 @@
  */
 
 import { calcXp, calcCredits } from "./calculators.js";
+import { getSpeciesSkillRankChoiceStatus } from "./species-skill-choices.js";
 
 const WIZARD = "SWFFG.CharacterCreator.Wizard";
 const VALIDATE = "SWFFG.CharacterCreator.Validate";
@@ -70,11 +71,13 @@ export function validateDraft(data) {
   const sel = data.selected;
   const status = (complete) => (complete ? "complete" : "incomplete");
   const freeRankCaps = getFreeRankCaps(data);
+  const speciesRankChoices = getSpeciesSkillRankChoiceStatus(data);
 
   const steps = [
     { id: "rules", labelKey: `${WIZARD}.Rules.Label`, status: status(isSet(sel.rules)) },
     { id: "obligation", labelKey: `${WIZARD}.Obligation.Label`, status: status(sel.obligations.length > 0) },
     { id: "species", labelKey: `${WIZARD}.Species.Label`, status: status(isSet(sel.species)) },
+    { id: "speciesRanks", labelKey: `${WIZARD}.SpeciesRanks.Label`, status: status(speciesRankChoices.complete) },
     { id: "career", labelKey: `${WIZARD}.Career.Label`, status: status(isSet(sel.career)) },
     { id: "careerRanks", labelKey: `${WIZARD}.CareerRanks.Label`, status: status(sel.careerCareerSkillRanks.length === freeRankCaps.career) },
     { id: "specialization", labelKey: `${WIZARD}.Specialization.Label`, status: status(isSet(sel.specialization)) },
@@ -88,6 +91,7 @@ export function validateDraft(data) {
   const warnings = [];
   if (sel.careerCareerSkillRanks.length !== freeRankCaps.career) warnings.push(`${VALIDATE}.CareerRanks`);
   if (sel.specializationCareerSkillRanks.length !== freeRankCaps.specialization) warnings.push(`${VALIDATE}.SpecRanks`);
+  if (!speciesRankChoices.complete) warnings.push(`${VALIDATE}.SpeciesRanks`);
 
   const xp = calcXp(data);
   const credits = calcCredits(data);

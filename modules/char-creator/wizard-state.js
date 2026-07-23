@@ -60,6 +60,8 @@ export function createInitialData() {
       startingBonus: null,
       obligations: [],
       species: null,
+      speciesSkillRankChoices: {},
+      speciesSkillRankChoiceBranches: {},
       career: null,
       careerCareerSkillRanks: [],
       specialization: null,

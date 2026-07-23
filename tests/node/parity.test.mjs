@@ -47,6 +47,8 @@ function makeDraft(overrides = {}) {
       startingBonus: null,
       obligations: [],
       species: { uuid: "sp1", name: "Human", type: "species", snapshot: { system: { startingXP: 100 } } },
+      speciesSkillRankChoices: {},
+      speciesSkillRankChoiceBranches: {},
       career: null,
       careerCareerSkillRanks: [],
       specialization: null,

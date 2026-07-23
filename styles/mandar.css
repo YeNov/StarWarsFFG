@@ -4248,6 +4248,60 @@ img {
 .starwarsffg .item-sheet-species .sheet-body {
   height: calc(100% - 25.25rem);
 }
+.starwarsffg .item-sheet-species .species-creation {
+  padding: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-creation-grid,
+.starwarsffg .item-sheet-species .species-skill-choice-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+  align-items: end;
+}
+.starwarsffg .item-sheet-species .species-creation label span,
+.starwarsffg .item-sheet-species .species-skill-choice-fields label span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.15rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-header h3 {
+  margin: 0;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-row {
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  margin: 0 0 0.5rem;
+  padding: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-row legend {
+  font-weight: bold;
+  padding: 0 0.35rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-row legend button {
+  margin-left: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-skills {
+  grid-column: span 2;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-unique {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-unique span {
+  margin: 0;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-empty {
+  margin: 0.5rem 0 0;
+  opacity: 0.75;
+}
 
 .starwarsffg .attributes {
   margin: 0;
@@ -6166,5 +6220,4 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   border-radius: 3px;
   vertical-align: middle;
 }
-
 

@@ -14,6 +14,27 @@ import { canPurchaseNode } from "../helpers/talent-tree.js";
 
 const { DialogV2 } = foundry.applications.api;
 
+const SPECIES_SKILL_CHOICE_POOLS = Object.freeze({
+  any: "Any skill",
+  nonCareer: "Non-career skills",
+  career: "Career skills",
+  combat: "Combat skills",
+  knowledge: "Knowledge skills",
+  list: "Specific skills",
+});
+
+function slugSpeciesSkillChoice(value, fallback) {
+  const slug = String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return slug || fallback;
+}
+
+function intSpeciesSkillChoice(value, fallback, min = 0) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(min, Math.trunc(number));
+}
+
 /**
  * The system's Item sheet — native ApplicationV2 DocumentSheetV2 (via the
  * shared FFGDocumentSheet base). Handles every FFG item type.
@@ -218,6 +239,28 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     CONFIG.logger.debug(`Getting Item Data ${this.object.name}`);
 
     data.dtypes = ["String", "Number", "Boolean"];
+    if (this.object.type === "species") {
+      const choices = Array.isArray(data.data?.creation?.skillRankChoices) ? data.data.creation.skillRankChoices : [];
+      data.speciesSkillChoicePools = SPECIES_SKILL_CHOICE_POOLS;
+      data.speciesSkillRankChoices = choices.map((choice, index) => {
+        const label = choice?.label ?? choice?.name ?? `Species skill choice ${index + 1}`;
+        const id = choice?.id ?? slugSpeciesSkillChoice(label, `species-skill-choice-${index + 1}`);
+        const skills = Array.isArray(choice?.skills) ? choice.skills : [];
+        return {
+          ...choice,
+          id,
+          label,
+          choiceGroup: choice?.choiceGroup ?? choice?.alternativeGroup ?? choice?.group ?? "",
+          choiceGroupLabel: choice?.choiceGroupLabel ?? choice?.groupLabel ?? "",
+          count: intSpeciesSkillChoice(choice?.count, 1, 1),
+          rank: intSpeciesSkillChoice(choice?.rank, 1, 1),
+          pool: choice?.pool ?? (skills.length ? "list" : "any"),
+          skillsText: skills.join(", "),
+          unique: choice?.unique !== false,
+          maxRankAtCreation: choice?.maxRankAtCreation ?? 2,
+        };
+      });
+    }
     if (data?.data?.attributes) {
       for (let attr of Object.values(data.data.attributes)) {
         if (attr?.dtype) {
@@ -1040,6 +1083,10 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       html.find(".flat_editor.dropdown").on("change", this._onStandaloneDropdownChange.bind(this));
     }
 
+    if (this.object.type === "species") {
+      html.find(".species-skill-choice-control").on("click", this._onSpeciesSkillChoiceControl.bind(this));
+    }
+
     // Add or Remove Attribute
     html.find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
 
@@ -1823,9 +1870,97 @@ export class ItemSheetFFG extends FFGDocumentSheet {
 
   /* -------------------------------------------- */
 
+  static _normalizeSpeciesSkillRankChoices(rawChoices) {
+    const rows = Array.isArray(rawChoices) ? rawChoices : Object.values(rawChoices ?? {});
+    return rows.map((choice, index) => {
+      const label = String(choice?.label ?? choice?.name ?? `Species skill choice ${index + 1}`).trim();
+      const id = String(choice?.id ?? "").trim() || slugSpeciesSkillChoice(label, `species-skill-choice-${index + 1}`);
+      const pool = String(choice?.pool ?? "any").trim() || "any";
+      const choiceGroup = String(choice?.choiceGroup ?? choice?.alternativeGroup ?? choice?.group ?? "").trim();
+      const choiceGroupLabel = String(choice?.choiceGroupLabel ?? choice?.groupLabel ?? "").trim();
+      const skillsText = Array.isArray(choice?.skills)
+        ? choice.skills.join(",")
+        : String(choice?.skillsText ?? "");
+      const skills = skillsText.split(",").map((skill) => skill.trim()).filter(Boolean);
+      const normalized = {
+        id,
+        label,
+        count: intSpeciesSkillChoice(choice?.count, 1, 1),
+        rank: intSpeciesSkillChoice(choice?.rank, 1, 1),
+        pool,
+        unique: choice?.unique === true || choice?.unique === "true" || choice?.unique === "on",
+        maxRankAtCreation: intSpeciesSkillChoice(choice?.maxRankAtCreation, 2, 0),
+      };
+      if (choiceGroup) normalized.choiceGroup = choiceGroup;
+      if (choiceGroupLabel) normalized.choiceGroupLabel = choiceGroupLabel;
+      if (skills.length) normalized.skills = skills;
+      return normalized;
+    }).filter((choice) => choice.id || choice.label);
+  }
+
+  static _extractSpeciesSkillRankChoices(formData) {
+    const expanded = foundry.utils.expandObject(formData);
+    const creation = expanded?.data?.creation ?? expanded?.system?.creation;
+    if (!creation) return { found: false, choices: [] };
+
+    let found = false;
+    let rawChoices = creation.skillRankChoices;
+    const bracketRows = [];
+    for (const key of Object.keys(creation)) {
+      const match = key.match(/^skillRankChoices\[(\d+)\]$/);
+      if (!match) continue;
+      found = true;
+      bracketRows[Number(match[1])] = creation[key];
+      delete creation[key];
+    }
+    if (bracketRows.length) rawChoices = bracketRows.filter(Boolean);
+    if (rawChoices !== undefined) found = true;
+
+    return { found, choices: ItemSheetFFG._normalizeSpeciesSkillRankChoices(rawChoices) };
+  }
+
+  async _onSpeciesSkillChoiceControl(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const action = event.currentTarget.dataset.action;
+    const index = Number(event.currentTarget.dataset.index);
+    const { choices } = ItemSheetFFG._extractSpeciesSkillRankChoices(this._getSubmitData());
+
+    if (action === "create") {
+      choices.push({
+        id: `species-skill-choice-${choices.length + 1}`,
+        label: "Species Skill Choice",
+        count: 1,
+        rank: 1,
+        pool: "any",
+        unique: true,
+        maxRankAtCreation: 2,
+      });
+    } else if (action === "delete" && Number.isInteger(index)) {
+      choices.splice(index, 1);
+    }
+
+    await this.object.update({ "system.creation.skillRankChoices": choices });
+    await this.render(true);
+  }
+
   /** @override */
   async _updateObject(event, formData, { render = false } = {}) {
     if(this.actor && !this.actor?.verifyEditModeIsNotEnabled()) return;
+
+    if (this.object.type === "species") {
+      const expanded = foundry.utils.expandObject(formData);
+      const target = expanded.data ?? expanded.system;
+      const creation = target?.creation;
+      const { found, choices } = ItemSheetFFG._extractSpeciesSkillRankChoices(formData);
+      if (found && creation) {
+        for (const key of Object.keys(creation)) {
+          if (key.match(/^skillRankChoices\[(\d+)\]$/)) delete creation[key];
+        }
+        creation.skillRankChoices = choices;
+        formData = foundry.utils.flattenObject(expanded);
+      }
+    }
 
     // For standalone itemattachments, process the itemmodifier array notation from the modifications tab
     if (this.object.type === "itemattachment") {

@@ -17,6 +17,8 @@ function emptyDraft() {
       startingBonus: null,
       obligations: [],
       species: null,
+      speciesSkillRankChoices: {},
+      speciesSkillRankChoiceBranches: {},
       career: null,
       careerCareerSkillRanks: [],
       specialization: null,
@@ -111,6 +113,32 @@ test("free-rank validation follows selected item creation caps", () => {
   assert.equal(byId.specializationRanks, "complete");
   assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.CareerRanks"));
   assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.SpecRanks"));
+});
+
+test("species skill-rank choices are validated against exact selected counts", () => {
+  const draft = emptyDraft();
+  draft.selected.species = {
+    uuid: "s1",
+    snapshot: {
+      system: {
+        creation: {
+          skillRankChoices: [{ id: "human-additional-non-career-skills", label: "Additional Non-Career Skills", count: 2 }],
+        },
+      },
+    },
+  };
+  draft.selected.speciesSkillRankChoices = { "human-additional-non-career-skills": ["Charm"] };
+
+  let result = validateDraft(draft);
+  let byId = Object.fromEntries(result.steps.map((s) => [s.id, s.status]));
+  assert.equal(byId.speciesRanks, "incomplete");
+  assert.ok(result.warnings.includes("SWFFG.CharacterCreator.Validate.SpeciesRanks"));
+
+  draft.selected.speciesSkillRankChoices["human-additional-non-career-skills"].push("Brawl");
+  result = validateDraft(draft);
+  byId = Object.fromEntries(result.steps.map((s) => [s.id, s.status]));
+  assert.equal(byId.speciesRanks, "complete");
+  assert.ok(!result.warnings.includes("SWFFG.CharacterCreator.Validate.SpeciesRanks"));
 });
 
 test("BINDING: every returned label and warning is an i18n KEY (SWFFG. prefix), never localized text", () => {
