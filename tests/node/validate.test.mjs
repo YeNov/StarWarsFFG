@@ -25,7 +25,7 @@ function emptyDraft() {
       specializationCareerSkillRanks: [],
       motivations: [],
     },
-    grants: { gm: { credits: 0 }, bonus: { xp: 0, credits: 0 } },
+    grants: { gm: { credits: 0 }, bonus: { xp: 0, credits: 0 }, extra: { xp: 0, credits: 0 } },
     initial: { morality: 0, obligation: 0, duty: 0 },
     purchases: {
       xp: { characteristics: [], skills: [], talents: [], specializations: [], forcePowers: [] },
@@ -60,6 +60,22 @@ test("unspent XP produces an advisory notice (not overspent)", () => {
   const { warnings } = validateDraft(draft);
   assert.ok(warnings.includes("SWFFG.CharacterCreator.Validate.UnspentXp"));
   assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.XpOverspent"));
+});
+
+test("extra grants permit spending while warning on non-RAW characteristic and inventory spend", () => {
+  const draft = emptyDraft();
+  draft.selected.species = { uuid: "species1", snapshot: { system: { startingXP: 20 } } };
+  draft.grants.gm.credits = 500;
+  draft.grants.extra.xp = 20;
+  draft.grants.extra.credits = 300;
+  draft.purchases.xp.characteristics = [{ cost: 30 }];
+  draft.purchases.credits = [{ cost: 650 }];
+
+  const { warnings } = validateDraft(draft);
+  assert.ok(warnings.includes("SWFFG.CharacterCreator.Validate.RawCharacteristicXp"));
+  assert.ok(warnings.includes("SWFFG.CharacterCreator.Validate.RawInventoryCredits"));
+  assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.XpOverspent"));
+  assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.CreditsOverspent"));
 });
 
 test("statuses flip to complete as selections are made", () => {

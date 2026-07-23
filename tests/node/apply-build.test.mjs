@@ -102,7 +102,7 @@ test("base identity: name, img, prototypeToken from creationDefaults", () => {
   assert.equal(actorData.name, "Kel");
   assert.equal(actorData.type, "character");
   assert.equal(actorData.img, "systems/starwarsffg/images/defaults/actors/character.png");
-  assert.deepEqual(actorData.prototypeToken, { actorLink: true });
+  assert.deepEqual(actorData.prototypeToken, { actorLink: true, name: "Kel" });
 });
 
 test("force-attitude is INCLUDED under fad and EXCLUDED otherwise", () => {

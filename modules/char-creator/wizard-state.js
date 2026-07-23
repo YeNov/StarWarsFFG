@@ -42,6 +42,10 @@ export function createInitialData() {
       gm: {
         credits: game.settings.get("starwarsffg", "defaultCredits"),
       },
+      extra: {
+        xp: 0,
+        credits: 0,
+      },
       bonus: {
         xp: 0,
         credits: 0,

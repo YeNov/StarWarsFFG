@@ -52,8 +52,9 @@ test("createInitialData: spendingCredits is a d100 in [1,100], rolled once", () 
 
 test("createInitialData: bonus fields start zeroed", () => {
   seedSettings();
-  const bonus = createInitialData().grants.bonus;
-  assert.deepEqual(bonus, { xp: 0, credits: 0, duty: 0, obligation: 0, conflict: 0, morality: 0 });
+  const grants = createInitialData().grants;
+  assert.deepEqual(grants.bonus, { xp: 0, credits: 0, duty: 0, obligation: 0, conflict: 0, morality: 0 });
+  assert.deepEqual(grants.extra, { xp: 0, credits: 0 });
 });
 
 test("toSelectionRef produces {uuid, name, type, img, snapshot} with no live document", () => {

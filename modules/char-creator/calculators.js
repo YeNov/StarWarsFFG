@@ -23,7 +23,7 @@ import { getStartingBonus } from "./starting-bonus.js";
  * @returns {{total: number, available: number}}
  */
 export function calcXp(data) {
-  const total = (data.selected.species?.snapshot?.system?.startingXP || 0) + data.grants.bonus.xp;
+  const total = (data.selected.species?.snapshot?.system?.startingXP || 0) + data.grants.bonus.xp + (data.grants.extra?.xp ?? 0);
   let available = total;
   for (const purchase of data.purchases.xp.characteristics) {
     available -= purchase.cost;
@@ -54,7 +54,7 @@ export function calcXp(data) {
  * @returns {{total: number, available: number}}
  */
 export function calcCredits(data) {
-  const total = data.grants.gm.credits + data.grants.bonus.credits;
+  const total = data.grants.gm.credits + data.grants.bonus.credits + (data.grants.extra?.credits ?? 0);
   let available = total;
   for (const purchase of data.purchases.credits) {
     available -= purchase.cost;

@@ -22,6 +22,7 @@ function makeData() {
     grants: {
       bonus: { xp: 0, credits: 0 },
       gm: { credits: 500 },
+      extra: { xp: 0, credits: 0 },
     },
     initial: { morality: 50, obligation: 10, duty: 10 },
     purchases: {
@@ -39,12 +40,13 @@ function withChoice(rules, startingBonus) {
   return data;
 }
 
-test("calcXp: total = species startingXP + bonus.xp", () => {
+test("calcXp: total = species startingXP + bonus.xp + extra.xp", () => {
   const data = makeData();
   data.grants.bonus.xp = 10;
+  data.grants.extra.xp = 5;
   const { total, available } = calcXp(data);
-  assert.equal(total, 110);
-  assert.equal(available, 110);
+  assert.equal(total, 115);
+  assert.equal(available, 115);
 });
 
 test("calcXp: available subtracts every XP purchase category", () => {
@@ -65,13 +67,14 @@ test("calcXp: missing species snapshot startingXP defaults to 0", () => {
   assert.equal(calcXp(data).total, 0);
 });
 
-test("calcCredits: total = gm + bonus, available subtracts purchases", () => {
+test("calcCredits: total = gm + bonus + extra, available subtracts purchases", () => {
   const data = makeData();
   data.grants.bonus.credits = 100;
+  data.grants.extra.credits = 25;
   data.purchases.credits = [{ cost: 250 }, { cost: 50 }];
   const { total, available } = calcCredits(data);
-  assert.equal(total, 600);
-  assert.equal(available, 300);
+  assert.equal(total, 625);
+  assert.equal(available, 325);
 });
 
 test("calcObligation fad: morality key, +21 and -21 branches", () => {

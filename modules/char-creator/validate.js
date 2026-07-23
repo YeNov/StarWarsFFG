@@ -63,6 +63,10 @@ function isSet(value) {
   return true;
 }
 
+function sumCosts(purchases = []) {
+  return purchases.reduce((total, purchase) => total + (Number(purchase?.cost) || 0), 0);
+}
+
 /**
  * Validate a draft into per-step completeness, running totals, and advisory warnings.
  * @param {object} data  the wizard state
@@ -103,6 +107,10 @@ export function validateDraft(data) {
   const credits = calcCredits(data);
   if (xp.available < 0) warnings.push(`${VALIDATE}.XpOverspent`);
   if (credits.available < 0) warnings.push(`${VALIDATE}.CreditsOverspent`);
+  const rawCharacteristicXp = (data.selected.species?.snapshot?.system?.startingXP || 0) + (data.grants.bonus?.xp ?? 0);
+  const rawInventoryCredits = (data.grants.gm?.credits ?? 0) + (data.grants.bonus?.credits ?? 0);
+  if (sumCosts(data.purchases?.xp?.characteristics) > rawCharacteristicXp) warnings.push(`${VALIDATE}.RawCharacteristicXp`);
+  if (sumCosts(data.purchases?.credits) > rawInventoryCredits) warnings.push(`${VALIDATE}.RawInventoryCredits`);
   if (xp.available > 0) warnings.push(`${VALIDATE}.UnspentXp`);
 
   return { steps, totals: { xp, credits }, warnings };

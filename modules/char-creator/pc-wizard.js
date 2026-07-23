@@ -16,7 +16,7 @@ import ItemHelpers from "../helpers/item-helpers.js";
 import { toItemData } from "./to-item-data.js";
 import { makeBuildDependencies } from "./build-deps.js";
 import { buildPreviewActor } from "./preview.js";
-import { createInitialData } from "./wizard-state.js";
+import { createInitialData, setIdentity } from "./wizard-state.js";
 import { applyStartingBonus } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
@@ -69,6 +69,11 @@ function statValue(block) {
   return Number.isFinite(value) ? value : "-";
 }
 
+function nonNegativeInteger(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : 0;
+}
+
 function rangeLabel(value) {
   const range = value || "Short";
   const entry = CONFIG.FFG?.ranges?.[range];
@@ -106,6 +111,11 @@ const SOURCE_GROUP_LABELS = Object.freeze({
   motivation: "Motivations",
   gear: "Inventory",
 });
+
+const RAW_RESOURCE_WARNING_KEYS = Object.freeze(new Set([
+  "SWFFG.CharacterCreator.Validate.RawCharacteristicXp",
+  "SWFFG.CharacterCreator.Validate.RawInventoryCredits",
+]));
 
 function bringElementAboveApplications(app) {
   const element = app?.element instanceof HTMLElement ? app.element : app?.element?.[0];
@@ -148,6 +158,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       templates: [`${PC_WIZARD}/parts/draft-banner.html`, `${PC_WIZARD}/parts/sources-panel.html`],
     },
     tabs: { template: "templates/generic/tab-navigation.hbs" },
+    general: { template: `${PC_WIZARD}/tabs/general.html`, scrollable: [""] },
     background: { template: `${PC_WIZARD}/tabs/background.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`, `${PC_WIZARD}/item_pill.html`], scrollable: [""] },
     startingBonus: { template: `${PC_WIZARD}/tabs/startingBonus.html`, scrollable: [""] },
     obligation: { template: `${PC_WIZARD}/tabs/obligation.html`, templates: [`${PC_WIZARD}/parts/pickable-table.html`], scrollable: [""] },
@@ -169,6 +180,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static TABS = {
     primary: {
       tabs: [
+        { id: "general", label: "General" },
         { id: "background", label: "background" },
         { id: "startingBonus", label: "startingBonus" },
         { id: "obligation", label: "obligation" },
@@ -181,7 +193,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         { id: "motivation", label: "motivation" },
         { id: "review", label: "review" },
       ],
-      initial: "background",
+      initial: "general",
     },
   };
 
@@ -231,6 +243,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** Per-part change/input bindings (issue B) — attached only within each part's element. */
   static PART_BINDINGS = {
+    general: [
+      { selector: "input[data-field='characterName']", event: "input", handler: "_onGeneralNameInput" },
+      { selector: "input[data-field='extraGrant']", event: "change", handler: "_onGeneralGrantChange" },
+    ],
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
     obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
@@ -288,6 +304,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }
     }
     this.#ensureCreditPurchaseIds(this.data);
+    this.#ensureExtraGrants(this.data);
 
     const xp = calcXp(this.data);
     const credits = calcCredits(this.data);
@@ -485,11 +502,14 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     });
     const speciesFreeRankChoiceSections = prepareSpeciesSkillRankChoiceSections(this.data, xpSkills);
     const reviewVerificationSteps = [
-      ...validation.warnings.map((warningKey) => ({
-        status: "incomplete",
-        statusKey: "SWFFG.CharacterCreator.Validate.Status.incomplete",
-        label: game.i18n.localize(warningKey),
-      })),
+      ...validation.warnings.map((warningKey) => {
+        const status = RAW_RESOURCE_WARNING_KEYS.has(warningKey) ? "warning" : "incomplete";
+        return {
+          status,
+          statusKey: `SWFFG.CharacterCreator.Validate.Status.${status}`,
+          label: game.i18n.localize(warningKey),
+        };
+      }),
     ];
 
     // Force powers — gated by the character's Force rating (system.stats.forcePool.max on the
@@ -722,6 +742,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
+  #ensureExtraGrants(data) {
+    data.grants ??= {};
+    data.grants.extra ??= { xp: 0, credits: 0 };
+    data.grants.extra.xp = nonNegativeInteger(data.grants.extra.xp);
+    data.grants.extra.credits = nonNegativeInteger(data.grants.extra.credits);
+  }
+
   /** Load a content pool through the signature-aware source cache. */
   async #ensurePool(poolKey) {
     this.#pools[poolKey] = await loadSource(poolKey);
@@ -835,6 +862,21 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     } catch { /* setting/pack unreadable in this world */ }
     this.#skillDescriptions = map;
     return map;
+  }
+
+  _onGeneralNameInput(event) {
+    const name = event.currentTarget.value ?? "";
+    this.#mutate((data) => { setIdentity(data, { name }); }, { parts: ["header"] });
+  }
+
+  _onGeneralGrantChange(event) {
+    const field = event.currentTarget.dataset.grantField;
+    if (!["xp", "credits"].includes(field)) return;
+    const value = nonNegativeInteger(event.currentTarget.value);
+    this.#mutate((data) => {
+      data.grants.extra ??= { xp: 0, credits: 0 };
+      data.grants.extra[field] = value;
+    });
   }
 
   _onGearFilterChange(event) {

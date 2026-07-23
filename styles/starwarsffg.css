@@ -3941,6 +3941,21 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .pickable-action button {
   margin-left: auto;
 }
+.charCreator .general-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  color: #191813;
+}
+.charCreator .general-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: bold;
+}
+.charCreator .general-fields input {
+  width: 100%;
+}
 /* xp_spend skills table: lay the -/+ buttons inline instead of stacked (theme buttons are
    block-level, so they stack in the cell by default). */
 .charCreator .xp-col-buttons {
@@ -4050,6 +4065,10 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .review-step.is-incomplete .review-status {
   background: rgba(176, 42, 42, 0.18);
   color: #8b1e1e;
+}
+.charCreator .review-step.is-warning .review-status {
+  background: rgba(210, 160, 35, 0.28);
+  color: #5b3b00;
 }
 
 /* ------------------------------------------------------------------ *

@@ -45,16 +45,17 @@ function attachmentPurchasesByTarget(data) {
  */
 export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, toItemData }) {
   const warnings = [];
+  const actorName = data.identity.name || DEFAULT_NAME;
 
   // 1. Base + identity. A complete source containing `system` bypasses
   //    ActorFFG.create's token block, so the partial prototypeToken (NO name /
   //    texture.src) and the default image must be set here explicitly.
   const actorData = {
-    name: data.identity.name || DEFAULT_NAME,
+    name: actorName,
     type: "character",
     img: data.identity.img || creationDefaults.img,
     system: foundry.utils.deepClone(creationDefaults.system),
-    prototypeToken: foundry.utils.deepClone(creationDefaults.prototypeToken),
+    prototypeToken: { ...foundry.utils.deepClone(creationDefaults.prototypeToken), name: actorName },
     items: [],
   };
 
