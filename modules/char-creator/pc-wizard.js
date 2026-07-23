@@ -33,6 +33,7 @@ import { invalidateSourceCache, loadSource, readExclusions } from "./load-source
 import { SOURCE_DESCRIPTORS, isSourceEnabled, sourceIdOf, sourceSettingPackIds, setSourceEnabled } from "./source-descriptors.js";
 import {
   attachedTo,
+  attachmentAppliesTo,
   attachmentHardpoints,
   canAttach,
   hardpointValue,
@@ -187,6 +188,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "buy-attachment": CharacterCreator._onBuyAttachment,
       "refund-attachment": CharacterCreator._onRefundAttachment,
       "inventory-view": CharacterCreator._onInventoryView,
+      "toggle-available-attachments": CharacterCreator._onToggleAvailableAttachments,
       "clear-gear-filters": CharacterCreator._onClearGearFilters,
       "obligation-view": CharacterCreator._onObligationView,
       "random-obligation": CharacterCreator._onRandomObligation,
@@ -505,6 +507,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const invSearch = (invFilters.search ?? "").toLowerCase();
     const invMinPrice = Number(invFilters.minPrice) || 0;
     const invMaxPrice = Number(invFilters.maxPrice) || 0;
+    const attachmentShowOnlyAvailable = Boolean(invFilters.showOnlyAvailable);
     const matchesSearch = (ref) => !invSearch || (ref?.name ?? "").toLowerCase().includes(invSearch);
     const shopItems = (this.#pools.gear ?? [])
       .filter((ref) => {
@@ -521,13 +524,18 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const availableAttachments = targetPurchase
       ? (this.#pools.gear ?? [])
         .filter((ref) => ref.type === "itemattachment" && isPurchasableShopRef(ref))
-        .filter((ref) => canAttach(this.data, targetPurchase, ref))
+        .filter((ref) => attachmentAppliesTo(targetPurchase.ref, ref))
         .filter((ref) => {
           const price = shopPriceOf(ref);
           return matchesSearch(ref) && price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
         })
+        .filter((ref) => {
+          if (!attachmentShowOnlyAvailable) return true;
+          return canAttach(this.data, targetPurchase, ref) && shopPriceOf(ref) <= credits.available;
+        })
         .map((ref) => {
           const price = shopPriceOf(ref);
+          const canInstall = canAttach(this.data, targetPurchase, ref) && price <= credits.available;
           return {
             uuid: ref.uuid,
             name: ref.name,
@@ -535,7 +543,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
             targetId: targetPurchase.id,
             price,
             hardpoints: attachmentHardpoints(ref),
-            affordable: price <= credits.available,
+            canInstall,
           };
         })
       : [];
@@ -614,6 +622,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       inventoryView: invView,
       showInventoryStats: ["weapon", "armour"].includes(invView),
       inventoryFilters: invFilters,
+      attachmentShowOnlyAvailable,
       shopItems,
       ownedItems,
       availableAttachments,
@@ -956,6 +965,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const view = target.dataset.view;
     this.#inventoryView = ["weapon", "armour", "gear"].includes(view) ? view : "weapon";
     this.render({ parts: ["gear"] });
+  }
+
+  static _onToggleAvailableAttachments() {
+    this.#mutate((data) => {
+      const filters = data.gearFilters ?? {};
+      data.gearFilters = { ...filters, showOnlyAvailable: !filters.showOnlyAvailable };
+    }, { parts: ["gear"] });
   }
 
   static _onClearGearFilters() {

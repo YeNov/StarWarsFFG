@@ -9,6 +9,7 @@ import "./_stub/foundry-stub.mjs";
 import {
   attachmentAppliesTo,
   canAttach,
+  isAttachablePurchase,
   remainingHardpoints,
   usedHardpoints,
 } from "../../modules/char-creator/attachment-purchases.js";
@@ -47,4 +48,13 @@ test("hardpoint accounting filters attachments that no longer fit", () => {
   assert.equal(remainingHardpoints(data, target), 1);
   assert.equal(canAttach(data, target, ref("itemattachment", { attachmentType: "weapon", hp: 1 })), true);
   assert.equal(canAttach(data, target, ref("itemattachment", { attachmentType: "weapon", hp: 2 })), false);
+});
+
+test("zero-hardpoint items can still open attachment browsing", () => {
+  const target = { id: "armor-1", ref: ref("armour", { hp: 0 }) };
+  const data = { purchases: { credits: [target] } };
+
+  assert.equal(isAttachablePurchase(target), true);
+  assert.equal(canAttach(data, target, ref("itemattachment", { attachmentType: "armour", hp: 0 })), true);
+  assert.equal(canAttach(data, target, ref("itemattachment", { attachmentType: "armour", hp: 1 })), false);
 });

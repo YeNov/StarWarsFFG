@@ -61,18 +61,19 @@
                         <b>{{item.name}}</b>
                         <span>{{item.usedHardpoints}} / {{item.hardpoints}} HP used</span>
                         <span>{{item.remainingHardpoints}} HP free</span>
+                        <button type="button" class="inv-btn inv-attachment-toggle{{#if ../attachmentShowOnlyAvailable}} is-active{{/if}}" data-action="toggle-available-attachments">Show only available</button>
                       </div>
                       {{#if ../availableAttachments.length}}
                         <div class="inv-attachment-shop">
                           {{#each ../availableAttachments as |attachment|}}
-                            <div class="inv-attachment-choice">
+                            <div class="inv-attachment-choice{{#unless attachment.canInstall}} is-unavailable{{/unless}}">
                               <span class="inv-attachment-name">
                                 <i class="fas fa-circle-info" data-action="open-item" data-uuid="{{attachment.uuid}}" data-tooltip="Open attachment"></i>
                                 {{attachment.name}}
                               </span>
                               <span>{{attachment.hardpoints}} HP</span>
                               <span>{{attachment.price}} cr</span>
-                              <button type="button" data-action="buy-attachment" data-target-id="{{attachment.targetId}}" data-uuid="{{attachment.uuid}}" {{#unless attachment.affordable}}disabled{{/unless}}>Buy & Attach</button>
+                              <button type="button" data-action="buy-attachment" data-target-id="{{attachment.targetId}}" data-uuid="{{attachment.uuid}}" {{#unless attachment.canInstall}}disabled{{/unless}}>Buy & Attach</button>
                             </div>
                           {{/each}}
                         </div>

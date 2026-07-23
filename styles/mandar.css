@@ -6544,6 +6544,14 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   margin-bottom: 6px;
   font-size: 0.9em;
 }
+.charCreator .inv-attachment-toggle {
+  justify-self: end;
+  font-size: 0.9em;
+}
+.charCreator .inv-attachment-toggle.is-active {
+  background: rgba(73, 12, 11, 0.85);
+  color: #fff;
+}
 .charCreator .inv-attachment-shop {
   display: flex;
   flex-direction: column;
@@ -6552,6 +6560,9 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .inv-attachment-choice {
   padding: 4px 6px;
   background: rgba(255, 255, 255, 0.08);
+}
+.charCreator .inv-attachment-choice.is-unavailable {
+  opacity: 0.64;
 }
 .charCreator .inv-attachment-choice button {
   width: auto;

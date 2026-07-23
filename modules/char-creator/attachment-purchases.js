@@ -34,7 +34,7 @@ export function isAttachmentPurchase(purchase) {
 
 export function isAttachablePurchase(purchase) {
   const type = attachmentTargetType(purchase?.ref);
-  return ["weapon", "armour", "gear"].includes(type) && hardpointValue(purchase?.ref) > 0;
+  return ["weapon", "armour", "gear"].includes(type);
 }
 
 export function attachmentAppliesTo(targetRef, attachmentRef) {
