@@ -3008,14 +3008,47 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   padding: 0.5rem;
 }
 .starwarsffg .item-sheet-species .species-skill-choice-row legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
   font-weight: bold;
   padding: 0 0.35rem;
 }
-.starwarsffg .item-sheet-species .species-skill-choice-row legend button {
-  margin-left: 0.5rem;
+.starwarsffg .item-sheet-species .species-skill-choice-actions {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-summary span {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 0.75rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-advanced {
+  margin-top: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-advanced summary {
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 0.78;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-advanced[open] summary {
+  margin-bottom: 0.5rem;
 }
 .starwarsffg .item-sheet-species .species-skill-choice-skills {
   grid-column: span 2;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-skills.is-hidden {
+  display: none;
 }
 .starwarsffg .item-sheet-species .species-skill-choice-unique {
   display: flex;

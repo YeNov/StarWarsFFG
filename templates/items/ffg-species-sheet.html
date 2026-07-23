@@ -87,55 +87,68 @@
           {{#each speciesSkillRankChoices as |choice index|}}
             <fieldset class="species-skill-choice-row">
               <legend>
-                {{#if choice.label}}{{choice.label}}{{else}}Species skill choice{{/if}}
-                <button type="button" class="species-skill-choice-control" data-action="delete" data-index="{{index}}" title="Delete">
-                  <i class="fas fa-trash"></i>
-                </button>
+                <span class="species-skill-choice-title">{{#if choice.label}}{{choice.label}}{{else}}Species skill choice{{/if}}</span>
+                <span class="species-skill-choice-actions">
+                  <button type="button" class="species-skill-choice-control" data-action="duplicate" data-index="{{index}}" title="Duplicate">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                  <button type="button" class="species-skill-choice-control" data-action="delete" data-index="{{index}}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </span>
               </legend>
-              <div class="species-skill-choice-fields">
+              <div class="species-skill-choice-summary">
+                {{#each choice.summary as |part|}}<span>{{part}}</span>{{/each}}
+              </div>
+              <div class="species-skill-choice-fields species-skill-choice-core">
                 <label>
-                  <span>ID</span>
-                  <input type="text" name="data.creation.skillRankChoices[{{index}}].id" value="{{choice.id}}" />
-                </label>
-                <label>
-                  <span>Label</span>
+                  <span data-tooltip="Player-facing name shown in the character creation wizard.">Label</span>
                   <input type="text" name="data.creation.skillRankChoices[{{index}}].label" value="{{choice.label}}" />
                 </label>
                 <label>
-                  <span>Count</span>
+                  <span data-tooltip="How many skills the player must choose from this row.">Count</span>
                   <input type="number" min="1" step="1" name="data.creation.skillRankChoices[{{index}}].count" value="{{choice.count}}" data-dtype="Number" />
                 </label>
                 <label>
-                  <span>Ranks</span>
-                  <input type="number" min="1" step="1" name="data.creation.skillRankChoices[{{index}}].rank" value="{{choice.rank}}" data-dtype="Number" />
-                </label>
-                <label>
-                  <span>Pool</span>
-                  <select name="data.creation.skillRankChoices[{{index}}].pool">
+                  <span data-tooltip="Which skills are available for this species bonus choice.">Pool</span>
+                  <select class="species-skill-choice-pool" name="data.creation.skillRankChoices[{{index}}].pool">
                     {{selectOptions ../speciesSkillChoicePools selected=choice.pool localize=false}}
                   </select>
                 </label>
-                <label>
-                  <span>Alternative group</span>
-                  <input type="text" name="data.creation.skillRankChoices[{{index}}].choiceGroup" value="{{choice.choiceGroup}}" placeholder="mandalorian-human-training" />
-                </label>
-                <label>
-                  <span>Group label</span>
-                  <input type="text" name="data.creation.skillRankChoices[{{index}}].choiceGroupLabel" value="{{choice.choiceGroupLabel}}" placeholder="Mandalorian Training" />
-                </label>
-                <label>
-                  <span>Max rank</span>
-                  <input type="number" min="0" step="1" name="data.creation.skillRankChoices[{{index}}].maxRankAtCreation" value="{{choice.maxRankAtCreation}}" data-dtype="Number" />
-                </label>
-                <label class="species-skill-choice-skills">
-                  <span>Skills</span>
-                  <input type="text" name="data.creation.skillRankChoices[{{index}}].skillsText" value="{{choice.skillsText}}" placeholder="Charm, Leadership" />
-                </label>
-                <label class="species-skill-choice-unique">
-                  <input type="checkbox" name="data.creation.skillRankChoices[{{index}}].unique" {{checked choice.unique}} data-dtype="Boolean" />
-                  <span>Unique picks</span>
+                <label class="species-skill-choice-skills{{#unless (eq choice.pool "list")}} is-hidden{{/unless}}">
+                  <span data-tooltip="Comma-separated skill names used only when Pool is Specific skills.">Skills</span>
+                  <input type="text" name="data.creation.skillRankChoices[{{index}}].skillsText" value="{{choice.skillsText}}" placeholder="Charm, Leadership" {{#unless (eq choice.pool "list")}}disabled{{/unless}} />
                 </label>
               </div>
+              <details class="species-skill-choice-advanced">
+                <summary data-tooltip="IDs, mutually exclusive alternatives, and character creation rank caps.">Advanced setup</summary>
+                <div class="species-skill-choice-fields">
+                  <label>
+                    <span data-tooltip="Stable data id for this rule row. Leave generated unless you need a specific id.">ID</span>
+                    <input type="text" name="data.creation.skillRankChoices[{{index}}].id" value="{{choice.id}}" />
+                  </label>
+                  <label>
+                    <span data-tooltip="Rows with the same value are OR choices: completing one branch clears the others.">Alternative group</span>
+                    <input type="text" name="data.creation.skillRankChoices[{{index}}].choiceGroup" value="{{choice.choiceGroup}}" placeholder="mandalorian-human-training" />
+                  </label>
+                  <label>
+                    <span data-tooltip="Player-facing name for the shared alternative group.">Group label</span>
+                    <input type="text" name="data.creation.skillRankChoices[{{index}}].choiceGroupLabel" value="{{choice.choiceGroupLabel}}" placeholder="Mandalorian Training" />
+                  </label>
+                  <label>
+                    <span data-tooltip="Maximum final rank allowed for these free species ranks during creation.">Max rank</span>
+                    <input type="number" min="0" step="1" name="data.creation.skillRankChoices[{{index}}].maxRankAtCreation" value="{{choice.maxRankAtCreation}}" data-dtype="Number" />
+                  </label>
+                  <label>
+                    <span data-tooltip="How many free ranks each selected skill receives. Usually 1 for species rules.">Ranks</span>
+                    <input type="number" min="1" step="1" name="data.creation.skillRankChoices[{{index}}].rank" value="{{choice.rank}}" data-dtype="Number" />
+                  </label>
+                  <label class="species-skill-choice-unique">
+                    <input type="checkbox" name="data.creation.skillRankChoices[{{index}}].unique" {{checked choice.unique}} data-dtype="Boolean" />
+                    <span data-tooltip="When enabled, the same skill cannot be selected twice within this one species choice row.">Unique picks</span>
+                  </label>
+                </div>
+              </details>
             </fieldset>
           {{/each}}
         </div>
