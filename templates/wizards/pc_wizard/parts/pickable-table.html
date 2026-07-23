@@ -3,7 +3,7 @@
 <table class="pickable-table" data-table="{{ poolKey }}">
   <tbody>
     {{#each rows as |row|}}
-      <tr class="pickable-row {{#if (eq row.uuid ../selectedUuid)}}is-selected{{/if}}" data-uuid="{{ row.uuid }}">
+      <tr class="pickable-row {{#if (eq row.uuid ../selectedUuid)}}is-selected{{/if}}" data-uuid="{{ row.uuid }}" {{#if row.hidden}}hidden{{/if}}>
         <td class="pickable-pill">
           {{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=row)}}
         </td>

@@ -112,6 +112,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** Per-part change/input bindings (issue B) — attached only within each part's element. */
   static PART_BINDINGS = {
+    species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
     gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
     startingBonus: [{ selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" }],
     forcePower: [{ selector: "input[data-discount]", event: "change", handler: "_onToggleForcePowerDiscount" }],
@@ -124,6 +125,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #commitTimer = null;
   #xpView = "bonus"; // xp_spend sub-view: "bonus" | "skills" | "talents" (transient, not persisted to draft)
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
+  #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
 
   constructor(options = {}) {
@@ -168,6 +170,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const backgroundRefs = this.#pools.background ?? [];
     const ofType = (type) => backgroundRefs.filter((ref) => ref.snapshot?.system?.type === type);
     const pools = { ...this.#pools, culture: ofType("culture"), hook: ofType("hook"), forceAttitude: ofType("attitude") };
+    const speciesSearch = this.#speciesSearch.trim().toLowerCase();
+    const speciesRows = [...(this.#pools.species ?? [])]
+      .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" }))
+      .map((ref) => ({
+        ...ref,
+        hidden: !!speciesSearch && !(ref.name ?? "").toLowerCase().includes(speciesSearch),
+      }));
+    const speciesMatchCount = speciesRows.filter((ref) => !ref.hidden).length;
+    const speciesNoMatches = speciesRows.length === 0 || speciesMatchCount === 0;
 
     // Starting-bonus radio choices for the current ruleset (i18n keys → localized labels).
     const bonusTable = CONFIG.FFG?.characterCreator?.startingBonusesRadio?.[this.data.selected.rules] ?? {};
@@ -294,6 +305,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       tabs,
       data: this.data,
       pools,
+      speciesRows,
+      speciesMatchCount,
+      speciesNoMatches,
+      speciesSearch: this.#speciesSearch,
       isForceAndDestiny: this.data.selected.rules === "fad",
       forceRating,
       forcePowers,
@@ -414,6 +429,22 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => {
       data.gearFilters = { ...(data.gearFilters ?? {}), [field]: value };
     }, { parts: ["gear"] });
+  }
+
+  _onSpeciesSearchInput(event) {
+    const search = event.currentTarget.value ?? "";
+    this.#speciesSearch = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest("[data-tab='species']");
+    let visible = 0;
+    for (const row of root?.querySelectorAll(".pickable-row") ?? []) {
+      const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+      const match = !needle || name.includes(needle);
+      row.hidden = !match;
+      if (match) visible += 1;
+    }
+    const empty = root?.querySelector("[data-species-empty]");
+    if (empty) empty.hidden = visible > 0;
   }
 
   _onToggleForcePowerDiscount(event) {

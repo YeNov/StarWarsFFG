@@ -1,5 +1,11 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="species">
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.Species.Label" }}</p>
-  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
-      (object rows=pools.species poolKey="species" selectedUuid=data.selected.species.uuid)}}
+  <div class="inv-filters">
+    <input type="search" data-field="speciesSearch" value="{{ speciesSearch }}" placeholder="Search name">
+  </div>
+  {{#if speciesRows.length}}
+    {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+        (object rows=speciesRows poolKey="species" selectedUuid=data.selected.species.uuid)}}
+  {{/if}}
+  <p class="empty-hint" data-species-empty {{#unless speciesNoMatches}}hidden{{/unless}}>No species match.</p>
 </section>
