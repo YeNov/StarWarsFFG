@@ -3613,6 +3613,42 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   margin: 0 2px;
   padding: 2px 8px;
 }
+.charCreator .skill-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin: 0 6px 0 0;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a1a1a;
+  font: bold 10px/1 sans-serif;
+  vertical-align: middle;
+  cursor: pointer;
+}
+/* Skill-description modal (a top-level DialogV2, outside .charCreator): cap height with a
+   scrollbar, and force the SW FFG dice/result glyphs white so they show on the dark dialog. */
+.ffg-skill-info {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+/* Dark-dialog dice glyphs — mirror the Codex dark scheme (cdx-dark.css): whiten the black result
+   symbols, keep setback + the dark-side Force pip black with a white outline, and leave the
+   coloured dice (difficulty, boost, ability, challenge, proficiency) untouched. */
+.ffg-skill-info span.dietype.setback,
+.ffg-skill-info span.dietype.dark {
+  color: #000;
+  -webkit-text-stroke: 1px #fff;
+  paint-order: stroke fill;
+}
+.ffg-skill-info span.dietype:is(.advantage, .despair, .forcepoint, .failure, .force, .light, .success, .threat, .triumph) {
+  color: #fff;
+}
 
 /* ------------------------------------------------------------------ *
  * PC Wizard — xp_spend view switcher + specialization talent tree     *

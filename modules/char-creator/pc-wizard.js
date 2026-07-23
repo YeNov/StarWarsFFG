@@ -92,6 +92,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "clear-gear-filters": CharacterCreator._onClearGearFilters,
       "buy-skill": CharacterCreator._onBuySkill,
       "refund-skill": CharacterCreator._onRefundSkill,
+      "skill-info": CharacterCreator._onSkillInfo,
       "characteristic-control": CharacterCreator._onCharacteristicControl,
       "xp-view": CharacterCreator._onXpView,
       "learn-talent": CharacterCreator._onLearnTalent,
@@ -123,6 +124,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #commitTimer = null;
   #xpView = "skills"; // xp_spend sub-view: "skills" | "talents" (transient, not persisted to draft)
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
+  #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
 
   constructor(options = {}) {
     super(options);
@@ -175,6 +177,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // Each row carries the prepared rank, whether it's a career skill, and the cost of the
     // NEXT rank (career rank*5, non-career rank*5 + 5).
     const skillPurchases = this.data.purchases.xp.skills;
+    const skillDescriptions = await this.#ensureSkillDescriptions();
     const xpSkills = preview?.system?.skills
       ? Object.entries(preview.system.skills).map(([key, skill]) => {
         const rank = skill.rank ?? 0;
@@ -185,7 +188,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         // refunded only if the CURRENT top rank was itself an XP purchase.
         const canBuy = rank < 2;
         const canRefund = skillPurchases.some((purchase) => purchase.key === key && purchase.value === rank);
-        return { key, label: skill.label ?? key, rank, careerskill, nextValue, nextCost, canBuy, canRefund };
+        const label = skill.label ?? key;
+        const description = skillDescriptions[label.toLowerCase()] ?? skillDescriptions[key.toLowerCase()] ?? "";
+        return { key, label, rank, careerskill, nextValue, nextCost, canBuy, canRefund, description };
       })
       : [];
 
@@ -359,6 +364,37 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#pools[poolKey] = await loadSource(poolKey);
   }
 
+  /**
+   * Cached skill-description lookup for the xp_spend hover hints. The source pack(s) come from the
+   * `skillDescriptionCompendiums` world setting (comma-separated, default world.oggdudeskilldescriptions
+   * — the JournalEntry pack the data importer creates). Keyed by both each entry's ffgimportid and its
+   * name (lowercased). Absent/unreadable packs yield an empty map (no hints), which is fine.
+   */
+  async #ensureSkillDescriptions() {
+    if (this.#skillDescriptions) return this.#skillDescriptions;
+    const map = {};
+    try {
+      const setting = game.settings.get("starwarsffg", "skillDescriptionCompendiums");
+      const packIds = typeof setting === "string" ? setting.split(",") : (setting || []);
+      for (const rawId of packIds) {
+        const packId = typeof rawId === "string" ? rawId.trim() : rawId;
+        if (!packId) continue;
+        const pack = game.packs.get(packId);
+        if (!pack) continue;
+        for (const doc of await pack.getDocuments()) {
+          const description = doc.pages?.contents?.[0]?.text?.content ?? "";
+          if (!description) continue;
+          const id = (doc.flags?.starwarsffg?.ffgimportid ?? "").toLowerCase();
+          const name = (doc.name ?? "").toLowerCase();
+          if (id) map[id] = description;
+          if (name) map[name] = description;
+        }
+      }
+    } catch { /* setting/pack unreadable in this world */ }
+    this.#skillDescriptions = map;
+    return map;
+  }
+
   _onGearFilterChange(event) {
     const field = event.currentTarget.dataset.field;
     const value = event.currentTarget.value;
@@ -467,6 +503,24 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => {
       const index = data.purchases.xp.skills.findIndex((purchase) => purchase.key === key && purchase.value === curValue);
       if (index >= 0) data.purchases.xp.skills.splice(index, 1);
+    });
+  }
+
+  static async _onSkillInfo(event, target) {
+    const { key, label } = target.dataset;
+    const map = await this.#ensureSkillDescriptions();
+    const raw = map[(label ?? "").toLowerCase()] ?? map[(key ?? "").toLowerCase()] ?? "";
+    if (!raw) return;
+    // Enrich so the SW FFG dice/symbol codes (e.g. [BO], [SU]) render as icons; classes:["starwarsffg"]
+    // scopes the system's icon CSS into the dialog.
+    const enriched = await foundry.applications.ux.TextEditor.implementation.enrichHTML(raw);
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: label || key },
+      classes: ["starwarsffg"],
+      position: { width: Math.round(window.innerWidth * 0.7) },
+      content: `<div class="ffg-skill-info">${enriched}</div>`,
+      buttons: [{ action: "close", label: "Close", default: true }],
+      rejectClose: false,
     });
   }
 

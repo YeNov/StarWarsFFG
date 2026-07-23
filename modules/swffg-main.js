@@ -651,6 +651,15 @@ Hooks.once("init", async function () {
     default: "world.oggdudeweapons,world.oggdudearmor,world.oggdudegear,world.oggdudearmorattachments,world.oggdudegenericattachments,world.oggdudeweaponattachments,world.oggdudearmormods,world.oggdudegenericmods,world.oggdudeweaponmods",
     type: String,
   });
+  // skill descriptions (PC wizard xp_spend hover hints)
+  game.settings.register("starwarsffg", "skillDescriptionCompendiums", {
+    name: game.i18n.localize("SWFFG.Settings.Purchase.SkillDescription.Name"),
+    hint: game.i18n.localize("SWFFG.Settings.Purchase.SkillDescription.Hint"),
+    scope: "world",
+    config: false,
+    default: "world.oggdudeskilldescriptions",
+    type: String,
+  });
   // defense dice setting
   game.settings.register("starwarsffg", "useDefense", {
     name: game.i18n.localize("SWFFG.Settings.UseDefense.Name"),

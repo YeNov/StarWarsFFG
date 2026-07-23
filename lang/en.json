@@ -896,6 +896,8 @@
   "SWFFG.Settings.Purchase.Motivation.Hint": "Comma separated compendiums to search for buying Motivations (no spaces)",
   "SWFFG.Settings.Purchase.Item.Name": "Item Compendiums",
   "SWFFG.Settings.Purchase.Item.Hint": "Comma separated compendiums to search for buying Items (no spaces) (includes all items)",
+  "SWFFG.Settings.Purchase.SkillDescription.Name": "Skill Description Compendiums",
+  "SWFFG.Settings.Purchase.SkillDescription.Hint": "Comma separated JournalEntry compendiums holding skill descriptions, used for the character creator's skill hover hints (no spaces)",
   "SWFFG.Settings.Tokens.Bar.Healthy.Name": "Healthy color (hex)",
   "SWFFG.Settings.Tokens.Bar.Healthy.Hint": "Color to use for the health bar",
   "SWFFG.Settings.Tokens.Bar.Wounded.Name": "Wounded color (hex)",

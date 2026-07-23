@@ -50,7 +50,7 @@
       <tbody>
         {{#each xpSkills as |skill|}}
           <tr data-field="{{ skill.key }}">
-            <td class="xp-col-name">{{ skill.label }}</td>
+            <td class="xp-col-name">{{#if skill.description}}<span class="skill-info-btn" data-action="skill-info" data-key="{{ skill.key }}" data-label="{{ skill.label }}" title="Skill description">?</span> {{/if}}{{ skill.label }}</td>
             <td class="xp-col-career">{{#if skill.careerskill}}✓{{/if}}</td>
             <td class="xp-col-rank">{{ skill.rank }}</td>
             <td class="xp-col-buttons">

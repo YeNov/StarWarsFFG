@@ -233,6 +233,7 @@ export class xpSpendingSettings extends ffgSettings {
       "starwarsffg.careerCompendiums",
       "starwarsffg.motivationCompendiums",
       "starwarsffg.itemCompendiums",
+      "starwarsffg.skillDescriptionCompendiums",
       "starwarsffg.notifyOnXpSpend",
       "starwarsffg.defaultObligation",
       "starwarsffg.defaultDuty",
