@@ -1,13 +1,20 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="obligation">
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.Obligation.Label" }}</p>
+  <div class="list-filters">
+    <input type="search" data-field="listSearch" data-pool-key="obligation" value="{{obligationSearch}}" placeholder="Search name">
+    <button type="button" class="list-random" data-action="random-list-pick" data-pool-key="obligation" data-tooltip="Pick random obligation" {{#unless obligationCanRandom}}disabled{{/unless}}>
+      <i class="fas fa-dice"></i>
+    </button>
+    <ul class="list-selected selected-obligations">
+      {{#each data.selected.obligations as |obligation|}}
+        <li data-uuid="{{ obligation.uuid }}">
+          {{ obligation.name }}
+          <i class="fas fa-trash" data-action="remove-obligation" data-uuid="{{ obligation.uuid }}"></i>
+        </li>
+      {{/each}}
+    </ul>
+  </div>
   {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
-      (object rows=pools.obligation poolKey="obligation")}}
-  <ul class="selected-obligations">
-    {{#each data.selected.obligations as |obligation|}}
-      <li data-uuid="{{ obligation.uuid }}">
-        {{ obligation.name }}
-        <i class="fas fa-trash" data-action="remove-obligation" data-uuid="{{ obligation.uuid }}"></i>
-      </li>
-    {{/each}}
-  </ul>
+      (object rows=obligationRows poolKey="obligation")}}
+  <p class="empty-hint" data-list-empty {{#unless obligationNoMatches}}hidden{{/unless}}>No obligations match.</p>
 </section>

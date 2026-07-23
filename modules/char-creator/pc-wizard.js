@@ -157,6 +157,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "refund-forcepower": CharacterCreator._onRefundForcePower,
       "background-view": CharacterCreator._onBackgroundView,
       "random-background": CharacterCreator._onRandomBackground,
+      "random-list-pick": CharacterCreator._onRandomListPick,
       "open-sources": CharacterCreator._onOpenSources,
       "toggle-source": CharacterCreator._onToggleSource,
       "resume-draft": CharacterCreator._onResumeDraft,
@@ -170,10 +171,12 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   /** Per-part change/input bindings (issue B) — attached only within each part's element. */
   static PART_BINDINGS = {
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
+    obligation: [{ selector: "input[data-field='listSearch']", event: "input", handler: "_onListSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
     gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
     startingBonus: [{ selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" }],
     forcePower: [{ selector: "input[data-discount]", event: "change", handler: "_onToggleForcePowerDiscount" }],
+    motivation: [{ selector: "input[data-field='listSearch']", event: "input", handler: "_onListSearchInput" }],
   };
 
   #commitPhase = "editing";
@@ -185,6 +188,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #inventoryView = "weapon"; // Inventory sub-view: "weapon" | "armour" | "gear" (transient)
   #backgroundView = "culture"; // Background accordion: "culture" | "hook" | "forceAttitude" (transient)
   #backgroundSearch = { culture: "", hook: "", forceAttitude: "" }; // Background accordion name filters (transient)
+  #listSearch = { obligation: "", motivation: "" }; // Obligation/Motivation tab name filters (transient)
   #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
@@ -292,6 +296,23 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }));
     const speciesMatchCount = speciesRows.filter((ref) => !ref.hidden).length;
     const speciesNoMatches = speciesRows.length === 0 || speciesMatchCount === 0;
+    const prepareListRows = (poolKey, selectedEntries) => {
+      const search = (this.#listSearch[poolKey] ?? "").trim().toLowerCase();
+      const selectedUuids = new Set(selectedEntries.map((entry) => entry.uuid));
+      return (this.#pools[poolKey] ?? []).map((ref) => ({
+        ...ref,
+        selected: selectedUuids.has(ref.uuid),
+        hidden: !!search && !(ref.name ?? "").toLowerCase().includes(search),
+      }));
+    };
+    const obligationRows = prepareListRows("obligation", this.data.selected.obligations);
+    const obligationMatchCount = obligationRows.filter((ref) => !ref.hidden).length;
+    const obligationRandomCount = obligationRows.filter((ref) => !ref.hidden && !ref.selected).length;
+    const obligationNoMatches = obligationRows.length === 0 || obligationMatchCount === 0;
+    const motivationRows = prepareListRows("motivation", this.data.selected.motivations);
+    const motivationMatchCount = motivationRows.filter((ref) => !ref.hidden).length;
+    const motivationRandomCount = motivationRows.filter((ref) => !ref.hidden && !ref.selected).length;
+    const motivationNoMatches = motivationRows.length === 0 || motivationMatchCount === 0;
 
     // Starting-bonus radio choices for the current ruleset (i18n keys → localized labels).
     const bonusTable = CONFIG.FFG?.characterCreator?.startingBonusesRadio?.[this.data.selected.rules] ?? {};
@@ -435,6 +456,14 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       speciesSearch: this.#speciesSearch,
       isForceAndDestiny,
       backgroundSections,
+      obligationRows,
+      obligationSearch: this.#listSearch.obligation,
+      obligationNoMatches,
+      obligationCanRandom: obligationRandomCount > 0,
+      motivationRows,
+      motivationSearch: this.#listSearch.motivation,
+      motivationNoMatches,
+      motivationCanRandom: motivationRandomCount > 0,
       forceRating,
       forcePowers,
       startingBonusChoices,
@@ -619,6 +648,30 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     const empty = root?.querySelector("[data-background-empty]");
     if (empty) empty.hidden = visible > 0;
+  }
+
+  _onListSearchInput(event) {
+    const poolKey = event.currentTarget.dataset.poolKey;
+    if (!["obligation", "motivation"].includes(poolKey)) return;
+    const search = event.currentTarget.value ?? "";
+    this.#listSearch[poolKey] = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest(`[data-tab='${poolKey}']`);
+    let visible = 0;
+    let randomable = 0;
+    for (const row of root?.querySelectorAll(".pickable-row") ?? []) {
+      const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+      const match = !needle || name.includes(needle);
+      row.hidden = !match;
+      if (match) {
+        visible += 1;
+        if (!row.classList.contains("is-selected")) randomable += 1;
+      }
+    }
+    const empty = root?.querySelector("[data-list-empty]");
+    if (empty) empty.hidden = visible > 0;
+    const random = root?.querySelector("[data-action='random-list-pick']");
+    if (random) random.disabled = randomable <= 0;
   }
 
   _onToggleForcePowerDiscount(event) {
@@ -824,6 +877,20 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!choices.length) return;
     const ref = choices[Math.floor(Math.random() * choices.length)];
     this.#mutate((data) => { data.selected.background[sectionKey] = ref; });
+  }
+
+  static _onRandomListPick(event, target) {
+    const poolKey = target.dataset.poolKey;
+    if (!["obligation", "motivation"].includes(poolKey)) return;
+    const search = (this.#listSearch[poolKey] ?? "").trim().toLowerCase();
+    const selected = new Set(this.data.selected[`${poolKey}s`].map((entry) => entry.uuid));
+    const choices = (this.#pools[poolKey] ?? []).filter((ref) => {
+      if (selected.has(ref.uuid)) return false;
+      return !search || (ref.name ?? "").toLowerCase().includes(search);
+    });
+    if (!choices.length) return;
+    const ref = choices[Math.floor(Math.random() * choices.length)];
+    this.#mutate((data) => { data.selected[`${poolKey}s`].push(ref); });
   }
 
   static _onCharacteristicControl(event, target) {
