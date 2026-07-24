@@ -144,6 +144,23 @@ function bringElementAboveApplications(app) {
   element.style.zIndex = String(Math.max(100, ...zIndices) + 1);
 }
 
+function applicationElement(app) {
+  return app?.element instanceof HTMLElement ? app.element : app?.element?.[0];
+}
+
+function zIndexOf(app) {
+  const element = applicationElement(app);
+  if (!element) return 100;
+  const zIndex = Number.parseInt(getComputedStyle(element).zIndex, 10);
+  return Number.isFinite(zIndex) ? zIndex : 100;
+}
+
+function placeElementAboveApplication(app, aboveApp, offset = 1) {
+  const element = applicationElement(app);
+  if (!element) return;
+  element.style.zIndex = String(zIndexOf(aboveApp) + offset);
+}
+
 export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) {
   static #activeInstance = null;
 
@@ -293,6 +310,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #missingSourceWarningShown = false; // One-shot warning for stale compendium settings.
   #missingSourceWarningGroups = null; // Prepared during context, shown after the wizard renders.
   #draftBannerDismissed = false; // Resume/discard banner is only for a different stored draft.
+  #draftResumePromptShown = false; // One-shot modal prompt for a resumable stored draft.
 
   constructor(options = {}) {
     super(options);
@@ -707,6 +725,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   async _onRender(context, options) {
     await super._onRender(context, options);
     this.#showMissingSourceWarning();
+    this.#showDraftResumePrompt(context?.draft?.hasResumable);
   }
 
   /** @override — hand each tabbed part its active-tab descriptor so it can show/hide. */
@@ -857,6 +876,35 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       dialog.render({ force: true });
       bringElementAboveApplications(dialog);
       requestAnimationFrame(() => bringElementAboveApplications(dialog));
+    }, 0);
+  }
+
+  #showDraftResumePrompt(hasResumable) {
+    if (!hasResumable || this.#draftResumePromptShown || this.#draftBannerDismissed) return;
+    this.#draftResumePromptShown = true;
+
+    window.setTimeout(() => {
+      const dialog = new foundry.applications.api.DialogV2({
+        window: { title: game.i18n.localize("SWFFG.CharacterCreator.Draft.ResumeTitle") },
+        classes: ["starwarsffg", "charCreator"],
+        content: `<div class="pcw-draft-resume"><p>${game.i18n.localize("SWFFG.CharacterCreator.Draft.Resume")}</p></div>`,
+        buttons: [
+          {
+            action: "resume",
+            label: game.i18n.localize("SWFFG.CharacterCreator.Draft.ResumeAction"),
+            default: true,
+            callback: () => CharacterCreator._onResumeDraft.call(this),
+          },
+          {
+            action: "discard",
+            label: game.i18n.localize("SWFFG.CharacterCreator.Draft.Discard"),
+            callback: () => CharacterCreator._onDiscardDraft.call(this),
+          },
+        ],
+      });
+      dialog.render({ force: true });
+      placeElementAboveApplication(dialog, this);
+      requestAnimationFrame(() => placeElementAboveApplication(dialog, this));
     }, 0);
   }
 

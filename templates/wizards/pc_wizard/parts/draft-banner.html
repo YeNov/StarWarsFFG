@@ -1,11 +1,4 @@
-{{!-- Draft resume/save banner. "Frozen" is derived from commit !== null. --}}
-{{#if draft.hasResumable}}
-  <div class="draft-banner" data-part="draft-banner">
-    <span class="draft-message">{{ localize "SWFFG.CharacterCreator.Draft.Resume" }}</span>
-    <button type="button" data-action="resume-draft">{{ localize "SWFFG.CharacterCreator.Draft.ResumeAction" }}</button>
-    <button type="button" data-action="discard-draft">{{ localize "SWFFG.CharacterCreator.Draft.Discard" }}</button>
-  </div>
-{{/if}}
+{{!-- Draft save status. Resumable drafts are handled by a modal prompt. --}}
 {{#if draft.savedAt}}
   <div class="draft-status">{{ localize "SWFFG.CharacterCreator.Draft.Saved" }}</div>
 {{/if}}
