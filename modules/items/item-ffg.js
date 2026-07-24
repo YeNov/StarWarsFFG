@@ -6,6 +6,7 @@ import ImportHelpers from "../importer/import-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import Helpers from "../helpers/common.js";
 import ItemHelpers from "../helpers/item-helpers.js";
+import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 
 /**
  * Extend the basic Item with some very simple modifications.
@@ -774,11 +775,8 @@ export class ItemFFG extends ItemBaseFFG {
       data.description = data.longDesc;
     }
 
-    if (this.type === "weapon") {
-      const ammoEnabled = this.getFlag("starwarsffg", "config.enableAmmo");
-      if (ammoEnabled) {
-        props.push(`Ammo: ${data.ammo.value}/${data.ammo.max}`);
-      }
+    if (isAmmoTracked(this)) {
+      props.push(`Ammo: ${getAmmoValue(this)}/${getAmmoMax(this)}`);
     }
 
     if (this.type === "forcepower" || this.type === "signatureability") {

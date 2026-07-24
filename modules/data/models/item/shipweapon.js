@@ -21,7 +21,8 @@ import {
  * `shipweapon` — template.json `templates: ["core", "basic", "hardpoints",
  * "equippable", "itemattachments", "qualities"]` + a top-level `label`
  * (`"Ship Weapon"`), a `firingarc` block, and the shared damage/crit/range/
- * special combat fields (no `skill`/`ammo`, unlike personal weapons).
+ * special combat fields. Like personal weapons it also stores `skill` and an
+ * `ammo` magazine (neither is in template.json's shipweapon body).
  */
 export class ShipWeaponDataModel extends mix(
   BaseItemDataModel,
@@ -55,6 +56,13 @@ export class ShipWeaponDataModel extends mix(
       crit: critField(),
       range: rangeField(),
       special: specialField(),
+      // Not in template.json's shipweapon body. Mirrors the personal weapon
+      // magazine so vehicle weapons can track limited ammo (manual counter or
+      // "Limited Ammo" quality, per the useLimitedAmmoQuality setting).
+      ammo: new f.SchemaField({
+        max: new f.NumberField({ initial: 0 }),
+        value: new f.NumberField({ initial: 0 }),
+      }),
     };
   }
 }

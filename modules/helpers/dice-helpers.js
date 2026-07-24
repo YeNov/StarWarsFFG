@@ -3,6 +3,7 @@ import RollBuilderFFG from "../dice/roll-builder.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import ImportHelpers from "../importer/import-helpers.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
+import { isAmmoTracked, hasAmmoToFire } from "./ammo-helpers.js";
 
 export default class DiceHelpers {
   static async rollSkill(obj, event, type, flavorText, sound) {
@@ -73,11 +74,8 @@ export default class DiceHelpers {
       item = owner.items.get(itemID);
     }
 
-    if (item && item.type === "weapon") {
-      const ammoEnabled = item.getFlag("starwarsffg", "config.enableAmmo");
-      if (ammoEnabled && item.system.ammo.value <= 0) {
-        return ui.notifications.warn("Not enough ammo!");
-      }
+    if (item && isAmmoTracked(item) && !hasAmmoToFire(item)) {
+      return ui.notifications.warn(game.i18n.localize("SWFFG.AmmoNotEnough"));
     }
 
     const itemData = item || {};

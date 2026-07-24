@@ -11,6 +11,7 @@ import ActorHelpers, {xpLogSpend} from "../helpers/actor-helpers.js";
 import ItemOptions from "./item-ffg-options.js";
 import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
 import { canPurchaseNode } from "../helpers/talent-tree.js";
+import { isAmmoTracked, isQualityAmmoMode, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -296,6 +297,19 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           attr.isCheckbox = attr.dtype === "Boolean";
         }
       }
+    }
+
+    // Ammo display context for weapon/shipweapon sheets. `tracked` decides
+    // whether the block shows at all; `qualityMode` (Option B) makes the max
+    // read-only because it is derived from the "Limited Ammo" quality rank.
+    if (this.object.type === "weapon" || this.object.type === "shipweapon") {
+      const qualityMode = isQualityAmmoMode();
+      data.ammoDisplay = {
+        tracked: isAmmoTracked(this.object),
+        qualityMode,
+        value: getAmmoValue(this.object),
+        max: getAmmoMax(this.object),
+      };
     }
 
     if (data?.data?.description) {
@@ -909,6 +923,13 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       await this._handleItemBuy(ev)
     });
 
+    // Reload: refill the magazine to its current maximum (manual max in Option A,
+    // the "Limited Ammo" quality rank in Option B).
+    html.find(".ammo-reload").click(async (ev) => {
+      ev.preventDefault();
+      await this.object.update({ "system.ammo.value": getAmmoMax(this.object) });
+    });
+
     // Cross-field reactivity: toggling "Ranked" shows/hides the rank-count
     // field via {{#if data.ranks.ranked}}. The generic change pipeline now
     // submits with render:false (render-race fix), so request an explicit
@@ -935,7 +956,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     });
 
     // register sheet options
-    if (["gear", "weapon", "armour"].includes(this.object.type)) {
+    if (["gear", "weapon", "shipweapon", "armour"].includes(this.object.type)) {
       this.sheetoptions = new ItemOptions(this, html);
       this.sheetoptions.register("enablePrice", {
         name: game.i18n.localize("SWFFG.SheetOptions2.EnablePrice.Name"),
@@ -963,7 +984,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           },
         });
       }
-      if (this.object.type === "weapon") {
+      if (this.object.type === "weapon" || this.object.type === "shipweapon") {
         this.sheetoptions.register("enableAmmo", {
           name: game.i18n.localize("SWFFG.SheetOptions2.enableAmmo.Name"),
           hint: game.i18n.localize("SWFFG.SheetOptions2.enableAmmo.Hint"),

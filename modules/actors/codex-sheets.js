@@ -28,6 +28,7 @@ import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { getFatedSigilMask } from "./codex-fated-sigil.js";
 import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
+import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -896,8 +897,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const chip = ev.currentTarget.closest(".cdx-ammo"); if (!chip) return;
         const w = this.actor?.items?.get(chip.dataset.weaponId); if (!w) return;
         const dir = Number(ev.currentTarget.dataset.dir) || 0;
-        const mx = Number(w.system?.ammo?.max) || 0;
-        let cur = (Number(w.system?.ammo?.value) || 0) + dir;
+        const mx = getAmmoMax(w);
+        let cur = getAmmoValue(w) + dir;
         cur = Math.max(0, mx ? Math.min(mx, cur) : cur);
         try { await w.update({ "system.ammo.value": cur }, { render: false }); } catch (e) { return; }
         const cEl = chip.querySelector(".cdx-ammo-count"); if (cEl) cEl.textContent = `${cur}/${mx}`;
@@ -1250,16 +1251,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       ctx.cdxAlignStored = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
       ctx.cdxAlign = cdxEffectiveAlignment(stored, this.actor?.system?.morality?.value);
     } catch (e) { ctx.cdxAlignStored = "neutral"; ctx.cdxAlign = "neutral"; }
-    // Ammo chip on expanded weapon cards (system.ammo, gated by the item's
-    // config.enableAmmo flag). cdxAmmo is keyed by weapon _id.
+    // Ammo chip on expanded weapon cards. Tracking + magazine size come from
+    // ammo-helpers so this honours both the manual counter (Option A) and the
+    // "Limited Ammo" quality mode (Option B). cdxAmmo is keyed by weapon _id.
     ctx.cdxAmmo = {};
     try {
       for (const item of (this.actor?.items ?? [])) {
         if (item.type !== "weapon") continue;
-        if (!item.getFlag("starwarsffg", "config.enableAmmo")) continue;
+        if (!isAmmoTracked(item)) continue;
         ctx.cdxAmmo[item._id] = {
-          current: Number(item.system?.ammo?.value) || 0,
-          max: Number(item.system?.ammo?.max) || 0,
+          current: getAmmoValue(item),
+          max: getAmmoMax(item),
         };
       }
     } catch (e) { ctx.cdxAmmo = {}; }
