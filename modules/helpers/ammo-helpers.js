@@ -17,8 +17,25 @@
 /** Item types that can track ammo. */
 const AMMO_TYPES = new Set(["weapon", "shipweapon"]);
 
-/** Canonical name of the quality that drives Option B (matched case-insensitively). */
+/**
+ * Stable OggDude import id of the quality that drives Option B. This is the
+ * primary match — it survives localization and the " Quality" name suffix that
+ * the YN/V12 packs add (the display name is e.g. "Limited Ammo Quality").
+ */
+export const LIMITED_AMMO_IMPORT_ID = "LIMITEDAMMO";
+
+/** Name-prefix fallback for qualities that lack the import id (case-insensitive). */
 export const LIMITED_AMMO_QUALITY = "limited ammo";
+
+/** True if this embedded quality/modifier is the "Limited Ammo" quality. */
+function isLimitedAmmoMod(mod) {
+  const importId = mod?.flags?.starwarsffg?.ffgimportid;
+  if (typeof importId === "string" && importId.toUpperCase() === LIMITED_AMMO_IMPORT_ID) {
+    return true;
+  }
+  // Fallback: startsWith (not includes) so "Unlimited Ammo" can't match.
+  return String(mod?.name ?? "").trim().toLowerCase().startsWith(LIMITED_AMMO_QUALITY);
+}
 
 /**
  * True when the world is in quality-driven (Option B) mode. Defaults to false
@@ -42,8 +59,7 @@ export function getLimitedAmmoRank(item) {
   if (!Array.isArray(mods)) return null;
   let rank = null;
   for (const mod of mods) {
-    const name = String(mod?.name ?? "").trim().toLowerCase();
-    if (name !== LIMITED_AMMO_QUALITY) continue;
+    if (!isLimitedAmmoMod(mod)) continue;
     const modRank = parseInt(mod?.system?.rank, 10);
     rank = (rank ?? 0) + (Number.isFinite(modRank) ? modRank : 0);
   }
