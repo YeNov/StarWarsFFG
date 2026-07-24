@@ -1,5 +1,6 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
 import { DicePoolFFG } from "./pool.js";
+import { isAmmoTracked, getAmmoValue } from "../helpers/ammo-helpers.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -343,13 +344,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       }
 
       try {
-        if (this?.roll?.item && this.roll.item.type === "weapon") {
+        if (this?.roll?.item && (this.roll.item.type === "weapon" || this.roll.item.type === "shipweapon")) {
           const item = await foundry.utils.fromUuid(this.roll.item.uuid);
-          if (item) {
-            const ammoEnabled = item.getFlag("starwarsffg", "config.enableAmmo");
-            if (ammoEnabled) {
-              await item.update({"system.ammo.value": item.system.ammo.value - 1});
-            }
+          if (item && isAmmoTracked(item)) {
+            await item.update({ "system.ammo.value": Math.max(0, getAmmoValue(item) - 1) });
           }
         }
       } catch (error) {

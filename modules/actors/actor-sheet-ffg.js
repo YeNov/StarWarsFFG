@@ -25,6 +25,7 @@ import {
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
+import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import {itemPillHover} from "../swffg-main.js";
 
 const { DialogV2 } = foundry.applications.api;
@@ -1630,6 +1631,9 @@ export class ActorSheetFFG extends FFGActorSheet {
    * @returns {Promise<void>}
    */
   async vehicleCrewGunneryRoll(weapon, weaponSkill, selectedGunner) {
+    if (isAmmoTracked(weapon) && !hasAmmoToFire(weapon)) {
+      return ui.notifications.warn(game.i18n.localize("SWFFG.AmmoNotEnough"));
+    }
     const starting_pool = {'difficulty': 2};
     const ship = this.actor;
     const crewSheet = game.actors.get(selectedGunner.actor_id)?.sheet;

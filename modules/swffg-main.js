@@ -248,6 +248,21 @@ Hooks.once("init", async function () {
     onChange: this.debouncedReload,
   });
 
+  /**
+   * When enabled, weapon/vehicle ammo is driven by the "Limited Ammo" quality
+   * (max = the quality's rank) instead of the manual per-item Enable Ammo
+   * counter. See modules/helpers/ammo-helpers.js.
+   */
+  game.settings.register("starwarsffg", "useLimitedAmmoQuality", {
+    name: game.i18n.localize("SWFFG.Settings.UseLimitedAmmoQuality.Name"),
+    hint: game.i18n.localize("SWFFG.Settings.UseLimitedAmmoQuality.Hint"),
+    scope: "world",
+    config: true,
+    default: false,
+    type: Boolean,
+    onChange: this.debouncedReload,
+  });
+
    /**
    * Register statuses to add
    */

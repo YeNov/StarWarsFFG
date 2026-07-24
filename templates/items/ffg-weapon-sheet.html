@@ -129,8 +129,9 @@
       <div class="container flex-group-center weapon-values special">
         {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.ModTypeCharacteristic" type="Dropdown" name="data.characteristic.value" value=data.characteristic.value options=FFG.characteristics)}}
         {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="single" title="SWFFG.IsRestricted" type="Boolean" name="data.rarity.isrestricted" value=data.rarity.isrestricted)}}
-        {{#if (eq item.flags.starwarsffg.config.enableAmmo true) }}
-          {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="split" title="SWFFG.Ammo" fields=(array (object name="data.ammo.max" value=data.ammo.max type="Number" label="SWFFG.Threshold" disabled=disabled) (object name="data.ammo.value" value=data.ammo.value type="Number" label="SWFFG.Current") ))}}
+        {{#if ammoDisplay.tracked }}
+          {{> "systems/starwarsffg/templates/parts/shared/ffg-block.html" (object blocktype="split" title="SWFFG.Ammo" fields=(array (object name="data.ammo.max" value=ammoDisplay.max type="Number" label="SWFFG.Threshold" disabled=(or disabled ammoDisplay.qualityMode)) (object name="data.ammo.value" value=ammoDisplay.value type="Number" label="SWFFG.Current") ))}}
+          <a class="ammo-reload" title="{{localize 'SWFFG.AmmoReload'}}"><i class="fas fa-sync-alt"></i> {{localize "SWFFG.AmmoReload"}}</a>
         {{/if}}
       </div>
 
