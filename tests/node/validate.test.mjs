@@ -12,7 +12,6 @@ import { validateDraft } from "../../modules/char-creator/validate.js";
 function emptyDraft() {
   return {
     selected: {
-      rules: "fad",
       background: { culture: null, hook: null, forceAttitude: null },
       startingBonus: null,
       obligations: [],

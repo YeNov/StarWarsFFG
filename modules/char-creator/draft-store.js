@@ -12,7 +12,7 @@
  */
 
 import { FLAG_SCOPE, FLAGS } from "./constants.js";
-import { serializeDraft, deserializeDraft } from "./draft-schema.js";
+import { serializeDraft, deserializeDraft, isWithinBudget, compactDraft, rehydrateRef } from "./draft-schema.js";
 
 const DEBOUNCE_MS = 1000;
 
@@ -35,13 +35,14 @@ export class DraftStore {
   async saveNow({ data, commit = this.#commit } = {}) {
     this.#pending = { data, commit };
     this.#commit = commit;
-    await this.#flush();
+    await this.#flush({ force: true });
   }
 
-  async #flush() {
+  async #flush({ force = false } = {}) {
     if (this.#timer) { clearTimeout(this.#timer); this.#timer = null; }
-    if (this.#locked || !this.#pending) return;
-    const record = serializeDraft(this.#pending, { systemVersion: game.system?.version });
+    if ((this.#locked && !force) || !this.#pending) return;
+    let record = serializeDraft(this.#pending, { systemVersion: game.system?.version });
+    if (!isWithinBudget(record)) record = compactDraft(record);
     this.#pending = null;
     await game.user.setFlag(FLAG_SCOPE, FLAGS.draft, record);
   }
@@ -51,8 +52,48 @@ export class DraftStore {
     const raw = game.user.getFlag(FLAG_SCOPE, FLAGS.draft);
     if (!raw) return null;
     const record = deserializeDraft(raw);
+    this.#normalizeLoadedData(record.data);
+    await this.#rehydrateRecord(record);
     this.#commit = record.commit ?? null; // adopt the frozen state on resume
     return record;
+  }
+
+  #normalizeLoadedData(data) {
+    const rules = data?.selected?.rules;
+    const bonus = data?.selected?.startingBonus;
+    if (rules && bonus && !String(bonus).includes("_")) data.selected.startingBonus = `${rules}_${bonus}`;
+    if (data?.selected && "rules" in data.selected) delete data.selected.rules;
+  }
+
+  async #rehydrateRecord(record) {
+    const refs = [];
+    const walk = (value) => {
+      if (Array.isArray(value)) {
+        value.forEach(walk);
+        return;
+      }
+      if (!value || typeof value !== "object") return;
+      if (typeof value.uuid === "string" && ("snapshot" in value || "name" in value || "type" in value)) refs.push(value);
+      for (const [key, child] of Object.entries(value)) {
+        if (key !== "snapshot") walk(child);
+      }
+    };
+    walk(record.data);
+
+    let warned = false;
+    for (const ref of refs) {
+      if (!ref.uuid?.startsWith?.("Compendium.")) continue;
+      let fresh = null;
+      try {
+        fresh = await fromUuid(ref.uuid);
+      } catch (err) {
+        CONFIG.logger?.warn?.(`PC wizard draft rehydrate failed for ${ref.uuid}: ${err.message}`);
+      }
+      const { ref: merged, warning } = rehydrateRef(ref, fresh?.toObject?.() ?? null);
+      Object.assign(ref, merged);
+      warned ||= warning;
+    }
+    record.warnings = [...(record.warnings ?? []), ...(warned ? ["SWFFG.CharacterCreator.Draft.RefreshWarning"] : [])];
   }
 
   /** Freeze (commit object) or clear (null) the commit; marks the draft dirty. */
@@ -62,7 +103,7 @@ export class DraftStore {
 
   /** Resolve once no save is pending. */
   async idle() {
-    if (this.#pending) await this.#flush();
+    if (this.#pending) await this.#flush({ force: true });
   }
 
   /** Remove the stored draft entirely. */

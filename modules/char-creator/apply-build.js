@@ -100,8 +100,8 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   actorData.system.stats.credits.value = credits.available + data.spendingCredits;
 
   const obligation = calcObligation(data);
-  if (obligation.key) {
-    actorData.system[obligation.key] = { ...(actorData.system[obligation.key] ?? {}), value: obligation.available };
+  for (const track of Object.values(obligation)) {
+    actorData.system[track.key] = { ...(actorData.system[track.key] ?? {}), value: track.available };
   }
 
   // 4. Items via the injected toItemData, one category at a time.
@@ -109,10 +109,10 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
     if (ref?.uuid) actorData.items.push(toItemData(ref, options));
   };
 
-  // backgrounds — forceAttitude only under Force and Destiny
+  // backgrounds
   addItem(data.selected.background.culture);
   addItem(data.selected.background.hook);
-  if (data.selected.rules === "fad") addItem(data.selected.background.forceAttitude);
+  addItem(data.selected.background.forceAttitude);
 
   // obligations (their snapshots carry the user's edits)
   for (const obligation of data.selected.obligations) addItem(obligation);

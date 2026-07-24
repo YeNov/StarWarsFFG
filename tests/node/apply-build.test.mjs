@@ -47,7 +47,6 @@ function makeDraft(overrides = {}) {
     commitId: "COMMIT0000000001",
     grants: { gm: { credits: 500 }, bonus: { xp: 0, credits: 0, duty: 0, obligation: 0, conflict: 0, morality: 0 } },
     selected: {
-      rules: "fad",
       background: { culture: null, hook: null, forceAttitude: { uuid: "fa1", name: "Guardian", type: "background", snapshot: {} } },
       startingBonus: null,
       obligations: [],
@@ -94,7 +93,9 @@ test("XP, credits (incl. spendingCredits) and obligation match the calculators",
   const { actorData } = applyBuild(makeDraft(), makeDeps());
   assert.deepEqual(actorData.system.experience, { total: 100, available: 100 - 70 - 10 });
   assert.equal(actorData.system.stats.credits.value, 500 + 42); // available + spendingCredits
-  assert.equal(actorData.system.morality.value, 50); // fad → morality key
+  assert.equal(actorData.system.duty.value, 10);
+  assert.equal(actorData.system.obligation.value, 10);
+  assert.equal(actorData.system.morality.value, 50);
 });
 
 test("base identity: name, img, prototypeToken from creationDefaults", () => {
@@ -105,16 +106,10 @@ test("base identity: name, img, prototypeToken from creationDefaults", () => {
   assert.deepEqual(actorData.prototypeToken, { actorLink: true, name: "Kel" });
 });
 
-test("force-attitude is INCLUDED under fad and EXCLUDED otherwise", () => {
-  const fadCalls = { deltas: [], items: [] };
-  applyBuild(makeDraft(), makeDeps(fadCalls));
-  assert.ok(fadCalls.items.some((c) => c.ref.uuid === "fa1"));
-
-  const eoteCalls = { deltas: [], items: [] };
-  const eoteDraft = makeDraft();
-  eoteDraft.selected.rules = "eote";
-  applyBuild(eoteDraft, makeDeps(eoteCalls));
-  assert.ok(!eoteCalls.items.some((c) => c.ref.uuid === "fa1"));
+test("force-attitude background is included when selected", () => {
+  const calls = { deltas: [], items: [] };
+  applyBuild(makeDraft(), makeDeps(calls));
+  assert.ok(calls.items.some((c) => c.ref.uuid === "fa1"));
 });
 
 test("items are built via the injected toItemData (species + forceAttitude present)", () => {

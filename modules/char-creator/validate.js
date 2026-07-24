@@ -84,7 +84,6 @@ export function validateDraft(data) {
   const hasSpeciesRankChoices = getSpeciesSkillRankChoices(data).length > 0;
 
   const steps = [
-    step("rules", `${REVIEW}.rules`, isSet(sel.rules)),
     step("obligation", `${REVIEW}.morality_duty_obligation`, sel.obligations.length > 0),
     step("species", `${REVIEW}.species`, isSet(sel.species)),
     ...(hasSpeciesRankChoices ? [step("speciesRanks", `${REVIEW}.speciesRanks`, speciesRankChoices.complete)] : []),

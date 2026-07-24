@@ -16,7 +16,6 @@ function makeData() {
   return {
     selected: {
       species: { snapshot: { system: { startingXP: 100 } } },
-      rules: "fad",
       startingBonus: undefined,
     },
     grants: {
@@ -32,11 +31,10 @@ function makeData() {
   };
 }
 
-/** A default draft with rules/startingBonus applied, for obligation cases. */
-function withChoice(rules, startingBonus) {
+/** A default draft with bonus grants applied, for obligation cases. */
+function withBonus(bonus = {}) {
   const data = makeData();
-  data.selected.rules = rules;
-  data.selected.startingBonus = startingBonus;
+  data.grants.bonus = { ...data.grants.bonus, ...bonus };
   return data;
 }
 
@@ -77,31 +75,19 @@ test("calcCredits: total = gm + bonus + extra, available subtracts purchases", (
   assert.equal(available, 325);
 });
 
-test("calcObligation fad: morality key, +21 and -21 branches", () => {
-  assert.deepEqual(calcObligation(withChoice("fad", undefined)),
-    { starting: 50, available: 50, key: "morality" });
-  assert.deepEqual(calcObligation(withChoice("fad", "21_plus_morality")),
-    { starting: 50, available: 71, key: "morality" });
-  assert.deepEqual(calcObligation(withChoice("fad", "21_minus_morality")),
-    { starting: 50, available: 29, key: "morality" });
+test("calcObligation returns all cross-ruleset tracks", () => {
+  assert.deepEqual(calcObligation(withBonus()), {
+    obligation: { starting: 10, available: 10, key: "obligation" },
+    duty: { starting: 10, available: 10, key: "duty" },
+    morality: { starting: 50, available: 50, key: "morality" },
+  });
 });
 
-test("calcObligation eote: obligation key, xp/credit choices ADD", () => {
-  assert.equal(calcObligation(withChoice("eote", "5xp")).available, 15);
-  assert.equal(calcObligation(withChoice("eote", "10xp")).available, 20);
-  assert.equal(calcObligation(withChoice("eote", "1k_credits")).available, 15);
-  assert.equal(calcObligation(withChoice("eote", "2k_credits")).available, 20);
-  assert.equal(calcObligation(withChoice("eote", undefined)).key, "obligation");
-});
-
-test("calcObligation aor: duty key, xp/credit choices SUBTRACT", () => {
-  assert.equal(calcObligation(withChoice("aor", "5xp")).available, 5);
-  assert.equal(calcObligation(withChoice("aor", "10xp")).available, 0);
-  assert.equal(calcObligation(withChoice("aor", "1k_credits")).available, 5);
-  assert.equal(calcObligation(withChoice("aor", "2k_credits")).available, 0);
-  assert.equal(calcObligation(withChoice("aor", undefined)).key, "duty");
-});
-
-test("calcObligation: unknown ruleset yields no key and zeros", () => {
-  assert.deepEqual(calcObligation(withChoice("??", undefined)), { starting: 0, available: 0, key: undefined });
+test("calcObligation applies field-specific bonus conventions", () => {
+  assert.equal(calcObligation(withBonus({ obligation: 5 })).obligation.available, 15);
+  assert.equal(calcObligation(withBonus({ obligation: 10 })).obligation.available, 20);
+  assert.equal(calcObligation(withBonus({ duty: 5 })).duty.available, 5);
+  assert.equal(calcObligation(withBonus({ duty: 10 })).duty.available, 0);
+  assert.equal(calcObligation(withBonus({ morality: 21 })).morality.available, 71);
+  assert.equal(calcObligation(withBonus({ morality: -21 })).morality.available, 29);
 });

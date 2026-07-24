@@ -34,7 +34,6 @@ function sampleData({ gearCount = 2, snapshotPad = 40 } = {}) {
     commitId: "COMMIT0000000001",
     grants: { gm: { credits: 500 }, bonus: { xp: 0, credits: 0 } },
     selected: {
-      rules: "fad",
       background: { culture: null, hook: null, forceAttitude: null },
       startingBonus: null,
       obligations: [],

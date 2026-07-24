@@ -42,7 +42,6 @@ function makeDraft(overrides = {}) {
     commitId: IDENTITY.commitId,
     grants: { gm: { credits: 500 }, bonus: { xp: 0, credits: 0, duty: 0, obligation: 0, conflict: 0, morality: 0 } },
     selected: {
-      rules: "fad",
       background: { culture: null, hook: null, forceAttitude: null },
       startingBonus: null,
       obligations: [],

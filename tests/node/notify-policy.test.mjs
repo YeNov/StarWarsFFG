@@ -12,6 +12,7 @@ import {
   finishDedupKey,
   claimOnce,
   shouldAcceptAck,
+  shouldAcceptCommitResponse,
   shouldEmitStart,
   setPending,
   clearPending,
@@ -101,4 +102,14 @@ test("setPending adds an entry", () => {
   const pending = new Map();
   setPending(pending, "S1", { commitId: "C1" });
   assert.deepEqual(pending.get("S1"), { commitId: "C1" });
+});
+
+test("commit response is accepted only from a GM for this requester and pending commit", () => {
+  const pending = new Map([["S1", { commitId: "C1" }]]);
+  const args = { requesterId: "me", commitId: "C1", senderIsGM: true, currentUserId: "me", pending };
+  assert.equal(shouldAcceptCommitResponse(args), true);
+  assert.equal(shouldAcceptCommitResponse({ ...args, requesterId: "other" }), false);
+  assert.equal(shouldAcceptCommitResponse({ ...args, senderIsGM: false }), false);
+  assert.equal(shouldAcceptCommitResponse({ ...args, commitId: "C2" }), false);
+  assert.equal(shouldAcceptCommitResponse({ ...args, pending: new Map() }), false);
 });

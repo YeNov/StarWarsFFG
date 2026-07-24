@@ -12,7 +12,7 @@
  * N-1: the world career type is `career`, NOT `careers`.
  * Not consumed (deliberate): talentCompendiums, signatureAbilityCompendiums.
  * Recorded: getAvailableMoralities (character-creator.js:735-757) loads the SAME
- * `obligation` pack + world type as obligations, differentiated only by ruleset —
+ * `obligation` pack + world type as obligations, differentiated by item type —
  * hence one `obligation` poolKey covers obligation / duty / morality.
  */
 
@@ -59,7 +59,7 @@ export const SOURCE_DESCRIPTORS = Object.freeze({
   obligation: Object.freeze({
     settingKey: "obligationCompendiums",
     worldItemTypes: Object.freeze(["obligation"]),
-    bucketing: "obligation / duty / morality per ruleset",
+    bucketing: "system.type -> obligation / duty / morality",
   }),
   motivation: Object.freeze({
     settingKey: "motivationCompendiums",

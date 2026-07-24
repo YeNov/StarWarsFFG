@@ -7,6 +7,7 @@
  */
 
 import { normalizeCommitSource } from "./commit-normalize.js";
+import { FLAG_SCOPE, FLAGS } from "./constants.js";
 
 /** Thrown by the best-effort stamp preflight when the target id already exists. */
 export class CommitCollisionError extends Error {
@@ -37,8 +38,16 @@ export async function commitBuild(actorData, commit) {
   const work = (async () => {
     const { source } = await normalizeCommitSource(actorData, commit);
 
-    // best-effort stamp preflight
-    if (game.actors.get(source._id)) throw new CommitCollisionError(source._id);
+    // best-effort stamp preflight. A retry after a lost response should be idempotent:
+    // if the deterministic id already belongs to this exact wizard commit, return it.
+    const existing = game.actors.get(source._id);
+    if (existing) {
+      if (isMatchingCommittedActor(existing, commit)) {
+        verifyCommitLog(existing, commit);
+        return existing;
+      }
+      throw new CommitCollisionError(source._id);
+    }
 
     const actor = await Actor.implementation.create(source, { keepId: true });
     verifyCommitLog(actor, commit); // read-only (D10)
@@ -51,6 +60,15 @@ export async function commitBuild(actorData, commit) {
   } finally {
     inFlight.delete(commit.commitId);
   }
+}
+
+export function isMatchingCommittedActor(actor, commit) {
+  const stamp = actor?.getFlag?.(FLAG_SCOPE, FLAGS.commit);
+  return stamp?.commitId === commit?.commitId
+    && stamp?.userId === commit?.userId
+    && stamp?.date === String(commit?.firstAttemptAt ?? "").slice(0, 10)
+    && Number(stamp?.xp?.total) === Number(commit?.xp?.total)
+    && Number(stamp?.xp?.available) === Number(commit?.xp?.available);
 }
 
 /** Read-only D10 verification that the baked XP log landed. Never writes. */

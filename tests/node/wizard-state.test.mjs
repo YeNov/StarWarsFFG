@@ -24,11 +24,6 @@ test("createInitialData: commitId matches the document-id regex (DEV-5 guard)", 
   assert.match(createInitialData().commitId, /^[a-zA-Z0-9]{16}$/);
 });
 
-test("createInitialData: selected.rules defaults to 'fad'", () => {
-  seedSettings();
-  assert.equal(createInitialData().selected.rules, "fad");
-});
-
 test("createInitialData: grants.gm.credits and initial.* seeded from game.settings.get", () => {
   seedSettings();
   const data = createInitialData();
@@ -45,7 +40,7 @@ test("createInitialData: spendingCredits is a d100 in [1,100], rolled once", () 
   assert.ok(data.spendingCredits >= 1 && data.spendingCredits <= 100);
   // mutators never re-roll it
   const before = data.spendingCredits;
-  applyStartingBonus(data, "10xp");
+  applyStartingBonus(data, "fad_10xp");
   setIdentity(data, { name: "Kel" });
   assert.equal(data.spendingCredits, before);
 });
@@ -88,21 +83,19 @@ test("wizard-state mutators are pure state transitions (setIdentity/setSelection
 test("applyStartingBonus BUG-2: aor duty grant lands in bonus.duty, not bonus[undefined]", () => {
   seedSettings();
   const data = createInitialData();
-  data.selected.rules = "aor";
-  applyStartingBonus(data, "5xp");
+  applyStartingBonus(data, "aor_5xp");
   assert.equal(data.grants.bonus.duty, 5);
   assert.equal(data.grants.bonus.xp, 5);
   assert.ok(!("undefined" in data.grants.bonus));
-  assert.equal(data.selected.startingBonus, "5xp");
+  assert.equal(data.selected.startingBonus, "aor_5xp");
 });
 
 test("applyStartingBonus: re-selecting zeroes prior fields (no stale morality)", () => {
   seedSettings();
   const data = createInitialData();
-  data.selected.rules = "fad";
-  applyStartingBonus(data, "21_plus_morality");
+  applyStartingBonus(data, "fad_21_plus_morality");
   assert.equal(data.grants.bonus.morality, 21);
-  applyStartingBonus(data, "10xp");
+  applyStartingBonus(data, "fad_10xp");
   assert.equal(data.grants.bonus.morality, 0); // cleared, not stale
   assert.equal(data.grants.bonus.xp, 10);
 });
@@ -111,9 +104,8 @@ test("applyStartingBonus is a deterministic pure state transition", () => {
   seedSettings();
   const a = createInitialData();
   const b = createInitialData();
-  a.selected.rules = b.selected.rules = "eote";
-  applyStartingBonus(a, "1k_credits");
-  applyStartingBonus(b, "1k_credits");
+  applyStartingBonus(a, "eote_1k_credits");
+  applyStartingBonus(b, "eote_1k_credits");
   assert.deepEqual(a.grants.bonus, b.grants.bonus);
   assert.deepEqual(a.grants.bonus, { xp: 0, credits: 1000, duty: 0, obligation: 5, conflict: 0, morality: 0 });
 });
@@ -121,8 +113,7 @@ test("applyStartingBonus is a deterministic pure state transition", () => {
 test("applyStartingBonus(null) clears the bonus back to zero", () => {
   seedSettings();
   const data = createInitialData();
-  data.selected.rules = "eote";
-  applyStartingBonus(data, "10xp");
+  applyStartingBonus(data, "eote_10xp");
   applyStartingBonus(data, null);
   assert.equal(data.selected.startingBonus, null);
   assert.deepEqual(data.grants.bonus, { xp: 0, credits: 0, duty: 0, obligation: 0, conflict: 0, morality: 0 });
@@ -132,15 +123,13 @@ test("calcObligation agrees with the grants.bonus display via the shared table",
   seedSettings();
   // eote: display bonus.obligation and calcObligation adjustment both = +5
   const eote = createInitialData();
-  eote.selected.rules = "eote";
-  applyStartingBonus(eote, "5xp");
+  applyStartingBonus(eote, "eote_5xp");
   assert.equal(eote.grants.bonus.obligation, 5);
-  assert.equal(calcObligation(eote).available, eote.initial.obligation + 5);
+  assert.equal(calcObligation(eote).obligation.available, eote.initial.obligation + 5);
 
   // fad: display bonus.morality and calcObligation adjustment both = +21
   const fad = createInitialData();
-  fad.selected.rules = "fad";
-  applyStartingBonus(fad, "21_plus_morality");
+  applyStartingBonus(fad, "fad_21_plus_morality");
   assert.equal(fad.grants.bonus.morality, 21);
-  assert.equal(calcObligation(fad).available, fad.initial.morality + 21);
+  assert.equal(calcObligation(fad).morality.available, fad.initial.morality + 21);
 });

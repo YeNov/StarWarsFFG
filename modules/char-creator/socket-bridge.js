@@ -14,6 +14,7 @@ import { SOCKET_CHANNEL, SOCKET_EVENT_TYPE, SOCKET_EVENTS } from "./constants.js
 import { sanitizeCommitRequest } from "./commit-normalize.js";
 import { commitBuild } from "./commit-service.js";
 import { handleStartNotice, handleStartNoticeAck, postFinishRecord } from "./notify.js";
+import { shouldAcceptCommitResponse } from "./notify-policy.js";
 
 let registered = false;
 const seenStarts = new Set();
@@ -27,6 +28,11 @@ const seenFinishes = new Set();
  */
 export const wizardPending = new Map();
 let commitResponseHandler = null;
+
+function isSenderGM(sender) {
+  const user = game.users?.get?.(sender) ?? game.users?.find?.((candidate) => candidate.id === sender);
+  return user?.isGM === true;
+}
 
 /** The open wizard installs its commit-response handler here (cleared with null on close). */
 export function setCommitResponseHandler(handler) {
@@ -52,7 +58,15 @@ export function registerSocketBridge() {
         if (game.user.id === game.users.activeGM?.id) await processCommitRequest(data, sender);
         break;
       case SOCKET_EVENTS.commitResponse:
-        commitResponseHandler?.(data);
+        if (shouldAcceptCommitResponse({
+          requesterId: data.requesterId,
+          commitId: data.commitId,
+          senderIsGM: isSenderGM(sender),
+          currentUserId: game.user.id,
+          pending: wizardPending,
+        })) {
+          commitResponseHandler?.(data);
+        }
         break;
       default:
         break;

@@ -22,7 +22,7 @@
     {{/if}}
     <br>
     XP: {{ availableXp }} / {{ totalXp }}, Credits: {{ availableCredits }} / {{ totalCredits }},
-    {{ obligationKey }}: {{ availableObligation }}
+    Obligation: {{ obligations.obligation.available }}, Duty: {{ obligations.duty.available }}, Morality: {{ obligations.morality.available }}
     <button type="button" class="sources-button" data-action="open-sources">{{ localize "SWFFG.CharacterCreator.Sources.Title" }}</button>
   </div>
   {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/draft-banner.html"}}

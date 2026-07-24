@@ -17,7 +17,7 @@ import { toItemData } from "./to-item-data.js";
 import { makeBuildDependencies } from "./build-deps.js";
 import { buildPreviewActor } from "./preview.js";
 import { createInitialData, setIdentity } from "./wizard-state.js";
-import { applyStartingBonus } from "./starting-bonus.js";
+import { applyStartingBonus, STARTING_BONUS_OPTIONS } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
 import { normalizeXpSkillPurchases } from "./skill-purchases.js";
@@ -176,7 +176,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     },
   };
 
-  /** @override — the verified tab order minus the dropped `rules` tab; opens on `background`. */
+  /** @override — the verified tab order; opens on `general`. */
   static TABS = {
     primary: {
       tabs: [
@@ -274,6 +274,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #sourcesOpen = false; // Content-source overlay state (transient)
   #missingSourceWarningShown = false; // One-shot warning for stale compendium settings.
   #missingSourceWarningGroups = null; // Prepared during context, shown after the wizard renders.
+  #draftBannerDismissed = false; // Resume/discard banner is only for a different stored draft.
 
   constructor(options = {}) {
     super(options);
@@ -312,6 +313,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const validation = validateDraft(this.data);
     const sourceGroups = this.#prepareSourceGroups(readExclusions());
     this.#prepareMissingSourceWarning(sourceGroups);
+    const storedDraft = game.user.getFlag(FLAG_SCOPE, FLAGS.draft);
+    const draft = {
+      hasResumable: Boolean(storedDraft?.data && storedDraft.data.commitId !== this.data.commitId && !this.#draftBannerDismissed),
+      savedAt: storedDraft?.data?.commitId === this.data.commitId ? storedDraft.savedAt : null,
+    };
 
     let preview = null;
     try {
@@ -325,7 +331,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // matching the legacy getBackgrounds() split. forceAttitude uses the "attitude" type.
     const backgroundRefs = this.#pools.background ?? [];
     const ofType = (type) => backgroundRefs.filter((ref) => ref.snapshot?.system?.type === type);
-    const isForceAndDestiny = this.data.selected.rules === "fad";
     const pools = { ...this.#pools, culture: ofType("culture"), hook: ofType("hook"), forceAttitude: ofType("attitude") };
     const prepareBackgroundRows = (rows, selectedUuid, sectionKey) => {
       const search = (this.#backgroundSearch[sectionKey] ?? "").trim().toLowerCase();
@@ -355,17 +360,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         selectedName: this.data.selected.background.hook?.name,
         search: this.#backgroundSearch.hook,
       },
-    ];
-    if (isForceAndDestiny) {
-      backgroundSections.push({
+      {
         key: "forceAttitude",
         label: "Force Attitude",
         rows: prepareBackgroundRows(pools.forceAttitude, selectedForceAttitudeUuid, "forceAttitude"),
         selectedUuid: selectedForceAttitudeUuid,
         selectedName: this.data.selected.background.forceAttitude?.name,
         search: this.#backgroundSearch.forceAttitude,
-      });
-    }
+      },
+    ];
     const activeBackgroundKey = backgroundSections.some((section) => section.key === this.#backgroundView)
       ? this.#backgroundView
       : null;
@@ -433,9 +436,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const motivationRandomCount = motivationRows.filter((ref) => !ref.hidden && !ref.selected).length;
     const motivationNoMatches = motivationRows.length === 0 || motivationMatchCount === 0;
 
-    // Starting-bonus radio choices for the current ruleset (i18n keys → localized labels).
-    const bonusTable = CONFIG.FFG?.characterCreator?.startingBonusesRadio?.[this.data.selected.rules] ?? {};
-    const startingBonusChoices = Object.entries(bonusTable).map(([key, labelKey]) => ({ key, label: game.i18n.localize(labelKey) }));
+    const startingBonusChoices = STARTING_BONUS_OPTIONS.map((choice) => ({ key: choice.key, label: game.i18n.localize(choice.labelKey) }));
 
     // Flat skill list for the XP-spend tab (the preview panel's column layout is separate).
     // Each row carries the prepared rank, whether it's a career skill, and the cost of the
@@ -633,12 +634,12 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     return {
       tabs,
       data: this.data,
+      draft,
       pools,
       speciesRows,
       speciesMatchCount,
       speciesNoMatches,
       speciesSearch: this.#speciesSearch,
-      isForceAndDestiny,
       backgroundSections,
       obligationSections,
       motivationRows,
@@ -675,8 +676,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       ownedItems,
       availableAttachments,
       encumbrance,
-      obligationKey: obligation.key,
-      availableObligation: obligation.available,
+      obligations: obligation,
       steps: validation.steps,
       reviewVerificationSteps,
       sourceGroups,
@@ -1343,8 +1343,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       if (record) {
         this.data = record.data;
         this.#draft.commit = record.commit ?? null;
+        this.#draftBannerDismissed = true;
         invalidateSourceCache();
         this.#pools = {};
+        for (const warning of record.warnings ?? []) ui.notifications.warn(game.i18n.localize(warning));
         this.render(true);
       }
     } catch (err) {
@@ -1357,6 +1359,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static async _onDiscardDraft() {
     await this.draftStore.clear();
     this.data = createInitialData();
+    this.#draft.commit = null;
+    this.#draftBannerDismissed = true;
     invalidateSourceCache();
     this.#pools = {};
     this.render(true);
@@ -1366,9 +1370,34 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#runCommit();
   }
 
+  async #confirmAdvisoryWarnings(warnings = validateDraft(this.data).warnings) {
+    if (!warnings.length) return true;
+    const escape = foundry.utils.escapeHTML ?? ((value) => String(value).replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
+    }[char])));
+    const items = warnings.map((key) => `<li>${escape(game.i18n.localize(key))}</li>`).join("");
+    const action = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.CharacterCreator.ConfirmWarnings.Title") },
+      classes: ["starwarsffg", "charCreator"],
+      content: `<div class="pcw-warning-confirm"><p>${game.i18n.localize("SWFFG.CharacterCreator.ConfirmWarnings.Message")}</p><ul>${items}</ul></div>`,
+      buttons: [
+        { action: "create", label: game.i18n.localize("SWFFG.CharacterCreator.ConfirmWarnings.CreateAnyway"), default: true },
+        { action: "back", label: game.i18n.localize("SWFFG.CharacterCreator.ConfirmWarnings.GoBack") },
+      ],
+      rejectClose: false,
+    });
+    return action === "create";
+  }
+
   /** The commit sequence: freeze identity on the first attempt, save, then request the build. */
   async #runCommit() {
     if (this.#commitPhase !== "editing") return;
+    const warnings = validateDraft(this.data).warnings;
+    if (!await this.#confirmAdvisoryWarnings(warnings)) return;
     this.#commitPhase = "committing";
     this.draftStore.lock();
 
@@ -1404,7 +1433,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
 
     // Players ask the active GM to create the actor, then await the authenticated response.
-    emitCommitRequest(source, this.#draft.commit);
+    emitCommitRequest(source, this.#draft.commit, warnings);
     this.#commitTimer = window.setTimeout(() => this._onCommitTimeout(), COMMIT_TIMEOUT_MS);
   }
 

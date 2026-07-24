@@ -5,11 +5,8 @@
  * calcCredits (:1633-1645) and calcObligation (:1554-1600). Each takes the wizard
  * `data` state and returns plain numbers — no `this`, no documents, no async.
  *
- * Covered (plan §0.6.2). Imports starting-bonus.js (Covered→Covered, allowed by the
- * rule-7 closure) so calcObligation reads its adjustment from the one table.
+ * Covered (plan §0.6.2).
  */
-
-import { getStartingBonus } from "./starting-bonus.js";
 
 /**
  * Total and remaining XP.
@@ -64,41 +61,22 @@ export function calcCredits(data) {
 }
 
 /**
- * Starting and adjusted morality / obligation / duty, plus the field key.
+ * Starting and adjusted morality / obligation / duty.
  *
- * The `key` is "morality" (fad), "obligation" (eote) or "duty" (aor). The starting
- * value comes from initial.*; the starting-bonus choice then shifts `available`.
- *
- * KEEP-4 (closed at Stage 7): the per-choice adjustment is read from the one
- * STARTING_BONUS table, the same cell the grants.bonus display uses, so the two can
- * never drift. The ruleset supplies the sign convention transcribed from the legacy
- * calcObligation branches (:1554-1600): morality and obligation ADD their bonus,
- * duty SUBTRACTS it — matching the original numbers exactly.
+ * The cross-ruleset wizard keeps all three tracks visible and independent. Starting
+ * bonus application writes field-specific deltas into grants.bonus; this calculator
+ * simply combines those deltas with the configured starting values.
  *
  * @param {object} data  wizard state
- * @returns {{starting: number, available: number, key: (string|undefined)}}
+ * @returns {{obligation: object, duty: object, morality: object}}
  */
 export function calcObligation(data) {
-  let starting = 0;
-  let available = 0;
-  let key;
-
-  const rules = data.selected.rules;
-  const bonus = getStartingBonus(rules, data.selected.startingBonus);
-
-  if (rules === "fad") {
-    starting = data.initial.morality;
-    key = "morality";
-    available = starting + (bonus.morality ?? 0);
-  } else if (rules === "eote") {
-    starting = data.initial.obligation;
-    key = "obligation";
-    available = starting + (bonus.obligation ?? 0);
-  } else if (rules === "aor") {
-    starting = data.initial.duty;
-    key = "duty";
-    available = starting - (bonus.duty ?? 0);
-  }
-
-  return { starting, available, key };
+  const obligation = Number(data.initial?.obligation) || 0;
+  const duty = Number(data.initial?.duty) || 0;
+  const morality = Number(data.initial?.morality) || 0;
+  return {
+    obligation: { starting: obligation, available: obligation + (Number(data.grants?.bonus?.obligation) || 0), key: "obligation" },
+    duty: { starting: duty, available: duty - (Number(data.grants?.bonus?.duty) || 0), key: "duty" },
+    morality: { starting: morality, available: morality + (Number(data.grants?.bonus?.morality) || 0), key: "morality" },
+  };
 }
