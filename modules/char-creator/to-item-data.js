@@ -28,15 +28,18 @@ function bakeRankGrants(source, rankGrants) {
   source.system ??= {};
   source.system.attributes ??= {};
   source.effects ??= [];
-  rankGrants.forEach((skillKey, n) => {
-    const slug = String(skillKey).replace(/[^a-zA-Z0-9]/g, "");
-    const attrName = `pcwRank${n}_${slug}`;
-    source.system.attributes[attrName] = { modtype: "Skill Rank", mod: skillKey, value: 1 };
-    source.effects.push({
-      name: attrName,
-      changes: [{ key: `system.skills.${skillKey}.rank`, mode: AE_MODES.ADD, value: 1 }],
+  rankGrants
+    .map((skillKey) => String(skillKey ?? "").trim())
+    .filter((skillKey) => skillKey && skillKey.toLowerCase() !== "(none)")
+    .forEach((skillKey, n) => {
+      const slug = String(skillKey).replace(/[^a-zA-Z0-9]/g, "");
+      const attrName = `pcwRank${n}_${slug}`;
+      source.system.attributes[attrName] = { modtype: "Skill Rank", mod: skillKey, value: 1 };
+      source.effects.push({
+        name: attrName,
+        changes: [{ key: `system.skills.${skillKey}.rank`, mode: AE_MODES.ADD, value: 1 }],
+      });
     });
-  });
 }
 
 /**

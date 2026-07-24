@@ -74,6 +74,24 @@ function nonNegativeInteger(value) {
   return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : 0;
 }
 
+function isSelectableSkillName(value) {
+  const name = String(value ?? "").trim();
+  return name && name.toLowerCase() !== "(none)";
+}
+
+function freeSkillNamesFromSlots(slots = {}) {
+  return Object.values(slots)
+    .map((name) => String(name ?? "").trim())
+    .filter(isSelectableSkillName);
+}
+
+function pruneFreeRankSelections(selected = [], skillNames = []) {
+  const allowed = new Set(skillNames);
+  return selected
+    .map((name) => String(name ?? "").trim())
+    .filter((name) => allowed.has(name));
+}
+
 function rangeLabel(value) {
   const range = value || "Short";
   const entry = CONFIG.FFG?.ranges?.[range];
@@ -306,6 +324,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     this.#ensureCreditPurchaseIds(this.data);
     this.#ensureExtraGrants(this.data);
+    this.#normalizeFreeRankSelections(this.data);
 
     const xp = calcXp(this.data);
     const credits = calcCredits(this.data);
@@ -489,13 +508,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // These feed rankGrants -> toItemData (baked as +1-rank AEs on the career/spec item), so
     // applyBuild already applies them to the built actor; the picker only drives the arrays.
     const freeRankCaps = getFreeRankCaps(this.data);
-    const careerSkillNames = Object.values(this.data.selected.career?.snapshot?.system?.careerSkills ?? {}).filter(Boolean);
+    const careerSkillNames = freeSkillNamesFromSlots(this.data.selected.career?.snapshot?.system?.careerSkills);
     const careerPicked = this.data.selected.careerCareerSkillRanks;
     const careerFreeRanks = careerSkillNames.map((name) => {
       const picked = careerPicked.includes(name);
       return { key: name, picked, canToggle: picked || careerPicked.length < freeRankCaps.career };
     });
-    const specSkillNames = Object.values(this.data.selected.specialization?.snapshot?.system?.careerSkills ?? {}).filter(Boolean);
+    const specSkillNames = freeSkillNamesFromSlots(this.data.selected.specialization?.snapshot?.system?.careerSkills);
     const specPicked = this.data.selected.specializationCareerSkillRanks;
     const specFreeRanks = specSkillNames.map((name) => {
       const picked = specPicked.includes(name);
@@ -733,7 +752,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   #normalizeXpSkillPurchases(data) {
+    this.#normalizeFreeRankSelections(data);
     normalizeXpSkillPurchases(data, this.buildDeps.creationDefaults.system.skills);
+  }
+
+  #normalizeFreeRankSelections(data) {
+    const careerSkillNames = freeSkillNamesFromSlots(data.selected?.career?.snapshot?.system?.careerSkills);
+    const specSkillNames = freeSkillNamesFromSlots(data.selected?.specialization?.snapshot?.system?.careerSkills);
+    data.selected.careerCareerSkillRanks = pruneFreeRankSelections(data.selected?.careerCareerSkillRanks, careerSkillNames);
+    data.selected.specializationCareerSkillRanks = pruneFreeRankSelections(data.selected?.specializationCareerSkillRanks, specSkillNames);
   }
 
   #ensureCreditPurchaseIds(data) {
@@ -1150,6 +1177,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static _onToggleCareerRank(event, target) {
     const skill = target.dataset.field;
+    if (!isSelectableSkillName(skill)) return;
     this.#mutate((data) => {
       const cap = getFreeRankCaps(data).career;
       const list = data.selected.careerCareerSkillRanks;
@@ -1162,6 +1190,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static _onToggleSpecRank(event, target) {
     const skill = target.dataset.field;
+    if (!isSelectableSkillName(skill)) return;
     this.#mutate((data) => {
       const cap = getFreeRankCaps(data).specialization;
       const list = data.selected.specializationCareerSkillRanks;

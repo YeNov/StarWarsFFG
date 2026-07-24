@@ -109,6 +109,16 @@ test("issue E: rank grants are deterministic (pcwRank<n>_slug), identical across
   assert.equal(a.system.attributes.pcwRank1_Astrogation.mod, "Astrogation");
 });
 
+test("rank grants ignore empty and (none) skill slots", () => {
+  const ref = {
+    uuid: "u", name: "Ace", type: "specialization", img: "i",
+    snapshot: { name: "Ace", type: "specialization", system: {}, effects: [] },
+  };
+  const out = toItemData(ref, { rankGrants: ["Astrogation", "(none)", "", "  ", "Coordination"] });
+  assert.deepEqual(Object.keys(out.system.attributes).sort(), ["pcwRank0_Astrogation", "pcwRank1_Coordination"]);
+  assert.equal(out.effects.length, 2);
+});
+
 test("N-5 / duplicate purchase: two identical gear refs → two independent items with distinct ids", async () => {
   const item0 = toItemData(gearRef());
   const item1 = toItemData(gearRef());
