@@ -282,9 +282,79 @@ export default class ItemHelpers {
    * @returns {Promise<void>}
    */
   static async syncTreeActiveEffects(item, tree, nodeLabel) {
+    // Thin document-applying wrapper around the pure reconcileTreeEffects() core.
+    // Read the existing effects as plain sources (mirroring exactly the four
+    // getFlag reads plus id/name the reconcile algorithm matches on), compute the
+    // patches without any document I/O, then apply them.
     const existingEffects = Array.from(item.getEmbeddedCollection("ActiveEffect"));
+    const effectSources = existingEffects.map((effect) => ({
+      id: effect.id,
+      name: effect.name,
+      flags: {
+        starwarsffg: {
+          treeActiveEffect: effect.getFlag("starwarsffg", "treeActiveEffect"),
+          treeAttribute: effect.getFlag("starwarsffg", "treeAttribute"),
+          treeNode: effect.getFlag("starwarsffg", "treeNode"),
+          treeNodeType: effect.getFlag("starwarsffg", "treeNodeType"),
+        },
+      },
+    }));
+
+    const { updates, creates } = ItemHelpers.reconcileTreeEffects(effectSources, tree, nodeLabel, item.img);
+    const byId = new Map(existingEffects.map((effect) => [effect.id, effect]));
+
+    for (const patch of updates) {
+      CONFIG.logger.debug(`located attribute granting AE (${patch.name}) from ${nodeLabel} (${patch.nodeName}), syncing changes and disabled=${patch.disabled}`);
+      await byId.get(patch.id).update({
+        changes: patch.changes,
+        disabled: patch.disabled,
+        flags: patch.flags,
+      });
+    }
+
+    if (creates.length) {
+      // Rebuild the create sources explicitly (dropping the log-only nodeName) so
+      // the created documents match the original toCreate shape exactly.
+      const toCreate = creates.map((create) => {
+        CONFIG.logger.debug(`located attribute granting AE (${create.name}) from ${nodeLabel} (${create.nodeName}), syncing changes and disabled=${create.disabled}`);
+        return {
+          name: create.name,
+          img: create.img,
+          changes: create.changes,
+          disabled: create.disabled,
+          flags: create.flags,
+        };
+      });
+      await item.createEmbeddedDocuments("ActiveEffect", toCreate);
+    }
+  }
+
+  /**
+   * Pure core of syncTreeActiveEffects: compute the Active-Effect patches that
+   * bring an item's tree effects in line with its node tree, WITHOUT touching any
+   * document. Operates on plain source arrays and returns patches; the wrapper
+   * above applies them. to-item-data.js (Stage 9) consumes this by injection.
+   *
+   * Algorithm preserved verbatim from the original syncTreeActiveEffects:
+   *  - build one desired effect per node attribute whose buildActiveEffectChanges
+   *    result is non-empty (attributes starting with "-=" are skipped);
+   *  - for each desired effect, claim an unclaimed effect matching the EXACT tree
+   *    flag tuple first, else one unclaimed same-name effect;
+   *  - a claimed effect yields an UPDATE patching ONLY changes / disabled
+   *    (= !islearned) / tree-flags; an unmatched desired effect yields an id-less
+   *    CREATE; unclaimed existing effects are NEVER deleted.
+   *
+   * @param {Array<{id:*, name:string, flags:object}>} effectSources  existing effect sources
+   * @param {object} tree        node map: { nodeKey: { attributes, islearned, name, img } }
+   * @param {string} nodeLabel   "talent" | "upgrade"
+   * @param {string} fallbackImg image to use when a node has no img (the item's img)
+   * @returns {{updates: Array<{id:*, name:string, nodeName:string, changes:Array, disabled:boolean, flags:object}>,
+   *            creates: Array<{name:string, img:string, nodeName:string, changes:Array, disabled:boolean, flags:object}>}}
+   */
+  static reconcileTreeEffects(effectSources, tree, nodeLabel, fallbackImg) {
     const desiredEffects = [];
-    const toCreate = [];
+    const updates = [];
+    const creates = [];
     const claimedEffects = new Set();
 
     for (const nodeKey of Object.keys(tree || {})) {
@@ -301,7 +371,7 @@ export default class ItemHelpers {
 
         desiredEffects.push({
           name: attrName,
-          img: node.img || item.img,
+          img: node.img || fallbackImg,
           changes,
           disabled: !node.islearned,
           flags: {
@@ -318,27 +388,30 @@ export default class ItemHelpers {
     }
 
     for (const effectData of desiredEffects) {
-      const flaggedEffect = existingEffects.find(effect =>
+      const flaggedEffect = effectSources.find((effect) =>
         !claimedEffects.has(effect.id) &&
-        effect.getFlag("starwarsffg", "treeActiveEffect") &&
-        effect.getFlag("starwarsffg", "treeAttribute") === effectData.flags.starwarsffg.treeAttribute &&
-        effect.getFlag("starwarsffg", "treeNode") === effectData.flags.starwarsffg.treeNode &&
-        effect.getFlag("starwarsffg", "treeNodeType") === effectData.flags.starwarsffg.treeNodeType
+        effect.flags?.starwarsffg?.treeActiveEffect &&
+        effect.flags?.starwarsffg?.treeAttribute === effectData.flags.starwarsffg.treeAttribute &&
+        effect.flags?.starwarsffg?.treeNode === effectData.flags.starwarsffg.treeNode &&
+        effect.flags?.starwarsffg?.treeNodeType === effectData.flags.starwarsffg.treeNodeType
       );
-      const unclaimedEffect = flaggedEffect || existingEffects.find(effect => !claimedEffects.has(effect.id) && effect.name === effectData.name);
+      const unclaimedEffect = flaggedEffect || effectSources.find((effect) => !claimedEffects.has(effect.id) && effect.name === effectData.name);
 
-      CONFIG.logger.debug(`located attribute granting AE (${effectData.name}) from ${nodeLabel} (${effectData.nodeName}), syncing changes and disabled=${effectData.disabled}`);
       if (unclaimedEffect) {
         claimedEffects.add(unclaimedEffect.id);
-        await unclaimedEffect.update({
+        updates.push({
+          id: unclaimedEffect.id,
+          name: effectData.name,
+          nodeName: effectData.nodeName,
           changes: effectData.changes,
           disabled: effectData.disabled,
           flags: effectData.flags,
         });
       } else {
-        toCreate.push({
+        creates.push({
           name: effectData.name,
           img: effectData.img,
+          nodeName: effectData.nodeName,
           changes: effectData.changes,
           disabled: effectData.disabled,
           flags: effectData.flags,
@@ -346,9 +419,73 @@ export default class ItemHelpers {
       }
     }
 
-    if (toCreate.length) {
-      await item.createEmbeddedDocuments("ActiveEffect", toCreate);
+    return { updates, creates };
+  }
+
+  /**
+   * Materialize a tree item's purchased nodes on a plain item SOURCE (no document),
+   * for the PC wizard's in-memory build. Deep-clones the source, sets `islearned` for
+   * the purchased node keys (specialization → system.talents; forcepower /
+   * signatureability → system.upgrades, per the syncAEStatus dispatch), then reconciles
+   * the clone's `effects` with the SAME pure algorithm the sheet uses
+   * (reconcileTreeEffects). N-7: flipping `islearned` alone leaves a node stat-inert —
+   * the effects must be re-synced so learned nodes are enabled.
+   *
+   * The production wizard binds this by injection through build-deps.js (DEV-16); the
+   * wizard's to-item-data.js must never import this poisoned module directly.
+   *
+   * @param {object} itemSource   a plain item source (e.g. a SelectionRef snapshot)
+   * @param {string[]} learnedKeys  purchased node keys
+   * @returns {object} a new, materialized item source
+   */
+  static materializeTreePurchases(itemSource, learnedKeys) {
+    const source = foundry.utils.deepClone(itemSource);
+
+    let treeKey;
+    let nodeLabel;
+    if (source.type === "specialization") {
+      treeKey = "talents";
+      nodeLabel = "talent";
+    } else if (source.type === "forcepower" || source.type === "signatureability") {
+      treeKey = "upgrades";
+      nodeLabel = "upgrade";
+    } else {
+      return source; // not a tree item — nothing to materialize
     }
+
+    const tree = source.system?.[treeKey] ?? {};
+    const learned = new Set(learnedKeys ?? []);
+    for (const nodeKey of Object.keys(tree)) {
+      if (nodeKey.startsWith("-=")) continue;
+      tree[nodeKey].islearned = learned.has(nodeKey);
+    }
+
+    const existingEffects = Array.isArray(source.effects) ? source.effects : (source.effects = []);
+    const effectSources = existingEffects.map((effect) => ({
+      id: effect._id,
+      name: effect.name,
+      flags: effect.flags ?? {},
+    }));
+    const { updates, creates } = ItemHelpers.reconcileTreeEffects(effectSources, tree, nodeLabel, source.img);
+
+    const byId = new Map(existingEffects.map((effect) => [effect._id, effect]));
+    for (const patch of updates) {
+      const effect = byId.get(patch.id);
+      effect.changes = patch.changes;
+      effect.disabled = patch.disabled;
+      effect.flags = patch.flags;
+    }
+    for (const create of creates) {
+      existingEffects.push({
+        name: create.name,
+        img: create.img,
+        changes: create.changes,
+        disabled: create.disabled,
+        flags: create.flags,
+      });
+    }
+
+    return source;
   }
 
   /**

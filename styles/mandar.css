@@ -4248,6 +4248,93 @@ img {
 .starwarsffg .item-sheet-species .sheet-body {
   height: calc(100% - 25.25rem);
 }
+.starwarsffg .item-sheet-species .species-creation {
+  padding: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-creation-grid,
+.starwarsffg .item-sheet-species .species-skill-choice-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+  align-items: end;
+}
+.starwarsffg .item-sheet-species .species-creation label span,
+.starwarsffg .item-sheet-species .species-skill-choice-fields label span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.15rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-header h3 {
+  margin: 0;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-row {
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  margin: 0 0 0.5rem;
+  padding: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-row legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  font-weight: bold;
+  padding: 0 0.35rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-actions {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-summary span {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 0.75rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-advanced {
+  margin-top: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-advanced summary {
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 0.78;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-advanced[open] summary {
+  margin-bottom: 0.5rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-skills {
+  grid-column: span 2;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-skills.is-hidden {
+  display: none;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-unique {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-unique span {
+  margin: 0;
+}
+.starwarsffg .item-sheet-species .species-skill-choice-empty {
+  margin: 0.5rem 0 0;
+  opacity: 0.75;
+}
 
 .starwarsffg .attributes {
   margin: 0;
@@ -5831,4 +5918,781 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   filter: brightness(0) invert(1);
 }
 
+/* PC Wizard — Background accordion. */
+.charCreator section.tab > p,
+.charCreator .empty-hint,
+.charCreator .pcw-tt-empty,
+.charCreator .xp-summary,
+.charCreator .gear-summary,
+.charCreator .starting-bonus > label,
+.charCreator .inv-filters > label,
+.charCreator .specialization-group > h4,
+.charCreator .bonus-block > h4,
+.charCreator .species-bonus-choice > h5,
+.charCreator .inv-title,
+.charCreator .inv-empty,
+.charCreator .sources-panel > h3,
+.charCreator .sources-panel > p {
+  color: #191813;
+  text-decoration: none;
+}
+.charCreator .starting-bonus > label,
+.charCreator .inv-filters > label {
+  border: 0;
+  background: transparent;
+}
 
+.charCreator .background-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.charCreator .background-group {
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.45);
+}
+.charCreator .background-group h4 {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+}
+.charCreator .background-toggle {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0 none;
+  border-radius: 0;
+  background: #415064;
+  color: #fff;
+  text-align: left;
+  text-transform: uppercase;
+}
+.charCreator .background-toggle:hover {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .background-group.is-active .background-toggle {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .background-random {
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0 none;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0;
+  background: #415064;
+  color: #fff;
+}
+.charCreator .background-random:hover {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .background-random:disabled {
+  color: rgba(255, 255, 255, 0.45);
+  cursor: default;
+}
+.charCreator .background-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.charCreator .background-body {
+  padding: 6px;
+}
+.charCreator .pickable-row.is-selected {
+  background: rgba(60, 140, 60, 0.18);
+}
+.charCreator .pickable-row.is-selected td {
+  background: rgba(60, 140, 60, 0.18);
+}
+.charCreator .item-pill-img[data-action="open-item"] {
+  cursor: pointer;
+}
+.charCreator .list-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.charCreator .list-filters input[type="search"] {
+  flex: 0 1 220px;
+}
+.charCreator .list-random {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+}
+.charCreator .list-selected {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.charCreator .list-selected li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 3px 7px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(60, 140, 60, 0.18);
+  color: #191813;
+}
+.charCreator .list-selected li i {
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+.charCreator .list-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.charCreator .list-group {
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.45);
+}
+.charCreator .list-group h4 {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+}
+.charCreator .list-toggle {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0 none;
+  border-radius: 0;
+  background: #415064;
+  color: #fff;
+  text-align: left;
+  text-transform: uppercase;
+}
+.charCreator .list-toggle:hover,
+.charCreator .list-group.is-active .list-toggle {
+  background: rgba(73, 12, 11, 0.85);
+}
+.charCreator .list-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.charCreator .list-body {
+  padding: 6px;
+}
+
+/* PC Wizard — Content sources panel. */
+.charCreator .sources-panel {
+  margin: 8px;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(245, 241, 232, 0.94);
+  color: #1f2933;
+}
+.charCreator .sources-panel h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+.charCreator .sources-panel p {
+  margin: 0 0 8px;
+}
+.charCreator .source-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 4px 12px;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+.charCreator .source-group legend {
+  padding: 0 4px;
+  font-weight: bold;
+}
+.charCreator label.source-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  border: 0 none;
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.charCreator .source-missing {
+  color: #8b1e1e;
+  font-weight: bold;
+}
+.charCreator .source-toggle input {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+}
+
+/* PC Wizard — Force Powers: mentor-discount checkbox (rows use the shared pickable-table). */
+.charCreator .pickable-mentor .fp-discount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  border: 0 none;
+  white-space: nowrap;
+  font-size: 0.85em;
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  color: inherit;
+  cursor: pointer;
+}
+.charCreator .fp-discount input {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+}
+/* A spacer cell after the cost absorbs the slack, so name/mentor/cost stay packed on the left
+   and the cost column grows rightward (toggling the discount changes its width) into the spacer
+   without shifting the checkbox, the cost's left edge, or the Buy button. */
+.charCreator .pickable-spacer {
+  width: 100%;
+}
+.charCreator .pickable-cost {
+  white-space: nowrap;
+}
+.charCreator .pickable-stats {
+  min-width: 0;
+}
+.charCreator .inv-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 1px 6px 1px 0;
+  white-space: nowrap;
+}
+.charCreator .inv-stat-label {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.charCreator .inv-stat b {
+  font-weight: bold;
+}
+/* Right-align the Buy/Refund button so its right edge is fixed (the column is sized to the wider
+   "Refund", so a "Buy" would otherwise stop short and appear to jump). The buttons are block-level
+   (display:flex) in this theme, so text-align can't move them — margin-left:auto does. */
+.charCreator .pickable-action {
+  text-align: right;
+}
+.charCreator .pickable-action button {
+  margin-left: auto;
+}
+.charCreator .general-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  color: #191813;
+}
+.charCreator .general-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: bold;
+}
+.charCreator .general-fields input {
+  width: 100%;
+}
+/* xp_spend skills table: lay the -/+ buttons inline instead of stacked (theme buttons are
+   block-level, so they stack in the cell by default). */
+.charCreator .xp-col-buttons {
+  white-space: nowrap;
+}
+.charCreator .xp-skill-btn {
+  display: inline-flex;
+  width: auto;
+  min-width: 0;
+  margin: 0 2px;
+  padding: 2px 8px;
+}
+.charCreator .xp-characteristics {
+  gap: 10px;
+}
+.charCreator .xp-characteristic-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 0;
+  margin: 0 2px 4px;
+  padding: 2px 6px;
+  line-height: 1.2;
+}
+.charCreator .xp-characteristic-cost {
+  margin-top: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+  opacity: 0.82;
+}
+/* xp_spend "Bonus skills" sub-view: two stacked career/spec bonus-skill tables. */
+.charCreator .bonus-block {
+  margin-bottom: 16px;
+}
+.charCreator .bonus-block h4 {
+  margin: 0 0 6px;
+}
+.charCreator .bonus-skills tr.is-picked {
+  background: rgba(60, 140, 60, 0.18);
+}
+.charCreator .skill-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin: 0 6px 0 0;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a1a1a;
+  font: bold 10px/1 sans-serif;
+  vertical-align: middle;
+  cursor: pointer;
+}
+/* Skill-description modal (a top-level DialogV2, outside .charCreator): cap height with a
+   scrollbar, and force the SW FFG dice/result glyphs white so they show on the dark dialog. */
+.ffg-skill-info {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+/* Dark-dialog dice glyphs — mirror the Codex dark scheme (cdx-dark.css): whiten the black result
+   symbols, keep setback + the dark-side Force pip black with a white outline, and leave the
+   coloured dice (difficulty, boost, ability, challenge, proficiency) untouched. */
+.ffg-skill-info span.dietype.setback,
+.ffg-skill-info span.dietype.dark {
+  color: #000;
+  -webkit-text-stroke: 1px #fff;
+  paint-order: stroke fill;
+}
+.ffg-skill-info span.dietype:is(.advantage, .despair, .forcepoint, .failure, .force, .light, .success, .threat, .triumph) {
+  color: #fff;
+}
+/* Review tab status checklist. */
+.charCreator .review-steps {
+  color: #191813;
+}
+.charCreator .review-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 12px;
+  padding-left: 18px;
+}
+.charCreator .review-step {
+  line-height: 1.35;
+}
+.charCreator .review-status {
+  display: inline-flex;
+  min-width: 96px;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(65, 80, 100, 0.18);
+  color: #191813;
+  font-size: 0.82em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.charCreator .review-step.is-complete .review-status {
+  background: rgba(42, 110, 42, 0.22);
+}
+.charCreator .review-step.is-incomplete .review-status {
+  background: rgba(176, 42, 42, 0.18);
+  color: #8b1e1e;
+}
+.charCreator .review-step.is-warning .review-status {
+  background: rgba(210, 160, 35, 0.28);
+  color: #5b3b00;
+}
+
+/* ------------------------------------------------------------------ *
+ * PC Wizard — xp_spend view switcher + specialization talent tree     *
+ * ------------------------------------------------------------------ */
+.charCreator .xp-switcher {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.charCreator .xp-switch {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 4px 12px;
+  opacity: 0.65;
+}
+.charCreator .xp-switch.is-active {
+  opacity: 1;
+  font-weight: bold;
+  box-shadow: inset 0 -2px 0 currentColor;
+}
+.charCreator .pcw-tt-title {
+  font-weight: bold;
+  margin-bottom: 6px;
+  color: #191813;
+}
+.charCreator .pcw-tt-empty {
+  opacity: 0.8;
+  font-style: italic;
+  color: #191813;
+}
+.charCreator .pcw-tt-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.charCreator .pcw-tt-tier {
+  flex: 0 0 68px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 0.78em;
+  color: #191813;
+}
+.charCreator .pcw-tt-tiercost {
+  font-weight: bold;
+  color: #4f251f;
+}
+.charCreator .pcw-tt-cells {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.charCreator .pcw-tt-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid rgba(45, 36, 31, 0.35);
+  border-radius: 3px;
+  min-height: 62px;
+  background: rgba(118, 99, 82, 0.16);
+  color: #191813;
+}
+.charCreator .pcw-tt-cell.is-open {
+  border-color: rgba(84, 105, 78, 0.65);
+  background: rgba(116, 137, 100, 0.34);
+}
+.charCreator .pcw-tt-cell.is-learned {
+  border-color: #315f34;
+  background: rgba(75, 120, 71, 0.52);
+}
+.charCreator .pcw-tt-cell.is-locked {
+  border-color: rgba(65, 80, 100, 0.28);
+  background: rgba(65, 80, 100, 0.18);
+}
+.charCreator .pcw-tt-name {
+  font-weight: bold;
+  font-size: 0.84em;
+  padding-right: 16px; /* clear the corner "?" help button */
+  color: #191813;
+}
+.charCreator .pcw-tt-activation {
+  font-size: 0.72em;
+  color: #4f3b31;
+}
+.charCreator .pcw-tt-cost {
+  font-size: 0.75em;
+  margin-top: auto;
+  color: #5b4a40;
+}
+.charCreator .pcw-tt-btn {
+  flex: 0 0 auto;
+  width: auto;
+  margin-top: auto;
+  padding: 2px 6px;
+  font-size: 0.78em;
+}
+/* Tree connectors — drawn in the grid gaps on the lower/left node (has-top joins upward,
+   has-right joins to the next column); solid green when both endpoints are learned. */
+.charCreator .pcw-tt-cell.has-top::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -7px;
+  width: 2px;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.charCreator .pcw-tt-cell.top-active::before {
+  background: #3a7d3a;
+}
+.charCreator .pcw-tt-cell.has-right::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: -6px;
+  width: 8px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.charCreator .pcw-tt-cell.right-active::after {
+  background: #3a7d3a;
+}
+.charCreator .pcw-tt-cell .pcw-tt-help {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a1a1a;
+  font: bold 12px/1 sans-serif;
+  cursor: help;
+  user-select: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * PC Wizard — Inventory tab: Weapons/Armor/Gear switcher + owned/shop  *
+ * ------------------------------------------------------------------ */
+.charCreator .inv-switcher {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.charCreator .inv-switch {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 4px 12px;
+  opacity: 0.65;
+}
+.charCreator .inv-switch.is-active {
+  opacity: 1;
+  font-weight: bold;
+  box-shadow: inset 0 -2px 0 currentColor;
+}
+.charCreator .inv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.charCreator .inv-filters input[type="search"] {
+  flex: 0 1 180px;
+}
+.charCreator .inv-filters input[type="number"] {
+  width: 68px;
+}
+.charCreator .inv-price {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.charCreator .inv-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr));
+  gap: 10px;
+  align-items: flex-start;
+}
+.charCreator .inv-owned,
+.charCreator .inv-shop {
+  min-width: 0;
+  margin-bottom: 12px;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.charCreator .inv-columns .pickable-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.charCreator .inv-columns .pickable-pill {
+  width: 42px;
+}
+.charCreator .inv-columns .pickable-name {
+  width: 28%;
+  overflow-wrap: anywhere;
+}
+.charCreator .inv-columns .pickable-stats {
+  width: 30%;
+  white-space: normal;
+}
+.charCreator .inv-columns .pickable-cost {
+  width: 70px;
+  text-align: right;
+}
+.charCreator .inv-columns .pickable-action {
+  width: 110px;
+}
+.charCreator .inv-columns .pickable-action button {
+  min-width: 0;
+  width: auto;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+.charCreator .inv-actions {
+  white-space: nowrap;
+}
+.charCreator .inv-actions button {
+  display: inline-flex;
+  vertical-align: middle;
+}
+.charCreator .inv-icon-btn {
+  justify-content: center;
+  width: 28px !important;
+  min-width: 28px !important;
+  margin-right: 4px;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+.charCreator .inv-icon-btn.is-active {
+  background: rgba(73, 12, 11, 0.85);
+  color: #fff;
+}
+.charCreator .inv-attached-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.charCreator .inv-attached {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(18, 24, 36, 0.35);
+  font-size: 0.82em;
+  overflow-wrap: anywhere;
+}
+.charCreator .inv-attached i {
+  cursor: pointer;
+}
+.charCreator .inv-attached i[data-action="open-item"],
+.charCreator .inv-attachment-name i {
+  margin-right: 2px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.charCreator .inv-attached i[data-action="open-item"]:hover,
+.charCreator .inv-attachment-name i:hover {
+  opacity: 1;
+}
+.charCreator .inv-attachment-panel-row td {
+  padding-top: 0;
+}
+.charCreator .inv-attachment-panel {
+  margin: 0 0 6px 42px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.14);
+}
+.charCreator .inv-attachment-head,
+.charCreator .inv-attachment-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.charCreator .inv-attachment-head {
+  margin-bottom: 6px;
+  font-size: 0.9em;
+}
+.charCreator .inv-attachment-toggle {
+  justify-self: end;
+  font-size: 0.9em;
+}
+.charCreator .inv-attachment-toggle.is-active {
+  background: rgba(73, 12, 11, 0.85);
+  color: #fff;
+}
+.charCreator .inv-attachment-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.charCreator .inv-attachment-choice {
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.charCreator .inv-attachment-choice.is-unavailable {
+  opacity: 0.64;
+}
+.charCreator .inv-attachment-choice button {
+  width: auto;
+  min-width: 92px;
+}
+.charCreator .inv-attachment-name {
+  overflow-wrap: anywhere;
+}
+.charCreator .inv-title {
+  margin-bottom: 4px;
+  font-weight: bold;
+  font-size: 0.78em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.charCreator .inv-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 40px;
+  padding: 2px 8px;
+}
+.charCreator .inv-empty {
+  font-style: italic;
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+.charCreator .inv-encumbrance {
+  margin-left: 16px;
+}
+.charCreator .inv-encumbrance.is-over b {
+  color: #b02a2a;
+}
+.charCreator .item-pill-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border: none;
+  border-radius: 3px;
+  vertical-align: middle;
+}

@@ -1,4 +1,3 @@
-import PopoutEditor from "../popout-editor.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 
 /**
@@ -43,86 +42,25 @@ export class ActorFFG extends Actor {
       return super.create(createData, options);
     }
 
-    switch (createData.type) {
-      case "minion":
-        createData.prototypeToken = {
-          actorLink: false,
-          disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
-          bar1: {
-            attribute: "stats.wounds",
-          },
-        };
-        break;
-      case "character":
-        createData.prototypeToken = {
-          actorLink: true,
-          disposition: CONST.TOKEN_DISPOSITIONS.FRIENDLY,
-          bar1: {
-            attribute: "stats.wounds",
-          },
-          bar2: {
-            attribute: "stats.strain",
-          },
-        };
-        break;
-      case "rival":
-        // Rivals have no strain threshold, so no explicit bar2 - as with minions
-        // above. Note this does not mean "no bar2": omitting it lets bar2 fall
-        // back to system.json's secondaryTokenAttribute ("strain"), which is not
-        // a real path on any actor here (the data lives at stats.strain), so no
-        // bar renders. Minion relies on the same fallback.
-        createData.prototypeToken = {
-          actorLink: false,
-          disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
-          bar1: {
-            attribute: "stats.wounds",
-          },
-          prependAdjective: game.settings.get("starwarsffg", "RivalTokenPrepend"),
-        };
-        break;
-      case "nemesis":
-        createData.prototypeToken = {
-          actorLink: true,
-          disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
-          bar1: {
-            attribute: "stats.wounds",
-          },
-          bar2: {
-            attribute: "stats.strain",
-          },
-        };
-        break;
-      case "vehicle":
-        createData.prototypeToken = {
-          actorLink: true,
-          bar1: {
-            attribute: "stats.hullTrauma",
-          },
-          bar2: {
-            attribute: "stats.systemStrain",
-          },
-        };
-        break;
+    // The per-type prototypeToken defaults now live in the shared
+    // getActorCreationDefaults() factory (below), so the wizard can reuse the
+    // exact same token blocks. Only the prototypeToken is consumed here; unknown
+    // types get no factory prototypeToken (undefined) and pass through unchanged,
+    // exactly as the previous switch (which had no default case) did.
+    const defaults = getActorCreationDefaults(createData.type);
+    if (defaults.prototypeToken) {
+      createData.prototypeToken = defaults.prototypeToken;
     }
     return super.create(createData, options);
   }
 
   /** @override **/
   async _preCreate(data, operation, user) {
-    const defaultImages = {
-      character: "systems/starwarsffg/images/defaults/actors/character.png",
-      minion: "systems/starwarsffg/images/defaults/actors/minion.png",
-      nemesis: "systems/starwarsffg/images/defaults/actors/nemesis.png",
-      rival: "systems/starwarsffg/images/defaults/actors/rival.png",
-      vehicle: "systems/starwarsffg/images/defaults/actors/vehicle.png",
-    }
     if (game.user.id === user.id && (!data?.img || data?.img === "icons/svg/mystery-man.svg")) {
-      if (Object.keys(defaultImages).includes(data.type)) {
-        this.updateSource({img: defaultImages[data.type]});
-      } else {
-        // fall back to the previous default
-        this.updateSource({img: "icons/svg/mystery-man.svg"});
-      }
+      // getActorCreationDefaults().img resolves the per-type default image, and
+      // falls back to the previous default ("icons/svg/mystery-man.svg") for any
+      // type not in the map — the exact branch the inline if/else used to take.
+      this.updateSource({img: getActorCreationDefaults(data.type).img});
     }
     return {data, operation, user};
   }
@@ -134,6 +72,12 @@ export class ActorFFG extends Actor {
    *  any modifications from Active Effects are suspended and we can do simple math
    * It's somewhat assumed that direct characteristic modifications are being done during character creation
    * Anything else should be coming from Active Effects (e.g., on a talent giving +1 Brawn)
+   *
+   * The pure, Foundry-free counterpart of the derived-stat math below is exported
+   * as applyCharacteristicDeltas() at the bottom of this module — the PC wizard
+   * applies characteristic increases to a plain system-source object without a
+   * live document. Keep the two in sync: a change to the wounds/soak/encumbrance
+   * (Brawn) or strain (Willpower) derivation here should be mirrored there.
    */
   async _preUpdate(changes, options, user) {
     /**
@@ -285,6 +229,10 @@ export class ActorFFG extends Actor {
 
   _prepareSharedData(actorData) {
     const data = actorData.system;
+    // If the line below is ever restored, import PopoutEditor LAZILY (await
+    // import("../popout-editor.js")) inside an async caller — a module-scope
+    // import re-poisons this file for Node (popout-editor.js destructures
+    // foundry.applications.api at load). See helpers/modifiers.js for the pattern.
     //data.biography = PopoutEditor.replaceRollTags(data.biography, actorData);
 
     // localize characteristic names
@@ -831,4 +779,166 @@ export class ActorFFG extends Actor {
     // mutations above are idempotent, so running once per phase is safe.
     return super.applyActiveEffects(...args);
   }
+}
+
+/**
+ * Shared creation defaults for a new actor of the given type.
+ *
+ * This is the single source of truth for the per-type prototypeToken blocks and
+ * default images that ActorFFG.create()/_preCreate() apply, factored out so the
+ * PC wizard can build an actor with identical defaults without going through the
+ * document create flow.
+ *
+ * Returns fresh clones each call so callers may mutate the result freely:
+ *  - img: the per-type default image, falling back to "icons/svg/mystery-man.svg"
+ *         for any unknown type (matching _preCreate's else branch).
+ *  - prototypeToken: the partial token defaults for the type, or undefined for an
+ *         unknown type. Deliberately carries NO name and NO texture.src: core's
+ *         _initializeSource (common/documents/actor.mjs:93-97) fills both from the
+ *         actor's own final name/img, so baking them here would fight core.
+ *  - system: the type's system defaults, taken from a throwaway document. A bare
+ *         `new Actor.implementation()` runs neither create() nor _preCreate(), so
+ *         its prototypeToken/name/img are meaningless and discarded — token and
+ *         image MUST come from the tables above.
+ *
+ * @param {string} type  The actor type ("character", "minion", "rival", ...).
+ * @returns {{img: string, prototypeToken: object|undefined, system: object|undefined}}
+ */
+export function getActorCreationDefaults(type) {
+  const defaultImages = {
+    character: "systems/starwarsffg/images/defaults/actors/character.png",
+    minion: "systems/starwarsffg/images/defaults/actors/minion.png",
+    nemesis: "systems/starwarsffg/images/defaults/actors/nemesis.png",
+    rival: "systems/starwarsffg/images/defaults/actors/rival.png",
+    vehicle: "systems/starwarsffg/images/defaults/actors/vehicle.png",
+  };
+
+  // Per-type prototypeToken defaults, byte-for-byte the blocks that used to live
+  // inline in create()'s switch. Built per-call (fresh object) and only for the
+  // requested type, so the rival RivalTokenPrepend setting is read exactly when
+  // — and only when — a rival is created, as before.
+  let prototypeToken;
+  switch (type) {
+    case "minion":
+      prototypeToken = {
+        actorLink: false,
+        disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
+        bar1: {
+          attribute: "stats.wounds",
+        },
+      };
+      break;
+    case "character":
+      prototypeToken = {
+        actorLink: true,
+        disposition: CONST.TOKEN_DISPOSITIONS.FRIENDLY,
+        bar1: {
+          attribute: "stats.wounds",
+        },
+        bar2: {
+          attribute: "stats.strain",
+        },
+      };
+      break;
+    case "rival":
+      // Rivals have no strain threshold, so no explicit bar2 - as with minions
+      // above. Note this does not mean "no bar2": omitting it lets bar2 fall
+      // back to system.json's secondaryTokenAttribute ("strain"), which is not
+      // a real path on any actor here (the data lives at stats.strain), so no
+      // bar renders. Minion relies on the same fallback.
+      prototypeToken = {
+        actorLink: false,
+        disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
+        bar1: {
+          attribute: "stats.wounds",
+        },
+        prependAdjective: game.settings.get("starwarsffg", "RivalTokenPrepend"),
+      };
+      break;
+    case "nemesis":
+      prototypeToken = {
+        actorLink: true,
+        disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE,
+        bar1: {
+          attribute: "stats.wounds",
+        },
+        bar2: {
+          attribute: "stats.strain",
+        },
+      };
+      break;
+    case "vehicle":
+      prototypeToken = {
+        actorLink: true,
+        bar1: {
+          attribute: "stats.hullTrauma",
+        },
+        bar2: {
+          attribute: "stats.systemStrain",
+        },
+      };
+      break;
+    default:
+      prototypeToken = undefined;
+  }
+
+  // The type's system defaults, from a throwaway document. Wrapped defensively:
+  // an unknown type would make the constructor throw, and create()/_preCreate()
+  // must still pass such a type straight through to super.create() to surface the
+  // real validation error — not to a construction error raised here.
+  let system;
+  try {
+    const throwaway = new Actor.implementation({ type, name: "New Actor" });
+    // Use the CLEAN _source system, not the prepared `.system`: feeding an
+    // already-prepared system back into a fresh Actor construction makes the
+    // DataModel drop source skill ranks (derived artifacts confuse the re-prep).
+    // prepareDerivedData recomputes every derived value from this clean source.
+    system = foundry.utils.deepClone(throwaway._source.system);
+  } catch (e) {
+    system = undefined;
+  }
+
+  return {
+    img: Object.keys(defaultImages).includes(type) ? defaultImages[type] : "icons/svg/mystery-man.svg",
+    prototypeToken,
+    system,
+  };
+}
+
+/**
+ * Pure counterpart of ActorFFG#_preUpdate's derived-stat math.
+ *
+ * Applies a set of characteristic increases to a plain system-source object (no
+ * live document required), returning a NEW object — the input is not mutated. The
+ * PC wizard uses this to build a character's final stats offline.
+ *
+ * For each `{ characteristic: N }` entry it adds N to that characteristic's value,
+ * and mirrors _preUpdate's derived-stat rules:
+ *  - Brawn also adds N to stats.wounds.max, stats.soak.value, stats.encumbrance.max
+ *  - Willpower also adds N to stats.strain.max
+ *
+ * Deliberately NOT reproduced from _preUpdate: the legacy mirror-writes of the
+ * changed characteristic object into system.stats.Brawn / system.stats.Willpower.
+ * Those exist only to feed the live update pipeline and have no meaning on a plain
+ * source object, so they are intentionally omitted here.
+ *
+ * @param {object} systemSource  A plain actor system source ({characteristics, stats, ...}).
+ * @param {Object<string, number>} deltas  Map of characteristic name → increase.
+ * @returns {object} A new system source with the deltas applied.
+ */
+export function applyCharacteristicDeltas(systemSource, deltas) {
+  const out = foundry.utils.deepClone(systemSource);
+  for (const [characteristic, delta] of Object.entries(deltas ?? {})) {
+    if (!delta) continue;
+    out.characteristics[characteristic].value += delta;
+    if (characteristic === "Brawn") {
+      out.stats.wounds.max += delta;
+      out.stats.soak.value += delta;
+      out.stats.encumbrance.max += delta;
+    }
+    if (characteristic === "Willpower") {
+      out.stats.strain.max += delta;
+    }
+  }
+  return out;
 }

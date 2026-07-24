@@ -1,0 +1,122 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="gear">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Credits.Label" }}</p>
+  <div class="gear-summary">Credits: <b>{{ availableCredits }}</b> / {{ totalCredits }}<span class="inv-encumbrance{{#if encumbrance.over}} is-over{{/if}}">Encumbrance: <b>{{ encumbrance.value }}</b> / {{ encumbrance.max }}</span></div>
+
+  <div class="inv-switcher">
+    <button type="button" class="inv-switch{{#if (eq inventoryView "weapon")}} is-active{{/if}}" data-action="inventory-view" data-view="weapon">Weapons</button>
+    <button type="button" class="inv-switch{{#if (eq inventoryView "armour")}} is-active{{/if}}" data-action="inventory-view" data-view="armour">Armor</button>
+    <button type="button" class="inv-switch{{#if (eq inventoryView "gear")}} is-active{{/if}}" data-action="inventory-view" data-view="gear">Gear</button>
+  </div>
+
+  <div class="inv-filters">
+    <input type="search" data-field="search" value="{{ inventoryFilters.search }}" placeholder="Search name">
+    <label class="inv-price">Min <input type="number" min="0" data-field="minPrice" value="{{ inventoryFilters.minPrice }}"></label>
+    <label class="inv-price">Max <input type="number" min="0" data-field="maxPrice" value="{{ inventoryFilters.maxPrice }}"></label>
+    <button type="button" class="inv-btn inv-reset" data-action="clear-gear-filters">Reset</button>
+  </div>
+
+  <div class="inv-columns">
+    <div class="inv-owned">
+      <div class="inv-title">Owned</div>
+      {{#if ownedItems.length}}
+        <table class="pickable-table">
+          <tbody>
+            {{#each ownedItems as |item|}}
+              <tr class="pickable-row {{#if item.attachmentsOpen}}is-selected{{/if}}" data-uuid="{{ item.uuid }}" data-purchase-id="{{item.id}}">
+                <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=item)}}</td>
+                <td class="pickable-name">
+                  {{ item.name }}
+                  {{#if item.attachedItems.length}}
+                    <div class="inv-attached-list">
+                      {{#each item.attachedItems as |attachment|}}
+                        <span class="inv-attached">
+                          <i class="fas fa-circle-info" data-action="open-item" data-uuid="{{attachment.uuid}}" data-tooltip="Open attachment"></i>
+                          {{attachment.name}} <b>{{attachment.hardpoints}} HP</b>
+                          <i class="fas fa-times" data-action="refund-attachment" data-purchase-id="{{attachment.id}}"></i>
+                        </span>
+                      {{/each}}
+                    </div>
+                  {{/if}}
+                </td>
+                {{#if ../showInventoryStats}}
+                <td class="pickable-stats">
+                  {{#each item.stats as |stat|}}
+                    <span class="inv-stat"><span class="inv-stat-label">{{stat.label}}</span><b>{{stat.value}}</b></span>
+                  {{/each}}
+                </td>
+                {{/if}}
+                <td class="pickable-cost">{{ item.cost }} cr</td>
+                <td class="pickable-action inv-actions">
+                  {{#if item.attachable}}
+                    <button type="button" class="inv-icon-btn{{#if item.attachmentsOpen}} is-active{{/if}}" data-action="attachment-target" data-purchase-id="{{item.id}}" data-tooltip="Attachments"><i class="fas fa-wrench"></i></button>
+                  {{/if}}
+                  <button type="button" data-action="refund-gear" data-purchase-id="{{ item.id }}">Refund</button>
+                </td>
+              </tr>
+              {{#if item.attachmentsOpen}}
+                <tr class="inv-attachment-panel-row">
+                  <td colspan="{{#if ../showInventoryStats}}5{{else}}4{{/if}}">
+                    <div class="inv-attachment-panel">
+                      <div class="inv-attachment-head">
+                        <b>{{item.name}}</b>
+                        <span>{{item.usedHardpoints}} / {{item.hardpoints}} HP used</span>
+                        <span>{{item.remainingHardpoints}} HP free</span>
+                        <button type="button" class="inv-btn inv-attachment-toggle{{#if ../attachmentShowOnlyAvailable}} is-active{{/if}}" data-action="toggle-available-attachments">Show only available</button>
+                      </div>
+                      {{#if ../availableAttachments.length}}
+                        <div class="inv-attachment-shop">
+                          {{#each ../availableAttachments as |attachment|}}
+                            <div class="inv-attachment-choice{{#unless attachment.canInstall}} is-unavailable{{/unless}}">
+                              <span class="inv-attachment-name">
+                                <i class="fas fa-circle-info" data-action="open-item" data-uuid="{{attachment.uuid}}" data-tooltip="Open attachment"></i>
+                                {{attachment.name}}
+                              </span>
+                              <span>{{attachment.hardpoints}} HP</span>
+                              <span>{{attachment.price}} cr</span>
+                              <button type="button" data-action="buy-attachment" data-target-id="{{attachment.targetId}}" data-uuid="{{attachment.uuid}}" {{#unless attachment.canInstall}}disabled{{/unless}}>Buy & Attach</button>
+                            </div>
+                          {{/each}}
+                        </div>
+                      {{else}}
+                        <div class="inv-empty">No compatible attachments fit this item.</div>
+                      {{/if}}
+                    </div>
+                  </td>
+                </tr>
+              {{/if}}
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <div class="inv-empty">Nothing owned in this category.</div>
+      {{/if}}
+    </div>
+
+    <div class="inv-shop">
+      <div class="inv-title">Shop</div>
+      {{#if shopItems.length}}
+        <table class="pickable-table">
+          <tbody>
+            {{#each shopItems as |item|}}
+              <tr class="pickable-row" data-uuid="{{ item.uuid }}">
+                <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=item)}}</td>
+                <td class="pickable-name">{{ item.name }}</td>
+                {{#if ../showInventoryStats}}
+                <td class="pickable-stats">
+                  {{#each item.stats as |stat|}}
+                    <span class="inv-stat"><span class="inv-stat-label">{{stat.label}}</span><b>{{stat.value}}</b></span>
+                  {{/each}}
+                </td>
+                {{/if}}
+                <td class="pickable-cost">{{ item.price }} cr</td>
+                <td class="pickable-action"><button type="button" data-action="buy-gear" data-uuid="{{ item.uuid }}" {{#unless item.affordable}}disabled{{/unless}}>Buy</button></td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <div class="inv-empty">No items match.</div>
+      {{/if}}
+    </div>
+  </div>
+</section>

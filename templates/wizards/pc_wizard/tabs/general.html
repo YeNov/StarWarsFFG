@@ -1,0 +1,16 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="general">
+  <div class="general-fields">
+    <label>
+      <span>Character name</span>
+      <input type="text" data-field="characterName" name="characterName" value="{{ data.identity.name }}">
+    </label>
+    <label>
+      <span>Extra XP</span>
+      <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="xp" name="extraXp" value="{{ data.grants.extra.xp }}">
+    </label>
+    <label>
+      <span>Extra credits</span>
+      <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="credits" name="extraCredits" value="{{ data.grants.extra.credits }}">
+    </label>
+  </div>
+</section>

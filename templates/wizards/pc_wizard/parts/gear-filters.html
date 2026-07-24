@@ -1,0 +1,31 @@
+{{!-- Gear filters (D6). GM gates stay at load; there is NO reveal toggle. Filtering is
+      pure in _prepareContext; these controls just carry the filter state. --}}
+<div class="gear-filters" data-part="gear-filters">
+  <input type="search" name="gearSearch" value="{{ filters.search }}"
+         placeholder="{{ localize 'SWFFG.CharacterCreator.Gear.Filter.Search' }}" data-field="search">
+  <label>{{ localize "SWFFG.CharacterCreator.Gear.Filter.MinPrice" }}
+    <input type="number" name="gearMinPrice" value="{{ filters.minPrice }}" data-field="minPrice">
+  </label>
+  <label>{{ localize "SWFFG.CharacterCreator.Gear.Filter.MaxPrice" }}
+    <input type="number" name="gearMaxPrice" value="{{ filters.maxPrice }}" data-field="maxPrice">
+  </label>
+  <label>{{ localize "SWFFG.CharacterCreator.Gear.Filter.MaxRarity" }}
+    <input type="number" name="gearMaxRarity" value="{{ filters.maxRarity }}" max="{{ gmMaxRarity }}" data-field="maxRarity">
+  </label>
+  {{#if allowRestricted}}
+    <label>{{ localize "SWFFG.CharacterCreator.Gear.Filter.Restricted" }}
+      <select name="gearRestricted" data-field="restricted">
+        <option value="any" {{#if (eq filters.restricted "any")}}selected{{/if}}>Any</option>
+        <option value="only" {{#if (eq filters.restricted "only")}}selected{{/if}}>Only</option>
+        <option value="none" {{#if (eq filters.restricted "none")}}selected{{/if}}>None</option>
+      </select>
+    </label>
+  {{/if}}
+  <div class="gear-categories">
+    {{#each categories as |category|}}
+      <button type="button" class="category-chip {{#if category.active}}active{{/if}}"
+              data-action="toggle-category" data-field="{{ category.key }}">{{ category.label }}</button>
+    {{/each}}
+  </div>
+  <button type="button" data-action="clear-gear-filters">{{ localize "SWFFG.CharacterCreator.Gear.Filter.Clear" }}</button>
+</div>

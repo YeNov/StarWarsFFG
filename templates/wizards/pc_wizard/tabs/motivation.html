@@ -1,0 +1,20 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="motivation">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Motivation.Label" }}</p>
+  <div class="list-filters">
+    <input type="search" data-field="listSearch" data-pool-key="motivation" value="{{motivationSearch}}" placeholder="Search name">
+    <button type="button" class="list-random" data-action="random-list-pick" data-pool-key="motivation" data-tooltip="Pick random motivation" {{#unless motivationCanRandom}}disabled{{/unless}}>
+      <i class="fas fa-dice"></i>
+    </button>
+    <ul class="list-selected selected-motivations">
+      {{#each data.selected.motivations as |motivation|}}
+        <li data-uuid="{{ motivation.uuid }}">
+          {{ motivation.name }}
+          <i class="fas fa-trash" data-action="remove-motivation" data-uuid="{{ motivation.uuid }}"></i>
+        </li>
+      {{/each}}
+    </ul>
+  </div>
+  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+      (object rows=motivationRows poolKey="motivation")}}
+  <p class="empty-hint" data-list-empty {{#unless motivationNoMatches}}hidden{{/unless}}>No motivations match.</p>
+</section>

@@ -1,0 +1,52 @@
+<div class="actor_summary">
+  <div class="stats container flex-group-center">
+    <!-- wounds -->
+    <div class="attribute">
+      <div class="block-background">
+        <div class="block-title">
+          Wounds
+        </div>
+        <div class="block-attribute">
+          <div class="block-value">
+            <input type="number" value="{{ actor.system.stats.wounds.max }}" disabled="">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- strain -->
+    <div class="attribute">
+      <div class="block-background">
+        <div class="block-title">
+          Strain
+        </div>
+        <div class="block-attribute">
+          <div class="block-value">
+            <input type="number" value="{{ actor.system.stats.strain.max }}" disabled="">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- soak -->
+    <div class="attribute">
+      <div class="block-background">
+        <div class="block-title">
+          Soak
+        </div>
+        <div class="block-attribute">
+          <div class="block-value">
+            <input type="number" value="{{ actor.system.stats.soak.value }}" disabled="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="skills">
+    <div class="skills skills-container">
+      {{> "systems/starwarsffg/templates/wizards/pc_wizard/preview/skills.html" (
+        object skillsList=skillsList actor=actor mode="purchase" purchases=combinedPurchases combinedPurchases=combinedPurchases
+      )}}
+    </div>
+  </div>
+
+</div>

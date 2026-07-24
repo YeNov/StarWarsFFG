@@ -1,0 +1,26 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="background">
+  <div class="background-accordion">
+    {{#each backgroundSections as |section|}}
+      <div class="background-group {{#if section.active}}is-active{{else}}is-collapsed{{/if}}" data-part="background-{{section.key}}">
+        <h4 class="background-heading">
+          <button type="button" class="background-toggle" data-action="background-view" data-view="{{section.key}}" aria-expanded="{{section.expanded}}">
+            <span class="background-title">{{section.headerLabel}}</span>
+          </button>
+          <button type="button" class="background-random" data-action="random-background" data-view="{{section.key}}" data-tooltip="Pick random {{section.label}}" {{#unless section.canRandom}}disabled{{/unless}}>
+            <i class="fas fa-dice"></i>
+          </button>
+        </h4>
+        {{#if section.active}}
+          <div class="background-body">
+            <div class="inv-filters">
+              <input type="search" data-field="backgroundSearch" data-background-key="{{section.key}}" value="{{section.search}}" placeholder="Search name">
+            </div>
+            {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+                (object rows=section.rows poolKey=section.key selectedUuid=section.selectedUuid)}}
+            <p class="empty-hint" data-background-empty {{#unless section.noMatches}}hidden{{/unless}}>No backgrounds match.</p>
+          </div>
+        {{/if}}
+      </div>
+    {{/each}}
+  </div>
+</section>

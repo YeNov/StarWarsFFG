@@ -1,0 +1,11 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="startingBonus">
+  <div class="starting-bonus">
+    <label for="pcw-startingBonus">{{ localize "SWFFG.CharacterCreator.startingBonus.Label" }}</label>
+    <select id="pcw-startingBonus" name="startingBonus" data-field="startingBonus">
+      <option value=""></option>
+      {{#each startingBonusChoices as |choice|}}
+        <option value="{{ choice.key }}" {{#if (eq choice.key @root.data.selected.startingBonus)}}selected{{/if}}>{{ choice.label }}</option>
+      {{/each}}
+    </select>
+  </div>
+</section>

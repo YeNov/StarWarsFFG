@@ -1188,6 +1188,12 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       ctx.cdxSpecs = specItems; ctx.cdxSpecCount = specItems.length; ctx.cdxSpecExtra = Math.max(0, specItems.length - 1);
       const forceItems = cdxStack("forcepower");
       ctx.cdxForcePowers = forceItems; ctx.cdxForceCount = forceItems.length; ctx.cdxForceExtra = Math.max(0, forceItems.length - 1);
+      // Show the force pool / powers when the enableForcePool option isn't explicitly OFF
+      // (it defaults to true but is only written to the flag once the options are saved, so
+      // a fresh/wizard-built actor has it undefined) AND the actor is actually a Force user
+      // (has a force pool rating or force-power items). Fixes wizard-created Force characters.
+      ctx.cdxShowForcePool = (this.actor?.flags?.starwarsffg?.config?.enableForcePool !== false)
+        && ((Number(this.actor?.system?.stats?.forcePool?.max) || 0) > 0 || forceItems.length > 0);
       const sigItems = cdxStack("signatureability");
       ctx.cdxSigs = sigItems; ctx.cdxSigCount = sigItems.length; ctx.cdxSigExtra = Math.max(0, sigItems.length - 1);
     } catch (e) { ctx.cdxCritCount = 0; }

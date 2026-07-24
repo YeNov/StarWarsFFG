@@ -16,6 +16,9 @@ export class SpecializationDataModel extends mix(BaseItemDataModel, CoreTemplate
       careerSkills: stringSlotField("careerSkill", 5),
       isEditing: editingField(),
       universal: new f.BooleanField({ initial: false }),
+      creation: new f.SchemaField({
+        skillRankChoices: new f.NumberField({ initial: null, nullable: true, integer: true, min: 0 }),
+      }),
     };
   }
 }

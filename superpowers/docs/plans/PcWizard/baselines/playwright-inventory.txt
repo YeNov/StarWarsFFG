@@ -1,0 +1,19 @@
+D:\SW FFG\Portable FVTT\Data\systems\starwarsffg>npx playwright test --list
+Listing tests:
+  [chromium] › activeEffects.spec.js:17:5 › armor applies correctly
+  [chromium] › activeEffects.spec.js:54:5 › career applies correctly
+  [chromium] › activeEffects.spec.js:78:5 › critical injury applies correctly
+  [chromium] › activeEffects.spec.js:102:5 › force power applies correctly
+  [chromium] › activeEffects.spec.js:128:5 › gear applies correctly
+  [chromium] › activeEffects.spec.js:152:5 › signature ability applies correctly
+  [chromium] › activeEffects.spec.js:177:5 › specialization applies correctly
+  [chromium] › activeEffects.spec.js:202:5 › species applies correctly
+  [chromium] › activeEffects.spec.js:249:5 › talent applies correctly
+  [chromium] › activeEffects.spec.js:270:5 › weapon applies correctly
+  [chromium] › activeEffects.spec.js:293:5 › embedded armor applies correctly
+  [chromium] › activeEffects.spec.js:358:5 › embedded weapons applies correctly
+  [chromium] › activeEffects.spec.js:435:5 › critical damage applies correctly
+  [chromium] › activeEffects.spec.js:457:5 › ship attachment applies correctly
+  [chromium] › activeEffects.spec.js:482:5 › ship weapon applies correctly
+  [chromium] › activeEffects.spec.js:503:5 › embedded ship weapon applies correctly
+Total: 16 tests in 1 file

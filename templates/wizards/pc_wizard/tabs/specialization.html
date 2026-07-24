@@ -1,0 +1,26 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="specialization">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.Specialization.Label" }}</p>
+  {{#if data.selected.career}}
+    <div class="specialization-group" data-part="career-specializations">
+      <h4>Career specializations</h4>
+      {{#if careerSpecializations.length}}
+        {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+            (object rows=careerSpecializations poolKey="specialization" selectedUuid=data.selected.specialization.uuid)}}
+      {{else}}
+        <p class="empty-hint">No in-career specializations found for this career.</p>
+      {{/if}}
+    </div>
+    <div class="specialization-group" data-part="universal-specializations">
+      <h4>Universal specializations</h4>
+      {{#if universalSpecializations.length}}
+        {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+            (object rows=universalSpecializations poolKey="specialization" selectedUuid=data.selected.specialization.uuid)}}
+      {{else}}
+        <p class="empty-hint">No universal specializations available.</p>
+      {{/if}}
+    </div>
+  {{else}}
+    <p class="empty-hint">Select a career first, then choose your specialization here.</p>
+  {{/if}}
+
+</section>

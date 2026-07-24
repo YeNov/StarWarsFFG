@@ -1,0 +1,229 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="xp_spend">
+  <p>{{ localize "SWFFG.CharacterCreator.Wizard.XP.Label" }}</p>
+  <div class="xp-summary">XP available: <b>{{ availableXp }}</b> / {{ totalXp }}</div>
+
+  <div class="xp-switcher">
+    <button type="button" class="xp-switch{{#if (eq xpView "characteristics")}} is-active{{/if}}" data-action="xp-view" data-view="characteristics">Characteristics</button>
+    <button type="button" class="xp-switch{{#if (eq xpView "bonus")}} is-active{{/if}}" data-action="xp-view" data-view="bonus">Bonus skills</button>
+    <button type="button" class="xp-switch{{#if (eq xpView "skills")}} is-active{{/if}}" data-action="xp-view" data-view="skills">Buy skills</button>
+    <button type="button" class="xp-switch{{#if (eq xpView "talents")}} is-active{{/if}}" data-action="xp-view" data-view="talents">Talents</button>
+  </div>
+
+  {{#if (eq xpView "characteristics")}}
+    <div class="xp-characteristics characteristics grid grid-6col">
+      {{#each xpCharacteristics as |characteristic|}}
+        <div class="characteristic-item flex-group-center">
+          <button type="button" class="xp-characteristic-btn" data-action="characteristic-control" data-direction="decrease"
+                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.value }}"
+                  {{#unless characteristic.canRefund}}disabled{{/unless}}>&minus;</button>
+          <button type="button" class="xp-characteristic-btn" data-action="characteristic-control" data-direction="increase"
+                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.value }}"
+                  {{#unless characteristic.canBuy}}disabled{{/unless}}>+</button>
+          <div class="characteristic">
+            <div class="characteristic-value">
+              <input type="number" value="{{ characteristic.value }}" disabled="">
+            </div>
+          </div>
+          <div class="characteristic-label">
+            {{ characteristic.label }}
+          </div>
+          <div class="xp-characteristic-cost">
+            {{#if characteristic.canBuy}}{{ characteristic.nextCost }} XP{{else}}Max{{/if}}
+          </div>
+        </div>
+      {{/each}}
+    </div>
+  {{else if (eq xpView "talents")}}
+    {{#if talentTree}}
+      <div class="pcw-tt">
+        <div class="pcw-tt-title">{{ talentSpecName }}</div>
+        {{#each talentTree as |row|}}
+          <div class="pcw-tt-row">
+            <div class="pcw-tt-tier">Tier {{ row.tier }}<span class="pcw-tt-tiercost">{{ row.cost }} XP</span></div>
+            <div class="pcw-tt-cells">
+              {{#each row.cells as |cell|}}
+                <div class="pcw-tt-cell{{#if cell.islearned}} is-learned{{else if cell.canPurchase}} is-open{{else}} is-locked{{/if}}{{#if cell.linkTop}} has-top{{/if}}{{#if cell.linkTopActive}} top-active{{/if}}{{#if cell.linkRight}} has-right{{/if}}{{#if cell.linkRightActive}} right-active{{/if}}">
+                  {{#if cell.description}}<span class="pcw-tt-help" data-tooltip="{{ cell.description }}" data-tooltip-direction="LEFT">?</span>{{/if}}
+                  <div class="pcw-tt-name">{{ cell.name }}</div>
+                  {{#if cell.activation}}<div class="pcw-tt-activation">{{ localize cell.activation }}</div>{{/if}}
+                  {{#if cell.islearned}}
+                    <button type="button" class="pcw-tt-btn pcw-tt-unlearn" data-action="unlearn-talent" data-key="{{ cell.key }}">&minus; Unlearn</button>
+                  {{else if cell.canPurchase}}
+                    <button type="button" class="pcw-tt-btn pcw-tt-buy" data-action="learn-talent" data-key="{{ cell.key }}" {{#unless cell.affordable}}disabled{{/unless}}>Buy ({{ cell.cost }} XP)</button>
+                  {{else}}
+                    <div class="pcw-tt-cost">{{ cell.cost }} XP</div>
+                  {{/if}}
+                </div>
+              {{/each}}
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <p class="pcw-tt-empty">Select a specialization first (on the Specialization tab) to buy its talents.</p>
+    {{/if}}
+  {{else if (eq xpView "bonus")}}
+    <div class="bonus-block">
+      <h4>Career bonus skills ({{ careerFreeUsed }} / {{ careerFreeCap }})</h4>
+      {{#if data.selected.career}}
+        <table class="xp-skills bonus-skills">
+          <thead>
+            <tr>
+              <th class="xp-col-name">Skill</th>
+              <th class="xp-col-buttons">Bonus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each careerFreeRanks as |skill|}}
+              <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                <td class="xp-col-name">{{ skill.key }}</td>
+                <td class="xp-col-buttons">
+                  <button type="button" class="xp-skill-btn" data-action="toggle-career-rank" data-field="{{ skill.key }}"
+                          {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p class="empty-hint">Select a career first.</p>
+      {{/if}}
+    </div>
+
+    <div class="bonus-block">
+      <h4>Specialization bonus skills ({{ specFreeUsed }} / {{ specFreeCap }})</h4>
+      {{#if data.selected.specialization}}
+        <table class="xp-skills bonus-skills">
+          <thead>
+            <tr>
+              <th class="xp-col-name">Skill</th>
+              <th class="xp-col-buttons">Bonus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each specFreeRanks as |skill|}}
+              <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                <td class="xp-col-name">{{ skill.key }}</td>
+                <td class="xp-col-buttons">
+                  <button type="button" class="xp-skill-btn" data-action="toggle-spec-rank" data-field="{{ skill.key }}"
+                          {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p class="empty-hint">Select a specialization first.</p>
+      {{/if}}
+    </div>
+
+    <div class="bonus-block">
+      <h4>Species bonus skills</h4>
+      {{#if data.selected.species}}
+        {{#if speciesFreeRankChoiceCount}}
+          {{#each speciesFreeRankChoiceSections as |section|}}
+            {{#if (eq section.type "group")}}
+              <div class="species-bonus-choice">
+                <h5>{{ section.label }}</h5>
+                <div class="xp-switcher species-choice-switcher">
+                  {{#each section.choices as |choice|}}
+                    <button type="button" class="xp-switch{{#if choice.active}} is-active{{/if}}" data-action="select-species-rank-choice-branch" data-group="{{ ../id }}" data-choice="{{ choice.id }}">
+                      {{ choice.label }}
+                    </button>
+                  {{/each}}
+                </div>
+                {{#with section.activeChoice as |choice|}}
+                  <h5>{{ choice.label }} ({{ choice.used }} / {{ choice.count }})</h5>
+                  <table class="xp-skills bonus-skills">
+                    <thead>
+                      <tr>
+                        <th class="xp-col-name">Skill</th>
+                        <th class="xp-col-rank">Rank</th>
+                        <th class="xp-col-buttons">Bonus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{#each choice.rows as |skill|}}
+                        <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                          <td class="xp-col-name">{{ skill.label }}</td>
+                          <td class="xp-col-rank">{{ skill.rank }}</td>
+                          <td class="xp-col-buttons">
+                            <button type="button" class="xp-skill-btn" data-action="toggle-species-rank" data-choice="{{ ../id }}" data-field="{{ skill.key }}"
+                                    {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                          </td>
+                        </tr>
+                      {{/each}}
+                    </tbody>
+                  </table>
+                {{/with}}
+              </div>
+            {{else}}
+              {{#with section.choice as |choice|}}
+                <div class="species-bonus-choice">
+                  <h5>{{ choice.label }} ({{ choice.used }} / {{ choice.count }})</h5>
+                  <table class="xp-skills bonus-skills">
+                    <thead>
+                      <tr>
+                        <th class="xp-col-name">Skill</th>
+                        <th class="xp-col-rank">Rank</th>
+                        <th class="xp-col-buttons">Bonus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{#each choice.rows as |skill|}}
+                        <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
+                          <td class="xp-col-name">{{ skill.label }}</td>
+                          <td class="xp-col-rank">{{ skill.rank }}</td>
+                          <td class="xp-col-buttons">
+                            <button type="button" class="xp-skill-btn" data-action="toggle-species-rank" data-choice="{{ ../id }}" data-field="{{ skill.key }}"
+                                    {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
+                          </td>
+                        </tr>
+                      {{/each}}
+                    </tbody>
+                  </table>
+                </div>
+              {{/with}}
+            {{/if}}
+          {{/each}}
+        {{else}}
+          <p class="empty-hint">This species has no bonus skill choices.</p>
+        {{/if}}
+      {{else}}
+        <p class="empty-hint">Select a species first.</p>
+      {{/if}}
+    </div>
+  {{else}}
+    <table class="xp-skills">
+      <thead>
+        <tr>
+          <th class="xp-col-name">Skill</th>
+          <th class="xp-col-career">Career</th>
+          <th class="xp-col-rank">Rank</th>
+          <th class="xp-col-buttons"></th>
+          <th class="xp-col-cost">Next rank</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each xpSkills as |skill|}}
+          <tr data-field="{{ skill.key }}">
+            <td class="xp-col-name">{{#if skill.description}}<span class="skill-info-btn" data-action="skill-info" data-key="{{ skill.key }}" data-label="{{ skill.label }}" title="Skill description">?</span> {{/if}}{{ skill.label }}</td>
+            <td class="xp-col-career">{{#if skill.careerskill}}✓{{/if}}</td>
+            <td class="xp-col-rank">{{ skill.rank }}</td>
+            <td class="xp-col-buttons">
+              <button type="button" class="xp-skill-btn" data-action="refund-skill"
+                      data-field="{{ skill.key }}" data-value="{{ skill.rank }}"
+                      {{#unless skill.canRefund}}disabled{{/unless}}>&minus;</button>
+              <button type="button" class="xp-skill-btn" data-action="buy-skill"
+                      data-field="{{ skill.key }}" data-value="{{ skill.nextValue }}" data-cost="{{ skill.nextCost }}"
+                      {{#unless skill.canBuy}}disabled{{/unless}}>&plus;</button>
+            </td>
+            <td class="xp-col-cost">
+              {{#if skill.canBuy}}{{ skill.nextCost }} XP{{else}}&mdash;{{/if}}
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{/if}}
+</section>

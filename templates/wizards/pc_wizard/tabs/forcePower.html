@@ -1,0 +1,27 @@
+<section class="tab {{tab.cssClass}}" data-group="primary" data-tab="forcePower">
+  <p>Force powers <span class="fp-rating">(Force rating {{ forceRating }})</span></p>
+  <div class="fp-summary">XP available: <b>{{ availableXp }}</b> / {{ totalXp }}</div>
+
+  <table class="pickable-table">
+    <tbody>
+      {{#each forcePowers as |fp|}}
+        <tr class="pickable-row" data-uuid="{{ fp.uuid }}">
+          <td class="pickable-pill">{{> "systems/starwarsffg/templates/wizards/pc_wizard/item_pill.html" (object item=fp)}}</td>
+          <td class="pickable-name">{{ fp.name }}</td>
+          <td class="pickable-mentor">
+            <label class="fp-discount" title="Mentor discount: -5 XP"><input type="checkbox" data-discount data-uuid="{{ fp.uuid }}" {{#if fp.discounted}}checked{{/if}} {{#if fp.bought}}disabled{{/if}}> Mentor discount</label>
+          </td>
+          <td class="pickable-cost">{{ fp.cost }} XP{{#if fp.discounted}} (mentor &minus;5){{/if}}{{#if fp.requiredRating}} &middot; FR {{ fp.requiredRating }}{{/if}}</td>
+          <td class="pickable-spacer"></td>
+          <td class="pickable-action">
+            {{#if fp.bought}}
+              <button type="button" data-action="refund-forcepower" data-uuid="{{ fp.uuid }}">Refund</button>
+            {{else}}
+              <button type="button" data-action="buy-forcepower" data-uuid="{{ fp.uuid }}" data-cost="{{ fp.cost }}" {{#unless fp.canBuy}}disabled{{/unless}}>Buy</button>
+            {{/if}}
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</section>

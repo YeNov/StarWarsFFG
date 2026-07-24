@@ -17,6 +17,11 @@ export class SpeciesDataModel extends mix(BaseItemDataModel, CoreTemplate) {
       abilities: new f.ObjectField(),
       species: new f.ObjectField(),
       startingXP: new f.NumberField({ initial: 0 }),
+      creation: new f.SchemaField({
+        careerSkillRankChoicesBonus: new f.NumberField({ initial: 0, integer: true, min: 0 }),
+        specializationSkillRankChoicesBonus: new f.NumberField({ initial: 0, integer: true, min: 0 }),
+        skillRankChoices: new f.ArrayField(new f.ObjectField()),
+      }),
     };
   }
 }
