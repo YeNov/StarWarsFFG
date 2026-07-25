@@ -1518,29 +1518,36 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       this.draftStore.setCommit(this.#draft.commit);
     }
 
-    setPending(wizardPending, this.#sessionNoticeId, { commitId: this.data.commitId });
-    emitStartNotice(this.#sessionNoticeId, this.data.commitId); // unconditional preCommit flush
-    await this.draftStore.saveNow({ data: this.data, commit: this.#draft.commit });
+    try {
+      setPending(wizardPending, this.#sessionNoticeId, { commitId: this.data.commitId });
+      emitStartNotice(this.#sessionNoticeId, this.data.commitId); // unconditional preCommit flush
+      await this.draftStore.saveNow({ data: this.data, commit: this.#draft.commit });
 
-    const built = await buildPreviewActor(this.data, this.buildDeps);
-    const source = built.previewActor.toObject();
+      const built = await buildPreviewActor(this.data, this.buildDeps);
+      const source = built.previewActor.toObject();
 
-    if (game.user.isGM) {
-      // A GM can create the actor directly — game.socket.emit does NOT deliver back to
-      // the sender, so a GM must never round-trip its own request through the bridge.
-      try {
-        const actor = await commitBuild(source, this.#draft.commit);
-        this._onCommitResponse({ ok: true, requesterId: game.user.id, commitId: this.data.commitId, actorId: actor.id, actorName: actor.name });
-      } catch (err) {
-        CONFIG.logger?.warn?.(`PC wizard commit failed: ${err.message}`);
-        this._onCommitResponse({ ok: false, requesterId: game.user.id, commitId: this.data.commitId });
+      if (game.user.isGM) {
+        // A GM can create the actor directly — game.socket.emit does NOT deliver back to
+        // the sender, so a GM must never round-trip its own request through the bridge.
+        try {
+          const actor = await commitBuild(source, this.#draft.commit);
+          this._onCommitResponse({ ok: true, requesterId: game.user.id, commitId: this.data.commitId, actorId: actor.id, actorName: actor.name });
+        } catch (err) {
+          CONFIG.logger?.warn?.(`PC wizard commit failed: ${err.message}`);
+          this._onCommitResponse({ ok: false, requesterId: game.user.id, commitId: this.data.commitId });
+        }
+        return;
       }
-      return;
-    }
 
-    // Players ask the active GM to create the actor, then await the authenticated response.
-    emitCommitRequest(source, this.#draft.commit, warnings);
-    this.#commitTimer = window.setTimeout(() => this._onCommitTimeout(), COMMIT_TIMEOUT_MS);
+      // Players ask the active GM to create the actor, then await the authenticated response.
+      emitCommitRequest(source, this.#draft.commit, warnings);
+      this.#commitTimer = window.setTimeout(() => this._onCommitTimeout(), COMMIT_TIMEOUT_MS);
+    } catch (err) {
+      CONFIG.logger?.warn?.(`PC wizard commit preparation failed: ${err.message}`);
+      clearPending(wizardPending, this.#sessionNoticeId);
+      showSubmitToast(false);
+      this.#backToEditing();
+    }
   }
 
   _onCommitResponse(response) {

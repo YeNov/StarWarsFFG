@@ -12,6 +12,7 @@ import {
   b62_3,
   prefix13,
   embedId16,
+  sha256Bytes,
   deriveCommitActorId,
   assignWizardIdentity,
   assertWizardIdIntegrity,
@@ -186,4 +187,19 @@ test("deriveCommitActorId is deterministic, 16 chars, and memoized per {userId, 
   assert.equal(a, b);
   assert.match(a, ID_RE);
   assert.notEqual(a, await deriveCommitActorId("u", "c2"));
+});
+
+test("SHA-256 fallback matches the standard known vector", async () => {
+  const digest = await sha256Bytes(new TextEncoder().encode("abc"), null);
+  assert.equal(
+    Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""),
+    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  );
+});
+
+test("SHA-256 fallback matches WebCrypto for wizard identity input", async () => {
+  const input = new TextEncoder().encode("swffg-pcwizard|commit|v1|user|commit");
+  const fallback = await sha256Bytes(input, null);
+  const webCrypto = await sha256Bytes(input);
+  assert.deepEqual(fallback, webCrypto);
 });
