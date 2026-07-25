@@ -1,5 +1,5 @@
 import { AE_MODES } from "../config/ffg-active-effect-modes.js";
-// PopoutModifiers is imported lazily inside popoutModiferWindow* (below) rather
+// PopoutModifiers is imported lazily inside popoutModiferWindow (below) rather
 // than at module scope. Its transitive import of apps/ffg-form-application.js
 // destructures `foundry.applications.api` at module-eval time, which throws
 // `ReferenceError: foundry is not defined` under Node — poisoning this file and
@@ -338,30 +338,6 @@ export default class ModifierHelpers {
 
     const { default: PopoutModifiers } = await import("../popout-modifiers.js");
     new PopoutModifiers(this.object, {
-      title,
-    }).render(true);
-  }
-
-  static async popoutModiferWindowUpgrade(event) {
-    event.preventDefault();
-    const a = event.currentTarget.parentElement;
-    const keyname = a.dataset.itemid;
-
-    const title = `${game.i18n.localize("SWFFG.TabModifiers")}: ${this.object.system.upgrades[keyname].name}`;
-
-    const data = {
-      parent: this.object,
-      keyname,
-      data: {
-        data: {
-          ...this.object.system.upgrades[keyname],
-        },
-      },
-      isUpgrade: true,
-    };
-
-    const { default: PopoutModifiers } = await import("../popout-modifiers.js");
-    new PopoutModifiers(data, {
       title,
     }).render(true);
   }

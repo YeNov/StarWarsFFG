@@ -23,13 +23,16 @@ export class Actors {
   private readonly tabCrew: Locator;
 
   constructor(public readonly page: Page, actorName: string, actorType: string) {
+    const createActorDialog = this.page.getByRole('dialog').filter({
+      has: this.page.getByRole('heading', { name: 'Create Actor' }),
+    });
     this.actorName = actorName;
     this.actorType = actorType;
     this.actorTab = this.page.getByRole('tab', { name: 'Actors' });
     this.createActorButton = this.page.getByRole('button', { name: 'Create Actor' });
-    this.createActorNameField = this.page.getByRole('textbox', { name: 'Character' });
-    this.createActorTypeField = this.page.getByRole('combobox');
-    this.createActorCreateField = this.page.getByRole('button', { name: 'Create New Actor' });
+    this.createActorNameField = createActorDialog.locator('input[name="name"]');
+    this.createActorTypeField = createActorDialog.locator('select[name="type"]');
+    this.createActorCreateField = createActorDialog.getByRole('button', { name: 'Create Actor' });
     this.sheetLocator = this.page.locator(
       '.sheet',
       {has: this.page.locator(`text=${this.actorName}`)}
@@ -53,9 +56,9 @@ export class Actors {
   async create() {
     await this.goToTab();
     await this.createActorButton.click();
-    await this.createActorNameField.fill(this.actorName);
-    await this.createActorTypeField.selectOption(this.actorType)
-    await this.createActorCreateField.click();
+    await this.createActorNameField.fill(this.actorName, { timeout: 5_000 });
+    await this.createActorTypeField.selectOption(this.actorType, { timeout: 5_000 })
+    await this.createActorCreateField.click({ timeout: 5_000 });
     if (this.actorType !== "vehicle") {
       await expect(this.tabGear).toBeVisible();
     } else {
@@ -66,20 +69,16 @@ export class Actors {
   }
 
   async closeSheet() {
-    const closeButton = this.page.locator(
-      '.sheet',
-      {has: this.page.locator(`text=${this.actorName}`)}
-    ).locator('.close');
-    await closeButton.click({force: true});
+    const closeButton = this.sheetLocator.getByRole('button', { name: 'Close Window' });
+    await closeButton.click({ force: true, timeout: 5_000 });
   }
 
   async remove() {
-    // ensure we are on the correct tab
-    await this.goToTab();
-    await this.page.locator('#actors').getByRole('heading', { name: this.actorName }).click({button: 'right'});
-    await this.page.getByText('Delete').click();
-    await this.page.getByRole('button', { name: 'Yes' }).click();
-    await expect(this.page.getByRole('button', { name: 'Yes' })).not.toBeVisible();
+    await this.page.evaluate(async (actorName) => {
+      for (const actor of game.actors.filter(candidate => candidate.name === actorName)) {
+        await actor.delete();
+      }
+    }, this.actorName);
   }
 
   async switchTab(tabName: string) {
@@ -148,13 +147,42 @@ export class Actors {
     await this.sheetLocator.locator('.item', {has: this.page.locator(`text=${itemName}`)}).locator('.toggle-equipped').click();
   }
 
+  async embedWorldItem(itemName: string) {
+    await this.page.evaluate(async ({ actorName, itemName }) => {
+      const actor = game.actors.find(candidate => candidate.name === actorName);
+      const item = game.items.find(candidate => candidate.name === itemName);
+      if (!actor || !item) throw new Error(`Unable to embed ${itemName} on ${actorName}`);
+      const source = item.toObject();
+      delete source._id;
+      await actor.createEmbeddedDocuments("Item", [source]);
+      actor.sheet.render(false);
+    }, { actorName: this.actorName, itemName });
+    await expect(this.sheetLocator.locator('.item').filter({ hasText: itemName }).first()).toBeVisible({ timeout: 5_000 });
+  }
+
   async editItem(itemName: string) {
-    await this.sheetLocator.locator('.item', {has: this.page.locator(`text=${itemName}`)}).locator('.item-edit').click();
+    const itemEntry = this.sheetLocator.locator('.item').filter({ hasText: itemName }).first();
+    const editControl = itemEntry.locator('.item-edit');
+    if (await editControl.count()) {
+      await editControl.click({ timeout: 5_000 });
+    } else {
+      await itemEntry.click({ timeout: 5_000 });
+    }
   }
 
   async checkSkillModifiers(skillName: string, modifierName: string, modifierValue: string) {
     const skillEntry = this.sheetLocator.locator(`[data-ability="${skillName}"]`).locator('.dice-pool.hover');
     await expect(skillEntry).toContainText(`${modifierValue} ${modifierName}`);
+  }
+
+  async checkPreparedSkillModifier(skillName: string, modifierName: string, modifierValue: number) {
+    await expect.poll(() => this.page.evaluate(
+      ({ actorName, skillName, modifierName }) => {
+        const actor = game.actors.find(candidate => candidate.name === actorName);
+        return Number(actor?.system?.skills?.[skillName]?.[modifierName] ?? 0);
+      },
+      { actorName: this.actorName, skillName, modifierName },
+    )).toBe(modifierValue);
   }
 }
 
@@ -175,13 +203,16 @@ export class Items {
   private readonly upgradeName: string;
 
   constructor(public readonly page: Page, itemName: string, itemType: string) {
+    const createItemDialog = this.page.getByRole('dialog').filter({
+      has: this.page.getByRole('heading', { name: 'Create Item' }),
+    });
     this.itemName = itemName;
     this.itemType = itemType;
     this.itemTab = this.page.getByRole('tab', { name: 'Items' });
-    this.createItemButton = this.page.getByRole('button', { name: ' Create Item' });
-    this.createItemNameField = this.page.getByRole('textbox', { name: 'Ability' });
-    this.createItemTypeField = this.page.locator('select[name="type"]');
-    this.createItemCreateField = this.page.getByRole('button', { name: 'Create New Item' });
+    this.createItemButton = this.page.getByRole('button', { name: 'Create Item' });
+    this.createItemNameField = createItemDialog.locator('input[name="name"]');
+    this.createItemTypeField = createItemDialog.locator('select[name="type"]');
+    this.createItemCreateField = createItemDialog.getByRole('button', { name: 'Create Item' });
     this.sheetLocator = this.page.locator(
       '.sheet',
       {has: this.page.locator(`input[value="${this.itemName}"]`)}
@@ -206,28 +237,31 @@ export class Items {
     await this.goToTab();
     await this.createItemButton.click();
     await expect(this.page.locator('input[placeholder="Ability"]')).toBeVisible();
-    await this.createItemNameField.fill(this.itemName);
-    await this.createItemTypeField.selectOption(this.itemType)
-    await this.createItemCreateField.click();
+    await this.createItemNameField.fill(this.itemName, { timeout: 5_000 });
+    await this.createItemTypeField.selectOption(this.itemType, { timeout: 5_000 })
+    await this.createItemCreateField.click({ timeout: 5_000 });
     // wait for the creation window to close
     await expect(this.createItemCreateField).not.toBeVisible();
   }
 
+  async createWorld() {
+    await this.page.evaluate(async ({ itemName, itemType }) => {
+      await Item.create({ name: itemName, type: itemType });
+    }, { itemName: this.itemName, itemType: this.itemType });
+  }
+
   async closeSheet() {
     await new Promise(resolve => setTimeout(resolve, 505));
-    await this.sheetLocator.locator('.close').click();
-    await expect(this.sheetLocator).not.toBeVisible();
+    await this.sheetLocator.getByRole('button', { name: 'Close Window' }).click({ timeout: 5_000 });
+    await expect(this.sheetLocator).not.toBeVisible({ timeout: 5_000 });
   }
 
   async remove() {
-    // ensure we are on the correct tab
-    await this.goToTab();
-    await this.page.locator('#items').getByRole('heading', { name: this.itemName }).click({button: 'right'});
-    await expect(this.page.getByText('Delete')).toBeEnabled();
-    await this.page.getByText('Delete').click();
-    await expect(this.page.getByRole('button', { name: 'Yes' })).toBeEnabled();
-    await this.page.getByRole('button', { name: 'Yes' }).click();
-    await expect(this.page.getByRole('button', { name: 'Yes' })).not.toBeVisible();
+    await this.page.evaluate(async (itemName) => {
+      for (const item of game.items.filter(candidate => candidate.name === itemName)) {
+        await item.delete();
+      }
+    }, this.itemName);
   }
 
   async switchTab(tabName: string) {
@@ -281,17 +315,18 @@ export class Items {
 
   async addDirectModifier(modifierType: string, modifier: string, modifierValue: string) {
     // this function fails if there's >1 mod on the same item, so be aware of this
-    if (this.itemType === "forcepower") {
-      await expect(this.sheetLocator.locator('.talent-action.hover').locator('.fa-cog')).toBeEnabled();
-      await this.sheetLocator.locator('.talent-action.hover').locator('.fa-cog').click();
+    if (["forcepower", "signatureability", "specialization"].includes(this.itemType)) {
+      const baseModifierButton = this.sheetLocator.locator('.talent-action.hover .fa-cog');
+      await expect(baseModifierButton).toBeEnabled({ timeout: 5_000 });
+      await baseModifierButton.click({ timeout: 5_000 });
       const popoutPage = this.page.locator('#popout-modifiers');
-      await expect(popoutPage.locator('.fas.fa-plus')).toBeEnabled();
-      await popoutPage.locator('.fas.fa-plus').click();
-      await popoutPage.locator('.modtype').selectOption(modifierType);
-      await popoutPage.locator('.mod').selectOption(modifier);
-      await popoutPage.locator('.modvalue').fill(modifierValue);
-      await popoutPage.locator('.close').click();
-      await expect(popoutPage).not.toBeVisible();
+      await expect(popoutPage.locator('.fas.fa-plus')).toBeEnabled({ timeout: 5_000 });
+      await popoutPage.locator('.fas.fa-plus').click({ timeout: 5_000 });
+      await popoutPage.locator('.modtype').selectOption(modifierType, { timeout: 5_000 });
+      await popoutPage.locator('.mod').selectOption(modifier, { timeout: 5_000 });
+      await popoutPage.locator('.modvalue').fill(modifierValue, { timeout: 5_000 });
+      await popoutPage.getByRole('button', { name: 'Close Window' }).click({ timeout: 5_000 });
+      await expect(popoutPage).not.toBeVisible({ timeout: 5_000 });
     } else {
       await expect(this.sheetLocator.locator('.fas.fa-plus')).toBeEnabled();
       await this.sheetLocator.locator('.fas.fa-plus').click();
