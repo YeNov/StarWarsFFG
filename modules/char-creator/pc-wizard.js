@@ -123,7 +123,6 @@ const SOURCE_GROUP_LABELS = Object.freeze({
   species: "Species",
   career: "Careers",
   specialization: "Specializations",
-  talent: "Talents",
   forcePower: "Force Powers",
   background: "Backgrounds",
   obligation: "Obligations / Duty / Morality",
@@ -336,7 +335,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext() {
-    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization", "talent", "forcePower"]) {
+    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]) {
       try {
         await this.#ensurePool(poolKey);
       } catch (err) {
@@ -596,7 +595,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const specForTree = this.data.selected.specialization;
     const learnedTalentKeys = this.data.purchases.xp.talents.map((purchase) => purchase.key);
     const talentTree = specForTree?.snapshot?.system?.talents
-      ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available, this.#pools.talent)
+      ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available)
       : null;
 
     // Inventory tab — a Weapons / Armor / Gear switcher. Each sub-view shows the owned and the

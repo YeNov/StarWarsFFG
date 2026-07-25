@@ -45,9 +45,8 @@ test("species / obligation / motivation / background / specialization settings a
   assert.equal(getDescriptor("specialization").settingKey, "specializationCompendiums");
 });
 
-test("talents are loaded for card lookup while signature abilities remain unconsumed", () => {
-  assert.equal(getDescriptor("talent").settingKey, "talentCompendiums");
-  assert.deepEqual(getDescriptor("talent").worldItemTypes, ["talent"]);
+test("talent / signatureAbility pools are deliberately NOT consumed", () => {
+  assert.ok(!("talent" in SOURCE_DESCRIPTORS));
   assert.ok(!("signatureAbility" in SOURCE_DESCRIPTORS));
 });
 
