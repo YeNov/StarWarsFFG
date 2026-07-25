@@ -60,23 +60,22 @@ export function calcCredits(data) {
   return { total, available };
 }
 
+export function obligationKeyForRules(rules) {
+  return { fad: "morality", aor: "duty", eote: "obligation" }[rules];
+}
+
 /**
- * Starting and adjusted morality / obligation / duty.
- *
- * The cross-ruleset wizard keeps all three tracks visible and independent. Starting
- * bonus application writes field-specific deltas into grants.bonus; this calculator
- * simply combines those deltas with the configured starting values.
+ * Starting and adjusted morality / obligation / duty for the selected ruleset.
  *
  * @param {object} data  wizard state
- * @returns {{obligation: object, duty: object, morality: object}}
+ * @returns {{starting: number, available: number, key: (string|undefined)}}
  */
 export function calcObligation(data) {
-  const obligation = Number(data.initial?.obligation) || 0;
-  const duty = Number(data.initial?.duty) || 0;
-  const morality = Number(data.initial?.morality) || 0;
-  return {
-    obligation: { starting: obligation, available: obligation + (Number(data.grants?.bonus?.obligation) || 0), key: "obligation" },
-    duty: { starting: duty, available: duty - (Number(data.grants?.bonus?.duty) || 0), key: "duty" },
-    morality: { starting: morality, available: morality + (Number(data.grants?.bonus?.morality) || 0), key: "morality" },
-  };
+  const key = obligationKeyForRules(data.selected.rules);
+  if (!key) return { starting: 0, available: 0, key: undefined };
+
+  const starting = Number(data.initial?.[key]) || 0;
+  const bonus = Number(data.grants?.bonus?.[key]) || 0;
+  const available = key === "duty" ? starting - bonus : starting + bonus;
+  return { starting, available, key };
 }

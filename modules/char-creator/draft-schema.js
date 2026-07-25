@@ -75,6 +75,21 @@ export function deserializeDraft(record) {
   return { ...migrated, schemaVersion: DRAFT_SCHEMA_VERSION };
 }
 
+/**
+ * Normalize ruleset state across pre-flattening and flattened wizard drafts.
+ * Mutates and returns `data`.
+ */
+export function normalizeDraftRules(data) {
+  if (!data?.selected) return data;
+  const bonus = String(data.selected.startingBonus ?? "");
+  const prefixedRules = /^(fad|aor|eote)_/.exec(bonus)?.[1];
+  const storedRules = ["fad", "aor", "eote"].includes(data.selected.rules) ? data.selected.rules : null;
+  const rules = prefixedRules ?? storedRules ?? "fad";
+  data.selected.rules = rules;
+  if (bonus && !prefixedRules) data.selected.startingBonus = `${rules}_${bonus}`;
+  return data;
+}
+
 /** Measure a record's serialized size in UTF-8 BYTES (not UTF-16 code units). */
 export function measureDraftBytes(record) {
   return new TextEncoder().encode(JSON.stringify(record)).byteLength;

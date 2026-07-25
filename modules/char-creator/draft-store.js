@@ -12,7 +12,14 @@
  */
 
 import { FLAG_SCOPE, FLAGS } from "./constants.js";
-import { serializeDraft, deserializeDraft, isWithinBudget, compactDraft, rehydrateRef } from "./draft-schema.js";
+import {
+  serializeDraft,
+  deserializeDraft,
+  normalizeDraftRules,
+  isWithinBudget,
+  compactDraft,
+  rehydrateRef,
+} from "./draft-schema.js";
 
 const DEBOUNCE_MS = 1000;
 
@@ -59,10 +66,7 @@ export class DraftStore {
   }
 
   #normalizeLoadedData(data) {
-    const rules = data?.selected?.rules;
-    const bonus = data?.selected?.startingBonus;
-    if (rules && bonus && !String(bonus).includes("_")) data.selected.startingBonus = `${rules}_${bonus}`;
-    if (data?.selected && "rules" in data.selected) delete data.selected.rules;
+    normalizeDraftRules(data);
   }
 
   async #rehydrateRecord(record) {

@@ -57,6 +57,7 @@ function makeDraft(overrides = {}) {
       careerCareerSkillRanks: [],
       specialization: null,
       specializationCareerSkillRanks: [],
+      rules: "fad",
       motivations: [],
     },
     available: { specializations: [] },
@@ -89,13 +90,13 @@ test("skill purchases add ranks", () => {
   assert.equal(actorData.system.skills.Astrogation.rank, 1);
 });
 
-test("XP, credits (incl. spendingCredits) and obligation match the calculators", () => {
+test("XP, credits (incl. spendingCredits) and the selected ruleset track match the calculators", () => {
   const { actorData } = applyBuild(makeDraft(), makeDeps());
   assert.deepEqual(actorData.system.experience, { total: 100, available: 100 - 70 - 10 });
   assert.equal(actorData.system.stats.credits.value, 500 + 42); // available + spendingCredits
-  assert.equal(actorData.system.duty.value, 10);
-  assert.equal(actorData.system.obligation.value, 10);
   assert.equal(actorData.system.morality.value, 50);
+  assert.equal(actorData.system.duty, undefined);
+  assert.equal(actorData.system.obligation, undefined);
 });
 
 test("base identity: name, img, prototypeToken from creationDefaults", () => {
@@ -110,6 +111,14 @@ test("force-attitude background is included when selected", () => {
   const calls = { deltas: [], items: [] };
   applyBuild(makeDraft(), makeDeps(calls));
   assert.ok(calls.items.some((c) => c.ref.uuid === "fa1"));
+});
+
+test("force-attitude background is excluded outside Force and Destiny", () => {
+  const calls = { deltas: [], items: [] };
+  const draft = makeDraft();
+  draft.selected.rules = "aor";
+  applyBuild(draft, makeDeps(calls));
+  assert.ok(!calls.items.some((call) => call.ref.uuid === "fa1"));
 });
 
 test("items are built via the injected toItemData (species + forceAttitude present)", () => {

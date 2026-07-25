@@ -52,6 +52,7 @@ function makeDraft(overrides = {}) {
       careerCareerSkillRanks: [],
       specialization: null,
       specializationCareerSkillRanks: [],
+      rules: "fad",
       motivations: [],
     },
     available: { specializations: [] },

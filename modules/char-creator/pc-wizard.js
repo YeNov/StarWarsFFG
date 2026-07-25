@@ -17,7 +17,7 @@ import { toItemData } from "./to-item-data.js";
 import { makeBuildDependencies } from "./build-deps.js";
 import { buildPreviewActor } from "./preview.js";
 import { createInitialData, setIdentity } from "./wizard-state.js";
-import { applyStartingBonus, STARTING_BONUS_OPTIONS } from "./starting-bonus.js";
+import { applyStartingBonus, getStartingBonusOptions } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
 import { normalizeXpSkillPurchases } from "./skill-purchases.js";
@@ -27,7 +27,7 @@ import {
   selectSpeciesSkillRankChoiceBranch,
   toggleSpeciesSkillRankChoice,
 } from "./species-skill-choices.js";
-import { calcXp, calcCredits, calcObligation } from "./calculators.js";
+import { calcXp, calcCredits, calcObligation, obligationKeyForRules } from "./calculators.js";
 import { invalidateSourceCache, loadSource, readExclusions } from "./load-source.js";
 import { SOURCE_DESCRIPTORS, isSourceEnabled, sourceIdOf, sourcePackStatus, setSourceEnabled } from "./source-descriptors.js";
 import {
@@ -286,7 +286,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
     gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
-    startingBonus: [{ selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" }],
+    startingBonus: [
+      { selector: "select[name='rules']", event: "change", handler: "_onRulesChange" },
+      { selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" },
+    ],
     forcePower: [{ selector: "input[data-discount]", event: "change", handler: "_onToggleForcePowerDiscount" }],
     motivation: [{ selector: "input[data-field='listSearch']", event: "input", handler: "_onListSearchInput" }],
   };
@@ -368,6 +371,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // matching the legacy getBackgrounds() split. forceAttitude uses the "attitude" type.
     const backgroundRefs = this.#pools.background ?? [];
     const ofType = (type) => backgroundRefs.filter((ref) => ref.snapshot?.system?.type === type);
+    const isForceAndDestiny = this.data.selected.rules === "fad";
     const pools = { ...this.#pools, culture: ofType("culture"), hook: ofType("hook"), forceAttitude: ofType("attitude") };
     const prepareBackgroundRows = (rows, selectedUuid, sectionKey) => {
       const search = (this.#backgroundSearch[sectionKey] ?? "").trim().toLowerCase();
@@ -397,15 +401,17 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         selectedName: this.data.selected.background.hook?.name,
         search: this.#backgroundSearch.hook,
       },
-      {
+    ];
+    if (isForceAndDestiny) {
+      backgroundSections.push({
         key: "forceAttitude",
         label: "Force Attitude",
         rows: prepareBackgroundRows(pools.forceAttitude, selectedForceAttitudeUuid, "forceAttitude"),
         selectedUuid: selectedForceAttitudeUuid,
         selectedName: this.data.selected.background.forceAttitude?.name,
         search: this.#backgroundSearch.forceAttitude,
-      },
-    ];
+      });
+    }
     const activeBackgroundKey = backgroundSections.some((section) => section.key === this.#backgroundView)
       ? this.#backgroundView
       : null;
@@ -426,11 +432,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }));
     const speciesMatchCount = speciesRows.filter((ref) => !ref.hidden).length;
     const speciesNoMatches = speciesRows.length === 0 || speciesMatchCount === 0;
-    const obligationSectionDefs = [
-      { key: "obligation", label: "Obligation" },
-      { key: "duty", label: "Duty" },
-      { key: "morality", label: "Morality" },
-    ];
+    const activeObligationKey = obligationKeyForRules(this.data.selected.rules);
+    const obligationLabels = { obligation: "Obligation", duty: "Duty", morality: "Morality" };
+    const obligationSectionDefs = activeObligationKey
+      ? [{ key: activeObligationKey, label: obligationLabels[activeObligationKey] }]
+      : [];
     const selectedObligationUuids = new Set(this.data.selected.obligations.map((entry) => entry.uuid));
     const obligationSections = obligationSectionDefs.map((def) => {
       const search = (this.#obligationSearch[def.key] ?? "").trim().toLowerCase();
@@ -457,7 +463,13 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         canRandom: randomCount > 0,
       };
     });
-    if (!obligationSections.some((section) => section.key === this.#obligationView)) this.#obligationView = null;
+    if (!obligationSections.some((section) => section.key === this.#obligationView)) {
+      this.#obligationView = activeObligationKey;
+      for (const section of obligationSections) {
+        section.active = section.key === this.#obligationView;
+        section.expanded = section.active ? "true" : "false";
+      }
+    }
     const prepareListRows = (poolKey, selectedEntries) => {
       const search = (this.#listSearch[poolKey] ?? "").trim().toLowerCase();
       const selectedUuids = new Set(selectedEntries.map((entry) => entry.uuid));
@@ -473,7 +485,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const motivationRandomCount = motivationRows.filter((ref) => !ref.hidden && !ref.selected).length;
     const motivationNoMatches = motivationRows.length === 0 || motivationMatchCount === 0;
 
-    const startingBonusChoices = STARTING_BONUS_OPTIONS.map((choice) => ({ key: choice.key, label: game.i18n.localize(choice.labelKey) }));
+    const rulesChoices = Object.values(CONFIG.FFG?.characterCreator?.rules ?? {})
+      .map((choice) => ({ key: choice.value, label: game.i18n.localize(choice.label) }));
+    const startingBonusChoices = getStartingBonusOptions(this.data.selected.rules)
+      .map((choice) => ({ key: choice.key, label: game.i18n.localize(choice.labelKey) }));
 
     // Flat skill list for the XP-spend tab (the preview panel's column layout is separate).
     // Each row carries the prepared rank, whether it's a career skill, and the cost of the
@@ -677,6 +692,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       speciesMatchCount,
       speciesNoMatches,
       speciesSearch: this.#speciesSearch,
+      isForceAndDestiny,
       backgroundSections,
       obligationSections,
       motivationRows,
@@ -685,6 +701,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       motivationCanRandom: motivationRandomCount > 0,
       forceRating,
       forcePowers,
+      rulesChoices,
       startingBonusChoices,
       xpCharacteristics,
       xpSkills,
@@ -713,7 +730,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       ownedItems,
       availableAttachments,
       encumbrance,
-      obligations: obligation,
+      obligationKey: obligation.key,
+      availableObligation: obligation.available,
       steps: validation.steps,
       reviewVerificationSteps,
       sourceGroups,
@@ -1394,6 +1412,17 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   _onStartingBonusChange(event) {
     const choice = event.currentTarget.value || null;
     this.#mutate((data) => { applyStartingBonus(data, choice); });
+  }
+
+  _onRulesChange(event) {
+    const rules = event.currentTarget.value;
+    if (!["fad", "aor", "eote"].includes(rules)) return;
+    this.#mutate((data) => {
+      data.selected.rules = rules;
+      applyStartingBonus(data, null);
+      this.#obligationView = obligationKeyForRules(rules);
+      if (rules !== "fad" && this.#backgroundView === "forceAttitude") this.#backgroundView = "culture";
+    });
   }
 
   static _onOpenSources() {
