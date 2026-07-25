@@ -28,16 +28,45 @@ export function talentTierCost(index) {
   return (Math.floor(index / WIDTH) + 1) * 5;
 }
 
-/** Resolve the document UUID retained by stock, compendium, and OggDude talent data. */
-export function talentDocumentUuid(talent) {
+function directSourceUuid(talent) {
   const source = typeof talent?.source === "string" ? talent.source.trim() : "";
-  if (source) return source;
+  return source;
+}
 
+function legacyTalentUuid(talent) {
   const itemId = typeof talent?.itemId === "string" ? talent.itemId.trim() : "";
   if (!itemId) return "";
 
   const pack = typeof talent?.pack === "string" ? talent.pack.trim() : "";
   return pack ? `Compendium.${pack}.Item.${itemId}` : `Item.${itemId}`;
+}
+
+/**
+ * Resolve a talent document UUID. Explicit modern `source` UUIDs remain authoritative.
+ * Legacy pack/id references are remapped through the configured talent pool when their
+ * stored document is no longer present there.
+ */
+export function talentDocumentUuid(talent, availableTalents = []) {
+  const source = directSourceUuid(talent);
+  if (source) return source;
+
+  const legacyUuid = legacyTalentUuid(talent);
+  if (!availableTalents.length) return legacyUuid;
+  if (availableTalents.some((ref) => ref.uuid === legacyUuid)) return legacyUuid;
+
+  const importId = String(talent?.flags?.starwarsffg?.ffgimportid ?? "").trim().toLowerCase();
+  if (importId) {
+    const byImportId = availableTalents.find(
+      (ref) => String(ref.snapshot?.flags?.starwarsffg?.ffgimportid ?? "").trim().toLowerCase() === importId,
+    );
+    if (byImportId) return byImportId.uuid;
+  }
+
+  const name = String(talent?.name ?? "").trim().toLowerCase();
+  const byName = name
+    ? availableTalents.find((ref) => String(ref.name ?? "").trim().toLowerCase() === name)
+    : null;
+  return byName?.uuid ?? legacyUuid;
 }
 
 /** The real `talentN` keys of a talents dict, numerically ordered, `-=` deletions skipped. */
@@ -102,9 +131,10 @@ export function canLearn(talents, learnedSet, key) {
  * @param {object} talents      a specialization's `system.talents` dict
  * @param {string[]} learnedKeys the learned node keys (from data.purchases.xp.talents)
  * @param {number} availableXp  remaining XP, for the affordable flag
+ * @param {object[]} availableTalents configured live talent SelectionRefs
  * @returns {Array<{tier:number, cost:number, cells:Array<object>}>}
  */
-export function prepareTalentTree(talents, learnedKeys, availableXp) {
+export function prepareTalentTree(talents, learnedKeys, availableXp, availableTalents = []) {
   const learnedSet = new Set(learnedKeys ?? []);
   const keys = talentKeys(talents);
   const total = keys.length;
@@ -129,7 +159,7 @@ export function prepareTalentTree(talents, learnedKeys, availableXp) {
       name: node?.name ?? "",
       activation: node?.activationLabel ?? node?.activation ?? "",
       description: node?.description ?? "",
-      uuid: talentDocumentUuid(node),
+      uuid: talentDocumentUuid(node, availableTalents),
       islearned,
       canPurchase,
       cost,

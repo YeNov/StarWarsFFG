@@ -10,7 +10,8 @@
  * spans FIVE Item types under the ONE `itemCompendiums` setting.
  *
  * N-1: the world career type is `career`, NOT `careers`.
- * Not consumed (deliberate): talentCompendiums, signatureAbilityCompendiums.
+ * Talent sources are consumed for specialization-card document lookup, not as a
+ * standalone purchase pool. Signature abilities are not consumed.
  * Recorded: getAvailableMoralities (character-creator.js:735-757) loads the SAME
  * `obligation` pack + world type as obligations, differentiated by item type —
  * hence one `obligation` poolKey covers obligation / duty / morality.
@@ -45,6 +46,11 @@ export const SOURCE_DESCRIPTORS = Object.freeze({
     settingKey: "specializationCompendiums",
     worldItemTypes: Object.freeze(["specialization"]),
     bucketing: "in-career / out-of-career / universal",
+  }),
+  talent: Object.freeze({
+    settingKey: "talentCompendiums",
+    worldItemTypes: Object.freeze(["talent"]),
+    bucketing: "specialization-card document lookup",
   }),
   forcePower: Object.freeze({
     settingKey: "forcePowerCompendiums",
