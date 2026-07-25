@@ -285,7 +285,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
     obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
-    gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
+    gear: [
+      { selector: "input[data-field='search']", event: "input", handler: "_onGearFilterChange" },
+      { selector: "[data-field]:not(input[data-field='search'])", event: "change", handler: "_onGearFilterChange" },
+    ],
     startingBonus: [
       { selector: "select[name='rules']", event: "change", handler: "_onRulesChange" },
       { selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" },
@@ -768,16 +771,29 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
    * are low-frequency and must refresh whichever tab is active); the high-frequency gear
    * filter passes an explicit `parts` list so typing never re-renders the whole window.
    */
-  #mutate(fn, { parts } = {}) {
+  #mutate(fn, { parts, focus } = {}) {
     if (this.#commitPhase !== "editing") return false;
     if (this.#draft.commit) this.#remintCommitId(); // edit after an attempt ⇒ new identity
     fn(this.data);
     this.draftStore.scheduleSave({ data: this.data, commit: this.#draft.commit });
     // Per-part `scrollable: [""]` (PARTS) preserves each tab section's scroll across the
     // re-render, so a long tab (e.g. the skills list) keeps its position on every click.
-    if (parts) this.render({ parts });
-    else this.render();
+    const renderResult = parts ? this.render({ parts }) : this.render();
+    if (focus) {
+      const restore = () => requestAnimationFrame(() => this.#restoreFocus(focus));
+      if (typeof renderResult?.then === "function") renderResult.then(restore);
+      else restore();
+    }
     return true;
+  }
+
+  #restoreFocus({ selector, selectionStart, selectionEnd }) {
+    const field = applicationElement(this)?.querySelector(selector);
+    if (!(field instanceof HTMLInputElement)) return;
+    field.focus({ preventScroll: true });
+    if (Number.isInteger(selectionStart) && Number.isInteger(selectionEnd)) {
+      field.setSelectionRange(selectionStart, selectionEnd);
+    }
   }
 
   #remintCommitId() {
@@ -975,9 +991,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   _onGearFilterChange(event) {
     const field = event.currentTarget.dataset.field;
     const value = event.currentTarget.value;
+    const focus = event.type === "input" && field === "search"
+      ? {
+        selector: "section[data-tab='gear'] input[data-field='search']",
+        selectionStart: event.currentTarget.selectionStart,
+        selectionEnd: event.currentTarget.selectionEnd,
+      }
+      : null;
     this.#mutate((data) => {
       data.gearFilters = { ...(data.gearFilters ?? {}), [field]: value };
-    }, { parts: ["gear"] });
+    }, { parts: ["gear"], focus });
   }
 
   _onSpeciesSearchInput(event) {
