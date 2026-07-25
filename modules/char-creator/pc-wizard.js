@@ -612,26 +612,27 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const invMaxPrice = Number(invFilters.maxPrice) || 0;
     const attachmentShowOnlyAvailable = Boolean(invFilters.showOnlyAvailable);
     const matchesSearch = (ref) => !invSearch || (ref?.name ?? "").toLowerCase().includes(invSearch);
+    const matchesPrice = (ref) => {
+      const price = shopPriceOf(ref);
+      return price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
+    };
+    const targetPurchase = this.data.purchases.credits.find((purchase) => purchase.id === this.#attachmentTargetId && isAttachablePurchase(purchase));
+    if (!targetPurchase) this.#attachmentTargetId = null;
+    const isEditingAttachments = Boolean(targetPurchase);
+    const matchesInventoryFilters = (ref) => !isEditingAttachments && matchesSearch(ref) && matchesPrice(ref);
     const shopItems = (this.#pools.gear ?? [])
       .filter((ref) => {
-        const price = shopPriceOf(ref);
-        return ref.type === invView && isPurchasableShopRef(ref) && matchesSearch(ref)
-          && price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
+        return ref.type === invView && isPurchasableShopRef(ref) && (isEditingAttachments || matchesInventoryFilters(ref));
       })
       .map((ref) => {
         const price = shopPriceOf(ref);
         return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref) };
       });
-    const targetPurchase = this.data.purchases.credits.find((purchase) => purchase.id === this.#attachmentTargetId && isAttachablePurchase(purchase));
-    if (!targetPurchase) this.#attachmentTargetId = null;
     const availableAttachments = targetPurchase
       ? (this.#pools.gear ?? [])
         .filter((ref) => ref.type === "itemattachment" && isPurchasableShopRef(ref))
         .filter((ref) => attachmentAppliesTo(targetPurchase.ref, ref))
-        .filter((ref) => {
-          const price = shopPriceOf(ref);
-          return matchesSearch(ref) && price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
-        })
+        .filter((ref) => matchesSearch(ref) && matchesPrice(ref))
         .filter((ref) => {
           if (!attachmentShowOnlyAvailable) return true;
           return canAttach(this.data, targetPurchase, ref) && shopPriceOf(ref) <= credits.available;
@@ -651,7 +652,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         })
       : [];
     const ownedItems = this.data.purchases.credits
-      .filter((purchase) => !purchase.attachTo && purchase.ref?.type === invView && matchesSearch(purchase.ref))
+      .filter((purchase) => {
+        return !purchase.attachTo
+          && purchase.ref?.type === invView
+          && (isEditingAttachments || matchesSearch(purchase.ref));
+      })
       .map((purchase) => {
         const attachable = isAttachablePurchase(purchase);
         const attachedItems = attachedTo(this.data, purchase.id).map((attachment) => ({
