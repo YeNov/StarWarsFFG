@@ -4219,6 +4219,9 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   cursor: help;
   user-select: none;
 }
+.charCreator .pcw-tt-cell button.pcw-tt-help {
+  cursor: pointer;
+}
 
 /* ------------------------------------------------------------------ *
  * PC Wizard — Inventory tab: Weapons/Armor/Gear switcher + owned/shop  *

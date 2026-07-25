@@ -43,7 +43,11 @@
             <div class="pcw-tt-cells">
               {{#each row.cells as |cell|}}
                 <div class="pcw-tt-cell{{#if cell.islearned}} is-learned{{else if cell.canPurchase}} is-open{{else}} is-locked{{/if}}{{#if cell.linkTop}} has-top{{/if}}{{#if cell.linkTopActive}} top-active{{/if}}{{#if cell.linkRight}} has-right{{/if}}{{#if cell.linkRightActive}} right-active{{/if}}">
-                  {{#if cell.description}}<span class="pcw-tt-help" data-tooltip="{{ cell.description }}" data-tooltip-direction="LEFT">?</span>{{/if}}
+                  {{#if cell.uuid}}
+                    <button type="button" class="pcw-tt-help" data-action="open-item" data-uuid="{{ cell.uuid }}" aria-label="Open {{ cell.name }}"{{#if cell.description}} data-tooltip="{{ cell.description }}" data-tooltip-direction="LEFT"{{/if}}>?</button>
+                  {{else if cell.description}}
+                    <span class="pcw-tt-help" data-tooltip="{{ cell.description }}" data-tooltip-direction="LEFT">?</span>
+                  {{/if}}
                   <div class="pcw-tt-name">{{ cell.name }}</div>
                   {{#if cell.activation}}<div class="pcw-tt-activation">{{ localize cell.activation }}</div>{{/if}}
                   {{#if cell.islearned}}

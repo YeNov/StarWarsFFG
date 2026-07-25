@@ -1198,8 +1198,14 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static async _onOpenItem(event, target) {
     const { uuid } = target.dataset;
     if (!uuid) return;
-    const document = await fromUuid(uuid);
-    document?.sheet?.render(true);
+    try {
+      const document = await fromUuid(uuid);
+      if (!document) throw new Error(`document ${uuid} was not found`);
+      document.sheet?.render(true);
+    } catch (err) {
+      CONFIG.logger?.warn?.(`PC wizard could not open item ${uuid}: ${err.message}`);
+      ui.notifications.warn(game.i18n.localize("SWFFG.CharacterCreator.Notify.ItemUnavailable"));
+    }
   }
 
   static _onBuySkill(event, target) {
