@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import { applyBuild } from "../../modules/char-creator/apply-build.js";
 import { assignWizardIdentity } from "../../modules/char-creator/build-item-schema.js";
+import { DEDICATION_ATTRIBUTE_KEY } from "../../modules/char-creator/dedication.js";
 import {
   normalizeCommitSource,
   sanitizeCommitRequest,
@@ -152,6 +153,34 @@ test("species skill-rank choices are baked onto the species item", () => {
 
   const speciesCall = calls.items.find((call) => call.ref.uuid === "sp1");
   assert.deepEqual(speciesCall.options.rankGrants, ["Astrogation", "Coordination", "Coordination", "Coordination"]);
+});
+
+test("Dedication talent choices are passed as specialization node attribute grants", () => {
+  const calls = { deltas: [], items: [] };
+  const draft = makeDraft();
+  draft.selected.specialization = {
+    uuid: "spec1",
+    name: "Survivalist",
+    type: "specialization",
+    snapshot: {
+      system: {
+        talents: {
+          talent4: { name: "Dedication", attributes: {} },
+        },
+      },
+    },
+  };
+  draft.purchases.xp.talents = [{ key: "talent4", cost: 10, characteristic: "Brawn" }];
+
+  applyBuild(draft, makeDeps(calls));
+
+  const specCall = calls.items.find((call) => call.ref.uuid === "spec1");
+  assert.deepEqual(specCall.options.learnedKeys, ["talent4"]);
+  assert.deepEqual(specCall.options.nodeAttributeGrants, {
+    talent4: {
+      [DEDICATION_ATTRIBUTE_KEY]: { modtype: "Characteristic", mod: "Brawn", value: 1 },
+    },
+  });
 });
 
 test("the injected applyCharacteristicDeltas is called once with aggregated deltas", () => {

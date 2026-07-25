@@ -22,6 +22,25 @@ import { getSpeciesSkillRankGrants } from "./species-skill-choices.js";
 /** Placeholder name so a not-yet-named draft still constructs/validates (core fills the
  *  prototypeToken name from this — actor.mjs:95 only derives it from a truthy name). */
 const DEFAULT_NAME = "New Character";
+const DEDICATION_ATTRIBUTE_KEY = "pcwDedication";
+
+function isDedicationTalent(talent) {
+  return String(talent?.name ?? "").replace(/<[^>]*>/g, "").trim().toLowerCase() === "dedication";
+}
+
+function dedicationNodeAttributeGrants(talents = {}, purchases = [], characteristics = {}) {
+  const grants = {};
+  for (const purchase of purchases ?? []) {
+    const node = talents[purchase?.key];
+    const characteristic = purchase?.characteristic;
+    if (!isDedicationTalent(node) || !characteristic || !characteristics[characteristic]) continue;
+    grants[purchase.key] = {
+      ...(grants[purchase.key] ?? {}),
+      [DEDICATION_ATTRIBUTE_KEY]: { modtype: "Characteristic", mod: characteristic, value: 1 },
+    };
+  }
+  return grants;
+}
 
 function isAttachmentPurchase(purchase) {
   return purchase?.ref?.type === "itemattachment" && Boolean(purchase.attachTo);
@@ -127,6 +146,11 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   addItem(data.selected.specialization, {
     rankGrants: data.selected.specializationCareerSkillRanks ?? [],
     learnedKeys: data.purchases.xp.talents.map((purchase) => purchase.key),
+    nodeAttributeGrants: dedicationNodeAttributeGrants(
+      data.selected.specialization?.snapshot?.system?.talents,
+      data.purchases.xp.talents,
+      actorData.system.characteristics,
+    ),
   });
 
   // purchased extra specializations and Force powers (N-5)

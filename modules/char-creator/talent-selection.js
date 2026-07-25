@@ -17,6 +17,7 @@
  */
 
 import { canPurchaseNode } from "../helpers/talent-tree.js";
+import { isDedicationTalent } from "./dedication.js";
 
 const WIDTH = 4;
 
@@ -104,7 +105,7 @@ export function canLearn(talents, learnedSet, key) {
  * @param {number} availableXp  remaining XP, for the affordable flag
  * @returns {Array<{tier:number, cost:number, cells:Array<object>}>}
  */
-export function prepareTalentTree(talents, learnedKeys, availableXp) {
+export function prepareTalentTree(talents, learnedKeys, availableXp, { dedicationChoices = {}, characteristicChoices = [] } = {}) {
   const learnedSet = new Set(learnedKeys ?? []);
   const keys = talentKeys(talents);
   const total = keys.length;
@@ -116,6 +117,7 @@ export function prepareTalentTree(talents, learnedKeys, availableXp) {
     const col = index % WIDTH;
     const node = talents[key];
     const islearned = learnedSet.has(key);
+    const isDedication = isDedicationTalent(node);
     const cost = talentTierCost(index);
     const canPurchase = !islearned && canPurchaseNode(probe, key, specOpts(total));
     // Connectors are stored on the lower / left node: `links-top-1` joins upward to the talent
@@ -130,6 +132,11 @@ export function prepareTalentTree(talents, learnedKeys, availableXp) {
       activation: node?.activationLabel ?? node?.activation ?? "",
       description: node?.description ?? "",
       uuid: talentDocumentUuid(node),
+      isDedication,
+      dedicationCharacteristic: dedicationChoices[key] ?? "",
+      characteristicChoices: isDedication
+        ? characteristicChoices.map((choice) => ({ ...choice, selected: choice.key === dedicationChoices[key] }))
+        : [],
       islearned,
       canPurchase,
       cost,

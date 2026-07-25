@@ -4172,6 +4172,18 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 /* Tree connectors — drawn in the grid gaps on the lower/left node (has-top joins upward,
    has-right joins to the next column); solid green when both endpoints are learned. */
+.charCreator .pcw-dedication-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 0.72em;
+}
+.charCreator .pcw-dedication-choice select {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+}
 .charCreator .pcw-tt-cell.has-top::before {
   content: "";
   position: absolute;

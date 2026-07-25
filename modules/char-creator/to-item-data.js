@@ -42,6 +42,28 @@ function bakeRankGrants(source, rankGrants) {
     });
 }
 
+function treeKeyFor(source) {
+  if (source?.type === "specialization") return "talents";
+  if (source?.type === "forcepower" || source?.type === "signatureability") return "upgrades";
+  return null;
+}
+
+function bakeTreeNodeAttributes(source, nodeAttributeGrants) {
+  const treeKey = treeKeyFor(source);
+  if (!treeKey) return;
+  const tree = source.system?.[treeKey];
+  if (!tree) return;
+
+  for (const [nodeKey, attributes] of Object.entries(nodeAttributeGrants ?? {})) {
+    const node = tree[nodeKey];
+    if (!node || nodeKey.startsWith("-=")) continue;
+    node.attributes ??= {};
+    for (const [attrName, attribute] of Object.entries(attributes ?? {})) {
+      node.attributes[attrName] = foundry.utils.deepClone(attribute);
+    }
+  }
+}
+
 /**
  * Produce a canonical embedded-item source from a SelectionRef.
  *
@@ -60,9 +82,11 @@ function bakeRankGrants(source, rankGrants) {
  * @returns {object} the canonical item source
  */
 export function toItemData(ref, options = {}) {
-  const { materializeTree, learnedKeys = [], rankGrants = [] } = options;
+  const { materializeTree, learnedKeys = [], nodeAttributeGrants = {}, rankGrants = [] } = options;
 
   let source = foundry.utils.deepClone(ref.snapshot);
+
+  bakeTreeNodeAttributes(source, nodeAttributeGrants);
 
   if (learnedKeys.length && typeof materializeTree === "function") {
     source = materializeTree(source, learnedKeys);

@@ -14,10 +14,10 @@
       {{#each xpCharacteristics as |characteristic|}}
         <div class="characteristic-item flex-group-center">
           <button type="button" class="xp-characteristic-btn" data-action="characteristic-control" data-direction="decrease"
-                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.value }}"
+                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.purchaseValue }}"
                   {{#unless characteristic.canRefund}}disabled{{/unless}}>&minus;</button>
           <button type="button" class="xp-characteristic-btn" data-action="characteristic-control" data-direction="increase"
-                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.value }}"
+                  data-target="{{ characteristic.key }}" data-value="{{ characteristic.purchaseValue }}"
                   {{#unless characteristic.canBuy}}disabled{{/unless}}>+</button>
           <div class="characteristic">
             <div class="characteristic-value">
@@ -51,6 +51,17 @@
                   <div class="pcw-tt-name">{{ cell.name }}</div>
                   {{#if cell.activation}}<div class="pcw-tt-activation">{{ localize cell.activation }}</div>{{/if}}
                   {{#if cell.islearned}}
+                    {{#if cell.isDedication}}
+                      <label class="pcw-dedication-choice">
+                        <span>Characteristic</span>
+                        <select data-field="dedicationCharacteristic" data-key="{{ cell.key }}">
+                          <option value="" {{#unless cell.dedicationCharacteristic}}selected{{/unless}}>Choose</option>
+                          {{#each cell.characteristicChoices as |choice|}}
+                            <option value="{{ choice.key }}" {{#if choice.selected}}selected{{/if}}>{{ choice.label }}</option>
+                          {{/each}}
+                        </select>
+                      </label>
+                    {{/if}}
                     <button type="button" class="pcw-tt-btn pcw-tt-unlearn" data-action="unlearn-talent" data-key="{{ cell.key }}">&minus; Unlearn</button>
                   {{else if cell.canPurchase}}
                     <button type="button" class="pcw-tt-btn pcw-tt-buy" data-action="learn-talent" data-key="{{ cell.key }}" {{#unless cell.affordable}}disabled{{/unless}}>Buy ({{ cell.cost }} XP)</button>

@@ -19,6 +19,7 @@ import { buildPreviewActor } from "./preview.js";
 import { createInitialData, setIdentity } from "./wizard-state.js";
 import { applyStartingBonus, getStartingBonusOptions } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
+import { dedicationCharacteristicDeltas, isDedicationTalent } from "./dedication.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
 import { normalizeXpSkillPurchases } from "./skill-purchases.js";
 import {
@@ -298,6 +299,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       { selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" },
     ],
     forcePower: [{ selector: "input[data-discount]", event: "change", handler: "_onToggleForcePowerDiscount" }],
+    xp_spend: [{ selector: "select[data-field='dedicationCharacteristic']", event: "change", handler: "_onDedicationCharacteristicChange" }],
     motivation: [{ selector: "input[data-field='listSearch']", event: "input", handler: "_onListSearchInput" }],
   };
 
@@ -518,18 +520,22 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       : [];
     const characteristicPurchases = this.data.purchases.xp.characteristics;
+    const specializationTalents = this.data.selected.specialization?.snapshot?.system?.talents ?? {};
+    const dedicationDeltas = dedicationCharacteristicDeltas(specializationTalents, this.data.purchases.xp.talents);
     const xpCharacteristics = preview?.system?.characteristics
       ? Object.entries(preview.system.characteristics).map(([key, characteristic]) => {
         const value = characteristic.value ?? 0;
-        const nextValue = value + 1;
+        const purchaseValue = Math.max(0, value - (dedicationDeltas[key] ?? 0));
+        const nextValue = purchaseValue + 1;
         return {
           key,
           label: key,
           value,
+          purchaseValue,
           nextValue,
           nextCost: nextValue * 10,
-          canBuy: value < 5,
-          canRefund: characteristicPurchases.some((purchase) => purchase.key === key && purchase.value === value),
+          canBuy: purchaseValue < 5,
+          canRefund: characteristicPurchases.some((purchase) => purchase.key === key && purchase.value === purchaseValue),
         };
       })
       : [];
@@ -600,9 +606,18 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // Learned talents come from data.purchases.xp.talents (the single source of truth), never a
     // ref-stored list — so the tree cannot survive a wizard reopen.
     const specForTree = this.data.selected.specialization;
-    const learnedTalentKeys = this.data.purchases.xp.talents.map((purchase) => purchase.key);
+    const talentPurchases = this.data.purchases.xp.talents;
+    const learnedTalentKeys = talentPurchases.map((purchase) => purchase.key);
+    const dedicationChoices = Object.fromEntries(talentPurchases
+      .filter((purchase) => purchase.characteristic)
+      .map((purchase) => [purchase.key, purchase.characteristic]));
+    const characteristicChoices = xpCharacteristics.map((characteristic) => ({
+      key: characteristic.key,
+      label: characteristic.label,
+      value: characteristic.value,
+    }));
     const talentTree = specForTree?.snapshot?.system?.talents
-      ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available)
+      ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available, { dedicationChoices, characteristicChoices })
       : null;
 
     // Inventory tab — a Weapons / Armor / Gear switcher. Each sub-view shows the owned and the
@@ -1426,6 +1441,20 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   // the specialization ref (which is the shared, module-cached pool object). That single source of
   // truth lives in this.data, which is rebuilt fresh on every wizard open, so nothing survives a
   // close/reopen.
+  _onDedicationCharacteristicChange(event) {
+    const key = event.currentTarget.dataset.key;
+    const characteristic = event.currentTarget.value;
+    const validCharacteristics = new Set(Object.keys(this.buildDeps.creationDefaults.system?.characteristics ?? {}));
+    this.#mutate((data) => {
+      const talent = data.selected.specialization?.snapshot?.system?.talents?.[key];
+      if (!isDedicationTalent(talent)) return;
+      const purchase = data.purchases.xp.talents.find((entry) => entry.key === key);
+      if (!purchase) return;
+      if (validCharacteristics.has(characteristic)) purchase.characteristic = characteristic;
+      else delete purchase.characteristic;
+    });
+  }
+
   static _onLearnTalent(event, target) {
     const key = target.dataset.key;
     this.#mutate((data) => {
