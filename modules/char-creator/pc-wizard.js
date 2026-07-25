@@ -62,6 +62,10 @@ function isPurchasableShopRef(ref) {
   return price !== null && price > 0;
 }
 
+function sortByName(a, b) {
+  return (a?.name ?? "").localeCompare(b?.name ?? "", undefined, { sensitivity: "base", numeric: true });
+}
+
 function statValue(block) {
   const adjusted = Number(block?.adjusted);
   if (Number.isFinite(adjusted) && adjusted !== 0) return adjusted;
@@ -624,6 +628,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       .filter((ref) => {
         return ref.type === invView && isPurchasableShopRef(ref) && (isEditingAttachments || matchesInventoryFilters(ref));
       })
+      .sort(sortByName)
       .map((ref) => {
         const price = shopPriceOf(ref);
         return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref) };
@@ -637,6 +642,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           if (!attachmentShowOnlyAvailable) return true;
           return canAttach(this.data, targetPurchase, ref) && shopPriceOf(ref) <= credits.available;
         })
+        .sort(sortByName)
         .map((ref) => {
           const price = shopPriceOf(ref);
           const canInstall = canAttach(this.data, targetPurchase, ref) && price <= credits.available;
