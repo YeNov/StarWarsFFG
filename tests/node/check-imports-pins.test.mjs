@@ -295,24 +295,22 @@ test("a finding with no line is never pinnable — there is no exact triple for 
 // The real repo baseline
 // ---------------------------------------------------------------------------
 
-test("the committed baseline is well-formed and every pin carries an issue", () => {
+test("the committed baseline is well-formed and has no resolved pins", () => {
   const file = path.join(
     REPO_ROOT, "superpowers/docs/plans/PcWizard/baselines/imports-baseline.txt",
   );
   const { pins, errors } = parseBaseline(fs.readFileSync(file, "utf8"));
   assert.deepEqual(errors, [], "the committed baseline must have no malformed pin");
-  assert.ok(pins.length > 0, "the baseline exists precisely because it carries pins");
-  for (const pin of pins) assert.match(pin.issue, /#\d+$/);
+  assert.equal(pins.length, 0, "resolved pins must be removed from the committed baseline");
 });
 
-test("GATE-IMPORTS passes on the real tree, and its pins have not become the whole report", () => {
+test("GATE-IMPORTS passes on the real tree with no findings or pins", () => {
   const r = evaluateImports({ root: REPO_ROOT, cutover: false });
   assert.equal(r.baselineExists, true);
   assert.deepEqual(r.baselineErrors, []);
   assert.deepEqual(r.problems, []);
   assert.deepEqual(r.unpinned, [], "unpinned findings on the real tree");
-  // Stage 1 pins exactly one finding. If this ever needs raising, it is an owner decision, not a
-  // quiet edit — the count is asserted so growth cannot be silent.
-  assert.equal(r.pins.length, 1);
-  assert.equal(r.findings.length, 1);
+  // Keep both counts explicit so a new finding or pin cannot be introduced silently.
+  assert.equal(r.pins.length, 0);
+  assert.equal(r.findings.length, 0);
 });

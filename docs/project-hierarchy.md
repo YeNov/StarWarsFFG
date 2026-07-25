@@ -9,8 +9,8 @@
 - **Foundry compatibility:** `minimum 13`, `verified 13` (no `maximum` —
   see [plans/2026-07-04-v14-migration.md](superpowers/plans/2026-07-04-v14-migration.md))
 - **Framework:** ApplicationV2 / DocumentSheetV2 / DialogV2 throughout (V2-full
-  migration complete). Schema still defined via legacy `template.json`
-  (migration to DataModel is proposed, not started —
+  migration complete). Schema is defined by registered System Data Models
+  (the legacy `template.json` migration is complete —
   [plans/2026-07-04-template-json-to-datamodel-migration.md](superpowers/plans/2026-07-04-template-json-to-datamodel-migration.md)).
 
 ---
@@ -19,8 +19,8 @@
 
 | Path | Role |
 |---|---|
-| `system.json` | Foundry manifest — entry points, compatibility, languages, grid |
-| `template.json` | Legacy schema: 6 Actor types + 19 Item types (see DataModel plan) |
+| `system.json` | Foundry manifest — entry points, compatibility, document types, languages, grid |
+| `modules/data/` | Registered System Data Models for all Actor and Item sub-types |
 | `modules/` | All system JavaScript (the codebase) |
 | `templates/` | Handlebars (`.html`) sheet/dialog/chat templates |
 | `styles/` | **Hand-maintained** compiled CSS (see note below) |
@@ -217,7 +217,7 @@ Naming: `ffg-*` = standard sheets/parts; `codex-*` / `cdx-*` = Codex II sheets.
 ## Notes for navigation
 
 - **"Where is X registered?"** → `swffg-main.js` (hooks + document/sheet/settings).
-- **"Where is the schema?"** → `template.json` today; DataModel plan pending.
+- **"Where is the schema?"** → `modules/data/` (registered from `swffg-main.js`).
 - **"Base sheet behavior?"** → `modules/apps/` (three base classes).
 - **"Config data table?"** → `modules/config/*` → surfaced on `CONFIG.FFG`.
 - **"Import logic?"** → `modules/importer/` (OggDude core in `import-helpers.js`).

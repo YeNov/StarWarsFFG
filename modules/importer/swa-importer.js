@@ -570,9 +570,7 @@ export default class SWAImporter extends HandlebarsApplicationMixin(ApplicationV
                 }
 
                 if (item.weapons) {
-                  const template = await ImportHelpers.getTemplate("weapon");
                   item.weapons.forEach((weapon) => {
-                    let data = JSON.parse(JSON.stringify(template));
                     let weaponData;
 
                     if (typeof weapon === "object") {
@@ -653,8 +651,7 @@ export default class SWAImporter extends HandlebarsApplicationMixin(ApplicationV
                     }
 
                     if (weaponData) {
-                      const templatedData = weaponData;
-                      templatedData.system = foundry.utils.mergeObject(data, weaponData.system);
+                      const templatedData = new CONFIG.Item.documentClass(weaponData, { temporary: true }).toObject();
 
                       if (templatedData.system.special?.value?.length > 0) {
                         templatedData.system.special.value.split(",").forEach((w) => {
@@ -676,12 +673,11 @@ export default class SWAImporter extends HandlebarsApplicationMixin(ApplicationV
                             },
                           };
                           const descriptor = new CONFIG.Item.documentClass(unique, { temporary: true });
-                          templatedData.system.itemmodifier.push(descriptor);
+                          templatedData.system.itemmodifier.push(descriptor.toObject());
                         });
                       }
 
-                      let w = new CONFIG.Item.documentClass(templatedData, { temporary: true });
-                      adversary.items.push(foundry.utils.duplicate(w));
+                      adversary.items.push(templatedData);
                     }
                   });
                 }

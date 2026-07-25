@@ -209,9 +209,7 @@ Hooks.once("init", async function () {
   CONFIG.Item.documentClass = ItemFFG;
   CONFIG.ActiveEffect.documentClass = ActiveEffectFFG;
 
-  // System Data Models — template.json → DataModel migration (Stage 0: no-op).
-  // Registers per-sub-type schemas into CONFIG.*.dataModels as stages land;
-  // until then template.json remains the sole schema source.
+  // Register every Actor and Item System Data Model before documents are prepared.
   registerSystemDataModels();
 
   // we do not want the legacy active effect transfer mode

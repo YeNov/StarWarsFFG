@@ -9,6 +9,10 @@ Plan: `pc_wizard_implementation_plan.md` v10, §2 Stage 1 work items 3–5, §0.
 
 ---
 
+> **Follow-up, 2026-07-25:** [#29](https://github.com/YeNov/StarWarsFFG/issues/29) is resolved on
+> `main` and its import-check pin has been removed. The measurements below intentionally preserve
+> the Stage 1 state observed on 2026-07-20.
+
 ## Status of this file: MEASURED. Stage 1 machine-side work is COMPLETE; Stage 1H is not started
 
 The first revision of this file recorded two gates as **BLOCKED** because Node and npm could
