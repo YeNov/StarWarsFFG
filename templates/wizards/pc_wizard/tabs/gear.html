@@ -45,7 +45,7 @@
                   {{/each}}
                 </td>
                 {{/if}}
-                <td class="pickable-cost">{{ item.cost }} cr</td>
+                <td class="pickable-cost">{{ item.cost }} cr{{#if item.restricted}} <span class="inv-restricted-mark">(R)</span>{{/if}}</td>
                 <td class="pickable-action inv-actions">
                   {{#if item.attachable}}
                     <button type="button" class="inv-icon-btn{{#if item.attachmentsOpen}} is-active{{/if}}" data-action="attachment-target" data-purchase-id="{{item.id}}" data-tooltip="Attachments"><i class="fas fa-wrench"></i></button>
@@ -72,7 +72,7 @@
                                 {{attachment.name}}
                               </span>
                               <span>{{attachment.hardpoints}} HP</span>
-                              <span>{{attachment.price}} cr</span>
+                              <span>{{attachment.price}} cr{{#if attachment.restricted}} <span class="inv-restricted-mark">(R)</span>{{/if}}</span>
                               <button type="button" data-action="buy-attachment" data-target-id="{{attachment.targetId}}" data-uuid="{{attachment.uuid}}" {{#unless attachment.canInstall}}disabled{{/unless}}>Buy & Attach</button>
                             </div>
                           {{/each}}
@@ -108,7 +108,7 @@
                   {{/each}}
                 </td>
                 {{/if}}
-                <td class="pickable-cost">{{ item.price }} cr</td>
+                <td class="pickable-cost">{{ item.price }} cr{{#if item.restricted}} <span class="inv-restricted-mark">(R)</span>{{/if}}</td>
                 <td class="pickable-action"><button type="button" data-action="buy-gear" data-uuid="{{ item.uuid }}" {{#unless item.affordable}}disabled{{/unless}}>Buy</button></td>
               </tr>
             {{/each}}

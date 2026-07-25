@@ -6553,6 +6553,9 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   width: 28%;
   overflow-wrap: anywhere;
 }
+.charCreator .inv-restricted-mark {
+  color: rgb(255, 0, 0);
+}
 .charCreator .inv-columns .pickable-stats {
   width: 30%;
   white-space: normal;

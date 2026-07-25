@@ -631,7 +631,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       .sort(sortByName)
       .map((ref) => {
         const price = shopPriceOf(ref);
-        return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref) };
+        return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref), restricted: Boolean(ref.snapshot?.system?.rarity?.isrestricted) };
       });
     const availableAttachments = targetPurchase
       ? (this.#pools.gear ?? [])
@@ -653,6 +653,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
             targetId: targetPurchase.id,
             price,
             hardpoints: attachmentHardpoints(ref),
+            restricted: Boolean(ref.snapshot?.system?.rarity?.isrestricted),
             canInstall,
           };
         })
@@ -672,6 +673,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           img: attachment.ref.img,
           cost: attachment.cost,
           hardpoints: attachmentHardpoints(attachment.ref),
+          restricted: Boolean(attachment.ref.snapshot?.system?.rarity?.isrestricted),
         }));
         return {
           id: purchase.id,
@@ -680,6 +682,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           img: purchase.ref.img,
           cost: purchase.cost,
           stats: inventoryStats(purchase.ref),
+          restricted: Boolean(purchase.ref.snapshot?.system?.rarity?.isrestricted),
           attachable,
           attachmentsOpen: attachable && purchase.id === this.#attachmentTargetId,
           hardpoints: attachable ? hardpointValue(purchase.ref) : 0,
