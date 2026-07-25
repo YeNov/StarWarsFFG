@@ -17,6 +17,7 @@ function makeData() {
     selected: {
       species: { snapshot: { system: { startingXP: 100 } } },
       startingBonus: undefined,
+      rules: "fad",
     },
     grants: {
       bonus: { xp: 0, credits: 0 },
@@ -75,19 +76,29 @@ test("calcCredits: total = gm + bonus + extra, available subtracts purchases", (
   assert.equal(available, 325);
 });
 
-test("calcObligation returns all cross-ruleset tracks", () => {
+test("calcObligation returns the selected ruleset track", () => {
   assert.deepEqual(calcObligation(withBonus()), {
-    obligation: { starting: 10, available: 10, key: "obligation" },
-    duty: { starting: 10, available: 10, key: "duty" },
-    morality: { starting: 50, available: 50, key: "morality" },
+    starting: 50,
+    available: 50,
+    key: "morality",
   });
 });
 
 test("calcObligation applies field-specific bonus conventions", () => {
-  assert.equal(calcObligation(withBonus({ obligation: 5 })).obligation.available, 15);
-  assert.equal(calcObligation(withBonus({ obligation: 10 })).obligation.available, 20);
-  assert.equal(calcObligation(withBonus({ duty: 5 })).duty.available, 5);
-  assert.equal(calcObligation(withBonus({ duty: 10 })).duty.available, 0);
-  assert.equal(calcObligation(withBonus({ morality: 21 })).morality.available, 71);
-  assert.equal(calcObligation(withBonus({ morality: -21 })).morality.available, 29);
+  const eote5 = withBonus({ obligation: 5 });
+  eote5.selected.rules = "eote";
+  assert.equal(calcObligation(eote5).available, 15);
+  const eote10 = withBonus({ obligation: 10 });
+  eote10.selected.rules = "eote";
+  assert.equal(calcObligation(eote10).available, 20);
+
+  const aor5 = withBonus({ duty: 5 });
+  aor5.selected.rules = "aor";
+  assert.equal(calcObligation(aor5).available, 5);
+  const aor10 = withBonus({ duty: 10 });
+  aor10.selected.rules = "aor";
+  assert.equal(calcObligation(aor10).available, 0);
+
+  assert.equal(calcObligation(withBonus({ morality: 21 })).available, 71);
+  assert.equal(calcObligation(withBonus({ morality: -21 })).available, 29);
 });

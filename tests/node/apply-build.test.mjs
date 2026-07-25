@@ -7,6 +7,11 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import { applyBuild } from "../../modules/char-creator/apply-build.js";
+import { assignWizardIdentity } from "../../modules/char-creator/build-item-schema.js";
+import {
+  normalizeCommitSource,
+  sanitizeCommitRequest,
+} from "../../modules/char-creator/commit-normalize.js";
 
 /** Fixture mirroring the real applyCharacteristicDeltas (Brawn/Willpower derivations). */
 function fixtureDeltas(system, deltas) {
@@ -57,6 +62,7 @@ function makeDraft(overrides = {}) {
       careerCareerSkillRanks: [],
       specialization: null,
       specializationCareerSkillRanks: [],
+      rules: "fad",
       motivations: [],
     },
     available: { specializations: [] },
@@ -89,13 +95,13 @@ test("skill purchases add ranks", () => {
   assert.equal(actorData.system.skills.Astrogation.rank, 1);
 });
 
-test("XP, credits (incl. spendingCredits) and obligation match the calculators", () => {
+test("XP, credits (incl. spendingCredits) and the selected ruleset track match the calculators", () => {
   const { actorData } = applyBuild(makeDraft(), makeDeps());
   assert.deepEqual(actorData.system.experience, { total: 100, available: 100 - 70 - 10 });
   assert.equal(actorData.system.stats.credits.value, 500 + 42); // available + spendingCredits
-  assert.equal(actorData.system.duty.value, 10);
-  assert.equal(actorData.system.obligation.value, 10);
   assert.equal(actorData.system.morality.value, 50);
+  assert.equal(actorData.system.duty, undefined);
+  assert.equal(actorData.system.obligation, undefined);
 });
 
 test("base identity: name, img, prototypeToken from creationDefaults", () => {
@@ -110,6 +116,14 @@ test("force-attitude background is included when selected", () => {
   const calls = { deltas: [], items: [] };
   applyBuild(makeDraft(), makeDeps(calls));
   assert.ok(calls.items.some((c) => c.ref.uuid === "fa1"));
+});
+
+test("force-attitude background is excluded outside Force and Destiny", () => {
+  const calls = { deltas: [], items: [] };
+  const draft = makeDraft();
+  draft.selected.rules = "aor";
+  applyBuild(draft, makeDeps(calls));
+  assert.ok(!calls.items.some((call) => call.ref.uuid === "fa1"));
 });
 
 test("items are built via the injected toItemData (species + forceAttitude present)", () => {
@@ -154,7 +168,7 @@ test("the input draft is not mutated", () => {
   assert.deepEqual(draft, before);
 });
 
-test("credit-purchased attachments are nested into their target item", () => {
+test("player attachment purchases survive build, socket sanitization, and GM normalization", async () => {
   const draft = makeDraft();
   draft.purchases.credits = [
     {
@@ -194,6 +208,22 @@ test("credit-purchased attachments are nested into their target item", () => {
   assert.equal(weapon.system.itemattachment.length, 1);
   assert.equal(weapon.system.itemattachment[0].name, "Balanced Hilt");
   assert.equal(weapon.effects[0].name, "Balanced Hilt Effect");
+
+  const commit = {
+    userId: "player-1",
+    commitId: draft.commitId,
+    firstAttemptAt: "2026-07-25T12:00:00.000Z",
+    xp: { total: 100, available: 20 },
+  };
+  await assignWizardIdentity(actorData, commit);
+  const sanitized = sanitizeCommitRequest({ source: actorData, commit }, "player-1");
+  const { source } = await normalizeCommitSource(sanitized.source, sanitized.commit);
+  const committedWeapon = source.items.find((item) => item.name === "Training Lightsaber");
+
+  assert.equal(committedWeapon.system.itemattachment.length, 1);
+  assert.equal(committedWeapon.system.itemattachment[0].name, "Balanced Hilt");
+  assert.equal(committedWeapon.effects[0].name, "Balanced Hilt Effect");
+  assert.match(committedWeapon._id, /^[0-9A-Za-z]{16}$/);
 });
 
 test("only the highest-soak purchased armor is equipped for derived soak calculation", () => {

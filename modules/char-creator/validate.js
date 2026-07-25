@@ -9,7 +9,7 @@
  * default is "Create anyway".
  */
 
-import { calcXp, calcCredits } from "./calculators.js";
+import { calcXp, calcCredits, obligationKeyForRules } from "./calculators.js";
 import { getSpeciesSkillRankChoices, getSpeciesSkillRankChoiceStatus } from "./species-skill-choices.js";
 
 const WIZARD = "SWFFG.CharacterCreator.Wizard";
@@ -82,9 +82,11 @@ export function validateDraft(data) {
   const freeRankCaps = getFreeRankCaps(data);
   const speciesRankChoices = getSpeciesSkillRankChoiceStatus(data);
   const hasSpeciesRankChoices = getSpeciesSkillRankChoices(data).length > 0;
+  const obligationKey = obligationKeyForRules(sel.rules);
+  const hasRulesetObligation = sel.obligations.some((entry) => entry.snapshot?.system?.type === obligationKey);
 
   const steps = [
-    step("obligation", `${REVIEW}.morality_duty_obligation`, sel.obligations.length > 0),
+    step("obligation", `${REVIEW}.morality_duty_obligation`, hasRulesetObligation),
     step("species", `${REVIEW}.species`, isSet(sel.species)),
     ...(hasSpeciesRankChoices ? [step("speciesRanks", `${REVIEW}.speciesRanks`, speciesRankChoices.complete)] : []),
     step("career", `${REVIEW}.career`, isSet(sel.career)),

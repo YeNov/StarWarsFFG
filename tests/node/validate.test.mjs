@@ -22,6 +22,7 @@ function emptyDraft() {
       careerCareerSkillRanks: [],
       specialization: null,
       specializationCareerSkillRanks: [],
+      rules: "fad",
       motivations: [],
     },
     grants: { gm: { credits: 0 }, bonus: { xp: 0, credits: 0 }, extra: { xp: 0, credits: 0 } },
@@ -80,7 +81,7 @@ test("extra grants permit spending while warning on non-RAW characteristic and i
 test("statuses flip to complete as selections are made", () => {
   const draft = emptyDraft();
   draft.selected.species = { uuid: "sp1", name: "Human" };
-  draft.selected.obligations = [{ uuid: "o1" }];
+  draft.selected.obligations = [{ uuid: "o1", snapshot: { system: { type: "morality" } } }];
   draft.selected.motivations = [{ uuid: "m1" }];
   draft.selected.careerCareerSkillRanks = ["a", "b", "c", "d"]; // exactly 4
   draft.selected.specializationCareerSkillRanks = ["x", "y"]; // exactly 2
@@ -94,6 +95,18 @@ test("statuses flip to complete as selections are made", () => {
   // exact rank counts → no rank warnings
   assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.CareerRanks"));
   assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.SpecRanks"));
+});
+
+test("obligation completeness follows the selected ruleset", () => {
+  const draft = emptyDraft();
+  draft.selected.obligations = [{ uuid: "d1", snapshot: { system: { type: "duty" } } }];
+
+  let byId = Object.fromEntries(validateDraft(draft).steps.map((step) => [step.id, step.status]));
+  assert.equal(byId.obligation, "incomplete");
+
+  draft.selected.rules = "aor";
+  byId = Object.fromEntries(validateDraft(draft).steps.map((step) => [step.id, step.status]));
+  assert.equal(byId.obligation, "complete");
 });
 
 test("wrong free-rank counts produce advisory warnings", () => {

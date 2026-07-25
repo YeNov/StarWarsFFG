@@ -13,6 +13,7 @@ import {
   isWithinBudget,
   compactDraft,
   rehydrateRef,
+  normalizeDraftRules,
   NewerSchemaError,
   CorruptDraftError,
 } from "../../modules/char-creator/draft-schema.js";
@@ -44,6 +45,7 @@ function sampleData({ gearCount = 2, snapshotPad = 40 } = {}) {
       careerCareerSkillRanks: [],
       specialization: null,
       specializationCareerSkillRanks: [],
+      rules: "fad",
       motivations: [],
     },
     available: { specializations: [] },
@@ -80,6 +82,27 @@ test("frozen-commit durability: the commit (incl fingerprint) survives round-tri
 test("a null commit round-trips as null (draft not yet frozen)", () => {
   const record = serializeDraft({ data: sampleData(), commit: null });
   assert.equal(deserializeDraft(record).commit, null);
+});
+
+test("ruleset normalization supports old and flattened draft formats", () => {
+  const oldDraft = sampleData();
+  oldDraft.selected.rules = "aor";
+  oldDraft.selected.startingBonus = "5xp";
+  normalizeDraftRules(oldDraft);
+  assert.equal(oldDraft.selected.rules, "aor");
+  assert.equal(oldDraft.selected.startingBonus, "aor_5xp");
+
+  const flattenedDraft = sampleData();
+  delete flattenedDraft.selected.rules;
+  flattenedDraft.selected.startingBonus = "eote_10xp";
+  normalizeDraftRules(flattenedDraft);
+  assert.equal(flattenedDraft.selected.rules, "eote");
+  assert.equal(flattenedDraft.selected.startingBonus, "eote_10xp");
+
+  const defaultDraft = sampleData();
+  delete defaultDraft.selected.rules;
+  normalizeDraftRules(defaultDraft);
+  assert.equal(defaultDraft.selected.rules, "fad");
 });
 
 test("a NEWER schemaVersion is refused (NewerSchemaError)", () => {

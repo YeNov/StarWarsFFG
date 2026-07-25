@@ -1121,6 +1121,7 @@
   "SWFFG.CharacterCreator.Notify.NoGm": "No GM is online, so your character cannot be finalized yet.",
   "SWFFG.CharacterCreator.Notify.StrayCommit": "Ignoring a commit response that does not match this session.",
   "SWFFG.CharacterCreator.Notify.CollisionError": "A character id collision occurred; please try submitting again.",
+  "SWFFG.CharacterCreator.Notify.ItemUnavailable": "That item is no longer available from its source.",
   "SWFFG.CharacterCreator.Draft.ResumeTitle": "Saved character draft",
   "SWFFG.CharacterCreator.Draft.Resume": "Resume your saved character draft?",
   "SWFFG.CharacterCreator.Draft.ResumeAction": "Resume draft",

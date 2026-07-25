@@ -28,6 +28,18 @@ export function talentTierCost(index) {
   return (Math.floor(index / WIDTH) + 1) * 5;
 }
 
+/** Resolve the document UUID retained by stock, compendium, and OggDude talent data. */
+export function talentDocumentUuid(talent) {
+  const source = typeof talent?.source === "string" ? talent.source.trim() : "";
+  if (source) return source;
+
+  const itemId = typeof talent?.itemId === "string" ? talent.itemId.trim() : "";
+  if (!itemId) return "";
+
+  const pack = typeof talent?.pack === "string" ? talent.pack.trim() : "";
+  return pack ? `Compendium.${pack}.Item.${itemId}` : `Item.${itemId}`;
+}
+
 /** The real `talentN` keys of a talents dict, numerically ordered, `-=` deletions skipped. */
 function talentKeys(talents) {
   return Object.keys(talents ?? {})
@@ -117,6 +129,7 @@ export function prepareTalentTree(talents, learnedKeys, availableXp) {
       name: node?.name ?? "",
       activation: node?.activationLabel ?? node?.activation ?? "",
       description: node?.description ?? "",
+      uuid: talentDocumentUuid(node),
       islearned,
       canPurchase,
       cost,

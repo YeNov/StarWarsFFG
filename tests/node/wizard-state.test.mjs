@@ -33,6 +33,11 @@ test("createInitialData: grants.gm.credits and initial.* seeded from game.settin
   assert.equal(data.initial.morality, 50);
 });
 
+test("createInitialData defaults the ruleset to Force and Destiny", () => {
+  seedSettings();
+  assert.equal(createInitialData().selected.rules, "fad");
+});
+
 test("createInitialData: spendingCredits is a d100 in [1,100], rolled once", () => {
   seedSettings();
   const data = createInitialData();
@@ -83,6 +88,7 @@ test("wizard-state mutators are pure state transitions (setIdentity/setSelection
 test("applyStartingBonus BUG-2: aor duty grant lands in bonus.duty, not bonus[undefined]", () => {
   seedSettings();
   const data = createInitialData();
+  data.selected.rules = "aor";
   applyStartingBonus(data, "aor_5xp");
   assert.equal(data.grants.bonus.duty, 5);
   assert.equal(data.grants.bonus.xp, 5);
@@ -104,6 +110,8 @@ test("applyStartingBonus is a deterministic pure state transition", () => {
   seedSettings();
   const a = createInitialData();
   const b = createInitialData();
+  a.selected.rules = "eote";
+  b.selected.rules = "eote";
   applyStartingBonus(a, "eote_1k_credits");
   applyStartingBonus(b, "eote_1k_credits");
   assert.deepEqual(a.grants.bonus, b.grants.bonus);
@@ -113,6 +121,7 @@ test("applyStartingBonus is a deterministic pure state transition", () => {
 test("applyStartingBonus(null) clears the bonus back to zero", () => {
   seedSettings();
   const data = createInitialData();
+  data.selected.rules = "eote";
   applyStartingBonus(data, "eote_10xp");
   applyStartingBonus(data, null);
   assert.equal(data.selected.startingBonus, null);
@@ -123,13 +132,23 @@ test("calcObligation agrees with the grants.bonus display via the shared table",
   seedSettings();
   // eote: display bonus.obligation and calcObligation adjustment both = +5
   const eote = createInitialData();
+  eote.selected.rules = "eote";
   applyStartingBonus(eote, "eote_5xp");
   assert.equal(eote.grants.bonus.obligation, 5);
-  assert.equal(calcObligation(eote).obligation.available, eote.initial.obligation + 5);
+  assert.equal(calcObligation(eote).available, eote.initial.obligation + 5);
 
   // fad: display bonus.morality and calcObligation adjustment both = +21
   const fad = createInitialData();
   applyStartingBonus(fad, "fad_21_plus_morality");
   assert.equal(fad.grants.bonus.morality, 21);
-  assert.equal(calcObligation(fad).morality.available, fad.initial.morality + 21);
+  assert.equal(calcObligation(fad).available, fad.initial.morality + 21);
+});
+
+test("applyStartingBonus rejects a choice from another ruleset", () => {
+  seedSettings();
+  const data = createInitialData();
+  applyStartingBonus(data, "aor_10xp");
+  assert.equal(data.selected.startingBonus, null);
+  assert.equal(data.grants.bonus.xp, 0);
+  assert.equal(data.grants.bonus.duty, 0);
 });

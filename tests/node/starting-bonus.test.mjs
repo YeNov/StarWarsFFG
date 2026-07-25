@@ -6,7 +6,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
-import { STARTING_BONUS, STARTING_BONUS_OPTIONS, getStartingBonus } from "../../modules/char-creator/starting-bonus.js";
+import {
+  STARTING_BONUS,
+  STARTING_BONUS_OPTIONS,
+  getStartingBonus,
+  getStartingBonusOptions,
+} from "../../modules/char-creator/starting-bonus.js";
 
 test("every self-identifying starting bonus cell matches the transcription", () => {
   assert.deepEqual(STARTING_BONUS, {
@@ -48,8 +53,21 @@ test("getStartingBonus returns {} for unknown choice", () => {
   assert.deepEqual(getStartingBonus(null), {});
 });
 
-test("option list exposes every flattened starting bonus id", () => {
+test("option list contains every stored starting bonus id", () => {
   assert.deepEqual(STARTING_BONUS_OPTIONS.map((option) => option.key), Object.keys(STARTING_BONUS));
+});
+
+test("ruleset option lists expose only that ruleset's choices", () => {
+  assert.deepEqual(getStartingBonusOptions("aor").map((option) => option.key), [
+    "aor_5xp", "aor_10xp", "aor_1k_credits", "aor_2k_credits",
+  ]);
+  assert.deepEqual(getStartingBonusOptions("fad").map((option) => option.key), [
+    "fad_10xp", "fad_2k_credits", "fad_5xp", "fad_21_plus_morality", "fad_21_minus_morality",
+  ]);
+  assert.deepEqual(getStartingBonusOptions("eote").map((option) => option.key), [
+    "eote_5xp", "eote_10xp", "eote_1k_credits", "eote_2k_credits",
+  ]);
+  assert.deepEqual(getStartingBonusOptions("unknown"), []);
 });
 
 test("the table is frozen", () => {

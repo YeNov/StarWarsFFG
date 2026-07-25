@@ -50,6 +50,18 @@ export const STARTING_BONUS_OPTIONS = Object.freeze([
   Object.freeze({ key: "eote_2k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.eote.2k_credits" }),
 ]);
 
+export const RULESET_KEYS = Object.freeze(["fad", "aor", "eote"]);
+
+/**
+ * Return only the starting-bonus choices belonging to one ruleset.
+ * @param {string} rules
+ * @returns {Array<{key: string, labelKey: string}>}
+ */
+export function getStartingBonusOptions(rules) {
+  if (!RULESET_KEYS.includes(rules)) return [];
+  return STARTING_BONUS_OPTIONS.filter((option) => option.key.startsWith(`${rules}_`));
+}
+
 /** The bonus fields the starting-bonus mutator zeroes before applying a cell. */
 export const BONUS_FIELDS = Object.freeze(["xp", "credits", "duty", "obligation", "conflict", "morality"]);
 
@@ -84,10 +96,11 @@ export function applyStartingBonus(data, choice) {
   for (const field of BONUS_FIELDS) {
     data.grants.bonus[field] = 0;
   }
-  const cell = getStartingBonus(choice);
+  const validChoice = choice?.startsWith?.(`${data.selected.rules}_`) ? choice : null;
+  const cell = getStartingBonus(validChoice);
   for (const [field, value] of Object.entries(cell)) {
     data.grants.bonus[field] = value;
   }
-  data.selected.startingBonus = choice;
+  data.selected.startingBonus = validChoice;
   return data;
 }

@@ -100,8 +100,8 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   actorData.system.stats.credits.value = credits.available + data.spendingCredits;
 
   const obligation = calcObligation(data);
-  for (const track of Object.values(obligation)) {
-    actorData.system[track.key] = { ...(actorData.system[track.key] ?? {}), value: track.available };
+  if (obligation.key) {
+    actorData.system[obligation.key] = { ...(actorData.system[obligation.key] ?? {}), value: obligation.available };
   }
 
   // 4. Items via the injected toItemData, one category at a time.
@@ -112,7 +112,7 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   // backgrounds
   addItem(data.selected.background.culture);
   addItem(data.selected.background.hook);
-  addItem(data.selected.background.forceAttitude);
+  if (data.selected.rules === "fad") addItem(data.selected.background.forceAttitude);
 
   // obligations (their snapshots carry the user's edits)
   for (const obligation of data.selected.obligations) addItem(obligation);

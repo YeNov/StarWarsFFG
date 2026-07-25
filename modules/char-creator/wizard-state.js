@@ -70,6 +70,7 @@ export function createInitialData() {
       careerCareerSkillRanks: [],
       specialization: null,
       specializationCareerSkillRanks: [],
+      rules: "fad",
       motivations: [],
     },
     available: {
