@@ -213,6 +213,9 @@ feature never touches. Blocking the rewrite on those is not rigour.
 |---|---|---|---|
 | 2 | `modules/importer/import-helpers.js:2961` | [#29](https://github.com/YeNov/StarWarsFFG/issues/29) | `ImportHelpers.getTemplate()` fetches `template.json`, deleted by `c8d29d86`. Live defect in the **Adversaries importer** (`swa-importer.js:573`, armed adversaries only) — unrelated to this feature, needs a DataModel-derived replacement, unverifiable without a running world. |
 
+> **Resolved 2026-07-25:** the importer now derives weapon defaults from a temporary Item document,
+> the release list no longer names `template.json`, and this pin has been removed from the baseline.
+
 > **Known blind spot, and why `GATE-CUTOVER-BOOT` exists:** rule 4 proves a partial is *listed*, not
 > that Handlebars *registered* it at runtime. Only a real render catches that.
 

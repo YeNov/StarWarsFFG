@@ -2957,24 +2957,6 @@ export default class ImportHelpers {
     return attributes;
   }
 
-  static async getTemplate(type) {
-    const response = await fetch("systems/starwarsffg/template.json");
-    const template = await response.json();
-
-    const obj = Object.values(template).find((i) => i.types.includes(type));
-
-    let item = obj[type];
-
-    if (item.templates) {
-      item.templates.forEach((i) => {
-        item = foundry.utils.mergeObject(item, obj.templates[i]);
-      });
-      delete item.templates;
-    }
-
-    return item;
-  }
-
   static async createActiveEffects(item) {
     if (["species", "gear", "weapon", "armour", "shipattachment"].includes(item.type)) {
       const existingEffects = item.getEmbeddedCollection("ActiveEffect");

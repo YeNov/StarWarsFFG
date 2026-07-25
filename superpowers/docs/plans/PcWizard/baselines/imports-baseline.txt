@@ -14,20 +14,4 @@
 # false positives on this checker's first genuine run.
 #
 # Recorded at Stage 1 (2026-07-20) on the untouched tree, without --cutover.
-#
-# ---------------------------------------------------------------------------------------------
-# rule 2 · modules/importer/import-helpers.js:2961 · YeNov/StarWarsFFG#29
-#   https://github.com/YeNov/StarWarsFFG/issues/29
-#
-#   `ImportHelpers.getTemplate()` fetches `systems/starwarsffg/template.json`, which commit
-#   c8d29d86 deleted. That commit stated no runtime code read it; `swa-importer.js:573` does, via
-#   `ImportHelpers.getTemplate("weapon")` — so this is a live defect in the Adversaries importer,
-#   on the armed-adversary path only. Issue #29 also tracks a second live reference:
-#   `.github/workflows/main.yml:123` still lists `template.json` in the release packaging list.
-#
-#   Out of scope for the PC Wizard rewrite: it is legacy-importer work, needs a DataModel-derived
-#   replacement rather than a file read, and is unverifiable without a running world. Not fixed
-#   here by owner decision.
-# ---------------------------------------------------------------------------------------------
-
-2 | modules/importer/import-helpers.js:2961 | YeNov/StarWarsFFG#29 | Foundry-style path "systems/starwarsffg/template.json" does not resolve under the repo root
+# The sole Stage 1 pin, YeNov/StarWarsFFG#29, was resolved and removed on 2026-07-25.
