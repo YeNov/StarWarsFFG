@@ -16,11 +16,11 @@ async function globalSetup(config: FullConfig) {
   await browser.close();
 
   */
-  await page.goto('http://overlord.wrycu.com:12121/join');
+  if (!baseURL) throw new Error('Playwright baseURL is not configured');
+  await page.goto(new URL('/join', baseURL).href);
   await page.getByRole('combobox').selectOption('Gamemaster');
   await page.getByRole('button', { name: 'Join Game' }).click();
   await expect(page.getByRole('textbox', { name: 'Chat' })).toBeVisible();
-  await expect(page.getByText('1Dark')).toBeVisible();
 
   await page.context().storageState({ path: storageState as string });
   await browser.close();

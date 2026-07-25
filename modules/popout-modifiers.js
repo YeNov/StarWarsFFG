@@ -77,10 +77,41 @@ export default class PopoutModifiers extends FFGFormApplication {
     }
 
     if (this.isEditable && content) {
-      // Delegated add/remove modifier-row controls. `.attributes` is re-created
-      // on every render, so (re)bind here. onClickAttributeControl reads
-      // `this.form` and calls `this._onSubmit` -- both provided by the base.
-      $(content).find(".attributes").on("click", ".attribute-control", ModifierHelpers.onClickAttributeControl.bind(this));
+      const $attributes = $(content).find(".attributes");
+
+      // Adding a row initially appends a minimal form fragment. Re-render only
+      // after that structural edit has been saved so the full row is rebuilt.
+      $attributes.on("click", ".attribute-control", async (event) => {
+        await ModifierHelpers.onClickAttributeControl.call(this, event);
+        await this.render();
+      });
+
+      // Keep dependent controls current in place. A full render here can replace
+      // the form while the next change is being entered, losing that new value.
+      $attributes.on("change", ".modtype", (event) => {
+        const modType = event.currentTarget.value;
+        const valueName = event.currentTarget.name.replace(/\.modtype$/, ".value");
+        const $row = $(event.currentTarget).parent();
+        const $valueInput = $row.find(".modvalue");
+
+        if (modType === "Career Skill") {
+          $valueInput.replaceWith(
+            `<input name="${valueName}" type="checkbox" class="modvalue" data-attr-key="${$valueInput.data("attr-key")}">`,
+          );
+        } else if ($valueInput.attr("type") === "checkbox") {
+          $valueInput.replaceWith(
+            `<input name="${valueName}" type="number" class="modvalue" value="0" data-attr-key="${$valueInput.data("attr-key")}">`,
+          );
+        }
+
+        const choices = CONFIG.FFG.allowableModifierChoices[modType];
+        if (choices) {
+          const options = Object.values(choices)
+            .map(choice => `<option value="${choice.value}">${game.i18n.localize(choice.label)}</option>`)
+            .join("");
+          $row.find(".mod").html(options);
+        }
+      });
     }
   }
 
@@ -183,6 +214,5 @@ export default class PopoutModifiers extends FFGFormApplication {
       delete formData._id;
       await this.object.update(formData);
     }
-    this.render();
   }
 }

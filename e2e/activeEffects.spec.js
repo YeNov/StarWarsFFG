@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import {Actors, Items} from "../playwright/fixtures";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('http://overlord.wrycu.com:12121/game/');
+  await page.goto('/game/');
   await expect(page.getByText('Loading')).toBeVisible();
   await expect(page.getByText('Loading')).not.toBeVisible();
 });
@@ -197,6 +197,52 @@ const actorName = "qa specActor";
   // clean up
   await spActor.remove();
   await sp.remove();
+});
+
+test('embedded tree-item base modifiers apply from the pop-out editor', async ({ page }) => {
+  test.setTimeout(180_000);
+  const actorName = "qa popoutBaseModifierActor";
+  const cases = [
+    { type: "specialization", name: "qa popoutSpec", skill: "Perception" },
+    { type: "forcepower", name: "qa popoutForcePower", skill: "Computers" },
+    { type: "signatureability", name: "qa popoutSignature", skill: "Medicine" },
+  ];
+  await page.evaluate(async ({ actorName, itemNames }) => {
+    for (const actor of game.actors.filter(candidate => candidate.name.startsWith(actorName))) {
+      await actor.delete();
+    }
+    for (const item of game.items.filter(candidate => itemNames.some(name => candidate.name.startsWith(name)))) {
+      await item.delete();
+    }
+  }, { actorName, itemNames: cases.map(itemCase => itemCase.name) });
+
+  const actor = new Actors(page, actorName, "character");
+  await actor.create();
+  const items = [];
+
+  try {
+    for (const itemCase of cases) {
+      const item = new Items(page, itemCase.name, itemCase.type);
+      items.push(item);
+      await item.createWorld();
+
+      await actor.embedWorldItem(itemCase.name);
+      await actor.editItem(itemCase.name);
+      await item.addDirectModifier('Skill Add Success', itemCase.skill, '1');
+      await item.closeSheet();
+    }
+
+    for (const itemCase of cases) {
+      await actor.checkPreparedSkillModifier(itemCase.skill, 'success', 1);
+    }
+  } finally {
+    if (!page.isClosed()) {
+      await actor.remove();
+      for (const item of items) {
+        await item.remove();
+      }
+    }
+  }
 });
 
 test('species applies correctly', async ({ page }) => {
@@ -524,4 +570,3 @@ test('embedded ship weapon applies correctly', async ({ page }) => {
   await shipweapon.remove();
   await shipweaponattachment.remove();
 });
-
