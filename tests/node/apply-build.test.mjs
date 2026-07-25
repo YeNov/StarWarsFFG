@@ -7,6 +7,11 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import { applyBuild } from "../../modules/char-creator/apply-build.js";
+import { assignWizardIdentity } from "../../modules/char-creator/build-item-schema.js";
+import {
+  normalizeCommitSource,
+  sanitizeCommitRequest,
+} from "../../modules/char-creator/commit-normalize.js";
 
 /** Fixture mirroring the real applyCharacteristicDeltas (Brawn/Willpower derivations). */
 function fixtureDeltas(system, deltas) {
@@ -163,7 +168,7 @@ test("the input draft is not mutated", () => {
   assert.deepEqual(draft, before);
 });
 
-test("credit-purchased attachments are nested into their target item", () => {
+test("player attachment purchases survive build, socket sanitization, and GM normalization", async () => {
   const draft = makeDraft();
   draft.purchases.credits = [
     {
@@ -203,6 +208,22 @@ test("credit-purchased attachments are nested into their target item", () => {
   assert.equal(weapon.system.itemattachment.length, 1);
   assert.equal(weapon.system.itemattachment[0].name, "Balanced Hilt");
   assert.equal(weapon.effects[0].name, "Balanced Hilt Effect");
+
+  const commit = {
+    userId: "player-1",
+    commitId: draft.commitId,
+    firstAttemptAt: "2026-07-25T12:00:00.000Z",
+    xp: { total: 100, available: 20 },
+  };
+  await assignWizardIdentity(actorData, commit);
+  const sanitized = sanitizeCommitRequest({ source: actorData, commit }, "player-1");
+  const { source } = await normalizeCommitSource(sanitized.source, sanitized.commit);
+  const committedWeapon = source.items.find((item) => item.name === "Training Lightsaber");
+
+  assert.equal(committedWeapon.system.itemattachment.length, 1);
+  assert.equal(committedWeapon.system.itemattachment[0].name, "Balanced Hilt");
+  assert.equal(committedWeapon.effects[0].name, "Balanced Hilt Effect");
+  assert.match(committedWeapon._id, /^[0-9A-Za-z]{16}$/);
 });
 
 test("only the highest-soak purchased armor is equipped for derived soak calculation", () => {
