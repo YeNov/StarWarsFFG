@@ -256,7 +256,9 @@
       const existingSource = parseItemUuid(existing?.source);
       const existingIsTarget = existingSource?.collection === result.target.collection
         && existingSource.id === result.target.id;
-      if (oldKey !== result.target.id && existingIsTarget) {
+      // Career map duplicates are redundant references. Species talent duplicates
+      // may encode an additional granted rank, so never collapse those implicitly.
+      if (oldKey !== result.target.id && existingIsTarget && expectedType !== "talent") {
         queueChange(document, `${mapPath}.-=${oldKey}`, null);
         plans.get(document.uuid).referenceCount++;
         noteResolution(document, sourcePath, entry.source, {
