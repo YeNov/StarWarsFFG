@@ -77,6 +77,7 @@ test("applyTalentToInnateModification stores a dropped talent as one innate-tale
   const updated = applyTalentToInnateModification(modification, {
     name: "Armor Master",
     img: "talent.webp",
+    uuid: "Compendium.starwarsffg.talents.Item.armor-master",
     system: { description: "Talent description" },
   });
 
@@ -88,5 +89,6 @@ test("applyTalentToInnateModification stores a dropped talent as one innate-tale
     modtype: "Innate Talent",
     mod: "Armor Master",
     value: 1,
+    source: "Compendium.starwarsffg.talents.Item.armor-master",
   });
 });

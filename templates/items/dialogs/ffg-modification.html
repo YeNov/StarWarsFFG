@@ -32,7 +32,10 @@
         <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.modtype" type="hidden" value="{{attr.modtype}}">
         <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.mod" type="hidden" value="{{attr.mod}}">
         <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.value" type="hidden" value="{{attr.value}}">
-        <span>{{attr.mod}}</span>
+        <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.source" type="hidden" value="{{attr.source}}">
+        <div class="innate-talent-card" role="button" tabindex="0" data-talent-uuid="{{attr.source}}" data-talent-name="{{attr.mod}}">
+          <strong>{{attr.mod}}</strong>
+        </div>
         {{/if}}
         {{/each}}
         {{#unless mod.system.attributes.innateTalent}}<span>{{ localize "SWFFG.Notifications.DragAndDropFirst" }}</span>{{/unless}}

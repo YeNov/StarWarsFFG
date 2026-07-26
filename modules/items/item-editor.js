@@ -259,6 +259,7 @@ export class itemEditor extends FFGFormApplication {
     html.find(".flat_editor.dropdown").on("change", this._updateDropdown.bind(this));
     html.find(".flat_editor.add-mod").on("click", this._modControl.bind(this));
     html.find(".flat_editor.add-modification").on("click", this._modificationControl.bind(this));
+    html.find(".innate-talent-card").on("click", this._openInnateTalentCard.bind(this));
 
     // allow drag-and-dropping mods if this is an attachment
     if (this.data.clickedObject.type === "itemattachment") {
@@ -340,6 +341,29 @@ export class itemEditor extends FFGFormApplication {
     }
     await this.data.sourceObject.update({system: {itemattachment: updateData}});
     this.render(true);
+  }
+
+  async _openInnateTalentCard(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const uuid = event.currentTarget.dataset.talentUuid;
+    const name = event.currentTarget.dataset.talentName;
+    let talent = null;
+    try {
+      talent = uuid ? await fromUuid(uuid) : null;
+    } catch {
+      talent = null;
+    }
+    if (!talent && name) {
+      talent = game.items.find((item) => item.type === "talent" && item.name === name);
+    }
+
+    if (talent?.sheet) {
+      talent.sheet.render(true);
+    } else {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Notifications.DragAndDropFirst"));
+    }
   }
 
   /**

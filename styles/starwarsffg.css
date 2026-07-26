@@ -1683,6 +1683,25 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   align-items: center;
   justify-content: space-between;
 }
+.starwarsffg .innate-talent-target {
+  flex: 1 1 auto;
+}
+.starwarsffg .innate-talent-card {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 4px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  min-height: 32px;
+  padding: 6px 8px;
+  text-align: left;
+  width: 100%;
+}
+.starwarsffg .innate-talent-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
 .starwarsffg .tabs {
   height: 40px;
   border-top: 1px solid #aaa;

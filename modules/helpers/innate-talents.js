@@ -145,6 +145,7 @@ export function applyTalentToInnateModification(modification, talent) {
       modtype: INNATE_TALENT_MODTYPE,
       mod: name,
       value: 1,
+      source: talent?.uuid ?? "",
     },
   };
   return updated;

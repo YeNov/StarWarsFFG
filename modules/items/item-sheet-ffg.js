@@ -878,6 +878,29 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     return true;
   }
 
+  async _onOpenInnateTalentCard(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const uuid = event.currentTarget.dataset.talentUuid;
+    const name = event.currentTarget.dataset.talentName;
+    let talent = null;
+    try {
+      talent = uuid ? await fromUuid(uuid) : null;
+    } catch {
+      talent = null;
+    }
+    if (!talent && name) {
+      talent = game.items.find((item) => item.type === "talent" && item.name === name);
+    }
+
+    if (talent?.sheet) {
+      talent.sheet.render(true);
+    } else {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Notifications.DragAndDropFirst"));
+    }
+  }
+
   /**
    * Handle adding/deleting mods (modifiers) within modifications on a standalone itemattachment sheet
    */
@@ -1179,6 +1202,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       html.find(".flat_editor.add-modification").on("click", this._onStandaloneModificationControl.bind(this));
       html.find(".flat_editor.add-mod").on("click", this._onStandaloneModControl.bind(this));
       html.find(".flat_editor.dropdown").on("change", this._onStandaloneDropdownChange.bind(this));
+      html.find(".innate-talent-card").on("click", this._onOpenInnateTalentCard.bind(this));
       const talentDrop = new foundry.applications.ux.DragDrop({
         dragSelector: ".item",
         dropSelector: ".innate-talent-drop",
