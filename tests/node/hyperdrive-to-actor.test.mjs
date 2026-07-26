@@ -28,7 +28,11 @@ function assemblerDeps() {
       img: "default.png",
       prototypeToken: { actorLink: true },
       system: {
-        characteristics: CHARS(0),
+        // A freshly created actor starts every characteristic at 0 (character.js:173);
+        // the species and other items supply the rest via their effects.
+        characteristics: Object.fromEntries(
+          Object.keys(CHARS(0)).map((characteristic) => [characteristic, { value: 0 }]),
+        ),
         skills,
         stats: {
           wounds: { max: 0 },
@@ -101,7 +105,27 @@ function basicDeps(overrides = {}) {
         warnings: [],
       };
     },
-    preparePreview: async () => ({ characteristics: CHARS(3), skills: {} }),
+    // What the BUILD ITEMS alone prepare, measured from an unsaved preview actor: the
+    // species supplies 2 in every characteristic and the Steel Hand Dedication adds +1
+    // Brawn; Brawl collects three free ranks (species + career + specialization), while
+    // Athletics/Cool come from the career and Coordination from the specialization.
+    // Equipment is excluded on purpose — an item carries its own modifiers.
+    preparePreview: async () => ({
+      characteristics: {
+        Brawn: { value: 3 },
+        Agility: { value: 2 },
+        Intellect: { value: 2 },
+        Cunning: { value: 2 },
+        Willpower: { value: 2 },
+        Presence: { value: 2 },
+      },
+      skills: {
+        Brawl: { rank: 3 },
+        Athletics: { rank: 1 },
+        Cool: { rank: 1 },
+        Coordination: { rank: 1 },
+      },
+    }),
     prepareFinal: async () => ({
       characteristics: CHARS(3),
       wounds: 18,
@@ -136,8 +160,11 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
       },
     }
     : originalGet(type, key);
+  // Base Brawn is the residual 0; species (2) + Dedication (1) + the cybernetic's own
+  // +1 prepare to 4. Hyperdrive's export omits the cybernetic's bonus, so the extra
+  // point is legitimate drift for the report rather than an importer error.
   base.deps.prepareFinal = async () => ({
-    characteristics: CHARS(5),
+    characteristics: CHARS(4),
     wounds: 19,
     strain: 13,
     soak: 4,
@@ -152,7 +179,7 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
     kind: "characteristic",
     stat: "Brawn",
     exported: 3,
-    prepared: 5,
+    prepared: 4,
   });
   assert.deepEqual(report.drift.find((row) => row.stat === "wounds"), {
     kind: "threshold",
@@ -162,19 +189,33 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
   });
 });
 
-test("golden export keeps paid advances additive to free ranks and item effects", async () => {
+test("golden export stores only the residual the build items do not already supply", async () => {
   const parsed = parseHyperdrive(RAW);
   const { deps } = basicDeps();
   const originalGet = deps.resolve.getByKey;
   deps.resolve.getByKey = (type, key) =>
     type === "specialization" && key === "DEATHWCOTR" ? null : originalGet(type, key);
-  const { actorData } = await hyperdriveToActorData(parsed, deps);
+  const { actorData, report } = await hyperdriveToActorData(parsed, deps);
 
-  assert.equal(actorData.system.characteristics.Brawn.value, 1);
-  assert.equal(actorData.system.stats.wounds.max, 1);
-  assert.equal(actorData.system.stats.encumbrance.max, 1);
-  assert.equal(actorData.system.skills.Athletics.rank, 1);
-  assert.equal(actorData.system.skills.Brawl.rank, 2);
+  // Brawn 3 = species 2 + Dedication 1, so nothing is left to persist; writing the
+  // exported 3 here would double-count against the very items that supply it.
+  assert.equal(actorData.system.characteristics.Brawn.value, 0);
+  assert.equal(actorData.system.stats.wounds.max, 0);
+  assert.equal(actorData.system.stats.encumbrance.max, 0);
+  // Characteristics no item supplies stay on the actor: Agility/Intellect 4 - 2, Cunning 3 - 2.
+  assert.equal(actorData.system.characteristics.Agility.value, 2);
+  assert.equal(actorData.system.characteristics.Intellect.value, 2);
+  assert.equal(actorData.system.characteristics.Cunning.value, 1);
+
+  // Athletics' single rank is the career's free rank; Brawl's three free ranks already
+  // exceed the exported 2, which is capped at 0 and reported rather than silently kept.
+  assert.equal(actorData.system.skills.Athletics.rank, 0);
+  assert.equal(actorData.system.skills.Brawl.rank, 0);
+  assert.ok(report.warnings.some((warning) =>
+    /Skill Brawl: imported items grant 3 free rank\(s\) but the export lists 2/.test(warning)));
+  // Ranks with no item behind them are genuinely purchased and must persist.
+  assert.equal(actorData.system.skills.Charm.rank, 1);
+  assert.equal(actorData.system.skills.Vigilance.rank, 1);
 
   const career = actorData.items.find((item) => item.type === "career");
   const steel = actorData.items.find((item) => item.name === "STEELHAND");
@@ -191,17 +232,18 @@ test("golden export keeps paid advances additive to free ranks and item effects"
   assert.ok(cyber.effects.flatMap((effect) => effect.changes).some((change) =>
     change.key === "system.stats.wounds.max" && change.value === 1));
 
+  // The base plus what the build items supply reconstructs the exported sheet rather
+  // than exceeding it: Brawn 0 + species 2 + Dedication 1 === the exported 3, and
+  // Athletics 0 + the career's free rank === the exported 1. The cybernetic's own +1
+  // sits on the item and surfaces as reported drift, not as a larger base.
   assert.equal(
-    actorData.system.characteristics.Brawn.value + 2 + 1 + 1,
-    5,
+    actorData.system.characteristics.Brawn.value + 2 + 1,
+    parsed.characteristics.Brawn,
   );
   assert.equal(
-    actorData.system.stats.encumbrance.max + 7 + 1 + 1,
-    10,
+    actorData.system.skills.Athletics.rank + 1,
+    parsed.skills.find((skill) => skill.skill === "Athletics").rank,
   );
-  assert.equal(actorData.system.skills.Athletics.rank + 1, 2);
-  assert.equal(actorData.system.skills.Brawl.rank + 1 + 1 + 1, 5);
-  assert.equal(actorData.system.stats.wounds.max + 13 + 2 + 2 + 1, 19);
 });
 
 test("unmatched equipment builds in-place and is included in the report", async () => {

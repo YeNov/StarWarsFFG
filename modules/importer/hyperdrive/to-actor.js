@@ -102,27 +102,46 @@ export function deriveXp(parsed) {
   return { total, spent, available, warnings };
 }
 
-export function baseCharacteristicDeltas(characteristics, startingCharacteristics) {
+/**
+ * The persisted base holds only the RESIDUAL — the part no imported item supplies.
+ *
+ * Species starting values, Dedication grants, free skill ranks and talent effects all
+ * arrive as Active Effects on the build items and ADD on top of the base
+ * (`_calculateDerivedValues`, actor-ffg.js:612, only recomputes encumbrance — nothing
+ * re-derives characteristics or thresholds from the final numbers). Writing Hyperdrive's
+ * FINAL value into the base while those items are also embedded double-counts: the golden
+ * fixture's Brawn 3 became 5, and Brawl rank 2 became 5.
+ *
+ * So the base is `exported − what the build items already prepare`, measured from an
+ * unsaved preview actor built from the build items ONLY. Equipment is deliberately
+ * excluded: an item carries its own modifier (a cybernetic's +1 Brawn belongs to the
+ * item, not the character), so equipment must not push the base down.
+ */
+export function residualCharacteristicDeltas(characteristics, preview) {
   const deltas = {};
   const warnings = [];
   for (const [characteristic, value] of Object.entries(characteristics ?? {})) {
-    const starting = Number(startingCharacteristics?.[characteristic] ?? 0);
-    const delta = Number(value) - starting;
+    const supplied = Number(preview?.characteristics?.[characteristic]?.value ?? 0);
+    const delta = Number(value) - supplied;
     if (delta < 0) {
-      warnings.push(`${characteristic}: export value ${value} below species starting value ${starting}; not baking a negative base advance.`);
+      warnings.push(`${characteristic}: imported items already supply ${supplied} but the export lists ${value}; leaving the base at 0.`);
     }
     deltas[characteristic] = Math.max(0, delta);
   }
   return { deltas, warnings };
 }
 
-export function purchasedSkillDeltas(parsedSkills) {
+export function residualSkillDeltas(parsedSkills, preview) {
   const deltas = {};
   const warnings = [];
   for (const skill of parsedSkills ?? []) {
     const rank = Number(skill.rank ?? 0);
-    if (rank < 0) warnings.push(`Skill ${skill.skill}: export contains a negative purchased rank; capping at 0.`);
-    if (rank > 0) deltas[skill.skill] = rank;
+    const supplied = Number(preview?.skills?.[skill.skill]?.rank ?? 0);
+    const delta = rank - supplied;
+    if (delta < 0) {
+      warnings.push(`Skill ${skill.skill}: imported items grant ${supplied} free rank(s) but the export lists ${rank}; leaving the base at 0.`);
+    }
+    if (delta > 0) deltas[skill.skill] = delta;
   }
   return { deltas, warnings };
 }
@@ -376,11 +395,11 @@ export async function hyperdriveToActorData(parsed, deps) {
     }
   }
 
-  const characteristicBase = baseCharacteristicDeltas(
-    parsed.characteristics,
-    parsed.species?.startingChars,
-  );
-  const purchasedSkills = purchasedSkillDeltas(parsed.skills);
+  // Build items are complete here; equipment is deliberately NOT part of the preview
+  // (an item carries its own modifiers, so it must not depress the character's base).
+  const preview = await deps.preparePreview(buildItems);
+  const characteristicBase = residualCharacteristicDeltas(parsed.characteristics, preview);
+  const purchasedSkills = residualSkillDeltas(parsed.skills, preview);
   report.warnings.push(...characteristicBase.warnings, ...purchasedSkills.warnings);
   const xp = deriveXp(parsed, characteristicBase.deltas);
   report.warnings.push(...xp.warnings);
