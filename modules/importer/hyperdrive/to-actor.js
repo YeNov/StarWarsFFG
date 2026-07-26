@@ -329,6 +329,23 @@ export function driftReport(parsed, prepared) {
   return drift;
 }
 
+/**
+ * The Strength/Weakness pair a Force and Destiny character carries alongside their
+ * Morality score. `CharacterDataModel` declares morality as `{value, type, label}` only
+ * (character.js:50) — there is no field for either half of the pair, and an undeclared
+ * path is dropped from the prepared view — so they are preserved in the import flags and
+ * surfaced in the report instead of being written somewhere they would silently vanish.
+ */
+export function moralityPair(parsed) {
+  const pair = (parsed?.morality?.strengthWeakness ?? [])[0];
+  if (!pair) return null;
+  const label = (entry) => entry?.Name ?? entry?.Key ?? null;
+  const strength = label(pair.Strength);
+  const weakness = label(pair.Weakness);
+  if (!strength && !weakness) return null;
+  return { strength, weakness };
+}
+
 function trackFor(parsed) {
   if (parsed.rules === "fad") return { key: "morality", value: parsed.morality?.score ?? 50 };
   if (parsed.rules === "aor") {
@@ -494,6 +511,11 @@ export async function hyperdriveToActorData(parsed, deps) {
   const xp = deriveXp(parsed);
   report.warnings.push(...xp.warnings);
   if (parsed.notes) report.warnings.push("Hyperdrive notes have no native actor field and were preserved in import flags.");
+  const morality = moralityPair(parsed);
+  if (morality) {
+    report.metadata.morality = morality;
+    report.warnings.push(`Morality Strength (${morality.strength ?? "none"}) and Weakness (${morality.weakness ?? "none"}) have no native actor field and were preserved in import flags.`);
+  }
   if (parsed.vehicles?.length) report.warnings.push(`${parsed.vehicles.length} vehicle entry or entries were skipped.`);
   if (!parsed.signatureAbilities?.length) report.warnings.push("The export contains no signature abilities.");
 
@@ -512,6 +534,7 @@ export async function hyperdriveToActorData(parsed, deps) {
           source: parsed.source,
           notes: parsed.notes,
           modifiers: parsed.modifiers,
+          morality: morality ?? undefined,
         },
       },
     },

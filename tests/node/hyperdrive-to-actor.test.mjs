@@ -246,6 +246,26 @@ test("golden export stores only the residual the build items do not already supp
   );
 });
 
+test("Morality Strength/Weakness are preserved in flags and reported", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const { actorData, report } = await hyperdriveToActorData(parsed, deps);
+
+  // CharacterDataModel declares morality as {value, type, label} only (character.js:50),
+  // so the pair is kept in flags rather than written to a path the model would drop.
+  assert.deepEqual(actorData.flags.starwarsffg.hyperdriveImport.morality, {
+    strength: "Camaraderie",
+    weakness: "Closed-mindedness",
+  });
+  assert.deepEqual(report.metadata.morality, {
+    strength: "Camaraderie",
+    weakness: "Closed-mindedness",
+  });
+  assert.ok(report.warnings.some((warning) => /Morality Strength \(Camaraderie\)/.test(warning)));
+  // The numeric score still lands on the declared field.
+  assert.equal(actorData.system.morality.value, 50);
+});
+
 test("unmatched equipment builds in-place and is included in the report", async () => {
   const parsed = parseHyperdrive(RAW);
   const { deps } = basicDeps();
