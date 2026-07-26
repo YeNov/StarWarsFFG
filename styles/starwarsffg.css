@@ -2873,6 +2873,10 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg.data-import .import-file-selector div {
   display: inline-block;
 }
+.starwarsffg.data-import .hyperdrive-importer-content {
+  min-height: 0;
+  overflow-y: auto;
+}
 .starwarsffg.data-import .import-invalid {
   display: none;
 }

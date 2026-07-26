@@ -4137,6 +4137,11 @@ img {
   display: inline-block;
 }
 
+.starwarsffg.data-import .hyperdrive-importer-content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .starwarsffg.data-import .import-invalid {
   display: none;
 }

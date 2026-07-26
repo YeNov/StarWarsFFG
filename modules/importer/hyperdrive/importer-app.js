@@ -158,7 +158,10 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
     tag: "form",
     classes: ["starwarsffg", "data-import"],
     position: { width: 620, height: 720 },
-    window: { title: "Import Hyperdrive Character" },
+    window: {
+      title: "Import Hyperdrive Character",
+      contentClasses: ["standard-form", "hyperdrive-importer-content"],
+    },
     actions: {
       import: HyperdriveImporter._onImport,
       reset: HyperdriveImporter._onReset,
@@ -169,6 +172,7 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
     content: {
       root: true,
       template: "systems/starwarsffg/templates/importer/hyperdrive-importer.html",
+      scrollable: [""],
     },
   };
 
