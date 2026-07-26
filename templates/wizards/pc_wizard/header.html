@@ -25,6 +25,21 @@
     {{ obligationKey }}: {{ availableObligation }}
     <button type="button" class="sources-button" data-action="open-sources">{{ localize "SWFFG.CharacterCreator.Sources.Title" }}</button>
   </div>
+  {{#if sourceLoad.visible}}
+    <div class="pcw-load-progress" role="status" aria-live="polite">
+      <div class="pcw-load-progress-row">
+        <span>Loading content sources</span>
+        <b>{{sourceLoad.loaded}} / {{sourceLoad.total}}</b>
+      </div>
+      <div class="pcw-load-progress-track" aria-label="PC Wizard source loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{sourceLoad.percent}}" role="progressbar">
+        <div class="pcw-load-progress-bar" style="width: {{sourceLoad.percent}}%;"></div>
+      </div>
+      <div class="pcw-load-progress-row pcw-load-progress-detail">
+        <span>{{sourceLoad.remaining}} left{{#if sourceLoad.current}} &middot; {{sourceLoad.current}}{{/if}}</span>
+        {{#if sourceLoad.failed}}<span>{{sourceLoad.failed}} failed</span>{{/if}}
+      </div>
+    </div>
+  {{/if}}
   {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/draft-banner.html"}}
   {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/sources-panel.html"}}
 </div>

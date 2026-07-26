@@ -239,7 +239,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     invalidateSourceCache();
     const active = CharacterCreator.#activeInstance;
     if (active) {
+      active.#cancelSourceLoad();
       active.#pools = {};
+      active.#sourceLoadFailedPools.clear();
       if (active.minimized) active.maximize?.();
       active.bringToFront?.();
       active.bringToTop?.();
@@ -382,6 +384,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #attachmentTargetId = null; // Expanded owned gear purchase id for attachment shopping.
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
+  #sourceLoad = { active: false, total: 0, loaded: 0, failed: 0, current: "" };
+  #sourceLoadPromise = null;
+  #sourceLoadGeneration = 0;
+  #sourceLoadFailedPools = new Set();
   #missingSourceWarningShown = false; // One-shot warning for stale compendium settings.
   #missingSourceWarningGroups = null; // Prepared during context, shown after the wizard renders.
   #draftBannerDismissed = false; // Resume/discard banner is only for a different stored draft.
@@ -407,14 +413,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext() {
-    await mapWithConcurrency(STARTUP_POOL_KEYS, STARTUP_POOL_LOAD_CONCURRENCY, async (poolKey) => {
-      try {
-        await this.#ensurePool(poolKey);
-      } catch (err) {
-        delete this.#pools[poolKey];
-        CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} sources: ${err.message}`);
-      }
-    });
+    this.#startSourceLoad(STARTUP_POOL_KEYS);
     this.#ensureCreditPurchaseIds(this.data);
     this.#ensureExtraGrants(this.data);
     this.#normalizeFreeRankSelections(this.data);
@@ -831,6 +830,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       reviewVerificationSteps,
       sourceGroups,
       sourcesOpen: this.#sourcesOpen,
+      sourceLoad: this.#prepareSourceLoadContext(),
       actor: preview,
     };
   }
@@ -921,9 +921,75 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     data.grants.extra.credits = nonNegativeInteger(data.grants.extra.credits);
   }
 
-  /** Load a content pool through the signature-aware source cache. */
-  async #ensurePool(poolKey) {
-    this.#pools[poolKey] = await loadSource(poolKey);
+  #cancelSourceLoad() {
+    this.#sourceLoadGeneration += 1;
+    this.#sourceLoadPromise = null;
+    this.#sourceLoad = { active: false, total: 0, loaded: 0, failed: 0, current: "" };
+  }
+
+  #startSourceLoad(poolKeys) {
+    if (this.#sourceLoadPromise) return;
+    const keys = [...new Set(poolKeys)].filter((poolKey) => !this.#pools[poolKey] && !this.#sourceLoadFailedPools.has(poolKey));
+    if (!keys.length) {
+      this.#sourceLoad = { active: false, total: 0, loaded: 0, failed: 0, current: "" };
+      return;
+    }
+
+    const generation = ++this.#sourceLoadGeneration;
+    this.#sourceLoad = { active: true, total: keys.length, loaded: 0, failed: 0, current: "" };
+    const requestRender = (options = { parts: ["header"] }) => {
+      window.setTimeout(() => {
+        if (generation !== this.#sourceLoadGeneration || CharacterCreator.#activeInstance !== this) return;
+        if (options) this.render(options);
+        else this.render();
+      }, 0);
+    };
+
+    this.#sourceLoadPromise = (async () => {
+      await mapWithConcurrency(keys, STARTUP_POOL_LOAD_CONCURRENCY, async (poolKey) => {
+        if (generation !== this.#sourceLoadGeneration) return;
+        this.#sourceLoad.current = poolKey;
+        requestRender();
+        try {
+          const refs = await loadSource(poolKey);
+          if (generation !== this.#sourceLoadGeneration) return;
+          this.#pools[poolKey] = refs;
+        } catch (err) {
+          if (generation !== this.#sourceLoadGeneration) return;
+          delete this.#pools[poolKey];
+          this.#sourceLoadFailedPools.add(poolKey);
+          this.#sourceLoad.failed += 1;
+          CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} sources: ${err.message}`);
+        } finally {
+          if (generation !== this.#sourceLoadGeneration) return;
+          this.#sourceLoad.loaded += 1;
+          requestRender();
+        }
+      });
+    })().finally(() => {
+      if (generation !== this.#sourceLoadGeneration) return;
+      this.#sourceLoad.active = false;
+      this.#sourceLoad.current = "";
+      this.#sourceLoadPromise = null;
+      requestRender(null);
+    });
+  }
+
+  #prepareSourceLoadContext() {
+    const load = this.#sourceLoad;
+    const total = Number(load.total) || 0;
+    const loaded = Number(load.loaded) || 0;
+    const remaining = Math.max(0, total - loaded);
+    const percent = total ? Math.round((loaded / total) * 100) : 100;
+    return {
+      visible: Boolean(load.active && total),
+      total,
+      loaded,
+      remaining,
+      failed: Number(load.failed) || 0,
+      percent,
+      current: load.current,
+    };
   }
 
   #prepareSourceGroups(exclusions) {
@@ -1647,7 +1713,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const exclusions = setSourceEnabled(readExclusions(), poolKey, sourceId, target.checked);
     await game.user.setFlag(FLAG_SCOPE, FLAGS.sourceSelection, exclusions);
     invalidateSourceCache(poolKey);
+    this.#cancelSourceLoad();
     delete this.#pools[poolKey];
+    this.#sourceLoadFailedPools.delete(poolKey);
     this.#sourcesOpen = true;
     this.render();
   }
@@ -1660,7 +1728,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         this.#draft.commit = record.commit ?? null;
         this.#draftBannerDismissed = true;
         invalidateSourceCache();
+        this.#cancelSourceLoad();
         this.#pools = {};
+        this.#sourceLoadFailedPools.clear();
         for (const warning of record.warnings ?? []) ui.notifications.warn(game.i18n.localize(warning));
         this.render(true);
       }
@@ -1677,7 +1747,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#draft.commit = null;
     this.#draftBannerDismissed = true;
     invalidateSourceCache();
+    this.#cancelSourceLoad();
     this.#pools = {};
+    this.#sourceLoadFailedPools.clear();
     this.render(true);
   }
 

@@ -3674,6 +3674,39 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   background: transparent;
 }
 
+.charCreator .pcw-load-progress {
+  margin: 6px 8px 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.55);
+  color: #191813;
+  font-size: 0.86em;
+}
+.charCreator .pcw-load-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.charCreator .pcw-load-progress-track {
+  height: 7px;
+  margin: 4px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.charCreator .pcw-load-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #3a7d3a;
+  transition: width 160ms ease-out;
+}
+.charCreator .pcw-load-progress-detail {
+  color: #4f3b31;
+  font-size: 0.9em;
+}
+
 .charCreator .background-accordion {
   display: flex;
   flex-direction: column;
