@@ -1484,6 +1484,30 @@ Hooks.on("renderActorDirectory", (app, html) => {
         CharacterCreator.open();
       }
     }
+
+    // The Hyperdrive importer produces a single character actor, so it belongs beside the
+    // creation wizard rather than with the dataset importers in the compendium footer.
+    const importId = "ffgHyperdriveImport";
+    if (game.user.can("ACTOR_CREATE") && !document.querySelector(`#${importId}`)) {
+      const importButtonIcon = document.createElement("i");
+      importButtonIcon.classList.add("fa-solid", "fa-file-import");
+
+      const importButtonText = document.createElement("span");
+      importButtonText.textContent = game.i18n.localize("SWFFG.HyperdriveImport.Entry.Button");
+
+      const importButton = document.createElement("button");
+      importButton.id = importId;
+      importButton.type = "button";
+      importButton.classList.add("hyperdrive-character");
+      importButton.appendChild(importButtonIcon);
+      importButton.appendChild(importButtonText);
+
+      html.querySelector(".header-actions.action-buttons")?.appendChild(importButton);
+
+      importButton.onclick = function () {
+        new HyperdriveImporter().render(true);
+      };
+    }
   }
 });
 
@@ -1495,8 +1519,7 @@ Hooks.on("renderCompendiumDirectory", (app, html, data) => {
     div.className = "og-character-import";
     div.innerHTML = `<hr><h4>Importers</h4>
     <button class="og-character" style="width:100%;margin-bottom:4px;">OggDude Dataset Importer</button>
-    <button class="swa-character" style="width:100%;margin-bottom:4px;">Adversaries Dataset Importer</button>
-    <button class="hyperdrive-character" style="width:100%;">Hyperdrive Character Importer</button>`;
+    <button class="swa-character" style="width:100%;">Adversaries Dataset Importer</button>`;
     html.querySelector(".directory-footer")?.appendChild(div);
     // add event handlers with addEventListener()
     div.querySelector(".og-character")?.addEventListener("click", (event) => {
@@ -1506,10 +1529,6 @@ Hooks.on("renderCompendiumDirectory", (app, html, data) => {
     div.querySelector(".swa-character")?.addEventListener("click", (event) => {
       event.preventDefault();
       new SWAImporter().render(true);
-    });
-    div.querySelector(".hyperdrive-character")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      new HyperdriveImporter().render(true);
     });
   }
 });

@@ -1109,6 +1109,7 @@
   "SWFFG.CharacterCreator.review.credits": "credits,",
   "SWFFG.CharacterCreator.Entry.Button": "PC Wizard",
   "SWFFG.CharacterCreator.Entry.Loading": "PC Wizard Loading...",
+  "SWFFG.HyperdriveImport.Entry.Button": "Hyperdrive Import",
   "SWFFG.CharacterCreator.Checks.GM": "At least one GM must be online to use the PC Wizard",
   "SWFFG.CharacterCreator.Notify.StartedGM": "{name} started creating a character with the PC Wizard.",
   "SWFFG.CharacterCreator.Notify.FinishedGM": "{name} finished creating {character}.",
