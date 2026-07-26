@@ -6610,19 +6610,38 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   gap: 4px;
   margin-top: 4px;
 }
+.charCreator .inv-attached-row td {
+  padding-top: 0;
+}
 .charCreator .inv-attached {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  width: 100%;
   gap: 4px;
-  max-width: 100%;
   padding: 2px 5px;
   border-radius: 3px;
   background: rgba(18, 24, 36, 0.35);
   font-size: 0.82em;
   overflow-wrap: anywhere;
 }
+.charCreator .inv-attached-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .charCreator .inv-attached i {
   cursor: pointer;
+}
+.charCreator .inv-attached-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
 }
 .charCreator .inv-attached i[data-action="open-item"],
 .charCreator .inv-attachment-name i {
@@ -6630,6 +6649,7 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   cursor: pointer;
   opacity: 0.85;
 }
+.charCreator .inv-attached-edit:hover,
 .charCreator .inv-attached i[data-action="open-item"]:hover,
 .charCreator .inv-attachment-name i:hover {
   opacity: 1;

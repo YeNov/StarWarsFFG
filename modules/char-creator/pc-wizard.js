@@ -124,6 +124,53 @@ function inventoryStats(ref) {
   return [];
 }
 
+function normalizeIndexedArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== "object") return value;
+  const entries = Object.entries(value)
+    .filter(([key]) => /^\d+$/.test(key))
+    .sort(([a], [b]) => Number(a) - Number(b));
+  return entries.length ? entries.map(([, entry]) => entry) : value;
+}
+
+function collapseBracketArrayKeys(container) {
+  if (!container || typeof container !== "object" || Array.isArray(container)) return;
+  for (const key of Object.keys(container)) {
+    const match = key.match(/^(.+)\[(\d+)\]$/);
+    if (!match) continue;
+    const [, arrayKey, indexText] = match;
+    const index = Number(indexText);
+    container[arrayKey] ??= [];
+    container[arrayKey][index] = container[key];
+    delete container[key];
+  }
+}
+
+function normalizeWizardEditedItemSnapshot(raw, { fillItemModifiers = true } = {}) {
+  const snapshot = foundry.utils.deepClone(raw ?? {});
+  if (snapshot.data) {
+    snapshot.system = foundry.utils.mergeObject(snapshot.system ?? {}, snapshot.data, { inplace: false });
+    delete snapshot.data;
+  }
+  snapshot.system ??= {};
+  const hasItemModifiers = Object.keys(snapshot.system).some((key) => key === "itemmodifier" || /^itemmodifier\[\d+\]$/.test(key));
+  collapseBracketArrayKeys(snapshot.system);
+  if (hasItemModifiers || fillItemModifiers) snapshot.system.itemmodifier = normalizeIndexedArray(snapshot.system.itemmodifier ?? []);
+  if (Array.isArray(snapshot.system.itemmodifier)) {
+    snapshot.system.itemmodifier = snapshot.system.itemmodifier.map((modifier) => {
+      const next = foundry.utils.deepClone(modifier);
+      next.system ??= {};
+      if ("active" in next.system) next.system.active = next.system.active === true || next.system.active === "true" || next.system.active === "on";
+      if ("broken" in next.system) next.system.broken = next.system.broken === true || next.system.broken === "true" || next.system.broken === "on";
+      return next;
+    });
+  }
+  delete snapshot.id;
+  delete snapshot._id;
+  delete snapshot.ownership;
+  return snapshot;
+}
+
 const SOURCE_GROUP_LABELS = Object.freeze({
   species: "Species",
   career: "Careers",
@@ -248,6 +295,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "buy-gear": CharacterCreator._onBuyGear,
       "attachment-target": CharacterCreator._onAttachmentTarget,
       "buy-attachment": CharacterCreator._onBuyAttachment,
+      "edit-attachment": CharacterCreator._onEditAttachment,
       "refund-attachment": CharacterCreator._onRefundAttachment,
       "inventory-view": CharacterCreator._onInventoryView,
       "toggle-available-attachments": CharacterCreator._onToggleAvailableAttachments,
@@ -1220,6 +1268,80 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       if (!canAttach(data, targetPurchase, ref)) return;
       data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost: shopPriceOf(ref), attachTo: targetId });
     });
+  }
+
+  static async _onEditAttachment(event, target) {
+    event.preventDefault();
+    event.stopPropagation();
+    const { purchaseId } = target.dataset;
+    const purchase = this.data.purchases.credits.find((entry) => entry.id === purchaseId && entry.attachTo && entry.ref?.type === "itemattachment");
+    if (!purchase) return;
+
+    const source = normalizeWizardEditedItemSnapshot(purchase.ref.snapshot ?? {});
+    source.name ??= purchase.ref.name;
+    source.type = "itemattachment";
+    source.img ??= purchase.ref.img;
+    source.ownership = { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER };
+    delete source.id;
+    delete source._id;
+
+    const tempItem = await new Item.implementation(source, { temporary: true });
+    const persist = (changes = {}) => {
+      const current = normalizeWizardEditedItemSnapshot(tempItem.toObject?.(false) ?? tempItem.toJSON?.() ?? source);
+      const patch = normalizeWizardEditedItemSnapshot(foundry.utils.expandObject(changes ?? {}), { fillItemModifiers: false });
+      const snapshot = normalizeWizardEditedItemSnapshot(foundry.utils.mergeObject(current, patch, { inplace: false }));
+      this.#mutate((data) => {
+        const edited = data.purchases.credits.find((entry) => entry.id === purchaseId && entry.ref?.type === "itemattachment");
+        if (!edited) return;
+        edited.ref = {
+          ...edited.ref,
+          name: snapshot.name ?? edited.ref.name,
+          img: snapshot.img ?? edited.ref.img,
+          snapshot,
+        };
+      }, { parts: ["gear"] });
+    };
+
+    const originalUpdate = tempItem.update.bind(tempItem);
+    tempItem.update = async (changes = {}, options = {}) => {
+      const result = await originalUpdate(changes, options);
+      persist(changes);
+      return result;
+    };
+    const originalCreateEmbeddedDocuments = tempItem.createEmbeddedDocuments?.bind(tempItem);
+    if (originalCreateEmbeddedDocuments) {
+      tempItem.createEmbeddedDocuments = async (...args) => {
+        const result = await originalCreateEmbeddedDocuments(...args);
+        persist();
+        return result;
+      };
+    }
+    const originalDeleteEmbeddedDocuments = tempItem.deleteEmbeddedDocuments?.bind(tempItem);
+    if (originalDeleteEmbeddedDocuments) {
+      tempItem.deleteEmbeddedDocuments = async (...args) => {
+        const result = await originalDeleteEmbeddedDocuments(...args);
+        persist();
+        return result;
+      };
+    }
+    const sheet = tempItem.sheet;
+    if (sheet) {
+      const originalUpdateObject = sheet._updateObject.bind(sheet);
+      sheet._updateObject = async (submitEvent, formData, options = {}) => {
+        persist(formData);
+        return originalUpdateObject(submitEvent, formData, options);
+      };
+      const originalClose = sheet.close.bind(sheet);
+      sheet.close = async (options = {}) => {
+        try {
+          if (sheet.form) persist(sheet._getSubmitData?.() ?? {});
+        } catch (err) {
+          CONFIG.logger?.warn?.(`PC wizard could not persist edited attachment on close: ${err.message}`);
+        }
+        return originalClose(options);
+      };
+      sheet.render(true);
+    }
   }
 
   static _onRefundAttachment(event, target) {
