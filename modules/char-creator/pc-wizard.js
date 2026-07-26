@@ -1727,10 +1727,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         this.data = record.data;
         this.#draft.commit = record.commit ?? null;
         this.#draftBannerDismissed = true;
-        invalidateSourceCache();
-        this.#cancelSourceLoad();
-        this.#pools = {};
-        this.#sourceLoadFailedPools.clear();
         for (const warning of record.warnings ?? []) ui.notifications.warn(game.i18n.localize(warning));
         this.render(true);
       }
@@ -1746,10 +1742,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.data = createInitialData();
     this.#draft.commit = null;
     this.#draftBannerDismissed = true;
-    invalidateSourceCache();
-    this.#cancelSourceLoad();
-    this.#pools = {};
-    this.#sourceLoadFailedPools.clear();
     this.render(true);
   }
 
