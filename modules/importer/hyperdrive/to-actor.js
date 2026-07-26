@@ -337,13 +337,26 @@ export function driftReport(parsed, prepared) {
  * surfaced in the report instead of being written somewhere they would silently vanish.
  */
 export function moralityPair(parsed) {
-  const pair = (parsed?.morality?.strengthWeakness ?? [])[0];
-  if (!pair) return null;
-  const label = (entry) => entry?.Name ?? entry?.Key ?? null;
-  const strength = label(pair.Strength);
-  const weakness = label(pair.Weakness);
-  if (!strength && !weakness) return null;
-  return { strength, weakness };
+  const pairs = parsed?.morality?.strengthWeakness ?? [];
+  if (!pairs.length) return null;
+  // Keep the canonical Key, not just the display Name: keys are what later matching runs
+  // on (display names are localised and vary between packs), so dropping them would make
+  // the preserved pair unmatchable.
+  const side = (entry) => (entry ? { key: entry.Key ?? null, name: entry.Name ?? null } : null);
+  const strength = side(pairs[0]?.Strength);
+  const weakness = side(pairs[0]?.Weakness);
+  if (!strength?.key && !strength?.name && !weakness?.key && !weakness?.name) return null;
+  return {
+    strength,
+    weakness,
+    // Every pair verbatim — WeakKey, Source, Description and any further pairs included —
+    // so nothing the export carried is lost on the way in.
+    pairs,
+  };
+}
+
+function moralityLabel(side) {
+  return side?.name ?? side?.key ?? "none";
 }
 
 function trackFor(parsed) {
@@ -514,7 +527,7 @@ export async function hyperdriveToActorData(parsed, deps) {
   const morality = moralityPair(parsed);
   if (morality) {
     report.metadata.morality = morality;
-    report.warnings.push(`Morality Strength (${morality.strength ?? "none"}) and Weakness (${morality.weakness ?? "none"}) have no native actor field and were preserved in import flags.`);
+    report.warnings.push(`Morality Strength (${moralityLabel(morality.strength)}) and Weakness (${moralityLabel(morality.weakness)}) have no native actor field and were preserved in import flags.`);
   }
   if (parsed.vehicles?.length) report.warnings.push(`${parsed.vehicles.length} vehicle entry or entries were skipped.`);
   if (!parsed.signatureAbilities?.length) report.warnings.push("The export contains no signature abilities.");

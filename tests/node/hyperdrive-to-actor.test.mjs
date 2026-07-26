@@ -253,14 +253,15 @@ test("Morality Strength/Weakness are preserved in flags and reported", async () 
 
   // CharacterDataModel declares morality as {value, type, label} only (character.js:50),
   // so the pair is kept in flags rather than written to a path the model would drop.
-  assert.deepEqual(actorData.flags.starwarsffg.hyperdriveImport.morality, {
-    strength: "Camaraderie",
-    weakness: "Closed-mindedness",
-  });
-  assert.deepEqual(report.metadata.morality, {
-    strength: "Camaraderie",
-    weakness: "Closed-mindedness",
-  });
+  const stored = actorData.flags.starwarsffg.hyperdriveImport.morality;
+  // The canonical keys must survive — display names are localised and cannot be matched on.
+  assert.deepEqual(stored.strength, { key: "CAMARADERIE", name: "Camaraderie" });
+  assert.deepEqual(stored.weakness, { key: "CLOSEDMIND", name: "Closed-mindedness" });
+  // Nothing else from the source pair is dropped (WeakKey, Source, Type, …).
+  assert.equal(stored.pairs.length, 1);
+  assert.equal(stored.pairs[0].Strength.WeakKey, "CONFORMITY");
+  assert.deepEqual(stored.pairs[0].Strength.Source, { _Page: "16", __text: "Knights of Fate" });
+  assert.deepEqual(report.metadata.morality, stored);
   assert.ok(report.warnings.some((warning) => /Morality Strength \(Camaraderie\)/.test(warning)));
   // The numeric score still lands on the declared field.
   assert.equal(actorData.system.morality.value, 50);
