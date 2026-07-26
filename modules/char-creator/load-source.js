@@ -13,6 +13,17 @@ import { toSelectionRef } from "./wizard-state.js";
 
 /** poolKey → { signature, refs } cache, invalidated when the pool's inputs change. */
 const poolCache = new Map();
+const SLOW_SOURCE_LOAD_MS = 1000;
+
+function nowMs() {
+  return globalThis.performance?.now?.() ?? Date.now();
+}
+
+function logSlowSourceLoad(message, startedAt, details = "") {
+  const duration = Math.round(nowMs() - startedAt);
+  if (duration < SLOW_SOURCE_LOAD_MS) return;
+  CONFIG.logger?.warn?.(`PC wizard source load slow: ${message} took ${duration}ms${details}`);
+}
 
 /** Drop the cache for one pool (or all pools when called with no argument). */
 export function invalidateSourceCache(poolKey) {
@@ -56,6 +67,7 @@ function sourceCacheSignature(poolKey, descriptor, { exclusions, maxRarity, allo
  * @returns {Promise<Array<object>>} SelectionRefs
  */
 export async function loadSource(poolKey, { exclusions = readExclusions() } = {}) {
+  const loadStartedAt = nowMs();
   const descriptor = getDescriptor(poolKey);
   const maxRarity = game.settings.get("starwarsffg", "maxRarity");
   const allowRestricted = game.settings.get("starwarsffg", "allowRestricted");
@@ -75,22 +87,30 @@ export async function loadSource(poolKey, { exclusions = readExclusions() } = {}
   // store a COMMA-SEPARATED STRING (legacy getSources split on ","), so split it;
   // tolerate an array too, in case a future migration changes the storage type.
   const settingValue = game.settings.get(FLAG_SCOPE, descriptor.settingKey);
-  for (const packId of sourceSettingPackIds(settingValue)) {
+  const packJobs = sourceSettingPackIds(settingValue).map(async (packId) => {
     const pack = game.packs.get(packId);
-    if (!pack) continue;
+    if (!pack) return [];
     const sourceId = sourceIdOf(pack);
-    if (!isSourceEnabled(poolKey, sourceId, exclusions)) continue;
-    let docs = [];
+    if (!isSourceEnabled(poolKey, sourceId, exclusions)) return [];
+    const packStartedAt = nowMs();
+    let docs;
     try {
       docs = await pack.getDocuments();
     } catch (err) {
       CONFIG.logger?.warn?.(`PC wizard failed to load compendium ${packId}: ${err.message}`);
-      continue;
+      return [];
     }
+    logSlowSourceLoad(`${poolKey}/${packId}`, packStartedAt, ` (${docs.length} documents)`);
+    const packRefs = [];
     for (const item of docs) {
       if (!descriptor.worldItemTypes.includes(item.type)) continue;
-      if (passesGmGate(item)) refs.push(toSelectionRef(item));
+      if (passesGmGate(item)) packRefs.push(toSelectionRef(item));
     }
+    return packRefs;
+  });
+  for (const result of await Promise.allSettled(packJobs)) {
+    if (result.status === "fulfilled") refs.push(...result.value);
+    else CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} source: ${result.reason?.message ?? result.reason}`);
   }
 
   // World items of the mapped types (N-1 careers, N-4 gear).
@@ -102,5 +122,6 @@ export async function loadSource(poolKey, { exclusions = readExclusions() } = {}
   }
 
   poolCache.set(poolKey, { signature, refs });
+  logSlowSourceLoad(poolKey, loadStartedAt, ` (${refs.length} refs)`);
   return refs;
 }

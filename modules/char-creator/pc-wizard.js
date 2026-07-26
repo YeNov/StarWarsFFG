@@ -52,6 +52,7 @@ import { COMMIT_TIMEOUT_MS, FLAG_SCOPE, FLAGS } from "./constants.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const PC_WIZARD = "systems/starwarsffg/templates/wizards/pc_wizard";
+const STARTUP_POOL_KEYS = Object.freeze(["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]);
 
 function shopPriceOf(ref) {
   const price = Number(ref?.snapshot?.system?.price?.value);
@@ -392,14 +393,14 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext() {
-    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]) {
+    await Promise.all(STARTUP_POOL_KEYS.map(async (poolKey) => {
       try {
         await this.#ensurePool(poolKey);
       } catch (err) {
         delete this.#pools[poolKey];
         CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} sources: ${err.message}`);
       }
-    }
+    }));
     this.#ensureCreditPurchaseIds(this.data);
     this.#ensureExtraGrants(this.data);
     this.#normalizeFreeRankSelections(this.data);
@@ -551,7 +552,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // Each row carries the prepared rank, whether it's a career skill, and the cost of the
     // NEXT rank (career rank*5, non-career rank*5 + 5).
     const skillPurchases = this.data.purchases.xp.skills;
-    const skillDescriptions = await this.#ensureSkillDescriptions();
+    const skillDescriptions = this.#xpView === "skills" ? await this.#ensureSkillDescriptions() : {};
     const xpSkills = preview?.system?.skills
       ? Object.entries(preview.system.skills).map(([key, skill]) => {
         const rank = skill.rank ?? 0;
