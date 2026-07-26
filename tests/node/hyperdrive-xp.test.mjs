@@ -5,6 +5,7 @@ import fs from "node:fs";
 import "./_stub/foundry-stub.mjs";
 import { parseHyperdrive } from "../../modules/importer/hyperdrive/parse.js";
 import {
+  dedicationAdvances,
   deriveXp,
   rankedTalentResidualEffects,
   residualCharacteristicDeltas,
@@ -14,14 +15,37 @@ import {
 const RAW = JSON.parse(fs.readFileSync(new URL("./_fixtures/hyperdrive/mandalorian-warrior.json", import.meta.url)));
 const parsed = parseHyperdrive(RAW);
 
-test("derives total/spent/available XP and preserves an overspent export", () => {
-  const xp = deriveXp(parsed, { Brawn: 1 });
-  assert.deepEqual({ total: xp.total, spent: xp.spent, available: xp.available }, {
-    total: 140,
-    spent: 355,
-    available: -215,
+test("derives spend from the purchases and preserves an overspent export", () => {
+  const xp = deriveXp(parsed);
+  // total = species starting 105 + Obligation 5/10 + Duty 5/10 + Morality 5
+  assert.equal(xp.total, 140);
+  // available is the exported remaining XP, preserved rather than clamped.
+  assert.equal(xp.available, -215);
+  assert.match(xp.warnings.join("\n"), /over budget by 215/i);
+
+  // Spend is computed from the purchases themselves, not back-derived from `available`.
+  assert.deepEqual(xp.breakdown, {
+    talents: 120, // Steel Hand 95 + Death Watch 25, from each row's Cost
+    forcePowers: 55, // Conjure 20 + 15, Alter 10 + 10 (PaidCosts)
+    characteristics: 170, // Agility 2->4 (70), Intellect 2->4 (70), Cunning 2->3 (30)
+    specializations: 10, // Death Watch is universal, a flat 10
+    skills: 25, // Charm 10 (non-career) + Coercion/Survival/Vigilance 5 each
+    total: 380,
   });
-  assert.match(xp.warnings[0], /over budget/i);
+  assert.equal(xp.spent, 380);
+});
+
+test("reports a spend that does not reconcile with the exported remaining XP", () => {
+  const xp = deriveXp(parsed);
+  // 140 - 380 = -240, but the export claims -215: the fixture's own counter is 25 XP
+  // adrift. Deriving `spent` as `total - available` would have hidden this entirely.
+  assert.match(xp.warnings.join("\n"), /does not reconcile.*difference of 25 XP/s);
+});
+
+test("counts Dedication advances from purchased nodes, not the Dedications map", () => {
+  // The fixture's map still lists Intellect -> MARSHAL, a specialization the character
+  // no longer owns; only Steel Hand's purchased DEDI node is a real advance.
+  assert.deepEqual(dedicationAdvances(parsed), { Brawn: 1 });
 });
 
 test("persists only the characteristic and skill residual left by the build items", () => {

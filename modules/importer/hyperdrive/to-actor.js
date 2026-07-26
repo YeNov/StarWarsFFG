@@ -86,6 +86,88 @@ export function careerSkillGrantsForItems(parsed) {
   return { career: [...(parsed?.extraCareerSkills ?? [])] };
 }
 
+/**
+ * Dedication advances, counted from PURCHASED nodes rather than the `Dedications` map.
+ * That map is keyed by characteristic and can name specializations the character no
+ * longer owns — the golden fixture still lists a MARSHAL entry under Intellect — so
+ * trusting it directly would credit a free +1 that never happened and under-charge the
+ * characteristic ladder by a full step.
+ */
+export function dedicationAdvances(parsed) {
+  const byCharacteristic = {};
+  const dedicationBySpec = invertDedications(parsed?.dedications);
+  for (const spec of parsed?.specializations ?? []) {
+    const characteristic = dedicationBySpec[keyOf(spec)];
+    if (!characteristic) continue;
+    let purchased = 0;
+    for (let row = 0; row < (spec?.grid ?? []).length; row += 1) {
+      for (let column = 0; column < (spec.grid[row] ?? []).length; column += 1) {
+        if (!spec.grid[row][column]) continue;
+        if (String(talentKeyAt(spec, row, column) ?? "").toUpperCase() === "DEDI") purchased += 1;
+      }
+    }
+    if (purchased) byCharacteristic[characteristic] = (byCharacteristic[characteristic] ?? 0) + purchased;
+  }
+  return byCharacteristic;
+}
+
+/**
+ * Spend derived from the purchases themselves, so the exported remaining XP can be
+ * CHECKED rather than trusted. Deriving `spent` as `total - exportedRemaining` would be
+ * circular: it would agree with the export by construction and could never surface a
+ * costing defect (design §10).
+ */
+export function deriveXpSpend(parsed) {
+  const dedications = dedicationAdvances(parsed);
+
+  let talents = 0;
+  let specializations = 0;
+  (parsed?.specializations ?? []).forEach((spec, index) => {
+    (spec?.grid ?? []).forEach((row, rowIndex) => {
+      const cost = Number(spec?.TalentRows?.[rowIndex]?.Cost ?? spec?.talentRows?.[rowIndex]?.cost ?? 0);
+      row.forEach((bought) => { if (bought) talents += cost; });
+    });
+    // The starting specialization is free; a universal one is a flat 10, otherwise the
+    // nth specialization costs 10 x n.
+    if (index > 0) specializations += spec?.universal ? 10 : 10 * (index + 1);
+  });
+
+  let forcePowers = 0;
+  for (const power of parsed?.forcePowers ?? []) {
+    for (const cost of Object.values(power?.paidCosts ?? {})) forcePowers += Number(cost ?? 0);
+  }
+
+  let characteristics = 0;
+  for (const [characteristic, final] of Object.entries(parsed?.characteristics ?? {})) {
+    const starting = Number(parsed?.species?.startingChars?.[characteristic] ?? 0);
+    const steps = Number(final) - starting - Number(dedications[characteristic] ?? 0);
+    for (let step = 1; step <= steps; step += 1) characteristics += 10 * (starting + step);
+  }
+
+  const careerSkills = new Set([
+    ...(parsed?.careerSkills ?? []),
+    ...(parsed?.specializations ?? []).flatMap((spec) => spec?.careerSkills ?? []),
+  ]);
+  const freeRanks = {};
+  for (const skill of [
+    ...(parsed?.species?.selectedSkills ?? []),
+    ...(parsed?.careerRanks ?? []),
+    ...(parsed?.specRanks ?? []),
+  ]) freeRanks[skill] = (freeRanks[skill] ?? 0) + 1;
+
+  let skills = 0;
+  for (const skill of parsed?.skills ?? []) {
+    const free = Number(freeRanks[skill.skill] ?? 0);
+    const paid = Number(skill.rank ?? 0) - free;
+    for (let step = 1; step <= paid; step += 1) {
+      skills += (5 * (free + step)) + (careerSkills.has(skill.skill) ? 0 : 5);
+    }
+  }
+
+  const total = talents + forcePowers + characteristics + specializations + skills;
+  return { talents, forcePowers, characteristics, specializations, skills, total };
+}
+
 export function deriveXp(parsed) {
   const bonus = [
     ...(parsed?.obligations ?? []),
@@ -94,12 +176,20 @@ export function deriveXp(parsed) {
     + (parsed?.morality?.xpc ? 5 : 0)
     + (parsed?.morality?.xp10 ? 10 : 0);
   const total = Number(parsed?.species?.startingXP ?? 0) + bonus;
+  // The exported remaining XP is authoritative for the actor (design §14.4): Hyperdrive
+  // permits deliberate overspend and we preserve it rather than clamping.
   const available = Number(parsed?.xp?.source ?? 0);
-  const spent = total - available;
-  const warnings = available < 0
-    ? [`Character is over budget by ${Math.abs(available)} XP; the exported available XP was preserved.`]
-    : [];
-  return { total, spent, available, warnings };
+  const breakdown = deriveXpSpend(parsed);
+  const spent = breakdown.total;
+  const warnings = [];
+  if (available < 0) {
+    warnings.push(`Character is over budget by ${Math.abs(available)} XP; the exported available XP was preserved.`);
+  }
+  const reconciled = total - spent;
+  if (reconciled !== available) {
+    warnings.push(`Derived spend (${spent} XP) does not reconcile with the exported remaining XP (${available}); the export implies ${total - available} XP spent, a difference of ${Math.abs(reconciled - available)} XP. The exported value was kept.`);
+  }
+  return { total, spent, available, breakdown, warnings };
 }
 
 /**
@@ -401,7 +491,7 @@ export async function hyperdriveToActorData(parsed, deps) {
   const characteristicBase = residualCharacteristicDeltas(parsed.characteristics, preview);
   const purchasedSkills = residualSkillDeltas(parsed.skills, preview);
   report.warnings.push(...characteristicBase.warnings, ...purchasedSkills.warnings);
-  const xp = deriveXp(parsed, characteristicBase.deltas);
+  const xp = deriveXp(parsed);
   report.warnings.push(...xp.warnings);
   if (parsed.notes) report.warnings.push("Hyperdrive notes have no native actor field and were preserved in import flags.");
   if (parsed.vehicles?.length) report.warnings.push(`${parsed.vehicles.length} vehicle entry or entries were skipped.`);
@@ -430,7 +520,7 @@ export async function hyperdriveToActorData(parsed, deps) {
   });
   report.warnings.push(...(assembled.warnings ?? []));
   report.ambiguities = [...(deps.resolve.ambiguities ?? [])];
-  report.xp = { total: xp.total, spent: xp.spent, available: xp.available };
+  report.xp = { total: xp.total, spent: xp.spent, available: xp.available, breakdown: xp.breakdown };
   const prepared = await deps.prepareFinal(assembled.actorData);
   report.drift = driftReport(parsed, prepared);
   return { actorData: assembled.actorData, report };
