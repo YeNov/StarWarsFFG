@@ -245,12 +245,14 @@ test("player attachment purchases survive build, socket sanitization, and GM nor
     xp: { total: 100, available: 20 },
   };
   await assignWizardIdentity(actorData, commit);
+  assert.match(weapon.system.itemattachment[0]._id, /^[0-9A-Za-z]{16}$/);
   const sanitized = sanitizeCommitRequest({ source: actorData, commit }, "player-1");
   const { source } = await normalizeCommitSource(sanitized.source, sanitized.commit);
   const committedWeapon = source.items.find((item) => item.name === "Training Lightsaber");
 
   assert.equal(committedWeapon.system.itemattachment.length, 1);
   assert.equal(committedWeapon.system.itemattachment[0].name, "Balanced Hilt");
+  assert.match(committedWeapon.system.itemattachment[0]._id, /^[0-9A-Za-z]{16}$/);
   assert.equal(committedWeapon.effects[0].name, "Balanced Hilt Effect");
   assert.match(committedWeapon._id, /^[0-9A-Za-z]{16}$/);
 });

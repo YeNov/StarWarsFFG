@@ -1078,12 +1078,26 @@ export class ItemSheetFFG extends FFGDocumentSheet {
             const li = $(ev.currentTarget);
             const clickedId = li.data('item-id');
             const clickedType = li.data('item-type');
+            const rawClickedIndex = li.data('item-index');
+            const clickedIndex = Number(rawClickedIndex);
             const parentObject = await fromUuid(this.object.uuid);
             // locate the clicked object on the parent
-            let clickedObject = parentObject.system[clickedType].find(i => i._id === clickedId);
+            const embeddedItems = parentObject.system[clickedType] ?? [];
+            let clickedObject = embeddedItems.find(i => i?._id === clickedId);
+            if (!clickedObject && rawClickedIndex !== undefined && Number.isInteger(clickedIndex)) {
+              clickedObject = embeddedItems[clickedIndex];
+              if (clickedObject && !clickedObject._id) {
+                clickedObject._id = foundry.utils.randomID();
+                await parentObject.update({ system: { [clickedType]: embeddedItems } });
+              }
+            }
             if (!clickedObject) {
               // this is most likely a unique mod - we have to look it up by name :|
-              clickedObject = parentObject.system[clickedType].find(i => i.name === li.data('upgrade-name'));
+              clickedObject = embeddedItems.find(i => i?.name === li.data('upgrade-name'));
+            }
+            if (!clickedObject) {
+              ui.notifications.warn(`The item or quality has been removed or can not be found!`);
+              return;
             }
             CONFIG.logger.debug(clickedObject);
             const typeChoices = {};

@@ -298,6 +298,17 @@ export function assertWizardIdIntegrity(actorData) {
       }
       effectIds.add(effect._id);
     }
+
+    const attachmentIds = new Set();
+    for (const attachment of item.system?.itemattachment ?? []) {
+      if (!ID_RE.test(attachment?._id)) {
+        throw new WizardIdIntegrityError(`attachment id "${attachment?._id}" within item "${item._id}" is not a valid document id`);
+      }
+      if (attachmentIds.has(attachment._id)) {
+        throw new WizardIdIntegrityError(`duplicate attachment id "${attachment._id}" within item "${item._id}"`);
+      }
+      attachmentIds.add(attachment._id);
+    }
   }
   return actorData;
 }
@@ -322,6 +333,10 @@ export async function assignWizardIdentity(actorData, { userId, commitId }) {
     const effects = Array.isArray(item.effects) ? item.effects : [];
     effects.forEach((effect, j) => {
       effect._id = embedId16(`fx|${commitId}|${i}`, j);
+    });
+    const attachments = Array.isArray(item.system?.itemattachment) ? item.system.itemattachment : [];
+    attachments.forEach((attachment, j) => {
+      attachment._id = embedId16(`att|${commitId}|${i}`, j);
     });
   });
 
