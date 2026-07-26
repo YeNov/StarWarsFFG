@@ -136,6 +136,7 @@ export function buildAttachmentSnapshot(attachment, rawItem, itemmodifierIndex =
       description: attachment?.Description ?? "",
       type: String(attachment?.Type ?? "all").toLowerCase(),
       hardpoints: { value: number(attachment?.HP ?? attachment?.HardPoints) },
+      attributes: {},
       itemmodifier: buildQualityModifiers(
         [...toModArray(attachment?.BaseMods), ...toModArray(attachment?.AddedMods)],
         itemmodifierIndex,

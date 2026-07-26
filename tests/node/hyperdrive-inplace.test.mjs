@@ -98,6 +98,7 @@ test("overlay seeds effect names and identity stamping reaches nested attachment
   assert.equal(new Set(names).size, names.length);
   assert.equal(matched.system.quantity.value, 1);
   assert.equal(matched.flags.starwarsffg.inventoryID, "12DEFEND_1785054958137");
+  assert.deepEqual(matched.system.itemattachment[0].system.attributes, {});
   const actorData = { items: [matched] };
   await assignWizardIdentity(actorData, { userId: "u", commitId: "COMMIT0000000001" });
   assert.match(matched.system.itemattachment[0]._id, /^[0-9A-Za-z]{16}$/);

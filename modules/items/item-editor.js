@@ -581,7 +581,7 @@ export class itemEditor extends FFGFormApplication {
         if (attachment._id === this.data.clickedObject._id) {
           CONFIG.logger.debug(`>> Found relevant attachment: ${attachment.name} / ${attachment.id}, looking for removed keys`);
           // iterate over the mods on the existing attachment and remove them if they are not present in the new data
-          for (let modKey of Object.keys(attachment.system.attributes)) {
+          for (let modKey of Object.keys(attachment.system.attributes ?? {})) {
             if (!Object.keys(formData.system.attributes).includes(modKey)) {
               CONFIG.logger.debug(`>> Detected key ${modKey} was removed, attempting to locate matching active effect`);
               formData.system.attributes[`-=${modKey}`] = null;
