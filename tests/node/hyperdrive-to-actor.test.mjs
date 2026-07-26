@@ -26,7 +26,7 @@ function assemblerDeps() {
   return {
     creationDefaults: {
       img: "default.png",
-      prototypeToken: { actorLink: true },
+      prototypeToken: { actorLink: true, sight: { enabled: true } },
       system: {
         // A freshly created actor starts every characteristic at 0 (character.js:173);
         // the species and other items supply the rest via their effects.

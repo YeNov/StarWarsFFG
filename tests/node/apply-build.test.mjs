@@ -34,7 +34,7 @@ function makeDeps(calls) {
   return {
     creationDefaults: {
       img: "systems/starwarsffg/images/defaults/actors/character.png",
-      prototypeToken: { actorLink: true },
+      prototypeToken: { actorLink: true, sight: { enabled: true } },
       system: {
         characteristics: { Brawn: { value: 2 }, Willpower: { value: 2 }, Agility: { value: 2 } },
         skills: {
@@ -149,7 +149,7 @@ test("base identity: name, img, prototypeToken from creationDefaults", () => {
   assert.equal(actorData.name, "Kel");
   assert.equal(actorData.type, "character");
   assert.equal(actorData.img, "systems/starwarsffg/images/defaults/actors/character.png");
-  assert.deepEqual(actorData.prototypeToken, { actorLink: true, name: "Kel" });
+  assert.deepEqual(actorData.prototypeToken, { actorLink: true, sight: { enabled: true }, name: "Kel" });
 });
 
 test("force-attitude background is included when selected", () => {

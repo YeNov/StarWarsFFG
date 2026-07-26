@@ -8,7 +8,7 @@ function deps() {
   return {
     creationDefaults: {
       img: "default.png",
-      prototypeToken: { actorLink: true },
+      prototypeToken: { actorLink: true, sight: { enabled: true } },
       system: {
         characteristics: { Brawn: { value: 0 }, Willpower: { value: 0 } },
         skills: { Brawl: { rank: 0, label: "Brawl", careerskill: false } },

@@ -22,7 +22,7 @@ function makeDeps() {
   return {
     creationDefaults: {
       img: "systems/starwarsffg/images/defaults/actors/character.png",
-      prototypeToken: { actorLink: true },
+      prototypeToken: { actorLink: true, sight: { enabled: true } },
       system: {
         characteristics: { Brawn: { value: 2 }, Willpower: { value: 2 } },
         skills: { Astrogation: { rank: 0 } },
