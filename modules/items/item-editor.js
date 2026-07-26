@@ -1,6 +1,7 @@
 import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ItemHelpers from "../helpers/item-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
+import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
 import { cdxNormalizeScheme, cdxSchemeClasses } from "../actors/codex-sheets.js";
 
@@ -299,6 +300,15 @@ export class itemEditor extends FFGFormApplication {
     }
 
     const droppedObject = await fromUuid(data.uuid);
+    const talentDrop = $(event.target).closest(".innate-talent-drop");
+    if (talentDrop.length) {
+      await this._dropTalentOnModification(droppedObject, Number(talentDrop.data("modification-index")));
+      return;
+    }
+    if (!droppedObject || droppedObject.type !== "itemmodifier") {
+      ui.notifications.info("You can only drag-and-drop mods onto attachments.");
+      return;
+    }
 
     // if it's an attachment, locate the attachment to update
     let updateData;
@@ -313,6 +323,23 @@ export class itemEditor extends FFGFormApplication {
       await this.data.sourceObject.update({system: {itemattachment: updateData}});
       this.render(true);
     }
+  }
+
+  async _dropTalentOnModification(droppedObject, modificationIndex) {
+    if (!droppedObject || droppedObject.type !== "talent" || !Number.isInteger(modificationIndex)) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Notifications.DragAndDropFirst"));
+      return;
+    }
+
+    const updateData = this.data.sourceObject.system.itemattachment;
+    for (let attachment of updateData) {
+      if (attachment._id !== this.data.clickedObject._id) continue;
+      if (!attachment.system.itemmodifier?.[modificationIndex]) return;
+      attachment.system.itemmodifier[modificationIndex] = applyTalentToInnateModification(attachment.system.itemmodifier[modificationIndex], droppedObject);
+      this.data.clickedObject = attachment;
+    }
+    await this.data.sourceObject.update({system: {itemattachment: updateData}});
+    this.render(true);
   }
 
   /**
@@ -418,6 +445,16 @@ export class itemEditor extends FFGFormApplication {
       this._activateListeners($(event.currentTarget).parent().children('.modification_container'));
       // submit the changes so it gets saved even if the user reloads without closing the editor
       await this._updateObject(undefined, this._getSubmitData());
+    } else if (action === 'create-talent') {
+      const updateData = this.data.sourceObject.system.itemattachment;
+      for (let attachment of updateData) {
+        if (attachment._id !== this.data.clickedObject._id) continue;
+        attachment.system.itemmodifier ??= [];
+        attachment.system.itemmodifier.push(buildInnateTalentModification());
+        this.data.clickedObject = attachment;
+      }
+      await this.data.sourceObject.update({system: {itemattachment: updateData}});
+      this.render(true);
     } else if (action === 'delete') {
       const modContainer = $(event.currentTarget).parents(".modification_title").find(".attributes-list");
       for (const mod of modContainer.children()) {
@@ -550,12 +587,15 @@ export class itemEditor extends FFGFormApplication {
 
               const changes = [];
               for (const curMod of explodedMods) {
+                const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+                if (!key) continue;
                 changes.push({
-                  key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
+                  key,
                   mode: AE_MODES.ADD,
                   value: formData.system.attributes[modKey].value,
                 });
               }
+              if (!changes.length) continue;
 
               if (match) {
                 // existing entry
@@ -604,12 +644,15 @@ export class itemEditor extends FFGFormApplication {
 
                 const changes = [];
                 for (const curMod of explodedMods) {
+                  const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+                  if (!key) continue;
                   changes.push({
-                    key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
+                    key,
                     mode: AE_MODES.ADD,
                     value: modifier.system.attributes[modKey].value,
                   });
                 }
+                if (!changes.length) continue;
 
                 let disabled;
                 if (modifier.system.active === equipped) {
@@ -705,12 +748,15 @@ export class itemEditor extends FFGFormApplication {
 
         const changes = [];
         for (const curMod of explodedMods) {
+          const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+          if (!key) continue;
           changes.push({
-            key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
+            key,
             mode: AE_MODES.ADD,
             value: formData.system.attributes[modKey].value,
           });
         }
+        if (!changes.length) continue;
 
         if (match) {
           // existing entry

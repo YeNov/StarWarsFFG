@@ -12,6 +12,7 @@ import ItemOptions from "./item-ffg-options.js";
 import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
 import { canPurchaseNode } from "../helpers/talent-tree.js";
 import { isAmmoTracked, isQualityAmmoMode, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
+import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -836,12 +837,45 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         },
       });
       await this.object.update({ "system.itemmodifier": itemmodifier });
+    } else if (action === 'create-talent') {
+      const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
+      itemmodifier.push(buildInnateTalentModification());
+      await this.object.update({ "system.itemmodifier": itemmodifier });
     } else if (action === 'delete') {
       const modIndex = $(event.currentTarget).closest(".modification_title").index();
       const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
       itemmodifier.splice(modIndex, 1);
       await this.object.update({ "system.itemmodifier": itemmodifier });
     }
+  }
+
+  async _onDropTalentToInnateModification(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const modificationIndex = Number($(event.currentTarget).data("modification-index"));
+    if (!Number.isInteger(modificationIndex)) return false;
+
+    let data;
+    try {
+      data = JSON.parse(event.dataTransfer.getData("text/plain"));
+      if (data.type !== "Item") return false;
+    } catch {
+      return false;
+    }
+
+    const talent = await fromUuid(data.uuid);
+    if (!talent || talent.type !== "talent") {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Notifications.DragAndDropFirst"));
+      return false;
+    }
+
+    const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
+    if (!itemmodifier[modificationIndex]) return false;
+
+    itemmodifier[modificationIndex] = applyTalentToInnateModification(itemmodifier[modificationIndex], talent);
+    await this.object.update({ "system.itemmodifier": itemmodifier });
+    return true;
   }
 
   /**
@@ -1145,6 +1179,13 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       html.find(".flat_editor.add-modification").on("click", this._onStandaloneModificationControl.bind(this));
       html.find(".flat_editor.add-mod").on("click", this._onStandaloneModControl.bind(this));
       html.find(".flat_editor.dropdown").on("change", this._onStandaloneDropdownChange.bind(this));
+      const talentDrop = new foundry.applications.ux.DragDrop({
+        dragSelector: ".item",
+        dropSelector: ".innate-talent-drop",
+        permissions: { dragstart: true, drop: true },
+        callbacks: { drop: this._onDropTalentToInnateModification.bind(this) },
+      });
+      talentDrop.bind(html[0]);
     }
 
     if (this.object.type === "species") {

@@ -1,4 +1,5 @@
 import ModifierHelpers from "../helpers/modifiers.js";
+import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate-talents.js";
 
 /**
  * Extend the base Actor entity.
@@ -348,6 +349,11 @@ export class ActorFFG extends Actor {
         }
       }
     });
+
+    for (const item of collectInnateTalentGrants(actorData.items)) {
+      addTalentListEntry(globalTalentList, item);
+    }
+
     if (CONFIG.FFG.theme !== "starwars") {
       globalTalentList.sort((a, b) => {
         let comparison = 0;
@@ -476,6 +482,10 @@ export class ActorFFG extends Actor {
         }
       }
     });
+
+    for (const item of collectInnateTalentGrants(actorData.items)) {
+      addTalentListEntry(globalTalentList, item);
+    }
 
     if (CONFIG.FFG.theme !== "starwars") {
       globalTalentList.sort((a, b) => {
