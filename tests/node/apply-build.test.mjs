@@ -37,7 +37,12 @@ function makeDeps(calls) {
       prototypeToken: { actorLink: true },
       system: {
         characteristics: { Brawn: { value: 2 }, Willpower: { value: 2 }, Agility: { value: 2 } },
-        skills: { Astrogation: { rank: 0 }, Coordination: { rank: 0 } },
+        skills: {
+          Astrogation: { rank: 0, label: "Astrogation", careerskill: false },
+          Brawl: { rank: 0, label: "Brawl", careerskill: false },
+          Coordination: { rank: 0, label: "Coordination", careerskill: false },
+          KnowledgeLore: { rank: 0, label: "Knowledge: Lore", careerskill: false },
+        },
         stats: { wounds: { max: 10 }, soak: { value: 2 }, encumbrance: { max: 5 }, strain: { max: 10 }, credits: { value: 0 } },
         experience: {},
       },
@@ -94,6 +99,40 @@ test("characteristic + derived stats: 2 Brawn purchases raise Brawn, wounds, soa
 test("skill purchases add ranks", () => {
   const { actorData } = applyBuild(makeDraft(), makeDeps());
   assert.equal(actorData.system.skills.Astrogation.rank, 1);
+});
+
+test("career and specialization skills are marked as career skills", () => {
+  const draft = makeDraft();
+  draft.selected.career = {
+    uuid: "career1",
+    name: "Explorer",
+    type: "career",
+    snapshot: { system: { careerSkills: { careerSkill0: "Astrogation" } } },
+  };
+  draft.selected.specialization = {
+    uuid: "spec1",
+    name: "Fringer",
+    type: "specialization",
+    snapshot: { system: { careerSkills: { careerSkill0: "Coordination" } } },
+  };
+  draft.purchases.xp.specializations = [
+    {
+      cost: 20,
+      ref: {
+        uuid: "spec2",
+        name: "Scholar",
+        type: "specialization",
+        snapshot: { system: { careerSkills: { careerSkill0: "Knowledge: Lore" } } },
+      },
+    },
+  ];
+
+  const { actorData } = applyBuild(draft, makeDeps());
+
+  assert.equal(actorData.system.skills.Astrogation.careerskill, true);
+  assert.equal(actorData.system.skills.Coordination.careerskill, true);
+  assert.equal(actorData.system.skills.KnowledgeLore.careerskill, true);
+  assert.equal(actorData.system.skills.Brawl.careerskill, false);
 });
 
 test("XP, credits (incl. spendingCredits) and the selected ruleset track match the calculators", () => {

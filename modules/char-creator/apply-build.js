@@ -71,6 +71,44 @@ function equipBestPurchasedArmor(items) {
   armor.sort((a, b) => armorSoakValue(b) - armorSoakValue(a))[0].system.equippable.equipped = true;
 }
 
+function skillLookup(skills = {}) {
+  const lookup = new Map();
+  for (const [key, skill] of Object.entries(skills)) {
+    lookup.set(key, key);
+    lookup.set(key.toLowerCase(), key);
+    if (skill?.label) {
+      lookup.set(skill.label, key);
+      lookup.set(String(skill.label).toLowerCase(), key);
+    }
+  }
+  return lookup;
+}
+
+function canonicalSkillKey(value, lookup) {
+  const name = String(value ?? "").trim();
+  if (!name || name.toLowerCase() === "(none)") return null;
+  return lookup.get(name) ?? lookup.get(name.toLowerCase()) ?? name;
+}
+
+function careerSkillNames(ref) {
+  return Object.values(ref?.snapshot?.system?.careerSkills ?? {});
+}
+
+function markCareerSkills(actorData, data) {
+  const skills = actorData.system?.skills ?? {};
+  const lookup = skillLookup(skills);
+  const mark = (name) => {
+    const key = canonicalSkillKey(name, lookup);
+    if (key && skills[key]) skills[key].careerskill = true;
+  };
+
+  careerSkillNames(data.selected?.career).forEach(mark);
+  careerSkillNames(data.selected?.specialization).forEach(mark);
+  for (const purchase of data.purchases?.xp?.specializations ?? []) {
+    careerSkillNames(purchase.ref).forEach(mark);
+  }
+}
+
 /**
  * Build the actor source from a wizard draft.
  * @param {object} data  the wizard state
@@ -110,6 +148,7 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   for (const purchase of data.purchases.xp.skills) {
     actorData.system.skills[purchase.key].rank += 1;
   }
+  markCareerSkills(actorData, data);
 
   // 3. Other system fields, from the shared calculators.
   const xp = calcXp(data);
