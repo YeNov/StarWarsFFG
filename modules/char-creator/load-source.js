@@ -14,6 +14,7 @@ import { toSelectionRef } from "./wizard-state.js";
 /** poolKey → { signature, refs } cache, invalidated when the pool's inputs change. */
 const poolCache = new Map();
 const SLOW_SOURCE_LOAD_MS = 1000;
+const PACK_LOAD_CONCURRENCY = 2;
 
 function nowMs() {
   return globalThis.performance?.now?.() ?? Date.now();
@@ -23,6 +24,19 @@ function logSlowSourceLoad(message, startedAt, details = "") {
   const duration = Math.round(nowMs() - startedAt);
   if (duration < SLOW_SOURCE_LOAD_MS) return;
   CONFIG.logger?.warn?.(`PC wizard source load slow: ${message} took ${duration}ms${details}`);
+}
+
+async function mapWithConcurrency(values, limit, mapper) {
+  const results = new Array(values.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, values.length) }, async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(values[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 /** Drop the cache for one pool (or all pools when called with no argument). */
@@ -87,7 +101,7 @@ export async function loadSource(poolKey, { exclusions = readExclusions() } = {}
   // store a COMMA-SEPARATED STRING (legacy getSources split on ","), so split it;
   // tolerate an array too, in case a future migration changes the storage type.
   const settingValue = game.settings.get(FLAG_SCOPE, descriptor.settingKey);
-  const packJobs = sourceSettingPackIds(settingValue).map(async (packId) => {
+  const loadPackRefs = async (packId) => {
     const pack = game.packs.get(packId);
     if (!pack) return [];
     const sourceId = sourceIdOf(pack);
@@ -107,11 +121,9 @@ export async function loadSource(poolKey, { exclusions = readExclusions() } = {}
       if (passesGmGate(item)) packRefs.push(toSelectionRef(item));
     }
     return packRefs;
-  });
-  for (const result of await Promise.allSettled(packJobs)) {
-    if (result.status === "fulfilled") refs.push(...result.value);
-    else CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} source: ${result.reason?.message ?? result.reason}`);
-  }
+  };
+  const packResults = await mapWithConcurrency(sourceSettingPackIds(settingValue), PACK_LOAD_CONCURRENCY, loadPackRefs);
+  for (const packRefs of packResults) refs.push(...packRefs);
 
   // World items of the mapped types (N-1 careers, N-4 gear).
   if (isSourceEnabled(poolKey, "world", exclusions)) {

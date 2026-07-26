@@ -53,6 +53,20 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const PC_WIZARD = "systems/starwarsffg/templates/wizards/pc_wizard";
 const STARTUP_POOL_KEYS = Object.freeze(["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]);
+const STARTUP_POOL_LOAD_CONCURRENCY = 3;
+
+async function mapWithConcurrency(values, limit, mapper) {
+  const results = new Array(values.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, values.length) }, async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(values[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
 function shopPriceOf(ref) {
   const price = Number(ref?.snapshot?.system?.price?.value);
@@ -393,14 +407,14 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext() {
-    await Promise.all(STARTUP_POOL_KEYS.map(async (poolKey) => {
+    await mapWithConcurrency(STARTUP_POOL_KEYS, STARTUP_POOL_LOAD_CONCURRENCY, async (poolKey) => {
       try {
         await this.#ensurePool(poolKey);
       } catch (err) {
         delete this.#pools[poolKey];
         CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} sources: ${err.message}`);
       }
-    }));
+    });
     this.#ensureCreditPurchaseIds(this.data);
     this.#ensureExtraGrants(this.data);
     this.#normalizeFreeRankSelections(this.data);
