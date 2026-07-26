@@ -36,6 +36,13 @@ function withFixture(files, fn) {
 
 const rule = (root, n) => checkImports({ root, cutover: false }).filter((f) => f.rule === n);
 
+test("shared character assembler remains in the import-clean closure", () => {
+  const findings = checkImports({ cutover: false }).filter((finding) =>
+    finding.rule === 7
+    && finding.file === "modules/char-creator/assemble-character-source.js");
+  assert.deepEqual(findings, []);
+});
+
 // ---------------------------------------------------------------------------
 // Rule 1 — relative specifiers must resolve, exact-path and extension-required
 // ---------------------------------------------------------------------------

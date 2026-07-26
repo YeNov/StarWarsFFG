@@ -55,6 +55,7 @@ import {register_dice_enricher, register_oggdude_tag_enricher, register_roll_tag
 import {drawAdversaryCount, drawMinionCount, registerTokenControls} from "./helpers/token.js";
 import {handleUpdate} from "./swffg-migration.js";
 import SWAImporter from "./importer/swa-importer.js";
+import HyperdriveImporter from "./importer/hyperdrive/importer-app.js";
 import {CharacterCreator} from "./helpers/character-creator.js";
 import {registerSocketBridge} from "./char-creator/socket-bridge.js";
 import {xpLogUndo} from "./helpers/actor-helpers.js";
@@ -1494,7 +1495,8 @@ Hooks.on("renderCompendiumDirectory", (app, html, data) => {
     div.className = "og-character-import";
     div.innerHTML = `<hr><h4>Importers</h4>
     <button class="og-character" style="width:100%;margin-bottom:4px;">OggDude Dataset Importer</button>
-    <button class="swa-character" style="width:100%;">Adversaries Dataset Importer</button>`;
+    <button class="swa-character" style="width:100%;margin-bottom:4px;">Adversaries Dataset Importer</button>
+    <button class="hyperdrive-character" style="width:100%;">Hyperdrive Character Importer</button>`;
     html.querySelector(".directory-footer")?.appendChild(div);
     // add event handlers with addEventListener()
     div.querySelector(".og-character")?.addEventListener("click", (event) => {
@@ -1504,6 +1506,10 @@ Hooks.on("renderCompendiumDirectory", (app, html, data) => {
     div.querySelector(".swa-character")?.addEventListener("click", (event) => {
       event.preventDefault();
       new SWAImporter().render(true);
+    });
+    div.querySelector(".hyperdrive-character")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      new HyperdriveImporter().render(true);
     });
   }
 });
