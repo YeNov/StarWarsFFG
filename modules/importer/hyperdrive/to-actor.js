@@ -20,21 +20,30 @@ export function learnedKeysForSpec(spec) {
   return learned;
 }
 
+/**
+ * Force-power / signature-ability upgrade nodes live on a grid that is PADDED to four
+ * columns per row: the OggDude importer writes `upgrade${(row - 1) * 4 + column}`
+ * (forcepowers.js:146, signature-abilities.js:133), so every row starts at a multiple of
+ * four no matter how many abilities it actually holds. Row 0 is the basic power — owning
+ * the item — and is not an upgrade node.
+ *
+ * A running offset (`offset += cells.length`) would drift as soon as a row carries fewer
+ * than four cells, e.g. Alter's first row has three, which would map row 2 to `upgrade3`
+ * instead of `upgrade4` and silently flag the wrong node as learned.
+ */
 export function learnedKeysForPower(power) {
   const learned = [];
-  let offset = 0;
   const grid = power?.grid ?? {};
   const rows = Object.keys(grid)
     .filter((key) => /^\d+$/.test(key))
     .map(Number)
     .sort((a, b) => a - b);
   for (const row of rows) {
-    const cells = Array.isArray(grid[row]) ? grid[row] : [];
     if (row === 0) continue;
+    const cells = Array.isArray(grid[row]) ? grid[row] : [];
     cells.forEach((bought, column) => {
-      if (bought) learned.push(`upgrade${offset + column}`);
+      if (bought) learned.push(`upgrade${((row - 1) * 4) + column}`);
     });
-    offset += cells.length;
   }
   return learned;
 }

@@ -25,6 +25,21 @@ test("maps specialization and Force grids to Foundry tree node keys", () => {
   assert.deepEqual(learnedKeysForPower(parsed.forcePowers.find((power) => power.key === "ALTER")), ["upgrade2"]);
 });
 
+test("Force upgrade rows are padded to four columns, not packed by row length", () => {
+  // Alter's row 1 holds THREE cells. Foundry still starts row 2 at upgrade4
+  // (`upgrade${(row-1)*4+column}`), so a purchase at row 2 column 0 is upgrade4 — a
+  // running offset would pack it to upgrade3 and flag the wrong node as learned.
+  const power = {
+    grid: {
+      0: [true],
+      1: [false, false, true],
+      2: [true, false, false, false],
+      3: [false, false, false, true],
+    },
+  };
+  assert.deepEqual(learnedKeysForPower(power), ["upgrade2", "upgrade4", "upgrade11"]);
+});
+
 test("routes Dedication only to a learned Dedication node on its owning specialization", () => {
   const bySpec = invertDedications(parsed.dedications);
   const steel = parsed.specializations[0];
