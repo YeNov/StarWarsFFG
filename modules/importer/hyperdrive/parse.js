@@ -160,6 +160,13 @@ export function parseHyperdrive(rawInput = {}) {
     title: raw.Title ?? "",
     source: clone(raw.Source ?? ""),
     dedications: clone(raw.Dedications ?? {}),
+    boughtTalents: array(raw.BoughtTalents).map((talent) => ({
+      ...clone(talent),
+      key: talent?.key ?? talent?.Key ?? talent?.data?.Key ?? null,
+      name: talent?.name ?? talent?.Name ?? talent?.data?.Name ?? "",
+      count: number(talent?.count ?? talent?.Count),
+      attributes: clone(talent?.attributes ?? talent?.Attributes ?? talent?.data?.Attributes ?? {}),
+    })),
     vehicles: array(raw.Vehicles).map(clone),
     modStates: clone(raw.ModStates ?? {}),
     forceRating: number(raw.ForceRating),

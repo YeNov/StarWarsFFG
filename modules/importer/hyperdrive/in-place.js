@@ -1,6 +1,7 @@
 import { AE_MODES } from "../../config/ffg-active-effect-modes.js";
 import {
   buildAttachmentEffects,
+  buildCyberneticWoundEffects,
   buildItemEffects,
   buildModifierEffects,
   careerSkillFlagEffect,
@@ -162,6 +163,7 @@ function buildEquipmentEffects(source, rawItem, opts) {
     ...buildItemEffects(source),
     ...buildModifierEffects(rawItem, effectOpts),
     ...buildAttachmentEffects(rawItem, effectOpts),
+    ...buildCyberneticWoundEffects(rawItem, effectOpts),
   ];
 }
 
@@ -258,6 +260,11 @@ export function overlayInstance(source, rawItem, opts = {}) {
   source.effects = [
     ...existing,
     ...buildAttachmentEffects(rawItem, { ...opts, namer }),
+    ...buildCyberneticWoundEffects(rawItem, {
+      ...opts,
+      namer,
+      existingEffects: existing,
+    }),
   ];
   return source;
 }

@@ -180,6 +180,30 @@ export function buildModifierEffects(rawItem, opts = {}) {
   return effectsFromAttributes(normalizeMods(mods, { ...opts, namer }));
 }
 
+export function buildCyberneticWoundEffects(rawItem, opts = {}) {
+  if (String(rawItem?.Type ?? "").toLowerCase() !== "cybernetics") return [];
+  const brawn = toModArray(rawItem?.BaseMods)
+    .filter((mod) => mod?.Key === "BR")
+    .reduce((sum, mod) => sum + Number(mod.Count ?? 1), 0);
+  if (!brawn) return [];
+
+  const existingMirrors = (opts.existingEffects ?? []).reduce((sum, effect) => {
+    const changes = effect?.changes ?? [];
+    const hasBrawn = changes.some((change) => change.key === "system.characteristics.Brawn.value");
+    if (!hasBrawn) return sum;
+    return sum + changes
+      .filter((change) => change.key === "system.stats.wounds.max")
+      .reduce((total, change) => total + Number(change.value ?? 0), 0);
+  }, 0);
+  const missing = Math.max(0, brawn - existingMirrors);
+  if (!missing) return [];
+  const namer = opts.namer ?? makeNamer((opts.existingEffects ?? []).map((effect) => effect.name));
+  return [{
+    name: namer(),
+    changes: [{ key: "system.stats.wounds.max", mode: AE_MODES.ADD, value: missing }],
+  }];
+}
+
 export function buildAttachmentEffects(rawItem, opts = {}) {
   const {
     attachmentIndex = {},

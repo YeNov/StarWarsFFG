@@ -7,6 +7,7 @@ import { AE_MODES } from "../../modules/config/ffg-active-effect-modes.js";
 import { parseHyperdrive } from "../../modules/importer/hyperdrive/parse.js";
 import {
   buildAttachmentEffects,
+  buildCyberneticWoundEffects,
   buildItemEffects,
   buildModifierEffects,
   effectsFromAttributes,
@@ -66,6 +67,11 @@ test("normalizes characteristic, counted, keyed-skill, SkillChar, and SkillType 
   const parsed = parseHyperdrive(RAW);
   assert.ok(flat(buildModifierEffects(parsed.cybernetics[0]))
     .some((change) => change.key === "system.characteristics.Brawn.value" && change.value === 1));
+  assert.deepEqual(flat(buildCyberneticWoundEffects(parsed.cybernetics[0])), [{
+    key: "system.stats.wounds.max",
+    mode: AE_MODES.ADD,
+    value: 1,
+  }]);
   assert.deepEqual(flat(buildModifierEffects(
     { BaseMods: [{ Key: "SOAKADD", Count: "2" }] },
     { itemmodifierIndex: IDX },

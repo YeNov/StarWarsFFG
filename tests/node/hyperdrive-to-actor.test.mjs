@@ -42,7 +42,15 @@ function assemblerDeps() {
     },
     applyCharacteristicDeltas: (system, deltas) => {
       const result = structuredClone(system);
-      for (const [key, value] of Object.entries(deltas)) result.characteristics[key].value += value;
+      for (const [key, value] of Object.entries(deltas)) {
+        result.characteristics[key].value += value;
+        if (key === "Brawn") {
+          result.stats.wounds.max += value;
+          result.stats.soak.value += value;
+          result.stats.encumbrance.max += value;
+        }
+        if (key === "Willpower") result.stats.strain.max += value;
+      }
       return result;
     },
   };
@@ -129,8 +137,8 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
     }
     : originalGet(type, key);
   base.deps.prepareFinal = async () => ({
-    characteristics: CHARS(4),
-    wounds: 17,
+    characteristics: CHARS(5),
+    wounds: 19,
     strain: 13,
     soak: 4,
   });
@@ -138,18 +146,62 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
   assert.equal(base.buildCalls.includes("CYLEGII"), false);
   const cyber = actorData.items.find((item) => item.name === "Cybernetic Leg");
   assert.deepEqual(cyber.effects[0], brawnEffect);
+  assert.ok(cyber.effects.flatMap((effect) => effect.changes).some((change) =>
+    change.key === "system.stats.wounds.max" && change.value === 1));
   assert.deepEqual(report.drift.find((row) => row.stat === "Brawn"), {
     kind: "characteristic",
     stat: "Brawn",
     exported: 3,
-    prepared: 4,
+    prepared: 5,
   });
   assert.deepEqual(report.drift.find((row) => row.stat === "wounds"), {
     kind: "threshold",
     stat: "wounds",
     exported: 18,
-    prepared: 17,
+    prepared: 19,
   });
+});
+
+test("golden export keeps paid advances additive to free ranks and item effects", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const originalGet = deps.resolve.getByKey;
+  deps.resolve.getByKey = (type, key) =>
+    type === "specialization" && key === "DEATHWCOTR" ? null : originalGet(type, key);
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+
+  assert.equal(actorData.system.characteristics.Brawn.value, 1);
+  assert.equal(actorData.system.stats.wounds.max, 1);
+  assert.equal(actorData.system.stats.encumbrance.max, 1);
+  assert.equal(actorData.system.skills.Athletics.rank, 1);
+  assert.equal(actorData.system.skills.Brawl.rank, 2);
+
+  const career = actorData.items.find((item) => item.type === "career");
+  const steel = actorData.items.find((item) => item.name === "STEELHAND");
+  const deathWatch = actorData.items.find((item) =>
+    item.flags?.starwarsffg?.ffgimportid === "DEATHWCOTR");
+  const species = actorData.items.find((item) => item.type === "species");
+  assert.deepEqual(species.importOptions.rankGrants, ["Brawl"]);
+  assert.deepEqual(career.importOptions.rankGrants, ["Athletics", "Brawl", "Cool"]);
+  assert.deepEqual(steel.importOptions.rankGrants, ["Brawl", "Coordination"]);
+  assert.ok(deathWatch.effects.flatMap((effect) => effect.changes).some((change) =>
+    change.key === "system.stats.wounds.max" && change.value === 2));
+
+  const cyber = actorData.items.find((item) => item.flags?.starwarsffg?.inventoryID === "CYLEGII_1785055142357");
+  assert.ok(cyber.effects.flatMap((effect) => effect.changes).some((change) =>
+    change.key === "system.stats.wounds.max" && change.value === 1));
+
+  assert.equal(
+    actorData.system.characteristics.Brawn.value + 2 + 1 + 1,
+    5,
+  );
+  assert.equal(
+    actorData.system.stats.encumbrance.max + 7 + 1 + 1,
+    10,
+  );
+  assert.equal(actorData.system.skills.Athletics.rank + 1, 2);
+  assert.equal(actorData.system.skills.Brawl.rank + 1 + 1 + 1, 5);
+  assert.equal(actorData.system.stats.wounds.max + 13 + 2 + 2 + 1, 19);
 });
 
 test("unmatched equipment builds in-place and is included in the report", async () => {

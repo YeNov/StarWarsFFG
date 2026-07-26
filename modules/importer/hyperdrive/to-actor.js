@@ -1,5 +1,5 @@
 import { AE_MODES } from "../../config/ffg-active-effect-modes.js";
-import { careerSkillFlagEffect } from "./effect-builders.js";
+import { careerSkillFlagEffect, explodeChanges } from "./effect-builders.js";
 import { overlayInstance } from "./in-place.js";
 
 function keyOf(entry) {
@@ -93,32 +93,92 @@ export function deriveXp(parsed) {
   return { total, spent, available, warnings };
 }
 
-export function residualCharacteristicDeltas(finals, previewChars) {
+export function baseCharacteristicDeltas(characteristics, startingCharacteristics) {
   const deltas = {};
   const warnings = [];
-  for (const [characteristic, final] of Object.entries(finals ?? {})) {
-    const prepared = Number(previewChars?.[characteristic]?.value ?? 0);
-    const delta = Number(final) - prepared;
+  for (const [characteristic, value] of Object.entries(characteristics ?? {})) {
+    const starting = Number(startingCharacteristics?.[characteristic] ?? 0);
+    const delta = Number(value) - starting;
     if (delta < 0) {
-      warnings.push(`${characteristic}: export final ${final} below build-item-supplied ${prepared}; not baking negative residual.`);
+      warnings.push(`${characteristic}: export value ${value} below species starting value ${starting}; not baking a negative base advance.`);
     }
     deltas[characteristic] = Math.max(0, delta);
   }
   return { deltas, warnings };
 }
 
-export function residualSkillDeltas(parsedSkills, previewSkills) {
+export function purchasedSkillDeltas(parsedSkills) {
   const deltas = {};
   const warnings = [];
   for (const skill of parsedSkills ?? []) {
-    const prepared = Number(previewSkills?.[skill.skill]?.rank ?? 0);
-    const delta = Number(skill.rank ?? 0) - prepared;
-    if (delta < 0) {
-      warnings.push(`Skill ${skill.skill}: export rank ${skill.rank} below item-supplied ${prepared}; capping at 0.`);
-    }
-    if (delta > 0) deltas[skill.skill] = delta;
+    const rank = Number(skill.rank ?? 0);
+    if (rank < 0) warnings.push(`Skill ${skill.skill}: export contains a negative purchased rank; capping at 0.`);
+    if (rank > 0) deltas[skill.skill] = rank;
   }
   return { deltas, warnings };
+}
+
+const TALENT_ATTRIBUTE_MODS = {
+  SoakValue: ["Stat", "Soak"],
+  ForceRating: ["Stat", "ForcePool"],
+  StrainThreshold: ["Stat", "Strain"],
+  DefenseRanged: ["Stat", "Defence-Ranged"],
+  DefenseMelee: ["Stat", "Defence-Melee"],
+  WoundThreshold: ["Stat", "Wounds"],
+};
+
+function talentKeyAt(spec, row, column) {
+  const talent = spec?.TalentRows?.[row]?.Talents?.[column]
+    ?? spec?.talentRows?.[row]?.talents?.[column];
+  return typeof talent === "string" ? talent : talent?.Key ?? talent?.key ?? null;
+}
+
+export function rankedTalentResidualEffects(parsed, { materializedSpecializationKeys = [] } = {}) {
+  const materialized = new Set(materializedSpecializationKeys);
+  const materializedCounts = new Map();
+  const owners = new Map();
+  for (const spec of parsed?.specializations ?? []) {
+    const specKey = keyOf(spec);
+    for (let row = 0; row < (spec?.grid ?? []).length; row += 1) {
+      for (let column = 0; column < (spec.grid[row] ?? []).length; column += 1) {
+        const talentKey = talentKeyAt(spec, row, column);
+        if (!talentKey) continue;
+        if (spec.grid[row][column]) {
+          owners.set(talentKey, [...(owners.get(talentKey) ?? []), specKey]);
+          if (materialized.has(specKey)) {
+            materializedCounts.set(talentKey, (materializedCounts.get(talentKey) ?? 0) + 1);
+          }
+        }
+      }
+    }
+  }
+
+  const effectsBySpecialization = {};
+  const warnings = [];
+  for (const talent of parsed?.boughtTalents ?? []) {
+    const talentKey = keyOf(talent);
+    const isRanked = talent?.ranked === true
+      || String(talent?.Ranked ?? talent?.data?.Ranked).toLowerCase() === "true";
+    if (!isRanked) continue;
+    const missingRanks = Math.max(0, Number(talent.count ?? 0) - (materializedCounts.get(talentKey) ?? 0));
+    const talentOwners = owners.get(talentKey) ?? [];
+    const specKey = talentOwners.find((owner) => !materialized.has(owner)) ?? talentOwners[0];
+    if (!talentKey || !specKey || !missingRanks) continue;
+    const changes = [];
+    for (const [attributeKey, value] of Object.entries(talent.attributes ?? {})) {
+      const mapping = TALENT_ATTRIBUTE_MODS[attributeKey];
+      if (!mapping) continue;
+      changes.push(...explodeChanges(mapping[0], mapping[1], Number(value ?? 0) * missingRanks));
+    }
+    if (!changes.length) continue;
+    effectsBySpecialization[specKey] ??= [];
+    effectsBySpecialization[specKey].push({
+      name: `hyperdriveRank_${talentKey}`,
+      changes,
+    });
+    warnings.push(`Recovered ${missingRanks} additional rank(s) of ${talent.name || talentKey} from Hyperdrive's ranked-talent summary.`);
+  }
+  return { effectsBySpecialization, warnings };
 }
 
 export function driftReport(parsed, prepared) {
@@ -207,6 +267,14 @@ export async function hyperdriveToActorData(parsed, deps) {
   const ranks = rankGrantsForItems(parsed);
   const careerGrants = careerSkillGrantsForItems(parsed);
   const dedicationBySpec = invertDedications(parsed.dedications);
+  const specializationMatches = (parsed.specializations ?? [])
+    .map((spec) => resolveMatch(deps.resolve, "specialization", spec));
+  const rankedTalentResidual = rankedTalentResidualEffects(parsed, {
+    materializedSpecializationKeys: (parsed.specializations ?? [])
+      .filter((spec, index) => specializationMatches[index])
+      .map(keyOf),
+  });
+  report.warnings.push(...rankedTalentResidual.warnings);
 
   const addContent = (kind, entry, options = {}) => {
     if (!entry) return;
@@ -237,23 +305,29 @@ export async function hyperdriveToActorData(parsed, deps) {
   for (let index = 0; index < (parsed.specializations ?? []).length; index += 1) {
     const spec = parsed.specializations[index];
     const learnedKeys = learnedKeysForSpec(spec);
-    const match = resolveMatch(deps.resolve, "specialization", spec);
+    const match = specializationMatches[index];
+    let source;
     if (match) {
       const talents = match.ref?.snapshot?.system?.talents ?? {};
-      buildItems.push(deps.toItemData(match.ref, {
+      source = deps.toItemData(match.ref, {
         rankGrants: index === 0 ? ranks.spec : [],
         learnedKeys,
         nodeAttributeGrants: dedicationGrantsForSpec(spec, talents, dedicationBySpec, learnedKeys),
-      }));
+      });
     } else {
       const result = deps.buildInPlace("specialization", spec, {
         rankGrants: index === 0 ? ranks.spec : [],
         learnedKeys,
       });
-      buildItems.push(result.source);
+      source = result.source;
       report.warnings.push(...(result.warnings ?? []));
       report.unmatched.push({ kind: "specialization", key: keyOf(spec) ?? nameOf(spec) });
     }
+    const residualEffects = rankedTalentResidual.effectsBySpecialization[keyOf(spec)] ?? [];
+    if (residualEffects.length) {
+      source.effects = [...(source.effects ?? []), ...residualEffects];
+    }
+    buildItems.push(source);
   }
   for (const power of parsed.forcePowers ?? []) {
     addContent("forcepower", power, { learnedKeys: learnedKeysForPower(power) });
@@ -293,11 +367,13 @@ export async function hyperdriveToActorData(parsed, deps) {
     }
   }
 
-  const preview = await deps.preparePreview(buildItems);
-  const characteristicResidual = residualCharacteristicDeltas(parsed.characteristics, preview.characteristics);
-  const skillResidual = residualSkillDeltas(parsed.skills, preview.skills);
-  report.warnings.push(...characteristicResidual.warnings, ...skillResidual.warnings);
-  const xp = deriveXp(parsed, characteristicResidual.deltas);
+  const characteristicBase = baseCharacteristicDeltas(
+    parsed.characteristics,
+    parsed.species?.startingChars,
+  );
+  const purchasedSkills = purchasedSkillDeltas(parsed.skills);
+  report.warnings.push(...characteristicBase.warnings, ...purchasedSkills.warnings);
+  const xp = deriveXp(parsed, characteristicBase.deltas);
   report.warnings.push(...xp.warnings);
   if (parsed.notes) report.warnings.push("Hyperdrive notes have no native actor field and were preserved in import flags.");
   if (parsed.vehicles?.length) report.warnings.push(`${parsed.vehicles.length} vehicle entry or entries were skipped.`);
@@ -305,8 +381,8 @@ export async function hyperdriveToActorData(parsed, deps) {
 
   const assembled = deps.assemble({
     name: parsed.name,
-    characteristicDeltas: characteristicResidual.deltas,
-    skillDeltas: skillResidual.deltas,
+    characteristicDeltas: characteristicBase.deltas,
+    skillDeltas: purchasedSkills.deltas,
     experience: { total: xp.total, available: xp.available },
     credits: parsed.credits,
     track: trackFor(parsed),

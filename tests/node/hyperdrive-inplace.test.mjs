@@ -54,6 +54,8 @@ test("cybernetic gear applies Brawn and quality snapshots preserve ranks/freefor
   const source = buildGearSource(parsed.cybernetics[0]).source;
   assert.ok(flat(source).some((change) =>
     change.key === "system.characteristics.Brawn.value" && change.value === 1));
+  assert.ok(flat(source).some((change) =>
+    change.key === "system.stats.wounds.max" && change.value === 1));
   const modifiers = buildQualityModifiers([
     { Key: "MATCH", Count: "3" },
     { MiscDesc: "Custom quality", Count: "2" },

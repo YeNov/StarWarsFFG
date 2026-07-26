@@ -27,6 +27,13 @@ test("parses tree grids, force powers, skills, career ranks, and signatures from
   assert.equal(parsed.specializations[1].universal, true);
   assert.equal(parsed.forcePowers.find((power) => power.key === "CONJURE").paidCosts["1-0"], 15);
   assert.equal(parsed.skills.find((skill) => skill.skill === "Brawl").rank, 2);
+  assert.deepEqual(parsed.boughtTalents.find((talent) => talent.key === "TOUGH"), {
+    ...RAW.BoughtTalents.find((talent) => talent.key === "TOUGH"),
+    key: "TOUGH",
+    name: "Toughened",
+    count: 2,
+    attributes: { WoundThreshold: "2" },
+  });
   assert.deepEqual(parsed.careerRanks, ["Athletics", "Brawl", "Cool"]);
   assert.deepEqual(parsed.specRanks, ["Brawl", "Coordination"]);
   assert.deepEqual(parsed.signatureAbilities, []);
