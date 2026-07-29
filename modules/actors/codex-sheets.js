@@ -29,6 +29,7 @@ import { getFatedSigilMask } from "./codex-fated-sigil.js";
 import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
+import { placeCodexPopup } from "./codex-popup-position.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -431,6 +432,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
 
   /** @override — drop the pill-stack's document listener when the sheet closes. */
   async close(options = {}) {
+    this._cdxClearPoolHints();
     this._cdxPillStack?.destroy();
     this._cdxPillStack = null;
     if (this._cdxTalentCardRoot && this._onCdxTalentCardClickBound) {
@@ -470,6 +472,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   _cdxActivate(html) {
     const root = html?.[0] ?? this.form ?? this.element;
     if (!root) return;
+    this._cdxClearPoolHints();
 
     // mandar forces `overflow: visible !important` on the content <form> (it
     // scrolls its own .sheet-body, which our bespoke layout doesn't have). A
@@ -1051,8 +1054,6 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     if (!nodes.length) return;
     let data;
     try { data = await this.getData({}); } catch (e) { return; }
-    // Hints live on the form, outside the cards, so they outlive a content re-render.
-    this.form?.querySelectorAll(".cdx-wpn-tip").forEach((n) => n.remove());
     // Awaited (not forEach): the tooltip only exists once the pool has rendered.
     for (const elem of nodes) {
       // Resolve the weapon item from its card so its roll modifiers are folded
@@ -1060,48 +1061,82 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       const card = elem.closest(".cdx-card.weapon[data-item-id]");
       const item = card ? (this.actor?.items?.get(card.dataset.itemId) ?? null) : null;
       try { await DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { continue; }
-      this._cdxWeaponPoolHint(elem);
+      this._cdxPoolHintPortal(elem);
     }
   }
 
   /**
-   * Drive a weapon pool's source hint from its row, with the tooltip re-homed onto
-   * the form. Two things stop the shared `.hover:hover .tooltip2` mechanism working
-   * in place here:
-   *   - .cdx-card carries a clip-path (the notches), which clips its whole subtree —
-   *     a tooltip anchored inside the card is cut off at the card's edge.
-   *   - .cdx-wpn-pool is pointer-events:none, so it can never be :hover-ed. That is
-   *     deliberate: .roll-button has a global handler, and the pool sits one level
-   *     deeper than rollSkill's parent-walk expects, so a click there would roll a
-   *     bare skill instead of the weapon. Clicks must keep falling through to the
-   *     card's icon, which sits at the depth rollSkill wants.
-   * The form is unclipped, and an absolutely positioned child of it scrolls with the
-   * content, so the hint tracks its row. The `.hover` host keeps the shared
-   * `.starwarsffg .hover .tooltip2` styling matching, so it looks like the skill hint.
+   * The base sheet renders skill pools asynchronously. Portal only after the
+   * tooltip node exists; stock sheets leave this optional hook undefined.
    */
-  _cdxWeaponPoolHint(elem) {
-    const tip = elem.querySelector(".tooltip2");
-    const form = this.form;
-    if (!tip || !form) return;
+  _afterSkillDicePoolRendered(elem) {
+    const pool = elem?.querySelector?.(".cdx-sk-pool .dice-pool");
+    if (pool) this._cdxPoolHintPortal(pool);
+  }
 
+  /**
+   * Move a dice-pool source hint to document.body. The Codex form must be a
+   * scroll container, so neither z-index nor an in-form absolute host can escape
+   * its overflow clipping. A fixed body-level portal does, and viewport clamping
+   * keeps the complete hint visible at every sheet/window edge.
+   */
+  _cdxPoolHintPortal(trigger) {
+    const tip = trigger?.querySelector?.(".tooltip2");
+    if (!tip || !trigger.isConnected || trigger.dataset.cdxPoolTipBound) return;
+    trigger.dataset.cdxPoolTipBound = "1";
+
+    const portal = document.createElement("div");
+    portal.className = "starwarsffg cdx cdx-pool-tip-portal";
+    portal.dataset.cdxAppId = String(this.appId);
     const host = document.createElement("div");
-    host.className = "hover cdx-wpn-tip";
+    host.className = "hover cdx-pool-tip";
     host.appendChild(tip);
-    form.appendChild(host);
+    portal.appendChild(host);
+    document.body.appendChild(portal);
 
-    const show = () => {
-      // Measure against offsetParent — by definition what position:absolute resolves
-      // to — rather than assuming the form is positioned. Adding position:relative to
-      // the form would silently re-anchor the sheet's other ~30 absolute elements.
-      const anchor = host.offsetParent ?? form;
-      const a = anchor.getBoundingClientRect();
-      const r = elem.getBoundingClientRect();
-      host.style.left = `${r.left - a.left + anchor.scrollLeft}px`;
-      host.style.top = `${r.bottom - a.top + anchor.scrollTop + 3}px`;
-      host.classList.add("cdx-tip-on");
+    const position = () => {
+      if (!trigger.isConnected) return;
+      host.style.left = "0px";
+      host.style.top = "0px";
+      const rect = trigger.getBoundingClientRect();
+      const popup = host.getBoundingClientRect();
+      const point = placeCodexPopup(rect, popup, {
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+      });
+      host.style.left = `${point.left}px`;
+      host.style.top = `${point.top}px`;
     };
-    elem.addEventListener("pointerenter", show);
-    elem.addEventListener("pointerleave", () => host.classList.remove("cdx-tip-on"));
+    const reposition = () => {
+      if (host.classList.contains("cdx-tip-on")) position();
+    };
+    const show = () => {
+      position();
+      host.classList.add("cdx-tip-on");
+      window.addEventListener("scroll", reposition, true);
+      window.addEventListener("resize", reposition);
+    };
+    const hide = () => {
+      host.classList.remove("cdx-tip-on");
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+    const cleanup = () => {
+      hide();
+      trigger.removeEventListener("pointerenter", show);
+      trigger.removeEventListener("pointerleave", hide);
+      portal.remove();
+    };
+
+    trigger.addEventListener("pointerenter", show);
+    trigger.addEventListener("pointerleave", hide);
+    this._cdxPoolHintCleanups ??= new Set();
+    this._cdxPoolHintCleanups.add(cleanup);
+  }
+
+  _cdxClearPoolHints() {
+    for (const cleanup of this._cdxPoolHintCleanups ?? []) cleanup();
+    this._cdxPoolHintCleanups?.clear();
   }
 
   /**

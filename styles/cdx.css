@@ -668,18 +668,6 @@
 .cdx .cdx-sk-pool { padding:2px 6px; white-space:nowrap; }
 .cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; flex-wrap:nowrap; gap:1px; }
 .cdx .cdx-sk-pool img { width:18px; height:18px; }
-/* Dice-pool source hint (hover): the shared .tooltip2 has no vertical anchor, so
-   it renders on the pool's own line and covers the dice. Anchor it to the pool
-   node and drop it just below the row instead. Also size the panel to its
-   content (the shared rule pins width:100% of the narrow pool → min-width:150px,
-   while the pool's white-space:nowrap kept long rows from wrapping, so the text
-   spilled past the fixed-width background). max-content + wrapping fixes both. */
-.cdx .cdx-sk-pool .dice-pool.hover { position:relative; }
-.cdx .cdx-sk-pool .dice-pool.hover .tooltip2 {
-  top:calc(100% + 3px); bottom:auto; left:0;
-  width:max-content; max-width:360px; white-space:normal;
-}
-
 /* ---- Combat cards (weapon + armour) ---- */
 .cdx .cdx-cards-head { display:flex; align-items:center; justify-content:space-between; font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin:10px 0 8px; }
 .cdx .cdx-cards-head .item-add { cursor:pointer; color:var(--cdx-accent); }
@@ -714,20 +702,32 @@
 .cdx .cdx-card-arc { font-size:12px; color:var(--cdx-ink); min-width:0; }
 /* Wraps within the identity column so the pool never spills into the DAM column. */
 .cdx .cdx-wpn-pool { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px; min-width:0; line-height:0; pointer-events:none; }
-/* Weapon-card dice-pool source hint. Unlike the skills' .cdx-sk-pool hint this can't
-   be anchored in place: .cdx-card has a clip-path, which clips its whole subtree, and
-   .cdx-wpn-pool is pointer-events:none so it never gets :hover. _cdxWeaponPoolHint
-   therefore re-parents the tooltip into this host on the (unclipped) form and toggles
-   .cdx-tip-on from the row. The host keeps the `hover` class so the shared
-   .starwarsffg .hover .tooltip2 rule still paints it like the skills hint. */
-.cdx form .cdx-wpn-tip { position:absolute; pointer-events:none; }
-.cdx form .cdx-wpn-tip .tooltip2 {
-  /* static: the host does the positioning. The pool's line-height:0 would otherwise
-     be inherited and collapse the text. Size to content, as .cdx-sk-pool does. */
-  position:static; line-height:normal;
-  width:max-content; min-width:0; max-width:360px; white-space:normal;
+/* Dice-pool source hints use a body-level portal because the Codex content form
+   must clip and scroll. Fixed positioning lets the hint escape every sheet. */
+.cdx-pool-tip-portal {
+  position:fixed;
+  inset:0;
+  z-index:var(--z-index-tooltip, 9999);
+  pointer-events:none;
 }
-.cdx form .cdx-wpn-tip.cdx-tip-on .tooltip2 { opacity:1; z-index:500; }
+.cdx-pool-tip-portal .cdx-pool-tip {
+  position:fixed;
+  pointer-events:none;
+}
+.cdx-pool-tip-portal .cdx-pool-tip .tooltip2 {
+  position:static;
+  width:max-content;
+  min-width:min(150px, calc(100vw - 16px));
+  max-width:min(360px, calc(100vw - 16px));
+  max-height:calc(100vh - 16px);
+  overflow:auto;
+  line-height:normal;
+  white-space:normal;
+}
+.cdx-pool-tip-portal .cdx-pool-tip.cdx-tip-on .tooltip2 {
+  opacity:1;
+  z-index:var(--z-index-tooltip, 9999);
+}
 .cdx .cdx-wpn-pool img { width:16px; height:16px; border:none; vertical-align:middle; }
 /* Crew-card roll pool: a HORIZONTAL row of dice at the skills-tab glyph size
    (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
