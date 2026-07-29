@@ -18,6 +18,7 @@
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
 import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "../actors/codex-sheets.js";
+import { codexItemTypeLabelKey } from "./codex-item-labels.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -71,9 +72,13 @@ export class CodexItemSheet extends ItemSheetFFG {
   /** @override — add the condition/status track model (weapon/armour). */
   async getData(options) {
     const ctx = await super.getData(options);
-    // Localized item-type name for the header type pill (shared by every codex
-    // item template via the general .cdx-ihead header).
-    try { ctx.cdxTypeLabel = game.i18n.localize(`TYPES.Item.${this.item?.type}`); } catch (e) { ctx.cdxTypeLabel = ""; }
+    // Localized header pill shared by every Codex item template. Obligation,
+    // Morality, and Duty are all document type `obligation`, so use their
+    // system.type value to distinguish them.
+    try {
+      const labelKey = codexItemTypeLabelKey(this.item?.type, this.item?.system?.type);
+      ctx.cdxTypeLabel = labelKey ? game.i18n.localize(labelKey) : "";
+    } catch (e) { ctx.cdxTypeLabel = ""; }
     // Tree types (force power / signature / specialization): edit is a TRANSIENT
     // per-session toggle (this._cdxEdit, default off), so the tree always opens
     // read-only regardless of any persisted system.isEditing. The bespoke edit
