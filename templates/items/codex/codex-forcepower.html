@@ -84,6 +84,7 @@
         </div>
 
         {{!-- The node card --}}
+        <div class="cdx-float-soft-wrap">
         <div class="cdx-ft-card">
           <div class="cdx-ft-head">
             <span class="cdx-ft-state"><input type="checkbox" name="data.upgrades.{{key}}.islearned" data-dtype="Boolean" {{#if upgrade.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
@@ -106,6 +107,7 @@
           </div>
           <input class="cdx-ft-hide" name="data.upgrades.{{key}}.size" type="text" value="{{upgrade.size}}" data-dtype="String" />
           <input class="cdx-ft-hide" name="data.upgrades.{{key}}.visible" type="text" value="{{upgrade.visible}}" data-dtype="Boolean" />
+        </div>
         </div>
 
         {{!-- Combine/split live in the right gap BETWEEN cards (edit mode), like the

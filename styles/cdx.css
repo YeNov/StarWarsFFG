@@ -203,6 +203,13 @@
    header's bottom edge from .cdx-header-wrap (which has no clip-path, so it isn't
    clipped like a direct header child would be). */
 .cdx .cdx-header-wrap { position:relative; }
+/* A clipped notched block cannot cast its own outer drop-shadow: the clip also
+   cuts the shadow away. Standalone blocks therefore sit in one of these plain
+   wrappers, which cast the same elevation tokens used by the existing grouped
+   PC-sheet sections. The wrappers are layout-neutral block formatting contexts;
+   component-specific flex rules below preserve vehicle/tree layouts. */
+.cdx .cdx-float-wrap,
+.cdx .cdx-float-soft-wrap { min-width:0; display:flow-root; }
 /* width:auto via the `.cdx form button.x` pattern -- Foundry/mandar force buttons
    to width:100% inside the sheet form (see the .cdx-tab override). Without it the
    absolutely-positioned tab stretches the full header width. */
@@ -569,6 +576,10 @@
 .cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }
 .cdx .cdx-veh-left { flex:2; min-width:0; display:flex; flex-direction:column; gap:9px; }
 .cdx .cdx-veh-main .cdx-derived { flex:none; }
+.cdx .cdx-veh-left > .cdx-float-soft-wrap { flex:1; display:flex; }
+.cdx .cdx-veh-left > .cdx-float-soft-wrap > .cdx-veh-systems { flex:1; margin-bottom:0; }
+.cdx .cdx-veh-main > .cdx-float-soft-wrap { flex:1; min-width:228px; display:flex; }
+.cdx .cdx-veh-main > .cdx-float-soft-wrap > .cdx-veh-defence { flex:1; min-width:0; margin-bottom:0; }
 /* "max N" sub-label tucked under a characteristic chip's box (e.g. Speed). */
 .cdx .cdx-chip-sub { margin-top:2px; font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 
@@ -1362,10 +1373,9 @@
 /* --- Base power banner --- */
 /* Banner wrapper class is .cdx-ft-banner -- NOT .cdx-ft-head, which is the
    upgrade-CARD head (flex + --cdx-head gradient bg, below): same-name collision
-   there painted the card-head gradient behind the banner. display:contents drops
-   the wrapper box so the banner itself is the direct full-width child of the
-   window-content column (no stray bg, no stock .sheet-header flex rule). */
-.cdx .cdx-ft-banner { display:contents; }
+   full-width, otherwise-neutral wrapper casts the shared header shadow outside
+   the clipped power banner. */
+.cdx .cdx-ft-banner { display:block; width:100%; }
 .cdx .cdx-ft-power { width:100%; box-sizing:border-box; background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-power-row { display:flex; justify-content:space-between; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
 /* Name/FR render as text (play) or input (edit); style the container so BOTH look
@@ -1408,9 +1418,10 @@
    fixed height:100%, which capped the card and caused the description to overflow the
    footer (only visible where dark text crossed a light footer). */
 .cdx .cdx-ft-card { position:relative; z-index:2; flex:1 0 auto; display:flex; flex-direction:column; min-height:118px;
-  background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip);
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
-.cdx .cdx-ft-node.on .cdx-ft-card { filter:drop-shadow(0 0 4px var(--cdx-accent)); }
+  background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip); }
+.cdx .cdx-ft-node > .cdx-float-soft-wrap { position:relative; z-index:2; flex:1 0 auto; display:flex; flex-direction:column; overflow:visible; }
+.cdx .cdx-ft-node > .cdx-float-soft-wrap > .cdx-ft-card { flex:1 0 auto; }
+.cdx form:not(.scheme-eldritch) .cdx-ft-node.on > .cdx-float-soft-wrap { filter:var(--cdx-float-soft) drop-shadow(0 0 4px var(--cdx-accent)); }
 .cdx .cdx-ft-head { display:flex; align-items:center; gap:6px; padding:4px 8px; min-height:var(--ft-headh); box-sizing:border-box;
   background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip-top); font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-name { flex:1; min-width:0; color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; }
@@ -1609,12 +1620,12 @@
    Elevation levels — the design-language "levels" pass. Additive depth on the
    same non-eldritch panels the notch-outline overlay covers; no geometry moves.
    clip-path clips outer box-shadow, so "raised" = an inset top-rim highlight
-   (survives the clip). A filter:drop-shadow adds a genuine float; where an
-   unclipped wrapper exists, the filter is cast from that wrapper so notched
-   children keep their silhouette. Inventory/talent list wrappers carry the
-   token so the clipped cards inside can cast outside their notches. "Wells"
-   recess genuine text bodies (bio / talent details / item description) with an
-   inset shadow — never threshold numbers. Values are tokenised per scheme.
+   (survives the clip). A filter:drop-shadow adds a genuine float from an
+   unclipped group or standalone wrapper. This keeps vehicle, actor, item, and
+   progression-tree cards at the same visual level even though their templates
+   use different container structures. "Wells" recess genuine text bodies (bio /
+   talent details / item description) with an inset shadow — never threshold
+   numbers. Values are tokenised per scheme.
    ========================================================================== */
 /* Raised — inset top-rim highlight */
 .cdx form:not(.scheme-eldritch) .cdx-stat,
@@ -1625,25 +1636,33 @@
 .cdx form:not(.scheme-eldritch) .cdx-idesc,
 .cdx form:not(.scheme-eldritch) .cdx-istat,
 .cdx form:not(.scheme-eldritch) .cdx-icheck2 { box-shadow:var(--cdx-elev-1); }
-/* Real float — cast from an unclipped wrapper when one exists, so notched child
-   panels can keep their octagon silhouette. */
+/* Real float — major readouts and headers. Clipped components cast from an
+   unclipped wrapper so the common shadow cannot be cut off by clip-path. */
 .cdx form:not(.scheme-eldritch) .cdx-header-wrap,   /* character / minion header */
 .cdx form:not(.scheme-eldritch) .cdx-derived,       /* Wounds · Strain · Defence row */
 .cdx form:not(.scheme-eldritch) .cdx-minion-stats,  /* Group Strength · Defence · wound pool */
 .cdx form:not(.scheme-eldritch) .cdx-istats,        /* item-sheet stat boxes */
+.cdx form:not(.scheme-eldritch) .cdx-crit-stats,    /* critical-item stat boxes */
 .cdx form:not(.scheme-eldritch) .cdx-ichecks,       /* talent toggle cards */
-.cdx form:not(.scheme-eldritch) .cdx-xp-totals { filter:var(--cdx-float); }
+.cdx form:not(.scheme-eldritch) .cdx-xp-totals,
+.cdx form:not(.scheme-eldritch) .cdx-float-wrap,
+.cdx form:not(.scheme-eldritch) .cdx-ft-banner { filter:var(--cdx-float); }
 /* Soft float — content sections that should lift, but stay quieter than the top
-   readouts. The filter is still cast from unclipped wrappers where available. */
+   readouts. The broad .cdx-cards selector intentionally covers actor and vehicle
+   lists; vehicle templates do not add the actor partial's extra .items class. */
 .cdx form:not(.scheme-eldritch) .cdx-skills,        /* skills table columns */
 .cdx form:not(.scheme-eldritch) .cdx-pane.injuries,
-.cdx form:not(.scheme-eldritch) .cdx-cards.items,
+.cdx form:not(.scheme-eldritch) .cdx-cards,
 .cdx form:not(.scheme-eldritch) .cdx-gear.items,
 .cdx form:not(.scheme-eldritch) .cdx-pane.talents .cdx-talents,
-.cdx form:not(.scheme-eldritch) .cdx-forcepool,
 .cdx form:not(.scheme-eldritch) .cdx-bio-grid,
-.cdx form:not(.scheme-eldritch) .cdx-pane.bio > .cdx-panel:has(.cdx-bio-editor),
-.cdx form:not(.scheme-eldritch) .cdx-pane.effects { filter:var(--cdx-float-soft); }
+.cdx form:not(.scheme-eldritch) .cdx-bio-stats,
+.cdx form:not(.scheme-eldritch) .cdx-pane.effects,
+.cdx form:not(.scheme-eldritch) .cdx-pane.attributes,
+.cdx form:not(.scheme-eldritch) .cdx-item-body .cdx-pane.cdx-bio-editor,
+.cdx form:not(.scheme-eldritch) .cdx-sub,
+.cdx form:not(.scheme-eldritch) .cdx-float-soft-wrap,
+.cdx form:not(.scheme-eldritch) .cdx-item-body .talent-list { filter:var(--cdx-float-soft); }
 /* Wells — recessed text bodies */
 .cdx form:not(.scheme-eldritch) .cdx-bio-editor,
 .cdx form:not(.scheme-eldritch) .cdx-talent .item-details,
@@ -1653,6 +1672,3 @@
    needed); the inset rim keeps the number seated on the dial. Overrides the
    base .cdx-chip-box inner shadow. */
 .cdx form:not(.scheme-eldritch) .cdx-chip-box { box-shadow:inset 0 1px 0 var(--cdx-rim),var(--cdx-drop); }
-/* Float the small bio-stat panels (Obligation / Morality / Conflict) from their
-   unclipped .cdx-bio-stats row. */
-.cdx form:not(.scheme-eldritch) .cdx-bio-stats { filter:var(--cdx-float-soft); }

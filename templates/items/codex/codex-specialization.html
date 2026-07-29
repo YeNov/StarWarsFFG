@@ -58,6 +58,7 @@
             </div>
           </div>
 
+          <div class="cdx-float-soft-wrap">
           <div class="cdx-ft-card {{#iff talent.activationLabel 'contains' 'Passive'}}cdx-ft-passive{{else}}cdx-ft-active{{/iff}}">
             <div class="cdx-ft-head">
               <span class="cdx-ft-state"><input type="checkbox" name="data.talents.{{key}}.islearned" data-dtype="Boolean" {{#if talent.islearned}}checked{{/if}} {{#unless ../isGM}}onclick="return false"{{/unless}}></span>
@@ -94,6 +95,7 @@
             <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.pack" value="{{talent.pack}}" />
             <input class="cdx-ft-hide" type="text" name="data.talents.{{key}}.cost" value="{{talent.cost}}" />
             <input class="cdx-ft-hide" type="checkbox" name="data.talents.{{key}}.isForceTalent" data-dtype="Boolean" {{checked talent.isForceTalent}} />
+          </div>
           </div>
 
           {{!-- Right connector to the node on the right. --}}

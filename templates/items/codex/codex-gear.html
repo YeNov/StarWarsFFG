@@ -4,9 +4,11 @@
   description. Editing tabs (Modifiers/Sources/Tags) below.
 --}}
 <form class="cdx-sheet cdx-item cdx-item-gear" autocomplete="off">
+  <div class="cdx-float-wrap">
   <div class="cdx-ihead">
     <div class="cdx-ipill">{{localize "TYPES.Item.gear"}}</div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
   </div>
 
   <div class="cdx-iwmain">
@@ -27,9 +29,11 @@
   <div class="cdx-qual-wrap"><span class="cdx-qual-k">Qualities</span><div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div></div>
   {{/if}}
 
+  <div class="cdx-float-soft-wrap">
   <div class="cdx-idesc">
     <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
     {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
   </div>
 
   <nav class="cdx-tabstrip">

@@ -6,6 +6,7 @@
   Tags. No status track (ship weapons have no condition), no characteristic.
 --}}
 <form class="cdx-sheet cdx-item cdx-item-shipweapon" autocomplete="off">
+  <div class="cdx-float-wrap">
   <div class="cdx-ihead">
     <div class="cdx-ihead-top">
       <div class="cdx-ipill">{{cdxTypeLabel}}</div>
@@ -16,6 +17,7 @@
     </div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
     <div class="cdx-isub"{{#unless data.skill.value}} style="display:none"{{/unless}}>{{data.skill.value}}</div>
+  </div>
   </div>
 
   <div class="cdx-iwmain">
@@ -30,7 +32,7 @@
         <div class="cdx-istat wide"><span class="cdx-istat-k">Price</span><input class="cdx-istat-v cdx-price" type="text" value="{{data.price.value}}" autocomplete="off" /></div>
         <div class="cdx-istat wide{{#if data.rarity.isrestricted}} cdx-restricted{{/if}}"><span class="cdx-istat-k">Rarity</span><div class="cdx-istat-rwrap"><input class="cdx-istat-v cdx-rv-in cdx-num" type="text" name="data.rarity.value" value="{{data.rarity.value}}" data-dtype="Number" /><button type="button" class="cdx-restrict-btn" title="{{localize 'SWFFG.IsRestricted'}}">(R)</button></div></div>
       </div>
-      <div class="cdx-panel cdx-arc-panel">
+      <div class="cdx-float-soft-wrap"><div class="cdx-panel cdx-arc-panel">
         <div class="cdx-idesc-head">{{localize "SWFFG.VehicleTabFiringArc"}}</div>
         <div class="cdx-arc-grid">
           <label class="cdx-arc"><input type="checkbox" name="data.firingarc.fore" data-dtype="Boolean" {{checked data.firingarc.fore}} /><span>{{localize "SWFFG.VehicleFiringArcForward"}}</span></label>
@@ -40,7 +42,7 @@
           <label class="cdx-arc"><input type="checkbox" name="data.firingarc.dorsal" data-dtype="Boolean" {{checked data.firingarc.dorsal}} /><span>{{localize "SWFFG.VehicleFiringArcDorsal"}}</span></label>
           <label class="cdx-arc"><input type="checkbox" name="data.firingarc.ventral" data-dtype="Boolean" {{checked data.firingarc.ventral}} /><span>{{localize "SWFFG.VehicleFiringArcVentral"}}</span></label>
         </div>
-      </div>
+      </div></div>
     </div>
   </div>
 
@@ -48,9 +50,11 @@
   <div class="cdx-qual-wrap"><span class="cdx-qual-k">Qualities</span><div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div></div>
   {{/if}}
 
+  <div class="cdx-float-soft-wrap">
   <div class="cdx-idesc">
     <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
     {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
   </div>
 
   <nav class="cdx-tabstrip">
@@ -67,9 +71,11 @@
       <div class="cdx-istats cdx-istats-special">
         <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
       </div>
+      <div class="cdx-float-soft-wrap">
       <div class="cdx-idesc cdx-ispecial">
         <div class="cdx-idesc-head">{{localize "SWFFG.ItemWeaponSpecial"}}</div>
         {{editor data.enrichedSpecial target="system.special.value" button=true owner=owner editable=editable engine="prosemirror"}}
+      </div>
       </div>
     </section>
     <section class="cdx-pane active" data-tab="qualities">{{> "systems/starwarsffg/templates/parts/ffg-mods.html"}}</section>
