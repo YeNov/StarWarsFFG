@@ -130,8 +130,11 @@
 }
 .cdx .cdx-pill.force { background:#5b4bb3; border-color:rgba(255,255,255,.45); }
 .cdx .cdx-pill.sig { background:#2c7a86; border-color:rgba(255,255,255,.45); }
-.cdx .cdx-pill .item-delete { opacity:.55; font-size:9px; cursor:pointer; }
+.cdx .cdx-pill .item-delete { flex:none; margin-left:auto; opacity:.55; font-size:9px; cursor:pointer; }
 .cdx .cdx-pill .item-delete:hover { opacity:1; }
+/* A collapsed stack's +N badge occupies the right edge; keep the top pill's
+   delete cross immediately to its left instead of allowing them to overlap. */
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:first-child .item-delete { margin-right:24px; }
 /* The per-pill delete cross (species/career/spec/force/signature) is GM-only AND
    only while XP-buy mode is on. The form gets `cdx-gm` on render for GMs and
    `cdx-xpbuy` while buy mode is active (see _cdxActivate); both land on the same
