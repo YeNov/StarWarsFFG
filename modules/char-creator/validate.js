@@ -12,7 +12,6 @@
 import { calcXp, calcCredits, obligationKeyForRules } from "./calculators.js";
 import { getSpeciesSkillRankChoices, getSpeciesSkillRankChoiceStatus } from "./species-skill-choices.js";
 
-const WIZARD = "SWFFG.CharacterCreator.Wizard";
 const REVIEW = "SWFFG.CharacterCreator.review";
 const VALIDATE = "SWFFG.CharacterCreator.Validate";
 
@@ -67,6 +66,17 @@ function sumCosts(purchases = []) {
   return purchases.reduce((total, purchase) => total + (Number(purchase?.cost) || 0), 0);
 }
 
+function isDedicationTalent(talent) {
+  return String(talent?.name ?? "").replace(/<[^>]*>/g, "").trim().toLowerCase() === "dedication";
+}
+
+function hasUnchosenDedication(data) {
+  const talents = data.selected?.specialization?.snapshot?.system?.talents ?? {};
+  return (data.purchases?.xp?.talents ?? []).some((purchase) =>
+    isDedicationTalent(talents[purchase?.key]) && !purchase?.characteristic
+  );
+}
+
 /**
  * Validate a draft into per-step completeness, running totals, and advisory warnings.
  * @param {object} data  the wizard state
@@ -103,6 +113,7 @@ export function validateDraft(data) {
   if (sel.careerCareerSkillRanks.length !== freeRankCaps.career) warnings.push(`${VALIDATE}.CareerRanks`);
   if (sel.specializationCareerSkillRanks.length !== freeRankCaps.specialization) warnings.push(`${VALIDATE}.SpecRanks`);
   if (hasSpeciesRankChoices && !speciesRankChoices.complete) warnings.push(`${VALIDATE}.SpeciesRanks`);
+  if (hasUnchosenDedication(data)) warnings.push(`${VALIDATE}.DedicationCharacteristic`);
 
   const xp = calcXp(data);
   const credits = calcCredits(data);

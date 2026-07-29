@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import { applyBuild } from "../../modules/char-creator/apply-build.js";
 import { assignWizardIdentity } from "../../modules/char-creator/build-item-schema.js";
+import { DEDICATION_ATTRIBUTE_KEY } from "../../modules/char-creator/dedication.js";
 import {
   normalizeCommitSource,
   sanitizeCommitRequest,
@@ -33,10 +34,15 @@ function makeDeps(calls) {
   return {
     creationDefaults: {
       img: "systems/starwarsffg/images/defaults/actors/character.png",
-      prototypeToken: { actorLink: true },
+      prototypeToken: { actorLink: true, sight: { enabled: true } },
       system: {
         characteristics: { Brawn: { value: 2 }, Willpower: { value: 2 }, Agility: { value: 2 } },
-        skills: { Astrogation: { rank: 0 }, Coordination: { rank: 0 } },
+        skills: {
+          Astrogation: { rank: 0, label: "Astrogation", careerskill: false },
+          Brawl: { rank: 0, label: "Brawl", careerskill: false },
+          Coordination: { rank: 0, label: "Coordination", careerskill: false },
+          KnowledgeLore: { rank: 0, label: "Knowledge: Lore", careerskill: false },
+        },
         stats: { wounds: { max: 10 }, soak: { value: 2 }, encumbrance: { max: 5 }, strain: { max: 10 }, credits: { value: 0 } },
         experience: {},
       },
@@ -95,6 +101,40 @@ test("skill purchases add ranks", () => {
   assert.equal(actorData.system.skills.Astrogation.rank, 1);
 });
 
+test("career and specialization skills are marked as career skills", () => {
+  const draft = makeDraft();
+  draft.selected.career = {
+    uuid: "career1",
+    name: "Explorer",
+    type: "career",
+    snapshot: { system: { careerSkills: { careerSkill0: "Astrogation" } } },
+  };
+  draft.selected.specialization = {
+    uuid: "spec1",
+    name: "Fringer",
+    type: "specialization",
+    snapshot: { system: { careerSkills: { careerSkill0: "Coordination" } } },
+  };
+  draft.purchases.xp.specializations = [
+    {
+      cost: 20,
+      ref: {
+        uuid: "spec2",
+        name: "Scholar",
+        type: "specialization",
+        snapshot: { system: { careerSkills: { careerSkill0: "Knowledge: Lore" } } },
+      },
+    },
+  ];
+
+  const { actorData } = applyBuild(draft, makeDeps());
+
+  assert.equal(actorData.system.skills.Astrogation.careerskill, true);
+  assert.equal(actorData.system.skills.Coordination.careerskill, true);
+  assert.equal(actorData.system.skills.KnowledgeLore.careerskill, true);
+  assert.equal(actorData.system.skills.Brawl.careerskill, false);
+});
+
 test("XP, credits (incl. spendingCredits) and the selected ruleset track match the calculators", () => {
   const { actorData } = applyBuild(makeDraft(), makeDeps());
   assert.deepEqual(actorData.system.experience, { total: 100, available: 100 - 70 - 10 });
@@ -109,7 +149,7 @@ test("base identity: name, img, prototypeToken from creationDefaults", () => {
   assert.equal(actorData.name, "Kel");
   assert.equal(actorData.type, "character");
   assert.equal(actorData.img, "systems/starwarsffg/images/defaults/actors/character.png");
-  assert.deepEqual(actorData.prototypeToken, { actorLink: true, name: "Kel" });
+  assert.deepEqual(actorData.prototypeToken, { actorLink: true, sight: { enabled: true }, name: "Kel" });
 });
 
 test("force-attitude background is included when selected", () => {
@@ -152,6 +192,34 @@ test("species skill-rank choices are baked onto the species item", () => {
 
   const speciesCall = calls.items.find((call) => call.ref.uuid === "sp1");
   assert.deepEqual(speciesCall.options.rankGrants, ["Astrogation", "Coordination", "Coordination", "Coordination"]);
+});
+
+test("Dedication talent choices are passed as specialization node attribute grants", () => {
+  const calls = { deltas: [], items: [] };
+  const draft = makeDraft();
+  draft.selected.specialization = {
+    uuid: "spec1",
+    name: "Survivalist",
+    type: "specialization",
+    snapshot: {
+      system: {
+        talents: {
+          talent4: { name: "Dedication", attributes: {} },
+        },
+      },
+    },
+  };
+  draft.purchases.xp.talents = [{ key: "talent4", cost: 10, characteristic: "Brawn" }];
+
+  applyBuild(draft, makeDeps(calls));
+
+  const specCall = calls.items.find((call) => call.ref.uuid === "spec1");
+  assert.deepEqual(specCall.options.learnedKeys, ["talent4"]);
+  assert.deepEqual(specCall.options.nodeAttributeGrants, {
+    talent4: {
+      [DEDICATION_ATTRIBUTE_KEY]: { modtype: "Characteristic", mod: "Brawn", value: 1 },
+    },
+  });
 });
 
 test("the injected applyCharacteristicDeltas is called once with aggregated deltas", () => {
@@ -216,12 +284,14 @@ test("player attachment purchases survive build, socket sanitization, and GM nor
     xp: { total: 100, available: 20 },
   };
   await assignWizardIdentity(actorData, commit);
+  assert.match(weapon.system.itemattachment[0]._id, /^[0-9A-Za-z]{16}$/);
   const sanitized = sanitizeCommitRequest({ source: actorData, commit }, "player-1");
   const { source } = await normalizeCommitSource(sanitized.source, sanitized.commit);
   const committedWeapon = source.items.find((item) => item.name === "Training Lightsaber");
 
   assert.equal(committedWeapon.system.itemattachment.length, 1);
   assert.equal(committedWeapon.system.itemattachment[0].name, "Balanced Hilt");
+  assert.match(committedWeapon.system.itemattachment[0]._id, /^[0-9A-Za-z]{16}$/);
   assert.equal(committedWeapon.effects[0].name, "Balanced Hilt Effect");
   assert.match(committedWeapon._id, /^[0-9A-Za-z]{16}$/);
 });

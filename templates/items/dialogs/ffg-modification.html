@@ -22,6 +22,26 @@
       <label for="system.itemmodifier[{{number}}].system.rank">{{ localize "SWFFG.Items.Popout.Label.Ranks" }}</label>
       <input name="system.itemmodifier[{{number}}].system.rank" type="number" value="{{ mod.system.rank }}">
     </div>
+    {{#if mod.system.innateTalent}}
+    <input name="system.itemmodifier[{{number}}].system.innateTalent" type="hidden" value="true">
+    <div class="form-group innate-talent-drop" data-modification-index="{{number}}">
+      <label>{{ localize "SWFFG.Talent" }}</label>
+      <div class="innate-talent-target">
+        {{#each mod.system.attributes as |attr id|}}
+        {{#if (eq attr.modtype "Innate Talent")}}
+        <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.modtype" type="hidden" value="{{attr.modtype}}">
+        <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.mod" type="hidden" value="{{attr.mod}}">
+        <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.value" type="hidden" value="{{attr.value}}">
+        <input name="system.itemmodifier[{{../number}}].system.attributes.{{id}}.source" type="hidden" value="{{attr.source}}">
+        <div class="innate-talent-card" role="button" tabindex="0" data-talent-uuid="{{attr.source}}" data-talent-name="{{attr.mod}}">
+          <strong>{{attr.mod}}</strong>
+        </div>
+        {{/if}}
+        {{/each}}
+        {{#unless mod.system.attributes.innateTalent}}<span>{{ localize "SWFFG.Notifications.DragAndDropFirst" }}</span>{{/unless}}
+      </div>
+    </div>
+    {{else}}
     <div class="mod_container attributes">
       <header class="attributes-header flexrow">
         <span class="attribute-modtype">{{localize "SWFFG.ModifierType"}}</span>
@@ -35,5 +55,6 @@
       {{/each }}
       </ol>
     </div>
+    {{/if}}
   </div>
 </div>

@@ -1,4 +1,5 @@
 import ModifierHelpers from "../helpers/modifiers.js";
+import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate-talents.js";
 
 /**
  * Extend the base Actor entity.
@@ -37,18 +38,13 @@ export class ActorFFG extends Actor {
   static async create(data, options) {
     const createData = data;
 
-    // Only apply defaults for newly created actors
-    if (!(typeof data.system === "undefined")) {
-      return super.create(createData, options);
-    }
-
     // The per-type prototypeToken defaults now live in the shared
     // getActorCreationDefaults() factory (below), so the wizard can reuse the
-    // exact same token blocks. Only the prototypeToken is consumed here; unknown
-    // types get no factory prototypeToken (undefined) and pass through unchanged,
-    // exactly as the previous switch (which had no default case) did.
+    // exact same token blocks. Respect an explicit prototypeToken on full actor
+    // sources, but still apply defaults when callers provide system data without
+    // token data (for example sanitized player-submitted character builds).
     const defaults = getActorCreationDefaults(createData.type);
-    if (defaults.prototypeToken) {
+    if (defaults.prototypeToken && typeof createData.prototypeToken === "undefined") {
       createData.prototypeToken = defaults.prototypeToken;
     }
     return super.create(createData, options);
@@ -348,6 +344,11 @@ export class ActorFFG extends Actor {
         }
       }
     });
+
+    for (const item of collectInnateTalentGrants(actorData.items)) {
+      addTalentListEntry(globalTalentList, item);
+    }
+
     if (CONFIG.FFG.theme !== "starwars") {
       globalTalentList.sort((a, b) => {
         let comparison = 0;
@@ -476,6 +477,10 @@ export class ActorFFG extends Actor {
         }
       }
     });
+
+    for (const item of collectInnateTalentGrants(actorData.items)) {
+      addTalentListEntry(globalTalentList, item);
+    }
 
     if (CONFIG.FFG.theme !== "starwars") {
       globalTalentList.sort((a, b) => {
@@ -832,6 +837,9 @@ export function getActorCreationDefaults(type) {
       prototypeToken = {
         actorLink: true,
         disposition: CONST.TOKEN_DISPOSITIONS.FRIENDLY,
+        sight: {
+          enabled: true,
+        },
         bar1: {
           attribute: "stats.wounds",
         },

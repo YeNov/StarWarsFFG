@@ -143,13 +143,17 @@ test("assertWizardIdIntegrity throws on a duplicate item id and on a bad id shap
     () => assertWizardIdIntegrity({ items: [{ _id: dup, effects: [{ _id: "x" }] }] }),
     WizardIdIntegrityError,
   );
+  assert.throws(
+    () => assertWizardIdIntegrity({ items: [{ _id: dup, effects: [], system: { itemattachment: [{}] } }] }),
+    WizardIdIntegrityError,
+  );
 });
 
 // 8 — determinism across runs + full re-keying on a changed commitId
 test("assignWizardIdentity: deterministic per commitId, fully re-keyed on a new commitId", async () => {
   const build = () => ({
     items: [
-      { effects: [{}, {}] },
+      { system: { itemattachment: [{ name: "Scope" }, { name: "Grip" }] }, effects: [{}, {}] },
       { effects: [{}] },
     ],
   });
@@ -158,23 +162,26 @@ test("assignWizardIdentity: deterministic per commitId, fully re-keyed on a new 
   assert.equal(a._id, b._id);
   assert.deepEqual(a.items.map((it) => it._id), b.items.map((it) => it._id));
   assert.deepEqual(a.items[0].effects.map((f) => f._id), b.items[0].effects.map((f) => f._id));
+  assert.deepEqual(a.items[0].system.itemattachment.map((it) => it._id), b.items[0].system.itemattachment.map((it) => it._id));
 
   const c = await assignWizardIdentity(build(), { userId: "u1", commitId: "C2" });
   assert.notEqual(a._id, c._id);
   assert.notEqual(a.items[0]._id, c.items[0]._id);
   assert.notEqual(a.items[0].effects[0]._id, c.items[0].effects[0]._id);
+  assert.notEqual(a.items[0].system.itemattachment[0]._id, c.items[0].system.itemattachment[0]._id);
 });
 
 // 9 — every assigned id matches the document-id regex
 test("assignWizardIdentity: every actor/item/effect id matches the document-id regex", async () => {
   const actorData = await assignWizardIdentity(
-    { items: [{ effects: [{}, {}] }, { effects: [] }] },
+    { items: [{ system: { itemattachment: [{}, {}] }, effects: [{}, {}] }, { effects: [] }] },
     { userId: "userX", commitId: "commitY" },
   );
   assert.match(actorData._id, ID_RE);
   for (const item of actorData.items) {
     assert.match(item._id, ID_RE);
     for (const fx of item.effects) assert.match(fx._id, ID_RE);
+    for (const attachment of item.system?.itemattachment ?? []) assert.match(attachment._id, ID_RE);
   }
   // item ids are unique across the actor
   const itemIds = actorData.items.map((it) => it._id);

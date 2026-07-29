@@ -118,6 +118,28 @@ test("wrong free-rank counts produce advisory warnings", () => {
   assert.ok(warnings.includes("SWFFG.CharacterCreator.Validate.SpecRanks"));
 });
 
+test("learned Dedication talents warn until a characteristic is chosen", () => {
+  const draft = emptyDraft();
+  draft.selected.specialization = {
+    uuid: "sp1",
+    snapshot: {
+      system: {
+        talents: {
+          talent4: { name: "Dedication" },
+        },
+      },
+    },
+  };
+  draft.purchases.xp.talents = [{ key: "talent4", cost: 10 }];
+
+  let warnings = validateDraft(draft).warnings;
+  assert.ok(warnings.includes("SWFFG.CharacterCreator.Validate.DedicationCharacteristic"));
+
+  draft.purchases.xp.talents[0].characteristic = "Brawn";
+  warnings = validateDraft(draft).warnings;
+  assert.ok(!warnings.includes("SWFFG.CharacterCreator.Validate.DedicationCharacteristic"));
+});
+
 test("free-rank validation follows selected item creation caps", () => {
   const draft = emptyDraft();
   draft.selected.career = { uuid: "c1", snapshot: { system: { creation: { skillRankChoices: 3 } } } };

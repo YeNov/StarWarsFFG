@@ -53,6 +53,7 @@ const COVERED = new Map([
   ["modules/char-creator/constants.js", []],
   ["modules/helpers/xp-entry-builders.js", []],
   ["modules/char-creator/build-deps.js", []],
+  ["modules/char-creator/assemble-character-source.js", []],
   ["modules/char-creator/starting-bonus.js", []],
   ["modules/char-creator/species-skill-choices.js", []],
   ["modules/char-creator/build-item-schema.js", []],
@@ -65,6 +66,7 @@ const COVERED = new Map([
     "modules/config/ffg-active-effect-modes.js",
   ]],
   ["modules/char-creator/apply-build.js", [
+    "modules/char-creator/assemble-character-source.js",
     "modules/char-creator/calculators.js",
     "modules/char-creator/species-skill-choices.js",
   ]],

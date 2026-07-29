@@ -4137,6 +4137,11 @@ img {
   display: inline-block;
 }
 
+.starwarsffg.data-import .hyperdrive-importer-content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .starwarsffg.data-import .import-invalid {
   display: none;
 }
@@ -5942,6 +5947,39 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   background: transparent;
 }
 
+.charCreator .pcw-load-progress {
+  margin: 6px 8px 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.55);
+  color: #191813;
+  font-size: 0.86em;
+}
+.charCreator .pcw-load-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.charCreator .pcw-load-progress-track {
+  height: 7px;
+  margin: 4px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.charCreator .pcw-load-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #3a7d3a;
+  transition: width 160ms ease-out;
+}
+.charCreator .pcw-load-progress-detail {
+  color: #4f3b31;
+  font-size: 0.9em;
+}
+
 .charCreator .background-accordion {
   display: flex;
   flex-direction: column;
@@ -6440,6 +6478,18 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 /* Tree connectors — drawn in the grid gaps on the lower/left node (has-top joins upward,
    has-right joins to the next column); solid green when both endpoints are learned. */
+.charCreator .pcw-dedication-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 0.72em;
+}
+.charCreator .pcw-dedication-choice select {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+}
 .charCreator .pcw-tt-cell.has-top::before {
   content: "";
   position: absolute;
@@ -6553,6 +6603,9 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   width: 28%;
   overflow-wrap: anywhere;
 }
+.charCreator .inv-restricted-mark {
+  color: rgb(255, 0, 0);
+}
 .charCreator .inv-columns .pickable-stats {
   width: 30%;
   white-space: normal;
@@ -6595,19 +6648,38 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   gap: 4px;
   margin-top: 4px;
 }
+.charCreator .inv-attached-row td {
+  padding-top: 0;
+}
 .charCreator .inv-attached {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  width: 100%;
   gap: 4px;
-  max-width: 100%;
   padding: 2px 5px;
   border-radius: 3px;
   background: rgba(18, 24, 36, 0.35);
   font-size: 0.82em;
   overflow-wrap: anywhere;
 }
+.charCreator .inv-attached-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .charCreator .inv-attached i {
   cursor: pointer;
+}
+.charCreator .inv-attached-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
 }
 .charCreator .inv-attached i[data-action="open-item"],
 .charCreator .inv-attachment-name i {
@@ -6615,6 +6687,7 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   cursor: pointer;
   opacity: 0.85;
 }
+.charCreator .inv-attached-edit:hover,
 .charCreator .inv-attached i[data-action="open-item"]:hover,
 .charCreator .inv-attachment-name i:hover {
   opacity: 1;

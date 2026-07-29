@@ -76,6 +76,35 @@ test("the injected materializer is called with (clonedSnapshot, learnedKeys) and
   assert.equal(out.effects[0].disabled, false);
 });
 
+test("tree node attribute grants are baked before materialization without mutating the snapshot", () => {
+  const ref = specRef();
+  ref.snapshot.system.talents = { talent4: { name: "Dedication", attributes: {} } };
+  const before = structuredClone(ref.snapshot);
+  const calls = [];
+  const materializeTree = (source, learnedKeys) => {
+    calls.push({ source, learnedKeys });
+    return source;
+  };
+
+  toItemData(ref, {
+    materializeTree,
+    learnedKeys: ["talent4"],
+    nodeAttributeGrants: {
+      talent4: {
+        pcwDedication: { modtype: "Characteristic", mod: "Brawn", value: 1 },
+      },
+    },
+  });
+
+  assert.deepEqual(calls[0].source.system.talents.talent4.attributes.pcwDedication, {
+    modtype: "Characteristic",
+    mod: "Brawn",
+    value: 1,
+  });
+  assert.deepEqual(calls[0].learnedKeys, ["talent4"]);
+  assert.deepEqual(ref.snapshot, before);
+});
+
 test("the materializer is NOT called when there are no learned keys", () => {
   const ref = specRef();
   let called = false;

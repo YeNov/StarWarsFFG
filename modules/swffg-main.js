@@ -55,6 +55,7 @@ import {register_dice_enricher, register_oggdude_tag_enricher, register_roll_tag
 import {drawAdversaryCount, drawMinionCount, registerTokenControls} from "./helpers/token.js";
 import {handleUpdate} from "./swffg-migration.js";
 import SWAImporter from "./importer/swa-importer.js";
+import HyperdriveImporter from "./importer/hyperdrive/importer-app.js";
 import {CharacterCreator} from "./helpers/character-creator.js";
 import {registerSocketBridge} from "./char-creator/socket-bridge.js";
 import {xpLogUndo} from "./helpers/actor-helpers.js";
@@ -1482,6 +1483,30 @@ Hooks.on("renderActorDirectory", (app, html) => {
         if (!CharacterCreator.isOpen) ui.notifications.info(game.i18n.localize("SWFFG.CharacterCreator.Entry.Loading"));
         CharacterCreator.open();
       }
+    }
+
+    // The Hyperdrive importer produces a single character actor, so it belongs beside the
+    // creation wizard rather than with the dataset importers in the compendium footer.
+    const importId = "ffgHyperdriveImport";
+    if (game.user.can("ACTOR_CREATE") && !document.querySelector(`#${importId}`)) {
+      const importButtonIcon = document.createElement("i");
+      importButtonIcon.classList.add("fa-solid", "fa-file-import");
+
+      const importButtonText = document.createElement("span");
+      importButtonText.textContent = game.i18n.localize("SWFFG.HyperdriveImport.Entry.Button");
+
+      const importButton = document.createElement("button");
+      importButton.id = importId;
+      importButton.type = "button";
+      importButton.classList.add("hyperdrive-character");
+      importButton.appendChild(importButtonIcon);
+      importButton.appendChild(importButtonText);
+
+      html.querySelector(".header-actions.action-buttons")?.appendChild(importButton);
+
+      importButton.onclick = function () {
+        new HyperdriveImporter().render(true);
+      };
     }
   }
 });

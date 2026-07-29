@@ -1,0 +1,80 @@
+<section class="hyperdrive-importer">
+  <p>Choose a character JSON exported by Hyperdrive Generator. Compendium content is matched by import id; missing content is built in place and listed below.</p>
+  <div class="form-group">
+    <label>Character JSON</label>
+    <input type="file" name="hyperdrive-json" accept=".json,application/json" {{#if busy}}disabled{{/if}}>
+  </div>
+  <div class="form-footer">
+    <button type="button" data-action="import" {{#if busy}}disabled{{/if}}>
+      <i class="fas fa-file-import"></i>
+      {{#if busy}}Importing…{{else}}Import Character{{/if}}
+    </button>
+    {{#if report}}
+    <button type="button" data-action="reset">Import Another</button>
+    {{/if}}
+  </div>
+
+  {{#if error}}
+  <div class="notification error">{{error}}</div>
+  {{/if}}
+
+  {{#if report}}
+  <hr>
+  <h2>Import report — {{importedActor.name}}</h2>
+  <p><strong>XP:</strong> total {{report.xp.total}}, spent {{report.xp.spent}}, available {{report.xp.available}}</p>
+
+  <h3>Unmatched content</h3>
+  {{#if report.unmatched.length}}
+  <ul>
+    {{#each report.unmatched}}
+    <li>{{kind}}: {{key}}</li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p>None.</p>
+  {{/if}}
+
+  <h3>Prepared-data drift</h3>
+  {{#if report.drift.length}}
+  <table>
+    <thead><tr><th>Kind</th><th>Stat</th><th>Exported</th><th>Prepared</th></tr></thead>
+    <tbody>
+      {{#each report.drift}}
+      <tr><td>{{kind}}</td><td>{{stat}}</td><td>{{exported}}</td><td>{{prepared}}</td></tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{else}}
+  <p>None.</p>
+  {{/if}}
+
+  <h3>Ambiguous matches</h3>
+  {{#if report.ambiguities.length}}
+  <ul>
+    {{#each report.ambiguities}}
+    <li>{{itemType}}: {{#if key}}{{key}}{{else}}{{name}}{{/if}} ({{count}} matches; first used)</li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p>None.</p>
+  {{/if}}
+
+  <h3>Warnings</h3>
+  {{#if report.warnings.length}}
+  <ul>
+    {{#each report.warnings}}<li>{{this}}</li>{{/each}}
+  </ul>
+  {{else}}
+  <p>None.</p>
+  {{/if}}
+
+  {{#if report.cybernetics.length}}
+  <h3>Cybernetics</h3>
+  <ul>{{#each report.cybernetics}}<li>{{this}}</li>{{/each}}</ul>
+  {{/if}}
+  {{#if report.skippedVehicles.length}}
+  <h3>Skipped vehicles</h3>
+  <ul>{{#each report.skippedVehicles}}<li>{{this}}</li>{{/each}}</ul>
+  {{/if}}
+  {{/if}}
+</section>

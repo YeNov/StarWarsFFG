@@ -12,6 +12,7 @@ import ItemOptions from "./item-ffg-options.js";
 import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
 import { canPurchaseNode } from "../helpers/talent-tree.js";
 import { isAmmoTracked, isQualityAmmoMode, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
+import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -836,11 +837,67 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         },
       });
       await this.object.update({ "system.itemmodifier": itemmodifier });
+    } else if (action === 'create-talent') {
+      const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
+      itemmodifier.push(buildInnateTalentModification());
+      await this.object.update({ "system.itemmodifier": itemmodifier });
     } else if (action === 'delete') {
       const modIndex = $(event.currentTarget).closest(".modification_title").index();
       const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
       itemmodifier.splice(modIndex, 1);
       await this.object.update({ "system.itemmodifier": itemmodifier });
+    }
+  }
+
+  async _onDropTalentToInnateModification(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const modificationIndex = Number($(event.currentTarget).data("modification-index"));
+    if (!Number.isInteger(modificationIndex)) return false;
+
+    let data;
+    try {
+      data = JSON.parse(event.dataTransfer.getData("text/plain"));
+      if (data.type !== "Item") return false;
+    } catch {
+      return false;
+    }
+
+    const talent = await fromUuid(data.uuid);
+    if (!talent || talent.type !== "talent") {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Notifications.DragAndDropFirst"));
+      return false;
+    }
+
+    const itemmodifier = foundry.utils.deepClone(this.object.system.itemmodifier || []);
+    if (!itemmodifier[modificationIndex]) return false;
+
+    itemmodifier[modificationIndex] = applyTalentToInnateModification(itemmodifier[modificationIndex], talent);
+    await this.object.update({ "system.itemmodifier": itemmodifier });
+    return true;
+  }
+
+  async _onOpenInnateTalentCard(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const uuid = event.currentTarget.dataset.talentUuid;
+    const name = event.currentTarget.dataset.talentName;
+    let talent = null;
+    try {
+      talent = uuid ? await fromUuid(uuid) : null;
+    } catch {
+      talent = null;
+    }
+    if (!talent && name) {
+      talent = game.items.find((item) => item.type === "talent" && item.name === name);
+    }
+
+    if (talent?.sheet) {
+      talent.sheet.render(true);
+    } else {
+      ui.notifications.warn(game.i18n.localize("SWFFG.Notifications.DragAndDropFirst"));
     }
   }
 
@@ -1078,12 +1135,26 @@ export class ItemSheetFFG extends FFGDocumentSheet {
             const li = $(ev.currentTarget);
             const clickedId = li.data('item-id');
             const clickedType = li.data('item-type');
+            const rawClickedIndex = li.data('item-index');
+            const clickedIndex = Number(rawClickedIndex);
             const parentObject = await fromUuid(this.object.uuid);
             // locate the clicked object on the parent
-            let clickedObject = parentObject.system[clickedType].find(i => i._id === clickedId);
+            const embeddedItems = parentObject.system[clickedType] ?? [];
+            let clickedObject = embeddedItems.find(i => i?._id === clickedId);
+            if (!clickedObject && rawClickedIndex !== undefined && Number.isInteger(clickedIndex)) {
+              clickedObject = embeddedItems[clickedIndex];
+              if (clickedObject && !clickedObject._id) {
+                clickedObject._id = foundry.utils.randomID();
+                await parentObject.update({ system: { [clickedType]: embeddedItems } });
+              }
+            }
             if (!clickedObject) {
               // this is most likely a unique mod - we have to look it up by name :|
-              clickedObject = parentObject.system[clickedType].find(i => i.name === li.data('upgrade-name'));
+              clickedObject = embeddedItems.find(i => i?.name === li.data('upgrade-name'));
+            }
+            if (!clickedObject) {
+              ui.notifications.warn(`The item or quality has been removed or can not be found!`);
+              return;
             }
             CONFIG.logger.debug(clickedObject);
             const typeChoices = {};
@@ -1131,6 +1202,14 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       html.find(".flat_editor.add-modification").on("click", this._onStandaloneModificationControl.bind(this));
       html.find(".flat_editor.add-mod").on("click", this._onStandaloneModControl.bind(this));
       html.find(".flat_editor.dropdown").on("change", this._onStandaloneDropdownChange.bind(this));
+      html.find(".innate-talent-card").on("click", this._onOpenInnateTalentCard.bind(this));
+      const talentDrop = new foundry.applications.ux.DragDrop({
+        dragSelector: ".item",
+        dropSelector: ".innate-talent-drop",
+        permissions: { dragstart: true, drop: true },
+        callbacks: { drop: this._onDropTalentToInnateModification.bind(this) },
+      });
+      talentDrop.bind(html[0]);
     }
 
     if (this.object.type === "species") {

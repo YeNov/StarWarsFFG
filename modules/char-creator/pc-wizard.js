@@ -19,6 +19,7 @@ import { buildPreviewActor } from "./preview.js";
 import { createInitialData, setIdentity } from "./wizard-state.js";
 import { applyStartingBonus, getStartingBonusOptions } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
+import { dedicationCharacteristicDeltas, isDedicationTalent } from "./dedication.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
 import { normalizeXpSkillPurchases } from "./skill-purchases.js";
 import {
@@ -51,6 +52,21 @@ import { COMMIT_TIMEOUT_MS, FLAG_SCOPE, FLAGS } from "./constants.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const PC_WIZARD = "systems/starwarsffg/templates/wizards/pc_wizard";
+const STARTUP_POOL_KEYS = Object.freeze(["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]);
+const STARTUP_POOL_LOAD_CONCURRENCY = 3;
+
+async function mapWithConcurrency(values, limit, mapper) {
+  const results = new Array(values.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, values.length) }, async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(values[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
 function shopPriceOf(ref) {
   const price = Number(ref?.snapshot?.system?.price?.value);
@@ -60,6 +76,10 @@ function shopPriceOf(ref) {
 function isPurchasableShopRef(ref) {
   const price = shopPriceOf(ref);
   return price !== null && price > 0;
+}
+
+function sortByName(a, b) {
+  return (a?.name ?? "").localeCompare(b?.name ?? "", undefined, { sensitivity: "base", numeric: true });
 }
 
 function statValue(block) {
@@ -119,6 +139,53 @@ function inventoryStats(ref) {
   return [];
 }
 
+function normalizeIndexedArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== "object") return value;
+  const entries = Object.entries(value)
+    .filter(([key]) => /^\d+$/.test(key))
+    .sort(([a], [b]) => Number(a) - Number(b));
+  return entries.length ? entries.map(([, entry]) => entry) : value;
+}
+
+function collapseBracketArrayKeys(container) {
+  if (!container || typeof container !== "object" || Array.isArray(container)) return;
+  for (const key of Object.keys(container)) {
+    const match = key.match(/^(.+)\[(\d+)\]$/);
+    if (!match) continue;
+    const [, arrayKey, indexText] = match;
+    const index = Number(indexText);
+    container[arrayKey] ??= [];
+    container[arrayKey][index] = container[key];
+    delete container[key];
+  }
+}
+
+function normalizeWizardEditedItemSnapshot(raw, { fillItemModifiers = true } = {}) {
+  const snapshot = foundry.utils.deepClone(raw ?? {});
+  if (snapshot.data) {
+    snapshot.system = foundry.utils.mergeObject(snapshot.system ?? {}, snapshot.data, { inplace: false });
+    delete snapshot.data;
+  }
+  snapshot.system ??= {};
+  const hasItemModifiers = Object.keys(snapshot.system).some((key) => key === "itemmodifier" || /^itemmodifier\[\d+\]$/.test(key));
+  collapseBracketArrayKeys(snapshot.system);
+  if (hasItemModifiers || fillItemModifiers) snapshot.system.itemmodifier = normalizeIndexedArray(snapshot.system.itemmodifier ?? []);
+  if (Array.isArray(snapshot.system.itemmodifier)) {
+    snapshot.system.itemmodifier = snapshot.system.itemmodifier.map((modifier) => {
+      const next = foundry.utils.deepClone(modifier);
+      next.system ??= {};
+      if ("active" in next.system) next.system.active = next.system.active === true || next.system.active === "true" || next.system.active === "on";
+      if ("broken" in next.system) next.system.broken = next.system.broken === true || next.system.broken === "true" || next.system.broken === "on";
+      return next;
+    });
+  }
+  delete snapshot.id;
+  delete snapshot._id;
+  delete snapshot.ownership;
+  return snapshot;
+}
+
 const SOURCE_GROUP_LABELS = Object.freeze({
   species: "Species",
   career: "Careers",
@@ -172,7 +239,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     invalidateSourceCache();
     const active = CharacterCreator.#activeInstance;
     if (active) {
+      active.#cancelSourceLoad();
       active.#pools = {};
+      active.#sourceLoadFailedPools.clear();
       if (active.minimized) active.maximize?.();
       active.bringToFront?.();
       active.bringToTop?.();
@@ -243,6 +312,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       "buy-gear": CharacterCreator._onBuyGear,
       "attachment-target": CharacterCreator._onAttachmentTarget,
       "buy-attachment": CharacterCreator._onBuyAttachment,
+      "edit-attachment": CharacterCreator._onEditAttachment,
       "refund-attachment": CharacterCreator._onRefundAttachment,
       "inventory-view": CharacterCreator._onInventoryView,
       "toggle-available-attachments": CharacterCreator._onToggleAvailableAttachments,
@@ -285,12 +355,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
     obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
-    gear: [{ selector: "[data-field]", event: "change", handler: "_onGearFilterChange" }],
+    gear: [
+      { selector: "input[data-field='search']", event: "input", handler: "_onGearFilterChange" },
+      { selector: "[data-field]:not(input[data-field='search'])", event: "change", handler: "_onGearFilterChange" },
+    ],
     startingBonus: [
       { selector: "select[name='rules']", event: "change", handler: "_onRulesChange" },
       { selector: "select[name='startingBonus']", event: "change", handler: "_onStartingBonusChange" },
     ],
     forcePower: [{ selector: "input[data-discount]", event: "change", handler: "_onToggleForcePowerDiscount" }],
+    xp_spend: [{ selector: "select[data-field='dedicationCharacteristic']", event: "change", handler: "_onDedicationCharacteristicChange" }],
     motivation: [{ selector: "input[data-field='listSearch']", event: "input", handler: "_onListSearchInput" }],
   };
 
@@ -310,6 +384,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #attachmentTargetId = null; // Expanded owned gear purchase id for attachment shopping.
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
+  #sourceLoad = { active: false, total: 0, loaded: 0, failed: 0, current: "" };
+  #sourceLoadPromise = null;
+  #sourceLoadGeneration = 0;
+  #sourceLoadFailedPools = new Set();
   #missingSourceWarningShown = false; // One-shot warning for stale compendium settings.
   #missingSourceWarningGroups = null; // Prepared during context, shown after the wizard renders.
   #draftBannerDismissed = false; // Resume/discard banner is only for a different stored draft.
@@ -335,14 +413,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext() {
-    for (const poolKey of ["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]) {
-      try {
-        await this.#ensurePool(poolKey);
-      } catch (err) {
-        delete this.#pools[poolKey];
-        CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} sources: ${err.message}`);
-      }
-    }
+    this.#startSourceLoad(STARTUP_POOL_KEYS);
     this.#ensureCreditPurchaseIds(this.data);
     this.#ensureExtraGrants(this.data);
     this.#normalizeFreeRankSelections(this.data);
@@ -494,7 +565,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // Each row carries the prepared rank, whether it's a career skill, and the cost of the
     // NEXT rank (career rank*5, non-career rank*5 + 5).
     const skillPurchases = this.data.purchases.xp.skills;
-    const skillDescriptions = await this.#ensureSkillDescriptions();
+    const skillDescriptions = this.#xpView === "skills" ? await this.#ensureSkillDescriptions() : {};
     const xpSkills = preview?.system?.skills
       ? Object.entries(preview.system.skills).map(([key, skill]) => {
         const rank = skill.rank ?? 0;
@@ -511,18 +582,22 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       : [];
     const characteristicPurchases = this.data.purchases.xp.characteristics;
+    const specializationTalents = this.data.selected.specialization?.snapshot?.system?.talents ?? {};
+    const dedicationDeltas = dedicationCharacteristicDeltas(specializationTalents, this.data.purchases.xp.talents);
     const xpCharacteristics = preview?.system?.characteristics
       ? Object.entries(preview.system.characteristics).map(([key, characteristic]) => {
         const value = characteristic.value ?? 0;
-        const nextValue = value + 1;
+        const purchaseValue = Math.max(0, value - (dedicationDeltas[key] ?? 0));
+        const nextValue = purchaseValue + 1;
         return {
           key,
           label: key,
           value,
+          purchaseValue,
           nextValue,
           nextCost: nextValue * 10,
-          canBuy: value < 5,
-          canRefund: characteristicPurchases.some((purchase) => purchase.key === key && purchase.value === value),
+          canBuy: purchaseValue < 5,
+          canRefund: characteristicPurchases.some((purchase) => purchase.key === key && purchase.value === purchaseValue),
         };
       })
       : [];
@@ -593,9 +668,18 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // Learned talents come from data.purchases.xp.talents (the single source of truth), never a
     // ref-stored list — so the tree cannot survive a wizard reopen.
     const specForTree = this.data.selected.specialization;
-    const learnedTalentKeys = this.data.purchases.xp.talents.map((purchase) => purchase.key);
+    const talentPurchases = this.data.purchases.xp.talents;
+    const learnedTalentKeys = talentPurchases.map((purchase) => purchase.key);
+    const dedicationChoices = Object.fromEntries(talentPurchases
+      .filter((purchase) => purchase.characteristic)
+      .map((purchase) => [purchase.key, purchase.characteristic]));
+    const characteristicChoices = xpCharacteristics.map((characteristic) => ({
+      key: characteristic.key,
+      label: characteristic.label,
+      value: characteristic.value,
+    }));
     const talentTree = specForTree?.snapshot?.system?.talents
-      ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available)
+      ? prepareTalentTree(specForTree.snapshot.system.talents, learnedTalentKeys, xp.available, { dedicationChoices, characteristicChoices })
       : null;
 
     // Inventory tab — a Weapons / Armor / Gear switcher. Each sub-view shows the owned and the
@@ -609,30 +693,33 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const invMaxPrice = Number(invFilters.maxPrice) || 0;
     const attachmentShowOnlyAvailable = Boolean(invFilters.showOnlyAvailable);
     const matchesSearch = (ref) => !invSearch || (ref?.name ?? "").toLowerCase().includes(invSearch);
-    const shopItems = (this.#pools.gear ?? [])
-      .filter((ref) => {
-        const price = shopPriceOf(ref);
-        return ref.type === invView && isPurchasableShopRef(ref) && matchesSearch(ref)
-          && price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
-      })
-      .map((ref) => {
-        const price = shopPriceOf(ref);
-        return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref) };
-      });
+    const matchesPrice = (ref) => {
+      const price = shopPriceOf(ref);
+      return price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
+    };
     const targetPurchase = this.data.purchases.credits.find((purchase) => purchase.id === this.#attachmentTargetId && isAttachablePurchase(purchase));
     if (!targetPurchase) this.#attachmentTargetId = null;
+    const isEditingAttachments = Boolean(targetPurchase);
+    const matchesInventoryFilters = (ref) => !isEditingAttachments && matchesSearch(ref) && matchesPrice(ref);
+    const shopItems = (this.#pools.gear ?? [])
+      .filter((ref) => {
+        return ref.type === invView && isPurchasableShopRef(ref) && (isEditingAttachments || matchesInventoryFilters(ref));
+      })
+      .sort(sortByName)
+      .map((ref) => {
+        const price = shopPriceOf(ref);
+        return { uuid: ref.uuid, name: ref.name, img: ref.img, price, affordable: price <= credits.available, stats: inventoryStats(ref), restricted: Boolean(ref.snapshot?.system?.rarity?.isrestricted) };
+      });
     const availableAttachments = targetPurchase
       ? (this.#pools.gear ?? [])
         .filter((ref) => ref.type === "itemattachment" && isPurchasableShopRef(ref))
         .filter((ref) => attachmentAppliesTo(targetPurchase.ref, ref))
-        .filter((ref) => {
-          const price = shopPriceOf(ref);
-          return matchesSearch(ref) && price >= invMinPrice && (!invMaxPrice || price <= invMaxPrice);
-        })
+        .filter((ref) => matchesSearch(ref) && matchesPrice(ref))
         .filter((ref) => {
           if (!attachmentShowOnlyAvailable) return true;
           return canAttach(this.data, targetPurchase, ref) && shopPriceOf(ref) <= credits.available;
         })
+        .sort(sortByName)
         .map((ref) => {
           const price = shopPriceOf(ref);
           const canInstall = canAttach(this.data, targetPurchase, ref) && price <= credits.available;
@@ -643,12 +730,17 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
             targetId: targetPurchase.id,
             price,
             hardpoints: attachmentHardpoints(ref),
+            restricted: Boolean(ref.snapshot?.system?.rarity?.isrestricted),
             canInstall,
           };
         })
       : [];
     const ownedItems = this.data.purchases.credits
-      .filter((purchase) => !purchase.attachTo && purchase.ref?.type === invView && matchesSearch(purchase.ref))
+      .filter((purchase) => {
+        return !purchase.attachTo
+          && purchase.ref?.type === invView
+          && (isEditingAttachments || matchesSearch(purchase.ref));
+      })
       .map((purchase) => {
         const attachable = isAttachablePurchase(purchase);
         const attachedItems = attachedTo(this.data, purchase.id).map((attachment) => ({
@@ -658,6 +750,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           img: attachment.ref.img,
           cost: attachment.cost,
           hardpoints: attachmentHardpoints(attachment.ref),
+          restricted: Boolean(attachment.ref.snapshot?.system?.rarity?.isrestricted),
         }));
         return {
           id: purchase.id,
@@ -666,6 +759,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           img: purchase.ref.img,
           cost: purchase.cost,
           stats: inventoryStats(purchase.ref),
+          restricted: Boolean(purchase.ref.snapshot?.system?.rarity?.isrestricted),
           attachable,
           attachmentsOpen: attachable && purchase.id === this.#attachmentTargetId,
           hardpoints: attachable ? hardpointValue(purchase.ref) : 0,
@@ -736,6 +830,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       reviewVerificationSteps,
       sourceGroups,
       sourcesOpen: this.#sourcesOpen,
+      sourceLoad: this.#prepareSourceLoadContext(),
       actor: preview,
     };
   }
@@ -768,16 +863,29 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
    * are low-frequency and must refresh whichever tab is active); the high-frequency gear
    * filter passes an explicit `parts` list so typing never re-renders the whole window.
    */
-  #mutate(fn, { parts } = {}) {
+  #mutate(fn, { parts, focus } = {}) {
     if (this.#commitPhase !== "editing") return false;
     if (this.#draft.commit) this.#remintCommitId(); // edit after an attempt ⇒ new identity
     fn(this.data);
     this.draftStore.scheduleSave({ data: this.data, commit: this.#draft.commit });
     // Per-part `scrollable: [""]` (PARTS) preserves each tab section's scroll across the
     // re-render, so a long tab (e.g. the skills list) keeps its position on every click.
-    if (parts) this.render({ parts });
-    else this.render();
+    const renderResult = parts ? this.render({ parts }) : this.render();
+    if (focus) {
+      const restore = () => requestAnimationFrame(() => this.#restoreFocus(focus));
+      if (typeof renderResult?.then === "function") renderResult.then(restore);
+      else restore();
+    }
     return true;
+  }
+
+  #restoreFocus({ selector, selectionStart, selectionEnd }) {
+    const field = applicationElement(this)?.querySelector(selector);
+    if (!(field instanceof HTMLInputElement)) return;
+    field.focus({ preventScroll: true });
+    if (Number.isInteger(selectionStart) && Number.isInteger(selectionEnd)) {
+      field.setSelectionRange(selectionStart, selectionEnd);
+    }
   }
 
   #remintCommitId() {
@@ -813,9 +921,75 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     data.grants.extra.credits = nonNegativeInteger(data.grants.extra.credits);
   }
 
-  /** Load a content pool through the signature-aware source cache. */
-  async #ensurePool(poolKey) {
-    this.#pools[poolKey] = await loadSource(poolKey);
+  #cancelSourceLoad() {
+    this.#sourceLoadGeneration += 1;
+    this.#sourceLoadPromise = null;
+    this.#sourceLoad = { active: false, total: 0, loaded: 0, failed: 0, current: "" };
+  }
+
+  #startSourceLoad(poolKeys) {
+    if (this.#sourceLoadPromise) return;
+    const keys = [...new Set(poolKeys)].filter((poolKey) => !this.#pools[poolKey] && !this.#sourceLoadFailedPools.has(poolKey));
+    if (!keys.length) {
+      this.#sourceLoad = { active: false, total: 0, loaded: 0, failed: 0, current: "" };
+      return;
+    }
+
+    const generation = ++this.#sourceLoadGeneration;
+    this.#sourceLoad = { active: true, total: keys.length, loaded: 0, failed: 0, current: "" };
+    const requestRender = (options = { parts: ["header"] }) => {
+      window.setTimeout(() => {
+        if (generation !== this.#sourceLoadGeneration || CharacterCreator.#activeInstance !== this) return;
+        if (options) this.render(options);
+        else this.render();
+      }, 0);
+    };
+
+    this.#sourceLoadPromise = (async () => {
+      await mapWithConcurrency(keys, STARTUP_POOL_LOAD_CONCURRENCY, async (poolKey) => {
+        if (generation !== this.#sourceLoadGeneration) return;
+        this.#sourceLoad.current = poolKey;
+        requestRender();
+        try {
+          const refs = await loadSource(poolKey);
+          if (generation !== this.#sourceLoadGeneration) return;
+          this.#pools[poolKey] = refs;
+        } catch (err) {
+          if (generation !== this.#sourceLoadGeneration) return;
+          delete this.#pools[poolKey];
+          this.#sourceLoadFailedPools.add(poolKey);
+          this.#sourceLoad.failed += 1;
+          CONFIG.logger?.warn?.(`PC wizard failed to load ${poolKey} sources: ${err.message}`);
+        } finally {
+          if (generation !== this.#sourceLoadGeneration) return;
+          this.#sourceLoad.loaded += 1;
+          requestRender();
+        }
+      });
+    })().finally(() => {
+      if (generation !== this.#sourceLoadGeneration) return;
+      this.#sourceLoad.active = false;
+      this.#sourceLoad.current = "";
+      this.#sourceLoadPromise = null;
+      requestRender(null);
+    });
+  }
+
+  #prepareSourceLoadContext() {
+    const load = this.#sourceLoad;
+    const total = Number(load.total) || 0;
+    const loaded = Number(load.loaded) || 0;
+    const remaining = Math.max(0, total - loaded);
+    const percent = total ? Math.round((loaded / total) * 100) : 100;
+    return {
+      visible: Boolean(load.active && total),
+      total,
+      loaded,
+      remaining,
+      failed: Number(load.failed) || 0,
+      percent,
+      current: load.current,
+    };
   }
 
   #prepareSourceGroups(exclusions) {
@@ -975,9 +1149,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   _onGearFilterChange(event) {
     const field = event.currentTarget.dataset.field;
     const value = event.currentTarget.value;
+    const focus = event.type === "input" && field === "search"
+      ? {
+        selector: "section[data-tab='gear'] input[data-field='search']",
+        selectionStart: event.currentTarget.selectionStart,
+        selectionEnd: event.currentTarget.selectionEnd,
+      }
+      : null;
     this.#mutate((data) => {
       data.gearFilters = { ...(data.gearFilters ?? {}), [field]: value };
-    }, { parts: ["gear"] });
+    }, { parts: ["gear"], focus });
   }
 
   _onSpeciesSearchInput(event) {
@@ -1168,6 +1349,80 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       if (!canAttach(data, targetPurchase, ref)) return;
       data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost: shopPriceOf(ref), attachTo: targetId });
     });
+  }
+
+  static async _onEditAttachment(event, target) {
+    event.preventDefault();
+    event.stopPropagation();
+    const { purchaseId } = target.dataset;
+    const purchase = this.data.purchases.credits.find((entry) => entry.id === purchaseId && entry.attachTo && entry.ref?.type === "itemattachment");
+    if (!purchase) return;
+
+    const source = normalizeWizardEditedItemSnapshot(purchase.ref.snapshot ?? {});
+    source.name ??= purchase.ref.name;
+    source.type = "itemattachment";
+    source.img ??= purchase.ref.img;
+    source.ownership = { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER };
+    delete source.id;
+    delete source._id;
+
+    const tempItem = await new Item.implementation(source, { temporary: true });
+    const persist = (changes = {}) => {
+      const current = normalizeWizardEditedItemSnapshot(tempItem.toObject?.(false) ?? tempItem.toJSON?.() ?? source);
+      const patch = normalizeWizardEditedItemSnapshot(foundry.utils.expandObject(changes ?? {}), { fillItemModifiers: false });
+      const snapshot = normalizeWizardEditedItemSnapshot(foundry.utils.mergeObject(current, patch, { inplace: false }));
+      this.#mutate((data) => {
+        const edited = data.purchases.credits.find((entry) => entry.id === purchaseId && entry.ref?.type === "itemattachment");
+        if (!edited) return;
+        edited.ref = {
+          ...edited.ref,
+          name: snapshot.name ?? edited.ref.name,
+          img: snapshot.img ?? edited.ref.img,
+          snapshot,
+        };
+      }, { parts: ["gear"] });
+    };
+
+    const originalUpdate = tempItem.update.bind(tempItem);
+    tempItem.update = async (changes = {}, options = {}) => {
+      const result = await originalUpdate(changes, options);
+      persist(changes);
+      return result;
+    };
+    const originalCreateEmbeddedDocuments = tempItem.createEmbeddedDocuments?.bind(tempItem);
+    if (originalCreateEmbeddedDocuments) {
+      tempItem.createEmbeddedDocuments = async (...args) => {
+        const result = await originalCreateEmbeddedDocuments(...args);
+        persist();
+        return result;
+      };
+    }
+    const originalDeleteEmbeddedDocuments = tempItem.deleteEmbeddedDocuments?.bind(tempItem);
+    if (originalDeleteEmbeddedDocuments) {
+      tempItem.deleteEmbeddedDocuments = async (...args) => {
+        const result = await originalDeleteEmbeddedDocuments(...args);
+        persist();
+        return result;
+      };
+    }
+    const sheet = tempItem.sheet;
+    if (sheet) {
+      const originalUpdateObject = sheet._updateObject.bind(sheet);
+      sheet._updateObject = async (submitEvent, formData, options = {}) => {
+        persist(formData);
+        return originalUpdateObject(submitEvent, formData, options);
+      };
+      const originalClose = sheet.close.bind(sheet);
+      sheet.close = async (options = {}) => {
+        try {
+          if (sheet.form) persist(sheet._getSubmitData?.() ?? {});
+        } catch (err) {
+          CONFIG.logger?.warn?.(`PC wizard could not persist edited attachment on close: ${err.message}`);
+        }
+        return originalClose(options);
+      };
+      sheet.render(true);
+    }
   }
 
   static _onRefundAttachment(event, target) {
@@ -1389,6 +1644,20 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   // the specialization ref (which is the shared, module-cached pool object). That single source of
   // truth lives in this.data, which is rebuilt fresh on every wizard open, so nothing survives a
   // close/reopen.
+  _onDedicationCharacteristicChange(event) {
+    const key = event.currentTarget.dataset.key;
+    const characteristic = event.currentTarget.value;
+    const validCharacteristics = new Set(Object.keys(this.buildDeps.creationDefaults.system?.characteristics ?? {}));
+    this.#mutate((data) => {
+      const talent = data.selected.specialization?.snapshot?.system?.talents?.[key];
+      if (!isDedicationTalent(talent)) return;
+      const purchase = data.purchases.xp.talents.find((entry) => entry.key === key);
+      if (!purchase) return;
+      if (validCharacteristics.has(characteristic)) purchase.characteristic = characteristic;
+      else delete purchase.characteristic;
+    });
+  }
+
   static _onLearnTalent(event, target) {
     const key = target.dataset.key;
     this.#mutate((data) => {
@@ -1444,7 +1713,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const exclusions = setSourceEnabled(readExclusions(), poolKey, sourceId, target.checked);
     await game.user.setFlag(FLAG_SCOPE, FLAGS.sourceSelection, exclusions);
     invalidateSourceCache(poolKey);
+    this.#cancelSourceLoad();
     delete this.#pools[poolKey];
+    this.#sourceLoadFailedPools.delete(poolKey);
     this.#sourcesOpen = true;
     this.render();
   }
@@ -1456,8 +1727,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         this.data = record.data;
         this.#draft.commit = record.commit ?? null;
         this.#draftBannerDismissed = true;
-        invalidateSourceCache();
-        this.#pools = {};
         for (const warning of record.warnings ?? []) ui.notifications.warn(game.i18n.localize(warning));
         this.render(true);
       }
@@ -1473,8 +1742,6 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.data = createInitialData();
     this.#draft.commit = null;
     this.#draftBannerDismissed = true;
-    invalidateSourceCache();
-    this.#pools = {};
     this.render(true);
   }
 
