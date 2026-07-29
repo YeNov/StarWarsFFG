@@ -358,11 +358,12 @@
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
 /* ---- XP-buy mode ----
-   The XP chip toggles a transient "buy mode" class on the form (.cdx-xpbuy, set
-   in codex-sheets.js — never persisted). Until it's on, the purchase affordances
-   are hidden: the standalone buy icons (skill upgrade, spec/force/signature "+")
-   are <i> elements and hidden outright, while the dual-purpose triggers (the
-   characteristic label, the Talents header) stay visible but only act as buy
+   Characters toggle the "buy mode" class from their XP chip; it is transient
+   and never persisted. Non-character Codex actors have no XP chip, so JS keeps
+   the class active whenever Edit Mode is off. Until the class is on, purchase
+   affordances are hidden: standalone buy icons (skill upgrade,
+   spec/force/signature "+") are hidden outright, while dual-purpose triggers
+   (the characteristic label, Talents header) stay visible but only act as buy
    buttons in buy mode. */
 .cdx .cdx-xp { cursor:pointer; }
 .cdx .cdx-xp.active { box-shadow:inset 0 0 0 2px var(--cdx-accent); background:rgba(255,255,255,.1); }

@@ -30,6 +30,7 @@ import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
+import { codexXpBuyActive } from "./codex-xp-buy.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -488,8 +489,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // Reflect FFG edit mode as a class so view-only chrome can hide itself when
     // editing is off — e.g. the career-skill ("CS") column, which is redundant
     // with the left career highlight. Mirrors data.disabled in the base getData.
+    const editEnabled = !!this.actor?.getFlag?.("starwarsffg", "config.enableEditMode");
     const editOn = !!(
-      this.actor?.getFlag?.("starwarsffg", "config.enableEditMode") &&
+      editEnabled &&
       this.actor?.getFlag?.("starwarsffg", "config.editModeActor") === game.user?.id
     );
     (form ?? root).classList.toggle("cdx-editmode", editOn);
@@ -567,18 +569,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       });
     });
 
-    // XP-buy mode: clicking the XP chip reveals every purchase affordance (skill
-    // upgrades, characteristic/talent/spec/force/signature buys); otherwise they
-    // are hidden (see `.cdx-xpbuy` in cdx.css). The flag is TRANSIENT — held on
-    // the instance, re-applied on re-render, and reset in close() — so it never
-    // persists across reopenings and always starts hidden.
-    // Edit mode and buy mode are mutually exclusive (purchases are blocked while
-    // editing): edit mode forces buy mode off and makes the XP chip inert.
-    if (editOn) this._cdxXpBuy = false;
-    (form ?? root).classList.toggle("cdx-xpbuy", !!this._cdxXpBuy);
+    // XP-buy mode reveals purchase and pill-management affordances. Characters
+    // toggle a transient mode with their XP chip. Rivals, nemeses, minions, and
+    // vehicles have no XP chip, so the mode stays active automatically.
+    // Edit mode still forces it off because the underlying handlers reject
+    // purchases/deletes while editing.
+    this._cdxXpBuy = codexXpBuyActive(this.actor?.type, editEnabled, this._cdxXpBuy);
+    const xpBuyPermanent = this.actor?.type !== "character";
+    (form ?? root).classList.toggle("cdx-xpbuy", this._cdxXpBuy);
     root.querySelectorAll(".cdx-xp").forEach((chip) => {
-      chip.classList.toggle("active", !!this._cdxXpBuy);
-      if (editOn) return; // XP chip is not clickable while edit mode is on
+      chip.classList.toggle("active", this._cdxXpBuy);
+      if (editEnabled || xpBuyPermanent) return;
       chip.addEventListener("click", (ev) => {
         ev.preventDefault();
         this._cdxXpBuy = !this._cdxXpBuy;
