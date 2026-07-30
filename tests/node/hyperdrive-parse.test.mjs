@@ -65,3 +65,10 @@ test("is null-safe and infers non-Force rulesets", () => {
   assert.equal(parseHyperdrive({}).rules, "eote");
   assert.equal(parseHyperdrive({ Credits: "not-a-number" }).credits, 0);
 });
+
+test("normalizes linked character images", () => {
+  const parsed = parseHyperdrive({
+    imageUrl: "https://example.test/character.webp",
+  });
+  assert.equal(parsed.img, "https://example.test/character.webp");
+});

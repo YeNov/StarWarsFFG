@@ -642,3 +642,8 @@ during the phases noted:
    as backgrounds, obligations, and duties. Add regression coverage for empty
    `Background.Culture`, `Background.Adventure`, and `Background.Force` objects plus empty
    obligation/duty entries.
+2. **Import linked images.** When the character or an embedded Hyperdrive entry supplies an image
+   field or image URL, carry it into the corresponding Foundry `img` field. Support remote links
+   emitted by Hyperdrive as well as normal Foundry asset paths, with the existing compendium or
+   system image as the fallback. Add parser and actor-conversion coverage for character, build-item,
+   and equipment image links.

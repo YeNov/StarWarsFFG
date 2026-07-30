@@ -15,6 +15,23 @@ function number(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+export function hyperdriveImage(value) {
+  for (const candidate of [
+    value?.imageUrl,
+    value?.ImageUrl,
+    value?.imageURL,
+    value?.img,
+    value?.Img,
+    value?.image,
+    value?.Image,
+    value?.thumbnailUrl,
+    value?.ThumbnailUrl,
+  ]) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return undefined;
+}
+
 function normalizeTreeGrid(grid) {
   return array(grid).map((row) => array(row?.value ?? row).map(Boolean));
 }
@@ -92,6 +109,7 @@ export function parseHyperdrive(rawInput = {}) {
 
   return {
     name: String(raw.Name ?? "").trim(),
+    img: hyperdriveImage(raw),
     credits: number(raw.Credits),
     biography: String(raw.Background?.Text ?? ""),
     characteristics,

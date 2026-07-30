@@ -1,6 +1,6 @@
 import { AE_MODES } from "../../config/ffg-active-effect-modes.js";
 import { careerSkillFlagEffect, explodeChanges } from "./effect-builders.js";
-import { overlayInstance } from "./in-place.js";
+import { applyHyperdriveImage, overlayInstance } from "./in-place.js";
 
 function keyOf(entry) {
   return entry?.key ?? entry?.Key ?? null;
@@ -462,6 +462,7 @@ export async function hyperdriveToActorData(parsed, deps) {
     const match = resolveMatch(deps.resolve, kind, entry);
     if (match) {
       const source = deps.toItemData(match.ref, itemOptions);
+      applyHyperdriveImage(source, entry);
       if (kind === "career" && careerGrants.career.length) {
         appendCareerSkillEffect(source, careerGrants.career);
       }
@@ -469,6 +470,7 @@ export async function hyperdriveToActorData(parsed, deps) {
       return;
     }
     const result = deps.buildInPlace(kind, entry, itemOptions);
+    applyHyperdriveImage(result.source, entry);
     buildItems.push(result.source);
     report.warnings.push(...(result.warnings ?? []));
     report.unmatched.push({ kind, key: keyOf(entry) ?? nameOf(entry) });
@@ -508,6 +510,7 @@ export async function hyperdriveToActorData(parsed, deps) {
       report.warnings.push(...(result.warnings ?? []));
       report.unmatched.push({ kind: "specialization", key: keyOf(spec) ?? nameOf(spec) });
     }
+    applyHyperdriveImage(source, spec);
     const residualEffects = rankedTalentResidual.effectsBySpecialization[keyOf(spec)] ?? [];
     if (residualEffects.length) {
       source.effects = [...(source.effects ?? []), ...residualEffects];
@@ -578,6 +581,7 @@ export async function hyperdriveToActorData(parsed, deps) {
 
   const assembled = deps.assemble({
     name: parsed.name,
+    img: parsed.img,
     characteristicDeltas: characteristicBase.deltas,
     skillDeltas: purchasedSkills.deltas,
     experience: { total: xp.total, available: xp.available },

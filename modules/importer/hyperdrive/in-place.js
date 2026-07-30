@@ -8,6 +8,7 @@ import {
   makeNamer,
   toModArray,
 } from "./effect-builders.js";
+import { hyperdriveImage } from "./parse.js";
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -21,6 +22,12 @@ function number(value, fallback = 0) {
 
 function snapshotOf(value) {
   return value?.ref?.snapshot ?? value?.snapshot ?? value;
+}
+
+export function applyHyperdriveImage(source, raw) {
+  const img = hyperdriveImage(raw);
+  if (img) source.img = img;
+  return source;
 }
 
 function stripIdentity(source) {
@@ -63,7 +70,7 @@ export function buildSpeciesSource(species, { rankGrants = [] } = {}) {
   const source = {
     name: species?.Name ?? species?.name ?? "Species",
     type: "species",
-    img: species?.imageUrl ?? species?.img,
+    img: hyperdriveImage(species),
     flags: { starwarsffg: { ffgimportid: species?.Key ?? species?.key } },
     system: {
       description: species?.Description ?? "",
@@ -84,6 +91,7 @@ export function buildCareerSource(career, { careerSkillGrants = [] } = {}) {
   const source = {
     name: career?.Name ?? career?.name ?? "Career",
     type: "career",
+    img: hyperdriveImage(career),
     flags: { starwarsffg: { ffgimportid: career?.Key ?? career?.key } },
     system: {
       description: career?.Description ?? "",
@@ -106,6 +114,7 @@ export function buildQualityModifiers(qualities, itemmodifierIndex = {}) {
       source = {
         name: quality?.Name ?? quality?.MiscDesc ?? quality?.Key ?? "Custom modifier",
         type: "itemmodifier",
+        img: hyperdriveImage(quality),
         flags: { starwarsffg: { ffgimportid: quality?.Key } },
         system: {
           description: quality?.MiscDesc ?? quality?.Description ?? "",
@@ -115,6 +124,7 @@ export function buildQualityModifiers(qualities, itemmodifierIndex = {}) {
         },
       };
     }
+    applyHyperdriveImage(source, quality);
     source.system ??= {};
     source.system.rank = number(quality?.Count, 1);
     return source;
@@ -125,6 +135,7 @@ export function buildAttachmentSnapshot(attachment, rawItem, itemmodifierIndex =
   return {
     name: attachment?.Name ?? attachment?.Key ?? "Attachment",
     type: "itemattachment",
+    img: hyperdriveImage(attachment),
     flags: {
       starwarsffg: {
         ffgimportid: attachment?.Key,
@@ -172,6 +183,7 @@ export function buildWeaponSource(weapon, opts = {}) {
   const source = {
     name: weapon?.Name ?? "Weapon",
     type: "weapon",
+    img: hyperdriveImage(weapon),
     flags: {
       starwarsffg: {
         ffgimportid: weapon?.Key,
@@ -197,6 +209,7 @@ export function buildArmourSource(armour, opts = {}) {
   const source = {
     name: armour?.Name ?? "Armour",
     type: "armour",
+    img: hyperdriveImage(armour),
     flags: {
       starwarsffg: {
         ffgimportid: armour?.Key,
@@ -221,6 +234,7 @@ export function buildGearSource(gear, opts = {}) {
   const source = {
     name: gear?.Name ?? "Gear",
     type: "gear",
+    img: hyperdriveImage(gear),
     flags: {
       starwarsffg: {
         ffgimportid: gear?.Key,
@@ -239,6 +253,7 @@ export function buildGearSource(gear, opts = {}) {
 }
 
 export function overlayInstance(source, rawItem, opts = {}) {
+  applyHyperdriveImage(source, rawItem);
   source.system ??= {};
   source.system.quantity = {
     ...(source.system.quantity ?? {}),
@@ -281,6 +296,7 @@ export function buildStubSource(kind, entry) {
     source: {
       name,
       type: kind,
+      img: hyperdriveImage(entry),
       flags: { starwarsffg: { ffgimportid: entry?.Key ?? entry?.key } },
       system: { description: entry?.Description ?? "" },
     },

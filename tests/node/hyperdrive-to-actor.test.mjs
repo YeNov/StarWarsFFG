@@ -322,6 +322,27 @@ test("empty narrative placeholders are skipped with warnings instead of invalid 
   }
 });
 
+test("linked actor and matched-item images override local fallbacks", async () => {
+  const parsed = parseHyperdrive({
+    ...RAW,
+    imageUrl: "https://example.test/character.webp",
+    Species: {
+      ...RAW.Species,
+      imageUrl: "https://example.test/species.webp",
+    },
+    Weapons: [{
+      ...RAW.Weapons[0],
+      imageUrl: "https://example.test/weapon.webp",
+    }],
+  });
+  const { deps } = basicDeps();
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+
+  assert.equal(actorData.img, "https://example.test/character.webp");
+  assert.equal(actorData.items.find((item) => item.type === "species").img, "https://example.test/species.webp");
+  assert.equal(actorData.items.find((item) => item.type === "weapon").img, "https://example.test/weapon.webp");
+});
+
 test("a present but unmatched key never falls back to name matching", async () => {
   const parsed = parseHyperdrive({
     ...RAW,

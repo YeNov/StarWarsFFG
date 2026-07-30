@@ -50,6 +50,26 @@ test("full 12 Defender has one Discipline boost and unique effect names", () => 
   assert.equal(new Set(names).size, names.length);
 });
 
+test("in-place equipment and matched overlays preserve Hyperdrive image links", () => {
+  const linked = {
+    Name: "Linked weapon",
+    SkillKey: "BRAWL",
+    imageUrl: "https://example.test/linked-weapon.webp",
+  };
+  const built = buildWeaponSource(linked, { skillMap: { BRAWL: "Brawl" } }).source;
+  assert.equal(built.img, "https://example.test/linked-weapon.webp");
+
+  const matched = {
+    name: "Compendium weapon",
+    type: "weapon",
+    img: "compendium.webp",
+    system: { itemattachment: [] },
+    effects: [],
+  };
+  overlayInstance(matched, linked);
+  assert.equal(matched.img, "https://example.test/linked-weapon.webp");
+});
+
 test("cybernetic gear applies Brawn and quality snapshots preserve ranks/freeform data", () => {
   const source = buildGearSource(parsed.cybernetics[0]).source;
   assert.ok(flat(source).some((change) =>
