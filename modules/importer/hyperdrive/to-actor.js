@@ -667,6 +667,7 @@ export async function hyperdriveToActorData(parsed, deps) {
   const assembled = deps.assemble({
     name: parsed.name,
     img: parsed.img,
+    tokenImg: parsed.tokenImg,
     characteristicDeltas: characteristicBase.deltas,
     skillDeltas: purchasedSkills.deltas,
     experience: { total: xp.total, available: xp.available },

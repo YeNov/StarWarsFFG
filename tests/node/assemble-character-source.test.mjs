@@ -34,6 +34,7 @@ function deps() {
 test("assembles identity, base advances, accounting, track, and best armour", () => {
   const { actorData } = assembleCharacterSource(deps(), {
     name: "",
+    tokenImg: "https://example.test/token.webp",
     characteristicDeltas: { Brawn: 1 },
     skillDeltas: { Brawl: 2 },
     experience: { total: 140, available: -5 },
@@ -61,6 +62,12 @@ test("assembles identity, base advances, accounting, track, and best armour", ()
     ],
   });
   assert.equal(actorData.name, "New Character");
+  assert.deepEqual(actorData.prototypeToken, {
+    actorLink: true,
+    name: "New Character",
+    sight: { enabled: true },
+    texture: { src: "https://example.test/token.webp" },
+  });
   assert.equal(actorData.system.characteristics.Brawn.value, 1);
   assert.equal(actorData.system.stats.wounds.max, 1);
   assert.equal(actorData.system.skills.Brawl.rank, 2);

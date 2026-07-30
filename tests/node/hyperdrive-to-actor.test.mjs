@@ -411,6 +411,7 @@ test("linked actor and matched-item images override local fallbacks", async () =
   const parsed = parseHyperdrive({
     ...RAW,
     imageUrl: "https://example.test/character.webp",
+    thumbnailUrl: "https://example.test/token.webp",
     Species: {
       ...RAW.Species,
       imageUrl: "https://example.test/species.webp",
@@ -424,6 +425,7 @@ test("linked actor and matched-item images override local fallbacks", async () =
   const { actorData } = await hyperdriveToActorData(parsed, deps);
 
   assert.equal(actorData.img, "https://example.test/character.webp");
+  assert.equal(actorData.prototypeToken.texture.src, "https://example.test/token.webp");
   assert.equal(actorData.items.find((item) => item.type === "species").img, "https://example.test/species.webp");
   assert.equal(actorData.items.find((item) => item.type === "weapon").img, "https://example.test/weapon.webp");
 });

@@ -20,12 +20,31 @@ export function hyperdriveImage(value) {
     value?.imageUrl,
     value?.ImageUrl,
     value?.imageURL,
+    value?.ImageURL,
     value?.img,
     value?.Img,
     value?.image,
     value?.Image,
     value?.thumbnailUrl,
     value?.ThumbnailUrl,
+    value?.thumbnailURL,
+    value?.ThumbnailURL,
+  ]) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return undefined;
+}
+
+export function hyperdriveThumbnail(value) {
+  for (const candidate of [
+    value?.thumbnailUrl,
+    value?.ThumbnailUrl,
+    value?.thumbnailURL,
+    value?.ThumbnailURL,
+    value?.tokenUrl,
+    value?.TokenUrl,
+    value?.tokenURL,
+    value?.TokenURL,
   ]) {
     if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
   }
@@ -106,10 +125,13 @@ export function parseHyperdrive(rawInput = {}) {
   const obligations = array(raw.Obligations).map(normalizeTrack);
   const duties = array(raw.Duties).map(normalizeTrack);
   const moralityRaw = raw.Morality ?? null;
+  const img = hyperdriveImage(raw) ?? hyperdriveImage(speciesRaw);
+  const tokenImg = hyperdriveThumbnail(raw) ?? hyperdriveThumbnail(speciesRaw) ?? img;
 
   return {
     name: String(raw.Name ?? "").trim(),
-    img: hyperdriveImage(raw),
+    img,
+    tokenImg,
     credits: number(raw.Credits),
     biography: String(raw.Background?.Text ?? ""),
     characteristics,

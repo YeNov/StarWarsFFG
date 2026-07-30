@@ -70,8 +70,21 @@ test("is null-safe and infers non-Force rulesets", () => {
 test("normalizes linked character images", () => {
   const parsed = parseHyperdrive({
     imageUrl: "https://example.test/character.webp",
+    thumbnailUrl: "https://example.test/token.webp",
   });
   assert.equal(parsed.img, "https://example.test/character.webp");
+  assert.equal(parsed.tokenImg, "https://example.test/token.webp");
+});
+
+test("uses the species image links when Hyperdrive nests character art there", () => {
+  const parsed = parseHyperdrive({
+    Species: {
+      imageUrl: "https://example.test/species-character.webp",
+      thumbnailUrl: "https://example.test/species-token.webp",
+    },
+  });
+  assert.equal(parsed.img, "https://example.test/species-character.webp");
+  assert.equal(parsed.tokenImg, "https://example.test/species-token.webp");
 });
 
 test("normalizes earned XP", () => {

@@ -68,6 +68,7 @@ export function assembleCharacterSource(
   {
     name,
     img,
+    tokenImg,
     characteristicDeltas = {},
     skillDeltas = {},
     careerSkills = [],
@@ -95,6 +96,12 @@ export function assembleCharacterSource(
     flags: foundry.utils.deepClone(flags),
     items: [],
   };
+  if (tokenImg) {
+    actorData.prototypeToken.texture = {
+      ...foundry.utils.deepClone(actorData.prototypeToken.texture ?? {}),
+      src: tokenImg,
+    };
+  }
 
   actorData.system = applyCharacteristicDeltas(actorData.system, characteristicDeltas);
   const lookup = skillLookup(actorData.system?.skills);
