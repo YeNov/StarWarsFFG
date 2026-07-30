@@ -182,7 +182,9 @@ export function deriveXp(parsed) {
   ].reduce((sum, item) => sum + (item.xp5 ? 5 : 0) + (item.xp10 ? 10 : 0), 0)
     + (parsed?.morality?.xpc ? 5 : 0)
     + (parsed?.morality?.xp10 ? 10 : 0);
-  const total = Number(parsed?.species?.startingXP ?? 0) + bonus;
+  const total = Number(parsed?.species?.startingXP ?? 0)
+    + bonus
+    + Number(parsed?.xp?.earned ?? 0);
   // The exported remaining XP is authoritative for the actor (design §14.4): Hyperdrive
   // permits deliberate overspend and we preserve it rather than clamping.
   const available = Number(parsed?.xp?.source ?? 0);

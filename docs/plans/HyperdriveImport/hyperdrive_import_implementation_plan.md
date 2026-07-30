@@ -651,3 +651,6 @@ during the phases noted:
    `Skills[].skill` so equipment still receives canonical Foundry skill names when the live skill
    compendium cache is missing or incomplete. A raw `BRAWL` value must become `Brawl`, never fall
    through to the first weapon-sheet option.
+4. **Include earned XP.** Treat `EarnedXP` as additional lifetime XP on top of species starting XP
+   and character-creation bonuses. Preserve exported `XP` as available XP and retain the existing
+   reconciliation warning when visible purchases do not explain the source-authoritative totals.

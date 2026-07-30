@@ -113,7 +113,10 @@ export function parseHyperdrive(rawInput = {}) {
     credits: number(raw.Credits),
     biography: String(raw.Background?.Text ?? ""),
     characteristics,
-    xp: { source: number(raw.XP) },
+    xp: {
+      source: number(raw.XP),
+      earned: number(raw.EarnedXP),
+    },
     derived: {
       wounds: number(raw.Wounds ?? raw.WoundThreshold),
       strain: number(raw.Strain ?? raw.StrainThreshold),

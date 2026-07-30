@@ -42,6 +42,35 @@ test("reports a spend that does not reconcile with the exported remaining XP", (
   assert.match(xp.warnings.join("\n"), /does not reconcile.*difference of 25 XP/s);
 });
 
+test("adds Hyperdrive earned XP to the lifetime total", () => {
+  const imported = parseHyperdrive({
+    Species: {
+      StartingAttrs: { Experience: "90" },
+      StartingChars: {
+        Brawn: 3,
+        Agility: 2,
+        Intellect: 2,
+        Cunning: 2,
+        Willpower: 1,
+        Presence: 2,
+      },
+    },
+    Characteristics: {
+      Brawn: 3,
+      Agility: 2,
+      Intellect: 2,
+      Cunning: 2,
+      Willpower: 1,
+      Presence: 2,
+    },
+    EarnedXP: "50",
+    XP: 0,
+  });
+  const xp = deriveXp(imported);
+  assert.equal(xp.total, 140);
+  assert.equal(xp.available, 0);
+});
+
 test("counts Dedication advances from purchased nodes, not the Dedications map", () => {
   // The fixture's map still lists Intellect -> MARSHAL, a specialization the character
   // no longer owns; only Steel Hand's purchased DEDI node is a real advance.

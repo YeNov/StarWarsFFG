@@ -14,6 +14,7 @@ test("parses identity, accounting, species, characteristics, and derived totals"
   assert.equal(parsed.biography, "This is a background story block");
   assert.deepEqual(parsed.characteristics, RAW.Characteristics);
   assert.equal(parsed.xp.source, -215);
+  assert.equal(parsed.xp.earned, 0);
   assert.deepEqual(parsed.derived, { wounds: 18, strain: 13, soak: 4 });
   assert.equal(parsed.species.key, "MANDOHUMAN");
   assert.equal(parsed.species.startingXP, 105);
@@ -71,4 +72,12 @@ test("normalizes linked character images", () => {
     imageUrl: "https://example.test/character.webp",
   });
   assert.equal(parsed.img, "https://example.test/character.webp");
+});
+
+test("normalizes earned XP", () => {
+  const parsed = parseHyperdrive({
+    EarnedXP: "50",
+    XP: "0",
+  });
+  assert.deepEqual(parsed.xp, { source: 0, earned: 50 });
 });
