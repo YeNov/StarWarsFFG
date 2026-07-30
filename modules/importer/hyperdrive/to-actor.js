@@ -94,6 +94,18 @@ export function careerSkillGrantsForItems(parsed) {
   return { career: [...(parsed?.extraCareerSkills ?? [])] };
 }
 
+export function careerSkillsForActor(parsed) {
+  const skills = [
+    ...(parsed?.careerSkills ?? []),
+    ...(parsed?.extraCareerSkills ?? []),
+    ...(parsed?.specSkills ?? []),
+    ...(parsed?.specializations ?? []).flatMap((spec) => spec?.careerSkills ?? []),
+  ];
+  return [...new Set(skills
+    .map((skill) => String(skill ?? "").trim())
+    .filter((skill) => skill && skill.toLowerCase() !== "(none)"))];
+}
+
 /**
  * Dedication advances, counted from PURCHASED nodes rather than the `Dedications` map.
  * That map is keyed by characteristic and can name specializations the character no
@@ -670,6 +682,7 @@ export async function hyperdriveToActorData(parsed, deps) {
     tokenImg: parsed.tokenImg,
     characteristicDeltas: characteristicBase.deltas,
     skillDeltas: purchasedSkills.deltas,
+    careerSkills: careerSkillsForActor(parsed),
     experience: { total: xp.total, available: xp.available },
     credits: parsed.credits,
     track: trackFor(parsed),

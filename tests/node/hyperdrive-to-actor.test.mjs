@@ -329,6 +329,26 @@ test("golden export stores characteristic residuals and purchased skill ranks", 
   );
 });
 
+test("exported specialization skills are marked as actor career skills", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+
+  for (const skill of [
+    "Discipline",
+    "Coordination",
+    "Mechanics",
+    "Piloting (Planetary)",
+  ]) {
+    assert.equal(
+      actorData.system.skills[skill].careerskill,
+      true,
+      `${skill} should be marked as a career skill`,
+    );
+  }
+  assert.equal(actorData.system.skills.Astrogation.careerskill, false);
+});
+
 test("Morality Strength/Weakness are preserved in flags and reported", async () => {
   const parsed = parseHyperdrive(RAW);
   const { deps } = basicDeps();
