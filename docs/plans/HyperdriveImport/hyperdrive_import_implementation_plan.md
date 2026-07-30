@@ -647,3 +647,7 @@ during the phases noted:
    emitted by Hyperdrive as well as normal Foundry asset paths, with the existing compendium or
    system image as the fallback. Add parser and actor-conversion coverage for character, build-item,
    and equipment image links.
+3. **Resolve skill IDs from the export.** Build a fallback map from `Skills[].Key` to
+   `Skills[].skill` so equipment still receives canonical Foundry skill names when the live skill
+   compendium cache is missing or incomplete. A raw `BRAWL` value must become `Brawl`, never fall
+   through to the first weapon-sheet option.

@@ -343,6 +343,31 @@ test("linked actor and matched-item images override local fallbacks", async () =
   assert.equal(actorData.items.find((item) => item.type === "weapon").img, "https://example.test/weapon.webp");
 });
 
+test("export skill ids provide a fallback map for in-place weapons", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const originalGet = deps.resolve.getByKey;
+  deps.resolve.getByKey = (type, key) =>
+    type === "weapon" && key === "UNARMED" ? null : originalGet(type, key);
+  deps.buildInPlace = (kind, entry, options = {}) => ({
+    source: {
+      name: entry.Name,
+      type: kind,
+      system: {
+        skill: { value: options.skillMap?.[entry.SkillKey] ?? entry.SkillKey },
+      },
+      effects: [],
+    },
+    warnings: [],
+  });
+
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+  assert.equal(
+    actorData.items.find((item) => item.name === "Unarmed").system.skill.value,
+    "Brawl",
+  );
+});
+
 test("a present but unmatched key never falls back to name matching", async () => {
   const parsed = parseHyperdrive({
     ...RAW,

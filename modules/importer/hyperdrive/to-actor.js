@@ -529,7 +529,12 @@ export async function hyperdriveToActorData(parsed, deps) {
   }
 
   const eqOpts = {
-    skillMap: deps.skillMap ?? {},
+    skillMap: {
+      ...Object.fromEntries((parsed.skills ?? [])
+        .filter((skill) => keyOf(skill) && String(skill?.skill ?? "").trim())
+        .map((skill) => [keyOf(skill), skill.skill])),
+      ...(deps.skillMap ?? {}),
+    },
     skillMeta: deps.skillMeta ?? [],
     itemmodifierIndex: deps.itemmodifierIndex ?? {},
     attachmentIndex: deps.attachmentIndex ?? {},
