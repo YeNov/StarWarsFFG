@@ -12,6 +12,18 @@ function armorSoakValue(item) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function suspendUnequippedEquipmentEffects(items = []) {
+  const equippableTypes = new Set(["armour", "weapon", "shipweapon"]);
+  for (const item of items) {
+    if (!equippableTypes.has(item?.type)) continue;
+    item.system ??= {};
+    item.system.equippable ??= {};
+    item.system.equippable.equipped = item.system.equippable.equipped === true;
+    if (item.system.equippable.equipped) continue;
+    for (const effect of item.effects ?? []) effect.disabled = true;
+  }
+}
+
 export function equipBestPurchasedArmor(items = []) {
   const armor = items.filter((item) => item?.type === "armour");
   if (!armor.length) return;
@@ -115,6 +127,7 @@ export function assembleCharacterSource(
 
   const equipment = foundry.utils.deepClone(equipmentItems ?? []);
   equipBestPurchasedArmor(equipment);
+  suspendUnequippedEquipmentEffects(equipment);
   actorData.items.push(...foundry.utils.deepClone(buildItems ?? []), ...equipment);
   return { actorData, warnings };
 }
