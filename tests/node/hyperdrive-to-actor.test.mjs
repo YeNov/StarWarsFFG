@@ -189,7 +189,7 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
   });
 });
 
-test("golden export stores only the residual the build items do not already supply", async () => {
+test("golden export stores characteristic residuals and purchased skill ranks", async () => {
   const parsed = parseHyperdrive(RAW);
   const { deps } = basicDeps();
   const originalGet = deps.resolve.getByKey;
@@ -207,13 +207,11 @@ test("golden export stores only the residual the build items do not already supp
   assert.equal(actorData.system.characteristics.Intellect.value, 2);
   assert.equal(actorData.system.characteristics.Cunning.value, 1);
 
-  // Athletics' single rank is the career's free rank; Brawl's three free ranks already
-  // exceed the exported 2, which is capped at 0 and reported rather than silently kept.
-  assert.equal(actorData.system.skills.Athletics.rank, 0);
-  assert.equal(actorData.system.skills.Brawl.rank, 0);
-  assert.ok(report.warnings.some((warning) =>
-    /Skill Brawl: imported items grant 3 free rank\(s\) but the export lists 2/.test(warning)));
-  // Ranks with no item behind them are genuinely purchased and must persist.
+  // Hyperdrive skill values are purchased ranks. Free species/career/spec ranks arrive
+  // from item effects and must not be subtracted from these actor-base values.
+  assert.equal(actorData.system.skills.Athletics.rank, 1);
+  assert.equal(actorData.system.skills.Brawl.rank, 2);
+  assert.ok(!report.warnings.some((warning) => /Skill .*imported items grant/.test(warning)));
   assert.equal(actorData.system.skills.Charm.rank, 1);
   assert.equal(actorData.system.skills.Vigilance.rank, 1);
 
@@ -232,17 +230,15 @@ test("golden export stores only the residual the build items do not already supp
   assert.ok(cyber.effects.flatMap((effect) => effect.changes).some((change) =>
     change.key === "system.stats.wounds.max" && change.value === 1));
 
-  // The base plus what the build items supply reconstructs the exported sheet rather
-  // than exceeding it: Brawn 0 + species 2 + Dedication 1 === the exported 3, and
-  // Athletics 0 + the career's free rank === the exported 1. The cybernetic's own +1
-  // sits on the item and surfaces as reported drift, not as a larger base.
+  // Characteristics are exported as final values, while skill values are purchased
+  // ranks. The free Athletics rank therefore adds to its exported purchased rank.
   assert.equal(
     actorData.system.characteristics.Brawn.value + 2 + 1,
     parsed.characteristics.Brawn,
   );
   assert.equal(
     actorData.system.skills.Athletics.rank + 1,
-    parsed.skills.find((skill) => skill.skill === "Athletics").rank,
+    2,
   );
 });
 

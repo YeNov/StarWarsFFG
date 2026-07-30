@@ -165,7 +165,9 @@ export function deriveXpSpend(parsed) {
   let skills = 0;
   for (const skill of parsed?.skills ?? []) {
     const free = Number(freeRanks[skill.skill] ?? 0);
-    const paid = Number(skill.rank ?? 0) - free;
+    // Hyperdrive stores purchased/manual ranks here. Free ranks are tracked in
+    // Species.SelectedSkills, CareerRanks, and SpecRanks.
+    const paid = Number(skill.rank ?? 0);
     for (let step = 1; step <= paid; step += 1) {
       skills += (5 * (free + step)) + (careerSkills.has(skill.skill) ? 0 : 5);
     }
@@ -202,19 +204,13 @@ export function deriveXp(parsed) {
 }
 
 /**
- * The persisted base holds only the RESIDUAL — the part no imported item supplies.
+ * Hyperdrive characteristics are final values, while imported species and Dedication
+ * items add their own characteristic effects. Persist only the residual that those
+ * build items do not already supply, measured from an unsaved build-item-only preview.
  *
- * Species starting values, Dedication grants, free skill ranks and talent effects all
- * arrive as Active Effects on the build items and ADD on top of the base
- * (`_calculateDerivedValues`, actor-ffg.js:612, only recomputes encumbrance — nothing
- * re-derives characteristics or thresholds from the final numbers). Writing Hyperdrive's
- * FINAL value into the base while those items are also embedded double-counts: the golden
- * fixture's Brawn 3 became 5, and Brawl rank 2 became 5.
- *
- * So the base is `exported − what the build items already prepare`, measured from an
- * unsaved preview actor built from the build items ONLY. Equipment is deliberately
- * excluded: an item carries its own modifier (a cybernetic's +1 Brawn belongs to the
- * item, not the character), so equipment must not push the base down.
+ * Equipment is deliberately excluded: a cybernetic's modifier belongs to the item, so
+ * it must not reduce the character's base. Hyperdrive skill values have different
+ * semantics and are handled separately below.
  */
 export function residualCharacteristicDeltas(characteristics, preview) {
   const deltas = {};
@@ -230,17 +226,21 @@ export function residualCharacteristicDeltas(characteristics, preview) {
   return { deltas, warnings };
 }
 
-export function residualSkillDeltas(parsedSkills, preview) {
+/**
+ * Hyperdrive's Skills[].value contains purchased/manual ranks only. Free ranks are
+ * imported separately as species, career, and specialization item effects, so the
+ * actor base must preserve the exported value directly.
+ */
+export function residualSkillDeltas(parsedSkills) {
   const deltas = {};
   const warnings = [];
   for (const skill of parsedSkills ?? []) {
     const rank = Number(skill.rank ?? 0);
-    const supplied = Number(preview?.skills?.[skill.skill]?.rank ?? 0);
-    const delta = rank - supplied;
-    if (delta < 0) {
-      warnings.push(`Skill ${skill.skill}: imported items grant ${supplied} free rank(s) but the export lists ${rank}; leaving the base at 0.`);
+    if (!Number.isFinite(rank) || rank < 0) {
+      warnings.push(`Skill ${skill.skill}: exported purchased rank ${skill.rank} is invalid; leaving the base at 0.`);
+      continue;
     }
-    if (delta > 0) deltas[skill.skill] = delta;
+    if (rank > 0) deltas[skill.skill] = rank;
   }
   return { deltas, warnings };
 }
@@ -573,7 +573,7 @@ export async function hyperdriveToActorData(parsed, deps) {
   // (an item carries its own modifiers, so it must not depress the character's base).
   const preview = await deps.preparePreview(buildItems);
   const characteristicBase = residualCharacteristicDeltas(parsed.characteristics, preview);
-  const purchasedSkills = residualSkillDeltas(parsed.skills, preview);
+  const purchasedSkills = residualSkillDeltas(parsed.skills);
   report.warnings.push(...characteristicBase.warnings, ...purchasedSkills.warnings);
   const xp = deriveXp(parsed);
   report.warnings.push(...xp.warnings);

@@ -51,7 +51,8 @@ The fixture has **48 top-level keys**. Everything referencing content carries an
   StrainThreshold, Experience}, OptionChoices:{…, Selected}, SelectedSkills:[…], Source, imageUrl}`.
 - `Career` — `{Key, Name, CareerSkills:[…], Specializations:[…], Attributes:{ForceRating}, FreeRanks}`.
 - `Characteristics` — **final** numbers `{Brawn:3, Agility:4, …}`.
-- `Skills` — **array** of `{Key, skill, characteristic, type, value?}`; `value` present only when ranked.
+- `Skills` — **array** of `{Key, skill, characteristic, type, value?}`; `value` is the
+  purchased/manual rank count and is present only when nonzero. Free ranks are separate.
 - `CareerRanks` / `SpecRanks` — the skills that received a **free career / spec rank**.
 - `SelectedCareerSkills` / `ExtraCareerSkills` — extra career-skill selections.
 - `XP` — **remaining** XP; **can be negative** (overspend is a legal Hyperdrive state — fixture is `-215`).
@@ -219,8 +220,8 @@ Validate every in-place item by constructing a temporary Item/Actor and checking
 | `Background.Text` | `system.biography` | the story block |
 | `Background.Culture/Force/Adventure` | `background` items | Force/Adventure by `Key`; **Culture has no Key → name-fallback** |
 | `Characteristics.*` | `system.characteristics.*.value` | **residual** = final − preview (§6.2), not raw |
-| `Skills[].value` | `system.skills.*.rank` | residual (free ranks come from items); cap + report over-grants |
-| `Skills` career flags / `CareerRanks` / `SpecRanks` / `SelectedSkills` | career-skill flags + free-rank effects on items | union from career/spec items; store only residual purchased rank |
+| `Skills[].value` | `system.skills.*.rank` | direct purchased/manual base; free ranks add from items |
+| `Skills` career flags / `CareerRanks` / `SpecRanks` / `SelectedSkills` | career-skill flags + free-rank effects on items | union from career/spec items; add separately from the purchased base |
 | `XP` + grants | `system.experience.{total,available}` | derive (§10); preserve negative available + warn |
 | `Credits` (may be `null`) | `system.stats.credits.value` | null → 0 |
 | `Species.Key` | `species` item | compendium → in-place |

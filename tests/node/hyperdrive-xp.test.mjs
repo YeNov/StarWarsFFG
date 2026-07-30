@@ -29,17 +29,17 @@ test("derives spend from the purchases and preserves an overspent export", () =>
     forcePowers: 55, // Conjure 20 + 15, Alter 10 + 10 (PaidCosts)
     characteristics: 170, // Agility 2->4 (70), Intellect 2->4 (70), Cunning 2->3 (30)
     specializations: 10, // Death Watch is universal, a flat 10
-    skills: 25, // Charm 10 (non-career) + Coercion/Survival/Vigilance 5 each
-    total: 380,
+    skills: 80, // exported values are paid ranks; free ranks determine each purchase's tier
+    total: 435,
   });
-  assert.equal(xp.spent, 380);
+  assert.equal(xp.spent, 435);
 });
 
 test("reports a spend that does not reconcile with the exported remaining XP", () => {
   const xp = deriveXp(parsed);
-  // 140 - 380 = -240, but the export claims -215: the fixture's own counter is 25 XP
+  // 140 - 435 = -295, but the export claims -215: the fixture's own counter is 80 XP
   // adrift. Deriving `spent` as `total - available` would have hidden this entirely.
-  assert.match(xp.warnings.join("\n"), /does not reconcile.*difference of 25 XP/s);
+  assert.match(xp.warnings.join("\n"), /does not reconcile.*difference of 80 XP/s);
 });
 
 test("adds Hyperdrive earned XP to the lifetime total", () => {
@@ -77,7 +77,7 @@ test("counts Dedication advances from purchased nodes, not the Dedications map",
   assert.deepEqual(dedicationAdvances(parsed), { Brawn: 1 });
 });
 
-test("persists only the characteristic and skill residual left by the build items", () => {
+test("persists characteristic residuals and purchased skill ranks", () => {
   // What an unsaved preview actor built from the build items alone already prepares.
   const preview = {
     characteristics: {
@@ -106,10 +106,18 @@ test("persists only the characteristic and skill residual left by the build item
   });
 
   const skills = residualSkillDeltas(parsed.skills, preview);
-  assert.equal(skills.deltas.Athletics, undefined); // the career's free rank covers it
-  assert.equal(skills.deltas.Brawl, undefined); // three free ranks already exceed the exported 2
-  assert.equal(skills.deltas.Charm, 1); // no item grants Charm, so it is genuinely purchased
-  assert.match(skills.warnings.join("\n"), /Skill Brawl: imported items grant 3 free rank\(s\)/);
+  assert.equal(skills.deltas.Athletics, 1);
+  assert.equal(skills.deltas.Brawl, 2);
+  assert.equal(skills.deltas.Charm, 1);
+  assert.deepEqual(skills.warnings, []);
+});
+
+test("does not subtract imported free ranks from Hyperdrive purchases", () => {
+  const skills = residualSkillDeltas(
+    [{ skill: "Melee", rank: 1 }],
+    { skills: { Melee: { rank: 2 } } },
+  );
+  assert.deepEqual(skills, { deltas: { Melee: 1 }, warnings: [] });
 });
 
 test("a characteristic no item supplies is persisted in full", () => {

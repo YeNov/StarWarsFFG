@@ -117,7 +117,7 @@ export function buildImportIndex(entries) {
 - [ ] **3.3** `learnedKeysForSpec`/`learnedKeysForPower` → Steel Hand `{talent2,3,7,10,11,14,18}`, Death Watch `{talent0,4,5}`, Conjure `{upgrade0}`, Alter `{upgrade2}`.
 - [ ] **3.4** `invertDedications`/`dedicationGrantsForSpec` → stale `MARSHAL` dropped; grant only on learned `talent18`; not-learned → `{}`.
 - [ ] **3.5** `rankGrantsForItems` → `{species:["Brawl"], career:["Athletics","Brawl","Cool"], spec:["Brawl","Coordination"]}`; `careerSkillGrantsForItems(p)={career:[]}`.
-- [ ] **3.6** `deriveXp` → `{total:140, spent:355, available:-215}` with `{Brawn:1}`; over-budget warning; no export-mismatch; unlearned Dedication never undercounts. Commit each.
+- [ ] **3.6** `deriveXp` → `{total:140, spent:435, available:-215}` with `{Brawn:1}`; over-budget and reconciliation warnings; unlearned Dedication never undercounts. Commit each.
 
 ## 3C — Residual model + async orchestrator
 
@@ -133,18 +133,18 @@ export function residualCharacteristicDeltas(finals, previewChars) {
   }
   return { deltas, warnings };
 }
-export function residualSkillDeltas(parsedSkills, previewSkills) {
+export function residualSkillDeltas(parsedSkills) {
   const deltas = {}, warnings = [];
   for (const s of parsedSkills ?? []) {
-    const prepared = Number(previewSkills?.[s.skill]?.rank ?? 0), d = s.rank - prepared;
-    if (d < 0) warnings.push(`Skill ${s.skill}: export rank ${s.rank} below item-supplied ${prepared}; capping at 0.`);
-    if (d > 0) deltas[s.skill] = d;
+    const purchased = Number(s.rank ?? 0);
+    if (purchased < 0) warnings.push(`Skill ${s.skill}: invalid purchased rank ${purchased}; capping at 0.`);
+    if (purchased > 0) deltas[s.skill] = purchased;
   }
   return { deltas, warnings };
 }
 ```
 
-- [ ] Test: fixture residual chars `{Brawn:0, Agility:2, Intellect:2, Cunning:1, Willpower:0, Presence:0}`; Brawl over-grant capped + warned. Commit.
+- [ ] Test: fixture residual chars `{Brawn:0, Agility:2, Intellect:2, Cunning:1, Willpower:0, Presence:0}`; skill values persist directly as purchased ranks and item effects add the free ranks. Commit.
 
 ### Task 3.8: `hyperdriveToActorData` — equipment match-then-fallback + **unmatched-in-report (M6)** + restored regressions (M5) + matched-preservation (M4)
 
@@ -654,3 +654,6 @@ during the phases noted:
 4. **Include earned XP.** Treat `EarnedXP` as additional lifetime XP on top of species starting XP
    and character-creation bonuses. Preserve exported `XP` as available XP and retain the existing
    reconciliation warning when visible purchases do not explain the source-authoritative totals.
+5. **Preserve purchased skill ranks.** Hyperdrive stores purchased/manual ranks in
+   `Skills[].value` and tracks free ranks separately in species, career, and specialization fields.
+   Persist the exported skill value directly on the actor; imported item effects add the free ranks.
