@@ -11,6 +11,7 @@ import {
 import { toItemData } from "../../char-creator/to-item-data.js";
 import { parseHyperdrive, HYPERDRIVE_CHARACTERISTICS } from "./parse.js";
 import {
+  bestFindingSuggestion,
   buildImportIndex,
   buildSnapshotIndex,
   buildSkillMetadata,
@@ -21,6 +22,43 @@ import { buildInPlace } from "./in-place.js";
 import { hyperdriveToActorData } from "./to-actor.js";
 
 const { ApplicationV2, DialogV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+function compendiumIdFromUuid(uuid) {
+  return String(uuid ?? "").match(/^Compendium\.(.+?)\.Item\./)?.[1] ?? null;
+}
+
+function sourceForRef(ref, document = null) {
+  const uuid = document?.uuid ?? ref?.uuid ?? "";
+  const documentPack = document?.pack;
+  const packId = (typeof documentPack === "string" ? documentPack : documentPack?.collection)
+    ?? compendiumIdFromUuid(uuid);
+  if (packId) {
+    const pack = game.packs.get(packId);
+    return {
+      kind: "compendium",
+      id: packId,
+      label: pack?.metadata?.label ?? pack?.title ?? packId,
+    };
+  }
+  if (document?.parent?.name) {
+    return {
+      kind: "embedded",
+      id: document.parent.uuid,
+      label: `Actor: ${document.parent.name}`,
+    };
+  }
+  if (String(uuid).startsWith("Item.") || document?.documentName === "Item") {
+    return { kind: "world", id: "world", label: "World Items" };
+  }
+  return { kind: "other", id: uuid, label: "Other source" };
+}
+
+function decorateRefSource(ref, document = null) {
+  return {
+    ...ref,
+    source: ref?.source ?? sourceForRef(ref, document),
+  };
+}
 
 function preparedCharacteristics(actor) {
   return Object.fromEntries(HYPERDRIVE_CHARACTERISTICS.map((key) => [
@@ -58,7 +96,30 @@ async function collectLiveEntries() {
       }
     }
   }
-  return collectImportEntries({ selectionRefs, docLists: documentLists });
+  return collectImportEntries({ selectionRefs, docLists: documentLists })
+    .map((entry) => ({
+      ...entry,
+      ref: decorateRefSource(entry.ref),
+    }));
+}
+
+async function collectSuggestionEntries() {
+  const documentLists = [];
+  for (const pack of game.packs) {
+    if (pack.documentName !== "Item" && pack.metadata?.type !== "Item") continue;
+    try {
+      documentLists.push(await pack.getDocuments());
+    } catch (error) {
+      CONFIG.logger?.warn?.(`Hyperdrive importer could not search pack '${pack.collection}': ${error.message}`);
+    }
+  }
+  return collectImportEntries({
+    docLists: documentLists,
+    worldItems: game.items ?? [],
+  }).map((entry) => ({
+    ...entry,
+    ref: decorateRefSource(entry.ref),
+  }));
 }
 
 async function makeLiveDependencies({ overrides = new Map() } = {}) {
@@ -100,6 +161,7 @@ async function makeLiveDependencies({ overrides = new Map() } = {}) {
   };
   return {
     resolve,
+    entries,
     resolveFinding: (kind, entry, options) =>
       resolveFindingOverride(overrides, kind, entry, options),
     skillMap,
@@ -265,6 +327,7 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
       type: document.type,
       img: document.img,
       snapshot,
+      source: sourceForRef(null, document),
     });
     await this.render({ parts: ["content"] });
     return true;
@@ -301,6 +364,17 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
           slotId: `finding-${index}`,
         }));
         this.resolutions.clear();
+        const needsBroadSearch = this.findings.some((finding) => !finding.candidateRefs.length);
+        const suggestionEntries = needsBroadSearch ? await collectSuggestionEntries() : [];
+        for (const finding of this.findings) {
+          const suggestion = bestFindingSuggestion(finding, suggestionEntries);
+          if (suggestion) {
+            this.resolutions.set(finding.slotId, {
+              ...decorateRefSource(suggestion),
+              suggested: true,
+            });
+          }
+        }
         ui.notifications.info("Review the unresolved Hyperdrive findings, then import again.");
         return;
       }
@@ -341,4 +415,9 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
   }
 }
 
-export { collectLiveEntries, makeLiveDependencies, persistActor };
+export {
+  collectLiveEntries,
+  collectSuggestionEntries,
+  makeLiveDependencies,
+  persistActor,
+};

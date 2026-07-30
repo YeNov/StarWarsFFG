@@ -266,11 +266,6 @@ export function buildCyberneticWoundEffects(rawItem, opts = {}) {
 }
 
 export function buildAttachmentEffects(rawItem, opts = {}) {
-  const {
-    itemmodifierIndex = {},
-    skillMap = {},
-    skillMeta = [],
-  } = opts;
   const namer = opts.namer ?? makeNamer();
   const output = [];
   const inventoryId = rawItem?.inventoryID;
@@ -287,12 +282,7 @@ export function buildAttachmentEffects(rawItem, opts = {}) {
     }
     output.push(...effectsFromAttributes(normalizeMods(
       active.filter((mod) => !isTargetRelativeModifier(mod)),
-      {
-      itemmodifierIndex,
-      skillMap,
-      skillMeta,
-      namer,
-      },
+      { ...opts, namer },
     )));
   }
   return output;

@@ -24,3 +24,10 @@ test("Hyperdrive finding resolution is optional and removable", () => {
   assert.match(TEMPLATE, /data-action="clearResolution"/);
   assert.match(APP_SOURCE, /overrides:\s*reviewing \? this\._resolutionOverrides\(\) : new Map\(\)/);
 });
+
+test("suggested resolutions show their exact source", () => {
+  assert.match(APP_SOURCE, /bestFindingSuggestion\(finding, suggestionEntries\)/);
+  assert.match(APP_SOURCE, /metadata\?\.label/);
+  assert.match(APP_SOURCE, /label:\s*"World Items"/);
+  assert.match(TEMPLATE, /Compendium: \{\{\/if\}\}\{\{resolution\.source\.label\}\}/);
+});

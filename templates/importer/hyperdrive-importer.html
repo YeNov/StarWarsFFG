@@ -19,17 +19,31 @@
         <strong>{{kind}}{{#if ownerType}} for {{ownerType}}{{/if}}:</strong>
         {{#if name}}{{name}}{{else}}{{key}}{{/if}}
         <span class="hint">
-          {{#if (eq reason "ambiguous")}}
-          Ambiguous{{#if count}} ({{count}} matches){{/if}}
+          {{#if resolution.suggested}}
+          Suggested match selected{{#if (eq reason "ambiguous")}} from {{count}} candidates{{/if}}
           {{else}}
-          Not found
+            {{#if resolution}}
+            Manually resolved
+            {{else}}
+              {{#if (eq reason "ambiguous")}}
+              Ambiguous{{#if count}} ({{count}} matches){{/if}}
+              {{else}}
+              Not found
+              {{/if}}
+            {{/if}}
           {{/if}}
         </span>
       </div>
       <div class="hyperdrive-resolution-drop{{#if resolution}} resolved{{/if}}">
         {{#if resolution}}
         <img src="{{resolution.img}}" alt="">
-        <span><strong>{{resolution.name}}</strong><small>{{resolution.type}}</small></span>
+        <span>
+          <strong>{{resolution.name}}</strong>
+          <small>{{resolution.type}}</small>
+          <small class="hyperdrive-resolution-source">
+            {{#if (eq resolution.source.kind "compendium")}}Compendium: {{/if}}{{resolution.source.label}}
+          </small>
+        </span>
         <button type="button" class="icon" data-action="clearResolution" data-finding-id="{{slotId}}" title="Clear resolution">
           <i class="fas fa-times"></i>
         </button>

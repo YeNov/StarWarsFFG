@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import {
+  bestFindingSuggestion,
   buildImportIndex,
   buildSnapshotIndex,
   buildSkillMetadata,
@@ -54,12 +55,21 @@ test("ambiguous expanded names are rejected and reported", () => {
     entry("weapon", "TWO", "Unarmed Combat"),
   ]);
   assert.equal(index.getByName("weapon", "Unarmed"), null);
-  assert.deepEqual(index.ambiguities, [{
+  assert.deepEqual(index.ambiguities.map((ambiguity) => ({
+    itemType: ambiguity.itemType,
+    name: ambiguity.name,
+    count: ambiguity.count,
+    loose: ambiguity.loose,
+  })), [{
     itemType: "weapon",
     name: "unarmed",
     count: 2,
     loose: true,
   }]);
+  assert.deepEqual(index.ambiguities[0].candidateRefs.map((ref) => ref.name), [
+    "Unarmed Strike",
+    "Unarmed Combat",
+  ]);
 });
 
 test("quality and attachment expansion respects the owning item type", () => {
@@ -130,6 +140,23 @@ test("snapshot lookup reports unresolved findings and accepts a dragged override
     onResolutionFinding: (finding) => findings.push(finding),
   }).name, "Chosen Superior");
   assert.equal(findings.length, 1);
+});
+
+test("unresolved findings get an obvious replaceable catalog suggestion", () => {
+  const knockdown = entry("itemmodifier", "KNOCK", "Knockdown Talent", "genericmods:knockdown", { type: "all" });
+  const wrongType = entry("talent", "KNOCKDOWN", "Knockdown", "talents:knockdown");
+  assert.equal(bestFindingSuggestion({
+    kind: "itemmodifier",
+    key: "KNOCKDOWN",
+    ownerType: "weapon",
+  }, [wrongType, knockdown]), knockdown.ref);
+
+  const reportedCandidate = entry("weapon", "ONE", "First Candidate").ref;
+  assert.equal(bestFindingSuggestion({
+    kind: "weapon",
+    key: "UNKNOWN",
+    candidateRefs: [reportedCandidate],
+  }, [knockdown]), reportedCandidate);
 });
 
 test("doc collection keeps keyless docs and includes every supplied pack list plus world items", () => {

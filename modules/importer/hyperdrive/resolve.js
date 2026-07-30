@@ -110,6 +110,7 @@ export function buildSnapshotIndex(entries = [], itemType) {
       key: entry.ffgimportid ?? null,
       name: entry.ref?.name ?? snapshot.name ?? "",
       snapshot,
+      ref: entry.ref,
     };
     candidates.push(candidate);
     if (candidate.key && !index[candidate.key]) index[candidate.key] = snapshot;
@@ -146,6 +147,7 @@ export function findIndexedSnapshot(index, entry, options = {}) {
       reason,
       count: matches.length || undefined,
       candidates: matches.map((candidate) => candidate.name).filter(Boolean),
+      candidateRefs: matches.map((candidate) => candidate.ref).filter(Boolean),
     });
   };
   if (key && candidates.length) {
@@ -223,16 +225,22 @@ export function buildImportIndex(entries = []) {
   }
   const ambiguities = [];
   const reported = new Set();
-  const reportAmbiguity = (itemType, label, value, count, loose = false) => {
+  const reportAmbiguity = (itemType, label, value, list, loose = false) => {
     const fingerprint = `${label}:${itemType}:${value}:${loose}`;
     if (reported.has(fingerprint)) return;
-    ambiguities.push({ itemType, [label]: value, count, ...(loose ? { loose: true } : {}) });
+    ambiguities.push({
+      itemType,
+      [label]: value,
+      count: list.length,
+      candidateRefs: list.map((entry) => entry.ref),
+      ...(loose ? { loose: true } : {}),
+    });
     reported.add(fingerprint);
   };
   const pick = (map, itemType, value, label) => {
     const list = map.get(`${itemType} ${value}`);
     if (!list?.length) return null;
-    if (list.length > 1) reportAmbiguity(itemType, label, value, list.length);
+    if (list.length > 1) reportAmbiguity(itemType, label, value, list);
     return list[0];
   };
   const pickByName = (itemType, name) => {
@@ -253,7 +261,7 @@ export function buildImportIndex(entries = []) {
     }
     if (!bestScore) return null;
     if (best.length > 1) {
-      reportAmbiguity(itemType, "name", normalized, best.length, true);
+      reportAmbiguity(itemType, "name", normalized, best, true);
       return null;
     }
     return best[0];
@@ -264,6 +272,49 @@ export function buildImportIndex(entries = []) {
     getByName: pickByName,
     ambiguities,
   };
+}
+
+function candidateSuggestionScore(finding, entry) {
+  const ref = entry?.ref ?? entry;
+  const snapshot = ref?.snapshot ?? {};
+  const candidateType = entry?.itemType ?? ref?.type ?? snapshot.type;
+  const expectedType = finding?.kind;
+  if (["itemmodifier", "itemattachment"].includes(candidateType)
+    && !snapshotAppliesToOwner(snapshot, finding?.ownerType)) return 0;
+
+  const requestedKey = finding?.key;
+  const requestedName = finding?.name;
+  const candidateKey = entry?.ffgimportid
+    ?? snapshot?.flags?.starwarsffg?.ffgimportid;
+  let score = 0;
+  if (normalizeName(requestedKey) && normalizeName(requestedKey) === normalizeName(candidateKey)) {
+    score = 2000;
+  }
+  for (const requested of [requestedName, requestedKey]) {
+    score = Math.max(score, looseNameScore(requested, ref?.name ?? snapshot.name));
+  }
+  if (!score) return 0;
+  if (candidateType === expectedType) score += 2000;
+  return score;
+}
+
+/**
+ * Pick a visible, replaceable suggestion for an unresolved finding. Candidate
+ * refs already reported by the resolver win; otherwise search the supplied
+ * broader catalog and prefer the expected Foundry item type.
+ */
+export function bestFindingSuggestion(finding, entries = []) {
+  if (finding?.candidateRefs?.length) return finding.candidateRefs[0];
+  let bestScore = 0;
+  let best = null;
+  for (const entry of entries) {
+    const score = candidateSuggestionScore(finding, entry);
+    if (score > bestScore) {
+      bestScore = score;
+      best = entry.ref ?? entry;
+    }
+  }
+  return best;
 }
 
 export function entriesFromDocs(docs = []) {

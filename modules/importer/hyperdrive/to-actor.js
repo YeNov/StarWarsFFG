@@ -414,6 +414,7 @@ function addResolutionFinding(report, {
   reason,
   count,
   candidates = [],
+  candidateRefs = [],
   sourcePath = null,
 }) {
   const aliases = resolutionAliases(kind, entry, { ownerType });
@@ -425,6 +426,9 @@ function addResolutionFinding(report, {
     if (reason === "ambiguous") existing.reason = reason;
     existing.count = Math.max(Number(existing.count ?? 0), Number(count ?? 0)) || undefined;
     existing.candidates = [...new Set([...existing.candidates, ...candidates])];
+    const knownRefs = new Set(existing.candidateRefs.map((ref) => ref.uuid));
+    existing.candidateRefs.push(...candidateRefs.filter((ref) =>
+      ref?.uuid && !knownRefs.has(ref.uuid)));
     return;
   }
   report.findings.push({
@@ -437,6 +441,7 @@ function addResolutionFinding(report, {
     reason,
     count,
     candidates: [...new Set(candidates)],
+    candidateRefs: candidateRefs.filter(Boolean),
     sourcePath,
   });
 }
@@ -693,6 +698,7 @@ export async function hyperdriveToActorData(parsed, deps) {
       },
       reason: "ambiguous",
       count: ambiguity.count,
+      candidateRefs: ambiguity.candidateRefs ?? [],
     });
   }
   report.xp = { total: xp.total, spent: xp.spent, available: xp.available, breakdown: xp.breakdown };
