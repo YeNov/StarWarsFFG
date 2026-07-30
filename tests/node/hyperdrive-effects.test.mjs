@@ -30,6 +30,8 @@ const META = [
   { skill: "Brawl", characteristic: "Brawn", type: "Combat" },
   { skill: "Discipline", characteristic: "Willpower", type: "General" },
   { skill: "Melee", characteristic: "Brawn", type: "Combat" },
+  { skill: "Perception", characteristic: "Cunning", type: "General" },
+  { skill: "Vigilance", characteristic: "Willpower", type: "General" },
 ];
 
 test("buildItemEffects emits exact inherent species, armour, gear, and career changes", () => {
@@ -124,7 +126,7 @@ test("ARMINS emits the exact six-entry base+installed multiset", () => {
   ]));
 });
 
-test("attachment installation handles keyless, failed, counted, and matched-dedup cases", () => {
+test("attachment installation handles keyless, failed, counted, and export-authoritative cases", () => {
   const keyless = {
     inventoryID: "X",
     Attachments: [{
@@ -153,9 +155,32 @@ test("attachment installation handles keyless, failed, counted, and matched-dedu
     inventoryID: "X",
     Attachments: [{ Key: "A", BaseMods: [{ Key: "SOAKADD" }] }],
   };
-  const effects = [{ name: "pre", changes: [{ key: "system.skills.Discipline.boost", mode: AE_MODES.ADD, value: 1 }] }];
-  assert.deepEqual(buildAttachmentEffects(matched, {
+  assert.deepEqual(flat(buildAttachmentEffects(matched, {
     itemmodifierIndex: IDX,
-    attachmentIndex: { A: { effects } },
-  }), effects);
+    attachmentIndex: {
+      A: {
+        effects: [{
+          name: "stale-compendium-state",
+          changes: [{ key: "system.skills.Discipline.boost", mode: AE_MODES.ADD, value: 1 }],
+        }],
+      },
+    },
+  })), [{
+    key: "system.stats.soak.value",
+    mode: AE_MODES.ADD,
+    value: 1,
+  }]);
+});
+
+test("target-relative foliage setbacks do not penalize the wearer's own checks", () => {
+  const raw = {
+    inventoryID: "ARMOR_1",
+    Attachments: [{
+      Key: "PASSFOLSUIT",
+      BaseMods: [{
+        MiscDesc: "Add [SE] to Perception or Vigilance checks made to detect this character.",
+      }],
+    }],
+  };
+  assert.deepEqual(buildAttachmentEffects(raw, { skillMeta: META }), []);
 });

@@ -3,12 +3,18 @@ import ItemHelpers from "../../helpers/item-helpers.js";
 import { assembleCharacterSource } from "../../char-creator/assemble-character-source.js";
 import { assignWizardIdentity } from "../../char-creator/build-item-schema.js";
 import { makeBuildDependencies } from "../../char-creator/build-deps.js";
+import { loadSource } from "../../char-creator/load-source.js";
+import {
+  SOURCE_DESCRIPTORS,
+  sourceSettingPackIds,
+} from "../../char-creator/source-descriptors.js";
 import { toItemData } from "../../char-creator/to-item-data.js";
 import { parseHyperdrive, HYPERDRIVE_CHARACTERISTICS } from "./parse.js";
 import {
   buildImportIndex,
   buildSkillMetadata,
   collectImportEntries,
+  normalizeName,
 } from "./resolve.js";
 import { buildInPlace } from "./in-place.js";
 import { hyperdriveToActorData } from "./to-actor.js";
@@ -30,25 +36,43 @@ function preparedSkills(actor) {
 }
 
 async function collectLiveEntries() {
+  const selectionRefs = [];
   const documentLists = [];
-  for (const pack of game.packs ?? []) {
-    if (pack.documentName !== "Item" && pack.metadata?.type !== "Item") continue;
+  for (const poolKey of Object.keys(SOURCE_DESCRIPTORS)) {
     try {
-      documentLists.push(await pack.getDocuments());
+      selectionRefs.push(...await loadSource(poolKey));
     } catch (error) {
-      CONFIG.logger?.warn?.(`Hyperdrive importer could not read pack '${pack.collection}': ${error.message}`);
+      CONFIG.logger?.warn?.(`Hyperdrive importer could not read configured '${poolKey}' sources: ${error.message}`);
     }
   }
-  return collectImportEntries({
-    docLists: documentLists,
-    worldItems: game.items?.contents ?? [],
-  });
+  for (const settingKey of ["talentCompendiums", "signatureAbilityCompendiums"]) {
+    const settingValue = game.settings.get("starwarsffg", settingKey);
+    for (const packId of sourceSettingPackIds(settingValue)) {
+      const pack = game.packs.get(packId);
+      if (!pack || (pack.documentName !== "Item" && pack.metadata?.type !== "Item")) continue;
+      try {
+        documentLists.push(await pack.getDocuments());
+      } catch (error) {
+        CONFIG.logger?.warn?.(`Hyperdrive importer could not read configured pack '${packId}': ${error.message}`);
+      }
+    }
+  }
+  return collectImportEntries({ selectionRefs, docLists: documentLists });
 }
 
 function indexSnapshots(entries, type) {
-  return Object.fromEntries(entries
-    .filter((entry) => entry.itemType === type && entry.ffgimportid)
-    .map((entry) => [entry.ffgimportid, entry.ref.snapshot]));
+  const index = {};
+  for (const entry of entries) {
+    if (entry.itemType !== type) continue;
+    if (entry.ffgimportid && !index[entry.ffgimportid]) {
+      index[entry.ffgimportid] = entry.ref.snapshot;
+    }
+    const name = normalizeName(entry.ref?.name);
+    if (name && !index[`name:${name}`]) {
+      index[`name:${name}`] = entry.ref.snapshot;
+    }
+  }
+  return index;
 }
 
 async function makeLiveDependencies() {

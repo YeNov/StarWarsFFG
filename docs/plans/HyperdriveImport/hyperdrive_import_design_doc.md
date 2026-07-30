@@ -10,8 +10,8 @@
   The §3 schema is **confirmed**, not reverse-engineered.
 - **Both original blockers are resolved** (per-spec talent grids; characteristic residual model).
 - A **gpt-5.6 review** (see `review-gpt56-high-2026-07-26.md`) reshaped the architecture:
-  assemble via a **shared `assembleCharacterSource` extracted under `applyBuild`**, an **ungated
-  import index** (not `loadSource`), **source-authoritative XP**, and **in-place fallback via
+  assemble via a **shared `assembleCharacterSource` extracted under `applyBuild`**, a
+  **PC-creator-settings-scoped import index**, **source-authoritative XP**, and **in-place fallback via
   extracted OggDude effect-builders** (not `projectItemSource` alone).
 
 ---
@@ -182,10 +182,12 @@ These formulas mirror the OggDude importer exactly (`specializations.js:123` `ta
 
 ## 8. Compendium match → in-place fallback
 
-**Resolver.** Build a dedicated, **ungated, read-only index keyed by `(itemType, ffgimportid)`**
-across configured packs + all readable installed packs + world items. Do **not** reuse `loadSource`
-(it has shop rarity/restricted gates and no talent/signature pool) or the cached
-`findCompendiumEntityByImportId` path (skips locked packs). Duplicate matches → **report ambiguity**,
+**Resolver.** Build a read-only index from the sources enabled in the PC creator settings. Reuse
+`loadSource` for its normal pools so pack configuration, per-user source selection, rarity, and
+restricted-item gates stay consistent with character creation. Load the configured talent and
+signature-ability packs explicitly because those settings are not represented in
+`SOURCE_DESCRIPTORS`. Match by `(itemType, ffgimportid)` and fall back to normalized name for
+keyless configured content such as some attachments. Duplicate matches → **report ambiguity**,
 don't last-match-win.
 
 **On match** → `toSelectionRef` → `toItemData(ref, {learnedKeys, rankGrants, nodeAttributeGrants})`.

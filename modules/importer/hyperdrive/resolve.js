@@ -55,11 +55,50 @@ export function entriesFromDocs(docs = []) {
   }).filter((entry) => entry.itemType);
 }
 
-export function collectImportEntries({ docLists = [], worldItems = [] } = {}) {
-  return [
+export function entriesFromSelectionRefs(refs = []) {
+  const seen = new Set();
+  const entries = [];
+  for (const ref of refs ?? []) {
+    const snapshot = structuredClone(ref?.snapshot ?? {});
+    const itemType = ref?.type ?? snapshot?.type;
+    if (!itemType) continue;
+    const uuid = ref?.uuid ?? `${itemType}:${snapshot?._id ?? ref?.name ?? snapshot?.name ?? ""}`;
+    if (seen.has(uuid)) continue;
+    seen.add(uuid);
+    entries.push({
+      itemType,
+      ffgimportid: snapshot?.flags?.starwarsffg?.ffgimportid ?? null,
+      ref: {
+        uuid,
+        name: ref?.name ?? snapshot?.name ?? "",
+        type: itemType,
+        img: ref?.img ?? snapshot?.img,
+        snapshot,
+      },
+    });
+  }
+  return entries;
+}
+
+export function collectImportEntries({
+  docLists = [],
+  worldItems = [],
+  selectionRefs = [],
+} = {}) {
+  const combined = [
     ...Array.from(docLists ?? []).flatMap((docs) => entriesFromDocs(docs)),
     ...entriesFromDocs(worldItems),
+    ...entriesFromSelectionRefs(selectionRefs),
   ];
+  const seen = new Set();
+  return combined.filter((entry) => {
+    const identity = entry?.ref?.uuid;
+    if (!identity || !seen.has(identity)) {
+      if (identity) seen.add(identity);
+      return true;
+    }
+    return false;
+  });
 }
 
 /**

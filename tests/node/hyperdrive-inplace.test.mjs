@@ -8,6 +8,7 @@ import { assignWizardIdentity } from "../../modules/char-creator/build-item-sche
 import { parseHyperdrive } from "../../modules/importer/hyperdrive/parse.js";
 import {
   buildArmourSource,
+  buildAttachmentSnapshot,
   buildCareerSource,
   buildGearSource,
   buildInPlace,
@@ -103,6 +104,188 @@ test("matched armour overlay preserves compendium effects and applies installed 
   assert.deepEqual(matched.effects[0], compendiumEffect);
   assert.equal(flat(matched).filter((change) => change.key === "system.stats.soak.value" && change.value === 1).length, 2);
   assert.equal(flat(matched).filter((change) => change.key === "system.stats.defence.melee" && change.value === 1).length, 2);
+});
+
+test("configured compendium attachments preserve documents and Hyperdrive mod states", () => {
+  const modifier = (key, name, attributes = {}) => ({
+    name,
+    type: "itemmodifier",
+    flags: { starwarsffg: { ffgimportid: key } },
+    system: { rank: 1, attributes },
+  });
+  const itemmodifierIndex = {
+    SETBACKSUB: modifier("SETBACKSUB", "Remove Setback", {
+      a: { modtype: "Roll Modifiers", mod: "Remove Setback", value: 1 },
+    }),
+    ACCURATE: modifier("ACCURATE", "Accurate Quality", {
+      a: { modtype: "Roll Modifiers", mod: "Add Boost", value: 1 },
+    }),
+    DAMADD: modifier("DAMADD", "Additional Damage Mod", {
+      a: { modtype: "Weapon Stat", mod: "damage", value: 1 },
+    }),
+    CONCUSSIVE: modifier("CONCUSSIVE", "Concussive Quality"),
+  };
+  const attachmentIndex = {
+    "name:custom grip": {
+      name: "Custom Grip",
+      type: "itemattachment",
+      system: { description: "Configured Custom Grip", itemmodifier: [] },
+      effects: [],
+    },
+    "name:weighted head": {
+      name: "Weighted Head",
+      type: "itemattachment",
+      system: { description: "Configured Weighted Head", itemmodifier: [] },
+      effects: [],
+    },
+    "name:passive foliage suit": {
+      name: "Passive Foliage Suit",
+      type: "itemattachment",
+      system: { description: "Configured Passive Foliage Suit", itemmodifier: [] },
+      effects: [],
+    },
+  };
+  const weapon = {
+    inventoryID: "RYYK_1",
+    ModStates: {
+      "RYYK_1-CUSTGRIP-ACCURATE": { installed: [true], failed: [false] },
+      "RYYK_1-WEIGHTHEAD-DAMADD": { installed: [true], failed: [false] },
+    },
+  };
+  const custom = buildAttachmentSnapshot({
+    Key: "CUSTGRIP",
+    Name: "Custom Grip",
+    BaseMods: [{ Key: "SETBACKSUB", Count: 1 }],
+    AddedMods: [{ Key: "ACCURATE", Count: 1 }],
+  }, weapon, { attachmentIndex, itemmodifierIndex });
+  assert.equal(custom.system.description, "Configured Custom Grip");
+  assert.equal(custom.system.itemmodifier.find((mod) => mod.name === "Remove Setback").system.active, true);
+  assert.equal(custom.system.itemmodifier.find((mod) => mod.name === "Accurate Quality").system.active, true);
+
+  const weighted = buildAttachmentSnapshot({
+    Key: "WEIGHTHEAD",
+    Name: "Weighted Head",
+    BaseMods: [{ Key: "DAMADD", Count: 1 }],
+    AddedMods: [
+      { Key: "DAMADD", Count: 1 },
+      { Key: "CONCUSSIVE", Count: 1 },
+    ],
+  }, weapon, { attachmentIndex, itemmodifierIndex });
+  assert.equal(weighted.system.description, "Configured Weighted Head");
+  assert.deepEqual(
+    weighted.system.itemmodifier.map((mod) => [mod.name, mod.system.active]),
+    [
+      ["Additional Damage Mod", true],
+      ["Additional Damage Mod", true],
+      ["Concussive Quality", false],
+    ],
+  );
+
+  const foliage = buildAttachmentSnapshot({
+    Key: "PASSFOLSUIT",
+    Name: "Passive Foliage Suit",
+    BaseMods: [{
+      MiscDesc: "Add [SE] to Perception or Vigilance checks made to detect this character.",
+    }],
+  }, { inventoryID: "CRESH_1" }, {
+    attachmentIndex,
+    itemmodifierIndex,
+    skillMeta: [
+      { skill: "Perception" },
+      { skill: "Vigilance" },
+    ],
+    ownerType: "armour",
+  });
+  assert.equal(foliage.system.description, "Configured Passive Foliage Suit");
+  assert.equal(foliage.system.itemmodifier[0].system.active, true);
+  assert.deepEqual(
+    Object.values(foliage.system.itemmodifier[0].system.attributes)
+      .map((attribute) => attribute.mod)
+      .sort(),
+    ["Perception", "Vigilance"],
+  );
+});
+
+test("matched equipment overlays configured qualities and attachment documents", () => {
+  const modifier = (key, name, attributes = {}) => ({
+    name,
+    type: "itemmodifier",
+    flags: { starwarsffg: { ffgimportid: key } },
+    system: { rank: 1, attributes },
+  });
+  const itemmodifierIndex = {
+    SUPERIOR: modifier("SUPERIOR", "Superior Quality", {
+      advantage: { modtype: "Result Modifiers", mod: "Add Advantage", value: 1 },
+      damage: { modtype: "Weapon Stat", mod: "damage", value: 1 },
+      soak: { modtype: "Armor Stat", mod: "soak", value: 1 },
+    }),
+    DEFENSIVE: modifier("DEFENSIVE", "Defensive Quality", {
+      defence: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+    }),
+    ACCURATE: modifier("ACCURATE", "Accurate Quality", {
+      boost: { modtype: "Roll Modifiers", mod: "Add Boost", value: 1 },
+    }),
+    SETBACKSUB: modifier("SETBACKSUB", "Remove Setback"),
+    DAMADD: modifier("DAMADD", "Additional Damage Mod", {
+      damage: { modtype: "Weapon Stat", mod: "damage", value: 1 },
+    }),
+  };
+  const attachmentIndex = {
+    CUSTGRIP: {
+      name: "Custom Grip",
+      type: "itemattachment",
+      system: { description: "Configured Custom Grip", itemmodifier: [] },
+      effects: [],
+    },
+    "name:weighted head": {
+      name: "Weighted Head",
+      type: "itemattachment",
+      system: { description: "Configured Weighted Head", itemmodifier: [] },
+      effects: [],
+    },
+  };
+  const raw = {
+    inventoryID: "RYYK_1",
+    Qualities: [
+      { Key: "DEFENSIVE", Count: 1 },
+      { Key: "SUPERIOR" },
+      { Key: "ACCURATE", Count: 1 },
+    ],
+    Attachments: [{
+      Key: "CUSTGRIP",
+      Name: "Custom Grip",
+      BaseMods: [{ Key: "SETBACKSUB", Count: 1 }],
+      AddedMods: [{ Key: "ACCURATE", Count: 1 }],
+    }, {
+      Key: "WEIGHTHEAD",
+      Name: "Weighted Head",
+      BaseMods: [{ Key: "DAMADD", Count: 1 }],
+      AddedMods: [{ Key: "DAMADD", Count: 1 }],
+    }],
+    ModStates: {
+      "RYYK_1-CUSTGRIP-ACCURATE": { installed: [true], failed: [false] },
+      "RYYK_1-WEIGHTHEAD-DAMADD": { installed: [true], failed: [false] },
+    },
+  };
+  const matched = {
+    name: "Ryyk Blade",
+    type: "weapon",
+    system: { itemmodifier: [], itemattachment: [] },
+    effects: [],
+  };
+  overlayInstance(matched, raw, { attachmentIndex, itemmodifierIndex });
+
+  assert.deepEqual(
+    matched.system.itemmodifier.map((mod) => mod.flags.starwarsffg.ffgimportid),
+    ["DEFENSIVE", "SUPERIOR"],
+  );
+  assert.ok(matched.system.itemmodifier.every((mod) => mod.system.active));
+  assert.equal(matched.system.itemattachment[0].system.description, "Configured Custom Grip");
+  assert.equal(matched.system.itemattachment[1].system.description, "Configured Weighted Head");
+  assert.equal(
+    flat(matched).filter((change) => change.key === "system.stats.defence.melee").length,
+    1,
+  );
 });
 
 test("overlay seeds effect names and identity stamping reaches nested attachments", async () => {

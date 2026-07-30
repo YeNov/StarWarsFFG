@@ -4,7 +4,7 @@
 
 **Goal:** Import a Hyperdrive Generator character JSON into a Foundry `starwarsffg` world as a `character` actor — matching content to compendia where possible (match-then-fallback for content *and* equipment), building it in-place with real synthesized Active Effects **attached to the items themselves** where not, and never failing silently.
 
-**Architecture:** A pure, fixture-tested `parse → resolve → to-actor` pipeline through the shared `assembleCharacterSource`. Characteristics/skills use a **build-items-only residual model** (equipment mods apply on top as items). Talents/powers → `learnedKeys` tree nodes. **Item modifiers/qualities/attachment-mods live inside their item** (`system.itemmodifier[]` / `system.itemattachment[]`) and their synthesized Active Effects are attached to the **item's** `effects` — reaching the actor only via normal owned-item effect transfer; the importer never materializes a second owner/character-level copy. **XP is derived.** Equipment resolves against an ungated `(itemType, ffgimportid)` index; **matches** use the compendium snapshot + `overlayInstance`; **misses** are built in-place. A per-actor ApplicationV2 dialog handles Override/Copy/Cancel and a full report.
+**Architecture:** A pure, fixture-tested `parse → resolve → to-actor` pipeline through the shared `assembleCharacterSource`. Characteristics/skills use a **build-items-only residual model** (equipment mods apply on top as items). Talents/powers → `learnedKeys` tree nodes. **Item modifiers/qualities/attachment-mods live inside their item** (`system.itemmodifier[]` / `system.itemattachment[]`) and their synthesized Active Effects are attached to the **item's** `effects` — reaching the actor only via normal owned-item effect transfer; the importer never materializes a second owner/character-level copy. **XP is derived.** Equipment resolves against the sources enabled in the PC creator settings; **matches** use the compendium snapshot + `overlayInstance`; **misses** are built in-place. A per-actor ApplicationV2 dialog handles Override/Copy/Cancel and a full report.
 
 **Tech Stack:** ES modules; `node:test` + `tests/node/_stub/foundry-stub.mjs`; ApplicationV2; dependency injection (`build-deps.js`).
 
@@ -98,7 +98,8 @@ export function buildImportIndex(entries) {
 
 ### Task 2.2: `entriesFromDocs` + `collectImportEntries` *(carried)*
 
-- [ ] Keeps keyless docs (name fallback); flattens all packs **incl. locked-but-readable** + world items. Live note: `game.packs` Item packs via `getDocuments()` including locked; `worldItems = game.items.contents`. Commit.
+- [ ] Keeps keyless docs (name fallback); consumes only sources enabled through the PC creator's
+  configured packs and per-user source selection. Commit.
 
 ---
 
@@ -461,10 +462,10 @@ test("non-unit installed Count multiplies", () => {
   const raw = { inventoryID: "X", Attachments: [{ Key: "A", BaseMods: [], AddedMods: [{ Key: "SOAKADD", Count: "2" }] }], ModStates: { "X-A-SOAKADD": { installed: [true], failed: [false] } } };
   assert.deepEqual(project(buildAttachmentEffects(raw, { itemmodifierIndex: IDX })), [{ key: "system.stats.soak.value", mode: AE_MODES.ADD, value: 2 }]);
 });
-test("matched attachment copies compendium effects; NO re-synthesis (dedup)", () => {
+test("matched attachment preserves its document while export mod state remains authoritative", () => {
   const raw = { inventoryID: "X", Attachments: [{ Key: "COMBTEST", BaseMods: [{ Key: "SOAKADD", Count: "1" }] }], ModStates: {} };
   const attachmentIndex = { COMBTEST: { effects: [{ name: "(pre)", changes: [{ key: "system.skills.Discipline.boost", mode: AE_MODES.ADD, value: 1 }] }] } };
-  assert.deepEqual(project(buildAttachmentEffects(raw, { itemmodifierIndex: IDX, attachmentIndex })), [{ key: "system.skills.Discipline.boost", mode: AE_MODES.ADD, value: 1 }]);
+  assert.deepEqual(project(buildAttachmentEffects(raw, { itemmodifierIndex: IDX, attachmentIndex })), [{ key: "system.stats.soak.value", mode: AE_MODES.ADD, value: 1 }]);
 });
 ```
 
@@ -579,7 +580,7 @@ export function buildInPlace(kind, entry, options = {}) {
 
 ### Task 5.2: Live pipeline + async preview/final bindings — Blockers 1/6
 
-- [ ] Import `applyCharacteristicDeltas`/`getActorCreationDefaults` as **named exports** from `modules/actors/actor-ffg.js` (`:929`/`:807`). Build live deps: `resolve` from `buildImportIndex(collectImportEntries({docLists, worldItems}))` (all readable Item packs incl. locked); derive `itemmodifierIndex`/`attachmentIndex` from index entries, `skillMap` + `skillMeta` from `CONFIG.FFG` skills; `toItemData` via `makeBuildDependencies(...)`; `assemble` binds explicit `{creationDefaults: getActorCreationDefaults("character"), applyCharacteristicDeltas}`; `preparePreview` (build items only) and `prepareFinal` construct `new CONFIG.Actor.documentClass(...)` (`prepareFinal` returns all six characteristics + wounds/strain/soak); `buildInPlace` = Phase-4 dispatcher. `const { actorData, report } = await hyperdriveToActorData(parsed, deps);`. **Verify** (manual). Commit.
+- [ ] Import `applyCharacteristicDeltas`/`getActorCreationDefaults` as **named exports** from `modules/actors/actor-ffg.js` (`:929`/`:807`). Build live deps: `resolve` from the PC creator's enabled/configured sources; derive `itemmodifierIndex`/`attachmentIndex` by key and normalized name, `skillMap` + `skillMeta` from `CONFIG.FFG` skills; `toItemData` via `makeBuildDependencies(...)`; `assemble` binds explicit `{creationDefaults: getActorCreationDefaults("character"), applyCharacteristicDeltas}`; `preparePreview` (build items only) and `prepareFinal` construct `new CONFIG.Actor.documentClass(...)` (`prepareFinal` returns all six characteristics + wounds/strain/soak); `buildInPlace` = Phase-4 dispatcher. `const { actorData, report } = await hyperdriveToActorData(parsed, deps);`. **Verify** (manual). Commit.
 
 ### Task 5.3: Collision (Override/Copy/Cancel) + identity + report UI (incl. drift + unmatched)
 
@@ -657,3 +658,8 @@ during the phases noted:
 5. **Preserve purchased skill ranks.** Hyperdrive stores purchased/manual ranks in
    `Skills[].value` and tracks free ranks separately in species, career, and specialization fields.
    Persist the exported skill value directly on the actor; imported item effects add the free ranks.
+6. **Reconcile attachments and qualities from configured sources.** Build the import index only
+   from sources enabled in the PC creator settings. Resolve attachments and item modifiers by
+   import key, with normalized-name fallback for keyless configured documents. Preserve the matched
+   compendium document while applying Hyperdrive's base/installed/failed mod state. Overlay missing
+   owner qualities without duplicating attachment-flattened qualities.

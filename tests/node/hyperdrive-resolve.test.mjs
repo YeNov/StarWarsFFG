@@ -7,6 +7,7 @@ import {
   buildSkillMetadata,
   collectImportEntries,
   entriesFromDocs,
+  entriesFromSelectionRefs,
   normalizeName,
 } from "../../modules/importer/hyperdrive/resolve.js";
 
@@ -44,6 +45,23 @@ test("doc collection keeps keyless docs and includes every supplied pack list pl
     worldItems: [doc("armour", "Three", "A1")],
   });
   assert.deepEqual(all.map((value) => value.ref.name), ["One", "Two", "Three"]);
+});
+
+test("configured PC-creator selection refs become deduplicated import entries", () => {
+  const refs = [{
+    uuid: "Compendium.selected.attachments.Item.one",
+    name: "Weighted Head",
+    type: "itemattachment",
+    snapshot: {
+      name: "Weighted Head",
+      type: "itemattachment",
+      flags: { starwarsffg: { ffgimportid: null } },
+    },
+  }];
+  const entries = entriesFromSelectionRefs([...refs, structuredClone(refs[0])]);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].ref.snapshot.name, "Weighted Head");
+  assert.equal(entries[0].itemType, "itemattachment");
 });
 
 test("live skill metadata uses import ids and the selected alternate skill theme", () => {

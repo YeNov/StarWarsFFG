@@ -6,9 +6,12 @@ import {
   buildModifierEffects,
   careerSkillFlagEffect,
   makeNamer,
+  normalizeMods,
+  ownerQualityMods,
   toModArray,
 } from "./effect-builders.js";
 import { hyperdriveImage } from "./parse.js";
+import { normalizeName } from "./resolve.js";
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -22,6 +25,13 @@ function number(value, fallback = 0) {
 
 function snapshotOf(value) {
   return value?.ref?.snapshot ?? value?.snapshot ?? value;
+}
+
+function indexedSnapshot(index, entry) {
+  const key = entry?.Key ?? entry?.key;
+  if (key && index?.[key]) return snapshotOf(index[key]);
+  const name = normalizeName(entry?.Name ?? entry?.name);
+  return name ? snapshotOf(index?.[`name:${name}`]) : null;
 }
 
 export function applyHyperdriveImage(source, raw) {
@@ -104,9 +114,9 @@ export function buildCareerSource(career, { careerSkillGrants = [] } = {}) {
   return { source, warnings: [] };
 }
 
-export function buildQualityModifiers(qualities, itemmodifierIndex = {}) {
+export function buildQualityModifiers(qualities, itemmodifierIndex = {}, opts = {}) {
   return toModArray(qualities).map((quality) => {
-    const matched = snapshotOf(itemmodifierIndex[quality?.Key]);
+    const matched = indexedSnapshot(itemmodifierIndex, quality);
     let source;
     if (matched) {
       source = stripIdentity(clone(matched));
@@ -120,40 +130,78 @@ export function buildQualityModifiers(qualities, itemmodifierIndex = {}) {
           description: quality?.MiscDesc ?? quality?.Description ?? "",
           type: "all",
           rank: 1,
-          attributes: {},
+          attributes: normalizeMods([quality], opts),
         },
       };
     }
     applyHyperdriveImage(source, quality);
     source.system ??= {};
     source.system.rank = number(quality?.Count, 1);
+    if (opts.active != null) source.system.active = Boolean(opts.active);
     return source;
   }).filter(Boolean);
 }
 
-export function buildAttachmentSnapshot(attachment, rawItem, itemmodifierIndex = {}) {
-  return {
-    name: attachment?.Name ?? attachment?.Key ?? "Attachment",
-    type: "itemattachment",
-    img: hyperdriveImage(attachment),
-    flags: {
-      starwarsffg: {
-        ffgimportid: attachment?.Key,
-        inventoryID: rawItem?.inventoryID,
-        modStates: clone(rawItem?.ModStates ?? {}),
+function installedModState(rawItem, attachment, mod) {
+  const key = mod?.Key ?? "undefined";
+  const state = rawItem?.ModStates?.[`${rawItem?.inventoryID}-${attachment?.Key}-${key}`];
+  const installed = (state?.installed ?? []).reduce(
+    (count, value, index) => count + (value === true && state?.failed?.[index] !== true ? 1 : 0),
+    0,
+  );
+  const failed = (state?.failed ?? []).some(Boolean);
+  return { installed, failed };
+}
+
+function setModifierState(source, { active, broken = false, rank = null }) {
+  source.system ??= {};
+  source.system.active = Boolean(active);
+  source.system.broken = Boolean(broken);
+  if (rank != null) source.system.rank = number(rank, 1);
+  return source;
+}
+
+export function buildAttachmentSnapshot(attachment, rawItem, opts = {}) {
+  const matched = indexedSnapshot(opts.attachmentIndex, attachment);
+  const source = matched
+    ? stripIdentity(clone(matched))
+    : {
+      name: attachment?.Name ?? attachment?.Key ?? "Attachment",
+      type: "itemattachment",
+      img: hyperdriveImage(attachment),
+      system: {
+        description: attachment?.Description ?? "",
+        type: String(attachment?.Type ?? "all").toLowerCase(),
+        hardpoints: { value: number(attachment?.HP ?? attachment?.HardPoints) },
+        attributes: {},
       },
-    },
-    system: {
-      description: attachment?.Description ?? "",
-      type: String(attachment?.Type ?? "all").toLowerCase(),
-      hardpoints: { value: number(attachment?.HP ?? attachment?.HardPoints) },
-      attributes: {},
-      itemmodifier: buildQualityModifiers(
-        [...toModArray(attachment?.BaseMods), ...toModArray(attachment?.AddedMods)],
-        itemmodifierIndex,
-      ),
+    };
+  applyHyperdriveImage(source, attachment);
+  source.flags = {
+    ...(source.flags ?? {}),
+    starwarsffg: {
+      ...(source.flags?.starwarsffg ?? {}),
+      ffgimportid: attachment?.Key ?? source.flags?.starwarsffg?.ffgimportid,
+      inventoryID: rawItem?.inventoryID,
+      modStates: clone(rawItem?.ModStates ?? {}),
     },
   };
+  source.system ??= {};
+  source.system.itemmodifier = [
+    ...buildQualityModifiers(attachment?.BaseMods, opts.itemmodifierIndex, opts)
+      .map((modifier) => setModifierState(modifier, { active: true })),
+    ...buildQualityModifiers(attachment?.AddedMods, opts.itemmodifierIndex, opts)
+      .map((modifier, index) => {
+        const rawMod = toModArray(attachment?.AddedMods)[index];
+        const state = installedModState(rawItem, attachment, rawMod);
+        return setModifierState(modifier, {
+          active: state.installed > 0,
+          broken: state.failed && state.installed === 0,
+          rank: rawMod?.Count,
+        });
+      }),
+  ];
+  return source;
 }
 
 function commonSystem(item) {
@@ -170,7 +218,7 @@ function commonSystem(item) {
 
 function buildEquipmentEffects(source, rawItem, opts) {
   const namer = makeNamer(source.effects?.map((effect) => effect.name));
-  const effectOpts = { ...opts, namer };
+  const effectOpts = { ...opts, ownerType: source.type, namer };
   source.effects = [
     ...buildItemEffects(source),
     ...buildModifierEffects(rawItem, effectOpts),
@@ -196,9 +244,16 @@ export function buildWeaponSource(weapon, opts = {}) {
       damage: { value: number(weapon?.Damage ?? weapon?.DamageAdd) },
       crit: { value: number(weapon?.Crit) },
       range: { value: weapon?.Range ?? "Engaged" },
-      itemmodifier: buildQualityModifiers(weapon?.Qualities, opts.itemmodifierIndex),
+      itemmodifier: buildQualityModifiers(ownerQualityMods(weapon), opts.itemmodifierIndex, {
+        ...opts,
+        active: true,
+        ownerType: "weapon",
+      }),
       itemattachment: (weapon?.Attachments ?? [])
-        .map((attachment) => buildAttachmentSnapshot(attachment, weapon, opts.itemmodifierIndex)),
+        .map((attachment) => buildAttachmentSnapshot(attachment, weapon, {
+          ...opts,
+          ownerType: "weapon",
+        })),
     },
   };
   buildEquipmentEffects(source, weapon, opts);
@@ -221,9 +276,16 @@ export function buildArmourSource(armour, opts = {}) {
       soak: { value: number(armour?.Soak) },
       defence: { value: number(armour?.Defense ?? armour?.Defence) },
       equippable: { equipped: false },
-      itemmodifier: buildQualityModifiers(armour?.Qualities, opts.itemmodifierIndex),
+      itemmodifier: buildQualityModifiers(ownerQualityMods(armour), opts.itemmodifierIndex, {
+        ...opts,
+        active: true,
+        ownerType: "armour",
+      }),
       itemattachment: (armour?.Attachments ?? [])
-        .map((attachment) => buildAttachmentSnapshot(attachment, armour, opts.itemmodifierIndex)),
+        .map((attachment) => buildAttachmentSnapshot(attachment, armour, {
+          ...opts,
+          ownerType: "armour",
+        })),
     },
   };
   buildEquipmentEffects(source, armour, opts);
@@ -243,13 +305,67 @@ export function buildGearSource(gear, opts = {}) {
     },
     system: {
       ...commonSystem(gear),
-      itemmodifier: buildQualityModifiers(gear?.Qualities, opts.itemmodifierIndex),
+      itemmodifier: buildQualityModifiers(ownerQualityMods(gear), opts.itemmodifierIndex, {
+        ...opts,
+        active: true,
+        ownerType: "gear",
+      }),
       itemattachment: (gear?.Attachments ?? [])
-        .map((attachment) => buildAttachmentSnapshot(attachment, gear, opts.itemmodifierIndex)),
+        .map((attachment) => buildAttachmentSnapshot(attachment, gear, {
+          ...opts,
+          ownerType: "gear",
+        })),
     },
   };
   buildEquipmentEffects(source, gear, opts);
   return { source, warnings: [] };
+}
+
+function embeddedIdentity(source) {
+  const key = source?.flags?.starwarsffg?.ffgimportid;
+  if (key) return `key:${key}`;
+  const name = normalizeName(source?.name);
+  return name ? `name:${name}` : null;
+}
+
+function mergeEmbedded(existing, imported) {
+  const output = [...(existing ?? [])];
+  const positions = new Map(output
+    .map((source, index) => [embeddedIdentity(source), index])
+    .filter(([identity]) => identity));
+  for (const source of imported ?? []) {
+    const identity = embeddedIdentity(source);
+    const index = identity ? positions.get(identity) : undefined;
+    if (index == null) {
+      output.push(source);
+      if (identity) positions.set(identity, output.length - 1);
+    } else {
+      output[index] = {
+        ...output[index],
+        ...source,
+        system: {
+          ...(output[index].system ?? {}),
+          ...(source.system ?? {}),
+        },
+      };
+    }
+  }
+  return output;
+}
+
+function changeIdentity(change) {
+  return JSON.stringify([change?.key, change?.mode, change?.value]);
+}
+
+function mergeEffects(existing, imported) {
+  const output = [...(existing ?? [])];
+  const existingChanges = new Set(output.flatMap((effect) => effect?.changes ?? []).map(changeIdentity));
+  for (const effect of imported ?? []) {
+    const changes = (effect?.changes ?? [])
+      .filter((change) => !existingChanges.has(changeIdentity(change)));
+    if (changes.length) output.push({ ...effect, changes });
+  }
+  return output;
 }
 
 export function overlayInstance(source, rawItem, opts = {}) {
@@ -266,22 +382,32 @@ export function overlayInstance(source, rawItem, opts = {}) {
       inventoryID: rawItem?.inventoryID,
     },
   };
-  source.system.itemattachment = [
-    ...(source.system.itemattachment ?? []),
-    ...(rawItem?.Attachments ?? [])
-      .map((attachment) => buildAttachmentSnapshot(attachment, rawItem, opts.itemmodifierIndex)),
-  ];
+  const ownerType = source.type;
+  const importedQualities = buildQualityModifiers(
+    ownerQualityMods(rawItem),
+    opts.itemmodifierIndex,
+    { ...opts, active: true, ownerType },
+  );
+  source.system.itemmodifier = mergeEmbedded(source.system.itemmodifier, importedQualities);
+  const importedAttachments = (rawItem?.Attachments ?? [])
+    .map((attachment) => buildAttachmentSnapshot(attachment, rawItem, {
+      ...opts,
+      ownerType,
+    }));
+  source.system.itemattachment = mergeEmbedded(source.system.itemattachment, importedAttachments);
   const existing = source.effects ?? [];
   const namer = makeNamer(existing.map((effect) => effect.name));
-  source.effects = [
-    ...existing,
-    ...buildAttachmentEffects(rawItem, { ...opts, namer }),
+  const instanceEffects = [
+    ...buildModifierEffects(rawItem, { ...opts, ownerType, namer }),
+    ...buildAttachmentEffects(rawItem, { ...opts, ownerType, namer }),
     ...buildCyberneticWoundEffects(rawItem, {
       ...opts,
+      ownerType,
       namer,
       existingEffects: existing,
     }),
   ];
+  source.effects = mergeEffects(existing, instanceEffects);
   return source;
 }
 
