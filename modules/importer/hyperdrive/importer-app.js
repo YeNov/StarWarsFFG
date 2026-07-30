@@ -15,6 +15,7 @@ import {
   buildSnapshotIndex,
   buildSkillMetadata,
   collectImportEntries,
+  resolveFindingOverride,
 } from "./resolve.js";
 import { buildInPlace } from "./in-place.js";
 import { hyperdriveToActorData } from "./to-actor.js";
@@ -60,7 +61,7 @@ async function collectLiveEntries() {
   return collectImportEntries({ selectionRefs, docLists: documentLists });
 }
 
-async function makeLiveDependencies() {
+async function makeLiveDependencies({ overrides = new Map() } = {}) {
   const entries = await collectLiveEntries();
   const resolve = buildImportIndex(entries);
   const buildDeps = makeBuildDependencies({
@@ -99,6 +100,8 @@ async function makeLiveDependencies() {
   };
   return {
     resolve,
+    resolveFinding: (kind, entry, options) =>
+      resolveFindingOverride(overrides, kind, entry, options),
     skillMap,
     skillMeta,
     itemmodifierIndex: buildSnapshotIndex(entries, "itemmodifier"),
@@ -174,6 +177,7 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
     actions: {
       import: HyperdriveImporter._onImport,
       reset: HyperdriveImporter._onReset,
+      clearResolution: HyperdriveImporter._onClearResolution,
     },
   };
 
@@ -189,6 +193,9 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
   importedActor = null;
   error = "";
   busy = false;
+  pending = null;
+  findings = [];
+  resolutions = new Map();
 
   async _prepareContext() {
     return {
@@ -196,31 +203,116 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
       importedActor: this.importedActor,
       error: this.error,
       busy: this.busy,
+      pending: Boolean(this.pending),
+      pendingFileName: this.pending?.fileName,
+      findings: this.findings.map((finding) => ({
+        ...finding,
+        resolution: this.resolutions.get(finding.slotId) ?? null,
+      })),
     };
   }
 
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    if (!this.element?.querySelector(".hyperdrive-resolution-drop")) return;
+    const dragDrop = new foundry.applications.ux.DragDrop({
+      dropSelector: ".hyperdrive-resolution-drop",
+      permissions: { drop: () => true },
+      callbacks: { drop: this._onDropResolution.bind(this) },
+    });
+    dragDrop.bind(this.element);
+  }
+
+  _resolutionOverrides() {
+    const overrides = new Map();
+    for (const finding of this.findings) {
+      const ref = this.resolutions.get(finding.slotId);
+      if (!ref) continue;
+      for (const alias of finding.aliases) overrides.set(alias, ref);
+    }
+    return overrides;
+  }
+
+  async _onDropResolution(event) {
+    let data;
+    try {
+      data = JSON.parse(event.dataTransfer.getData("text/plain"));
+    } catch {
+      return false;
+    }
+    if (data?.type !== "Item") {
+      ui.notifications.warn("Only Items can resolve Hyperdrive findings.");
+      return false;
+    }
+    let document;
+    try {
+      document = await Item.implementation.fromDropData(data);
+    } catch {
+      document = null;
+    }
+    if (!document) {
+      ui.notifications.warn("The dropped Item could not be loaded.");
+      return false;
+    }
+    const slot = event.target?.closest?.("[data-finding-id]")
+      ?? event.currentTarget?.closest?.("[data-finding-id]");
+    const slotId = slot?.dataset?.findingId;
+    if (!slotId) return false;
+    const snapshot = document.toObject();
+    this.resolutions.set(slotId, {
+      uuid: document.uuid,
+      name: document.name,
+      type: document.type,
+      img: document.img,
+      snapshot,
+    });
+    await this.render({ parts: ["content"] });
+    return true;
+  }
+
   static async _onImport() {
-    const input = this.element?.querySelector("input[type='file']");
-    const file = input?.files?.[0];
-    if (!file) {
-      ui.notifications.warn("Choose a Hyperdrive character JSON file first.");
-      return;
+    let parsed = this.pending?.parsed;
+    let fileName = this.pending?.fileName;
+    let file = null;
+    if (!parsed) {
+      const input = this.element?.querySelector("input[type='file']");
+      file = input?.files?.[0];
+      if (!file) {
+        ui.notifications.warn("Choose a Hyperdrive character JSON file first.");
+        return;
+      }
+      fileName = file.name;
     }
     this.busy = true;
     this.error = "";
     this.report = null;
     await this.render({ parts: ["content"] });
     try {
-      const raw = JSON.parse(await file.text());
-      const parsed = parseHyperdrive(raw);
-      const deps = await makeLiveDependencies();
+      if (!parsed) parsed = parseHyperdrive(JSON.parse(await file.text()));
+      const reviewing = Boolean(this.pending);
+      const deps = await makeLiveDependencies({
+        overrides: reviewing ? this._resolutionOverrides() : new Map(),
+      });
       const result = await hyperdriveToActorData(parsed, deps);
+      if (!reviewing && result.report.findings.length) {
+        this.pending = { parsed, fileName };
+        this.findings = result.report.findings.map((finding, index) => ({
+          ...finding,
+          slotId: `finding-${index}`,
+        }));
+        this.resolutions.clear();
+        ui.notifications.info("Review the unresolved Hyperdrive findings, then import again.");
+        return;
+      }
       const actor = await persistActor(result.actorData);
       if (!actor) {
         this.error = "Import cancelled.";
       } else {
         this.report = result.report;
         this.importedActor = { id: actor.id, name: actor.name };
+        this.pending = null;
+        this.findings = [];
+        this.resolutions.clear();
         ui.notifications.info(`Imported Hyperdrive character '${actor.name}'.`);
       }
     } catch (error) {
@@ -237,6 +329,14 @@ export default class HyperdriveImporter extends HandlebarsApplicationMixin(Appli
     this.report = null;
     this.importedActor = null;
     this.error = "";
+    this.pending = null;
+    this.findings = [];
+    this.resolutions.clear();
+    await this.render({ parts: ["content"] });
+  }
+
+  static async _onClearResolution(_event, target) {
+    this.resolutions.delete(target?.dataset?.findingId);
     await this.render({ parts: ["content"] });
   }
 }

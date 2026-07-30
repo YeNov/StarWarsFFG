@@ -149,14 +149,15 @@ function attributeAppliesToOwner(attribute, ownerType) {
 
 export function normalizeMods(
   mods,
-  {
+  options = {},
+) {
+  const {
     itemmodifierIndex = {},
     skillMap = {},
     skillMeta = [],
     ownerType = null,
     namer = makeNamer(),
-  } = {},
-) {
+  } = options;
   const attributes = {};
   const put = (attribute) => { attributes[namer()] = attribute; };
   const skillCounts = (mod, skill) => {
@@ -174,7 +175,7 @@ export function normalizeMods(
   };
 
   for (const mod of toModArray(mods)) {
-    const snapshot = findIndexedSnapshot(itemmodifierIndex, mod, { ownerType });
+    const snapshot = findIndexedSnapshot(itemmodifierIndex, mod, options);
     if (mod?.Key && OG_CHARACTERISTIC[mod.Key]) {
       put({ modtype: "Characteristic", mod: OG_CHARACTERISTIC[mod.Key], value: Number(mod.Count ?? 1) });
     } else if (snapshot) {

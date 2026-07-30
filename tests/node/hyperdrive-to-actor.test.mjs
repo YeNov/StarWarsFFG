@@ -6,6 +6,11 @@ import "./_stub/foundry-stub.mjs";
 import { AE_MODES } from "../../modules/config/ffg-active-effect-modes.js";
 import { assembleCharacterSource } from "../../modules/char-creator/assemble-character-source.js";
 import { parseHyperdrive } from "../../modules/importer/hyperdrive/parse.js";
+import {
+  buildSnapshotIndex,
+  resolutionAliases,
+  resolveFindingOverride,
+} from "../../modules/importer/hyperdrive/resolve.js";
 import { driftReport, hyperdriveToActorData } from "../../modules/importer/hyperdrive/to-actor.js";
 
 const RAW = JSON.parse(fs.readFileSync(new URL("./_fixtures/hyperdrive/mandalorian-warrior.json", import.meta.url)));
@@ -166,6 +171,60 @@ test("equipment falls back from an unknown export key to an expanded compendium 
   assert.equal(base.buildCalls.includes("UNARMED"), false);
 });
 
+test("a supplied finding resolution overrides automatic equipment matching", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  deps.resolveFinding = (kind, item) => kind === "weapon" && item.Key === "UNARMED"
+    ? {
+      uuid: "weapon:manual-unarmed",
+      name: "Manually Chosen Strike",
+      type: "weapon",
+      snapshot: {
+        name: "Manually Chosen Strike",
+        type: "weapon",
+        system: { itemmodifier: [], itemattachment: [] },
+        effects: [],
+      },
+    }
+    : null;
+
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+  assert.ok(actorData.items.some((item) => item.name === "Manually Chosen Strike"));
+  assert.equal(actorData.items.some((item) => item.name === "UNARMED"), false);
+});
+
+test("nested quality findings are reported and can be manually resolved", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const unresolved = basicDeps();
+  unresolved.deps.itemmodifierIndex = buildSnapshotIndex([], "itemmodifier");
+  const first = await hyperdriveToActorData(parsed, unresolved.deps);
+  assert.ok(first.report.findings.some((finding) =>
+    finding.kind === "itemmodifier" && finding.key === "INFERIOR"));
+
+  const selected = {
+    uuid: "itemmodifier:chosen-inferior",
+    name: "Chosen Inferior Quality",
+    type: "itemmodifier",
+    snapshot: {
+      name: "Chosen Inferior Quality",
+      type: "itemmodifier",
+      system: { type: "weapon", rank: 1, attributes: {} },
+      effects: [],
+    },
+  };
+  const aliases = resolutionAliases("itemmodifier", { Key: "INFERIOR" }, { ownerType: "weapon" });
+  const overrides = new Map(aliases.map((alias) => [alias, selected]));
+  const resolved = basicDeps();
+  resolved.deps.itemmodifierIndex = buildSnapshotIndex([], "itemmodifier");
+  resolved.deps.resolveFinding = (kind, entry, options) =>
+    resolveFindingOverride(overrides, kind, entry, options);
+  const second = await hyperdriveToActorData(parsed, resolved.deps);
+  assert.ok(second.actorData.items.some((item) =>
+    item.system?.itemmodifier?.some((modifier) => modifier.name === "Chosen Inferior Quality")));
+  assert.equal(second.report.findings.some((finding) =>
+    finding.kind === "itemmodifier" && finding.key === "INFERIOR"), false);
+});
+
 test("matched cybernetic is routed to compendium and its Brawn effect is preserved", async () => {
   const parsed = parseHyperdrive(RAW);
   const brawnEffect = {
@@ -314,6 +373,8 @@ test("unmatched equipment builds in-place and is included in the report", async 
   assert.equal(actorData.items.find((item) => item.type === "weapon").system.quantity.value, 1);
   assert.ok(report.unmatched.some((item) => item.kind === "armour" && item.key === "HC"));
   assert.ok(report.unmatched.some((item) => item.kind === "gear"));
+  assert.ok(report.findings.some((item) =>
+    item.kind === "armour" && item.key === "HC" && item.reason === "not-found"));
 });
 
 test("empty narrative placeholders are skipped with warnings instead of invalid items", async () => {

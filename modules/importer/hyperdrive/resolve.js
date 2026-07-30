@@ -64,6 +64,32 @@ function normalizeItemType(type) {
   return value === "armor" ? "armour" : value;
 }
 
+function resolutionAlias(itemType, field, value, ownerType = null) {
+  const normalized = normalizeName(value);
+  if (!normalized) return null;
+  return [
+    normalizeItemType(itemType),
+    normalizeItemType(ownerType),
+    field,
+    normalized,
+  ].join("|");
+}
+
+export function resolutionAliases(itemType, entry, { ownerType = null } = {}) {
+  return [
+    resolutionAlias(itemType, "key", entry?.Key ?? entry?.key, ownerType),
+    resolutionAlias(itemType, "name", entry?.Name ?? entry?.name, ownerType),
+  ].filter(Boolean);
+}
+
+export function resolveFindingOverride(overrides, itemType, entry, options = {}) {
+  for (const alias of resolutionAliases(itemType, entry, options)) {
+    const ref = overrides?.get?.(alias) ?? overrides?.[alias];
+    if (ref) return ref;
+  }
+  return null;
+}
+
 export function snapshotAppliesToOwner(snapshot, ownerType) {
   const owner = normalizeItemType(ownerType);
   if (!owner) return true;
@@ -94,13 +120,34 @@ export function buildSnapshotIndex(entries = [], itemType) {
     value: candidates,
     enumerable: false,
   });
+  Object.defineProperty(index, "__itemType", {
+    value: itemType,
+    enumerable: false,
+  });
   return index;
 }
 
-export function findIndexedSnapshot(index, entry, { ownerType = null } = {}) {
+export function findIndexedSnapshot(index, entry, options = {}) {
+  const { ownerType = null } = options;
   const key = String(entry?.Key ?? entry?.key ?? "").trim();
   const name = entry?.Name ?? entry?.name;
   const candidates = index?.__candidates ?? [];
+  const itemType = index?.__itemType;
+  const override = options.resolveFinding?.(itemType, entry, { ownerType });
+  const overrideSnapshot = override?.ref?.snapshot ?? override?.snapshot ?? override;
+  if (overrideSnapshot) return overrideSnapshot;
+  const canReport = itemType && (key || normalizeName(name));
+  const report = (reason, matches = []) => {
+    if (!canReport) return;
+    options.onResolutionFinding?.({
+      kind: itemType,
+      entry,
+      ownerType,
+      reason,
+      count: matches.length || undefined,
+      candidates: matches.map((candidate) => candidate.name).filter(Boolean),
+    });
+  };
   if (key && candidates.length) {
     const keyed = candidates.filter((candidate) =>
       candidate.key === key && snapshotAppliesToOwner(candidate.snapshot, ownerType));
@@ -109,11 +156,26 @@ export function findIndexedSnapshot(index, entry, { ownerType = null } = {}) {
       const named = keyed.filter((candidate) => looseNameScore(name, candidate.name) === 1000);
       if (named.length === 1) return named[0].snapshot;
     }
+    if (keyed.length > 1) {
+      report("ambiguous", keyed);
+      return keyed[0].snapshot;
+    }
   }
   if (key && index?.[key] && snapshotAppliesToOwner(index[key], ownerType)) return index[key];
 
   const normalizedName = normalizeName(name);
-  if (normalizedName && index?.[`name:${normalizedName}`]
+  if (normalizedName && candidates.length) {
+    const named = candidates.filter((candidate) =>
+      normalizeName(candidate.name) === normalizedName
+      && snapshotAppliesToOwner(candidate.snapshot, ownerType));
+    if (named.length === 1) return named[0].snapshot;
+    if (named.length > 1) {
+      report("ambiguous", named);
+      return named[0].snapshot;
+    }
+  }
+  if (normalizedName
+    && index?.[`name:${normalizedName}`]
     && snapshotAppliesToOwner(index[`name:${normalizedName}`], ownerType)) {
     return index[`name:${normalizedName}`];
   }
@@ -139,7 +201,13 @@ export function findIndexedSnapshot(index, entry, { ownerType = null } = {}) {
       best.push(candidate.snapshot);
     }
   }
-  return bestScore && best.length === 1 ? best[0] : null;
+  if (bestScore && best.length === 1) return best[0];
+  if (bestScore) {
+    report("ambiguous", candidates.filter((candidate) => best.includes(candidate.snapshot)));
+  } else {
+    report("not-found");
+  }
+  return null;
 }
 
 export function buildImportIndex(entries = []) {

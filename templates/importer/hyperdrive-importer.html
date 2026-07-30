@@ -1,15 +1,54 @@
 <section class="hyperdrive-importer">
-  <p>Choose a character JSON exported by Hyperdrive Generator. Compendium content is matched by import id; missing content is built in place and listed below.</p>
+  <p>Choose a character JSON exported by Hyperdrive Generator. Compendium content is matched by import id and compatible names; missing content is built in place.</p>
   <div class="form-group">
     <label>Character JSON</label>
+    {{#if pending}}
+    <span>{{pendingFileName}}</span>
+    {{else}}
     <input type="file" name="hyperdrive-json" accept=".json,application/json" {{#if busy}}disabled{{/if}}>
+    {{/if}}
   </div>
+
+  {{#if pending}}
+  <section class="hyperdrive-resolution-list">
+    <h2>Resolve findings <small>(optional)</small></h2>
+    <p>Drag any Item from the Items sidebar or a compendium onto a slot. Empty slots keep the importer's normal fallback.</p>
+    {{#each findings}}
+    <article class="hyperdrive-resolution-finding" data-finding-id="{{slotId}}">
+      <div class="hyperdrive-resolution-description">
+        <strong>{{kind}}{{#if ownerType}} for {{ownerType}}{{/if}}:</strong>
+        {{#if name}}{{name}}{{else}}{{key}}{{/if}}
+        <span class="hint">
+          {{#if (eq reason "ambiguous")}}
+          Ambiguous{{#if count}} ({{count}} matches){{/if}}
+          {{else}}
+          Not found
+          {{/if}}
+        </span>
+      </div>
+      <div class="hyperdrive-resolution-drop{{#if resolution}} resolved{{/if}}">
+        {{#if resolution}}
+        <img src="{{resolution.img}}" alt="">
+        <span><strong>{{resolution.name}}</strong><small>{{resolution.type}}</small></span>
+        <button type="button" class="icon" data-action="clearResolution" data-finding-id="{{slotId}}" title="Clear resolution">
+          <i class="fas fa-times"></i>
+        </button>
+        {{else}}
+        <i class="fas fa-download"></i>
+        <span>Resolve finding</span>
+        {{/if}}
+      </div>
+    </article>
+    {{/each}}
+  </section>
+  {{/if}}
+
   <div class="form-footer">
     <button type="button" data-action="import" {{#if busy}}disabled{{/if}}>
       <i class="fas fa-file-import"></i>
-      {{#if busy}}Importing…{{else}}Import Character{{/if}}
+      {{#if busy}}Importing…{{else}}{{#if pending}}Import Character{{else}}Review &amp; Import{{/if}}{{/if}}
     </button>
-    {{#if report}}
+    {{#if (or pending report)}}
     <button type="button" data-action="reset">Import Another</button>
     {{/if}}
   </div>
@@ -52,7 +91,7 @@
   {{#if report.ambiguities.length}}
   <ul>
     {{#each report.ambiguities}}
-    <li>{{itemType}}: {{#if key}}{{key}}{{else}}{{name}}{{/if}} ({{count}} matches; first used)</li>
+    <li>{{itemType}}: {{#if key}}{{key}}{{else}}{{name}}{{/if}} ({{count}} matches)</li>
     {{/each}}
   </ul>
   {{else}}

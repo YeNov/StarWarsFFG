@@ -12,6 +12,8 @@ import {
   findIndexedSnapshot,
   looseNameScore,
   normalizeName,
+  resolutionAliases,
+  resolveFindingOverride,
 } from "../../modules/importer/hyperdrive/resolve.js";
 
 const entry = (type, id, name, uuid = `${type}:${name}`, system = undefined) => ({
@@ -81,6 +83,53 @@ test("quality and attachment expansion respects the owning item type", () => {
     findIndexedSnapshot(attachments, { Name: "Superior" }, { ownerType: "weapon" }).name,
     "Superior Weapon Customization",
   );
+});
+
+test("manual finding resolutions use both exported keys and names", () => {
+  const raw = { Key: "SUPERIOR", Name: "Superior" };
+  const aliases = resolutionAliases("itemmodifier", raw, { ownerType: "weapon" });
+  const selected = { name: "Superior Weapon Customization", type: "itemmodifier" };
+  const overrides = new Map(aliases.map((alias) => [alias, selected]));
+  assert.equal(
+    resolveFindingOverride(overrides, "itemmodifier", { Key: "SUPERIOR" }, { ownerType: "weapon" }),
+    selected,
+  );
+  assert.equal(
+    resolveFindingOverride(overrides, "itemmodifier", { Name: "Superior" }, { ownerType: "weapon" }),
+    selected,
+  );
+  assert.equal(
+    resolveFindingOverride(overrides, "itemmodifier", raw, { ownerType: "armour" }),
+    null,
+  );
+});
+
+test("snapshot lookup reports unresolved findings and accepts a dragged override", () => {
+  const index = buildSnapshotIndex([], "itemmodifier");
+  const findings = [];
+  const entry = { Key: "SUPERIOR", Name: "Superior" };
+  assert.equal(findIndexedSnapshot(index, entry, {
+    ownerType: "weapon",
+    onResolutionFinding: (finding) => findings.push(finding),
+  }), null);
+  assert.equal(findings[0].reason, "not-found");
+  assert.equal(findings[0].kind, "itemmodifier");
+
+  const selected = {
+    ref: {
+      snapshot: {
+        name: "Chosen Superior",
+        type: "itemmodifier",
+        system: { type: "weapon" },
+      },
+    },
+  };
+  assert.equal(findIndexedSnapshot(index, entry, {
+    ownerType: "weapon",
+    resolveFinding: () => selected,
+    onResolutionFinding: (finding) => findings.push(finding),
+  }).name, "Chosen Superior");
+  assert.equal(findings.length, 1);
 });
 
 test("doc collection keeps keyless docs and includes every supplied pack list plus world items", () => {

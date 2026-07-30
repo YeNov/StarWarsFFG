@@ -1,6 +1,7 @@
 import { AE_MODES } from "../../config/ffg-active-effect-modes.js";
 import { careerSkillFlagEffect, explodeChanges } from "./effect-builders.js";
 import { applyHyperdriveImage, overlayInstance } from "./in-place.js";
+import { resolutionAliases } from "./resolve.js";
 
 function keyOf(entry) {
   return entry?.key ?? entry?.Key ?? null;
@@ -406,7 +407,44 @@ function contentDescriptors(parsed) {
   return descriptors;
 }
 
-function resolveMatch(resolve, kind, entry) {
+function addResolutionFinding(report, {
+  kind,
+  entry,
+  ownerType = null,
+  reason,
+  count,
+  candidates = [],
+  sourcePath = null,
+}) {
+  const aliases = resolutionAliases(kind, entry, { ownerType });
+  if (!aliases.length) return;
+  const existing = report.findings.find((finding) =>
+    finding.aliases.some((alias) => aliases.includes(alias)));
+  if (existing) {
+    existing.aliases = [...new Set([...existing.aliases, ...aliases])];
+    if (reason === "ambiguous") existing.reason = reason;
+    existing.count = Math.max(Number(existing.count ?? 0), Number(count ?? 0)) || undefined;
+    existing.candidates = [...new Set([...existing.candidates, ...candidates])];
+    return;
+  }
+  report.findings.push({
+    id: aliases[0],
+    aliases,
+    kind,
+    key: keyOf(entry),
+    name: nameOf(entry),
+    ownerType,
+    reason,
+    count,
+    candidates: [...new Set(candidates)],
+    sourcePath,
+  });
+}
+
+function resolveMatch(deps, kind, entry) {
+  const override = deps.resolveFinding?.(kind, entry);
+  if (override) return { itemType: override.type, ref: override };
+  const { resolve } = deps;
   const key = keyOf(entry);
   if (key) {
     const keyed = resolve.getByKey(kind, key);
@@ -429,6 +467,7 @@ export async function hyperdriveToActorData(parsed, deps) {
     warnings: [],
     unmatched: [],
     ambiguities: [],
+    findings: [],
     drift: [],
     cybernetics: (parsed.cybernetics ?? [])
       .filter(Boolean)
@@ -448,7 +487,7 @@ export async function hyperdriveToActorData(parsed, deps) {
   const careerGrants = careerSkillGrantsForItems(parsed);
   const dedicationBySpec = invertDedications(parsed.dedications);
   const specializationMatches = (parsed.specializations ?? [])
-    .map((spec) => resolveMatch(deps.resolve, "specialization", spec));
+    .map((spec) => resolveMatch(deps, "specialization", spec));
   const rankedTalentResidual = rankedTalentResidualEffects(parsed, {
     materializedSpecializationKeys: (parsed.specializations ?? [])
       .filter((spec, index) => specializationMatches[index])
@@ -464,7 +503,7 @@ export async function hyperdriveToActorData(parsed, deps) {
       );
       return;
     }
-    const match = resolveMatch(deps.resolve, kind, entry);
+    const match = resolveMatch(deps, kind, entry);
     if (match) {
       const source = deps.toItemData(match.ref, itemOptions);
       applyHyperdriveImage(source, entry);
@@ -478,7 +517,18 @@ export async function hyperdriveToActorData(parsed, deps) {
     applyHyperdriveImage(result.source, entry);
     buildItems.push(result.source);
     report.warnings.push(...(result.warnings ?? []));
-    report.unmatched.push({ kind, key: keyOf(entry) ?? nameOf(entry) });
+    report.unmatched.push({
+      kind,
+      key: keyOf(entry) ?? nameOf(entry),
+      name: nameOf(entry),
+      sourcePath,
+    });
+    addResolutionFinding(report, {
+      kind,
+      entry,
+      reason: "not-found",
+      sourcePath,
+    });
   };
 
   for (const descriptor of contentDescriptors(parsed)) {
@@ -514,6 +564,12 @@ export async function hyperdriveToActorData(parsed, deps) {
       source = result.source;
       report.warnings.push(...(result.warnings ?? []));
       report.unmatched.push({ kind: "specialization", key: keyOf(spec) ?? nameOf(spec) });
+      addResolutionFinding(report, {
+        kind: "specialization",
+        entry: spec,
+        reason: "not-found",
+        sourcePath: `Specializations[${index}]`,
+      });
     }
     applyHyperdriveImage(source, spec);
     const residualEffects = rankedTalentResidual.effectsBySpecialization[keyOf(spec)] ?? [];
@@ -543,6 +599,8 @@ export async function hyperdriveToActorData(parsed, deps) {
     skillMeta: deps.skillMeta ?? [],
     itemmodifierIndex: deps.itemmodifierIndex ?? {},
     attachmentIndex: deps.attachmentIndex ?? {},
+    resolveFinding: deps.resolveFinding,
+    onResolutionFinding: (finding) => addResolutionFinding(report, finding),
   };
   for (const [kind, list, sourcePath] of [
     ["weapon", parsed.weapons, "Weapons"],
@@ -558,7 +616,7 @@ export async function hyperdriveToActorData(parsed, deps) {
         );
         continue;
       }
-      const match = resolveMatch(deps.resolve, kind, item);
+      const match = resolveMatch(deps, kind, item);
       if (match) {
         const source = deps.toItemData(match.ref);
         overlayInstance(source, item, eqOpts);
@@ -567,7 +625,19 @@ export async function hyperdriveToActorData(parsed, deps) {
         const result = deps.buildInPlace(kind, item, eqOpts);
         equipmentItems.push(result.source);
         report.warnings.push(...(result.warnings ?? []));
-        report.unmatched.push({ kind, key: item.Key ?? item.Name });
+        const itemPath = `${sourcePath}[${index}]`;
+        report.unmatched.push({
+          kind,
+          key: item.Key ?? item.Name,
+          name: item.Name ?? "",
+          sourcePath: itemPath,
+        });
+        addResolutionFinding(report, {
+          kind,
+          entry: item,
+          reason: "not-found",
+          sourcePath: itemPath,
+        });
       }
     }
   }
@@ -614,6 +684,17 @@ export async function hyperdriveToActorData(parsed, deps) {
   });
   report.warnings.push(...(assembled.warnings ?? []));
   report.ambiguities = [...(deps.resolve.ambiguities ?? [])];
+  for (const ambiguity of report.ambiguities) {
+    addResolutionFinding(report, {
+      kind: ambiguity.itemType,
+      entry: {
+        ...(ambiguity.key ? { Key: ambiguity.key } : {}),
+        ...(ambiguity.name ? { Name: ambiguity.name } : {}),
+      },
+      reason: "ambiguous",
+      count: ambiguity.count,
+    });
+  }
   report.xp = { total: xp.total, spent: xp.spent, available: xp.available, breakdown: xp.breakdown };
   const prepared = await deps.prepareFinal(assembled.actorData);
   report.drift = driftReport(parsed, prepared);
