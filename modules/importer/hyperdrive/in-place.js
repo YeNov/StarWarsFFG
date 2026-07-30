@@ -12,7 +12,7 @@ import {
   toModArray,
 } from "./effect-builders.js";
 import { hyperdriveImage } from "./parse.js";
-import { normalizeName } from "./resolve.js";
+import { findIndexedSnapshot, normalizeName } from "./resolve.js";
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -22,17 +22,6 @@ function clone(value) {
 function number(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function snapshotOf(value) {
-  return value?.ref?.snapshot ?? value?.snapshot ?? value;
-}
-
-function indexedSnapshot(index, entry) {
-  const key = entry?.Key ?? entry?.key;
-  if (key && index?.[key]) return snapshotOf(index[key]);
-  const name = normalizeName(entry?.Name ?? entry?.name);
-  return name ? snapshotOf(index?.[`name:${name}`]) : null;
 }
 
 export function applyHyperdriveImage(source, raw) {
@@ -117,7 +106,7 @@ export function buildCareerSource(career, { careerSkillGrants = [] } = {}) {
 
 export function buildQualityModifiers(qualities, itemmodifierIndex = {}, opts = {}) {
   return toModArray(qualities).map((quality) => {
-    const matched = indexedSnapshot(itemmodifierIndex, quality);
+    const matched = findIndexedSnapshot(itemmodifierIndex, quality, opts);
     const targetRelative = isTargetRelativeModifier(quality);
     let source;
     if (matched) {
@@ -183,7 +172,7 @@ function modifierMatchesRaw(source, rawMod, opts = {}) {
   if (rawName && (sourceName === rawName || sourceName.includes(rawName))) return true;
   if (rawKey && sourceName.includes(rawKey)) return true;
 
-  const matched = indexedSnapshot(opts.itemmodifierIndex, rawMod);
+  const matched = findIndexedSnapshot(opts.itemmodifierIndex, rawMod, opts);
   const matchedName = normalizeName(matched?.name);
   return Boolean(matchedName && (sourceName === matchedName || sourceName.includes(matchedName)));
 }
@@ -254,7 +243,7 @@ function reconcileConfiguredAttachmentModifiers(source, attachment, rawItem, opt
 }
 
 export function buildAttachmentSnapshot(attachment, rawItem, opts = {}) {
-  const matched = indexedSnapshot(opts.attachmentIndex, attachment);
+  const matched = findIndexedSnapshot(opts.attachmentIndex, attachment, opts);
   const source = matched
     ? stripIdentity(clone(matched))
     : {

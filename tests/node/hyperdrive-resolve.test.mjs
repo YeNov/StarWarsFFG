@@ -4,17 +4,20 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import {
   buildImportIndex,
+  buildSnapshotIndex,
   buildSkillMetadata,
   collectImportEntries,
   entriesFromDocs,
   entriesFromSelectionRefs,
+  findIndexedSnapshot,
+  looseNameScore,
   normalizeName,
 } from "../../modules/importer/hyperdrive/resolve.js";
 
-const entry = (type, id, name, uuid = `${type}:${name}`) => ({
+const entry = (type, id, name, uuid = `${type}:${name}`, system = undefined) => ({
   itemType: type,
   ffgimportid: id,
-  ref: { uuid, type, name, snapshot: { name, type } },
+  ref: { uuid, type, name, snapshot: { name, type, ...(system ? { system } : {}) } },
 });
 
 test("resolves by typed key and normalized name; duplicates use first and report ambiguity", () => {
@@ -29,6 +32,55 @@ test("resolves by typed key and normalized name; duplicates use first and report
   assert.equal(index.getByName("weapon", "DEFENDER").ref.uuid, "first");
   assert.equal(index.ambiguities.length, 1);
   assert.equal(normalizeName("<em> Foo </em>"), "foo");
+});
+
+test("expanded compendium names resolve conservatively after exact names", () => {
+  const exact = entry("weapon", "EXACT", "Unarmed");
+  const expanded = entry("weapon", "EXPANDED", "Unarmed Strike");
+  let index = buildImportIndex([expanded, exact]);
+  assert.equal(index.getByName("weapon", "Unarmed"), exact);
+
+  index = buildImportIndex([expanded]);
+  assert.equal(index.getByName("weapon", "Unarmed"), expanded);
+  assert.ok(looseNameScore("Superior", "Superior Weapon Customization") > 0);
+  assert.equal(looseNameScore("Weighted Head", "Weapon Sling"), 0);
+});
+
+test("ambiguous expanded names are rejected and reported", () => {
+  const index = buildImportIndex([
+    entry("weapon", "ONE", "Unarmed Strike"),
+    entry("weapon", "TWO", "Unarmed Combat"),
+  ]);
+  assert.equal(index.getByName("weapon", "Unarmed"), null);
+  assert.deepEqual(index.ambiguities, [{
+    itemType: "weapon",
+    name: "unarmed",
+    count: 2,
+    loose: true,
+  }]);
+});
+
+test("quality and attachment expansion respects the owning item type", () => {
+  const entries = [
+    entry("itemmodifier", "SUPERIOR", "Superior Weapon Customization", "weapon-quality", { type: "weapon" }),
+    entry("itemmodifier", "SUPERIOR", "Superior Armor Customization", "armor-quality", { type: "armor" }),
+    entry("itemattachment", null, "Superior Weapon Customization", "weapon-attachment", { type: "weapon" }),
+    entry("itemattachment", null, "Superior Armor Customization", "armor-attachment", { type: "armor" }),
+  ];
+  const modifiers = buildSnapshotIndex(entries, "itemmodifier");
+  const attachments = buildSnapshotIndex(entries, "itemattachment");
+  assert.equal(
+    findIndexedSnapshot(modifiers, { Key: "SUPERIOR" }, { ownerType: "weapon" }).name,
+    "Superior Weapon Customization",
+  );
+  assert.equal(
+    findIndexedSnapshot(modifiers, { Key: "SUPERIOR" }, { ownerType: "armour" }).name,
+    "Superior Armor Customization",
+  );
+  assert.equal(
+    findIndexedSnapshot(attachments, { Name: "Superior" }, { ownerType: "weapon" }).name,
+    "Superior Weapon Customization",
+  );
 });
 
 test("doc collection keeps keyless docs and includes every supplied pack list plus world items", () => {

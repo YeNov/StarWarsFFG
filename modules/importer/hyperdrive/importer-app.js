@@ -12,9 +12,9 @@ import { toItemData } from "../../char-creator/to-item-data.js";
 import { parseHyperdrive, HYPERDRIVE_CHARACTERISTICS } from "./parse.js";
 import {
   buildImportIndex,
+  buildSnapshotIndex,
   buildSkillMetadata,
   collectImportEntries,
-  normalizeName,
 } from "./resolve.js";
 import { buildInPlace } from "./in-place.js";
 import { hyperdriveToActorData } from "./to-actor.js";
@@ -60,21 +60,6 @@ async function collectLiveEntries() {
   return collectImportEntries({ selectionRefs, docLists: documentLists });
 }
 
-function indexSnapshots(entries, type) {
-  const index = {};
-  for (const entry of entries) {
-    if (entry.itemType !== type) continue;
-    if (entry.ffgimportid && !index[entry.ffgimportid]) {
-      index[entry.ffgimportid] = entry.ref.snapshot;
-    }
-    const name = normalizeName(entry.ref?.name);
-    if (name && !index[`name:${name}`]) {
-      index[`name:${name}`] = entry.ref.snapshot;
-    }
-  }
-  return index;
-}
-
 async function makeLiveDependencies() {
   const entries = await collectLiveEntries();
   const resolve = buildImportIndex(entries);
@@ -116,8 +101,8 @@ async function makeLiveDependencies() {
     resolve,
     skillMap,
     skillMeta,
-    itemmodifierIndex: indexSnapshots(entries, "itemmodifier"),
-    attachmentIndex: indexSnapshots(entries, "itemattachment"),
+    itemmodifierIndex: buildSnapshotIndex(entries, "itemmodifier"),
+    attachmentIndex: buildSnapshotIndex(entries, "itemattachment"),
     toItemData: buildDeps.toItemData,
     buildInPlace,
     preparePreview,

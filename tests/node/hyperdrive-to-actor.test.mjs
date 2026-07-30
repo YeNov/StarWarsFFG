@@ -138,6 +138,34 @@ function basicDeps(overrides = {}) {
   return { deps, buildCalls };
 }
 
+test("equipment falls back from an unknown export key to an expanded compendium name", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const base = basicDeps();
+  const originalGet = base.deps.resolve.getByKey;
+  base.deps.resolve.getByKey = (type, key) =>
+    key === "UNARMED" ? null : originalGet(type, key);
+  base.deps.resolve.getByName = (type, name) => type === "weapon" && name === "Unarmed"
+    ? {
+      itemType: "weapon",
+      ref: {
+        uuid: "weapon:unarmed-strike",
+        name: "Unarmed Strike",
+        type: "weapon",
+        snapshot: {
+          name: "Unarmed Strike",
+          type: "weapon",
+          system: { itemmodifier: [], itemattachment: [] },
+          effects: [],
+        },
+      },
+    }
+    : null;
+
+  const { actorData } = await hyperdriveToActorData(parsed, base.deps);
+  assert.ok(actorData.items.some((item) => item.name === "Unarmed Strike"));
+  assert.equal(base.buildCalls.includes("UNARMED"), false);
+});
+
 test("matched cybernetic is routed to compendium and its Brawn effect is preserved", async () => {
   const parsed = parseHyperdrive(RAW);
   const brawnEffect = {
@@ -364,24 +392,37 @@ test("export skill ids provide a fallback map for in-place weapons", async () =>
   );
 });
 
-test("a present but unmatched key never falls back to name matching", async () => {
+test("a present but unmatched key falls back to name matching", async () => {
   const parsed = parseHyperdrive({
     ...RAW,
     Species: { ...RAW.Species, Key: "HOMEBREWSP" },
   });
-  let nameLookups = 0;
+  let speciesNameLookups = 0;
   const { deps } = basicDeps();
-  deps.resolve = {
-    getByKey: () => null,
-    getByName: () => {
-      nameLookups += 1;
-      return { ref: { uuid: "wrong", type: "species", snapshot: {} } };
-    },
-    ambiguities: [],
+  const originalGet = deps.resolve.getByKey;
+  deps.resolve.getByKey = (type, key) =>
+    type === "species" && key === "HOMEBREWSP" ? null : originalGet(type, key);
+  deps.resolve.getByName = (type, name) => {
+    if (type !== "species" || name !== RAW.Species.Name) return null;
+    speciesNameLookups += 1;
+    return {
+      ref: {
+        uuid: "species:expanded-name-match",
+        type: "species",
+        snapshot: {
+          name: "Mandalorian Human Species",
+          type: "species",
+          system: {},
+          effects: [],
+        },
+      },
+    };
   };
   const { actorData } = await hyperdriveToActorData(parsed, deps);
-  assert.equal(nameLookups, 1); // culture has no key; keyed entries do not use name fallback
-  assert.ok(actorData.items.some((item) => item.flags?.starwarsffg?.ffgimportid === "HOMEBREWSP"));
+  assert.equal(speciesNameLookups, 1);
+  assert.ok(actorData.items.some((item) => item.name === "Mandalorian Human Species"));
+  assert.equal(actorData.items.some((item) =>
+    item.flags?.starwarsffg?.ffgimportid === "HOMEBREWSP"), false);
 });
 
 test("matched career receives extra career-skill effects", async () => {

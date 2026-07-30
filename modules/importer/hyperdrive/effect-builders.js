@@ -1,6 +1,6 @@
 import ModifierHelpers from "../../helpers/modifiers.js";
 import { AE_MODES } from "../../config/ffg-active-effect-modes.js";
-import { normalizeName } from "./resolve.js";
+import { findIndexedSnapshot, normalizeName } from "./resolve.js";
 
 export const OG_CHARACTERISTIC = {
   BR: "Brawn",
@@ -104,17 +104,6 @@ const DIE_MODTYPE = {
   ForceCount: "Force Boost",
 };
 
-function snapshotOf(value) {
-  return value?.ref?.snapshot ?? value?.snapshot ?? value;
-}
-
-function indexedSnapshot(index, entry) {
-  const key = entry?.Key ?? entry?.key;
-  if (key && index?.[key]) return snapshotOf(index[key]);
-  const name = normalizeName(entry?.Name ?? entry?.name);
-  return name ? snapshotOf(index?.[`name:${name}`]) : null;
-}
-
 function modifierIdentity(mod) {
   const key = String(mod?.Key ?? mod?.key ?? "").trim();
   if (key) return `key:${key}`;
@@ -185,10 +174,10 @@ export function normalizeMods(
   };
 
   for (const mod of toModArray(mods)) {
+    const snapshot = findIndexedSnapshot(itemmodifierIndex, mod, { ownerType });
     if (mod?.Key && OG_CHARACTERISTIC[mod.Key]) {
       put({ modtype: "Characteristic", mod: OG_CHARACTERISTIC[mod.Key], value: Number(mod.Count ?? 1) });
-    } else if (indexedSnapshot(itemmodifierIndex, mod)) {
-      const snapshot = indexedSnapshot(itemmodifierIndex, mod);
+    } else if (snapshot) {
       const count = Number(mod.Count ?? 1);
       for (const attribute of Object.values(snapshot?.system?.attributes ?? {})) {
         if (!attributeAppliesToOwner(attribute, ownerType)) continue;

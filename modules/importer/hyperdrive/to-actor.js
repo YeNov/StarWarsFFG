@@ -408,7 +408,10 @@ function contentDescriptors(parsed) {
 
 function resolveMatch(resolve, kind, entry) {
   const key = keyOf(entry);
-  if (key) return resolve.getByKey(kind, key);
+  if (key) {
+    const keyed = resolve.getByKey(kind, key);
+    if (keyed) return keyed;
+  }
   const name = nameOf(entry);
   return name ? resolve.getByName(kind, name) : null;
 }
@@ -555,7 +558,7 @@ export async function hyperdriveToActorData(parsed, deps) {
         );
         continue;
       }
-      const match = deps.resolve.getByKey(kind, item.Key);
+      const match = resolveMatch(deps.resolve, kind, item);
       if (match) {
         const source = deps.toItemData(match.ref);
         overlayInstance(source, item, eqOpts);
