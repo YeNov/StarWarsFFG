@@ -292,6 +292,36 @@ test("unmatched equipment builds in-place and is included in the report", async 
   assert.ok(report.unmatched.some((item) => item.kind === "gear"));
 });
 
+test("empty narrative placeholders are skipped with warnings instead of invalid items", async () => {
+  const parsed = parseHyperdrive({
+    ...RAW,
+    Background: {
+      ...RAW.Background,
+      Culture: {},
+      Adventure: {},
+      Force: null,
+    },
+    Obligations: [{}],
+    Duties: [null],
+    Motivations: [],
+    Weapons: [null],
+  });
+  const { deps } = basicDeps();
+  const { actorData, report } = await hyperdriveToActorData(parsed, deps);
+
+  assert.ok(actorData.items.every((item) => String(item.name ?? "").trim()));
+  for (const path of [
+    "Background.Culture",
+    "Background.Adventure",
+    "Background.Force",
+    "Obligations[0]",
+    "Duties[0]",
+    "Weapons[0]",
+  ]) {
+    assert.ok(report.warnings.some((warning) => warning.includes(path)), `missing warning for ${path}`);
+  }
+});
+
 test("a present but unmatched key never falls back to name matching", async () => {
   const parsed = parseHyperdrive({
     ...RAW,

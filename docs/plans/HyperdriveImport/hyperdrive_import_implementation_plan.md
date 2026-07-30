@@ -632,3 +632,13 @@ during the phases noted:
    `attr0` (the lifecycle resolves effects by name — import-helpers.js:3150). Seed the namer from
    the names already present in `source.effects` (or skip reserved names). Add an overlay test whose
    matched source already contains `attr0` and assert name uniqueness afterward.
+
+### Importer hardening requirements (reported 2026-07-30)
+
+1. **Null/empty values are non-fatal.** A Hyperdrive export may contain `null`, `{}`, or a
+   placeholder array entry for optional content. The importer must continue importing the
+   character and add a specific warning to the import report instead of constructing an invalid
+   nameless item or rejecting the actor. This is especially important for narrative content such
+   as backgrounds, obligations, and duties. Add regression coverage for empty
+   `Background.Culture`, `Background.Adventure`, and `Background.Force` objects plus empty
+   obligation/duty entries.

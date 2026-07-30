@@ -10,6 +10,13 @@ function nameOf(entry) {
   return entry?.name ?? entry?.Name ?? "";
 }
 
+function hasContentIdentity(entry) {
+  return Boolean(
+    String(keyOf(entry) ?? "").trim()
+    || String(nameOf(entry) ?? "").trim(),
+  );
+}
+
 export function learnedKeysForSpec(spec) {
   const learned = [];
   for (let row = 0; row < (spec?.grid ?? []).length; row += 1) {
@@ -368,17 +375,33 @@ function trackFor(parsed) {
 }
 
 function contentDescriptors(parsed) {
-  const backgrounds = [
-    parsed.background?.culture,
-    parsed.background?.hook,
-    parsed.rules === "fad" ? parsed.background?.force : null,
-  ].filter(Boolean).map((entry) => ({ kind: "background", entry }));
-  return [
-    ...backgrounds,
-    ...(parsed.obligations ?? []).map((entry) => ({ kind: "obligation", entry })),
-    ...(parsed.duties ?? []).map((entry) => ({ kind: "obligation", entry })),
-    ...(parsed.motivations ?? []).map((entry) => ({ kind: "motivation", entry })),
-  ];
+  const raw = parsed.raw ?? {};
+  const descriptors = [];
+  const pushProperty = (rawParent, property, kind, entry, sourcePath) => {
+    if (rawParent && Object.prototype.hasOwnProperty.call(rawParent, property)) {
+      descriptors.push({ kind, entry, sourcePath });
+    }
+  };
+  const pushArray = (property, kind, entries) => {
+    if (!Object.prototype.hasOwnProperty.call(raw, property)) return;
+    if (raw[property] == null) {
+      descriptors.push({ kind, entry: null, sourcePath: property });
+      return;
+    }
+    (entries ?? []).forEach((entry, index) => {
+      descriptors.push({ kind, entry, sourcePath: `${property}[${index}]` });
+    });
+  };
+
+  pushProperty(raw.Background, "Culture", "background", parsed.background?.culture, "Background.Culture");
+  pushProperty(raw.Background, "Adventure", "background", parsed.background?.hook, "Background.Adventure");
+  if (parsed.rules === "fad") {
+    pushProperty(raw.Background, "Force", "background", parsed.background?.force, "Background.Force");
+  }
+  pushArray("Obligations", "obligation", parsed.obligations);
+  pushArray("Duties", "obligation", parsed.duties);
+  pushArray("Motivations", "motivation", parsed.motivations);
+  return descriptors;
 }
 
 function resolveMatch(resolve, kind, entry) {
@@ -402,8 +425,12 @@ export async function hyperdriveToActorData(parsed, deps) {
     unmatched: [],
     ambiguities: [],
     drift: [],
-    cybernetics: (parsed.cybernetics ?? []).map((item) => item.Name ?? item.Key),
-    skippedVehicles: (parsed.vehicles ?? []).map((item) => item.Name ?? item.Key),
+    cybernetics: (parsed.cybernetics ?? [])
+      .filter(Boolean)
+      .map((item) => item.Name ?? item.Key),
+    skippedVehicles: (parsed.vehicles ?? [])
+      .filter(Boolean)
+      .map((item) => item.Name ?? item.Key),
     metadata: {
       notes: parsed.notes,
       title: parsed.title,
@@ -425,24 +452,30 @@ export async function hyperdriveToActorData(parsed, deps) {
   report.warnings.push(...rankedTalentResidual.warnings);
 
   const addContent = (kind, entry, options = {}) => {
-    if (!entry) return;
+    const { sourcePath, ...itemOptions } = options;
+    if (!hasContentIdentity(entry)) {
+      report.warnings.push(
+        `Skipped empty Hyperdrive ${sourcePath ?? kind}; no key or name was supplied.`,
+      );
+      return;
+    }
     const match = resolveMatch(deps.resolve, kind, entry);
     if (match) {
-      const source = deps.toItemData(match.ref, options);
+      const source = deps.toItemData(match.ref, itemOptions);
       if (kind === "career" && careerGrants.career.length) {
         appendCareerSkillEffect(source, careerGrants.career);
       }
       buildItems.push(source);
       return;
     }
-    const result = deps.buildInPlace(kind, entry, options);
+    const result = deps.buildInPlace(kind, entry, itemOptions);
     buildItems.push(result.source);
     report.warnings.push(...(result.warnings ?? []));
     report.unmatched.push({ kind, key: keyOf(entry) ?? nameOf(entry) });
   };
 
   for (const descriptor of contentDescriptors(parsed)) {
-    addContent(descriptor.kind, descriptor.entry);
+    addContent(descriptor.kind, descriptor.entry, { sourcePath: descriptor.sourcePath });
   }
   addContent("species", parsed.species, { rankGrants: ranks.species });
   addContent("career", parsed.career, {
@@ -452,6 +485,10 @@ export async function hyperdriveToActorData(parsed, deps) {
 
   for (let index = 0; index < (parsed.specializations ?? []).length; index += 1) {
     const spec = parsed.specializations[index];
+    if (!hasContentIdentity(spec)) {
+      report.warnings.push(`Skipped empty Hyperdrive Specializations[${index}]; no key or name was supplied.`);
+      continue;
+    }
     const learnedKeys = learnedKeysForSpec(spec);
     const match = specializationMatches[index];
     let source;
@@ -494,13 +531,20 @@ export async function hyperdriveToActorData(parsed, deps) {
     itemmodifierIndex: deps.itemmodifierIndex ?? {},
     attachmentIndex: deps.attachmentIndex ?? {},
   };
-  for (const [kind, list] of [
-    ["weapon", parsed.weapons],
-    ["armour", parsed.armour],
-    ["gear", parsed.gear],
-    ["gear", parsed.cybernetics],
+  for (const [kind, list, sourcePath] of [
+    ["weapon", parsed.weapons, "Weapons"],
+    ["armour", parsed.armour, "Armor"],
+    ["gear", parsed.gear, "Gear"],
+    ["gear", parsed.cybernetics, "Gear"],
   ]) {
-    for (const item of list ?? []) {
+    for (let index = 0; index < (list ?? []).length; index += 1) {
+      const item = list[index];
+      if (!hasContentIdentity(item)) {
+        report.warnings.push(
+          `Skipped empty Hyperdrive ${sourcePath}[${index}]; no key or name was supplied.`,
+        );
+        continue;
+      }
       const match = deps.resolve.getByKey(kind, item.Key);
       if (match) {
         const source = deps.toItemData(match.ref);

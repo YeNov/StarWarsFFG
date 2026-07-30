@@ -49,10 +49,10 @@ function normalizeForcePowers(value) {
   if (Array.isArray(value)) {
     return value.map((power) => ({
       ...clone(power),
-      key: power.Key ?? power.key,
-      name: power.Name ?? power.name ?? power.Key ?? power.key,
-      grid: clone(power.grid ?? power.BoughtPowers ?? {}),
-      paidCosts: clone(power.PaidCosts ?? power.paidCosts ?? {}),
+      key: power?.Key ?? power?.key,
+      name: power?.Name ?? power?.name ?? power?.Key ?? power?.key,
+      grid: clone(power?.grid ?? power?.BoughtPowers ?? {}),
+      paidCosts: clone(power?.PaidCosts ?? power?.paidCosts ?? {}),
     }));
   }
   return Object.entries(value ?? {}).map(([key, power]) => ({

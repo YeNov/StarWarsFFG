@@ -271,7 +271,12 @@ export function overlayInstance(source, rawItem, opts = {}) {
 }
 
 export function buildStubSource(kind, entry) {
-  const name = entry?.Name ?? entry?.name ?? entry?.Key ?? entry?.key ?? kind;
+  const name = [
+    entry?.Name,
+    entry?.name,
+    entry?.Key,
+    entry?.key,
+  ].find((value) => String(value ?? "").trim()) ?? `Unnamed ${kind}`;
   return {
     source: {
       name,

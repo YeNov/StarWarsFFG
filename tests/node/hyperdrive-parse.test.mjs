@@ -60,6 +60,7 @@ test("preserves equipment instances, separates cybernetics, and normalizes narra
 
 test("is null-safe and infers non-Force rulesets", () => {
   assert.doesNotThrow(() => parseHyperdrive({}));
+  assert.doesNotThrow(() => parseHyperdrive({ ForcePowers: [null], Weapons: [null] }));
   assert.equal(parseHyperdrive({ Duties: [{}] }).rules, "aor");
   assert.equal(parseHyperdrive({}).rules, "eote");
   assert.equal(parseHyperdrive({ Credits: "not-a-number" }).credits, 0);
