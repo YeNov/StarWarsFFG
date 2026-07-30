@@ -198,12 +198,8 @@ test("configured compendium attachments preserve documents and Hyperdrive mod st
   });
   assert.equal(foliage.system.description, "Configured Passive Foliage Suit");
   assert.equal(foliage.system.itemmodifier[0].system.active, true);
-  assert.deepEqual(
-    Object.values(foliage.system.itemmodifier[0].system.attributes)
-      .map((attribute) => attribute.mod)
-      .sort(),
-    ["Perception", "Vigilance"],
-  );
+  assert.deepEqual(foliage.system.itemmodifier[0].system.attributes, {});
+  assert.equal(foliage.system.itemmodifier[0].flags.starwarsffg.targetRelative, true);
 });
 
 test("matched equipment overlays configured qualities and attachment documents", () => {

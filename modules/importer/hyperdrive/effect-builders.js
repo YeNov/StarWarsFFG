@@ -122,7 +122,7 @@ function modifierIdentity(mod) {
   return description ? `description:${description}` : null;
 }
 
-function isTargetRelativeModifier(mod) {
+export function isTargetRelativeModifier(mod) {
   const description = normalizeName(mod?.MiscDesc ?? mod?.Description);
   return description.includes("checks made to detect")
     || description.includes("checks against the character")

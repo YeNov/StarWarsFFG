@@ -5,6 +5,7 @@ import {
   buildItemEffects,
   buildModifierEffects,
   careerSkillFlagEffect,
+  isTargetRelativeModifier,
   makeNamer,
   normalizeMods,
   ownerQualityMods,
@@ -117,6 +118,7 @@ export function buildCareerSource(career, { careerSkillGrants = [] } = {}) {
 export function buildQualityModifiers(qualities, itemmodifierIndex = {}, opts = {}) {
   return toModArray(qualities).map((quality) => {
     const matched = indexedSnapshot(itemmodifierIndex, quality);
+    const targetRelative = isTargetRelativeModifier(quality);
     let source;
     if (matched) {
       source = stripIdentity(clone(matched));
@@ -137,6 +139,16 @@ export function buildQualityModifiers(qualities, itemmodifierIndex = {}, opts = 
     applyHyperdriveImage(source, quality);
     source.system ??= {};
     source.system.rank = number(quality?.Count, 1);
+    if (targetRelative) {
+      source.system.attributes = {};
+      source.flags = {
+        ...(source.flags ?? {}),
+        starwarsffg: {
+          ...(source.flags?.starwarsffg ?? {}),
+          targetRelative: true,
+        },
+      };
+    }
     if (opts.active != null) source.system.active = Boolean(opts.active);
     return source;
   }).filter(Boolean);
