@@ -106,6 +106,38 @@ test("matched armour overlay preserves compendium effects and applies installed 
   assert.equal(flat(matched).filter((change) => change.key === "system.stats.defence.melee" && change.value === 1).length, 2);
 });
 
+test("matched armour does not duplicate an equivalent exported base modifier", () => {
+  const compendiumEffect = {
+    name: "configured-vigilance",
+    changes: [{
+      key: "system.skills.Vigilance.advantage",
+      mode: AE_MODES.ADD,
+      value: "1",
+    }],
+  };
+  const matched = {
+    name: "Cresh \"Luck\" Armor",
+    type: "armour",
+    system: { itemattachment: [] },
+    effects: [compendiumEffect],
+  };
+  overlayInstance(matched, {
+    BaseMods: {
+      DieModifiers: [{
+        SkillKey: "VIGIL",
+        AdvantageCount: "1",
+      }],
+    },
+  }, {
+    skillMap: { VIGIL: "Vigilance" },
+  });
+  assert.equal(
+    flat(matched).filter((change) => change.key === "system.skills.Vigilance.advantage").length,
+    1,
+  );
+  assert.deepEqual(matched.effects[0], compendiumEffect);
+});
+
 test("configured compendium attachments preserve documents and Hyperdrive mod states", () => {
   const modifier = (key, name, attributes = {}) => ({
     name,

@@ -451,7 +451,16 @@ function mergeEmbedded(existing, imported) {
 }
 
 function changeIdentity(change) {
-  return JSON.stringify([change?.key, change?.mode, change?.value]);
+  const numericMode = Number(change?.mode);
+  const mode = Number.isFinite(numericMode) ? numericMode : change?.mode;
+  let value = change?.value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const numericValue = Number(value);
+    if (Number.isFinite(numericValue)) value = numericValue;
+    else if (value.trim().toLowerCase() === "true") value = true;
+    else if (value.trim().toLowerCase() === "false") value = false;
+  }
+  return JSON.stringify([change?.key, mode, value]);
 }
 
 function mergeEffects(existing, imported) {
