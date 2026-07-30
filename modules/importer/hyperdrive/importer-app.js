@@ -40,7 +40,7 @@ async function collectLiveEntries() {
   const documentLists = [];
   for (const poolKey of Object.keys(SOURCE_DESCRIPTORS)) {
     try {
-      selectionRefs.push(...await loadSource(poolKey));
+      selectionRefs.push(...await loadSource(poolKey, { ignoreAvailabilityGates: true }));
     } catch (error) {
       CONFIG.logger?.warn?.(`Hyperdrive importer could not read configured '${poolKey}' sources: ${error.message}`);
     }

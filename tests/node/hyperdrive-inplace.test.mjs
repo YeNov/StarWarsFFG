@@ -125,23 +125,64 @@ test("configured compendium attachments preserve documents and Hyperdrive mod st
     }),
     CONCUSSIVE: modifier("CONCUSSIVE", "Concussive Quality"),
   };
+  const attachmentModifier = (name, active, attributes = {}, description = name) => ({
+    name,
+    system: {
+      description,
+      active,
+      broken: false,
+      rank: 1,
+      attributes,
+    },
+  });
   const attachmentIndex = {
     "name:custom grip": {
       name: "Custom Grip",
       type: "itemattachment",
-      system: { description: "Configured Custom Grip", itemmodifier: [] },
+      system: {
+        description: "Configured Custom Grip",
+        itemmodifier: [
+          attachmentModifier("Accurate Quality", false, {
+            accurate: { modtype: "Roll Modifiers", mod: "Add Boost", value: 1 },
+          }),
+          attachmentModifier("Remove setback mod (base)", true, {
+            setback: { modtype: "Roll Modifiers", mod: "Remove Setback", value: 1 },
+          }),
+        ],
+      },
       effects: [],
     },
     "name:weighted head": {
       name: "Weighted Head",
       type: "itemattachment",
-      system: { description: "Configured Weighted Head", itemmodifier: [] },
+      system: {
+        description: "Configured Weighted Head",
+        itemmodifier: [
+          attachmentModifier("Additional Damage Mod (Base)", true, {
+            damage: { modtype: "Weapon Stat", mod: "damage", value: 1 },
+          }),
+          attachmentModifier("Additional Damage Mod", false, {
+            damage: { modtype: "Weapon Stat", mod: "damage", value: 1 },
+          }),
+          attachmentModifier("Concussive Quality", false),
+        ],
+      },
       effects: [],
     },
     "name:passive foliage suit": {
       name: "Passive Foliage Suit",
       type: "itemattachment",
-      system: { description: "Configured Passive Foliage Suit", itemmodifier: [] },
+      system: {
+        description: "Configured Passive Foliage Suit",
+        itemmodifier: [
+          attachmentModifier(
+            "Passive Foliage Suit (base)",
+            true,
+            {},
+            "Adds a setback to checks made to detect the wearer.",
+          ),
+        ],
+      },
       effects: [],
     },
   };
@@ -155,11 +196,15 @@ test("configured compendium attachments preserve documents and Hyperdrive mod st
   const custom = buildAttachmentSnapshot({
     Key: "CUSTGRIP",
     Name: "Custom Grip",
-    BaseMods: [{ Key: "SETBACKSUB", Count: 1 }],
+    BaseMods: [
+      { Key: "SETBACKSUB", Count: 1 },
+      { MiscDesc: "Anyone other than the owner adds [SE][SE] to combat checks." },
+    ],
     AddedMods: [{ Key: "ACCURATE", Count: 1 }],
   }, weapon, { attachmentIndex, itemmodifierIndex });
   assert.equal(custom.system.description, "Configured Custom Grip");
-  assert.equal(custom.system.itemmodifier.find((mod) => mod.name === "Remove Setback").system.active, true);
+  assert.equal(custom.system.itemmodifier.length, 2);
+  assert.equal(custom.system.itemmodifier.find((mod) => mod.name === "Remove setback mod (base)").system.active, true);
   assert.equal(custom.system.itemmodifier.find((mod) => mod.name === "Accurate Quality").system.active, true);
 
   const weighted = buildAttachmentSnapshot({
@@ -175,7 +220,7 @@ test("configured compendium attachments preserve documents and Hyperdrive mod st
   assert.deepEqual(
     weighted.system.itemmodifier.map((mod) => [mod.name, mod.system.active]),
     [
-      ["Additional Damage Mod", true],
+      ["Additional Damage Mod (Base)", true],
       ["Additional Damage Mod", true],
       ["Concussive Quality", false],
     ],
@@ -210,6 +255,7 @@ test("matched equipment overlays configured qualities and attachment documents",
     system: { rank: 1, attributes },
   });
   const itemmodifierIndex = {
+    CUMBERSOME: modifier("CUMBERSOME", "Cumbersome Quality"),
     SUPERIOR: modifier("SUPERIOR", "Superior Quality", {
       advantage: { modtype: "Result Modifiers", mod: "Add Advantage", value: 1 },
       damage: { modtype: "Weapon Stat", mod: "damage", value: 1 },
@@ -230,19 +276,38 @@ test("matched equipment overlays configured qualities and attachment documents",
     CUSTGRIP: {
       name: "Custom Grip",
       type: "itemattachment",
-      system: { description: "Configured Custom Grip", itemmodifier: [] },
+      system: {
+        description: "Configured Custom Grip",
+        itemmodifier: [{
+          name: "Accurate Quality",
+          system: { active: false, rank: 1, attributes: {} },
+        }, {
+          name: "Remove setback mod (base)",
+          system: { active: true, rank: 1, attributes: {} },
+        }],
+      },
       effects: [],
     },
     "name:weighted head": {
       name: "Weighted Head",
       type: "itemattachment",
-      system: { description: "Configured Weighted Head", itemmodifier: [] },
+      system: {
+        description: "Configured Weighted Head",
+        itemmodifier: [{
+          name: "Additional Damage Mod (Base)",
+          system: { active: true, rank: 1, attributes: {} },
+        }, {
+          name: "Additional Damage Mod",
+          system: { active: false, rank: 1, attributes: {} },
+        }],
+      },
       effects: [],
     },
   };
   const raw = {
     inventoryID: "RYYK_1",
     Qualities: [
+      { Key: "CUMBERSOME", Count: 3 },
       { Key: "DEFENSIVE", Count: 1 },
       { Key: "SUPERIOR" },
       { Key: "ACCURATE", Count: 1 },
@@ -266,18 +331,42 @@ test("matched equipment overlays configured qualities and attachment documents",
   const matched = {
     name: "Ryyk Blade",
     type: "weapon",
-    system: { itemmodifier: [], itemattachment: [] },
+    system: {
+      description: "Configured Ryyk Blade",
+      damage: { value: 2 },
+      characteristic: { value: "Brawn" },
+      itemmodifier: [
+        modifier("CUMBERSOME", "Cumbersome Quality"),
+        modifier("DEFENSIVE", "Defensive Quality"),
+        modifier("SUPERIOR", "Superior Quality"),
+      ],
+      itemattachment: [],
+    },
     effects: [],
   };
   overlayInstance(matched, raw, { attachmentIndex, itemmodifierIndex });
 
   assert.deepEqual(
-    matched.system.itemmodifier.map((mod) => mod.flags.starwarsffg.ffgimportid),
-    ["DEFENSIVE", "SUPERIOR"],
+    matched.system.itemmodifier.map((mod) => mod.name),
+    ["Cumbersome Quality", "Defensive Quality", "Superior Quality"],
   );
   assert.ok(matched.system.itemmodifier.every((mod) => mod.system.active));
+  assert.equal(matched.system.description, "Configured Ryyk Blade");
+  assert.equal(matched.system.damage.value, 2);
+  assert.equal(matched.system.characteristic.value, "Brawn");
   assert.equal(matched.system.itemattachment[0].system.description, "Configured Custom Grip");
   assert.equal(matched.system.itemattachment[1].system.description, "Configured Weighted Head");
+  assert.deepEqual(
+    matched.system.itemattachment.flatMap((attachment) => attachment.system.itemmodifier)
+      .filter((mod) => mod.system.active)
+      .map((mod) => mod.name),
+    [
+      "Accurate Quality",
+      "Remove setback mod (base)",
+      "Additional Damage Mod (Base)",
+      "Additional Damage Mod",
+    ],
+  );
   assert.equal(
     flat(matched).filter((change) => change.key === "system.stats.defence.melee").length,
     1,

@@ -10,6 +10,7 @@ import {
   SOURCE_DESCRIPTORS,
   getDescriptor,
   missingSourcePackIds,
+  passesSourceAvailabilityGate,
   sourceIdOf,
   sourcePackStatus,
   isSourceEnabled,
@@ -76,6 +77,19 @@ test("world items default off and require an explicit per-pool enable", () => {
   assert.equal(isSourceEnabled("gear", "world", { gear: ["enabled:world"] }), true);
   assert.equal(isSourceEnabled("gear", "world", { species: ["enabled:world"] }), false);
   assert.equal(isSourceEnabled("gear", "world", { gear: ["world", "enabled:world"] }), false);
+});
+
+test("import catalogs bypass purchase-time rarity and restricted gates", () => {
+  const rarityEight = { system: { rarity: { value: 8, isrestricted: true } } };
+  assert.equal(passesSourceAvailabilityGate(rarityEight, {
+    maxRarity: 6,
+    allowRestricted: false,
+  }), false);
+  assert.equal(passesSourceAvailabilityGate(rarityEight, {
+    maxRarity: 6,
+    allowRestricted: false,
+    ignoreAvailabilityGates: true,
+  }), true);
 });
 
 test("sourceSettingPackIds normalises comma-separated and array settings", () => {

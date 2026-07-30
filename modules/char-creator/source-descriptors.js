@@ -114,6 +114,26 @@ export function isSourceEnabled(poolKey, sourceId, exclusions = {}) {
 }
 
 /**
+ * Apply the PC creator's purchase-time rarity/restricted gates unless a caller is
+ * using the configured source list as a reconstruction catalog.
+ */
+export function passesSourceAvailabilityGate(
+  item,
+  {
+    maxRarity,
+    allowRestricted,
+    ignoreAvailabilityGates = false,
+  } = {},
+) {
+  if (ignoreAvailabilityGates) return true;
+  const rarity = Number(item?.system?.rarity?.value);
+  if (Number.isFinite(rarity) && Number.isFinite(Number(maxRarity)) && rarity > Number(maxRarity)) {
+    return false;
+  }
+  return allowRestricted || !item?.system?.rarity?.isrestricted;
+}
+
+/**
  * Normalise a source setting into a trimmed list of compendium ids. The legacy
  * settings are comma-separated strings, but accepting arrays keeps the UI ready
  * for a future settings migration.

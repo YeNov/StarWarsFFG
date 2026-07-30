@@ -173,6 +173,86 @@ function setModifierState(source, { active, broken = false, rank = null }) {
   return source;
 }
 
+function modifierMatchesRaw(source, rawMod, opts = {}) {
+  const rawKey = normalizeName(rawMod?.Key ?? rawMod?.key);
+  const sourceKey = normalizeName(source?.flags?.starwarsffg?.ffgimportid);
+  if (rawKey && sourceKey === rawKey) return true;
+
+  const sourceName = normalizeName(source?.name);
+  const rawName = normalizeName(rawMod?.Name ?? rawMod?.name);
+  if (rawName && (sourceName === rawName || sourceName.includes(rawName))) return true;
+  if (rawKey && sourceName.includes(rawKey)) return true;
+
+  const matched = indexedSnapshot(opts.itemmodifierIndex, rawMod);
+  const matchedName = normalizeName(matched?.name);
+  return Boolean(matchedName && (sourceName === matchedName || sourceName.includes(matchedName)));
+}
+
+function applyRawModifierMetadata(source, rawMod) {
+  const key = rawMod?.Key ?? rawMod?.key;
+  if (key) {
+    source.flags = {
+      ...(source.flags ?? {}),
+      starwarsffg: {
+        ...(source.flags?.starwarsffg ?? {}),
+        ffgimportid: key,
+      },
+    };
+  }
+  if (isTargetRelativeModifier(rawMod)) {
+    source.system ??= {};
+    source.system.attributes = {};
+    source.flags = {
+      ...(source.flags ?? {}),
+      starwarsffg: {
+        ...(source.flags?.starwarsffg ?? {}),
+        targetRelative: true,
+      },
+    };
+  }
+  return source;
+}
+
+function reconcileConfiguredAttachmentModifiers(source, attachment, rawItem, opts) {
+  const configured = clone(source?.system?.itemmodifier ?? []);
+  if (!configured.length) return null;
+
+  const claimed = new Set();
+  const claim = (rawMod, expectedActive) => {
+    const available = configured
+      .map((modifier, index) => ({ modifier, index }))
+      .filter(({ index }) => !claimed.has(index));
+    let candidate = available.find(({ modifier }) => modifierMatchesRaw(modifier, rawMod, opts));
+    candidate ??= available.find(
+      ({ modifier }) => Boolean(modifier?.system?.active) === expectedActive,
+    );
+    if (!candidate) return null;
+    claimed.add(candidate.index);
+    return candidate.modifier;
+  };
+
+  // Claim optional mods first. Some configured attachments list their options before
+  // their base mods, and freeform base-rule text may have no modifier row at all.
+  for (const rawMod of toModArray(attachment?.AddedMods)) {
+    const modifier = claim(rawMod, false);
+    if (!modifier) continue;
+    const state = installedModState(rawItem, attachment, rawMod);
+    applyRawModifierMetadata(modifier, rawMod);
+    setModifierState(modifier, {
+      active: state.installed > 0,
+      broken: state.failed && state.installed === 0,
+      rank: rawMod?.Count,
+    });
+  }
+  for (const rawMod of toModArray(attachment?.BaseMods)) {
+    const modifier = claim(rawMod, true);
+    if (!modifier) continue;
+    applyRawModifierMetadata(modifier, rawMod);
+    setModifierState(modifier, { active: true, rank: rawMod?.Count });
+  }
+  return configured;
+}
+
 export function buildAttachmentSnapshot(attachment, rawItem, opts = {}) {
   const matched = indexedSnapshot(opts.attachmentIndex, attachment);
   const source = matched
@@ -199,7 +279,12 @@ export function buildAttachmentSnapshot(attachment, rawItem, opts = {}) {
     },
   };
   source.system ??= {};
-  source.system.itemmodifier = [
+  source.system.itemmodifier = reconcileConfiguredAttachmentModifiers(
+    source,
+    attachment,
+    rawItem,
+    opts,
+  ) ?? [
     ...buildQualityModifiers(attachment?.BaseMods, opts.itemmodifierIndex, opts)
       .map((modifier) => setModifierState(modifier, { active: true })),
     ...buildQualityModifiers(attachment?.AddedMods, opts.itemmodifierIndex, opts)

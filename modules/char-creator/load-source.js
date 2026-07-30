@@ -8,7 +8,13 @@
  */
 
 import { FLAG_SCOPE, FLAGS } from "./constants.js";
-import { getDescriptor, sourceIdOf, isSourceEnabled, sourceSettingPackIds } from "./source-descriptors.js";
+import {
+  getDescriptor,
+  isSourceEnabled,
+  passesSourceAvailabilityGate,
+  sourceIdOf,
+  sourceSettingPackIds,
+} from "./source-descriptors.js";
 import { toSelectionRef } from "./wizard-state.js";
 
 /** poolKey → { signature, refs } cache, invalidated when the pool's inputs change. */
@@ -50,7 +56,16 @@ export function readExclusions() {
   return game.user.getFlag(FLAG_SCOPE, FLAGS.sourceSelection) ?? {};
 }
 
-function sourceCacheSignature(poolKey, descriptor, { exclusions, maxRarity, allowRestricted }) {
+function sourceCacheSignature(
+  poolKey,
+  descriptor,
+  {
+    exclusions,
+    maxRarity,
+    allowRestricted,
+    ignoreAvailabilityGates,
+  },
+) {
   const settingValue = game.settings.get(FLAG_SCOPE, descriptor.settingKey);
   const packs = sourceSettingPackIds(settingValue).map((packId) => {
     const pack = game.packs.get(packId);
@@ -66,6 +81,7 @@ function sourceCacheSignature(poolKey, descriptor, { exclusions, maxRarity, allo
     exclusions: [...new Set(exclusions?.[poolKey] ?? [])].sort(),
     maxRarity,
     allowRestricted: !!allowRestricted,
+    ignoreAvailabilityGates: !!ignoreAvailabilityGates,
   });
 }
 
@@ -77,23 +93,37 @@ function sourceCacheSignature(poolKey, descriptor, { exclusions, maxRarity, allo
  * `toObject()` snapshots and are cached per poolKey.
  *
  * @param {string} poolKey
- * @param {{exclusions?: Object<string, string[]>}} [options]
+ * @param {{
+ *   exclusions?: Object<string, string[]>,
+ *   ignoreAvailabilityGates?: boolean,
+ * }} [options]
  * @returns {Promise<Array<object>>} SelectionRefs
  */
-export async function loadSource(poolKey, { exclusions = readExclusions() } = {}) {
+export async function loadSource(
+  poolKey,
+  {
+    exclusions = readExclusions(),
+    ignoreAvailabilityGates = false,
+  } = {},
+) {
   const loadStartedAt = nowMs();
   const descriptor = getDescriptor(poolKey);
   const maxRarity = game.settings.get("starwarsffg", "maxRarity");
   const allowRestricted = game.settings.get("starwarsffg", "allowRestricted");
-  const signature = sourceCacheSignature(poolKey, descriptor, { exclusions, maxRarity, allowRestricted });
+  const signature = sourceCacheSignature(poolKey, descriptor, {
+    exclusions,
+    maxRarity,
+    allowRestricted,
+    ignoreAvailabilityGates,
+  });
   const cached = poolCache.get(poolKey);
   if (cached?.signature === signature) return cached.refs;
 
-  const passesGmGate = (item) => {
-    if (item.system?.rarity?.value > maxRarity) return false;
-    if (!allowRestricted && item.system?.rarity?.isrestricted) return false;
-    return true;
-  };
+  const passesGmGate = (item) => passesSourceAvailabilityGate(item, {
+    maxRarity,
+    allowRestricted,
+    ignoreAvailabilityGates,
+  });
 
   const refs = [];
 

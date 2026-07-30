@@ -662,4 +662,7 @@ during the phases noted:
    from sources enabled in the PC creator settings. Resolve attachments and item modifiers by
    import key, with normalized-name fallback for keyless configured documents. Preserve the matched
    compendium document while applying Hyperdrive's base/installed/failed mod state. Overlay missing
-   owner qualities without duplicating attachment-flattened qualities.
+   owner qualities without duplicating attachment-flattened qualities. Treat the configured packs
+   as the import catalog boundary, but do not apply purchase-time rarity/restricted gates when
+   reconstructing an existing character. Reconcile states onto the matched attachment's existing
+   modifier rows so technical export keys do not replace compendium names and descriptions.
