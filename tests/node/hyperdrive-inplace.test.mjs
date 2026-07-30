@@ -294,7 +294,7 @@ test("matched equipment overlays configured qualities and attachment documents",
       soak: { modtype: "Armor Stat", mod: "soak", value: 1 },
     }),
     DEFENSIVE: modifier("DEFENSIVE", "Defensive Quality", {
-      defence: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+      defence: { modtype: "Stat", mod: "Defence-Melee", value: 99 },
     }),
     ACCURATE: modifier("ACCURATE", "Accurate Quality", {
       boost: { modtype: "Roll Modifiers", mod: "Add Boost", value: 1 },
@@ -331,6 +331,9 @@ test("matched equipment overlays configured qualities and attachment documents",
         }, {
           name: "Additional Damage Mod",
           system: { active: false, rank: 1, attributes: {} },
+        }, {
+          name: "Concussive Quality",
+          system: { active: false, rank: 1, attributes: {} },
         }],
       },
       effects: [],
@@ -353,7 +356,10 @@ test("matched equipment overlays configured qualities and attachment documents",
       Key: "WEIGHTHEAD",
       Name: "Weighted Head",
       BaseMods: [{ Key: "DAMADD", Count: 1 }],
-      AddedMods: [{ Key: "DAMADD", Count: 1 }],
+      AddedMods: [
+        { Key: "DAMADD", Count: 1 },
+        { Key: "CONCUSSIVE", Count: 1 },
+      ],
     }],
     ModStates: {
       "RYYK_1-CUSTGRIP-ACCURATE": { installed: [true], failed: [false] },
@@ -368,21 +374,82 @@ test("matched equipment overlays configured qualities and attachment documents",
       damage: { value: 2 },
       characteristic: { value: "Brawn" },
       itemmodifier: [
-        modifier("CUMBERSOME", "Cumbersome Quality"),
-        modifier("DEFENSIVE", "Defensive Quality"),
-        modifier("SUPERIOR", "Superior Quality"),
+        {
+          ...modifier("CUMBERSOME", "Cumbersome Quality"),
+          system: {
+            description: "Weapon-configured Cumbersome",
+            rank: 3,
+            attributes: { configured: { modtype: "Weapon Stat", mod: "damage", value: 17 } },
+          },
+        },
+        {
+          ...modifier("DEFENSIVE", "Defensive Quality"),
+          system: {
+            description: "Weapon-configured Defensive",
+            rank: 1,
+            attributes: {
+              configuredDefence: {
+                modtype: "Stat",
+                mod: "Defence-Melee",
+                value: 1,
+              },
+            },
+          },
+        },
+        {
+          ...modifier("SUPERIOR", "Superior Quality"),
+          system: {
+            description: "Weapon-configured Superior",
+            rank: 1,
+            attributes: {},
+          },
+        },
       ],
       itemattachment: [],
     },
     effects: [],
   };
-  overlayInstance(matched, raw, { attachmentIndex, itemmodifierIndex });
+  const itemmodifierReads = [];
+  const guardedItemmodifierIndex = new Proxy(itemmodifierIndex, {
+    get(target, key, receiver) {
+      if (typeof key === "string") itemmodifierReads.push(key);
+      return Reflect.get(target, key, receiver);
+    },
+  });
+  overlayInstance(matched, raw, {
+    attachmentIndex,
+    itemmodifierIndex: guardedItemmodifierIndex,
+  });
 
   assert.deepEqual(
     matched.system.itemmodifier.map((mod) => mod.name),
     ["Cumbersome Quality", "Defensive Quality", "Superior Quality"],
   );
-  assert.ok(matched.system.itemmodifier.every((mod) => mod.system.active));
+  assert.deepEqual(
+    itemmodifierReads.filter((key) =>
+      ["CUMBERSOME", "DEFENSIVE", "SUPERIOR"].includes(key)),
+    [],
+  );
+  assert.equal(
+    matched.system.itemmodifier[0].system.description,
+    "Weapon-configured Cumbersome",
+  );
+  assert.equal(matched.system.itemmodifier[0].system.rank, 3);
+  assert.deepEqual(matched.system.itemmodifier[0].system.attributes, {
+    configured: { modtype: "Weapon Stat", mod: "damage", value: 17 },
+  });
+  assert.equal(
+    matched.system.itemmodifier[1].system.description,
+    "Weapon-configured Defensive",
+  );
+  assert.equal(
+    matched.system.itemmodifier[1].system.attributes.configuredDefence.value,
+    1,
+  );
+  assert.equal(
+    matched.system.itemmodifier[2].system.description,
+    "Weapon-configured Superior",
+  );
   assert.equal(matched.system.description, "Configured Ryyk Blade");
   assert.equal(matched.system.damage.value, 2);
   assert.equal(matched.system.characteristic.value, "Brawn");
@@ -400,7 +467,14 @@ test("matched equipment overlays configured qualities and attachment documents",
     ],
   );
   assert.equal(
-    flat(matched).filter((change) => change.key === "system.stats.defence.melee").length,
+    matched.system.itemattachment[1].system.itemmodifier
+      .find((mod) => mod.name === "Concussive Quality").system.active,
+    false,
+  );
+  assert.equal(
+    flat(matched)
+      .filter((change) => change.key === "system.stats.defence.melee")
+      .reduce((total, change) => total + Number(change.value), 0),
     1,
   );
 });

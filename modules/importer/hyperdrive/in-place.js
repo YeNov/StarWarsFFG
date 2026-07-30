@@ -5,6 +5,7 @@ import {
   buildItemEffects,
   buildModifierEffects,
   careerSkillFlagEffect,
+  effectsFromAttributes,
   isTargetRelativeModifier,
   makeNamer,
   normalizeMods,
@@ -162,7 +163,7 @@ function setModifierState(source, { active, broken = false, rank = null }) {
   return source;
 }
 
-function modifierMatchesRaw(source, rawMod, opts = {}) {
+function modifierDirectlyMatchesRaw(source, rawMod) {
   const rawKey = normalizeName(rawMod?.Key ?? rawMod?.key);
   const sourceKey = normalizeName(source?.flags?.starwarsffg?.ffgimportid);
   if (rawKey && sourceKey === rawKey) return true;
@@ -171,8 +172,14 @@ function modifierMatchesRaw(source, rawMod, opts = {}) {
   const rawName = normalizeName(rawMod?.Name ?? rawMod?.name);
   if (rawName && (sourceName === rawName || sourceName.includes(rawName))) return true;
   if (rawKey && sourceName.includes(rawKey)) return true;
+  return false;
+}
+
+function modifierMatchesRaw(source, rawMod, opts = {}) {
+  if (modifierDirectlyMatchesRaw(source, rawMod)) return true;
 
   const matched = findIndexedSnapshot(opts.itemmodifierIndex, rawMod, opts);
+  const sourceName = normalizeName(source?.name);
   const matchedName = normalizeName(matched?.name);
   return Boolean(matchedName && (sourceName === matchedName || sourceName.includes(matchedName)));
 }
@@ -463,6 +470,21 @@ function mergeEffects(existing, imported) {
   return output;
 }
 
+function buildConfiguredQualityEffects(qualities, namer) {
+  const attributes = {};
+  for (const quality of qualities ?? []) {
+    if (quality?.system?.active === false || quality?.system?.broken === true) continue;
+    const rank = number(quality?.system?.rank, 1);
+    for (const attribute of Object.values(quality?.system?.attributes ?? {})) {
+      attributes[namer()] = {
+        ...attribute,
+        value: number(attribute?.value) * rank,
+      };
+    }
+  }
+  return effectsFromAttributes(attributes);
+}
+
 export function overlayInstance(source, rawItem, opts = {}) {
   applyHyperdriveImage(source, rawItem);
   source.system ??= {};
@@ -478,12 +500,16 @@ export function overlayInstance(source, rawItem, opts = {}) {
     },
   };
   const ownerType = source.type;
+  const existingQualities = source.system.itemmodifier ?? [];
+  const missingQualities = ownerQualityMods(rawItem).filter((quality) =>
+    !existingQualities.some((configured) => modifierDirectlyMatchesRaw(configured, quality))
+    && !existingQualities.some((configured) => modifierMatchesRaw(configured, quality, opts)));
   const importedQualities = buildQualityModifiers(
-    ownerQualityMods(rawItem),
+    missingQualities,
     opts.itemmodifierIndex,
     { ...opts, active: true, ownerType },
   );
-  source.system.itemmodifier = mergeEmbedded(source.system.itemmodifier, importedQualities);
+  source.system.itemmodifier = [...existingQualities, ...importedQualities];
   const importedAttachments = (rawItem?.Attachments ?? [])
     .map((attachment) => buildAttachmentSnapshot(attachment, rawItem, {
       ...opts,
@@ -492,8 +518,10 @@ export function overlayInstance(source, rawItem, opts = {}) {
   source.system.itemattachment = mergeEmbedded(source.system.itemattachment, importedAttachments);
   const existing = source.effects ?? [];
   const namer = makeNamer(existing.map((effect) => effect.name));
+  const rawMissingQualities = { ...rawItem, Qualities: missingQualities };
   const instanceEffects = [
-    ...buildModifierEffects(rawItem, { ...opts, ownerType, namer }),
+    ...buildConfiguredQualityEffects(existingQualities, namer),
+    ...buildModifierEffects(rawMissingQualities, { ...opts, ownerType, namer }),
     ...buildAttachmentEffects(rawItem, { ...opts, ownerType, namer }),
     ...buildCyberneticWoundEffects(rawItem, {
       ...opts,
