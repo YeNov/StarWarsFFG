@@ -20,6 +20,7 @@ import {
 } from "./resolve.js";
 import { buildInPlace } from "./in-place.js";
 import { hyperdriveToActorData } from "./to-actor.js";
+import { replaceActor } from "./persist.js";
 
 const { ApplicationV2, DialogV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -209,19 +210,11 @@ async function persistActor(actorData) {
     return Actor.create(actorData, { keepId: true });
   }
   if (action === "override") {
-    const ids = existing.items.map((item) => item.id);
-    if (ids.length) await existing.deleteEmbeddedDocuments("Item", ids);
-    await existing.update({
-      name: actorData.name,
-      img: actorData.img,
-      system: actorData.system,
-      flags: actorData.flags,
-      prototypeToken: actorData.prototypeToken,
-    });
-    if (actorData.items.length) {
-      await existing.createEmbeddedDocuments("Item", actorData.items, { keepId: true });
-    }
-    return existing;
+    return replaceActor(
+      existing,
+      actorData,
+      (source, options) => Actor.create(source, options),
+    );
   }
   return Actor.create(actorData, { keepId: true });
 }
