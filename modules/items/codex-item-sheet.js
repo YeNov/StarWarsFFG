@@ -197,18 +197,28 @@ export class CodexItemSheet extends ItemSheetFFG {
     root?.querySelectorAll?.(".cdx-item-ammo-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();
+        ev.stopPropagation();
         if (!this.isEditable) return;
+        const value = ev.currentTarget.closest(".cdx-item-ammo")?.querySelector(".cdx-item-ammo-cur");
         const dir = Number(ev.currentTarget.dataset.dir) || 0;
         const max = getAmmoMax(this.item);
-        let current = getAmmoValue(this.item) + dir;
+        const displayed = parseInt(value?.textContent ?? "", 10);
+        let current = (Number.isFinite(displayed) ? displayed : getAmmoValue(this.item)) + dir;
         current = Math.max(0, max ? Math.min(max, current) : current);
+        if (value) value.textContent = String(current);
+
+        // Serialize writes while leaving the visible counter optimistic. Without
+        // this queue, a second quick click reads the still-stale Item document and
+        // writes the same value as the first click, making the control feel like it
+        // requires a double-click.
+        const previousWrite = this._cdxAmmoUpdate?.catch(() => undefined) ?? Promise.resolve();
+        this._cdxAmmoUpdate = previousWrite.then(() => this.item.update({ "system.ammo.value": current }, { render: false }));
         try {
-          await this.item.update({ "system.ammo.value": current }, { render: false });
+          await this._cdxAmmoUpdate;
         } catch (e) {
+          if (value?.textContent === String(current)) value.textContent = String(getAmmoValue(this.item));
           return;
         }
-        const value = ev.currentTarget.closest(".cdx-item-ammo")?.querySelector(".cdx-item-ammo-cur");
-        if (value) value.textContent = String(current);
       });
     });
     // Price — same comma rules as actor credits. The field is NOT Foundry-bound

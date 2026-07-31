@@ -21,7 +21,9 @@ test("Codex prepares and renders ammo counters for vehicle weapons", () => {
 test("Codex item ammo steppers clamp and persist the current magazine", () => {
   assert.match(itemSheetSource, /querySelectorAll\?\.\("\.cdx-item-ammo-step"\)/);
   assert.match(itemSheetSource, /const max = getAmmoMax\(this\.item\)/);
-  assert.match(itemSheetSource, /getAmmoValue\(this\.item\) \+ dir/);
+  assert.match(itemSheetSource, /Number\.isFinite\(displayed\) \? displayed : getAmmoValue\(this\.item\)/);
+  assert.match(itemSheetSource, /if \(value\) value\.textContent = String\(current\)/);
+  assert.match(itemSheetSource, /this\._cdxAmmoUpdate = previousWrite\.then/);
   assert.match(itemSheetSource, /"system\.ammo\.value": current/);
 });
 
