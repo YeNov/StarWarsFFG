@@ -104,6 +104,12 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   for (const purchase of data.purchases.credits) {
     if (isAttachmentPurchase(purchase) || !purchase.ref?.uuid) continue;
     const item = toItemData(purchase.ref);
+    const quantity = Math.max(1, Math.trunc(Number(purchase.quantity) || 1));
+    if (quantity > 1) {
+      item.system ??= {};
+      item.system.quantity ??= {};
+      item.system.quantity.value = quantity;
+    }
     for (const attachment of attachmentsByTarget.get(purchase.id) ?? []) {
       const attachmentItem = toItemData(attachment.ref);
       item.system ??= {};

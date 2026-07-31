@@ -78,6 +78,14 @@ function isPurchasableShopRef(ref) {
   return price !== null && price > 0;
 }
 
+function isStackableShopRef(ref) {
+  return ref?.type === "gear" && hardpointValue(ref) <= 0;
+}
+
+function purchaseQuantity(purchase) {
+  return Math.max(1, Math.trunc(Number(purchase?.quantity) || 1));
+}
+
 function sortByName(a, b) {
   return (a?.name ?? "").localeCompare(b?.name ?? "", undefined, { sensitivity: "base", numeric: true });
 }
@@ -758,6 +766,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           name: purchase.ref.name,
           img: purchase.ref.img,
           cost: purchase.cost,
+          quantity: purchaseQuantity(purchase),
+          totalCost: purchase.cost * purchaseQuantity(purchase),
           stats: inventoryStats(purchase.ref),
           restricted: Boolean(purchase.ref.snapshot?.system?.rarity?.isrestricted),
           attachable,
@@ -1320,6 +1330,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       this.#ensureCreditPurchaseIds(data);
       const index = data.purchases.credits.findIndex((purchase) => purchase.id === purchaseId);
       if (index < 0) return;
+      const purchase = data.purchases.credits[index];
+      if (isStackableShopRef(purchase.ref) && purchaseQuantity(purchase) > 1) {
+        purchase.quantity = purchaseQuantity(purchase) - 1;
+        return;
+      }
       data.purchases.credits = data.purchases.credits.filter((purchase) => purchase.id !== purchaseId && purchase.attachTo !== purchaseId);
       if (this.#attachmentTargetId === purchaseId) this.#attachmentTargetId = null;
     });
@@ -1330,7 +1345,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const ref = (this.#pools.gear ?? []).find((entry) => entry.uuid === uuid);
     if (!ref || !isPurchasableShopRef(ref)) return;
     const cost = shopPriceOf(ref);
-    this.#mutate((data) => { data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost }); });
+    this.#mutate((data) => {
+      if (isStackableShopRef(ref)) {
+        const stack = data.purchases.credits.find((purchase) => !purchase.attachTo && purchase.ref?.uuid === uuid && isStackableShopRef(purchase.ref));
+        if (stack) {
+          stack.quantity = purchaseQuantity(stack) + 1;
+          return;
+        }
+      }
+      data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost, quantity: 1 });
+    });
   }
 
   static _onAttachmentTarget(event, target) {

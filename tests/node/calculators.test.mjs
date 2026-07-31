@@ -76,6 +76,12 @@ test("calcCredits: total = gm + bonus + extra, available subtracts purchases", (
   assert.equal(available, 325);
 });
 
+test("calcCredits: stacked purchases charge once per item in the stack", () => {
+  const data = makeData();
+  data.purchases.credits = [{ cost: 25, quantity: 4 }];
+  assert.deepEqual(calcCredits(data), { total: 500, available: 400 });
+});
+
 test("calcObligation returns the selected ruleset track", () => {
   assert.deepEqual(calcObligation(withBonus()), {
     starting: 50,

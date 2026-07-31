@@ -296,6 +296,30 @@ test("player attachment purchases survive build, socket sanitization, and GM nor
   assert.match(committedWeapon._id, /^[0-9A-Za-z]{16}$/);
 });
 
+test("stacked gear becomes one embedded item with the purchased quantity", () => {
+  const draft = makeDraft();
+  draft.purchases.credits = [{
+    id: "stimpack-stack",
+    cost: 25,
+    quantity: 4,
+    ref: {
+      uuid: "gear-stimpack",
+      name: "Stimpack",
+      type: "gear",
+      snapshot: { name: "Stimpack", type: "gear", system: { quantity: { value: 1 } } },
+    },
+  }];
+  const deps = makeDeps();
+  deps.toItemData = (ref) => structuredClone(ref.snapshot);
+
+  const { actorData } = applyBuild(draft, deps);
+  const stimpacks = actorData.items.filter((item) => item.name === "Stimpack");
+
+  assert.equal(stimpacks.length, 1);
+  assert.equal(stimpacks[0].system.quantity.value, 4);
+  assert.equal(actorData.system.stats.credits.value, 500 - 100 + 42);
+});
+
 test("only the highest-soak purchased armor is equipped for derived soak calculation", () => {
   const draft = makeDraft();
   draft.purchases.credits = [
