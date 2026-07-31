@@ -4076,11 +4076,20 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .pickable-action button {
   margin-left: auto;
 }
-.charCreator .general-fields {
+.charCreator .general-layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+  gap: 24px;
   color: #191813;
+}
+.charCreator .general-images-column {
+  min-width: 0;
+}
+.charCreator .general-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
 .charCreator .general-fields label {
   display: flex;
@@ -4094,7 +4103,6 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .general-fields .general-checkbox {
   flex-direction: row;
   align-items: center;
-  align-self: end;
 }
 .charCreator .general-fields .general-checkbox input {
   flex: 0 0 auto;

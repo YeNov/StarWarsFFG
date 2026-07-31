@@ -1,20 +1,23 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="general">
-  <div class="general-fields">
-    <label>
-      <span>Character name</span>
-      <input type="text" data-field="characterName" name="characterName" value="{{ data.identity.name }}">
-    </label>
-    <label>
-      <span>Extra XP</span>
-      <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="xp" name="extraXp" value="{{ data.grants.extra.xp }}">
-    </label>
-    <label>
-      <span>Extra credits</span>
-      <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="credits" name="extraCredits" value="{{ data.grants.extra.credits }}">
-    </label>
-    <label class="general-checkbox">
-      <input type="checkbox" data-field="removeStartingSkillRankCap" name="removeStartingSkillRankCap" {{#if data.options.removeStartingSkillRankCap}}checked{{/if}}>
-      <span>Allow starting skills above rank 2 (maximum rank 5)</span>
-    </label>
+  <div class="general-layout">
+    <div class="general-images-column" aria-label="Character image settings"></div>
+    <div class="general-fields">
+      <label>
+        <span>Character name</span>
+        <input type="text" data-field="characterName" name="characterName" value="{{ data.identity.name }}">
+      </label>
+      <label>
+        <span>Extra XP</span>
+        <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="xp" name="extraXp" value="{{ data.grants.extra.xp }}">
+      </label>
+      <label>
+        <span>Extra credits</span>
+        <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="credits" name="extraCredits" value="{{ data.grants.extra.credits }}">
+      </label>
+      <label class="general-checkbox">
+        <input type="checkbox" data-field="removeStartingSkillRankCap" name="removeStartingSkillRankCap" {{#if data.options.removeStartingSkillRankCap}}checked{{/if}}>
+        <span>Allow starting skills above rank 2 (maximum rank 5)</span>
+      </label>
+    </div>
   </div>
 </section>
