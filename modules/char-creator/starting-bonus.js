@@ -23,6 +23,7 @@ export const STARTING_BONUS = Object.freeze({
   "aor_10xp": Object.freeze({ xp: 10, duty: 10 }),
   "aor_1k_credits": Object.freeze({ credits: 1000, duty: 5 }),
   "aor_2k_credits": Object.freeze({ credits: 2500, duty: 10 }), // Q-2
+  "aor_5xp_1k_credits": Object.freeze({ xp: 5, credits: 1000, duty: 10 }),
   "fad_10xp": Object.freeze({ xp: 10 }),
   "fad_2k_credits": Object.freeze({ credits: 2500 }), // Q-2
   "fad_5xp": Object.freeze({ xp: 5, credits: 1000 }),
@@ -32,6 +33,7 @@ export const STARTING_BONUS = Object.freeze({
   "eote_10xp": Object.freeze({ xp: 10, obligation: 10 }),
   "eote_1k_credits": Object.freeze({ credits: 1000, obligation: 5 }),
   "eote_2k_credits": Object.freeze({ credits: 2500, obligation: 10 }), // Q-2
+  "eote_5xp_1k_credits": Object.freeze({ xp: 5, credits: 1000, obligation: 10 }),
 });
 
 export const STARTING_BONUS_OPTIONS = Object.freeze([
@@ -39,6 +41,7 @@ export const STARTING_BONUS_OPTIONS = Object.freeze([
   Object.freeze({ key: "aor_10xp", labelKey: "SWFFG.CharacterCreator.startingBonus.aor.10xp" }),
   Object.freeze({ key: "aor_1k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.aor.1k_credits" }),
   Object.freeze({ key: "aor_2k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.aor.2k_credits" }),
+  Object.freeze({ key: "aor_5xp_1k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.aor.5xp_1k_credits" }),
   Object.freeze({ key: "fad_10xp", labelKey: "SWFFG.CharacterCreator.startingBonus.fad.10xp" }),
   Object.freeze({ key: "fad_2k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.fad.2k_credits" }),
   Object.freeze({ key: "fad_5xp", labelKey: "SWFFG.CharacterCreator.startingBonus.fad.5xp" }),
@@ -48,6 +51,7 @@ export const STARTING_BONUS_OPTIONS = Object.freeze([
   Object.freeze({ key: "eote_10xp", labelKey: "SWFFG.CharacterCreator.startingBonus.eote.10xp" }),
   Object.freeze({ key: "eote_1k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.eote.1k_credits" }),
   Object.freeze({ key: "eote_2k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.eote.2k_credits" }),
+  Object.freeze({ key: "eote_5xp_1k_credits", labelKey: "SWFFG.CharacterCreator.startingBonus.eote.5xp_1k_credits" }),
 ]);
 
 export const RULESET_KEYS = Object.freeze(["fad", "aor", "eote"]);
