@@ -287,6 +287,29 @@ export class CodexItemSheet extends ItemSheetFFG {
       });
     });
 
+    // These base values feed prepared/adjusted values shown beside them. The
+    // normal submit-on-change path deliberately uses render:false, which leaves
+    // those badges stale until the sheet is reopened. Submit once without an
+    // automatic document render, then redraw after prepareData has recomputed
+    // the adjusted values. Stop propagation so the form-level change handler
+    // cannot enqueue a redundant second submit.
+    const adjustedBaseFields = [
+      "data.damage.value",
+      "data.crit.value",
+      "data.encumbrance.value",
+      "data.hardpoints.value",
+      "data.soak.value",
+      "data.defence.value",
+    ];
+    const adjustedSelector = adjustedBaseFields.map((name) => `[name="${name}"]`).join(",");
+    root?.querySelectorAll?.(adjustedSelector).forEach((field) => {
+      field.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        await this._onSubmit(ev, { render: false });
+        await this.render(true);
+      });
+    });
+
     // Notched-block outlines — same SVG overlay the actor sheets use, covering
     // the item-sheet diamond blocks (item header, pills, stat boxes, checks,
     // force-power rows, vehicle rarity). See cdxBuildNotchOutlines.
