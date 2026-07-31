@@ -22,6 +22,7 @@ import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "
 import { dedicationCharacteristicDeltas, isDedicationTalent } from "./dedication.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
 import { creationSkillCap, normalizeXpSkillPurchases } from "./skill-purchases.js";
+import { sheetSkillComparator } from "./skill-sorting.js";
 import {
   clearSpeciesSkillRankChoices,
   prepareSpeciesSkillRankChoiceSections,
@@ -576,6 +577,10 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const skillPurchases = this.data.purchases.xp.skills;
     const skillCap = creationSkillCap(this.data);
     const skillDescriptions = this.#xpView === "skills" ? await this.#ensureSkillDescriptions() : {};
+    const compareSkills = sheetSkillComparator(preview?.system?.skilltypes ?? [], {
+      byLabel: game.settings.get("starwarsffg", "skillSorting"),
+      locale: game.i18n.lang,
+    });
     const xpSkills = preview?.system?.skills
       ? Object.entries(preview.system.skills).map(([key, skill]) => {
         const rank = skill.rank ?? 0;
@@ -589,7 +594,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         const label = skill.label ?? key;
         const description = skillDescriptions[label.toLowerCase()] ?? skillDescriptions[key.toLowerCase()] ?? "";
         return { key, label, rank, careerskill, type: skill.type, nextValue, nextCost, canBuy, canRefund, description };
-      })
+      }).sort(compareSkills)
       : [];
     const characteristicPurchases = this.data.purchases.xp.characteristics;
     const specializationTalents = this.data.selected.specialization?.snapshot?.system?.talents ?? {};
@@ -628,17 +633,33 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const freeRankCaps = getFreeRankCaps(this.data);
     const careerSkillNames = freeSkillNamesFromSlots(this.data.selected.career?.snapshot?.system?.careerSkills);
     const careerPicked = this.data.selected.careerCareerSkillRanks;
-    const careerFreeRanks = careerSkillNames.map((name) => {
-      const picked = careerPicked.includes(name);
-      return { key: name, picked, canToggle: picked || careerPicked.length < freeRankCaps.career };
-    });
+    const skillByName = new Map();
+    for (const skill of xpSkills) {
+      skillByName.set(skill.key, skill);
+      skillByName.set(String(skill.key).toLowerCase(), skill);
+      skillByName.set(skill.label, skill);
+      skillByName.set(String(skill.label).toLowerCase(), skill);
+    }
+    const freeRankRow = (name, pickedSkills, cap) => {
+      const skill = skillByName.get(name) ?? skillByName.get(String(name).toLowerCase());
+      const picked = pickedSkills.includes(name);
+      return {
+        key: name,
+        label: skill?.label ?? name,
+        type: skill?.type,
+        picked,
+        canToggle: picked || pickedSkills.length < cap,
+      };
+    };
+    const careerFreeRanks = careerSkillNames
+      .map((name) => freeRankRow(name, careerPicked, freeRankCaps.career))
+      .sort(compareSkills);
     const specSkillNames = freeSkillNamesFromSlots(this.data.selected.specialization?.snapshot?.system?.careerSkills);
     const specPicked = this.data.selected.specializationCareerSkillRanks;
-    const specFreeRanks = specSkillNames.map((name) => {
-      const picked = specPicked.includes(name);
-      return { key: name, picked, canToggle: picked || specPicked.length < freeRankCaps.specialization };
-    });
-    const speciesFreeRankChoiceSections = prepareSpeciesSkillRankChoiceSections(this.data, xpSkills);
+    const specFreeRanks = specSkillNames
+      .map((name) => freeRankRow(name, specPicked, freeRankCaps.specialization))
+      .sort(compareSkills);
+    const speciesFreeRankChoiceSections = prepareSpeciesSkillRankChoiceSections(this.data, xpSkills, { compare: compareSkills });
     const reviewVerificationSteps = [
       ...validation.warnings.map((warningKey) => {
         const status = RAW_RESOURCE_WARNING_KEYS.has(warningKey) ? "warning" : "incomplete";

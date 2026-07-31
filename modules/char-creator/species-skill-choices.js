@@ -162,7 +162,7 @@ function matchesChoice(choice, skill) {
   return true;
 }
 
-export function prepareSpeciesSkillRankChoices(data, skills) {
+export function prepareSpeciesSkillRankChoices(data, skills, { compare } = {}) {
   const selections = selectedChoices(data);
   const branches = selectedBranches(data);
   const activeGroups = new Map();
@@ -188,13 +188,13 @@ export function prepareSpeciesSkillRankChoices(data, skills) {
         const canAdd = !blockedByAlternative && selected.length < choice.count && (!choice.unique || !picked) && withinRankCap;
         return { ...skill, picked, canToggle: picked || canAdd };
       })
-      .sort((a, b) => String(a.label ?? a.key).localeCompare(String(b.label ?? b.key), undefined, { sensitivity: "base" }));
+      .sort(compare ?? ((a, b) => String(a.label ?? a.key).localeCompare(String(b.label ?? b.key), undefined, { sensitivity: "base" })));
     return { ...choice, used: selected.length, rows };
   });
 }
 
-export function prepareSpeciesSkillRankChoiceSections(data, skills) {
-  const prepared = prepareSpeciesSkillRankChoices(data, skills);
+export function prepareSpeciesSkillRankChoiceSections(data, skills, options = {}) {
+  const prepared = prepareSpeciesSkillRankChoices(data, skills, options);
   const sections = [];
   const grouped = new Map();
   for (const choice of prepared) {
