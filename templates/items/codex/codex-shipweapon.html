@@ -69,7 +69,11 @@
   <div class="cdx-item-body shipweapon">
     <section class="cdx-pane" data-tab="configuration">
       <div class="cdx-istats cdx-istats-special">
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+        <div class="cdx-istat wide"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+        {{#if ammoDisplay.tracked}}
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Current"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.value" value="{{ammoDisplay.value}}" autocomplete="off" /></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Threshold"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.max" value="{{ammoDisplay.max}}" autocomplete="off" {{#if ammoDisplay.qualityMode}}disabled{{/if}} /></div>
+        {{/if}}
       </div>
       <div class="cdx-float-soft-wrap">
       <div class="cdx-idesc cdx-ispecial">

@@ -1287,13 +1287,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       ctx.cdxAlignStored = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
       ctx.cdxAlign = cdxEffectiveAlignment(stored, this.actor?.system?.morality?.value);
     } catch (e) { ctx.cdxAlignStored = "neutral"; ctx.cdxAlign = "neutral"; }
-    // Ammo chip on expanded weapon cards. Tracking + magazine size come from
+    // Ammo chip on expanded personal- and vehicle-weapon cards. Tracking + magazine size come from
     // ammo-helpers so this honours both the manual counter (Option A) and the
-    // "Limited Ammo" quality mode (Option B). cdxAmmo is keyed by weapon _id.
+    // "Limited Ammo" quality mode (Option B). cdxAmmo is keyed by item _id.
     ctx.cdxAmmo = {};
     try {
       for (const item of (this.actor?.items ?? [])) {
-        if (item.type !== "weapon") continue;
+        if (!["weapon", "shipweapon"].includes(item.type)) continue;
         if (!isAmmoTracked(item)) continue;
         ctx.cdxAmmo[item._id] = {
           current: getAmmoValue(item),
