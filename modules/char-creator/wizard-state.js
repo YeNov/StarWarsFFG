@@ -37,6 +37,9 @@ export function createInitialData() {
       name: "",
       img: "",
     },
+    options: {
+      removeStartingSkillRankCap: false,
+    },
     commitId: foundry.utils.randomID(16),
     grants: {
       gm: {

@@ -12,5 +12,9 @@
       <span>Extra credits</span>
       <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="credits" name="extraCredits" value="{{ data.grants.extra.credits }}">
     </label>
+    <label class="general-checkbox">
+      <input type="checkbox" data-field="removeStartingSkillRankCap" name="removeStartingSkillRankCap" {{#if data.options.removeStartingSkillRankCap}}checked{{/if}}>
+      <span>Allow starting skills above rank 2 (maximum rank 5)</span>
+    </label>
   </div>
 </section>

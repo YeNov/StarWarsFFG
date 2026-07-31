@@ -4091,6 +4091,15 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .general-fields input {
   width: 100%;
 }
+.charCreator .general-fields .general-checkbox {
+  flex-direction: row;
+  align-items: center;
+  align-self: end;
+}
+.charCreator .general-fields .general-checkbox input {
+  flex: 0 0 auto;
+  width: auto;
+}
 /* xp_spend skills table: lay the -/+ buttons inline instead of stacked (theme buttons are
    block-level, so they stack in the cell by default). */
 .charCreator .xp-col-buttons {

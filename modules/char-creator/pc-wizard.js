@@ -21,7 +21,7 @@ import { applyStartingBonus, getStartingBonusOptions } from "./starting-bonus.js
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { dedicationCharacteristicDeltas, isDedicationTalent } from "./dedication.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
-import { normalizeXpSkillPurchases } from "./skill-purchases.js";
+import { creationSkillCap, normalizeXpSkillPurchases } from "./skill-purchases.js";
 import {
   clearSpeciesSkillRankChoices,
   prepareSpeciesSkillRankChoiceSections,
@@ -359,6 +359,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     general: [
       { selector: "input[data-field='characterName']", event: "input", handler: "_onGeneralNameInput" },
       { selector: "input[data-field='extraGrant']", event: "change", handler: "_onGeneralGrantChange" },
+      { selector: "input[data-field='removeStartingSkillRankCap']", event: "change", handler: "_onStartingSkillRankCapChange" },
     ],
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
     obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
@@ -573,6 +574,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // Each row carries the prepared rank, whether it's a career skill, and the cost of the
     // NEXT rank (career rank*5, non-career rank*5 + 5).
     const skillPurchases = this.data.purchases.xp.skills;
+    const skillCap = creationSkillCap(this.data);
     const skillDescriptions = this.#xpView === "skills" ? await this.#ensureSkillDescriptions() : {};
     const xpSkills = preview?.system?.skills
       ? Object.entries(preview.system.skills).map(([key, skill]) => {
@@ -580,9 +582,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
         const careerskill = Boolean(skill.careerskill);
         const nextValue = rank + 1;
         const nextCost = careerskill ? nextValue * 5 : nextValue * 5 + 5;
-        // Creation cap: skills may be raised to rank 2 with starting XP. A rank can be
-        // refunded only if the CURRENT top rank was itself an XP purchase.
-        const canBuy = rank < 2;
+        // Creation normally caps skills at rank 2; the General-tab override raises that
+        // ceiling to the system maximum of 5. Only an XP-purchased top rank is refundable.
+        const canBuy = rank < skillCap;
         const canRefund = skillPurchases.some((purchase) => purchase.key === key && purchase.value === rank);
         const label = skill.label ?? key;
         const description = skillDescriptions[label.toLowerCase()] ?? skillDescriptions[key.toLowerCase()] ?? "";
@@ -1153,6 +1155,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => {
       data.grants.extra ??= { xp: 0, credits: 0 };
       data.grants.extra[field] = value;
+    });
+  }
+
+  _onStartingSkillRankCapChange(event) {
+    const checked = event.currentTarget.checked;
+    this.#mutate((data) => {
+      data.options ??= {};
+      data.options.removeStartingSkillRankCap = checked;
+      this.#normalizeXpSkillPurchases(data);
     });
   }
 
