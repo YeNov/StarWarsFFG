@@ -1,5 +1,11 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="career">
   <p>{{ localize "SWFFG.CharacterCreator.Wizard.Career.Select" }} {{ localize "SWFFG.CharacterCreator.Wizard.Career.Label" }}</p>
-  {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
-      (object rows=pools.career poolKey="career" selectedUuid=data.selected.career.uuid)}}
+  <div class="inv-filters">
+    <input type="search" data-field="careerSearch" value="{{ careerSearch }}" placeholder="Search name">
+  </div>
+  {{#if careerRows.length}}
+    {{> "systems/starwarsffg/templates/wizards/pc_wizard/parts/pickable-table.html"
+        (object rows=careerRows poolKey="career" selectedUuid=data.selected.career.uuid)}}
+  {{/if}}
+  <p class="empty-hint" data-career-empty {{#unless careerNoMatches}}hidden{{/unless}}>No careers match.</p>
 </section>

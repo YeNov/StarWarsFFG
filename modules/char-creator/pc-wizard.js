@@ -365,6 +365,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
     obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
+    career: [{ selector: "input[data-field='careerSearch']", event: "input", handler: "_onCareerSearchInput" }],
+    specialization: [{ selector: "input[data-field='specializationSearch']", event: "input", handler: "_onSpecializationSearchInput" }],
     gear: [
       { selector: "input[data-field='search']", event: "input", handler: "_onGearFilterChange" },
       { selector: "[data-field]:not(input[data-field='search'])", event: "change", handler: "_onGearFilterChange" },
@@ -391,6 +393,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #obligationSearch = { obligation: "", duty: "", morality: "" }; // Obligation accordion name filters (transient)
   #listSearch = { motivation: "" }; // Motivation tab name filter (transient)
   #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
+  #careerSearch = ""; // Career tab name filter (transient, not persisted to draft)
+  #specializationSearch = ""; // Both specialization tables share this transient name filter.
   #attachmentTargetId = null; // Expanded owned gear purchase id for attachment shopping.
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
@@ -513,6 +517,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }));
     const speciesMatchCount = speciesRows.filter((ref) => !ref.hidden).length;
     const speciesNoMatches = speciesRows.length === 0 || speciesMatchCount === 0;
+    const careerSearch = this.#careerSearch.trim().toLowerCase();
+    const careerRows = [...(this.#pools.career ?? [])]
+      .sort(sortByName)
+      .map((ref) => ({
+        ...ref,
+        hidden: !!careerSearch && !(ref.name ?? "").toLowerCase().includes(careerSearch),
+      }));
+    const careerMatchCount = careerRows.filter((ref) => !ref.hidden).length;
+    const careerNoMatches = careerRows.length === 0 || careerMatchCount === 0;
     const activeObligationKey = obligationKeyForRules(this.data.selected.rules);
     const obligationLabels = { obligation: "Obligation", duty: "Duty", morality: "Morality" };
     const obligationSectionDefs = activeObligationKey
@@ -621,11 +634,20 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // universal specialization from the pool (matched by name, as the legacy did).
     // Selecting one sets data.selected.specialization via the shared _onSelect action.
     const specPool = this.#pools.specialization ?? [];
+    const specializationSearch = this.#specializationSearch.trim().toLowerCase();
+    const prepareSpecializationRows = (rows) => rows
+      .sort(sortByName)
+      .map((ref) => ({
+        ...ref,
+        hidden: !!specializationSearch && !(ref.name ?? "").toLowerCase().includes(specializationSearch),
+      }));
     const careerSpecNames = new Set(
       Object.values(this.data.selected.career?.snapshot?.system?.specializations ?? {}).map((spec) => spec.name),
     );
-    const careerSpecializations = specPool.filter((ref) => careerSpecNames.has(ref.name));
-    const universalSpecializations = specPool.filter((ref) => ref.snapshot?.system?.universal && !careerSpecNames.has(ref.name));
+    const careerSpecializations = prepareSpecializationRows(specPool.filter((ref) => careerSpecNames.has(ref.name)));
+    const universalSpecializations = prepareSpecializationRows(specPool.filter((ref) => ref.snapshot?.system?.universal && !careerSpecNames.has(ref.name)));
+    const careerSpecializationsNoMatches = careerSpecializations.length > 0 && careerSpecializations.every((ref) => ref.hidden);
+    const universalSpecializationsNoMatches = universalSpecializations.length > 0 && universalSpecializations.every((ref) => ref.hidden);
 
     // Free skill ranks: chosen from the career's career-skills and the specialization's.
     // These feed rankGrants -> toItemData (baked as +1-rank AEs on the career/spec item), so
@@ -819,6 +841,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       speciesMatchCount,
       speciesNoMatches,
       speciesSearch: this.#speciesSearch,
+      careerRows,
+      careerNoMatches,
+      careerSearch: this.#careerSearch,
       isForceAndDestiny,
       backgroundSections,
       obligationSections,
@@ -837,6 +862,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       talentSpecName: specForTree?.name ?? null,
       careerSpecializations,
       universalSpecializations,
+      careerSpecializationsNoMatches,
+      universalSpecializationsNoMatches,
+      specializationSearch: this.#specializationSearch,
       careerFreeRanks,
       careerFreeUsed: careerPicked.length,
       careerFreeCap: freeRankCaps.career,
@@ -1217,6 +1245,40 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     const empty = root?.querySelector("[data-species-empty]");
     if (empty) empty.hidden = visible > 0;
+  }
+
+  _onCareerSearchInput(event) {
+    const search = event.currentTarget.value ?? "";
+    this.#careerSearch = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest("[data-tab='career']");
+    let visible = 0;
+    for (const row of root?.querySelectorAll(".pickable-row") ?? []) {
+      const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+      const match = !needle || name.includes(needle);
+      row.hidden = !match;
+      if (match) visible += 1;
+    }
+    const empty = root?.querySelector("[data-career-empty]");
+    if (empty) empty.hidden = visible > 0;
+  }
+
+  _onSpecializationSearchInput(event) {
+    const search = event.currentTarget.value ?? "";
+    this.#specializationSearch = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest("[data-tab='specialization']");
+    for (const group of root?.querySelectorAll(".specialization-group") ?? []) {
+      let visible = 0;
+      for (const row of group.querySelectorAll(".pickable-row")) {
+        const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+        const match = !needle || name.includes(needle);
+        row.hidden = !match;
+        if (match) visible += 1;
+      }
+      const empty = group.querySelector("[data-specialization-empty]");
+      if (empty) empty.hidden = visible > 0;
+    }
   }
 
   _onBackgroundSearchInput(event) {
