@@ -8,6 +8,7 @@ import { assembleCharacterSource } from "../../modules/char-creator/assemble-cha
 import { parseHyperdrive } from "../../modules/importer/hyperdrive/parse.js";
 import {
   buildSnapshotIndex,
+  HYPERDRIVE_SKILL_ALIASES,
   resolutionAliases,
   resolveFindingOverride,
 } from "../../modules/importer/hyperdrive/resolve.js";
@@ -25,8 +26,12 @@ const CHARS = (brawn) => ({
 
 function assemblerDeps() {
   const skills = Object.fromEntries(RAW.Skills.map((skill) => [
-    skill.skill,
-    { rank: 0, label: skill.skill, careerskill: false },
+    HYPERDRIVE_SKILL_ALIASES[skill.Key] ?? skill.skill,
+    {
+      rank: 0,
+      label: HYPERDRIVE_SKILL_ALIASES[skill.Key] ?? skill.skill,
+      careerskill: false,
+    },
   ]));
   return {
     creationDefaults: {
@@ -338,7 +343,7 @@ test("exported specialization skills are marked as actor career skills", async (
     "Discipline",
     "Coordination",
     "Mechanics",
-    "Piloting (Planetary)",
+    "Piloting: Planetary",
   ]) {
     assert.equal(
       actorData.system.skills[skill].careerskill,

@@ -11,6 +11,7 @@ import {
   entriesFromDocs,
   entriesFromSelectionRefs,
   findIndexedSnapshot,
+  HYPERDRIVE_SKILL_ALIASES,
   looseNameScore,
   normalizeName,
   resolutionAliases,
@@ -207,9 +208,38 @@ test("live skill metadata uses import ids and the selected alternate skill theme
   });
   assert.equal(skillMap.DISC, "Discipline");
   assert.equal(skillMap.BRAWL, "Brawl");
+  assert.equal(skillMap.RANGHVY, "Ranged: Heavy");
+  assert.equal(skillMap["Outer Rim"], "Knowledge: Outer Rim");
   assert.deepEqual(skillMeta.find((skill) => skill.skill === "Brawl"), {
     skill: "Brawl",
     characteristic: "Brawn",
     type: "Combat",
   });
+});
+
+test("Hyperdrive skill aliases cover every standard punctuation and knowledge mismatch", () => {
+  assert.deepEqual(
+    Object.fromEntries([
+      "CORE", "EDU", "LORE", "OUT", "UND", "WARF", "XEN",
+      "PILOTPL", "PILOTSP", "RANGHVY", "RANGLT",
+    ].map((key) => [key, HYPERDRIVE_SKILL_ALIASES[key]])),
+    {
+      CORE: "Knowledge: Core Worlds",
+      EDU: "Knowledge: Education",
+      LORE: "Knowledge: Lore",
+      OUT: "Knowledge: Outer Rim",
+      UND: "Knowledge: Underworld",
+      WARF: "Knowledge: Warfare",
+      XEN: "Knowledge: Xenology",
+      PILOTPL: "Piloting: Planetary",
+      PILOTSP: "Piloting: Space",
+      RANGHVY: "Ranged: Heavy",
+      RANGLT: "Ranged: Light",
+    },
+  );
+  const { skillMap } = buildSkillMetadata({
+    temporarySkills: { RANGHVY: "Custom Heavy Weapons" },
+  });
+  assert.equal(skillMap.RANGHVY, "Custom Heavy Weapons", "live theme mappings override the fallback");
+  assert.equal(skillMap["Ranged (Heavy)"], "Custom Heavy Weapons");
 });

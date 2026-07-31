@@ -120,6 +120,15 @@ test("does not subtract imported free ranks from Hyperdrive purchases", () => {
   assert.deepEqual(skills, { deltas: { Melee: 1 }, warnings: [] });
 });
 
+test("canonicalizes purchased Hyperdrive skill ranks through import ids", () => {
+  const skills = residualSkillDeltas([
+    { key: "RANGHVY", skill: "Ranged (Heavy)", rank: 1 },
+    { key: "OUT", skill: "Outer Rim", rank: 0 },
+    { key: "XEN", skill: "Xenology", rank: 0 },
+  ]);
+  assert.deepEqual(skills, { deltas: { "Ranged: Heavy": 1 }, warnings: [] });
+});
+
 test("a characteristic no item supplies is persisted in full", () => {
   const { deltas, warnings } = residualCharacteristicDeltas(
     { Presence: 4 },

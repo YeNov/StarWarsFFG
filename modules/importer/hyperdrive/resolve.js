@@ -383,6 +383,44 @@ export function collectImportEntries({
   });
 }
 
+const HYPERDRIVE_SKILL_NAME_PAIRS = [
+  ["CORE", "Core Worlds", "Knowledge: Core Worlds"],
+  ["EDU", "Education", "Knowledge: Education"],
+  ["LORE", "Lore", "Knowledge: Lore"],
+  ["OUT", "Outer Rim", "Knowledge: Outer Rim"],
+  ["UND", "Underworld", "Knowledge: Underworld"],
+  ["WARF", "Warfare", "Knowledge: Warfare"],
+  ["XEN", "Xenology", "Knowledge: Xenology"],
+  ["PILOTPL", "Piloting (Planetary)", "Piloting: Planetary"],
+  ["PILOTSP", "Piloting (Space)", "Piloting: Space"],
+  ["RANGHVY", "Ranged (Heavy)", "Ranged: Heavy"],
+  ["RANGLT", "Ranged (Light)", "Ranged: Light"],
+];
+
+/**
+ * Hyperdrive/OggDude uses display names which do not always match the skill keys in
+ * Foundry's standard Star Wars skill theme. Keep these aliases local to Hyperdrive:
+ * alternate themes and live skill-compendium mappings may override them below.
+ */
+export const HYPERDRIVE_SKILL_ALIASES = Object.freeze(Object.fromEntries(
+  HYPERDRIVE_SKILL_NAME_PAIRS.flatMap(([importId, hyperdriveName, foundryName]) => [
+    [importId, foundryName],
+    [hyperdriveName, foundryName],
+    [foundryName, foundryName],
+  ]),
+));
+
+export function canonicalHyperdriveSkill(value, skillMap = {}) {
+  const name = String(value ?? "").trim();
+  if (!name) return name;
+  const aliases = { ...HYPERDRIVE_SKILL_ALIASES, ...(skillMap ?? {}) };
+  if (aliases[name]) return aliases[name];
+  const normalized = name.toLocaleLowerCase();
+  const matched = Object.entries(aliases)
+    .find(([candidate]) => candidate.toLocaleLowerCase() === normalized);
+  return matched?.[1] ?? name;
+}
+
 /**
  * Build the import-keyed skill lookup plus characteristic/type metadata used by
  * OggDude-style die modifiers.
@@ -393,11 +431,16 @@ export function buildSkillMetadata({
   alternateSkillLists = [],
   themeId = "starwars",
 } = {}) {
-  const skillMap = { ...(temporarySkills ?? {}) };
+  const skillMap = { ...HYPERDRIVE_SKILL_ALIASES, ...(temporarySkills ?? {}) };
   for (const entry of entries) {
     if (entry.itemType === "skill" && entry.ffgimportid && entry.ref?.name) {
       skillMap[entry.ffgimportid] = entry.ref.name;
     }
+  }
+  for (const [importId, hyperdriveName, foundryName] of HYPERDRIVE_SKILL_NAME_PAIRS) {
+    const activeName = skillMap[importId] ?? foundryName;
+    skillMap[hyperdriveName] = activeName;
+    skillMap[foundryName] = activeName;
   }
   const theme = alternateSkillLists.find((list) => list.id === themeId)
     ?? alternateSkillLists.find((list) => list.id === "starwars")

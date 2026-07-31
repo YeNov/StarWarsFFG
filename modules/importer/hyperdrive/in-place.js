@@ -13,7 +13,7 @@ import {
   toModArray,
 } from "./effect-builders.js";
 import { hyperdriveImage } from "./parse.js";
-import { findIndexedSnapshot, normalizeName } from "./resolve.js";
+import { canonicalHyperdriveSkill, findIndexedSnapshot, normalizeName } from "./resolve.js";
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -83,11 +83,11 @@ export function buildSpeciesSource(species, { rankGrants = [] } = {}) {
   return { source, warnings: [] };
 }
 
-export function buildCareerSource(career, { careerSkillGrants = [] } = {}) {
+export function buildCareerSource(career, { careerSkillGrants = [], skillMap = {} } = {}) {
   const skills = career?.CareerSkills ?? career?.careerSkills ?? [];
   const careerSkills = {};
   skills.slice(0, 8).forEach((skill, index) => {
-    careerSkills[`careerSkill${index}`] = skill;
+    careerSkills[`careerSkill${index}`] = canonicalHyperdriveSkill(skill, skillMap);
   });
   const source = {
     name: career?.Name ?? career?.name ?? "Career",

@@ -66,6 +66,33 @@ test("routes free-rank and extra-career-skill grants to their owning items", () 
   assert.deepEqual(careerSkillGrantsForItems(parsed), { career: [] });
 });
 
+test("canonicalizes Hyperdrive free-rank and career-skill names", () => {
+  const jack = {
+    skills: [
+      { key: "RANGHVY", skill: "Ranged (Heavy)", rank: 1 },
+      { key: "OUT", skill: "Outer Rim", rank: 0 },
+      { key: "XEN", skill: "Xenology", rank: 0 },
+    ],
+    species: { selectedSkills: [] },
+    careerRanks: ["Outer Rim", "Xenology"],
+    specRanks: ["Ranged (Heavy)"],
+    careerSkills: ["Outer Rim", "Xenology"],
+    specSkills: ["Ranged (Heavy)"],
+    extraCareerSkills: [],
+    specializations: [],
+  };
+  assert.deepEqual(rankGrantsForItems(jack), {
+    species: [],
+    career: ["Knowledge: Outer Rim", "Knowledge: Xenology"],
+    spec: ["Ranged: Heavy"],
+  });
+  assert.deepEqual(careerSkillsForActor(jack), [
+    "Knowledge: Outer Rim",
+    "Knowledge: Xenology",
+    "Ranged: Heavy",
+  ]);
+});
+
 test("collects all exported career and specialization skills for the actor", () => {
   const careerSkills = new Set(careerSkillsForActor(parsed));
   for (const skill of [
@@ -80,8 +107,8 @@ test("collects all exported career and specialization skills for the actor", () 
     "Vigilance",
     "Coercion",
     "Mechanics",
-    "Piloting (Planetary)",
-    "Ranged (Light)",
+    "Piloting: Planetary",
+    "Ranged: Light",
   ]) {
     assert.equal(careerSkills.has(skill), true, `${skill} should be a career skill`);
   }

@@ -37,6 +37,20 @@ test("species and career in-place builders synthesize real item-owned effects", 
   assert.ok(flat(career).some((change) => change.key === "system.skills.Survival.careerskill" && change.value === true));
 });
 
+test("in-place careers store canonical Foundry skill keys", () => {
+  const career = buildCareerSource({
+    Name: "Explorer",
+    CareerSkills: ["Outer Rim", "Xenology", "Ranged (Heavy)"],
+  }).source;
+  assert.deepEqual(career.system.careerSkills, {
+    careerSkill0: "Knowledge: Outer Rim",
+    careerSkill1: "Knowledge: Xenology",
+    careerSkill2: "Ranged: Heavy",
+  });
+  assert.ok(flat(career).some((change) =>
+    change.key === "system.skills.Knowledge: Outer Rim.careerskill"));
+});
+
 test("full 12 Defender has one Discipline boost and unique effect names", () => {
   const weapon = parsed.weapons.find((item) => item.inventoryID === "12DEFEND_1785054958137");
   const source = buildWeaponSource(weapon, {
