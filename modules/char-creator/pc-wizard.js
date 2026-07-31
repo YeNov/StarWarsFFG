@@ -47,6 +47,7 @@ import { NewerSchemaError, CorruptDraftError } from "./draft-schema.js";
 import { emitCommitRequest, wizardPending, setCommitResponseHandler } from "./socket-bridge.js";
 import { commitBuild } from "./commit-service.js";
 import { mintSessionNoticeId, emitStartNotice, showSubmitToast } from "./notify.js";
+import { normalizeRemoteImageUrl } from "./assemble-character-source.js";
 import { setPending, clearPending } from "./notify-policy.js";
 import { COMMIT_TIMEOUT_MS, FLAG_SCOPE, FLAGS } from "./constants.js";
 
@@ -359,6 +360,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static PART_BINDINGS = {
     general: [
       { selector: "input[data-field='characterName']", event: "input", handler: "_onGeneralNameInput" },
+      { selector: "input[data-field='imageUrl']", event: "change", handler: "_onGeneralImageUrlChange" },
       { selector: "input[data-field='extraGrant']", event: "change", handler: "_onGeneralGrantChange" },
       { selector: "input[data-field='removeStartingSkillRankCap']", event: "change", handler: "_onStartingSkillRankCapChange" },
     ],
@@ -1195,6 +1197,19 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   _onGeneralNameInput(event) {
     const name = event.currentTarget.value ?? "";
     this.#mutate((data) => { setIdentity(data, { name }); }, { parts: ["header"] });
+  }
+
+  _onGeneralImageUrlChange(event) {
+    const field = event.currentTarget.dataset.identityField;
+    if (!["img", "tokenImg"].includes(field)) return;
+    const url = normalizeRemoteImageUrl(event.currentTarget.value);
+    if (url === null) {
+      event.currentTarget.setCustomValidity("Enter an absolute http:// or https:// image URL without embedded credentials.");
+      event.currentTarget.reportValidity();
+      return;
+    }
+    event.currentTarget.setCustomValidity("");
+    this.#mutate((data) => { setIdentity(data, { [field]: url }); });
   }
 
   _onGeneralGrantChange(event) {

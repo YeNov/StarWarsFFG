@@ -5,6 +5,25 @@
 
 const DEFAULT_NAME = "New Character";
 
+/**
+ * Normalize a user-supplied remote image URL. Empty values are allowed; anything
+ * non-empty must be an absolute HTTP(S) URL without embedded credentials.
+ *
+ * @returns {string|null} normalized URL, empty string, or null when invalid
+ */
+export function normalizeRemoteImageUrl(value) {
+  const input = String(value ?? "").trim();
+  if (!input) return "";
+  try {
+    const url = new URL(input);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    if (url.username || url.password) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 function armorSoakValue(item) {
   const adjusted = Number(item?.system?.soak?.adjusted);
   if (Number.isFinite(adjusted)) return adjusted;

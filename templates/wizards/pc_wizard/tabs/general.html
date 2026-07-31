@@ -1,6 +1,33 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="general">
   <div class="general-layout">
-    <div class="general-images-column" aria-label="Character image settings"></div>
+    <div class="general-images-column" aria-label="Character image settings">
+      <div class="general-image-field">
+        <div class="general-image-preview">
+          {{#if data.identity.img}}
+            <img src="{{ data.identity.img }}" alt="Actor portrait preview" loading="lazy">
+          {{else}}
+            <span><i class="fas fa-user"></i> Actor portrait</span>
+          {{/if}}
+        </div>
+        <label>
+          <span>Actor portrait URL</span>
+          <input type="url" inputmode="url" data-field="imageUrl" data-identity-field="img" name="actorImageUrl" value="{{ data.identity.img }}" placeholder="https://example.com/portrait.webp" pattern="https?://.+">
+        </label>
+      </div>
+      <div class="general-image-field">
+        <div class="general-image-preview is-token">
+          {{#if data.identity.tokenImg}}
+            <img src="{{ data.identity.tokenImg }}" alt="Token image preview" loading="lazy">
+          {{else}}
+            <span><i class="fas fa-user-circle"></i> Token image</span>
+          {{/if}}
+        </div>
+        <label>
+          <span>Token image URL</span>
+          <input type="url" inputmode="url" data-field="imageUrl" data-identity-field="tokenImg" name="tokenImageUrl" value="{{ data.identity.tokenImg }}" placeholder="https://example.com/token.webp" pattern="https?://.+">
+        </label>
+      </div>
+    </div>
     <div class="general-fields">
       <label>
         <span>Character name</span>

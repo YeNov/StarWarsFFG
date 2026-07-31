@@ -6,7 +6,7 @@
 
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { getSpeciesSkillRankGrants } from "./species-skill-choices.js";
-import { assembleCharacterSource } from "./assemble-character-source.js";
+import { assembleCharacterSource, normalizeRemoteImageUrl } from "./assemble-character-source.js";
 
 const DEDICATION_ATTRIBUTE_KEY = "pcwDedication";
 
@@ -129,7 +129,8 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
     { creationDefaults, applyCharacteristicDeltas },
     {
       name: data.identity.name,
-      img: data.identity.img,
+      img: normalizeRemoteImageUrl(data.identity.img) ?? "",
+      tokenImg: normalizeRemoteImageUrl(data.identity.tokenImg) ?? "",
       characteristicDeltas,
       skillDeltas,
       careerSkills: allCareerSkillNames(data),

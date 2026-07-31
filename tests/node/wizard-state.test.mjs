@@ -72,9 +72,10 @@ test("toSelectionRef produces {uuid, name, type, img, snapshot} with no live doc
 test("wizard-state mutators are pure state transitions (setIdentity/setSelection/addSelection)", () => {
   seedSettings();
   const data = createInitialData();
-  setIdentity(data, { name: "Kel", img: "icons/kel.png" });
+  setIdentity(data, { name: "Kel", img: "icons/kel.png", tokenImg: "icons/kel-token.png" });
   assert.equal(data.identity.name, "Kel");
   assert.equal(data.identity.img, "icons/kel.png");
+  assert.equal(data.identity.tokenImg, "icons/kel-token.png");
 
   const speciesRef = { uuid: "u1", name: "Human", type: "species", img: "i", snapshot: {} };
   setSelection(data, "species", speciesRef);
