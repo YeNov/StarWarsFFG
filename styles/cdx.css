@@ -643,6 +643,15 @@
 .cdx .cdx-pane { display:none; }
 .cdx .cdx-pane.active { display:block; }
 
+/* Sheet renders replace inner content in place. Disable browser scroll anchoring
+   on Codex scroll surfaces so document updates cannot silently move the viewport;
+   the sheet controller restores the exact prior position (clamped if necessary). */
+.cdx > form.window-content,
+.cdx .cdx-item-body,
+.cdx .cdx-pane,
+.cdx .cdx-idesc,
+.cdx .editor-content { overflow-anchor:none; }
+
 /* ---- Skills ----
    Each column is ONE grid; every header/row uses `grid-template-columns: subgrid`
    so they all share the SAME tracks → the CS/RANK/ROLL columns stay vertically
