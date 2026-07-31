@@ -1290,7 +1290,11 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           callbacks: { drop: this._onDropTalentToSpecialization.bind(this) },
         });
 
-        dragDrop.bind($(`form.editable.item-sheet-${this.object.type}`)[0]);
+        // Bind to this rendered sheet instance. The legacy global form lookup
+        // depends on per-type root classes which Codex intentionally replaces
+        // with scheme classes under ApplicationV2, leaving its talent slots
+        // without drop handlers.
+        if (this.isEditable) dragDrop.bind(html[0]);
       } catch (err) {
         CONFIG.logger.debug(err);
       }
@@ -1303,7 +1307,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           callbacks: { drop: this._onDragItemCareer.bind(this) },
         });
 
-        dragDrop.bind($(`form.editable.item-sheet-${this.object.type}`)[0]);
+        if (this.isEditable) dragDrop.bind(html[0]);
       } catch (err) {
         CONFIG.logger.debug(err);
       }
@@ -1349,7 +1353,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           callbacks: { drop: this.onDropItemToSpecies.bind(this) },
         });
 
-        dragDrop.bind($(`form.editable.item-sheet-${this.object.type}`)[0]);
+        if (this.isEditable) dragDrop.bind(html[0]);
 
         // handle click events for talents on species
         html.find(".item-delete").on("click", async (event) => {

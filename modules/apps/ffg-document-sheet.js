@@ -190,16 +190,81 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
   }
 
   /**
-   * Capture the content scroll BEFORE the re-render replaces it. ApplicationV2
-   * reuses the content <form> but swaps its innerHTML, which resets scrollTop --
-   * so e.g. ticking a tree node's "learned" checkbox (which submits + re-renders)
-   * would jump the sheet back to the top. The old DOM is still mounted here, so we
-   * read the current scroll; `_onRender` restores it once the new content is in
-   * place and the form's overflow has been re-applied. @override
+   * Return every scroll container whose position must survive a re-render.
+   * `scrollY` covers the sheet's declared containers; Codex adds its own body,
+   * active pane, and rich-text surfaces which are not consistently declared in
+   * the legacy sheet options.
    */
+  _scrollPreservationSelectors() {
+    const configured = Array.isArray(this.options?.scrollY) ? this.options.scrollY : [];
+    return [...new Set([
+      ...configured,
+      ".cdx-item-body",
+      ".cdx-pane.active",
+      ".cdx-idesc",
+      ".editor-content",
+      ".cdx-xp-log",
+    ])];
+  }
+
+  /** Capture scroll before ApplicationV2 replaces the form's inner content. */
+  _captureScrollPositions() {
+    const form = this.form;
+    if (!form) return null;
+
+    const positions = {
+      form: { top: form.scrollTop, left: form.scrollLeft },
+      containers: [],
+    };
+
+    for (const selector of this._scrollPreservationSelectors()) {
+      for (const [index, element] of [...form.querySelectorAll(selector)].entries()) {
+        positions.containers.push({ selector, index, top: element.scrollTop, left: element.scrollLeft });
+      }
+    }
+    return positions;
+  }
+
+  /**
+   * Restore the exact previous position. Explicit clamping is the only allowed
+   * change: when content became shorter, the old position may no longer exist.
+   */
+  _restoreScrollPositions(positions) {
+    const form = this.form;
+    if (!form || !positions) return;
+
+    const restore = (element, position) => {
+      const maxTop = Math.max(0, element.scrollHeight - element.clientHeight);
+      const maxLeft = Math.max(0, element.scrollWidth - element.clientWidth);
+      element.scrollTop = Math.min(Math.max(0, position.top), maxTop);
+      element.scrollLeft = Math.min(Math.max(0, position.left), maxLeft);
+    };
+
+    restore(form, positions.form);
+    for (const position of positions.containers) {
+      const element = form.querySelectorAll(position.selector)[position.index];
+      if (element) restore(element, position);
+    }
+  }
+
+  /**
+   * ApplicationV2 applies its final window position after `_onRender`. Defer one
+   * authoritative restore until that layout is complete but before the next
+   * paint; otherwise a gear/item form can be clamped against its transitional
+   * height and visibly move when the final height is applied.
+   */
+  _queueFinalScrollRestore(positions) {
+    if (this._ffgScrollRestoreFrame) cancelAnimationFrame(this._ffgScrollRestoreFrame);
+    if (!positions) return;
+    this._ffgScrollRestoreFrame = requestAnimationFrame(() => {
+      this._ffgScrollRestoreFrame = null;
+      this._restoreScrollPositions(positions);
+    });
+  }
+
   async _preRender(context, options) {
     await super._preRender(context, options);
-    this._ffgScrollTop = this.form?.scrollTop || 0;
+    this._ffgScrollPositions = this._captureScrollPositions();
   }
 
   async _onRender(context, options) {
@@ -254,10 +319,11 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
       }
     }
 
-    // Restore the pre-render content scroll (captured in _preRender) now that the
-    // new content is in place and activateListeners has re-applied the form's
-    // overflow, so a re-render (e.g. a tree checkbox submit) keeps the scroll.
-    if (this._ffgScrollTop && this.form) this.form.scrollTop = this._ffgScrollTop;
+    // Restore after listeners have re-applied each container's overflow. Values
+    // of zero are intentional too: browser anchoring must not move a sheet that
+    // was at its top before the update.
+    this._restoreScrollPositions(this._ffgScrollPositions);
+    this._queueFinalScrollRestore(this._ffgScrollPositions);
   }
 
   _applyLegacyRootClasses(form, context = {}) {
@@ -437,6 +503,10 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     // the user feeling like × did nothing. The `_closing` flag is consulted
     // by our overridden `render()` to bail out cleanly.
     this._closing = true;
+    if (this._ffgScrollRestoreFrame) {
+      cancelAnimationFrame(this._ffgScrollRestoreFrame);
+      this._ffgScrollRestoreFrame = null;
+    }
     try {
       if (this.options.submitOnClose && closeOptions.submit !== false && this.form && this.isEditable) {
         const event = new Event("submit", { cancelable: true });

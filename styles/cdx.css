@@ -130,8 +130,11 @@
 }
 .cdx .cdx-pill.force { background:#5b4bb3; border-color:rgba(255,255,255,.45); }
 .cdx .cdx-pill.sig { background:#2c7a86; border-color:rgba(255,255,255,.45); }
-.cdx .cdx-pill .item-delete { opacity:.55; font-size:9px; cursor:pointer; }
+.cdx .cdx-pill .item-delete { flex:none; margin-left:auto; opacity:.55; font-size:9px; cursor:pointer; }
 .cdx .cdx-pill .item-delete:hover { opacity:1; }
+/* A collapsed stack's +N badge occupies the right edge; keep the top pill's
+   delete cross immediately to its left instead of allowing them to overlap. */
+.cdx .cdx-stack.cdx-collapsible:not(.open) .cdx-pill:first-child .item-delete { margin-right:24px; }
 /* The per-pill delete cross (species/career/spec/force/signature) is GM-only AND
    only while XP-buy mode is on. The form gets `cdx-gm` on render for GMs and
    `cdx-xpbuy` while buy mode is active (see _cdxActivate); both land on the same
@@ -203,6 +206,13 @@
    header's bottom edge from .cdx-header-wrap (which has no clip-path, so it isn't
    clipped like a direct header child would be). */
 .cdx .cdx-header-wrap { position:relative; }
+/* A clipped notched block cannot cast its own outer drop-shadow: the clip also
+   cuts the shadow away. Standalone blocks therefore sit in one of these plain
+   wrappers, which cast the same elevation tokens used by the existing grouped
+   PC-sheet sections. The wrappers are layout-neutral block formatting contexts;
+   component-specific flex rules below preserve vehicle/tree layouts. */
+.cdx .cdx-float-wrap,
+.cdx .cdx-float-soft-wrap { min-width:0; display:flow-root; }
 /* width:auto via the `.cdx form button.x` pattern -- Foundry/mandar force buttons
    to width:100% inside the sheet form (see the .cdx-tab override). Without it the
    absolutely-positioned tab stretches the full header width. */
@@ -351,11 +361,12 @@
 .cdx .cdx-chip-div { width:1px; align-self:stretch; background:var(--cdx-line); margin:0 4px; flex:none; }
 
 /* ---- XP-buy mode ----
-   The XP chip toggles a transient "buy mode" class on the form (.cdx-xpbuy, set
-   in codex-sheets.js — never persisted). Until it's on, the purchase affordances
-   are hidden: the standalone buy icons (skill upgrade, spec/force/signature "+")
-   are <i> elements and hidden outright, while the dual-purpose triggers (the
-   characteristic label, the Talents header) stay visible but only act as buy
+   Characters toggle the "buy mode" class from their XP chip; it is transient
+   and never persisted. Non-character Codex actors have no XP chip, so JS keeps
+   the class active whenever Edit Mode is off. Until the class is on, purchase
+   affordances are hidden: standalone buy icons (skill upgrade,
+   spec/force/signature "+") are hidden outright, while dual-purpose triggers
+   (the characteristic label, Talents header) stay visible but only act as buy
    buttons in buy mode. */
 .cdx .cdx-xp { cursor:pointer; }
 .cdx .cdx-xp.active { box-shadow:inset 0 0 0 2px var(--cdx-accent); background:rgba(255,255,255,.1); }
@@ -569,6 +580,10 @@
 .cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }
 .cdx .cdx-veh-left { flex:2; min-width:0; display:flex; flex-direction:column; gap:9px; }
 .cdx .cdx-veh-main .cdx-derived { flex:none; }
+.cdx .cdx-veh-left > .cdx-float-soft-wrap { flex:1; display:flex; }
+.cdx .cdx-veh-left > .cdx-float-soft-wrap > .cdx-veh-systems { flex:1; margin-bottom:0; }
+.cdx .cdx-veh-main > .cdx-float-soft-wrap { flex:1; min-width:228px; display:flex; }
+.cdx .cdx-veh-main > .cdx-float-soft-wrap > .cdx-veh-defence { flex:1; min-width:0; margin-bottom:0; }
 /* "max N" sub-label tucked under a characteristic chip's box (e.g. Speed). */
 .cdx .cdx-chip-sub { margin-top:2px; font-family:"Orbitron"; font-size:8px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); }
 
@@ -628,6 +643,16 @@
 .cdx .cdx-pane { display:none; }
 .cdx .cdx-pane.active { display:block; }
 
+/* Sheet renders replace inner content in place. Disable browser scroll anchoring
+   on Codex scroll surfaces so document updates cannot silently move the viewport;
+   the sheet controller restores the exact prior position (clamped if necessary). */
+.cdx > form.window-content,
+.cdx .cdx-item-body,
+.cdx .cdx-pane,
+.cdx .cdx-idesc,
+.cdx .editor-content,
+.cdx .cdx-xp-log { overflow-anchor:none; }
+
 /* ---- Skills ----
    Each column is ONE grid; every header/row uses `grid-template-columns: subgrid`
    so they all share the SAME tracks → the CS/RANK/ROLL columns stay vertically
@@ -657,18 +682,6 @@
 .cdx .cdx-sk-pool { padding:2px 6px; white-space:nowrap; }
 .cdx .cdx-sk-pool .dice-pool { display:inline-flex; align-items:center; flex-wrap:nowrap; gap:1px; }
 .cdx .cdx-sk-pool img { width:18px; height:18px; }
-/* Dice-pool source hint (hover): the shared .tooltip2 has no vertical anchor, so
-   it renders on the pool's own line and covers the dice. Anchor it to the pool
-   node and drop it just below the row instead. Also size the panel to its
-   content (the shared rule pins width:100% of the narrow pool → min-width:150px,
-   while the pool's white-space:nowrap kept long rows from wrapping, so the text
-   spilled past the fixed-width background). max-content + wrapping fixes both. */
-.cdx .cdx-sk-pool .dice-pool.hover { position:relative; }
-.cdx .cdx-sk-pool .dice-pool.hover .tooltip2 {
-  top:calc(100% + 3px); bottom:auto; left:0;
-  width:max-content; max-width:360px; white-space:normal;
-}
-
 /* ---- Combat cards (weapon + armour) ---- */
 .cdx .cdx-cards-head { display:flex; align-items:center; justify-content:space-between; font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cdx-brown); margin:10px 0 8px; }
 .cdx .cdx-cards-head .item-add { cursor:pointer; color:var(--cdx-accent); }
@@ -703,20 +716,32 @@
 .cdx .cdx-card-arc { font-size:12px; color:var(--cdx-ink); min-width:0; }
 /* Wraps within the identity column so the pool never spills into the DAM column. */
 .cdx .cdx-wpn-pool { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px; min-width:0; line-height:0; pointer-events:none; }
-/* Weapon-card dice-pool source hint. Unlike the skills' .cdx-sk-pool hint this can't
-   be anchored in place: .cdx-card has a clip-path, which clips its whole subtree, and
-   .cdx-wpn-pool is pointer-events:none so it never gets :hover. _cdxWeaponPoolHint
-   therefore re-parents the tooltip into this host on the (unclipped) form and toggles
-   .cdx-tip-on from the row. The host keeps the `hover` class so the shared
-   .starwarsffg .hover .tooltip2 rule still paints it like the skills hint. */
-.cdx form .cdx-wpn-tip { position:absolute; pointer-events:none; }
-.cdx form .cdx-wpn-tip .tooltip2 {
-  /* static: the host does the positioning. The pool's line-height:0 would otherwise
-     be inherited and collapse the text. Size to content, as .cdx-sk-pool does. */
-  position:static; line-height:normal;
-  width:max-content; min-width:0; max-width:360px; white-space:normal;
+/* Dice-pool source hints use a body-level portal because the Codex content form
+   must clip and scroll. Fixed positioning lets the hint escape every sheet. */
+.cdx-pool-tip-portal {
+  position:fixed;
+  inset:0;
+  z-index:var(--z-index-tooltip, 9999);
+  pointer-events:none;
 }
-.cdx form .cdx-wpn-tip.cdx-tip-on .tooltip2 { opacity:1; z-index:500; }
+.cdx-pool-tip-portal .cdx-pool-tip {
+  position:fixed;
+  pointer-events:none;
+}
+.cdx-pool-tip-portal .cdx-pool-tip .tooltip2 {
+  position:static;
+  width:max-content;
+  min-width:min(150px, calc(100vw - 16px));
+  max-width:min(360px, calc(100vw - 16px));
+  max-height:calc(100vh - 16px);
+  overflow:auto;
+  line-height:normal;
+  white-space:normal;
+}
+.cdx-pool-tip-portal .cdx-pool-tip.cdx-tip-on .tooltip2 {
+  opacity:1;
+  z-index:var(--z-index-tooltip, 9999);
+}
 .cdx .cdx-wpn-pool img { width:16px; height:16px; border:none; vertical-align:middle; }
 /* Crew-card roll pool: a HORIZONTAL row of dice at the skills-tab glyph size
    (18px), wrapping if long. renderPreview emits 36px imgs inline, so override. */
@@ -1198,7 +1223,11 @@
   flex:0 0 100%; width:100%; margin-top:5px; padding-top:7px; border-top:1px dotted var(--cdx-line);
   font-size:12px; line-height:1.45; color:var(--cdx-dim); white-space:normal; cursor:default;
 }
-.cdx .cdx-item-body .item.force-power .item-details * { color:var(--cdx-dim); }
+/* Dim ordinary description markup without recolouring enriched FFG dice/result
+   sigils. Every `span.dietype` carries an intentional system colour (and the
+   Dark/Eldritch palettes add their own contrast treatment), so it must remain
+   outside this high-specificity descendant rule in every Codex scheme. */
+.cdx .cdx-item-body .item.force-power .item-details *:not(.dietype) { color:var(--cdx-dim); }
 .cdx .cdx-item-body .item.force-power .item-details .statt,
 .cdx .cdx-item-body .item.force-power .item-details .stat { font-weight:700; color:var(--cdx-ink); margin-right:8px; }
 .cdx .cdx-item-body .item.force-power .item-name {
@@ -1255,8 +1284,16 @@
 .cdx .cdx-sw-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
 .cdx .cdx-sw-main .cdx-istats { width:100%; }
 .cdx .cdx-sw-main .cdx-arc-panel { margin:0; }
-/* Lone Skill block (Special tab) spans full width. */
-.cdx .cdx-item-shipweapon .cdx-istats-special { grid-template-columns:1fr; }
+/* Vehicle weapon Skill and Ammo share the row; personal weapons already use
+   both columns for Skill/Characteristic, so their Ammo chip spans the next row. */
+.cdx .cdx-item-shipweapon .cdx-istats-special { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.cdx .cdx-item-shipweapon .cdx-istats-special .cdx-istat.wide { grid-column:1 / -1; }
+.cdx .cdx-item-weapon .cdx-istats-special .cdx-item-ammo { grid-column:1 / -1; }
+.cdx .cdx-item-ammo-body { flex:1; display:flex; align-items:center; justify-content:center; gap:9px; padding:5px 8px; }
+.cdx .cdx-item-ammo-count { display:flex; align-items:baseline; justify-content:center; min-width:5.5ch; gap:3px; font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; font-variant-numeric:tabular-nums; }
+.cdx .cdx-item-ammo-cur { color:var(--cdx-ink); }
+.cdx .cdx-item-ammo-max { color:var(--cdx-dim); }
+.cdx .cdx-item-ammo-max-in { width:2.5em; text-align:center; background:transparent; border:none; outline:none; box-shadow:none; font-family:"Orbitron"; font-weight:900; font-size:22px; line-height:1; color:var(--cdx-dim); padding:0; }
 .cdx .cdx-arc-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:7px 10px; padding:9px 11px; }
 .cdx .cdx-arc { display:flex; align-items:center; gap:6px; cursor:pointer; font-family:"Orbitron"; font-weight:600; font-size:9px; letter-spacing:.4px; text-transform:uppercase; color:var(--cdx-ink); }
 .cdx .cdx-arc input { accent-color:var(--cdx-accent); width:14px; height:14px; flex:none; margin:0; }
@@ -1362,10 +1399,9 @@
 /* --- Base power banner --- */
 /* Banner wrapper class is .cdx-ft-banner -- NOT .cdx-ft-head, which is the
    upgrade-CARD head (flex + --cdx-head gradient bg, below): same-name collision
-   there painted the card-head gradient behind the banner. display:contents drops
-   the wrapper box so the banner itself is the direct full-width child of the
-   window-content column (no stray bg, no stock .sheet-header flex rule). */
-.cdx .cdx-ft-banner { display:contents; }
+   full-width, otherwise-neutral wrapper casts the shared header shadow outside
+   the clipped power banner. */
+.cdx .cdx-ft-banner { display:block; width:100%; }
 .cdx .cdx-ft-power { width:100%; box-sizing:border-box; background:var(--cdx-accent); color:var(--cdx-head-ink); clip-path:var(--cdx-clip); padding:10px 14px; font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-power-row { display:flex; justify-content:space-between; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
 /* Name/FR render as text (play) or input (edit); style the container so BOTH look
@@ -1408,9 +1444,10 @@
    fixed height:100%, which capped the card and caused the description to overflow the
    footer (only visible where dark text crossed a light footer). */
 .cdx .cdx-ft-card { position:relative; z-index:2; flex:1 0 auto; display:flex; flex-direction:column; min-height:118px;
-  background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip);
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
-.cdx .cdx-ft-node.on .cdx-ft-card { filter:drop-shadow(0 0 4px var(--cdx-accent)); }
+  background:var(--cdx-paper2); color:var(--cdx-ink); clip-path:var(--cdx-clip); }
+.cdx .cdx-ft-node > .cdx-float-soft-wrap { position:relative; z-index:2; flex:1 0 auto; display:flex; flex-direction:column; overflow:visible; }
+.cdx .cdx-ft-node > .cdx-float-soft-wrap > .cdx-ft-card { flex:1 0 auto; }
+.cdx form:not(.scheme-eldritch) .cdx-ft-node.on > .cdx-float-soft-wrap { filter:var(--cdx-float-soft) drop-shadow(0 0 4px var(--cdx-accent)); }
 .cdx .cdx-ft-head { display:flex; align-items:center; gap:6px; padding:4px 8px; min-height:var(--ft-headh); box-sizing:border-box;
   background:var(--cdx-head); color:var(--cdx-head-ink); clip-path:var(--cdx-clip-top); font-family:"Orbitron",sans-serif; }
 .cdx .cdx-ft-name { flex:1; min-width:0; color:var(--cdx-head-ink); font-family:"Orbitron",sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; }
@@ -1609,12 +1646,12 @@
    Elevation levels — the design-language "levels" pass. Additive depth on the
    same non-eldritch panels the notch-outline overlay covers; no geometry moves.
    clip-path clips outer box-shadow, so "raised" = an inset top-rim highlight
-   (survives the clip). A filter:drop-shadow adds a genuine float; where an
-   unclipped wrapper exists, the filter is cast from that wrapper so notched
-   children keep their silhouette. Inventory/talent list wrappers carry the
-   token so the clipped cards inside can cast outside their notches. "Wells"
-   recess genuine text bodies (bio / talent details / item description) with an
-   inset shadow — never threshold numbers. Values are tokenised per scheme.
+   (survives the clip). A filter:drop-shadow adds a genuine float from an
+   unclipped group or standalone wrapper. This keeps vehicle, actor, item, and
+   progression-tree cards at the same visual level even though their templates
+   use different container structures. "Wells" recess genuine text bodies (bio /
+   talent details / item description) with an inset shadow — never threshold
+   numbers. Values are tokenised per scheme.
    ========================================================================== */
 /* Raised — inset top-rim highlight */
 .cdx form:not(.scheme-eldritch) .cdx-stat,
@@ -1625,25 +1662,33 @@
 .cdx form:not(.scheme-eldritch) .cdx-idesc,
 .cdx form:not(.scheme-eldritch) .cdx-istat,
 .cdx form:not(.scheme-eldritch) .cdx-icheck2 { box-shadow:var(--cdx-elev-1); }
-/* Real float — cast from an unclipped wrapper when one exists, so notched child
-   panels can keep their octagon silhouette. */
+/* Real float — major readouts and headers. Clipped components cast from an
+   unclipped wrapper so the common shadow cannot be cut off by clip-path. */
 .cdx form:not(.scheme-eldritch) .cdx-header-wrap,   /* character / minion header */
 .cdx form:not(.scheme-eldritch) .cdx-derived,       /* Wounds · Strain · Defence row */
 .cdx form:not(.scheme-eldritch) .cdx-minion-stats,  /* Group Strength · Defence · wound pool */
 .cdx form:not(.scheme-eldritch) .cdx-istats,        /* item-sheet stat boxes */
+.cdx form:not(.scheme-eldritch) .cdx-crit-stats,    /* critical-item stat boxes */
 .cdx form:not(.scheme-eldritch) .cdx-ichecks,       /* talent toggle cards */
-.cdx form:not(.scheme-eldritch) .cdx-xp-totals { filter:var(--cdx-float); }
+.cdx form:not(.scheme-eldritch) .cdx-xp-totals,
+.cdx form:not(.scheme-eldritch) .cdx-float-wrap,
+.cdx form:not(.scheme-eldritch) .cdx-ft-banner { filter:var(--cdx-float); }
 /* Soft float — content sections that should lift, but stay quieter than the top
-   readouts. The filter is still cast from unclipped wrappers where available. */
+   readouts. The broad .cdx-cards selector intentionally covers actor and vehicle
+   lists; vehicle templates do not add the actor partial's extra .items class. */
 .cdx form:not(.scheme-eldritch) .cdx-skills,        /* skills table columns */
 .cdx form:not(.scheme-eldritch) .cdx-pane.injuries,
-.cdx form:not(.scheme-eldritch) .cdx-cards.items,
+.cdx form:not(.scheme-eldritch) .cdx-cards,
 .cdx form:not(.scheme-eldritch) .cdx-gear.items,
 .cdx form:not(.scheme-eldritch) .cdx-pane.talents .cdx-talents,
-.cdx form:not(.scheme-eldritch) .cdx-forcepool,
 .cdx form:not(.scheme-eldritch) .cdx-bio-grid,
-.cdx form:not(.scheme-eldritch) .cdx-pane.bio > .cdx-panel:has(.cdx-bio-editor),
-.cdx form:not(.scheme-eldritch) .cdx-pane.effects { filter:var(--cdx-float-soft); }
+.cdx form:not(.scheme-eldritch) .cdx-bio-stats,
+.cdx form:not(.scheme-eldritch) .cdx-pane.effects,
+.cdx form:not(.scheme-eldritch) .cdx-pane.attributes,
+.cdx form:not(.scheme-eldritch) .cdx-item-body .cdx-pane.cdx-bio-editor,
+.cdx form:not(.scheme-eldritch) .cdx-sub,
+.cdx form:not(.scheme-eldritch) .cdx-float-soft-wrap,
+.cdx form:not(.scheme-eldritch) .cdx-item-body .talent-list { filter:var(--cdx-float-soft); }
 /* Wells — recessed text bodies */
 .cdx form:not(.scheme-eldritch) .cdx-bio-editor,
 .cdx form:not(.scheme-eldritch) .cdx-talent .item-details,
@@ -1653,6 +1698,3 @@
    needed); the inset rim keeps the number seated on the dial. Overrides the
    base .cdx-chip-box inner shadow. */
 .cdx form:not(.scheme-eldritch) .cdx-chip-box { box-shadow:inset 0 1px 0 var(--cdx-rim),var(--cdx-drop); }
-/* Float the small bio-stat panels (Obligation / Morality / Conflict) from their
-   unclipped .cdx-bio-stats row. */
-.cdx form:not(.scheme-eldritch) .cdx-bio-stats { filter:var(--cdx-float-soft); }

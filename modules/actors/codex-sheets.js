@@ -29,6 +29,8 @@ import { getFatedSigilMask } from "./codex-fated-sigil.js";
 import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
+import { placeCodexPopup } from "./codex-popup-position.js";
+import { codexXpBuyActive } from "./codex-xp-buy.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -392,6 +394,36 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     super._applyLegacyRootClasses(form, context);
   }
 
+  /** Preserve the decoded portrait node across non-image sheet renders. */
+  async _preRender(context, options) {
+    const portrait = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
+    this._cdxPreviousPortrait = portrait;
+    this._cdxPreviousPortraitSrc = portrait?.getAttribute("src") ?? null;
+    await super._preRender(context, options);
+  }
+
+  /**
+   * ApplicationV2 replaces the form contents on every render. Replacing an
+   * unchanged <img> briefly exposes an undecoded element, which makes the actor
+   * portrait flash whenever an item is equipped or any field updates. Put the
+   * already-decoded node back when its source is unchanged; a real actor-image
+   * change keeps the freshly rendered node and therefore updates normally.
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const previous = this._cdxPreviousPortrait;
+    const current = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
+    const currentSrc = current?.getAttribute("src") ?? null;
+    if (previous && current && this._cdxPreviousPortraitSrc === currentSrc) {
+      previous.className = current.className;
+      previous.title = current.title;
+      previous.alt = current.alt;
+      current.replaceWith(previous);
+    }
+    this._cdxPreviousPortrait = null;
+    this._cdxPreviousPortraitSrc = null;
+  }
+
   /** @override — add the Codex-only listeners on top of the stock ones. */
   activateListeners(html) {
     super.activateListeners(html);
@@ -431,6 +463,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
 
   /** @override — drop the pill-stack's document listener when the sheet closes. */
   async close(options = {}) {
+    this._cdxClearPoolHints();
     this._cdxPillStack?.destroy();
     this._cdxPillStack = null;
     if (this._cdxTalentCardRoot && this._onCdxTalentCardClickBound) {
@@ -470,6 +503,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   _cdxActivate(html) {
     const root = html?.[0] ?? this.form ?? this.element;
     if (!root) return;
+    this._cdxClearPoolHints();
 
     // mandar forces `overflow: visible !important` on the content <form> (it
     // scrolls its own .sheet-body, which our bespoke layout doesn't have). A
@@ -485,8 +519,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // Reflect FFG edit mode as a class so view-only chrome can hide itself when
     // editing is off — e.g. the career-skill ("CS") column, which is redundant
     // with the left career highlight. Mirrors data.disabled in the base getData.
+    const editEnabled = !!this.actor?.getFlag?.("starwarsffg", "config.enableEditMode");
     const editOn = !!(
-      this.actor?.getFlag?.("starwarsffg", "config.enableEditMode") &&
+      editEnabled &&
       this.actor?.getFlag?.("starwarsffg", "config.editModeActor") === game.user?.id
     );
     (form ?? root).classList.toggle("cdx-editmode", editOn);
@@ -564,18 +599,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       });
     });
 
-    // XP-buy mode: clicking the XP chip reveals every purchase affordance (skill
-    // upgrades, characteristic/talent/spec/force/signature buys); otherwise they
-    // are hidden (see `.cdx-xpbuy` in cdx.css). The flag is TRANSIENT — held on
-    // the instance, re-applied on re-render, and reset in close() — so it never
-    // persists across reopenings and always starts hidden.
-    // Edit mode and buy mode are mutually exclusive (purchases are blocked while
-    // editing): edit mode forces buy mode off and makes the XP chip inert.
-    if (editOn) this._cdxXpBuy = false;
-    (form ?? root).classList.toggle("cdx-xpbuy", !!this._cdxXpBuy);
+    // XP-buy mode reveals purchase and pill-management affordances. Characters
+    // toggle a transient mode with their XP chip. Rivals, nemeses, minions, and
+    // vehicles have no XP chip, so the mode stays active automatically.
+    // Edit mode still forces it off because the underlying handlers reject
+    // purchases/deletes while editing.
+    this._cdxXpBuy = codexXpBuyActive(this.actor?.type, editEnabled, this._cdxXpBuy);
+    const xpBuyPermanent = this.actor?.type !== "character";
+    (form ?? root).classList.toggle("cdx-xpbuy", this._cdxXpBuy);
     root.querySelectorAll(".cdx-xp").forEach((chip) => {
-      chip.classList.toggle("active", !!this._cdxXpBuy);
-      if (editOn) return; // XP chip is not clickable while edit mode is on
+      chip.classList.toggle("active", this._cdxXpBuy);
+      if (editEnabled || xpBuyPermanent) return;
       chip.addEventListener("click", (ev) => {
         ev.preventDefault();
         this._cdxXpBuy = !this._cdxXpBuy;
@@ -1051,8 +1085,6 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     if (!nodes.length) return;
     let data;
     try { data = await this.getData({}); } catch (e) { return; }
-    // Hints live on the form, outside the cards, so they outlive a content re-render.
-    this.form?.querySelectorAll(".cdx-wpn-tip").forEach((n) => n.remove());
     // Awaited (not forEach): the tooltip only exists once the pool has rendered.
     for (const elem of nodes) {
       // Resolve the weapon item from its card so its roll modifiers are folded
@@ -1060,48 +1092,82 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       const card = elem.closest(".cdx-card.weapon[data-item-id]");
       const item = card ? (this.actor?.items?.get(card.dataset.itemId) ?? null) : null;
       try { await DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { continue; }
-      this._cdxWeaponPoolHint(elem);
+      this._cdxPoolHintPortal(elem);
     }
   }
 
   /**
-   * Drive a weapon pool's source hint from its row, with the tooltip re-homed onto
-   * the form. Two things stop the shared `.hover:hover .tooltip2` mechanism working
-   * in place here:
-   *   - .cdx-card carries a clip-path (the notches), which clips its whole subtree —
-   *     a tooltip anchored inside the card is cut off at the card's edge.
-   *   - .cdx-wpn-pool is pointer-events:none, so it can never be :hover-ed. That is
-   *     deliberate: .roll-button has a global handler, and the pool sits one level
-   *     deeper than rollSkill's parent-walk expects, so a click there would roll a
-   *     bare skill instead of the weapon. Clicks must keep falling through to the
-   *     card's icon, which sits at the depth rollSkill wants.
-   * The form is unclipped, and an absolutely positioned child of it scrolls with the
-   * content, so the hint tracks its row. The `.hover` host keeps the shared
-   * `.starwarsffg .hover .tooltip2` styling matching, so it looks like the skill hint.
+   * The base sheet renders skill pools asynchronously. Portal only after the
+   * tooltip node exists; stock sheets leave this optional hook undefined.
    */
-  _cdxWeaponPoolHint(elem) {
-    const tip = elem.querySelector(".tooltip2");
-    const form = this.form;
-    if (!tip || !form) return;
+  _afterSkillDicePoolRendered(elem) {
+    const pool = elem?.querySelector?.(".cdx-sk-pool .dice-pool");
+    if (pool) this._cdxPoolHintPortal(pool);
+  }
 
+  /**
+   * Move a dice-pool source hint to document.body. The Codex form must be a
+   * scroll container, so neither z-index nor an in-form absolute host can escape
+   * its overflow clipping. A fixed body-level portal does, and viewport clamping
+   * keeps the complete hint visible at every sheet/window edge.
+   */
+  _cdxPoolHintPortal(trigger) {
+    const tip = trigger?.querySelector?.(".tooltip2");
+    if (!tip || !trigger.isConnected || trigger.dataset.cdxPoolTipBound) return;
+    trigger.dataset.cdxPoolTipBound = "1";
+
+    const portal = document.createElement("div");
+    portal.className = "starwarsffg cdx cdx-pool-tip-portal";
+    portal.dataset.cdxAppId = String(this.appId);
     const host = document.createElement("div");
-    host.className = "hover cdx-wpn-tip";
+    host.className = "hover cdx-pool-tip";
     host.appendChild(tip);
-    form.appendChild(host);
+    portal.appendChild(host);
+    document.body.appendChild(portal);
 
-    const show = () => {
-      // Measure against offsetParent — by definition what position:absolute resolves
-      // to — rather than assuming the form is positioned. Adding position:relative to
-      // the form would silently re-anchor the sheet's other ~30 absolute elements.
-      const anchor = host.offsetParent ?? form;
-      const a = anchor.getBoundingClientRect();
-      const r = elem.getBoundingClientRect();
-      host.style.left = `${r.left - a.left + anchor.scrollLeft}px`;
-      host.style.top = `${r.bottom - a.top + anchor.scrollTop + 3}px`;
-      host.classList.add("cdx-tip-on");
+    const position = () => {
+      if (!trigger.isConnected) return;
+      host.style.left = "0px";
+      host.style.top = "0px";
+      const rect = trigger.getBoundingClientRect();
+      const popup = host.getBoundingClientRect();
+      const point = placeCodexPopup(rect, popup, {
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+      });
+      host.style.left = `${point.left}px`;
+      host.style.top = `${point.top}px`;
     };
-    elem.addEventListener("pointerenter", show);
-    elem.addEventListener("pointerleave", () => host.classList.remove("cdx-tip-on"));
+    const reposition = () => {
+      if (host.classList.contains("cdx-tip-on")) position();
+    };
+    const show = () => {
+      position();
+      host.classList.add("cdx-tip-on");
+      window.addEventListener("scroll", reposition, true);
+      window.addEventListener("resize", reposition);
+    };
+    const hide = () => {
+      host.classList.remove("cdx-tip-on");
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+    const cleanup = () => {
+      hide();
+      trigger.removeEventListener("pointerenter", show);
+      trigger.removeEventListener("pointerleave", hide);
+      portal.remove();
+    };
+
+    trigger.addEventListener("pointerenter", show);
+    trigger.addEventListener("pointerleave", hide);
+    this._cdxPoolHintCleanups ??= new Set();
+    this._cdxPoolHintCleanups.add(cleanup);
+  }
+
+  _cdxClearPoolHints() {
+    for (const cleanup of this._cdxPoolHintCleanups ?? []) cleanup();
+    this._cdxPoolHintCleanups?.clear();
   }
 
   /**
@@ -1251,13 +1317,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       ctx.cdxAlignStored = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
       ctx.cdxAlign = cdxEffectiveAlignment(stored, this.actor?.system?.morality?.value);
     } catch (e) { ctx.cdxAlignStored = "neutral"; ctx.cdxAlign = "neutral"; }
-    // Ammo chip on expanded weapon cards. Tracking + magazine size come from
+    // Ammo chip on expanded personal- and vehicle-weapon cards. Tracking + magazine size come from
     // ammo-helpers so this honours both the manual counter (Option A) and the
-    // "Limited Ammo" quality mode (Option B). cdxAmmo is keyed by weapon _id.
+    // "Limited Ammo" quality mode (Option B). cdxAmmo is keyed by item _id.
     ctx.cdxAmmo = {};
     try {
       for (const item of (this.actor?.items ?? [])) {
-        if (item.type !== "weapon") continue;
+        if (!["weapon", "shipweapon"].includes(item.type)) continue;
         if (!isAmmoTracked(item)) continue;
         ctx.cdxAmmo[item._id] = {
           current: getAmmoValue(item),

@@ -6,9 +6,11 @@
   sections, switched in CodexItemSheet) — the same as the character sheet.
 --}}
 <form class="cdx-sheet cdx-item" autocomplete="off">
+  <div class="cdx-float-wrap">
   <div class="cdx-ihead">
     <div class="cdx-ipill">{{cdxTypeLabel}}</div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
   </div>
 
   <div class="cdx-iwmain">

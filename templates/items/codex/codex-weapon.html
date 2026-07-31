@@ -6,6 +6,7 @@
   · Sources · Tags.
 --}}
 <form class="cdx-sheet cdx-item cdx-item-weapon" autocomplete="off">
+  <div class="cdx-float-wrap">
   <div class="cdx-ihead">
     <div class="cdx-ihead-top">
       <div class="cdx-ipill">{{localize "TYPES.Item.weapon"}}</div>
@@ -16,6 +17,7 @@
     </div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
     <div class="cdx-isub"{{#unless data.skill.value}} style="display:none"{{/unless}}>{{data.skill.value}}{{#if data.characteristic.value}} - {{localize (lookup (lookup this.FFG.characteristics data.characteristic.value) "label")}}{{/if}}</div>
+  </div>
   </div>
 
   <div class="cdx-iwmain">
@@ -35,9 +37,11 @@
     <div class="cdx-qual-wrap"><span class="cdx-qual-k">Qualities</span><div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div></div>
     {{/if}}
 
+  <div class="cdx-float-soft-wrap">
   <div class="cdx-idesc">
     <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
     {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
   </div>
 
   <nav class="cdx-tabstrip">
@@ -54,14 +58,22 @@
       <div class="cdx-istats cdx-istats-special">
         <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
         <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ModTypeCharacteristic"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.characteristic.value">{{#selectFfg data.characteristic.value}}<option value="">None</option>{{#each this.FFG.characteristics as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
-        {{#if (eq item.flags.starwarsffg.config.enableAmmo true)}}
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Threshold"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.max" value="{{data.ammo.max}}" autocomplete="off" /></div>
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Current"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.value" value="{{data.ammo.value}}" autocomplete="off" /></div>
+        {{#if ammoDisplay.tracked}}
+        <div class="cdx-istat cdx-item-ammo">
+          <span class="cdx-istat-k">{{localize "SWFFG.Ammo"}}</span>
+          <div class="cdx-item-ammo-body">
+            <button type="button" class="cdx-step cdx-item-ammo-step" data-dir="-1"><i class="fas fa-minus"></i></button>
+            <div class="cdx-item-ammo-count"><span class="cdx-item-ammo-cur">{{ammoDisplay.value}}</span><span class="cdx-slash">/</span>{{#if ammoDisplay.qualityMode}}<span class="cdx-item-ammo-max">{{ammoDisplay.max}}</span>{{else}}<input class="cdx-item-ammo-max-in cdx-num" type="text" name="data.ammo.max" value="{{ammoDisplay.max}}" data-dtype="Number" autocomplete="off" />{{/if}}</div>
+            <button type="button" class="cdx-step cdx-item-ammo-step" data-dir="1"><i class="fas fa-plus"></i></button>
+          </div>
+        </div>
         {{/if}}
       </div>
+      <div class="cdx-float-soft-wrap">
       <div class="cdx-idesc cdx-ispecial">
         <div class="cdx-idesc-head">{{localize "SWFFG.ItemWeaponSpecial"}}</div>
         {{editor data.enrichedSpecial target="system.special.value" button=true owner=owner editable=editable engine="prosemirror"}}
+      </div>
       </div>
     </section>
     <section class="cdx-pane active" data-tab="qualities">{{> "systems/starwarsffg/templates/parts/ffg-mods.html"}}</section>

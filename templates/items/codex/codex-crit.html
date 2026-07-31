@@ -4,9 +4,11 @@
   description, then Modifiers / Sources / Tags tabs.
 --}}
 <form class="cdx-sheet cdx-item cdx-item-crit" autocomplete="off">
+  <div class="cdx-float-wrap">
   <div class="cdx-ihead">
     <div class="cdx-ipill">{{cdxTypeLabel}}</div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
   </div>
 
   <div class="cdx-iwmain">
@@ -27,9 +29,11 @@
     </div>
   </div>
 
+  <div class="cdx-float-soft-wrap">
   <div class="cdx-idesc">
     <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
     {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
   </div>
 
   <nav class="cdx-tabstrip">

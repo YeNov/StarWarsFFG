@@ -503,6 +503,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     // Setup dice pool image and hide filtered skills.
     html.find(".skill").each(async (_, elem) => {
       await DiceHelpers.addSkillDicePool(await this.getData({}), elem);
+      this._afterSkillDicePoolRendered?.(elem);
       const filters = this._filters.skills;
     });
 

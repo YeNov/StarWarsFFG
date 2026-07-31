@@ -4,9 +4,11 @@
   Force Talent / Conflict checkbox cards · inline description · editing tabs.
 --}}
 <form class="cdx-sheet cdx-item cdx-item-talent" autocomplete="off">
+  <div class="cdx-float-wrap">
   <div class="cdx-ihead">
     <div class="cdx-ipill">{{localize "TYPES.Item.talent"}}</div>
     <input class="cdx-item-name" name="name" type="text" value="{{item.name}}" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String" />
+  </div>
   </div>
 
   <div class="cdx-istats cdx-istats-talent">
@@ -23,9 +25,11 @@
     <label class="cdx-icheck2 danger"><input type="checkbox" name="data.isConflictTalent" data-dtype="Boolean" {{checked data.isConflictTalent}} /><span class="cdx-ick-box"></span><span class="cdx-ick-lbl">{{localize "SWFFG.TalentsConflict"}}</span></label>
   </div>
 
+  <div class="cdx-float-soft-wrap">
   <div class="cdx-idesc">
     <div class="cdx-idesc-head">{{localize "SWFFG.TabDescription"}}</div>
     {{editor data.enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+  </div>
   </div>
 
   <nav class="cdx-tabstrip">

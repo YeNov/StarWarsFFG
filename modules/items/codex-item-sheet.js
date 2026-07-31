@@ -18,11 +18,25 @@
  */
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
 import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "../actors/codex-sheets.js";
+import { codexItemTypeLabelKey } from "./codex-item-labels.js";
+import { getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
  *  file throws ENOENT when the sheet renders. (talent still pending.) */
 const CODEX_DETAILED = new Set(["gear", "weapon", "armour", "talent", "forcepower", "specialization", "signatureability"]);
+
+// Detailed Codex equipment sheets place a fixed image beside a dense two- or
+// three-column stat grid. The stock sheet widths leave too little room for
+// adjusted-value badges and the Restricted control, especially in the wider
+// Eldritch display face. Keep these Codex-only so legacy sheet defaults do not
+// change.
+const CODEX_EQUIPMENT_WIDTHS = Object.freeze({
+  weapon: { default: 650, min: 600 },
+  shipweapon: { default: 650, min: 600 },
+  armour: { default: 550, min: 500 },
+  gear: { default: 550, min: 500 },
+});
 
 /** data.status values ↔ condition-track labels (None = Undamaged). */
 const CODEX_STATUS = ["None", "Minor", "Moderate", "Major"];
@@ -34,6 +48,13 @@ export class CodexItemSheet extends ItemSheetFFG {
   static DEFAULT_OPTIONS = {
     classes: ["cdx"],
   };
+
+  /** Keep dense equipment stat grids wide enough to avoid value/badge overlap. */
+  _minDimensions() {
+    const dimensions = super._minDimensions();
+    const width = CODEX_EQUIPMENT_WIDTHS[this.item?.type]?.min;
+    return width ? { ...dimensions, width: Math.max(dimensions.width, width) } : dimensions;
+  }
 
   /** Per-item palette: item flag → owning actor's flag → republic. */
   _cdxScheme() {
@@ -70,10 +91,20 @@ export class CodexItemSheet extends ItemSheetFFG {
 
   /** @override — add the condition/status track model (weapon/armour). */
   async getData(options) {
+    const setCodexInitialSize = !this._cdxSizeInitialized;
     const ctx = await super.getData(options);
-    // Localized item-type name for the header type pill (shared by every codex
-    // item template via the general .cdx-ihead header).
-    try { ctx.cdxTypeLabel = game.i18n.localize(`TYPES.Item.${this.item?.type}`); } catch (e) { ctx.cdxTypeLabel = ""; }
+    if (setCodexInitialSize) {
+      this._cdxSizeInitialized = true;
+      const width = CODEX_EQUIPMENT_WIDTHS[this.item?.type]?.default;
+      if (width) this.position.width = width;
+    }
+    // Localized header pill shared by every Codex item template. Obligation,
+    // Morality, and Duty are all document type `obligation`, so use their
+    // system.type value to distinguish them.
+    try {
+      const labelKey = codexItemTypeLabelKey(this.item?.type, this.item?.system?.type);
+      ctx.cdxTypeLabel = labelKey ? game.i18n.localize(labelKey) : "";
+    } catch (e) { ctx.cdxTypeLabel = ""; }
     // Tree types (force power / signature / specialization): edit is a TRANSIENT
     // per-session toggle (this._cdxEdit, default off), so the tree always opens
     // read-only regardless of any persisted system.isEditing. The bespoke edit
@@ -182,6 +213,39 @@ export class CodexItemSheet extends ItemSheetFFG {
         await this.item.update({ "system.rarity.isrestricted": !this.item.system?.rarity?.isrestricted });
       });
     });
+
+    // Single-chip ammo counter on personal- and vehicle-weapon configuration
+    // tabs. The threshold remains editable in manual mode (the right-hand value
+    // in the ratio), while Limited Ammo quality mode renders its derived maximum
+    // read-only. Optimistically update the current value so clicking +/- does not
+    // re-render the sheet or move the user's active tab.
+    root?.querySelectorAll?.(".cdx-item-ammo-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (!this.isEditable) return;
+        const value = ev.currentTarget.closest(".cdx-item-ammo")?.querySelector(".cdx-item-ammo-cur");
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const max = getAmmoMax(this.item);
+        const displayed = parseInt(value?.textContent ?? "", 10);
+        let current = (Number.isFinite(displayed) ? displayed : getAmmoValue(this.item)) + dir;
+        current = Math.max(0, max ? Math.min(max, current) : current);
+        if (value) value.textContent = String(current);
+
+        // Serialize writes while leaving the visible counter optimistic. Without
+        // this queue, a second quick click reads the still-stale Item document and
+        // writes the same value as the first click, making the control feel like it
+        // requires a double-click.
+        const previousWrite = this._cdxAmmoUpdate?.catch(() => undefined) ?? Promise.resolve();
+        this._cdxAmmoUpdate = previousWrite.then(() => this.item.update({ "system.ammo.value": current }, { render: false }));
+        try {
+          await this._cdxAmmoUpdate;
+        } catch (e) {
+          if (value?.textContent === String(current)) value.textContent = String(getAmmoValue(this.item));
+          return;
+        }
+      });
+    });
     // Price — same comma rules as actor credits. The field is NOT Foundry-bound
     // (no name=), so the comma'd display string can never round-trip into the
     // stored Number when a neighbouring field triggers a submit. Show commas at
@@ -220,6 +284,29 @@ export class CodexItemSheet extends ItemSheetFFG {
       });
       inp.addEventListener("keypress", (ev) => {
         if (ev.key.length === 1 && !/[0-9]/.test(ev.key)) ev.preventDefault();
+      });
+    });
+
+    // These base values feed prepared/adjusted values shown beside them. The
+    // normal submit-on-change path deliberately uses render:false, which leaves
+    // those badges stale until the sheet is reopened. Submit once without an
+    // automatic document render, then redraw after prepareData has recomputed
+    // the adjusted values. Stop propagation so the form-level change handler
+    // cannot enqueue a redundant second submit.
+    const adjustedBaseFields = [
+      "data.damage.value",
+      "data.crit.value",
+      "data.encumbrance.value",
+      "data.hardpoints.value",
+      "data.soak.value",
+      "data.defence.value",
+    ];
+    const adjustedSelector = adjustedBaseFields.map((name) => `[name="${name}"]`).join(",");
+    root?.querySelectorAll?.(adjustedSelector).forEach((field) => {
+      field.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        await this._onSubmit(ev, { render: false });
+        await this.render(true);
       });
     });
 

@@ -117,7 +117,7 @@
   <section class="cdx-pane talents items" data-tab="talents">{{> "systems/starwarsffg/templates/parts/codex/cdx-talents.html"}}</section>
 
   <section class="cdx-pane bio" data-tab="bio">
-    <div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.TabBiography"}}</div><div class="cdx-bio-editor">{{editor data.biography target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div>
+    <div class="cdx-float-soft-wrap"><div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.TabBiography"}}</div><div class="cdx-bio-editor">{{editor data.biography target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div></div>
   </section>
 
   <section class="cdx-pane effects" data-tab="effects">{{> "systems/starwarsffg/templates/parts/shared/ffg-effects.html" type="effects"}}</section>
