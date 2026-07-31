@@ -650,7 +650,8 @@
 .cdx .cdx-item-body,
 .cdx .cdx-pane,
 .cdx .cdx-idesc,
-.cdx .editor-content { overflow-anchor:none; }
+.cdx .editor-content,
+.cdx .cdx-xp-log { overflow-anchor:none; }
 
 /* ---- Skills ----
    Each column is ONE grid; every header/row uses `grid-template-columns: subgrid`

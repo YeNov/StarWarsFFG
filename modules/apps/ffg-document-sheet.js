@@ -197,7 +197,14 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
    */
   _scrollPreservationSelectors() {
     const configured = Array.isArray(this.options?.scrollY) ? this.options.scrollY : [];
-    return [...new Set([...configured, ".cdx-item-body", ".cdx-pane.active", ".cdx-idesc", ".editor-content"])];
+    return [...new Set([
+      ...configured,
+      ".cdx-item-body",
+      ".cdx-pane.active",
+      ".cdx-idesc",
+      ".editor-content",
+      ".cdx-xp-log",
+    ])];
   }
 
   /** Capture scroll before ApplicationV2 replaces the form's inner content. */
@@ -238,6 +245,21 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
       const element = form.querySelectorAll(position.selector)[position.index];
       if (element) restore(element, position);
     }
+  }
+
+  /**
+   * ApplicationV2 applies its final window position after `_onRender`. Defer one
+   * authoritative restore until that layout is complete but before the next
+   * paint; otherwise a gear/item form can be clamped against its transitional
+   * height and visibly move when the final height is applied.
+   */
+  _queueFinalScrollRestore(positions) {
+    if (this._ffgScrollRestoreFrame) cancelAnimationFrame(this._ffgScrollRestoreFrame);
+    if (!positions) return;
+    this._ffgScrollRestoreFrame = requestAnimationFrame(() => {
+      this._ffgScrollRestoreFrame = null;
+      this._restoreScrollPositions(positions);
+    });
   }
 
   async _preRender(context, options) {
@@ -301,6 +323,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     // of zero are intentional too: browser anchoring must not move a sheet that
     // was at its top before the update.
     this._restoreScrollPositions(this._ffgScrollPositions);
+    this._queueFinalScrollRestore(this._ffgScrollPositions);
   }
 
   _applyLegacyRootClasses(form, context = {}) {
@@ -480,6 +503,10 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     // the user feeling like × did nothing. The `_closing` flag is consulted
     // by our overridden `render()` to bail out cleanly.
     this._closing = true;
+    if (this._ffgScrollRestoreFrame) {
+      cancelAnimationFrame(this._ffgScrollRestoreFrame);
+      this._ffgScrollRestoreFrame = null;
+    }
     try {
       if (this.options.submitOnClose && closeOptions.submit !== false && this.form && this.isEditable) {
         const event = new Event("submit", { cancelable: true });
