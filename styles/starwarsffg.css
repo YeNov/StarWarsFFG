@@ -3961,9 +3961,20 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 
 /* PC Wizard — Content sources panel. */
+.application.starwarsffg.wizard.charCreator .window-content {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.charCreator .pc-wizard-header {
+  min-height: 0;
+}
 .charCreator .sources-panel {
+  max-height: min(52vh, 430px);
   margin: 8px;
   padding: 10px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   border: 1px solid rgba(0, 0, 0, 0.35);
   background: rgba(245, 241, 232, 0.94);
   color: #1f2933;
