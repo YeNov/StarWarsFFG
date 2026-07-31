@@ -26,6 +26,18 @@ import { getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
  *  file throws ENOENT when the sheet renders. (talent still pending.) */
 const CODEX_DETAILED = new Set(["gear", "weapon", "armour", "talent", "forcepower", "specialization", "signatureability"]);
 
+// Detailed Codex equipment sheets place a fixed image beside a dense two- or
+// three-column stat grid. The stock sheet widths leave too little room for
+// adjusted-value badges and the Restricted control, especially in the wider
+// Eldritch display face. Keep these Codex-only so legacy sheet defaults do not
+// change.
+const CODEX_EQUIPMENT_WIDTHS = Object.freeze({
+  weapon: { default: 650, min: 600 },
+  shipweapon: { default: 650, min: 600 },
+  armour: { default: 550, min: 500 },
+  gear: { default: 550, min: 500 },
+});
+
 /** data.status values ↔ condition-track labels (None = Undamaged). */
 const CODEX_STATUS = ["None", "Minor", "Moderate", "Major"];
 const CODEX_STATUS_LABELS = ["Undamaged", "Minor", "Moderate", "Major"];
@@ -36,6 +48,13 @@ export class CodexItemSheet extends ItemSheetFFG {
   static DEFAULT_OPTIONS = {
     classes: ["cdx"],
   };
+
+  /** Keep dense equipment stat grids wide enough to avoid value/badge overlap. */
+  _minDimensions() {
+    const dimensions = super._minDimensions();
+    const width = CODEX_EQUIPMENT_WIDTHS[this.item?.type]?.min;
+    return width ? { ...dimensions, width: Math.max(dimensions.width, width) } : dimensions;
+  }
 
   /** Per-item palette: item flag → owning actor's flag → republic. */
   _cdxScheme() {
@@ -72,7 +91,13 @@ export class CodexItemSheet extends ItemSheetFFG {
 
   /** @override — add the condition/status track model (weapon/armour). */
   async getData(options) {
+    const setCodexInitialSize = !this._cdxSizeInitialized;
     const ctx = await super.getData(options);
+    if (setCodexInitialSize) {
+      this._cdxSizeInitialized = true;
+      const width = CODEX_EQUIPMENT_WIDTHS[this.item?.type]?.default;
+      if (width) this.position.width = width;
+    }
     // Localized header pill shared by every Codex item template. Obligation,
     // Morality, and Duty are all document type `obligation`, so use their
     // system.type value to distinguish them.
