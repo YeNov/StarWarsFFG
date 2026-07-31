@@ -69,10 +69,16 @@
   <div class="cdx-item-body shipweapon">
     <section class="cdx-pane" data-tab="configuration">
       <div class="cdx-istats cdx-istats-special">
-        <div class="cdx-istat wide"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.ItemWeaponSkill"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.skill.value">{{#selectFfg data.skill.value}}{{#each this.FFG.skills as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
         {{#if ammoDisplay.tracked}}
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Current"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.value" value="{{ammoDisplay.value}}" autocomplete="off" /></div>
-        <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.Threshold"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.ammo.max" value="{{ammoDisplay.max}}" autocomplete="off" {{#if ammoDisplay.qualityMode}}disabled{{/if}} /></div>
+        <div class="cdx-istat cdx-item-ammo">
+          <span class="cdx-istat-k">{{localize "SWFFG.Ammo"}}</span>
+          <div class="cdx-item-ammo-body">
+            <button type="button" class="cdx-step cdx-item-ammo-step" data-dir="-1"><i class="fas fa-minus"></i></button>
+            <div class="cdx-item-ammo-count"><span class="cdx-item-ammo-cur">{{ammoDisplay.value}}</span><span class="cdx-slash">/</span>{{#if ammoDisplay.qualityMode}}<span class="cdx-item-ammo-max">{{ammoDisplay.max}}</span>{{else}}<input class="cdx-item-ammo-max-in cdx-num" type="text" name="data.ammo.max" value="{{ammoDisplay.max}}" data-dtype="Number" autocomplete="off" />{{/if}}</div>
+            <button type="button" class="cdx-step cdx-item-ammo-step" data-dir="1"><i class="fas fa-plus"></i></button>
+          </div>
+        </div>
         {{/if}}
       </div>
       <div class="cdx-float-soft-wrap">

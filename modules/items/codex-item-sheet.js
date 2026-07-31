@@ -19,6 +19,7 @@
 import { ItemSheetFFG } from "./item-sheet-ffg.js";
 import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "../actors/codex-sheets.js";
 import { codexItemTypeLabelKey } from "./codex-item-labels.js";
+import { getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
@@ -185,6 +186,29 @@ export class CodexItemSheet extends ItemSheetFFG {
         ev.preventDefault();
         if (!this.isEditable) return;
         await this.item.update({ "system.rarity.isrestricted": !this.item.system?.rarity?.isrestricted });
+      });
+    });
+
+    // Single-chip ammo counter on personal- and vehicle-weapon configuration
+    // tabs. The threshold remains editable in manual mode (the right-hand value
+    // in the ratio), while Limited Ammo quality mode renders its derived maximum
+    // read-only. Optimistically update the current value so clicking +/- does not
+    // re-render the sheet or move the user's active tab.
+    root?.querySelectorAll?.(".cdx-item-ammo-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        if (!this.isEditable) return;
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const max = getAmmoMax(this.item);
+        let current = getAmmoValue(this.item) + dir;
+        current = Math.max(0, max ? Math.min(max, current) : current);
+        try {
+          await this.item.update({ "system.ammo.value": current }, { render: false });
+        } catch (e) {
+          return;
+        }
+        const value = ev.currentTarget.closest(".cdx-item-ammo")?.querySelector(".cdx-item-ammo-cur");
+        if (value) value.textContent = String(current);
       });
     });
     // Price — same comma rules as actor credits. The field is NOT Foundry-bound
