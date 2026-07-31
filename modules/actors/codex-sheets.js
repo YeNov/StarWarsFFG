@@ -394,6 +394,36 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     super._applyLegacyRootClasses(form, context);
   }
 
+  /** Preserve the decoded portrait node across non-image sheet renders. */
+  async _preRender(context, options) {
+    const portrait = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
+    this._cdxPreviousPortrait = portrait;
+    this._cdxPreviousPortraitSrc = portrait?.getAttribute("src") ?? null;
+    await super._preRender(context, options);
+  }
+
+  /**
+   * ApplicationV2 replaces the form contents on every render. Replacing an
+   * unchanged <img> briefly exposes an undecoded element, which makes the actor
+   * portrait flash whenever an item is equipped or any field updates. Put the
+   * already-decoded node back when its source is unchanged; a real actor-image
+   * change keeps the freshly rendered node and therefore updates normally.
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const previous = this._cdxPreviousPortrait;
+    const current = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
+    const currentSrc = current?.getAttribute("src") ?? null;
+    if (previous && current && this._cdxPreviousPortraitSrc === currentSrc) {
+      previous.className = current.className;
+      previous.title = current.title;
+      previous.alt = current.alt;
+      current.replaceWith(previous);
+    }
+    this._cdxPreviousPortrait = null;
+    this._cdxPreviousPortraitSrc = null;
+  }
+
   /** @override — add the Codex-only listeners on top of the stock ones. */
   activateListeners(html) {
     super.activateListeners(html);
