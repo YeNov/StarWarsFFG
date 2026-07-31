@@ -3,17 +3,25 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import {
+  bestFindingSuggestion,
   buildImportIndex,
+  buildSnapshotIndex,
   buildSkillMetadata,
   collectImportEntries,
   entriesFromDocs,
+  entriesFromSelectionRefs,
+  findIndexedSnapshot,
+  HYPERDRIVE_SKILL_ALIASES,
+  looseNameScore,
   normalizeName,
+  resolutionAliases,
+  resolveFindingOverride,
 } from "../../modules/importer/hyperdrive/resolve.js";
 
-const entry = (type, id, name, uuid = `${type}:${name}`) => ({
+const entry = (type, id, name, uuid = `${type}:${name}`, system = undefined) => ({
   itemType: type,
   ffgimportid: id,
-  ref: { uuid, type, name, snapshot: { name, type } },
+  ref: { uuid, type, name, snapshot: { name, type, ...(system ? { system } : {}) } },
 });
 
 test("resolves by typed key and normalized name; duplicates use first and report ambiguity", () => {
@@ -28,6 +36,128 @@ test("resolves by typed key and normalized name; duplicates use first and report
   assert.equal(index.getByName("weapon", "DEFENDER").ref.uuid, "first");
   assert.equal(index.ambiguities.length, 1);
   assert.equal(normalizeName("<em> Foo </em>"), "foo");
+});
+
+test("expanded compendium names resolve conservatively after exact names", () => {
+  const exact = entry("weapon", "EXACT", "Unarmed");
+  const expanded = entry("weapon", "EXPANDED", "Unarmed Strike");
+  let index = buildImportIndex([expanded, exact]);
+  assert.equal(index.getByName("weapon", "Unarmed"), exact);
+
+  index = buildImportIndex([expanded]);
+  assert.equal(index.getByName("weapon", "Unarmed"), expanded);
+  assert.ok(looseNameScore("Superior", "Superior Weapon Customization") > 0);
+  assert.equal(looseNameScore("Weighted Head", "Weapon Sling"), 0);
+});
+
+test("ambiguous expanded names are rejected and reported", () => {
+  const index = buildImportIndex([
+    entry("weapon", "ONE", "Unarmed Strike"),
+    entry("weapon", "TWO", "Unarmed Combat"),
+  ]);
+  assert.equal(index.getByName("weapon", "Unarmed"), null);
+  assert.deepEqual(index.ambiguities.map((ambiguity) => ({
+    itemType: ambiguity.itemType,
+    name: ambiguity.name,
+    count: ambiguity.count,
+    loose: ambiguity.loose,
+  })), [{
+    itemType: "weapon",
+    name: "unarmed",
+    count: 2,
+    loose: true,
+  }]);
+  assert.deepEqual(index.ambiguities[0].candidateRefs.map((ref) => ref.name), [
+    "Unarmed Strike",
+    "Unarmed Combat",
+  ]);
+});
+
+test("quality and attachment expansion respects the owning item type", () => {
+  const entries = [
+    entry("itemmodifier", "SUPERIOR", "Superior Weapon Customization", "weapon-quality", { type: "weapon" }),
+    entry("itemmodifier", "SUPERIOR", "Superior Armor Customization", "armor-quality", { type: "armor" }),
+    entry("itemattachment", null, "Superior Weapon Customization", "weapon-attachment", { type: "weapon" }),
+    entry("itemattachment", null, "Superior Armor Customization", "armor-attachment", { type: "armor" }),
+  ];
+  const modifiers = buildSnapshotIndex(entries, "itemmodifier");
+  const attachments = buildSnapshotIndex(entries, "itemattachment");
+  assert.equal(
+    findIndexedSnapshot(modifiers, { Key: "SUPERIOR" }, { ownerType: "weapon" }).name,
+    "Superior Weapon Customization",
+  );
+  assert.equal(
+    findIndexedSnapshot(modifiers, { Key: "SUPERIOR" }, { ownerType: "armour" }).name,
+    "Superior Armor Customization",
+  );
+  assert.equal(
+    findIndexedSnapshot(attachments, { Name: "Superior" }, { ownerType: "weapon" }).name,
+    "Superior Weapon Customization",
+  );
+});
+
+test("manual finding resolutions use both exported keys and names", () => {
+  const raw = { Key: "SUPERIOR", Name: "Superior" };
+  const aliases = resolutionAliases("itemmodifier", raw, { ownerType: "weapon" });
+  const selected = { name: "Superior Weapon Customization", type: "itemmodifier" };
+  const overrides = new Map(aliases.map((alias) => [alias, selected]));
+  assert.equal(
+    resolveFindingOverride(overrides, "itemmodifier", { Key: "SUPERIOR" }, { ownerType: "weapon" }),
+    selected,
+  );
+  assert.equal(
+    resolveFindingOverride(overrides, "itemmodifier", { Name: "Superior" }, { ownerType: "weapon" }),
+    selected,
+  );
+  assert.equal(
+    resolveFindingOverride(overrides, "itemmodifier", raw, { ownerType: "armour" }),
+    null,
+  );
+});
+
+test("snapshot lookup reports unresolved findings and accepts a dragged override", () => {
+  const index = buildSnapshotIndex([], "itemmodifier");
+  const findings = [];
+  const entry = { Key: "SUPERIOR", Name: "Superior" };
+  assert.equal(findIndexedSnapshot(index, entry, {
+    ownerType: "weapon",
+    onResolutionFinding: (finding) => findings.push(finding),
+  }), null);
+  assert.equal(findings[0].reason, "not-found");
+  assert.equal(findings[0].kind, "itemmodifier");
+
+  const selected = {
+    ref: {
+      snapshot: {
+        name: "Chosen Superior",
+        type: "itemmodifier",
+        system: { type: "weapon" },
+      },
+    },
+  };
+  assert.equal(findIndexedSnapshot(index, entry, {
+    ownerType: "weapon",
+    resolveFinding: () => selected,
+    onResolutionFinding: (finding) => findings.push(finding),
+  }).name, "Chosen Superior");
+  assert.equal(findings.length, 1);
+});
+
+test("unresolved findings get an obvious replaceable catalog suggestion", () => {
+  const knockdown = entry("itemmodifier", "KNOCK", "Knockdown Talent", "genericmods:knockdown", { type: "all" });
+  const wrongType = entry("talent", "KNOCKDOWN", "Knockdown", "talents:knockdown");
+  assert.equal(bestFindingSuggestion({
+    kind: "itemmodifier",
+    key: "KNOCKDOWN",
+    ownerType: "weapon",
+  }, [wrongType, knockdown]), knockdown.ref);
+
+  const reportedCandidate = entry("weapon", "ONE", "First Candidate").ref;
+  assert.equal(bestFindingSuggestion({
+    kind: "weapon",
+    key: "UNKNOWN",
+    candidateRefs: [reportedCandidate],
+  }, [knockdown]), reportedCandidate);
 });
 
 test("doc collection keeps keyless docs and includes every supplied pack list plus world items", () => {
@@ -46,6 +176,23 @@ test("doc collection keeps keyless docs and includes every supplied pack list pl
   assert.deepEqual(all.map((value) => value.ref.name), ["One", "Two", "Three"]);
 });
 
+test("configured PC-creator selection refs become deduplicated import entries", () => {
+  const refs = [{
+    uuid: "Compendium.selected.attachments.Item.one",
+    name: "Weighted Head",
+    type: "itemattachment",
+    snapshot: {
+      name: "Weighted Head",
+      type: "itemattachment",
+      flags: { starwarsffg: { ffgimportid: null } },
+    },
+  }];
+  const entries = entriesFromSelectionRefs([...refs, structuredClone(refs[0])]);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].ref.snapshot.name, "Weighted Head");
+  assert.equal(entries[0].itemType, "itemattachment");
+});
+
 test("live skill metadata uses import ids and the selected alternate skill theme", () => {
   const { skillMap, skillMeta } = buildSkillMetadata({
     entries: [entry("skill", "DISC", "Discipline")],
@@ -61,9 +208,38 @@ test("live skill metadata uses import ids and the selected alternate skill theme
   });
   assert.equal(skillMap.DISC, "Discipline");
   assert.equal(skillMap.BRAWL, "Brawl");
+  assert.equal(skillMap.RANGHVY, "Ranged: Heavy");
+  assert.equal(skillMap["Outer Rim"], "Knowledge: Outer Rim");
   assert.deepEqual(skillMeta.find((skill) => skill.skill === "Brawl"), {
     skill: "Brawl",
     characteristic: "Brawn",
     type: "Combat",
   });
+});
+
+test("Hyperdrive skill aliases cover every standard punctuation and knowledge mismatch", () => {
+  assert.deepEqual(
+    Object.fromEntries([
+      "CORE", "EDU", "LORE", "OUT", "UND", "WARF", "XEN",
+      "PILOTPL", "PILOTSP", "RANGHVY", "RANGLT",
+    ].map((key) => [key, HYPERDRIVE_SKILL_ALIASES[key]])),
+    {
+      CORE: "Knowledge: Core Worlds",
+      EDU: "Knowledge: Education",
+      LORE: "Knowledge: Lore",
+      OUT: "Knowledge: Outer Rim",
+      UND: "Knowledge: Underworld",
+      WARF: "Knowledge: Warfare",
+      XEN: "Knowledge: Xenology",
+      PILOTPL: "Piloting: Planetary",
+      PILOTSP: "Piloting: Space",
+      RANGHVY: "Ranged: Heavy",
+      RANGLT: "Ranged: Light",
+    },
+  );
+  const { skillMap } = buildSkillMetadata({
+    temporarySkills: { RANGHVY: "Custom Heavy Weapons" },
+  });
+  assert.equal(skillMap.RANGHVY, "Custom Heavy Weapons", "live theme mappings override the fallback");
+  assert.equal(skillMap["Ranged (Heavy)"], "Custom Heavy Weapons");
 });

@@ -14,6 +14,7 @@ test("parses identity, accounting, species, characteristics, and derived totals"
   assert.equal(parsed.biography, "This is a background story block");
   assert.deepEqual(parsed.characteristics, RAW.Characteristics);
   assert.equal(parsed.xp.source, -215);
+  assert.equal(parsed.xp.earned, 0);
   assert.deepEqual(parsed.derived, { wounds: 18, strain: 13, soak: 4 });
   assert.equal(parsed.species.key, "MANDOHUMAN");
   assert.equal(parsed.species.startingXP, 105);
@@ -60,7 +61,36 @@ test("preserves equipment instances, separates cybernetics, and normalizes narra
 
 test("is null-safe and infers non-Force rulesets", () => {
   assert.doesNotThrow(() => parseHyperdrive({}));
+  assert.doesNotThrow(() => parseHyperdrive({ ForcePowers: [null], Weapons: [null] }));
   assert.equal(parseHyperdrive({ Duties: [{}] }).rules, "aor");
   assert.equal(parseHyperdrive({}).rules, "eote");
   assert.equal(parseHyperdrive({ Credits: "not-a-number" }).credits, 0);
+});
+
+test("normalizes linked character images", () => {
+  const parsed = parseHyperdrive({
+    imageUrl: "https://example.test/character.webp",
+    thumbnailUrl: "https://example.test/token.webp",
+  });
+  assert.equal(parsed.img, "https://example.test/character.webp");
+  assert.equal(parsed.tokenImg, "https://example.test/token.webp");
+});
+
+test("uses the species image links when Hyperdrive nests character art there", () => {
+  const parsed = parseHyperdrive({
+    Species: {
+      imageUrl: "https://example.test/species-character.webp",
+      thumbnailUrl: "https://example.test/species-token.webp",
+    },
+  });
+  assert.equal(parsed.img, "https://example.test/species-character.webp");
+  assert.equal(parsed.tokenImg, "https://example.test/species-token.webp");
+});
+
+test("normalizes earned XP", () => {
+  const parsed = parseHyperdrive({
+    EarnedXP: "50",
+    XP: "0",
+  });
+  assert.deepEqual(parsed.xp, { source: 0, earned: 50 });
 });

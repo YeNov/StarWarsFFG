@@ -1,5 +1,6 @@
 import ModifierHelpers from "../../helpers/modifiers.js";
 import { AE_MODES } from "../../config/ffg-active-effect-modes.js";
+import { findIndexedSnapshot, normalizeName } from "./resolve.js";
 
 export const OG_CHARACTERISTIC = {
   BR: "Brawn",
@@ -30,6 +31,8 @@ export function makeNamer(existingNames = []) {
 
 export function explodeChanges(modtype, mod, value) {
   if (!mod) return [];
+  if (["Weapon Stat", "Result Modifiers", "Roll Modifiers"].includes(modtype)) return [];
+  if (modtype === "Armor Stat" && !["encumbrance", "soak"].includes(mod)) return [];
   const out = [];
   for (const current of ModifierHelpers.explodeMod(modtype, mod)) {
     const key = ModifierHelpers.getModKeyPath(current.modType, current.mod);
@@ -101,14 +104,60 @@ const DIE_MODTYPE = {
   ForceCount: "Force Boost",
 };
 
-function snapshotOf(value) {
-  return value?.ref?.snapshot ?? value?.snapshot ?? value;
+function modifierIdentity(mod) {
+  const key = String(mod?.Key ?? mod?.key ?? "").trim();
+  if (key) return `key:${key}`;
+  const description = normalizeName(mod?.MiscDesc ?? mod?.Description ?? mod?.Name ?? mod?.name);
+  return description ? `description:${description}` : null;
+}
+
+export function isTargetRelativeModifier(mod) {
+  const description = normalizeName(mod?.MiscDesc ?? mod?.Description);
+  return description.includes("checks made to detect")
+    || description.includes("checks against the character")
+    || description.includes("checks against this character");
+}
+
+export function ownerQualityMods(rawItem) {
+  const attachmentCounts = new Map();
+  for (const attachment of rawItem?.Attachments ?? []) {
+    for (const mod of [
+      ...toModArray(attachment?.BaseMods),
+      ...toModArray(attachment?.AddedMods),
+    ]) {
+      const identity = modifierIdentity(mod);
+      if (identity) attachmentCounts.set(identity, (attachmentCounts.get(identity) ?? 0) + 1);
+    }
+  }
+  return toModArray(rawItem?.Qualities).filter((quality) => {
+    if (quality?.FromAttachment) return false;
+    const identity = modifierIdentity(quality);
+    const remaining = identity ? Number(attachmentCounts.get(identity) ?? 0) : 0;
+    if (!remaining) return true;
+    attachmentCounts.set(identity, remaining - 1);
+    return false;
+  });
+}
+
+function attributeAppliesToOwner(attribute, ownerType) {
+  const type = String(ownerType ?? "").toLowerCase();
+  const modtype = String(attribute?.modtype ?? "").toLowerCase();
+  if (modtype.startsWith("weapon ")) return type === "weapon";
+  if (modtype.startsWith("armor ") || modtype.startsWith("armour ")) return type === "armour";
+  return true;
 }
 
 export function normalizeMods(
   mods,
-  { itemmodifierIndex = {}, skillMap = {}, skillMeta = [], namer = makeNamer() } = {},
+  options = {},
 ) {
+  const {
+    itemmodifierIndex = {},
+    skillMap = {},
+    skillMeta = [],
+    ownerType = null,
+    namer = makeNamer(),
+  } = options;
   const attributes = {};
   const put = (attribute) => { attributes[namer()] = attribute; };
   const skillCounts = (mod, skill) => {
@@ -126,12 +175,13 @@ export function normalizeMods(
   };
 
   for (const mod of toModArray(mods)) {
+    const snapshot = findIndexedSnapshot(itemmodifierIndex, mod, options);
     if (mod?.Key && OG_CHARACTERISTIC[mod.Key]) {
       put({ modtype: "Characteristic", mod: OG_CHARACTERISTIC[mod.Key], value: Number(mod.Count ?? 1) });
-    } else if (mod?.Key && itemmodifierIndex[mod.Key]) {
-      const snapshot = snapshotOf(itemmodifierIndex[mod.Key]);
+    } else if (snapshot) {
       const count = Number(mod.Count ?? 1);
       for (const attribute of Object.values(snapshot?.system?.attributes ?? {})) {
+        if (!attributeAppliesToOwner(attribute, ownerType)) continue;
         put({
           modtype: attribute.modtype,
           mod: attribute.mod,
@@ -158,6 +208,17 @@ export function normalizeMods(
       }
       for (const skill of skills) skillCounts(dieMod, skill);
     }
+    if (!mod?.Key) {
+      const description = String(mod?.MiscDesc ?? mod?.Description ?? "");
+      const setbackCount = (description.match(/\[SE\]/gi) ?? []).length;
+      if (setbackCount > 0) {
+        for (const skill of skillMeta) {
+          if (description.toLowerCase().includes(String(skill.skill).toLowerCase())) {
+            skillCounts({ AddSetbackCount: setbackCount }, skill.skill);
+          }
+        }
+      }
+    }
   }
   return attributes;
 }
@@ -175,8 +236,8 @@ export function buildModifierEffects(rawItem, opts = {}) {
   const namer = opts.namer ?? makeNamer();
   const mods = [
     ...toModArray(rawItem?.BaseMods),
-    ...toModArray(rawItem?.Qualities),
-  ].filter((mod) => !mod?.FromAttachment);
+    ...ownerQualityMods(rawItem),
+  ];
   return effectsFromAttributes(normalizeMods(mods, { ...opts, namer }));
 }
 
@@ -205,33 +266,24 @@ export function buildCyberneticWoundEffects(rawItem, opts = {}) {
 }
 
 export function buildAttachmentEffects(rawItem, opts = {}) {
-  const {
-    attachmentIndex = {},
-    itemmodifierIndex = {},
-    skillMap = {},
-    skillMeta = [],
-  } = opts;
   const namer = opts.namer ?? makeNamer();
   const output = [];
   const inventoryId = rawItem?.inventoryID;
   for (const attachment of rawItem?.Attachments ?? []) {
-    const matched = snapshotOf(attachmentIndex[attachment.Key]);
-    if (matched?.effects?.length) {
-      output.push(...structuredClone(matched.effects));
-      continue;
-    }
     const active = [...toModArray(attachment.BaseMods)];
     for (const mod of toModArray(attachment.AddedMods)) {
       const key = mod?.Key ?? "undefined";
       const state = rawItem.ModStates?.[`${inventoryId}-${attachment.Key}-${key}`];
-      if (state?.installed?.[0] === true && state?.failed?.[0] !== true) active.push(mod);
+      const installed = (state?.installed ?? []).reduce(
+        (count, value, index) => count + (value === true && state?.failed?.[index] !== true ? 1 : 0),
+        0,
+      );
+      if (installed > 0) active.push(mod);
     }
-    output.push(...effectsFromAttributes(normalizeMods(active, {
-      itemmodifierIndex,
-      skillMap,
-      skillMeta,
-      namer,
-    })));
+    output.push(...effectsFromAttributes(normalizeMods(
+      active.filter((mod) => !isTargetRelativeModifier(mod)),
+      { ...opts, namer },
+    )));
   }
   return output;
 }

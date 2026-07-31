@@ -34,17 +34,40 @@ function deps() {
 test("assembles identity, base advances, accounting, track, and best armour", () => {
   const { actorData } = assembleCharacterSource(deps(), {
     name: "",
+    tokenImg: "https://example.test/token.webp",
     characteristicDeltas: { Brawn: 1 },
     skillDeltas: { Brawl: 2 },
     experience: { total: 140, available: -5 },
     credits: 321,
     track: { key: "obligation", value: 20 },
     equipmentItems: [
-      { name: "Light", type: "armour", system: { soak: { value: 1 }, equippable: {} } },
-      { name: "Heavy", type: "armour", system: { soak: { value: 2 }, equippable: {} } },
+      {
+        name: "Light",
+        type: "armour",
+        system: { soak: { value: 1 }, equippable: {} },
+        effects: [{ name: "Light Defence", disabled: false }],
+      },
+      {
+        name: "Heavy",
+        type: "armour",
+        system: { soak: { value: 2 }, equippable: {} },
+        effects: [{ name: "Heavy Soak", disabled: false }],
+      },
+      {
+        name: "Ryyk Blade",
+        type: "weapon",
+        system: {},
+        effects: [{ name: "Defensive Quality", disabled: false }],
+      },
     ],
   });
   assert.equal(actorData.name, "New Character");
+  assert.deepEqual(actorData.prototypeToken, {
+    actorLink: true,
+    name: "New Character",
+    sight: { enabled: true },
+    texture: { src: "https://example.test/token.webp" },
+  });
   assert.equal(actorData.system.characteristics.Brawn.value, 1);
   assert.equal(actorData.system.stats.wounds.max, 1);
   assert.equal(actorData.system.skills.Brawl.rank, 2);
@@ -53,4 +76,9 @@ test("assembles identity, base advances, accounting, track, and best armour", ()
   assert.equal(actorData.system.obligation.value, 20);
   assert.equal(actorData.items.find((item) => item.name === "Heavy").system.equippable.equipped, true);
   assert.equal(actorData.items.find((item) => item.name === "Light").system.equippable.equipped, false);
+  assert.equal(actorData.items.find((item) => item.name === "Heavy").effects[0].disabled, false);
+  assert.equal(actorData.items.find((item) => item.name === "Light").effects[0].disabled, true);
+  const blade = actorData.items.find((item) => item.name === "Ryyk Blade");
+  assert.equal(blade.system.equippable.equipped, false);
+  assert.equal(blade.effects[0].disabled, true);
 });

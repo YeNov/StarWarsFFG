@@ -2902,6 +2902,74 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg.data-import .import-progress .import-progress-bar span {
   line-height: 24px;
 }
+.starwarsffg.data-import .hyperdrive-resolution-list {
+  margin: 0.75rem 0;
+}
+.starwarsffg.data-import .hyperdrive-resolution-list h2 {
+  margin-bottom: 0.25rem;
+}
+.starwarsffg.data-import .hyperdrive-resolution-list h2 small {
+  font-size: 0.75rem;
+  font-weight: normal;
+}
+.starwarsffg.data-import .hyperdrive-resolution-finding {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 1.2fr);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--color-border-light-primary);
+}
+.starwarsffg.data-import .hyperdrive-resolution-description {
+  min-width: 0;
+}
+.starwarsffg.data-import .hyperdrive-resolution-description .hint {
+  display: block;
+  opacity: 0.75;
+  font-size: var(--font-size-12);
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem;
+  border: 2px dashed var(--color-border-light-primary);
+  border-radius: 4px;
+  cursor: copy;
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop:hover {
+  border-color: var(--color-border-highlight);
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop.resolved {
+  border-style: solid;
+  cursor: default;
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop img {
+  width: 2rem;
+  height: 2rem;
+  -o-object-fit: cover;
+     object-fit: cover;
+  border: 0;
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop small {
+  opacity: 0.75;
+  text-transform: capitalize;
+}
+.starwarsffg.data-import .hyperdrive-resolution-drop button {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
 .starwarsffg.data-import .skilllist table {
   width: 100%;
   table-layout: fixed;

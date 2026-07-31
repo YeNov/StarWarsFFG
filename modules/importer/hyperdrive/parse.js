@@ -15,6 +15,42 @@ function number(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+export function hyperdriveImage(value) {
+  for (const candidate of [
+    value?.imageUrl,
+    value?.ImageUrl,
+    value?.imageURL,
+    value?.ImageURL,
+    value?.img,
+    value?.Img,
+    value?.image,
+    value?.Image,
+    value?.thumbnailUrl,
+    value?.ThumbnailUrl,
+    value?.thumbnailURL,
+    value?.ThumbnailURL,
+  ]) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return undefined;
+}
+
+export function hyperdriveThumbnail(value) {
+  for (const candidate of [
+    value?.thumbnailUrl,
+    value?.ThumbnailUrl,
+    value?.thumbnailURL,
+    value?.ThumbnailURL,
+    value?.tokenUrl,
+    value?.TokenUrl,
+    value?.tokenURL,
+    value?.TokenURL,
+  ]) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return undefined;
+}
+
 function normalizeTreeGrid(grid) {
   return array(grid).map((row) => array(row?.value ?? row).map(Boolean));
 }
@@ -49,10 +85,10 @@ function normalizeForcePowers(value) {
   if (Array.isArray(value)) {
     return value.map((power) => ({
       ...clone(power),
-      key: power.Key ?? power.key,
-      name: power.Name ?? power.name ?? power.Key ?? power.key,
-      grid: clone(power.grid ?? power.BoughtPowers ?? {}),
-      paidCosts: clone(power.PaidCosts ?? power.paidCosts ?? {}),
+      key: power?.Key ?? power?.key,
+      name: power?.Name ?? power?.name ?? power?.Key ?? power?.key,
+      grid: clone(power?.grid ?? power?.BoughtPowers ?? {}),
+      paidCosts: clone(power?.PaidCosts ?? power?.paidCosts ?? {}),
     }));
   }
   return Object.entries(value ?? {}).map(([key, power]) => ({
@@ -89,13 +125,20 @@ export function parseHyperdrive(rawInput = {}) {
   const obligations = array(raw.Obligations).map(normalizeTrack);
   const duties = array(raw.Duties).map(normalizeTrack);
   const moralityRaw = raw.Morality ?? null;
+  const img = hyperdriveImage(raw) ?? hyperdriveImage(speciesRaw);
+  const tokenImg = hyperdriveThumbnail(raw) ?? hyperdriveThumbnail(speciesRaw) ?? img;
 
   return {
     name: String(raw.Name ?? "").trim(),
+    img,
+    tokenImg,
     credits: number(raw.Credits),
     biography: String(raw.Background?.Text ?? ""),
     characteristics,
-    xp: { source: number(raw.XP) },
+    xp: {
+      source: number(raw.XP),
+      earned: number(raw.EarnedXP),
+    },
     derived: {
       wounds: number(raw.Wounds ?? raw.WoundThreshold),
       strain: number(raw.Strain ?? raw.StrainThreshold),

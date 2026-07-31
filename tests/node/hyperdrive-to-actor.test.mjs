@@ -6,6 +6,12 @@ import "./_stub/foundry-stub.mjs";
 import { AE_MODES } from "../../modules/config/ffg-active-effect-modes.js";
 import { assembleCharacterSource } from "../../modules/char-creator/assemble-character-source.js";
 import { parseHyperdrive } from "../../modules/importer/hyperdrive/parse.js";
+import {
+  buildSnapshotIndex,
+  HYPERDRIVE_SKILL_ALIASES,
+  resolutionAliases,
+  resolveFindingOverride,
+} from "../../modules/importer/hyperdrive/resolve.js";
 import { driftReport, hyperdriveToActorData } from "../../modules/importer/hyperdrive/to-actor.js";
 
 const RAW = JSON.parse(fs.readFileSync(new URL("./_fixtures/hyperdrive/mandalorian-warrior.json", import.meta.url)));
@@ -20,8 +26,12 @@ const CHARS = (brawn) => ({
 
 function assemblerDeps() {
   const skills = Object.fromEntries(RAW.Skills.map((skill) => [
-    skill.skill,
-    { rank: 0, label: skill.skill, careerskill: false },
+    HYPERDRIVE_SKILL_ALIASES[skill.Key] ?? skill.skill,
+    {
+      rank: 0,
+      label: HYPERDRIVE_SKILL_ALIASES[skill.Key] ?? skill.skill,
+      careerskill: false,
+    },
   ]));
   return {
     creationDefaults: {
@@ -138,6 +148,88 @@ function basicDeps(overrides = {}) {
   return { deps, buildCalls };
 }
 
+test("equipment falls back from an unknown export key to an expanded compendium name", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const base = basicDeps();
+  const originalGet = base.deps.resolve.getByKey;
+  base.deps.resolve.getByKey = (type, key) =>
+    key === "UNARMED" ? null : originalGet(type, key);
+  base.deps.resolve.getByName = (type, name) => type === "weapon" && name === "Unarmed"
+    ? {
+      itemType: "weapon",
+      ref: {
+        uuid: "weapon:unarmed-strike",
+        name: "Unarmed Strike",
+        type: "weapon",
+        snapshot: {
+          name: "Unarmed Strike",
+          type: "weapon",
+          system: { itemmodifier: [], itemattachment: [] },
+          effects: [],
+        },
+      },
+    }
+    : null;
+
+  const { actorData } = await hyperdriveToActorData(parsed, base.deps);
+  assert.ok(actorData.items.some((item) => item.name === "Unarmed Strike"));
+  assert.equal(base.buildCalls.includes("UNARMED"), false);
+});
+
+test("a supplied finding resolution overrides automatic equipment matching", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  deps.resolveFinding = (kind, item) => kind === "weapon" && item.Key === "UNARMED"
+    ? {
+      uuid: "weapon:manual-unarmed",
+      name: "Manually Chosen Strike",
+      type: "weapon",
+      snapshot: {
+        name: "Manually Chosen Strike",
+        type: "weapon",
+        system: { itemmodifier: [], itemattachment: [] },
+        effects: [],
+      },
+    }
+    : null;
+
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+  assert.ok(actorData.items.some((item) => item.name === "Manually Chosen Strike"));
+  assert.equal(actorData.items.some((item) => item.name === "UNARMED"), false);
+});
+
+test("nested quality findings are reported and can be manually resolved", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const unresolved = basicDeps();
+  unresolved.deps.itemmodifierIndex = buildSnapshotIndex([], "itemmodifier");
+  const first = await hyperdriveToActorData(parsed, unresolved.deps);
+  assert.ok(first.report.findings.some((finding) =>
+    finding.kind === "itemmodifier" && finding.key === "INFERIOR"));
+
+  const selected = {
+    uuid: "itemmodifier:chosen-inferior",
+    name: "Chosen Inferior Quality",
+    type: "itemmodifier",
+    snapshot: {
+      name: "Chosen Inferior Quality",
+      type: "itemmodifier",
+      system: { type: "weapon", rank: 1, attributes: {} },
+      effects: [],
+    },
+  };
+  const aliases = resolutionAliases("itemmodifier", { Key: "INFERIOR" }, { ownerType: "weapon" });
+  const overrides = new Map(aliases.map((alias) => [alias, selected]));
+  const resolved = basicDeps();
+  resolved.deps.itemmodifierIndex = buildSnapshotIndex([], "itemmodifier");
+  resolved.deps.resolveFinding = (kind, entry, options) =>
+    resolveFindingOverride(overrides, kind, entry, options);
+  const second = await hyperdriveToActorData(parsed, resolved.deps);
+  assert.ok(second.actorData.items.some((item) =>
+    item.system?.itemmodifier?.some((modifier) => modifier.name === "Chosen Inferior Quality")));
+  assert.equal(second.report.findings.some((finding) =>
+    finding.kind === "itemmodifier" && finding.key === "INFERIOR"), false);
+});
+
 test("matched cybernetic is routed to compendium and its Brawn effect is preserved", async () => {
   const parsed = parseHyperdrive(RAW);
   const brawnEffect = {
@@ -189,7 +281,7 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
   });
 });
 
-test("golden export stores only the residual the build items do not already supply", async () => {
+test("golden export stores characteristic residuals and purchased skill ranks", async () => {
   const parsed = parseHyperdrive(RAW);
   const { deps } = basicDeps();
   const originalGet = deps.resolve.getByKey;
@@ -207,13 +299,11 @@ test("golden export stores only the residual the build items do not already supp
   assert.equal(actorData.system.characteristics.Intellect.value, 2);
   assert.equal(actorData.system.characteristics.Cunning.value, 1);
 
-  // Athletics' single rank is the career's free rank; Brawl's three free ranks already
-  // exceed the exported 2, which is capped at 0 and reported rather than silently kept.
-  assert.equal(actorData.system.skills.Athletics.rank, 0);
-  assert.equal(actorData.system.skills.Brawl.rank, 0);
-  assert.ok(report.warnings.some((warning) =>
-    /Skill Brawl: imported items grant 3 free rank\(s\) but the export lists 2/.test(warning)));
-  // Ranks with no item behind them are genuinely purchased and must persist.
+  // Hyperdrive skill values are purchased ranks. Free species/career/spec ranks arrive
+  // from item effects and must not be subtracted from these actor-base values.
+  assert.equal(actorData.system.skills.Athletics.rank, 1);
+  assert.equal(actorData.system.skills.Brawl.rank, 2);
+  assert.ok(!report.warnings.some((warning) => /Skill .*imported items grant/.test(warning)));
   assert.equal(actorData.system.skills.Charm.rank, 1);
   assert.equal(actorData.system.skills.Vigilance.rank, 1);
 
@@ -232,18 +322,36 @@ test("golden export stores only the residual the build items do not already supp
   assert.ok(cyber.effects.flatMap((effect) => effect.changes).some((change) =>
     change.key === "system.stats.wounds.max" && change.value === 1));
 
-  // The base plus what the build items supply reconstructs the exported sheet rather
-  // than exceeding it: Brawn 0 + species 2 + Dedication 1 === the exported 3, and
-  // Athletics 0 + the career's free rank === the exported 1. The cybernetic's own +1
-  // sits on the item and surfaces as reported drift, not as a larger base.
+  // Characteristics are exported as final values, while skill values are purchased
+  // ranks. The free Athletics rank therefore adds to its exported purchased rank.
   assert.equal(
     actorData.system.characteristics.Brawn.value + 2 + 1,
     parsed.characteristics.Brawn,
   );
   assert.equal(
     actorData.system.skills.Athletics.rank + 1,
-    parsed.skills.find((skill) => skill.skill === "Athletics").rank,
+    2,
   );
+});
+
+test("exported specialization skills are marked as actor career skills", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+
+  for (const skill of [
+    "Discipline",
+    "Coordination",
+    "Mechanics",
+    "Piloting: Planetary",
+  ]) {
+    assert.equal(
+      actorData.system.skills[skill].careerskill,
+      true,
+      `${skill} should be marked as a career skill`,
+    );
+  }
+  assert.equal(actorData.system.skills.Astrogation.careerskill, false);
 });
 
 test("Morality Strength/Weakness are preserved in flags and reported", async () => {
@@ -290,26 +398,119 @@ test("unmatched equipment builds in-place and is included in the report", async 
   assert.equal(actorData.items.find((item) => item.type === "weapon").system.quantity.value, 1);
   assert.ok(report.unmatched.some((item) => item.kind === "armour" && item.key === "HC"));
   assert.ok(report.unmatched.some((item) => item.kind === "gear"));
+  assert.ok(report.findings.some((item) =>
+    item.kind === "armour" && item.key === "HC" && item.reason === "not-found"));
 });
 
-test("a present but unmatched key never falls back to name matching", async () => {
+test("empty narrative placeholders are skipped with warnings instead of invalid items", async () => {
+  const parsed = parseHyperdrive({
+    ...RAW,
+    Background: {
+      ...RAW.Background,
+      Culture: {},
+      Adventure: {},
+      Force: null,
+    },
+    Obligations: [{}],
+    Duties: [null],
+    Motivations: [],
+    Weapons: [null],
+  });
+  const { deps } = basicDeps();
+  const { actorData, report } = await hyperdriveToActorData(parsed, deps);
+
+  assert.ok(actorData.items.every((item) => String(item.name ?? "").trim()));
+  for (const path of [
+    "Background.Culture",
+    "Background.Adventure",
+    "Background.Force",
+    "Obligations[0]",
+    "Duties[0]",
+    "Weapons[0]",
+  ]) {
+    assert.ok(report.warnings.some((warning) => warning.includes(path)), `missing warning for ${path}`);
+  }
+});
+
+test("linked actor and matched-item images override local fallbacks", async () => {
+  const parsed = parseHyperdrive({
+    ...RAW,
+    imageUrl: "https://example.test/character.webp",
+    thumbnailUrl: "https://example.test/token.webp",
+    Species: {
+      ...RAW.Species,
+      imageUrl: "https://example.test/species.webp",
+    },
+    Weapons: [{
+      ...RAW.Weapons[0],
+      imageUrl: "https://example.test/weapon.webp",
+    }],
+  });
+  const { deps } = basicDeps();
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+
+  assert.equal(actorData.img, "https://example.test/character.webp");
+  assert.equal(actorData.prototypeToken.texture.src, "https://example.test/token.webp");
+  assert.equal(actorData.items.find((item) => item.type === "species").img, "https://example.test/species.webp");
+  assert.equal(actorData.items.find((item) => item.type === "weapon").img, "https://example.test/weapon.webp");
+});
+
+test("export skill ids provide a fallback map for in-place weapons", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const originalGet = deps.resolve.getByKey;
+  deps.resolve.getByKey = (type, key) =>
+    type === "weapon" && key === "UNARMED" ? null : originalGet(type, key);
+  deps.buildInPlace = (kind, entry, options = {}) => ({
+    source: {
+      name: entry.Name,
+      type: kind,
+      system: {
+        skill: { value: options.skillMap?.[entry.SkillKey] ?? entry.SkillKey },
+      },
+      effects: [],
+    },
+    warnings: [],
+  });
+
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+  assert.equal(
+    actorData.items.find((item) => item.name === "Unarmed").system.skill.value,
+    "Brawl",
+  );
+});
+
+test("a present but unmatched key falls back to name matching", async () => {
   const parsed = parseHyperdrive({
     ...RAW,
     Species: { ...RAW.Species, Key: "HOMEBREWSP" },
   });
-  let nameLookups = 0;
+  let speciesNameLookups = 0;
   const { deps } = basicDeps();
-  deps.resolve = {
-    getByKey: () => null,
-    getByName: () => {
-      nameLookups += 1;
-      return { ref: { uuid: "wrong", type: "species", snapshot: {} } };
-    },
-    ambiguities: [],
+  const originalGet = deps.resolve.getByKey;
+  deps.resolve.getByKey = (type, key) =>
+    type === "species" && key === "HOMEBREWSP" ? null : originalGet(type, key);
+  deps.resolve.getByName = (type, name) => {
+    if (type !== "species" || name !== RAW.Species.Name) return null;
+    speciesNameLookups += 1;
+    return {
+      ref: {
+        uuid: "species:expanded-name-match",
+        type: "species",
+        snapshot: {
+          name: "Mandalorian Human Species",
+          type: "species",
+          system: {},
+          effects: [],
+        },
+      },
+    };
   };
   const { actorData } = await hyperdriveToActorData(parsed, deps);
-  assert.equal(nameLookups, 1); // culture has no key; keyed entries do not use name fallback
-  assert.ok(actorData.items.some((item) => item.flags?.starwarsffg?.ffgimportid === "HOMEBREWSP"));
+  assert.equal(speciesNameLookups, 1);
+  assert.ok(actorData.items.some((item) => item.name === "Mandalorian Human Species"));
+  assert.equal(actorData.items.some((item) =>
+    item.flags?.starwarsffg?.ffgimportid === "HOMEBREWSP"), false);
 });
 
 test("matched career receives extra career-skill effects", async () => {

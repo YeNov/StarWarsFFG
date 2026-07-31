@@ -4,7 +4,7 @@
 
 **Goal:** Import a Hyperdrive Generator character JSON into a Foundry `starwarsffg` world as a `character` actor — matching content to compendia where possible (match-then-fallback for content *and* equipment), building it in-place with real synthesized Active Effects **attached to the items themselves** where not, and never failing silently.
 
-**Architecture:** A pure, fixture-tested `parse → resolve → to-actor` pipeline through the shared `assembleCharacterSource`. Characteristics/skills use a **build-items-only residual model** (equipment mods apply on top as items). Talents/powers → `learnedKeys` tree nodes. **Item modifiers/qualities/attachment-mods live inside their item** (`system.itemmodifier[]` / `system.itemattachment[]`) and their synthesized Active Effects are attached to the **item's** `effects` — reaching the actor only via normal owned-item effect transfer; the importer never materializes a second owner/character-level copy. **XP is derived.** Equipment resolves against an ungated `(itemType, ffgimportid)` index; **matches** use the compendium snapshot + `overlayInstance`; **misses** are built in-place. A per-actor ApplicationV2 dialog handles Override/Copy/Cancel and a full report.
+**Architecture:** A pure, fixture-tested `parse → resolve → to-actor` pipeline through the shared `assembleCharacterSource`. Characteristics/skills use a **build-items-only residual model** (equipment mods apply on top as items). Talents/powers → `learnedKeys` tree nodes. **Item modifiers/qualities/attachment-mods live inside their item** (`system.itemmodifier[]` / `system.itemattachment[]`) and their synthesized Active Effects are attached to the **item's** `effects` — reaching the actor only via normal owned-item effect transfer; the importer never materializes a second owner/character-level copy. **XP is derived.** Equipment resolves against the sources enabled in the PC creator settings; **matches** use the compendium snapshot + `overlayInstance`; **misses** are built in-place. A per-actor ApplicationV2 dialog handles Override/Copy/Cancel and a full report.
 
 **Tech Stack:** ES modules; `node:test` + `tests/node/_stub/foundry-stub.mjs`; ApplicationV2; dependency injection (`build-deps.js`).
 
@@ -98,7 +98,8 @@ export function buildImportIndex(entries) {
 
 ### Task 2.2: `entriesFromDocs` + `collectImportEntries` *(carried)*
 
-- [ ] Keeps keyless docs (name fallback); flattens all packs **incl. locked-but-readable** + world items. Live note: `game.packs` Item packs via `getDocuments()` including locked; `worldItems = game.items.contents`. Commit.
+- [ ] Keeps keyless docs (name fallback); consumes only sources enabled through the PC creator's
+  configured packs and per-user source selection. Commit.
 
 ---
 
@@ -117,7 +118,7 @@ export function buildImportIndex(entries) {
 - [ ] **3.3** `learnedKeysForSpec`/`learnedKeysForPower` → Steel Hand `{talent2,3,7,10,11,14,18}`, Death Watch `{talent0,4,5}`, Conjure `{upgrade0}`, Alter `{upgrade2}`.
 - [ ] **3.4** `invertDedications`/`dedicationGrantsForSpec` → stale `MARSHAL` dropped; grant only on learned `talent18`; not-learned → `{}`.
 - [ ] **3.5** `rankGrantsForItems` → `{species:["Brawl"], career:["Athletics","Brawl","Cool"], spec:["Brawl","Coordination"]}`; `careerSkillGrantsForItems(p)={career:[]}`.
-- [ ] **3.6** `deriveXp` → `{total:140, spent:355, available:-215}` with `{Brawn:1}`; over-budget warning; no export-mismatch; unlearned Dedication never undercounts. Commit each.
+- [ ] **3.6** `deriveXp` → `{total:140, spent:435, available:-215}` with `{Brawn:1}`; over-budget and reconciliation warnings; unlearned Dedication never undercounts. Commit each.
 
 ## 3C — Residual model + async orchestrator
 
@@ -133,18 +134,18 @@ export function residualCharacteristicDeltas(finals, previewChars) {
   }
   return { deltas, warnings };
 }
-export function residualSkillDeltas(parsedSkills, previewSkills) {
+export function residualSkillDeltas(parsedSkills) {
   const deltas = {}, warnings = [];
   for (const s of parsedSkills ?? []) {
-    const prepared = Number(previewSkills?.[s.skill]?.rank ?? 0), d = s.rank - prepared;
-    if (d < 0) warnings.push(`Skill ${s.skill}: export rank ${s.rank} below item-supplied ${prepared}; capping at 0.`);
-    if (d > 0) deltas[s.skill] = d;
+    const purchased = Number(s.rank ?? 0);
+    if (purchased < 0) warnings.push(`Skill ${s.skill}: invalid purchased rank ${purchased}; capping at 0.`);
+    if (purchased > 0) deltas[s.skill] = purchased;
   }
   return { deltas, warnings };
 }
 ```
 
-- [ ] Test: fixture residual chars `{Brawn:0, Agility:2, Intellect:2, Cunning:1, Willpower:0, Presence:0}`; Brawl over-grant capped + warned. Commit.
+- [ ] Test: fixture residual chars `{Brawn:0, Agility:2, Intellect:2, Cunning:1, Willpower:0, Presence:0}`; skill values persist directly as purchased ranks and item effects add the free ranks. Commit.
 
 ### Task 3.8: `hyperdriveToActorData` — equipment match-then-fallback + **unmatched-in-report (M6)** + restored regressions (M5) + matched-preservation (M4)
 
@@ -461,10 +462,10 @@ test("non-unit installed Count multiplies", () => {
   const raw = { inventoryID: "X", Attachments: [{ Key: "A", BaseMods: [], AddedMods: [{ Key: "SOAKADD", Count: "2" }] }], ModStates: { "X-A-SOAKADD": { installed: [true], failed: [false] } } };
   assert.deepEqual(project(buildAttachmentEffects(raw, { itemmodifierIndex: IDX })), [{ key: "system.stats.soak.value", mode: AE_MODES.ADD, value: 2 }]);
 });
-test("matched attachment copies compendium effects; NO re-synthesis (dedup)", () => {
+test("matched attachment preserves its document while export mod state remains authoritative", () => {
   const raw = { inventoryID: "X", Attachments: [{ Key: "COMBTEST", BaseMods: [{ Key: "SOAKADD", Count: "1" }] }], ModStates: {} };
   const attachmentIndex = { COMBTEST: { effects: [{ name: "(pre)", changes: [{ key: "system.skills.Discipline.boost", mode: AE_MODES.ADD, value: 1 }] }] } };
-  assert.deepEqual(project(buildAttachmentEffects(raw, { itemmodifierIndex: IDX, attachmentIndex })), [{ key: "system.skills.Discipline.boost", mode: AE_MODES.ADD, value: 1 }]);
+  assert.deepEqual(project(buildAttachmentEffects(raw, { itemmodifierIndex: IDX, attachmentIndex })), [{ key: "system.stats.soak.value", mode: AE_MODES.ADD, value: 1 }]);
 });
 ```
 
@@ -579,7 +580,7 @@ export function buildInPlace(kind, entry, options = {}) {
 
 ### Task 5.2: Live pipeline + async preview/final bindings — Blockers 1/6
 
-- [ ] Import `applyCharacteristicDeltas`/`getActorCreationDefaults` as **named exports** from `modules/actors/actor-ffg.js` (`:929`/`:807`). Build live deps: `resolve` from `buildImportIndex(collectImportEntries({docLists, worldItems}))` (all readable Item packs incl. locked); derive `itemmodifierIndex`/`attachmentIndex` from index entries, `skillMap` + `skillMeta` from `CONFIG.FFG` skills; `toItemData` via `makeBuildDependencies(...)`; `assemble` binds explicit `{creationDefaults: getActorCreationDefaults("character"), applyCharacteristicDeltas}`; `preparePreview` (build items only) and `prepareFinal` construct `new CONFIG.Actor.documentClass(...)` (`prepareFinal` returns all six characteristics + wounds/strain/soak); `buildInPlace` = Phase-4 dispatcher. `const { actorData, report } = await hyperdriveToActorData(parsed, deps);`. **Verify** (manual). Commit.
+- [ ] Import `applyCharacteristicDeltas`/`getActorCreationDefaults` as **named exports** from `modules/actors/actor-ffg.js` (`:929`/`:807`). Build live deps: `resolve` from the PC creator's enabled/configured sources; derive `itemmodifierIndex`/`attachmentIndex` by key and normalized name, `skillMap` + `skillMeta` from `CONFIG.FFG` skills; `toItemData` via `makeBuildDependencies(...)`; `assemble` binds explicit `{creationDefaults: getActorCreationDefaults("character"), applyCharacteristicDeltas}`; `preparePreview` (build items only) and `prepareFinal` construct `new CONFIG.Actor.documentClass(...)` (`prepareFinal` returns all six characteristics + wounds/strain/soak); `buildInPlace` = Phase-4 dispatcher. `const { actorData, report } = await hyperdriveToActorData(parsed, deps);`. **Verify** (manual). Commit.
 
 ### Task 5.3: Collision (Override/Copy/Cancel) + identity + report UI (incl. drift + unmatched)
 
@@ -632,3 +633,36 @@ during the phases noted:
    `attr0` (the lifecycle resolves effects by name — import-helpers.js:3150). Seed the namer from
    the names already present in `source.effects` (or skip reserved names). Add an overlay test whose
    matched source already contains `attr0` and assert name uniqueness afterward.
+
+### Importer hardening requirements (reported 2026-07-30)
+
+1. **Null/empty values are non-fatal.** A Hyperdrive export may contain `null`, `{}`, or a
+   placeholder array entry for optional content. The importer must continue importing the
+   character and add a specific warning to the import report instead of constructing an invalid
+   nameless item or rejecting the actor. This is especially important for narrative content such
+   as backgrounds, obligations, and duties. Add regression coverage for empty
+   `Background.Culture`, `Background.Adventure`, and `Background.Force` objects plus empty
+   obligation/duty entries.
+2. **Import linked images.** When the character or an embedded Hyperdrive entry supplies an image
+   field or image URL, carry it into the corresponding Foundry `img` field. Support remote links
+   emitted by Hyperdrive as well as normal Foundry asset paths, with the existing compendium or
+   system image as the fallback. Add parser and actor-conversion coverage for character, build-item,
+   and equipment image links.
+3. **Resolve skill IDs from the export.** Build a fallback map from `Skills[].Key` to
+   `Skills[].skill` so equipment still receives canonical Foundry skill names when the live skill
+   compendium cache is missing or incomplete. A raw `BRAWL` value must become `Brawl`, never fall
+   through to the first weapon-sheet option.
+4. **Include earned XP.** Treat `EarnedXP` as additional lifetime XP on top of species starting XP
+   and character-creation bonuses. Preserve exported `XP` as available XP and retain the existing
+   reconciliation warning when visible purchases do not explain the source-authoritative totals.
+5. **Preserve purchased skill ranks.** Hyperdrive stores purchased/manual ranks in
+   `Skills[].value` and tracks free ranks separately in species, career, and specialization fields.
+   Persist the exported skill value directly on the actor; imported item effects add the free ranks.
+6. **Reconcile attachments and qualities from configured sources.** Build the import index only
+   from sources enabled in the PC creator settings. Resolve attachments and item modifiers by
+   import key, with normalized-name fallback for keyless configured documents. Preserve the matched
+   compendium document while applying Hyperdrive's base/installed/failed mod state. Overlay missing
+   owner qualities without duplicating attachment-flattened qualities. Treat the configured packs
+   as the import catalog boundary, but do not apply purchase-time rarity/restricted gates when
+   reconstructing an existing character. Reconcile states onto the matched attachment's existing
+   modifier rows so technical export keys do not replace compendium names and descriptions.

@@ -6,6 +6,7 @@ import "./_stub/foundry-stub.mjs";
 import { parseHyperdrive } from "../../modules/importer/hyperdrive/parse.js";
 import {
   careerSkillGrantsForItems,
+  careerSkillsForActor,
   dedicationGrantsForSpec,
   invertDedications,
   learnedKeysForPower,
@@ -63,4 +64,53 @@ test("routes free-rank and extra-career-skill grants to their owning items", () 
     spec: ["Brawl", "Coordination"],
   });
   assert.deepEqual(careerSkillGrantsForItems(parsed), { career: [] });
+});
+
+test("canonicalizes Hyperdrive free-rank and career-skill names", () => {
+  const jack = {
+    skills: [
+      { key: "RANGHVY", skill: "Ranged (Heavy)", rank: 1 },
+      { key: "OUT", skill: "Outer Rim", rank: 0 },
+      { key: "XEN", skill: "Xenology", rank: 0 },
+    ],
+    species: { selectedSkills: [] },
+    careerRanks: ["Outer Rim", "Xenology"],
+    specRanks: ["Ranged (Heavy)"],
+    careerSkills: ["Outer Rim", "Xenology"],
+    specSkills: ["Ranged (Heavy)"],
+    extraCareerSkills: [],
+    specializations: [],
+  };
+  assert.deepEqual(rankGrantsForItems(jack), {
+    species: [],
+    career: ["Knowledge: Outer Rim", "Knowledge: Xenology"],
+    spec: ["Ranged: Heavy"],
+  });
+  assert.deepEqual(careerSkillsForActor(jack), [
+    "Knowledge: Outer Rim",
+    "Knowledge: Xenology",
+    "Ranged: Heavy",
+  ]);
+});
+
+test("collects all exported career and specialization skills for the actor", () => {
+  const careerSkills = new Set(careerSkillsForActor(parsed));
+  for (const skill of [
+    "Athletics",
+    "Brawl",
+    "Cool",
+    "Melee",
+    "Perception",
+    "Survival",
+    "Coordination",
+    "Discipline",
+    "Vigilance",
+    "Coercion",
+    "Mechanics",
+    "Piloting: Planetary",
+    "Ranged: Light",
+  ]) {
+    assert.equal(careerSkills.has(skill), true, `${skill} should be a career skill`);
+  }
+  assert.equal(careerSkills.size, 13);
 });
