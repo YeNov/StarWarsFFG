@@ -4085,8 +4085,8 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   color: #191813;
 }
 .charCreator .general-images-column {
-  display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 14px;
   min-width: 0;
 }
@@ -4111,19 +4111,23 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 .charCreator .general-image-preview {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  align-self: center;
   align-items: center;
   justify-content: center;
-  min-height: 150px;
+  width: min(100%, 320px);
+  aspect-ratio: 3 / 4;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.35);
   background: rgba(255, 255, 255, 0.4);
   color: #415064;
 }
 .charCreator .general-image-preview img {
+  display: block;
   width: 100%;
   height: 100%;
-  min-height: 150px;
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
 }
 .charCreator .general-image-preview span {
@@ -4136,8 +4140,8 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .general-image-preview i {
   font-size: 3rem;
 }
-.charCreator .general-image-preview.is-token img {
-  object-fit: contain;
+.charCreator .general-image-preview.is-token {
+  aspect-ratio: 1 / 1;
 }
 .charCreator .general-fields {
   display: flex;
