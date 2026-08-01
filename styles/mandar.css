@@ -5542,6 +5542,9 @@ img {
   border-bottom: 1px solid rgba(0, 0, 0, 0.5);
   border-image: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0)) 1%;
 }
+.starwarsffg.wizard.charCreator .tabs {
+  margin-top: 0.5rem;
+}
 .starwarsffg.wizard .tabs [data-action="tab"] {
   flex: 1 1 0;
   min-width: 0;
