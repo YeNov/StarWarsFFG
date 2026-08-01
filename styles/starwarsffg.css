@@ -4100,8 +4100,14 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   color: #415064;
   font-weight: bold;
 }
-.charCreator .general-image-field input {
+.charCreator .general-image-field input[type="url"] {
+  box-sizing: border-box;
   width: 100%;
+  height: var(--input-height);
+  line-height: var(--input-height);
+  padding: 0 0.5rem;
+  border: 1px solid var(--input-border-color);
+  border-radius: 4px;
 }
 .charCreator .general-image-preview {
   display: flex;
