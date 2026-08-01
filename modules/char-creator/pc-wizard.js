@@ -47,7 +47,7 @@ import { NewerSchemaError, CorruptDraftError } from "./draft-schema.js";
 import { emitCommitRequest, wizardPending, setCommitResponseHandler } from "./socket-bridge.js";
 import { commitBuild } from "./commit-service.js";
 import { mintSessionNoticeId, emitStartNotice, showSubmitToast } from "./notify.js";
-import { normalizeRemoteImageUrl } from "./assemble-character-source.js";
+import { normalizeRemoteImageUrl, remoteImageRepairCandidates } from "./assemble-character-source.js";
 import { setPending, clearPending } from "./notify-policy.js";
 import { COMMIT_TIMEOUT_MS, FLAG_SCOPE, FLAGS } from "./constants.js";
 
@@ -56,6 +56,27 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const PC_WIZARD = "systems/starwarsffg/templates/wizards/pc_wizard";
 const STARTUP_POOL_KEYS = Object.freeze(["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]);
 const STARTUP_POOL_LOAD_CONCURRENCY = 3;
+const REMOTE_IMAGE_CHECK_TIMEOUT_MS = 8000;
+
+function canPreviewRemoteImage(url, { requireCors = false } = {}) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    let settled = false;
+    const finish = (valid) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      image.onload = null;
+      image.onerror = null;
+      resolve(valid);
+    };
+    const timeoutId = window.setTimeout(() => finish(false), REMOTE_IMAGE_CHECK_TIMEOUT_MS);
+    if (requireCors) image.crossOrigin = "anonymous";
+    image.onload = () => finish(image.naturalWidth > 0 && image.naturalHeight > 0);
+    image.onerror = () => finish(false);
+    image.src = url;
+  });
+}
 
 async function mapWithConcurrency(values, limit, mapper) {
   const results = new Array(values.length);
@@ -408,6 +429,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #missingSourceWarningGroups = null; // Prepared during context, shown after the wizard renders.
   #draftBannerDismissed = false; // Resume/discard banner is only for a different stored draft.
   #draftResumePromptShown = false; // One-shot modal prompt for a resumable stored draft.
+  #imagePreviews = {
+    img: { url: "", status: "empty", repaired: false },
+    tokenImg: { url: "", status: "empty", repaired: false },
+  };
+  #imagePreviewChecks = new Set();
 
   constructor(options = {}) {
     super(options);
@@ -433,6 +459,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#ensureCreditPurchaseIds(this.data);
     this.#ensureExtraGrants(this.data);
     this.#normalizeFreeRankSelections(this.data);
+    this.#syncImagePreviewState();
 
     const xp = calcXp(this.data);
     const credits = calcCredits(this.data);
@@ -837,6 +864,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     return {
       tabs,
       data: this.data,
+      imagePreviews: this.#imagePreviews,
       draft,
       pools,
       speciesRows,
@@ -900,6 +928,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+    void this.#validateImagePreview("img");
+    void this.#validateImagePreview("tokenImg");
     this.#showMissingSourceWarning();
     this.#showDraftResumePrompt(context?.draft?.hasResumable);
   }
@@ -948,6 +978,60 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     field.focus({ preventScroll: true });
     if (Number.isInteger(selectionStart) && Number.isInteger(selectionEnd)) {
       field.setSelectionRange(selectionStart, selectionEnd);
+    }
+  }
+
+  #syncImagePreviewState() {
+    for (const field of ["img", "tokenImg"]) {
+      const url = normalizeRemoteImageUrl(this.data.identity?.[field]) ?? "";
+      if (this.#imagePreviews[field].url === url) continue;
+      this.#imagePreviews[field] = {
+        url,
+        status: url ? "checking" : "empty",
+        repaired: false,
+      };
+    }
+  }
+
+  async #validateImagePreview(field) {
+    const initial = this.#imagePreviews[field];
+    if (initial.status !== "checking" || !initial.url) return;
+    const checkKey = `${field}:${initial.url}`;
+    if (this.#imagePreviewChecks.has(checkKey)) return;
+    this.#imagePreviewChecks.add(checkKey);
+
+    try {
+      const requireCors = field === "tokenImg";
+      let previewUrl = initial.url;
+      let valid = await canPreviewRemoteImage(previewUrl, { requireCors });
+      if (!valid && requireCors) {
+        for (const candidate of remoteImageRepairCandidates(initial.url)) {
+          if (await canPreviewRemoteImage(candidate, { requireCors: true })) {
+            previewUrl = candidate;
+            valid = true;
+            break;
+          }
+        }
+      }
+
+      const current = this.#imagePreviews[field];
+      if (current.url !== initial.url || current.status !== "checking") return;
+
+      if (!valid) {
+        this.#imagePreviews[field] = { ...current, status: "error", repaired: false };
+        this.render({ parts: ["general"] });
+        return;
+      }
+
+      const repaired = previewUrl !== initial.url;
+      this.#imagePreviews[field] = { url: previewUrl, status: "valid", repaired };
+      if (repaired) {
+        this.#mutate((data) => { setIdentity(data, { [field]: previewUrl }); }, { parts: ["general"] });
+      } else {
+        this.render({ parts: ["general"] });
+      }
+    } finally {
+      this.#imagePreviewChecks.delete(checkKey);
     }
   }
 
@@ -1209,7 +1293,12 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       return;
     }
     event.currentTarget.setCustomValidity("");
-    this.#mutate((data) => { setIdentity(data, { [field]: url }); });
+    this.#imagePreviews[field] = {
+      url,
+      status: url ? "checking" : "empty",
+      repaired: false,
+    };
+    this.#mutate((data) => { setIdentity(data, { [field]: url }); }, { parts: ["general"] });
   }
 
   _onGeneralGrantChange(event) {

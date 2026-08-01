@@ -2,7 +2,22 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
-import { assembleCharacterSource } from "../../modules/char-creator/assemble-character-source.js";
+import {
+  assembleCharacterSource,
+  remoteImageRepairCandidates,
+} from "../../modules/char-creator/assemble-character-source.js";
+
+test("offers conservative CORS repair candidates for remote token images", () => {
+  assert.deepEqual(
+    remoteImageRepairCandidates("https://starwarslivinghistory.com/wp-content/uploads/2020/06/rs-dress.jpg"),
+    ["https://i0.wp.com/starwarslivinghistory.com/wp-content/uploads/2020/06/rs-dress.jpg"],
+  );
+  assert.deepEqual(
+    remoteImageRepairCandidates("http://example.test/token.png"),
+    ["https://example.test/token.png"],
+  );
+  assert.deepEqual(remoteImageRepairCandidates("https://example.test/token.png"), []);
+});
 
 function deps() {
   return {

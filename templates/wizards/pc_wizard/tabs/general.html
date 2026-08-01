@@ -2,9 +2,13 @@
   <div class="general-layout">
     <div class="general-images-column" aria-label="Character image settings">
       <div class="general-image-field">
-        <div class="general-image-preview">
-          {{#if data.identity.img}}
-            <img src="{{ data.identity.img }}" alt="Actor portrait preview" loading="lazy">
+        <div class="general-image-preview" aria-live="polite">
+          {{#if (eq imagePreviews.img.status "valid")}}
+            <img src="{{ imagePreviews.img.url }}" alt="Actor portrait preview" loading="lazy">
+          {{else if (eq imagePreviews.img.status "checking")}}
+            <span class="image-preview-status"><i class="fas fa-spinner fa-spin"></i> Checking</span>
+          {{else if (eq imagePreviews.img.status "error")}}
+            <span class="image-preview-error"><i class="fas fa-triangle-exclamation"></i> Error</span>
           {{else}}
             <span><i class="fas fa-user"></i> Actor portrait</span>
           {{/if}}
@@ -15,9 +19,13 @@
         </label>
       </div>
       <div class="general-image-field">
-        <div class="general-image-preview is-token">
-          {{#if data.identity.tokenImg}}
-            <img src="{{ data.identity.tokenImg }}" alt="Token image preview" loading="lazy">
+        <div class="general-image-preview is-token" aria-live="polite">
+          {{#if (eq imagePreviews.tokenImg.status "valid")}}
+            <img src="{{ imagePreviews.tokenImg.url }}" alt="Token image preview" loading="lazy">
+          {{else if (eq imagePreviews.tokenImg.status "checking")}}
+            <span class="image-preview-status"><i class="fas fa-spinner fa-spin"></i> Checking</span>
+          {{else if (eq imagePreviews.tokenImg.status "error")}}
+            <span class="image-preview-error"><i class="fas fa-triangle-exclamation"></i> Error</span>
           {{else}}
             <span><i class="fas fa-user-circle"></i> Token image</span>
           {{/if}}

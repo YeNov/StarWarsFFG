@@ -24,6 +24,32 @@ export function normalizeRemoteImageUrl(value) {
   }
 }
 
+/**
+ * Return conservative alternatives that may make a remote token image usable by
+ * a browser canvas. Candidates are still load-tested before the wizard accepts
+ * them; this function only rewrites URL shapes with a safe, known equivalent.
+ */
+export function remoteImageRepairCandidates(value) {
+  const normalized = normalizeRemoteImageUrl(value);
+  if (!normalized) return [];
+
+  const source = new URL(normalized);
+  const candidates = [];
+  if (source.protocol === "http:") {
+    const secure = new URL(source.href);
+    secure.protocol = "https:";
+    candidates.push(secure.href);
+  }
+
+  // WordPress/Jetpack's image proxy sends permissive CORS headers, unlike many
+  // origin servers. It is suitable for Foundry's token canvas when available.
+  if (/\/wp-content\/uploads\//i.test(source.pathname) && !/^i\d\.wp\.com$/i.test(source.hostname)) {
+    candidates.push(`https://i0.wp.com/${source.host}${source.pathname}${source.search}`);
+  }
+
+  return [...new Set(candidates)].filter((candidate) => candidate !== normalized);
+}
+
 function armorSoakValue(item) {
   const adjusted = Number(item?.system?.soak?.adjusted);
   if (Number.isFinite(adjusted)) return adjusted;

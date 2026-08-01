@@ -4141,6 +4141,14 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   gap: 8px;
   opacity: 0.72;
 }
+.charCreator .general-image-preview .image-preview-error {
+  color: #8b1e1e;
+  font-weight: bold;
+  opacity: 1;
+}
+.charCreator .general-image-preview .image-preview-status {
+  font-weight: bold;
+}
 .charCreator .general-image-preview i {
   font-size: 3rem;
 }
