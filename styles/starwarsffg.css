@@ -3970,6 +3970,8 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   min-height: 0;
 }
 .charCreator .sources-panel {
+  position: relative;
+  z-index: 10;
   max-height: min(52vh, 430px);
   margin: 8px;
   padding: 10px;
