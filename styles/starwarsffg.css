@@ -4115,7 +4115,7 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   align-self: center;
   align-items: center;
   justify-content: center;
-  width: min(100%, 320px);
+  width: min(100%, 160px);
   aspect-ratio: 3 / 4;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.35);
