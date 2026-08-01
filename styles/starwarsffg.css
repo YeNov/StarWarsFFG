@@ -4145,16 +4145,22 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   gap: 4px;
   font-weight: bold;
 }
+.charCreator .general-layout label {
+  border-bottom: 0;
+}
 .charCreator .general-fields input {
   width: 100%;
 }
 .charCreator .general-fields .general-checkbox {
   flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
 }
 .charCreator .general-fields .general-checkbox input {
   flex: 0 0 auto;
   width: auto;
+  margin: 0;
 }
 /* xp_spend skills table: lay the -/+ buttons inline instead of stacked (theme buttons are
    block-level, so they stack in the cell by default). */
