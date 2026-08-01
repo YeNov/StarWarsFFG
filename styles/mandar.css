@@ -6248,9 +6248,10 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   margin-left: auto;
 }
 .charCreator .general-fields {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  min-width: 0;
   color: #191813;
 }
 .charCreator .general-fields label {
