@@ -4084,6 +4084,10 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   gap: 24px;
   color: #191813;
 }
+.charCreator section.tab[data-tab="general"],
+.charCreator section.tab[data-tab="startingBonus"] {
+  padding-top: 1rem;
+}
 .charCreator .general-images-column {
   display: flex;
   flex-direction: column;
