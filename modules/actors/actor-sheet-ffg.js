@@ -27,7 +27,11 @@ import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import {itemPillHover} from "../swffg-main.js";
-import { findTalentListEntry, talentDetailProperties } from "./talent-details.js";
+import {
+  findOwnedTalentSourceId,
+  findTalentListEntry,
+  talentDetailProperties,
+} from "./talent-details.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -916,6 +920,19 @@ export class ActorSheetFFG extends FFGActorSheet {
         item = game.items.get(itemId);
 
         if (!item) {
+          // A ranked row can merge specialization and directly owned talent
+          // sources while retaining the specialization's itemId. Open the
+          // embedded talent source instead of scanning compendiums for that id.
+          const talent = findTalentListEntry(
+            this.actor?.talentList,
+            itemId,
+            li.data("itemName"),
+          );
+          const ownedTalentId = findOwnedTalentSourceId(talent);
+          if (ownedTalentId) item = this.actor.items.get(ownedTalentId);
+        }
+
+        if (!item) {
           item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
         }
       }
@@ -1576,7 +1593,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       icon: '<i class="far fa-comment"></i>',
       callback: (el) => {
         let itemId = el.getAttribute("data-item-id");
-        this._itemDetailsToChat(itemId);
+        this._itemDetailsToChat(itemId, el.getAttribute("data-item-name"));
       },
     };
 
@@ -1758,28 +1775,29 @@ export class ActorSheetFFG extends FFGActorSheet {
    * Send details of an item to chat.
    * @private
    */
-  async _itemDetailsToChat(itemId) {
+  async _itemDetailsToChat(itemId, itemName) {
     let item = this.actor.items.get(itemId);
     if (!item) {
       item = game.items.get(itemId);
     }
+    const talentData = item
+      ? undefined
+      : findTalentListEntry(this.actor?.talentList, itemId, itemName);
     if (!item) {
-      item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
-      if (!item) {
-        const talentItemData = this.actor?.talentList.find(talent => talent.itemId === itemId);
-        if (talentItemData) {
-          item = await ImportHelpers.findCompendiumEntityByName("Item", talentItemData.name);
-        }
-      }
+      // Sending a prepared talent to chat needs no backing Item. Only unrelated
+      // cards fall through to the legacy compendium lookup.
+      if (!talentData) item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
     }
 
     let itemDetails = await item?.getItemDetails();
 
-    if (!itemDetails) {
-      // this is likely a talent from a specialization, which otherwise returns null
-      const talentData = this.actor.talentList.find(i => i.itemId === itemId);
+    if (!itemDetails && talentData) {
+      const rawDescription = talentData.longDesc || talentData.description;
       itemDetails = {
-        prettyDesc: talentData?.enrichedDescription,
+        prettyDesc: rawDescription
+          ? await PopoutEditor.renderDiceImages(rawDescription, this.actor)
+          : (talentData.enrichedDescription ?? ""),
+        properties: talentDetailProperties(talentData, game.i18n.localize.bind(game.i18n)),
       };
       item = {
         name: talentData.name,
@@ -1798,6 +1816,8 @@ export class ActorSheetFFG extends FFGActorSheet {
         }
       };
     }
+
+    if (!item || !itemDetails) return;
 
     // Talents may carry a separate "long" description; prefer it when present, but
     // don't clobber the already-rendered prettyDesc with an empty longDesc (the

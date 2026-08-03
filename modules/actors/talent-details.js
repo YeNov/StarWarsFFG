@@ -16,6 +16,12 @@ export function findTalentListEntry(talentList, itemId, itemName) {
   return talents.find((talent) => String(talent?.name ?? "") === name);
 }
 
+/** Return the first directly owned talent Item represented by a merged row. */
+export function findOwnedTalentSourceId(talent) {
+  const source = Array.isArray(talent?.source) ? talent.source : [];
+  return source.find((entry) => ["talent", "species"].includes(entry?.type) && entry?.id)?.id;
+}
+
 /** Match the tags produced by ItemFFG#getItemDetails for talent Items. */
 export function talentDetailProperties(talent, localize = (key) => key) {
   const properties = [];
