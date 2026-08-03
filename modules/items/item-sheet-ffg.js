@@ -1137,7 +1137,10 @@ export class ItemSheetFFG extends FFGDocumentSheet {
             const clickedType = li.data('item-type');
             const rawClickedIndex = li.data('item-index');
             const clickedIndex = Number(rawClickedIndex);
-            const parentObject = await fromUuid(this.object.uuid);
+            // The sheet already owns the live Item document. Re-resolving its
+            // UUID can fetch an embedded/compendium document over the network
+            // before a purely local editor opens.
+            const parentObject = this.object;
             // locate the clicked object on the parent
             const embeddedItems = parentObject.system[clickedType] ?? [];
             let clickedObject = embeddedItems.find(i => i?._id === clickedId);
@@ -1626,8 +1629,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         },
       };
       if (this.object.isEmbedded) {
-        let ownerObject = await fromUuid(this.object.uuid);
-
         temp = {
           ...item,
           flags: {
@@ -2195,10 +2196,13 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     const clickedId = li.closest('.talent-block, .cdx-ft-node').attr('id');
     const modifierTypes = CONFIG.FFG.allowableModifierTypes;
     const modifierChoices = CONFIG.FFG.allowableModifierChoices;
+    // The editor is for the Item already backing this sheet. Using its live
+    // document avoids a redundant UUID resolution (and a possible pack/actor
+    // request) every time a Codex tree modifier cog is clicked.
+    const parentObject = this.object;
 
     if (this.object.type === "forcepower") {
       const clickedType = 'upgrades';
-      const parentObject = await fromUuid(this.object.uuid);
       // locate the clicked object on the parent
       let clickedObject = parentObject.system[clickedType][clickedId];
       const data = {
@@ -2211,7 +2215,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       new forcePowerEditor(data).render(true);
     } else if (this.object.type === "specialization") {
       const clickedType = 'talents';
-      const parentObject = await fromUuid(this.object.uuid);
       // locate the clicked object on the parent
       let clickedObject = parentObject.system[clickedType][clickedId];
       const data = {
@@ -2224,7 +2227,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       new talentEditor(data).render(true);
     } else if (this.object.type === "signatureability") {
       const clickedType = 'upgrades';
-      const parentObject = await fromUuid(this.object.uuid);
       // locate the clicked object on the parent
       let clickedObject = parentObject.system[clickedType][clickedId];
       const data = {
