@@ -27,6 +27,7 @@ import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import {itemPillHover} from "../swffg-main.js";
+import { findTalentListEntry, talentDetailProperties } from "./talent-details.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -764,13 +765,22 @@ export class ActorSheetFFG extends FFGActorSheet {
             item = game.items.get(itemId);
           }
           if (!item) {
-            item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
-            if (!item) {
-              const talentItemData = this.actor?.talentList?.find(talent => talent.itemId === itemId);
-              if (talentItemData) {
-                item = await ImportHelpers.findCompendiumEntityByName("Item", talentItemData.name);
-              }
+            // Specialization/species talents are prepared local data, not
+            // embedded Items. Resolve them before the compendium fallback:
+            // findCompendiumEntityById probes every Item pack sequentially and
+            // made a simple card expansion wait on client/server requests.
+            const talent = findTalentListEntry(
+              this.actor?.talentList,
+              itemId,
+              li.data("itemName"),
+            );
+            if (talent) {
+              await this._talentDisplayDetails(talent, ev);
+              return;
             }
+          }
+          if (!item) {
+            item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
           }
           if (item?.sheet) {
             if (item?.type == "species" || item?.type == "career" || item?.type == "specialization" || item?.type == "forcepower" || item?.type == "signatureability") item.sheet.render(true);
@@ -1687,6 +1697,40 @@ export class ActorSheetFFG extends FFGActorSheet {
         itemPillHover(event);
       });
     }
+    li.toggleClass("expanded");
+  }
+
+  /**
+   * Display a prepared talent-list entry without resolving a backing Item.
+   * Talent-tree entries already carry everything the collapsed actor-sheet card
+   * needs, so opening one should be a local UI action.
+   * @private
+   */
+  async _talentDisplayDetails(talent, event) {
+    event.preventDefault();
+    const li = $(event.currentTarget);
+
+    if (li.hasClass("expanded")) {
+      const details = li.children(".item-details");
+      details.slideUp(200, () => details.remove());
+    } else {
+      const rawDescription = talent?.longDesc || talent?.description;
+      const description = rawDescription
+        ? await PopoutEditor.renderDiceImages(rawDescription, this.actor)
+        : (talent?.enrichedDescription ?? "");
+      const div = $(`<div class="item-details">${description}</div>`);
+      const props = $(`<div class="item-properties"></div>`);
+      for (const property of talentDetailProperties(talent, game.i18n.localize.bind(game.i18n))) {
+        props.append(`<span class="tag">${property}</span>`);
+      }
+      div.append(props);
+      li.append(div.hide());
+      div.slideDown(200);
+      li.find(".hover-tooltip").on("mouseover", (hoverEvent) => {
+        itemPillHover(hoverEvent);
+      });
+    }
+
     li.toggleClass("expanded");
   }
 
