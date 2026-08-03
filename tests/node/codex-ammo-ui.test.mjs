@@ -6,6 +6,7 @@ const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url)
 
 const actorSheetSource = read("modules/actors/codex-sheets.js");
 const itemSheetSource = read("modules/items/codex-item-sheet.js");
+const sharedItemSheetSource = read("modules/items/item-sheet-ffg.js");
 const vehicleTemplate = read("templates/actors/codex/codex-vehicle.html");
 const weaponTemplate = read("templates/items/codex/codex-weapon.html");
 const shipWeaponTemplate = read("templates/items/codex/codex-shipweapon.html");
@@ -25,6 +26,13 @@ test("Codex item ammo steppers clamp and persist the current magazine", () => {
   assert.match(itemSheetSource, /if \(value\) value\.textContent = String\(current\)/);
   assert.match(itemSheetSource, /this\._cdxAmmoUpdate = previousWrite\.then/);
   assert.match(itemSheetSource, /"system\.ammo\.value": current/);
+});
+
+test("quality-driven ammo mode hides the unused manual Enable Ammo option", () => {
+  assert.match(
+    sharedItemSheetSource,
+    /\(this\.object\.type === "weapon" \|\| this\.object\.type === "shipweapon"\) && !isQualityAmmoMode\(\)/,
+  );
 });
 
 for (const [name, template] of [["weapon", weaponTemplate], ["vehicle weapon", shipWeaponTemplate]]) {
