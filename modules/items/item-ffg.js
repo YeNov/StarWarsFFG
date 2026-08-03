@@ -6,7 +6,7 @@ import ImportHelpers from "../importer/import-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import Helpers from "../helpers/common.js";
 import ItemHelpers from "../helpers/item-helpers.js";
-import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
+import { isAmmoTracked, getAmmoMax, getAmmoValue, getInitialLimitedAmmoValue } from "../helpers/ammo-helpers.js";
 
 /**
  * Extend the basic Item with some very simple modifications.
@@ -222,6 +222,16 @@ export class ItemFFG extends ItemBaseFFG {
    * @override
    */
   async _preUpdate(changed, options, user) {
+    // A weapon starts with ammo.value = 0 from its schema. When its first
+    // Limited Ammo quality is added, fill that new magazine to the quality's
+    // rank. This is deliberately transition-based so an empty limited-ammo
+    // weapon stays empty during subsequent quality edits and ordinary updates.
+    const updatedModifiers = foundry.utils.getProperty(changed, "system.itemmodifier");
+    const initialAmmo = getInitialLimitedAmmoValue(this, updatedModifiers);
+    if (initialAmmo !== null) {
+      foundry.utils.setProperty(changed, "system.ammo.value", initialAmmo);
+    }
+
     const newValue = foundry.utils.getProperty(changed, "system.encumbrance.value");
     if (newValue !== undefined && ["weapon", "shipweapon", "armour"].includes(this.type)) {
       const oldValue = this.system.encumbrance?.value ?? 0;
