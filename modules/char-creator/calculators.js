@@ -54,7 +54,8 @@ export function calcCredits(data) {
   const total = data.grants.gm.credits + data.grants.bonus.credits + (data.grants.extra?.credits ?? 0);
   let available = total;
   for (const purchase of data.purchases.credits) {
-    available -= purchase.cost;
+    const quantity = Math.max(1, Math.trunc(Number(purchase.quantity) || 1));
+    available -= purchase.cost * quantity;
   }
 
   return { total, available };

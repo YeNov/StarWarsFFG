@@ -187,6 +187,7 @@ const startingBonusesRadio = {
     "10xp": "SWFFG.CharacterCreator.startingBonus.aor.10xp",
     "1k_credits": "SWFFG.CharacterCreator.startingBonus.aor.1k_credits",
     "2k_credits": "SWFFG.CharacterCreator.startingBonus.aor.2k_credits",
+    "5xp_1k_credits": "SWFFG.CharacterCreator.startingBonus.aor.5xp_1k_credits",
   },
   "fad": {
     "10xp": "SWFFG.CharacterCreator.startingBonus.fad.10xp",
@@ -200,6 +201,7 @@ const startingBonusesRadio = {
     "10xp": "SWFFG.CharacterCreator.startingBonus.eote.10xp",
     "1k_credits": "SWFFG.CharacterCreator.startingBonus.eote.1k_credits",
     "2k_credits": "SWFFG.CharacterCreator.startingBonus.eote.2k_credits",
+    "5xp_1k_credits": "SWFFG.CharacterCreator.startingBonus.eote.5xp_1k_credits",
   },
 }
 

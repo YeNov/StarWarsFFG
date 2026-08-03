@@ -104,3 +104,28 @@ test("matches career skills stored by display label", () => {
     { key: "KnowledgeLore", value: 1, cost: 5 },
   ]);
 });
+
+test("keeps paid ranks above two when the starting-rank cap is removed", () => {
+  const data = draft({
+    purchases: {
+      xp: {
+        skills: [
+          { key: "Brawl", value: 1, cost: 10 },
+          { key: "Brawl", value: 2, cost: 15 },
+          { key: "Brawl", value: 3, cost: 20 },
+          { key: "Brawl", value: 4, cost: 25 },
+        ],
+      },
+    },
+  });
+  data.options = { removeStartingSkillRankCap: true };
+
+  normalizeXpSkillPurchases(data, STOCK_SKILLS);
+
+  assert.deepEqual(data.purchases.xp.skills.map(({ value, cost }) => ({ value, cost })), [
+    { value: 1, cost: 10 },
+    { value: 2, cost: 15 },
+    { value: 3, cost: 20 },
+    { value: 4, cost: 25 },
+  ]);
+});

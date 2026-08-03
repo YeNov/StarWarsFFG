@@ -19,6 +19,7 @@ test("every self-identifying starting bonus cell matches the transcription", () 
     "aor_10xp": { xp: 10, duty: 10 },
     "aor_1k_credits": { credits: 1000, duty: 5 },
     "aor_2k_credits": { credits: 2500, duty: 10 },
+    "aor_5xp_1k_credits": { xp: 5, credits: 1000, duty: 10 },
     "fad_10xp": { xp: 10 },
     "fad_2k_credits": { credits: 2500 },
     "fad_5xp": { xp: 5, credits: 1000 },
@@ -28,6 +29,7 @@ test("every self-identifying starting bonus cell matches the transcription", () 
     "eote_10xp": { xp: 10, obligation: 10 },
     "eote_1k_credits": { credits: 1000, obligation: 5 },
     "eote_2k_credits": { credits: 2500, obligation: 10 },
+    "eote_5xp_1k_credits": { xp: 5, credits: 1000, obligation: 10 },
   });
 });
 
@@ -59,13 +61,13 @@ test("option list contains every stored starting bonus id", () => {
 
 test("ruleset option lists expose only that ruleset's choices", () => {
   assert.deepEqual(getStartingBonusOptions("aor").map((option) => option.key), [
-    "aor_5xp", "aor_10xp", "aor_1k_credits", "aor_2k_credits",
+    "aor_5xp", "aor_10xp", "aor_1k_credits", "aor_2k_credits", "aor_5xp_1k_credits",
   ]);
   assert.deepEqual(getStartingBonusOptions("fad").map((option) => option.key), [
     "fad_10xp", "fad_2k_credits", "fad_5xp", "fad_21_plus_morality", "fad_21_minus_morality",
   ]);
   assert.deepEqual(getStartingBonusOptions("eote").map((option) => option.key), [
-    "eote_5xp", "eote_10xp", "eote_1k_credits", "eote_2k_credits",
+    "eote_5xp", "eote_10xp", "eote_1k_credits", "eote_2k_credits", "eote_5xp_1k_credits",
   ]);
   assert.deepEqual(getStartingBonusOptions("unknown"), []);
 });

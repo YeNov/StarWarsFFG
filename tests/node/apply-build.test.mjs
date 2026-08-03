@@ -144,10 +144,28 @@ test("XP, credits (incl. spendingCredits) and the selected ruleset track match t
   assert.equal(actorData.system.obligation, undefined);
 });
 
-test("base identity: name, img, prototypeToken from creationDefaults", () => {
-  const { actorData } = applyBuild(makeDraft(), makeDeps());
+test("base identity: name, actor image, and token image are applied from safe URLs", () => {
+  const draft = makeDraft();
+  draft.identity.img = "https://example.com/kel.webp";
+  draft.identity.tokenImg = "https://example.com/kel-token.webp";
+  const { actorData } = applyBuild(draft, makeDeps());
   assert.equal(actorData.name, "Kel");
   assert.equal(actorData.type, "character");
+  assert.equal(actorData.img, "https://example.com/kel.webp");
+  assert.deepEqual(actorData.prototypeToken, {
+    actorLink: true,
+    sight: { enabled: true },
+    name: "Kel",
+    texture: { src: "https://example.com/kel-token.webp" },
+  });
+});
+
+test("unsafe image schemes fall back to the system defaults", () => {
+  const draft = makeDraft();
+  draft.identity.img = "data:image/svg+xml,unsafe";
+  draft.identity.tokenImg = "file:///tmp/token.webp";
+  const { actorData } = applyBuild(draft, makeDeps());
+
   assert.equal(actorData.img, "systems/starwarsffg/images/defaults/actors/character.png");
   assert.deepEqual(actorData.prototypeToken, { actorLink: true, sight: { enabled: true }, name: "Kel" });
 });
@@ -294,6 +312,30 @@ test("player attachment purchases survive build, socket sanitization, and GM nor
   assert.match(committedWeapon.system.itemattachment[0]._id, /^[0-9A-Za-z]{16}$/);
   assert.equal(committedWeapon.effects[0].name, "Balanced Hilt Effect");
   assert.match(committedWeapon._id, /^[0-9A-Za-z]{16}$/);
+});
+
+test("stacked gear becomes one embedded item with the purchased quantity", () => {
+  const draft = makeDraft();
+  draft.purchases.credits = [{
+    id: "stimpack-stack",
+    cost: 25,
+    quantity: 4,
+    ref: {
+      uuid: "gear-stimpack",
+      name: "Stimpack",
+      type: "gear",
+      snapshot: { name: "Stimpack", type: "gear", system: { quantity: { value: 1 } } },
+    },
+  }];
+  const deps = makeDeps();
+  deps.toItemData = (ref) => structuredClone(ref.snapshot);
+
+  const { actorData } = applyBuild(draft, deps);
+  const stimpacks = actorData.items.filter((item) => item.name === "Stimpack");
+
+  assert.equal(stimpacks.length, 1);
+  assert.equal(stimpacks[0].system.quantity.value, 4);
+  assert.equal(actorData.system.stats.credits.value, 500 - 100 + 42);
 });
 
 test("only the highest-soak purchased armor is equipped for derived soak calculation", () => {

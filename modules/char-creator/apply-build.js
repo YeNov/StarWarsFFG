@@ -6,7 +6,7 @@
 
 import { calcXp, calcCredits, calcObligation } from "./calculators.js";
 import { getSpeciesSkillRankGrants } from "./species-skill-choices.js";
-import { assembleCharacterSource } from "./assemble-character-source.js";
+import { assembleCharacterSource, normalizeRemoteImageUrl } from "./assemble-character-source.js";
 
 const DEDICATION_ATTRIBUTE_KEY = "pcwDedication";
 
@@ -104,6 +104,12 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
   for (const purchase of data.purchases.credits) {
     if (isAttachmentPurchase(purchase) || !purchase.ref?.uuid) continue;
     const item = toItemData(purchase.ref);
+    const quantity = Math.max(1, Math.trunc(Number(purchase.quantity) || 1));
+    if (quantity > 1) {
+      item.system ??= {};
+      item.system.quantity ??= {};
+      item.system.quantity.value = quantity;
+    }
     for (const attachment of attachmentsByTarget.get(purchase.id) ?? []) {
       const attachmentItem = toItemData(attachment.ref);
       item.system ??= {};
@@ -123,7 +129,8 @@ export function applyBuild(data, { creationDefaults, applyCharacteristicDeltas, 
     { creationDefaults, applyCharacteristicDeltas },
     {
       name: data.identity.name,
-      img: data.identity.img,
+      img: normalizeRemoteImageUrl(data.identity.img) ?? "",
+      tokenImg: normalizeRemoteImageUrl(data.identity.tokenImg) ?? "",
       characteristicDeltas,
       skillDeltas,
       careerSkills: allCareerSkillNames(data),

@@ -36,6 +36,10 @@ export function createInitialData() {
     identity: {
       name: "",
       img: "",
+      tokenImg: "",
+    },
+    options: {
+      removeStartingSkillRankCap: false,
     },
     commitId: foundry.utils.randomID(16),
     grants: {
@@ -100,14 +104,15 @@ export function createInitialData() {
 }
 
 /**
- * Set the character's identity fields (name/img). Pure state transition.
+ * Set the character's identity fields (name/actor image/token image). Pure state transition.
  * @param {object} data
- * @param {{name?: string, img?: string}} identity
+ * @param {{name?: string, img?: string, tokenImg?: string}} identity
  * @returns {object} data
  */
-export function setIdentity(data, { name, img } = {}) {
+export function setIdentity(data, { name, img, tokenImg } = {}) {
   if (name !== undefined) data.identity.name = name;
   if (img !== undefined) data.identity.img = img;
+  if (tokenImg !== undefined) data.identity.tokenImg = tokenImg;
   return data;
 }
 

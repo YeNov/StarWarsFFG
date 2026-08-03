@@ -3961,9 +3961,22 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 }
 
 /* PC Wizard — Content sources panel. */
+.application.starwarsffg.wizard.charCreator .window-content {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.charCreator .pc-wizard-header {
+  min-height: 0;
+}
 .charCreator .sources-panel {
+  position: relative;
+  z-index: 10;
+  max-height: min(52vh, 430px);
   margin: 8px;
   padding: 10px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   border: 1px solid rgba(0, 0, 0, 0.35);
   background: rgba(245, 241, 232, 0.94);
   color: #1f2933;
@@ -4065,11 +4078,88 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .charCreator .pickable-action button {
   margin-left: auto;
 }
-.charCreator .general-fields {
+.charCreator .general-layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+  gap: 24px;
   color: #191813;
+}
+.charCreator section.tab[data-tab="general"],
+.charCreator section.tab[data-tab="startingBonus"] {
+  padding-top: 1rem;
+}
+.charCreator .general-images-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.charCreator .general-image-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.charCreator .general-image-field label {
+  color: #415064;
+  font-weight: bold;
+}
+.charCreator .general-image-field input[type="url"] {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--input-height);
+  line-height: var(--input-height);
+  padding: 0 0.5rem;
+  border: 1px solid var(--input-border-color);
+  border-radius: 4px;
+}
+.charCreator .general-image-preview {
+  display: flex;
+  flex: 0 0 auto;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 160px);
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.4);
+  color: #415064;
+}
+.charCreator .general-image-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+}
+.charCreator .general-image-preview span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.72;
+}
+.charCreator .general-image-preview .image-preview-error {
+  color: #8b1e1e;
+  font-weight: bold;
+  opacity: 1;
+}
+.charCreator .general-image-preview .image-preview-status {
+  font-weight: bold;
+}
+.charCreator .general-image-preview i {
+  font-size: 3rem;
+}
+.charCreator .general-image-preview.is-token {
+  aspect-ratio: 1 / 1;
+}
+.charCreator .general-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
 .charCreator .general-fields label {
   display: flex;
@@ -4077,8 +4167,22 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   gap: 4px;
   font-weight: bold;
 }
+.charCreator .general-layout label {
+  border-bottom: 0;
+}
 .charCreator .general-fields input {
   width: 100%;
+}
+.charCreator .general-fields .general-checkbox {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.charCreator .general-fields .general-checkbox input {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
 }
 /* xp_spend skills table: lay the -/+ buttons inline instead of stacked (theme buttons are
    block-level, so they stack in the cell by default). */

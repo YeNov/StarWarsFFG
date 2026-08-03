@@ -8,7 +8,14 @@
 
 import { getSpeciesSkillRankGrants } from "./species-skill-choices.js";
 
-const CREATION_SKILL_CAP = 2;
+const DEFAULT_CREATION_SKILL_CAP = 2;
+const UNCAPPED_CREATION_SKILL_CAP = 5;
+
+export function creationSkillCap(data) {
+  return data?.options?.removeStartingSkillRankCap
+    ? UNCAPPED_CREATION_SKILL_CAP
+    : DEFAULT_CREATION_SKILL_CAP;
+}
 
 function skillLookup(stockSkills = {}) {
   const lookup = new Map();
@@ -82,13 +89,14 @@ export function normalizeXpSkillPurchases(data, stockSkills = {}) {
   const careerKeys = selectedCareerSkillKeys(data, lookup);
   const freeRanks = freeRankCounts(data, lookup);
   const paidRanks = paidRankCounts(purchases);
+  const skillCap = creationSkillCap(data);
   const normalized = [];
 
   for (const [key, count] of paidRanks.entries()) {
     const stockSkill = stockSkills[key];
     if (!stockSkill) continue;
     const baseRank = (Number(stockSkill.rank) || 0) + (freeRanks.get(key) ?? 0);
-    const paidCount = Math.min(count, Math.max(0, CREATION_SKILL_CAP - baseRank));
+    const paidCount = Math.min(count, Math.max(0, skillCap - baseRank));
     const isCareer = careerKeys.has(key) || Boolean(stockSkill.careerskill);
     for (let step = 1; step <= paidCount; step += 1) {
       const value = baseRank + step;

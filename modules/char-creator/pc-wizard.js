@@ -21,7 +21,8 @@ import { applyStartingBonus, getStartingBonusOptions } from "./starting-bonus.js
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { dedicationCharacteristicDeltas, isDedicationTalent } from "./dedication.js";
 import { validateDraft, getFreeRankCaps } from "./validate.js";
-import { normalizeXpSkillPurchases } from "./skill-purchases.js";
+import { creationSkillCap, normalizeXpSkillPurchases } from "./skill-purchases.js";
+import { sheetSkillComparator } from "./skill-sorting.js";
 import {
   clearSpeciesSkillRankChoices,
   prepareSpeciesSkillRankChoiceSections,
@@ -46,6 +47,7 @@ import { NewerSchemaError, CorruptDraftError } from "./draft-schema.js";
 import { emitCommitRequest, wizardPending, setCommitResponseHandler } from "./socket-bridge.js";
 import { commitBuild } from "./commit-service.js";
 import { mintSessionNoticeId, emitStartNotice, showSubmitToast } from "./notify.js";
+import { normalizeRemoteImageUrl, remoteImageRepairCandidates } from "./assemble-character-source.js";
 import { setPending, clearPending } from "./notify-policy.js";
 import { COMMIT_TIMEOUT_MS, FLAG_SCOPE, FLAGS } from "./constants.js";
 
@@ -54,6 +56,27 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const PC_WIZARD = "systems/starwarsffg/templates/wizards/pc_wizard";
 const STARTUP_POOL_KEYS = Object.freeze(["species", "career", "obligation", "motivation", "gear", "background", "specialization", "forcePower"]);
 const STARTUP_POOL_LOAD_CONCURRENCY = 3;
+const REMOTE_IMAGE_CHECK_TIMEOUT_MS = 8000;
+
+function canPreviewRemoteImage(url, { requireCors = false } = {}) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    let settled = false;
+    const finish = (valid) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      image.onload = null;
+      image.onerror = null;
+      resolve(valid);
+    };
+    const timeoutId = window.setTimeout(() => finish(false), REMOTE_IMAGE_CHECK_TIMEOUT_MS);
+    if (requireCors) image.crossOrigin = "anonymous";
+    image.onload = () => finish(image.naturalWidth > 0 && image.naturalHeight > 0);
+    image.onerror = () => finish(false);
+    image.src = url;
+  });
+}
 
 async function mapWithConcurrency(values, limit, mapper) {
   const results = new Array(values.length);
@@ -76,6 +99,14 @@ function shopPriceOf(ref) {
 function isPurchasableShopRef(ref) {
   const price = shopPriceOf(ref);
   return price !== null && price > 0;
+}
+
+function isStackableShopRef(ref) {
+  return ref?.type === "gear" && hardpointValue(ref) <= 0;
+}
+
+function purchaseQuantity(purchase) {
+  return Math.max(1, Math.trunc(Number(purchase?.quantity) || 1));
 }
 
 function sortByName(a, b) {
@@ -350,11 +381,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   static PART_BINDINGS = {
     general: [
       { selector: "input[data-field='characterName']", event: "input", handler: "_onGeneralNameInput" },
+      { selector: "input[data-field='imageUrl']", event: "change", handler: "_onGeneralImageUrlChange" },
       { selector: "input[data-field='extraGrant']", event: "change", handler: "_onGeneralGrantChange" },
+      { selector: "input[data-field='removeStartingSkillRankCap']", event: "change", handler: "_onStartingSkillRankCapChange" },
     ],
     background: [{ selector: "input[data-field='backgroundSearch']", event: "input", handler: "_onBackgroundSearchInput" }],
     obligation: [{ selector: "input[data-field='obligationSearch']", event: "input", handler: "_onObligationSearchInput" }],
     species: [{ selector: "input[data-field='speciesSearch']", event: "input", handler: "_onSpeciesSearchInput" }],
+    career: [{ selector: "input[data-field='careerSearch']", event: "input", handler: "_onCareerSearchInput" }],
+    specialization: [{ selector: "input[data-field='specializationSearch']", event: "input", handler: "_onSpecializationSearchInput" }],
     gear: [
       { selector: "input[data-field='search']", event: "input", handler: "_onGearFilterChange" },
       { selector: "[data-field]:not(input[data-field='search'])", event: "change", handler: "_onGearFilterChange" },
@@ -381,6 +416,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #obligationSearch = { obligation: "", duty: "", morality: "" }; // Obligation accordion name filters (transient)
   #listSearch = { motivation: "" }; // Motivation tab name filter (transient)
   #speciesSearch = ""; // Species tab name filter (transient, not persisted to draft)
+  #careerSearch = ""; // Career tab name filter (transient, not persisted to draft)
+  #specializationSearch = ""; // Both specialization tables share this transient name filter.
   #attachmentTargetId = null; // Expanded owned gear purchase id for attachment shopping.
   #skillDescriptions = null; // cached { ffgimportid|name (lowercased): description html }
   #sourcesOpen = false; // Content-source overlay state (transient)
@@ -392,6 +429,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
   #missingSourceWarningGroups = null; // Prepared during context, shown after the wizard renders.
   #draftBannerDismissed = false; // Resume/discard banner is only for a different stored draft.
   #draftResumePromptShown = false; // One-shot modal prompt for a resumable stored draft.
+  #imagePreviews = {
+    img: { url: "", status: "empty", repaired: false },
+    tokenImg: { url: "", status: "empty", repaired: false },
+  };
+  #imagePreviewChecks = new Set();
 
   constructor(options = {}) {
     super(options);
@@ -417,6 +459,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#ensureCreditPurchaseIds(this.data);
     this.#ensureExtraGrants(this.data);
     this.#normalizeFreeRankSelections(this.data);
+    this.#syncImagePreviewState();
 
     const xp = calcXp(this.data);
     const credits = calcCredits(this.data);
@@ -503,6 +546,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       }));
     const speciesMatchCount = speciesRows.filter((ref) => !ref.hidden).length;
     const speciesNoMatches = speciesRows.length === 0 || speciesMatchCount === 0;
+    const careerSearch = this.#careerSearch.trim().toLowerCase();
+    const careerRows = [...(this.#pools.career ?? [])]
+      .sort(sortByName)
+      .map((ref) => ({
+        ...ref,
+        hidden: !!careerSearch && !(ref.name ?? "").toLowerCase().includes(careerSearch),
+      }));
+    const careerMatchCount = careerRows.filter((ref) => !ref.hidden).length;
+    const careerNoMatches = careerRows.length === 0 || careerMatchCount === 0;
     const activeObligationKey = obligationKeyForRules(this.data.selected.rules);
     const obligationLabels = { obligation: "Obligation", duty: "Duty", morality: "Morality" };
     const obligationSectionDefs = activeObligationKey
@@ -565,21 +617,26 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // Each row carries the prepared rank, whether it's a career skill, and the cost of the
     // NEXT rank (career rank*5, non-career rank*5 + 5).
     const skillPurchases = this.data.purchases.xp.skills;
+    const skillCap = creationSkillCap(this.data);
     const skillDescriptions = this.#xpView === "skills" ? await this.#ensureSkillDescriptions() : {};
+    const compareSkills = sheetSkillComparator(preview?.system?.skilltypes ?? [], {
+      byLabel: game.settings.get("starwarsffg", "skillSorting"),
+      locale: game.i18n.lang,
+    });
     const xpSkills = preview?.system?.skills
       ? Object.entries(preview.system.skills).map(([key, skill]) => {
         const rank = skill.rank ?? 0;
         const careerskill = Boolean(skill.careerskill);
         const nextValue = rank + 1;
         const nextCost = careerskill ? nextValue * 5 : nextValue * 5 + 5;
-        // Creation cap: skills may be raised to rank 2 with starting XP. A rank can be
-        // refunded only if the CURRENT top rank was itself an XP purchase.
-        const canBuy = rank < 2;
+        // Creation normally caps skills at rank 2; the General-tab override raises that
+        // ceiling to the system maximum of 5. Only an XP-purchased top rank is refundable.
+        const canBuy = rank < skillCap;
         const canRefund = skillPurchases.some((purchase) => purchase.key === key && purchase.value === rank);
         const label = skill.label ?? key;
         const description = skillDescriptions[label.toLowerCase()] ?? skillDescriptions[key.toLowerCase()] ?? "";
         return { key, label, rank, careerskill, type: skill.type, nextValue, nextCost, canBuy, canRefund, description };
-      })
+      }).sort(compareSkills)
       : [];
     const characteristicPurchases = this.data.purchases.xp.characteristics;
     const specializationTalents = this.data.selected.specialization?.snapshot?.system?.talents ?? {};
@@ -606,11 +663,20 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     // universal specialization from the pool (matched by name, as the legacy did).
     // Selecting one sets data.selected.specialization via the shared _onSelect action.
     const specPool = this.#pools.specialization ?? [];
+    const specializationSearch = this.#specializationSearch.trim().toLowerCase();
+    const prepareSpecializationRows = (rows) => rows
+      .sort(sortByName)
+      .map((ref) => ({
+        ...ref,
+        hidden: !!specializationSearch && !(ref.name ?? "").toLowerCase().includes(specializationSearch),
+      }));
     const careerSpecNames = new Set(
       Object.values(this.data.selected.career?.snapshot?.system?.specializations ?? {}).map((spec) => spec.name),
     );
-    const careerSpecializations = specPool.filter((ref) => careerSpecNames.has(ref.name));
-    const universalSpecializations = specPool.filter((ref) => ref.snapshot?.system?.universal && !careerSpecNames.has(ref.name));
+    const careerSpecializations = prepareSpecializationRows(specPool.filter((ref) => careerSpecNames.has(ref.name)));
+    const universalSpecializations = prepareSpecializationRows(specPool.filter((ref) => ref.snapshot?.system?.universal && !careerSpecNames.has(ref.name)));
+    const careerSpecializationsNoMatches = careerSpecializations.length > 0 && careerSpecializations.every((ref) => ref.hidden);
+    const universalSpecializationsNoMatches = universalSpecializations.length > 0 && universalSpecializations.every((ref) => ref.hidden);
 
     // Free skill ranks: chosen from the career's career-skills and the specialization's.
     // These feed rankGrants -> toItemData (baked as +1-rank AEs on the career/spec item), so
@@ -618,17 +684,33 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const freeRankCaps = getFreeRankCaps(this.data);
     const careerSkillNames = freeSkillNamesFromSlots(this.data.selected.career?.snapshot?.system?.careerSkills);
     const careerPicked = this.data.selected.careerCareerSkillRanks;
-    const careerFreeRanks = careerSkillNames.map((name) => {
-      const picked = careerPicked.includes(name);
-      return { key: name, picked, canToggle: picked || careerPicked.length < freeRankCaps.career };
-    });
+    const skillByName = new Map();
+    for (const skill of xpSkills) {
+      skillByName.set(skill.key, skill);
+      skillByName.set(String(skill.key).toLowerCase(), skill);
+      skillByName.set(skill.label, skill);
+      skillByName.set(String(skill.label).toLowerCase(), skill);
+    }
+    const freeRankRow = (name, pickedSkills, cap) => {
+      const skill = skillByName.get(name) ?? skillByName.get(String(name).toLowerCase());
+      const picked = pickedSkills.includes(name);
+      return {
+        key: name,
+        label: skill?.label ?? name,
+        type: skill?.type,
+        picked,
+        canToggle: picked || pickedSkills.length < cap,
+      };
+    };
+    const careerFreeRanks = careerSkillNames
+      .map((name) => freeRankRow(name, careerPicked, freeRankCaps.career))
+      .sort(compareSkills);
     const specSkillNames = freeSkillNamesFromSlots(this.data.selected.specialization?.snapshot?.system?.careerSkills);
     const specPicked = this.data.selected.specializationCareerSkillRanks;
-    const specFreeRanks = specSkillNames.map((name) => {
-      const picked = specPicked.includes(name);
-      return { key: name, picked, canToggle: picked || specPicked.length < freeRankCaps.specialization };
-    });
-    const speciesFreeRankChoiceSections = prepareSpeciesSkillRankChoiceSections(this.data, xpSkills);
+    const specFreeRanks = specSkillNames
+      .map((name) => freeRankRow(name, specPicked, freeRankCaps.specialization))
+      .sort(compareSkills);
+    const speciesFreeRankChoiceSections = prepareSpeciesSkillRankChoiceSections(this.data, xpSkills, { compare: compareSkills });
     const reviewVerificationSteps = [
       ...validation.warnings.map((warningKey) => {
         const status = RAW_RESOURCE_WARNING_KEYS.has(warningKey) ? "warning" : "incomplete";
@@ -758,6 +840,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
           name: purchase.ref.name,
           img: purchase.ref.img,
           cost: purchase.cost,
+          quantity: purchaseQuantity(purchase),
+          totalCost: purchase.cost * purchaseQuantity(purchase),
           stats: inventoryStats(purchase.ref),
           restricted: Boolean(purchase.ref.snapshot?.system?.rarity?.isrestricted),
           attachable,
@@ -780,12 +864,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     return {
       tabs,
       data: this.data,
+      imagePreviews: this.#imagePreviews,
       draft,
       pools,
       speciesRows,
       speciesMatchCount,
       speciesNoMatches,
       speciesSearch: this.#speciesSearch,
+      careerRows,
+      careerNoMatches,
+      careerSearch: this.#careerSearch,
       isForceAndDestiny,
       backgroundSections,
       obligationSections,
@@ -804,6 +892,9 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       talentSpecName: specForTree?.name ?? null,
       careerSpecializations,
       universalSpecializations,
+      careerSpecializationsNoMatches,
+      universalSpecializationsNoMatches,
+      specializationSearch: this.#specializationSearch,
       careerFreeRanks,
       careerFreeUsed: careerPicked.length,
       careerFreeCap: freeRankCaps.career,
@@ -837,6 +928,8 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+    void this.#validateImagePreview("img");
+    void this.#validateImagePreview("tokenImg");
     this.#showMissingSourceWarning();
     this.#showDraftResumePrompt(context?.draft?.hasResumable);
   }
@@ -885,6 +978,60 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     field.focus({ preventScroll: true });
     if (Number.isInteger(selectionStart) && Number.isInteger(selectionEnd)) {
       field.setSelectionRange(selectionStart, selectionEnd);
+    }
+  }
+
+  #syncImagePreviewState() {
+    for (const field of ["img", "tokenImg"]) {
+      const url = normalizeRemoteImageUrl(this.data.identity?.[field]) ?? "";
+      if (this.#imagePreviews[field].url === url) continue;
+      this.#imagePreviews[field] = {
+        url,
+        status: url ? "checking" : "empty",
+        repaired: false,
+      };
+    }
+  }
+
+  async #validateImagePreview(field) {
+    const initial = this.#imagePreviews[field];
+    if (initial.status !== "checking" || !initial.url) return;
+    const checkKey = `${field}:${initial.url}`;
+    if (this.#imagePreviewChecks.has(checkKey)) return;
+    this.#imagePreviewChecks.add(checkKey);
+
+    try {
+      const requireCors = field === "tokenImg";
+      let previewUrl = initial.url;
+      let valid = await canPreviewRemoteImage(previewUrl, { requireCors });
+      if (!valid && requireCors) {
+        for (const candidate of remoteImageRepairCandidates(initial.url)) {
+          if (await canPreviewRemoteImage(candidate, { requireCors: true })) {
+            previewUrl = candidate;
+            valid = true;
+            break;
+          }
+        }
+      }
+
+      const current = this.#imagePreviews[field];
+      if (current.url !== initial.url || current.status !== "checking") return;
+
+      if (!valid) {
+        this.#imagePreviews[field] = { ...current, status: "error", repaired: false };
+        this.render({ parts: ["general"] });
+        return;
+      }
+
+      const repaired = previewUrl !== initial.url;
+      this.#imagePreviews[field] = { url: previewUrl, status: "valid", repaired };
+      if (repaired) {
+        this.#mutate((data) => { setIdentity(data, { [field]: previewUrl }); }, { parts: ["general"] });
+      } else {
+        this.render({ parts: ["general"] });
+      }
+    } finally {
+      this.#imagePreviewChecks.delete(checkKey);
     }
   }
 
@@ -1136,6 +1283,24 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => { setIdentity(data, { name }); }, { parts: ["header"] });
   }
 
+  _onGeneralImageUrlChange(event) {
+    const field = event.currentTarget.dataset.identityField;
+    if (!["img", "tokenImg"].includes(field)) return;
+    const url = normalizeRemoteImageUrl(event.currentTarget.value);
+    if (url === null) {
+      event.currentTarget.setCustomValidity("Enter an absolute http:// or https:// image URL without embedded credentials.");
+      event.currentTarget.reportValidity();
+      return;
+    }
+    event.currentTarget.setCustomValidity("");
+    this.#imagePreviews[field] = {
+      url,
+      status: url ? "checking" : "empty",
+      repaired: false,
+    };
+    this.#mutate((data) => { setIdentity(data, { [field]: url }); }, { parts: ["general"] });
+  }
+
   _onGeneralGrantChange(event) {
     const field = event.currentTarget.dataset.grantField;
     if (!["xp", "credits"].includes(field)) return;
@@ -1143,6 +1308,15 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#mutate((data) => {
       data.grants.extra ??= { xp: 0, credits: 0 };
       data.grants.extra[field] = value;
+    });
+  }
+
+  _onStartingSkillRankCapChange(event) {
+    const checked = event.currentTarget.checked;
+    this.#mutate((data) => {
+      data.options ??= {};
+      data.options.removeStartingSkillRankCap = checked;
+      this.#normalizeXpSkillPurchases(data);
     });
   }
 
@@ -1175,6 +1349,40 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     const empty = root?.querySelector("[data-species-empty]");
     if (empty) empty.hidden = visible > 0;
+  }
+
+  _onCareerSearchInput(event) {
+    const search = event.currentTarget.value ?? "";
+    this.#careerSearch = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest("[data-tab='career']");
+    let visible = 0;
+    for (const row of root?.querySelectorAll(".pickable-row") ?? []) {
+      const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+      const match = !needle || name.includes(needle);
+      row.hidden = !match;
+      if (match) visible += 1;
+    }
+    const empty = root?.querySelector("[data-career-empty]");
+    if (empty) empty.hidden = visible > 0;
+  }
+
+  _onSpecializationSearchInput(event) {
+    const search = event.currentTarget.value ?? "";
+    this.#specializationSearch = search;
+    const needle = search.trim().toLowerCase();
+    const root = event.currentTarget.closest("[data-tab='specialization']");
+    for (const group of root?.querySelectorAll(".specialization-group") ?? []) {
+      let visible = 0;
+      for (const row of group.querySelectorAll(".pickable-row")) {
+        const name = row.querySelector(".pickable-name")?.textContent?.toLowerCase() ?? "";
+        const match = !needle || name.includes(needle);
+        row.hidden = !match;
+        if (match) visible += 1;
+      }
+      const empty = group.querySelector("[data-specialization-empty]");
+      if (empty) empty.hidden = visible > 0;
+    }
   }
 
   _onBackgroundSearchInput(event) {
@@ -1320,6 +1528,11 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
       this.#ensureCreditPurchaseIds(data);
       const index = data.purchases.credits.findIndex((purchase) => purchase.id === purchaseId);
       if (index < 0) return;
+      const purchase = data.purchases.credits[index];
+      if (isStackableShopRef(purchase.ref) && purchaseQuantity(purchase) > 1) {
+        purchase.quantity = purchaseQuantity(purchase) - 1;
+        return;
+      }
       data.purchases.credits = data.purchases.credits.filter((purchase) => purchase.id !== purchaseId && purchase.attachTo !== purchaseId);
       if (this.#attachmentTargetId === purchaseId) this.#attachmentTargetId = null;
     });
@@ -1330,7 +1543,16 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     const ref = (this.#pools.gear ?? []).find((entry) => entry.uuid === uuid);
     if (!ref || !isPurchasableShopRef(ref)) return;
     const cost = shopPriceOf(ref);
-    this.#mutate((data) => { data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost }); });
+    this.#mutate((data) => {
+      if (isStackableShopRef(ref)) {
+        const stack = data.purchases.credits.find((purchase) => !purchase.attachTo && purchase.ref?.uuid === uuid && isStackableShopRef(purchase.ref));
+        if (stack) {
+          stack.quantity = purchaseQuantity(stack) + 1;
+          return;
+        }
+      }
+      data.purchases.credits.push({ id: foundry.utils.randomID(16), ref, cost, quantity: 1 });
+    });
   }
 
   static _onAttachmentTarget(event, target) {

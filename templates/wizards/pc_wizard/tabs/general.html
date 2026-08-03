@@ -1,16 +1,58 @@
 <section class="tab {{tab.cssClass}}" data-group="primary" data-tab="general">
-  <div class="general-fields">
-    <label>
-      <span>Character name</span>
-      <input type="text" data-field="characterName" name="characterName" value="{{ data.identity.name }}">
-    </label>
-    <label>
-      <span>Extra XP</span>
-      <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="xp" name="extraXp" value="{{ data.grants.extra.xp }}">
-    </label>
-    <label>
-      <span>Extra credits</span>
-      <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="credits" name="extraCredits" value="{{ data.grants.extra.credits }}">
-    </label>
+  <div class="general-layout">
+    <div class="general-images-column" aria-label="Character image settings">
+      <div class="general-image-field">
+        <div class="general-image-preview" aria-live="polite">
+          {{#if (eq imagePreviews.img.status "valid")}}
+            <img src="{{ imagePreviews.img.url }}" alt="Actor portrait preview" loading="lazy">
+          {{else if (eq imagePreviews.img.status "checking")}}
+            <span class="image-preview-status"><i class="fas fa-spinner fa-spin"></i> Checking</span>
+          {{else if (eq imagePreviews.img.status "error")}}
+            <span class="image-preview-error"><i class="fas fa-triangle-exclamation"></i> Error</span>
+          {{else}}
+            <span><i class="fas fa-user"></i> Actor portrait</span>
+          {{/if}}
+        </div>
+        <label>
+          <span>Actor portrait URL</span>
+          <input type="url" inputmode="url" data-field="imageUrl" data-identity-field="img" name="actorImageUrl" value="{{ data.identity.img }}" placeholder="https://example.com/portrait.webp" pattern="https?://.+">
+        </label>
+      </div>
+      <div class="general-image-field">
+        <div class="general-image-preview is-token" aria-live="polite">
+          {{#if (eq imagePreviews.tokenImg.status "valid")}}
+            <img src="{{ imagePreviews.tokenImg.url }}" alt="Token image preview" loading="lazy">
+          {{else if (eq imagePreviews.tokenImg.status "checking")}}
+            <span class="image-preview-status"><i class="fas fa-spinner fa-spin"></i> Checking</span>
+          {{else if (eq imagePreviews.tokenImg.status "error")}}
+            <span class="image-preview-error"><i class="fas fa-triangle-exclamation"></i> Error</span>
+          {{else}}
+            <span><i class="fas fa-user-circle"></i> Token image</span>
+          {{/if}}
+        </div>
+        <label>
+          <span>Token image URL</span>
+          <input type="url" inputmode="url" data-field="imageUrl" data-identity-field="tokenImg" name="tokenImageUrl" value="{{ data.identity.tokenImg }}" placeholder="https://example.com/token.webp" pattern="https?://.+">
+        </label>
+      </div>
+    </div>
+    <div class="general-fields">
+      <label>
+        <span>Character name</span>
+        <input type="text" data-field="characterName" name="characterName" value="{{ data.identity.name }}">
+      </label>
+      <label>
+        <span>Extra XP</span>
+        <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="xp" name="extraXp" value="{{ data.grants.extra.xp }}">
+      </label>
+      <label>
+        <span>Extra credits</span>
+        <input type="number" min="0" step="1" data-field="extraGrant" data-grant-field="credits" name="extraCredits" value="{{ data.grants.extra.credits }}">
+      </label>
+      <label class="general-checkbox">
+        <input type="checkbox" data-field="removeStartingSkillRankCap" name="removeStartingSkillRankCap" {{#if data.options.removeStartingSkillRankCap}}checked{{/if}}>
+        <span>Allow starting skills above rank 2 (maximum rank 5)</span>
+      </label>
+    </div>
   </div>
 </section>

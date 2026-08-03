@@ -34,7 +34,7 @@
                   {{/each}}
                 </td>
                 {{/if}}
-                <td class="pickable-cost">{{ item.cost }} cr{{#if item.restricted}} <span class="inv-restricted-mark">(R)</span>{{/if}}</td>
+                <td class="pickable-cost">{{#if (gt item.quantity 1)}}{{ item.quantity }} &times; {{ item.cost }} = {{ item.totalCost }} cr{{else}}{{ item.cost }} cr{{/if}}{{#if item.restricted}} <span class="inv-restricted-mark">(R)</span>{{/if}}</td>
                 <td class="pickable-action inv-actions">
                   {{#if item.attachable}}
                     <button type="button" class="inv-icon-btn{{#if item.attachmentsOpen}} is-active{{/if}}" data-action="attachment-target" data-purchase-id="{{item.id}}" data-tooltip="Attachments"><i class="fas fa-wrench"></i></button>

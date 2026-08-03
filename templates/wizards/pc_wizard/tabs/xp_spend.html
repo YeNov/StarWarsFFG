@@ -91,7 +91,7 @@
           <tbody>
             {{#each careerFreeRanks as |skill|}}
               <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
-                <td class="xp-col-name">{{ skill.key }}</td>
+                <td class="xp-col-name">{{ skill.label }}</td>
                 <td class="xp-col-buttons">
                   <button type="button" class="xp-skill-btn" data-action="toggle-career-rank" data-field="{{ skill.key }}"
                           {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
@@ -118,7 +118,7 @@
           <tbody>
             {{#each specFreeRanks as |skill|}}
               <tr class="{{#if skill.picked}}is-picked{{/if}}" data-field="{{ skill.key }}">
-                <td class="xp-col-name">{{ skill.key }}</td>
+                <td class="xp-col-name">{{ skill.label }}</td>
                 <td class="xp-col-buttons">
                   <button type="button" class="xp-skill-btn" data-action="toggle-spec-rank" data-field="{{ skill.key }}"
                           {{#unless skill.canToggle}}disabled{{/unless}}>{{#if skill.picked}}&check;{{else}}&plus;{{/if}}</button>
