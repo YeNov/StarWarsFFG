@@ -67,6 +67,19 @@ export function getLimitedAmmoRank(item) {
 }
 
 /**
+ * Initial magazine value when a weapon gains its first Limited Ammo quality.
+ * Returns null when no initialization is needed. Keeping this transition test
+ * separate from getAmmoValue is important: a tracked weapon at zero may simply
+ * be empty and must not refill during ordinary updates or data preparation.
+ */
+export function getInitialLimitedAmmoValue(item, updatedModifiers) {
+  if (!AMMO_TYPES.has(item?.type) || !isQualityAmmoMode()) return null;
+  if (getLimitedAmmoRank(item) !== null || !Array.isArray(updatedModifiers)) return null;
+
+  return getLimitedAmmoRank({ system: { itemmodifier: updatedModifiers } });
+}
+
+/**
  * Whether ammo is being tracked for this item under the active mode. Returns
  * false for non-weapon types.
  */

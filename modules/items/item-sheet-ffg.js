@@ -1041,7 +1041,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           },
         });
       }
-      if (this.object.type === "weapon" || this.object.type === "shipweapon") {
+      // Quality-driven ammo ignores the per-item enableAmmo flag entirely, so
+      // do not offer a sheet option that cannot affect tracking in that mode.
+      if ((this.object.type === "weapon" || this.object.type === "shipweapon") && !isQualityAmmoMode()) {
         this.sheetoptions.register("enableAmmo", {
           name: game.i18n.localize("SWFFG.SheetOptions2.enableAmmo.Name"),
           hint: game.i18n.localize("SWFFG.SheetOptions2.enableAmmo.Hint"),
