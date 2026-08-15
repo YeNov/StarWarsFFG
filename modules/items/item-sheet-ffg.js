@@ -323,6 +323,10 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     } else {
       data.data.hasLongDesc = false;
     }
+    // The "sources" tab only carries a long description for types that declare
+    // one (talents today) — label it accordingly instead of always promising a
+    // long description. See issue #44.
+    data.data.sourcesTabLabel = data.data.hasLongDesc ? "SWFFG.TabLongDescAndSources" : "SWFFG.TabSources";
 
     data.isTemp = false;
     if (this.object.flags?.starwarsffg?.ffgIsOwned || this.object.flags?.starwarsffg?.ffgIsTemp) {
