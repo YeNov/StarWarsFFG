@@ -4694,3 +4694,70 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   border-radius: 3px;
   vertical-align: middle;
 }
+
+/* -------------------------------------------- */
+/*  Crew Roles settings dialog                  */
+/* -------------------------------------------- */
+/* The content element is the app's form (contentTag). Lay it out as a column so the
+   role list is the only thing that scrolls and the initiative field plus the footer
+   buttons stay reachable no matter how far the window is resized down. */
+.crew-settings-window {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.crew-settings-window #config-tabs {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.crew-settings-window .crew-initiative,
+.crew-settings-window .sheet-footer {
+  flex: 0 0 auto;
+}
+
+.crew-settings-window .crew-initiative {
+  border-top: 1px solid var(--color-border-light-tertiary, #7a7971);
+  padding-top: 8px;
+}
+
+/* The header labels and every role row share one grid, so the handling/weapons icons
+   sit directly above the checkboxes they label. */
+.crew-settings-window .crew-role-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 28px 28px 24px;
+  align-items: center;
+  column-gap: 4px;
+}
+
+.crew-settings-window .crew-role-header label {
+  font-weight: bold;
+  text-align: center;
+}
+
+.crew-settings-window .crew-role-header label:nth-child(1),
+.crew-settings-window .crew-role-header label:nth-child(2) {
+  text-align: left;
+}
+
+.crew-settings-window .crew-role-row + .crew-role-row {
+  margin-top: 4px;
+}
+
+.crew-settings-window .crew-role-row input[type="checkbox"],
+.crew-settings-window .remove_role {
+  justify-self: center;
+  margin: 0;
+}
+
+.crew-settings-window .remove_role {
+  cursor: pointer;
+}
+
+.crew-settings-window .add_row {
+  width: auto;
+  margin-top: 6px;
+}

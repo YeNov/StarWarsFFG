@@ -1,46 +1,32 @@
 <section id="config-tabs" class="content role_selection">
     <div class="settings-list">
         <h2 class="module-header">{{ localize data.system.title }}</h2>
-        <div class="form-group">
-            <div class="form-fields" style="display: flex; flex-direction: column; flex-wrap: wrap;">
-                <div class="flexrow">
-                    <label style="margin-left: 15px; min-width: 135px;">{{ localize 'SWFFG.Crew.Role.Picker.Name'}}</label>
-                    <label style="min-width: 135px;">{{ localize 'SWFFG.Crew.Role.Picker.Skill'}}</label>
-                    <label style="min-width: 20px; margin: 5px;"><i class="fa-solid fa-jet-fighter"></i></label>
-                    <label style="min-width: 20px; margin: 5px;"><i class="fa-solid fa-person-rifle"></i></label>
-                </div>
-                <div class="role_container">
-                    {{#each roles}}
-                    <div class="flexrow crew-role-row" data-index="{{@index}}">
-                        <div class="flex1">
-                            <input type="text" name="role_name" value="{{this.role_name}}" data-dtype="String"/>
-                        </div>
-                        <div class="flex1">
-                            <select name="role_skill">
-                                {{#each this.skillOptions}}
-                                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.value}}</option>
-                                {{/each}}
-                            </select>
-                        </div>
-                        <div class="flex0">
-                            <input title="{{ localize 'SWFFG.Crew.Role.Picker.Handling'}}" type="checkbox" name="use_handling" data-dtype="Boolean" {{checked this.use_handling}}/>
-                        </div>
-                        <div class="flex0">
-                            <input title="{{ localize 'SWFFG.Crew.Role.Picker.Weapons'}}" type="checkbox" name="use_weapons" data-dtype="Boolean" {{checked this.use_weapons}}/>
-                        </div>
-                        <div class="flex0">
-                            <a class="remove_role" data-action="removeRole" data-index="{{@index}}"><i class="fas fa-trash"></i></a>
-                        </div>
-                    </div>
-                    {{/each}}
-                </div>
-            </div>
+        <div class="crew-role-grid crew-role-header">
+            <label>{{ localize 'SWFFG.Crew.Role.Picker.Name'}}</label>
+            <label>{{ localize 'SWFFG.Crew.Role.Picker.Skill'}}</label>
+            <label title="{{ localize 'SWFFG.Crew.Role.Picker.Handling'}}"><i class="fa-solid fa-jet-fighter"></i></label>
+            <label title="{{ localize 'SWFFG.Crew.Role.Picker.Weapons'}}"><i class="fa-solid fa-person-rifle"></i></label>
+            <span></span>
         </div>
+        <div class="role_container">
+            {{#each roles}}
+            <div class="crew-role-grid crew-role-row" data-index="{{@index}}">
+                <input type="text" name="role_name" value="{{this.role_name}}" data-dtype="String"/>
+                <select name="role_skill">
+                    {{#each this.skillOptions}}
+                    <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.value}}</option>
+                    {{/each}}
+                </select>
+                <input title="{{ localize 'SWFFG.Crew.Role.Picker.Handling'}}" type="checkbox" name="use_handling" data-dtype="Boolean" {{checked this.use_handling}}/>
+                <input title="{{ localize 'SWFFG.Crew.Role.Picker.Weapons'}}" type="checkbox" name="use_weapons" data-dtype="Boolean" {{checked this.use_weapons}}/>
+                <a class="remove_role" data-action="removeRole" data-index="{{@index}}"><i class="fas fa-trash"></i></a>
+            </div>
+            {{/each}}
+        </div>
+        <button type="button" class="add_row" data-action="addRole"><i class="fas fa-plus"></i></button>
     </div>
-    <button type="button" class="add_row" data-action="addRole"><i class="fas fa-plus"></i></button>
 </section>
-<hr>
-<section id="config-tabs-initiative" class="content">
+<section id="config-tabs-initiative" class="content crew-initiative">
     <label>{{ localize 'SWFFG.Crew.Roles.Initiative.Name' }} {{ localize 'SWFFG.Crew.Card.Role' }}</label>
     <input type="text" name="initiativeCrewRole" value="{{data.initiativeRole.role_name}}" data-dtype="String"/>
 </section>

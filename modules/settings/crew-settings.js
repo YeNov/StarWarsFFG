@@ -59,9 +59,11 @@ export default class CrewSettings extends FFGFormApplication {
     window: {
       title: "SWFFG.UISettingsLabel",
       resizable: true,
+      contentClasses: ["crew-settings-window"],
     },
     position: {
-      height: 265,
+      width: 480,
+      height: 400,
     },
     form: {
       closeOnSubmit: true,
@@ -79,6 +81,9 @@ export default class CrewSettings extends FFGFormApplication {
       template: "systems/starwarsffg/templates/dialogs/crew-settings.html",
     },
   };
+
+  /** Keep the initiative field and the footer buttons reachable when resized down. */
+  static MIN_DIMENSIONS = { width: 380, height: 260 };
 
   /** The role list being edited, seeded from the setting on first render. */
   _roles = null;
