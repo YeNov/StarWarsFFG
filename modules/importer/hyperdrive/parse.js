@@ -15,6 +15,56 @@ function number(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function skillSelectionValues(value) {
+  if (value == null) return [];
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(skillSelectionValues);
+  if (typeof value !== "object") return [];
+  const direct = value.SkillKey ?? value.skillKey ?? value.Key ?? value.key ?? value.Skill ?? value.skill ?? null;
+  if (direct) return [direct];
+  return Object.values(value).flatMap(skillSelectionValues);
+}
+
+function skillModifierValues(value) {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value.flatMap(skillModifierValues);
+  if (typeof value !== "object") return [];
+  if (value.SkillModifier) return skillModifierValues(value.SkillModifier);
+  const skill = value.SkillKey ?? value.skillKey ?? value.Key ?? value.key ?? null;
+  if (skill) {
+    const count = Math.max(1, number(value.RankStart ?? value.rankStart ?? value.Count ?? value.count, 1));
+    return Array.from({ length: count }, () => skill);
+  }
+  return Object.values(value).flatMap(skillModifierValues);
+}
+
+function selectedOptionSkillModifiers(optionChoices) {
+  const skills = [];
+  for (const choice of array(optionChoices)) {
+    const selected = new Set(skillSelectionValues(choice?.Selected ?? choice?.selected).map(String));
+    const options = array(choice?.Options ?? choice?.options);
+    for (const option of options) {
+      const optionKey = option?.Key ?? option?.key;
+      const picked = selected.has(String(optionKey))
+        || option?.Selected === true
+        || String(option?.Selected ?? option?.selected).toLowerCase() === "true";
+      if (picked) skills.push(...skillModifierValues(option?.SkillModifiers ?? option?.skillModifiers));
+    }
+    if (!options.length) {
+      skills.push(...skillModifierValues(choice?.SkillModifiers ?? choice?.skillModifiers));
+    }
+  }
+  return skills;
+}
+
+function speciesSelectedSkills(speciesRaw) {
+  return [
+    ...array(speciesRaw?.SelectedSkills),
+    ...skillSelectionValues(speciesRaw?.OptionSelectedSkills),
+    ...selectedOptionSkillModifiers(speciesRaw?.OptionChoices),
+  ];
+}
+
 export function hyperdriveImage(value) {
   for (const candidate of [
     value?.imageUrl,
@@ -154,7 +204,7 @@ export function parseHyperdrive(rawInput = {}) {
         woundThreshold: number(speciesRaw.StartingAttrs?.WoundThreshold),
         strainThreshold: number(speciesRaw.StartingAttrs?.StrainThreshold),
       },
-      selectedSkills: array(speciesRaw.SelectedSkills),
+      selectedSkills: speciesSelectedSkills(speciesRaw),
     },
     career: {
       ...clone(raw.Career ?? {}),

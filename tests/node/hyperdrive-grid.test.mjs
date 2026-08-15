@@ -93,6 +93,33 @@ test("canonicalizes Hyperdrive free-rank and career-skill names", () => {
   ]);
 });
 
+test("resolves species option rank grants through the exported skill table", () => {
+  const parsedOptions = parseHyperdrive({
+    Species: {
+      SelectedSkills: [],
+      OptionSelectedSkills: {
+        KLATOC1OP1: ["NEG"],
+      },
+      OptionChoices: [
+        {
+          Key: "KLATOC2",
+          Selected: "KLATOC2OP3",
+          Options: [
+            { Key: "KLATOC2OP1", SkillModifiers: { Key: "BRAWL", RankStart: "1" } },
+            { Key: "KLATOC2OP3", SkillModifiers: { Key: "RANGLT", RankStart: "1" } },
+          ],
+        },
+      ],
+    },
+    Skills: [
+      { Key: "NEG", skill: "Negotiation" },
+      { Key: "RANGLT", skill: "Ranged (Light)" },
+    ],
+  });
+
+  assert.deepEqual(rankGrantsForItems(parsedOptions).species, ["Negotiation", "Ranged: Light"]);
+});
+
 test("collects all exported career and specialization skills for the actor", () => {
   const careerSkills = new Set(careerSkillsForActor(parsed));
   for (const skill of [

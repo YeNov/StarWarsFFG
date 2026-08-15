@@ -94,3 +94,35 @@ test("normalizes earned XP", () => {
   });
   assert.deepEqual(parsed.xp, { source: 0, earned: 50 });
 });
+
+test("collects species rank choices from selected Hyperdrive species options", () => {
+  const parsed = parseHyperdrive({
+    Species: {
+      SelectedSkills: [],
+      OptionSelectedSkills: {
+        KLATOC1OP1: ["NEG"],
+      },
+      OptionChoices: [
+        {
+          Key: "KLATOC1",
+          Name: "Non-Career",
+          Options: {
+            Key: "KLATOC1OP1",
+            Name: "Additional Non-Career Skill",
+          },
+        },
+        {
+          Key: "KLATOC2",
+          Name: "Combat",
+          Selected: "KLATOC2OP3",
+          Options: [
+            { Key: "KLATOC2OP1", SkillModifiers: { Key: "BRAWL", RankStart: "1" } },
+            { Key: "KLATOC2OP3", SkillModifiers: { Key: "RANGLT", RankStart: "1" } },
+          ],
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(parsed.species.selectedSkills, ["NEG", "RANGLT"]);
+});
