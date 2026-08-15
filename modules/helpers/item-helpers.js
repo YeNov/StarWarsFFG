@@ -253,8 +253,15 @@ export default class ItemHelpers {
         for (const attr of Object.keys(modifier.system.attributes)) {
           const matchingEffect = existingEffects.find(effect => effect.name === attr);
           if (matchingEffect) {
-            // the mod should be applied once per rank
-            const newValue = modifier.system.rank_current * modifier.system.attributes[attr].value;
+            // the mod should be applied once per rank. rank_current is derived in
+            // prepareData, so a sync that runs against a not-yet-prepared snapshot
+            // would otherwise multiply undefined and write NaN into the effect.
+            const ranks = Number(modifier.system.rank_current ?? modifier.system.rank);
+            const newValue = ranks * Number(modifier.system.attributes[attr].value);
+            if (!Number.isFinite(newValue)) {
+              CONFIG.logger.warn(`Skipping AE sync for ${attr} on ${item.name}: rank_current=${modifier.system.rank_current}, rank=${modifier.system.rank}, value=${modifier.system.attributes[attr].value}`);
+              continue;
+            }
             CONFIG.logger.debug(`Located ${attr}, updating with new value of ${newValue}`);
             await matchingEffect.update({
               "changes": [{
