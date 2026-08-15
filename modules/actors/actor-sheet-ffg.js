@@ -542,13 +542,17 @@ export class ActorSheetFFG extends FFGActorSheet {
       await this._buyCore(ev)
     });
 
-    html.find(".xp.purchase").click(async (ev) => {
-      const purchaseId = $(ev.currentTarget).children("a").data("id");
-      await this._refundPurchase(purchaseId, "purchase")
-    });
-    html.find(".xp.adjusted").click(async (ev) => {
-      const purchaseId = $(ev.currentTarget).children("a").data("id");
-      await this._refundPurchase(purchaseId, "adjustment")
+    // Bind the refund anchor itself, not the log-entry wrapper: the Codex sheet
+    // renders entries as `.cdx-xp-entry.purchased` / `.cdx-xp-entry.adjusted`, so a
+    // wrapper-based binding never matched there and the button did nothing. Both
+    // templates share the `a.xp.refund` button and mark adjustments with `.adjusted`.
+    html.find("a.xp.refund").click(async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const anchor = $(ev.currentTarget);
+      const purchaseId = anchor.data("id");
+      const mode = anchor.closest(".adjusted").length ? "adjustment" : "purchase";
+      await this._refundPurchase(purchaseId, mode);
     });
 
     if (["nemesis", "rival"].includes(this.actor.type)) {
