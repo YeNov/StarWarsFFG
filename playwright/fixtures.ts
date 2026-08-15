@@ -221,7 +221,9 @@ export class Items {
     this.tabModifiers =  this.sheetLocator.getByTitle('Modifiers', {exact: true});
     this.tabModifications =  this.sheetLocator.getByText('Modifications', {exact: true});
     this.tabConfiguration = this.sheetLocator.getByTitle('Configuration');
-    this.tabLongDesc =  this.sheetLocator.getByTitle('Long Description and Sources', {exact: true});
+    // Types with a long description (talents) label the tab "Long Description
+    // and Sources"; every other type labels it just "Sources".
+    this.tabLongDesc =  this.sheetLocator.getByTitle(/^(Long Description and )?Sources$/);
     if (this.itemType === 'forcepower' || this.itemType === 'signatureability') {
       this.upgradeName = 'upgrade';
     } else {
