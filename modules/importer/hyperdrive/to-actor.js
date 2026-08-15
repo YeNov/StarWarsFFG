@@ -91,11 +91,14 @@ function makeSkillResolver(parsedSkills = [], skillMap = {}) {
   const importIdsByName = new Map((parsedSkills ?? [])
     .map((skill) => [String(skill?.skill ?? "").trim().toLocaleLowerCase(), keyOf(skill)])
     .filter(([name, importId]) => name && importId));
+  const skillNamesByImportId = new Map((parsedSkills ?? [])
+    .map((skill) => [String(keyOf(skill) ?? "").trim().toLocaleLowerCase(), String(skill?.skill ?? "").trim()])
+    .filter(([importId, name]) => importId && name));
   return (value) => {
     const name = String(value?.skill ?? value ?? "").trim();
     const importId = keyOf(value) ?? importIdsByName.get(name.toLocaleLowerCase());
     if (importId && aliases[importId]) return aliases[importId];
-    return canonicalHyperdriveSkill(name, aliases);
+    return canonicalHyperdriveSkill(skillNamesByImportId.get(name.toLocaleLowerCase()) ?? name, aliases);
   };
 }
 
