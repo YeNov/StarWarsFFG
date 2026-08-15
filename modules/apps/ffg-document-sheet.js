@@ -594,6 +594,7 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
   _activateEditors() {
     const root = this.element;
     if (!root) return;
+    this._pruneDetachedEditors();
     for (const content of root.querySelectorAll(".editor-content[data-edit]")) {
       const name = content.dataset.edit;
       if (!name) continue;
@@ -608,9 +609,38 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     }
   }
 
+  /**
+   * Is this editor entry backed by a view that is still IN the document?
+   *
+   * ProseMirror mounts with `{mount: target}`, so `view.dom` IS the sheet's own
+   * `.editor-content` node. A re-render replaces the form's content and detaches
+   * it (menu included), which leaves the entry's `instance.view` truthy but the
+   * editor unreachable: the user can no longer click Save, so `_saveEditor`
+   * never runs and never tears the entry down. Connectedness is therefore the
+   * only honest test of "an editor is open here".
+   */
+  _isEditorLive(state) {
+    const dom = state?.instance?.view?.dom;
+    return !!dom && dom.isConnected;
+  }
+
+  /**
+   * Drop editors orphaned by a re-render. Without this the stale entry makes
+   * `_activateEditor`'s open-guard true forever, so the freshly rendered Edit
+   * pencil silently does nothing for the rest of the sheet's life (the Codex
+   * biography box, whose handlers re-render on ordinary field writes, hit this
+   * routinely). Entries mid-mount (`instance` still null) are left alone —
+   * `_activateEditor` fills those in once `create()` resolves.
+   */
+  _pruneDetachedEditors() {
+    for (const [name, state] of Object.entries(this.editors)) {
+      if (state?.instance && !this._isEditorLive(state)) this._destroyEditor(name);
+    }
+  }
+
   async _activateEditor(name, contentEl, containerEl, buttonEl) {
     // A live editor is already open for this field — nothing to do.
-    if (this.editors[name]?.instance?.view) return;
+    if (this._isEditorLive(this.editors[name])) return;
     // A stale/half-open entry (e.g. a prior save that failed to mount) would
     // otherwise permanently brick the edit button via the guard above. Clear
     // it so this click can mount a fresh editor.
