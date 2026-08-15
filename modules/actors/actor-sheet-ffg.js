@@ -2723,18 +2723,27 @@ export class ActorSheetFFG extends FFGActorSheet {
                 }
               }
               await this.object.createEmbeddedDocuments("Item", [purchasedItem]);
-              const AEState = await ActorHelpers.beginEditMode(this.actor, true);
-              const updatedAvailableXP = this.actor.system.experience.available;
-              // this does not use _spendXp as it's granting items, which AEs cannot reasonably do
+              // This does not use _spendXp as it's granting items, which AEs cannot reasonably do,
+              // so the XP has to be deducted from the stored value directly.
+              //
+              // `system.experience.available` is AE-modified -- every _spendXp purchase carries a
+              // `system.experience.available` ADD change -- so the PREPARED value is the source
+              // minus everything already bought. Writing a prepared number back into the source
+              // would re-apply those deductions. This used to solve that by suspending every
+              // Active Effect on the actor and each of its items, persisting the disable, updating,
+              // then re-enabling them one document at a time: two DB round-trips per effect, with
+              // the character sitting there effect-less in between, which is why buying a talent
+              // made the stats collapse and then crawl back. Reading _source is the same
+              // arithmetic without touching a single effect.
+              const sourceAvailableXP = Number(this.object._source.system.experience.available) || 0;
               await this.object.update({
                 system: {
                   experience: {
-                    available: updatedAvailableXP - cost,
+                    available: sourceAvailableXP - cost,
                   },
                 },
               });
               await xpLogSpend(game.actors.get(this.object.id), `new ${action} ${purchasedItem.name}`, cost, availableXP - cost, totalXP, undefined);
-              await ActorHelpers.endEditMode(this.actor, AEState, true);
             },
           },
           {

@@ -7,7 +7,7 @@ import ImportHelpers from "../importer/import-helpers.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import item from "../helpers/embeddeditem-helpers.js";
 import EmbeddedItemHelpers from "../helpers/embeddeditem-helpers.js";
-import ActorHelpers, {xpLogSpend} from "../helpers/actor-helpers.js";
+import {xpLogSpend} from "../helpers/actor-helpers.js";
 import ItemOptions from "./item-ffg-options.js";
 import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
 import { canPurchaseNode } from "../helpers/talent-tree.js";
@@ -1775,15 +1775,25 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.NotEnoughXP"));
       throw new Error("Not enough XP");
     }
-    const AEState = await ActorHelpers.beginEditMode(owner, true);
-    const availableXP = owner.system.experience.available;
+    // `system.experience.available` is AE-modified (every _spendXp purchase carries a
+    // `system.experience.available` ADD change), so the prepared value above is the source
+    // minus everything already bought and must not be written back into the source.
+    //
+    // This used to be solved by suspending every Active Effect on the actor and its items --
+    // persisted, so two DB round-trips per effect -- reading the now-unmodified value, and
+    // restoring them afterwards. The actor spent that whole window with no effects at all,
+    // which is what made buying a talent wreck the character's stats and then slowly put them
+    // back. Worse, _buyTalent called this BEFORE opening its confirmation dialog, so the stats
+    // stayed wrong for as long as the dialog sat there waiting to be clicked.
+    //
+    // Reading the source directly is the same number with no writes and no window.
+    const availableXP = Number(owner._source.system.experience.available) || 0;
     return {
       owner: owner,
       cost: cost,
       availableXP: availableXP,
       availableXPToLog: availableXPToLog,
       totalXP: totalXP,
-      AEState: AEState,
     }
   }
 
@@ -1792,29 +1802,21 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     let cost;
     let availableXP;
     let totalXP;
-    let AEState;
     try {
       const basic_data = await this._buyHandleClick(li, "specialization");
       owner = basic_data.owner;
       cost = basic_data.cost;
       availableXP = basic_data.availableXP;
       totalXP = basic_data.totalXP;
-      AEState = basic_data.AEState;
     } catch (e) {
       return;
     }
     const baseName = $(li).data("base-item-name");
     const talent = $(".talent-name", li).data("name");
-    // _buyHandleClick already entered Edit Mode (persisted disabled=true on every AE on the actor).
-    // Both dialog outcomes (done / cancel / dismiss) MUST run endEditMode, otherwise the actor's
-    // Active Effects stay disabled in the database -- which silently drops characteristic bonuses
-    // from species, talents, gear and tanks Brawn-derived stats (wounds, soak, encumbrance).
-    let editModeExited = false;
-    const safeEndEditMode = async () => {
-      if (editModeExited) return;
-      editModeExited = true;
-      await ActorHelpers.endEditMode(owner, AEState, true);
-    };
+    // No Edit Mode window to open or close here any more: the XP figure comes from the
+    // actor's source data, so the actor's Active Effects are never touched. That also
+    // removes the hazard the old teardown existed to manage -- an abandoned dialog could
+    // leave every AE disabled in the database.
     DialogV2.wait({
       window: { title: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.Talent.ConfirmTitle") },
       classes: ["dialog", "starwarsffg"],
@@ -1826,30 +1828,24 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.ConfirmPurchase"),
           default: true,
           callback: async () => {
-            try {
-              // update the form because the fields are read when an update is performed
-              const talentId = $(li).attr("id");
-              const input = $(`[name="data.talents.${talentId}.islearned"]`, this.element)[0];
-              input.checked = true;
-              // ApplicationV2's submit() throws in this compat layer (the
-              // form handler is intentionally nulled); persist via the
-              // manual pipeline instead, rendering to reflect the purchase.
-              await this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
-              owner.update({system: {experience: {available: availableXP - cost}}});
-              await xpLogSpend(owner, `specialization ${baseName} talent ${talent}`, cost, availableXP - cost, totalXP);
-            } finally {
-              await safeEndEditMode();
-            }
+            // update the form because the fields are read when an update is performed
+            const talentId = $(li).attr("id");
+            const input = $(`[name="data.talents.${talentId}.islearned"]`, this.element)[0];
+            input.checked = true;
+            // ApplicationV2's submit() throws in this compat layer (the
+            // form handler is intentionally nulled); persist via the
+            // manual pipeline instead, rendering to reflect the purchase.
+            await this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
+            owner.update({system: {experience: {available: availableXP - cost}}});
+            await xpLogSpend(owner, `specialization ${baseName} talent ${talent}`, cost, availableXP - cost, totalXP);
           },
         },
         {
           action: "cancel",
           icon: "fas fa-cancel",
           label: game.i18n.localize("SWFFG.Actors.Sheets.Purchase.CancelPurchase"),
-          callback: safeEndEditMode,
         },
       ],
-      close: safeEndEditMode,
       rejectClose: false,
     });
   }
@@ -1870,13 +1866,14 @@ export class ItemSheetFFG extends FFGDocumentSheet {
   /**
    * Shared purchase flow for a talent-tree node: specialization talent, force
    * power upgrade, or signature ability upgrade. All three trees enforce the
-   * connected-to-root rule, confirm via a dialog, spend + log XP inside the
-   * Edit Mode window, then -- crucially -- learn the node and enable its Active
-   * Effect AFTER endEditMode. endEditMode reverts every AE on the actor and its
-   * items to the pre-purchase snapshot (this node's AE = disabled, since it
-   * wasn't learned yet); persisting islearned and syncing the AE afterwards,
-   * with awaited document updates instead of a fire-and-forget form submit,
-   * guarantees the node sticks AND its modifier (e.g. Grit's +1 strain) applies.
+   * connected-to-root rule, confirm via a dialog, deduct + log XP, then learn the
+   * node and sync its Active Effect with awaited document updates (rather than a
+   * fire-and-forget form submit) so the node sticks AND its modifier -- Grit's +1
+   * strain, say -- applies.
+   *
+   * The XP deduction reads the actor's SOURCE available XP, so no Active Effect is
+   * suspended anywhere in this flow (see _buyHandleClick for why that used to happen
+   * and what it cost).
    *
    * @param {Event} event              The buy-button click event.
    * @param {object} config
@@ -1929,12 +1926,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
               } catch {
                 return;
               }
-              const {owner, availableXP, totalXP, AEState, availableXPToLog} = basic_data;
-              // Edit Mode is now active and persisted (every AE disabled in DB).
-              // Wrap the XP steps in try/finally so a thrown await never leaks the
-              // actor in a permanently-disabled state -- a leak there drops every
-              // characteristic bonus and collapses Brawn-derived stats (wounds,
-              // soak, encumbrance) on the actor sheet.
+              const {owner, availableXP, totalXP, availableXPToLog} = basic_data;
+              // availableXP is the actor's SOURCE value, so deducting from it here is
+              // safe without suspending any Active Effect (see _buyHandleClick).
               let xpDeducted = false;
               try {
                 // Deduct the XP first and AWAIT it: this is the only step that
@@ -1955,12 +1949,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
               } catch (e) {
                 CONFIG.logger.warn(`Failed to deduct XP for ${owner.name}; aborting purchase`, e);
                 ui.notifications.error(game.i18n.localize("SWFFG.Actors.Sheets.Purchase.Failed"));
-              } finally {
-                await ActorHelpers.endEditMode(owner, AEState, true);
               }
               // Only learn the node if the XP actually came out of the actor.
               if (!xpDeducted) return;
-              // Learn the node and enable its AE AFTER endEditMode (see method doc).
               await this.object.update({[`system.${config.treeProp}.${upgradeId}.islearned`]: true});
               await ItemHelpers.syncAEStatus(this.object, this.object.getEmbeddedCollection("ActiveEffect"));
               this.render(true);
