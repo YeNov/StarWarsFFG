@@ -123,6 +123,31 @@ function registerActorItemValidationHooks() {
   });
 }
 
+/**
+ * A document duplicated in the UI is a new document, not the OggDude entity the
+ * original was imported from. If the copy inherits `flags.starwarsffg.ffgimportid`
+ * it claims an identity that is not its own, and anything matching on that id
+ * treats the two as one: dropping a quality onto a weapon bumps the clone's rank
+ * instead of adding the intended quality, and a re-import can update the wrong
+ * document.
+ *
+ * Foundry stamps `_stats.duplicateSource` on UI duplicates (Document#clone with
+ * `addSource`) and `_stats.compendiumSource` on compendium imports, so only the
+ * former is cleared here — dragging an item out of a compendium still keeps its
+ * import id. Callers that match on the id already fall back to the name.
+ */
+function registerDuplicateIdentityHooks() {
+  const dropInheritedImportId = (doc, data) => {
+    if (!data?._stats?.duplicateSource) return;
+    if (!foundry.utils.getProperty(data, "flags.starwarsffg.ffgimportid")) return;
+    CONFIG.logger.debug(`Duplicate of ${data._stats.duplicateSource}: dropping inherited ffgimportid`);
+    doc.updateSource({ "flags.starwarsffg.-=ffgimportid": null });
+  };
+
+  Hooks.on("preCreateItem", dropInheritedImportId);
+  Hooks.on("preCreateActor", dropInheritedImportId);
+}
+
 Hooks.on("setup", function (){
   // add dice symbol rendering to the text editor for journal pages
   register_roll_tag_enricher();
@@ -203,6 +228,7 @@ Hooks.once("init", async function () {
   CONFIG.module = "Starwars FFG";
   CONFIG.logger = Helpers.logger;
   registerActorItemValidationHooks();
+  registerDuplicateIdentityHooks();
 
   // Define custom Entity classes. This will override the default Actor
   // to instead use our extended version.
