@@ -62,6 +62,15 @@ test("equipping reconciles without triggering a re-entrant item write", () => {
   );
 });
 
+test("quality summaries do not leak aggregate rank_current into their source modifiers", () => {
+  // adjusteditemmodifier is presentation data. If it shares `system` with a direct or nested
+  // modifier, incrementing the summarized rank changes the source that the AE planner reads.
+  assert.doesNotMatch(itemFfg, /modifier\.system\.rank_current\s*=/);
+  assert.doesNotMatch(itemFfg, /am\.system\.rank_current\s*=/);
+  assert.match(itemFfg, /system:\s*\{\s*\.\.\.modifier\.system,\s*rank_current:/);
+  assert.match(itemFfg, /system:\s*\{\s*\.\.\.am\.system,\s*rank_current:/);
+});
+
 test("no effect-building site pushes a key it has not checked", () => {
   // `key: ModifierHelpers.getModKeyPath(...)` inline in a change literal is the shape that
   // persisted keyless changes -- getModKeyPath returns undefined for an unrecognised mod

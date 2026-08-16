@@ -62,14 +62,54 @@ test("the effect value scales with the quality's rank", () => {
   assert.equal(byName(plan, "attr1700000000001").changes[0].value, "2");
 });
 
-test("rank_current wins over rank when it has been prepared", () => {
+test("derived rank_current never replaces the source quality's own rank", () => {
   const plan = ItemHelpers.planModifierEffects(weapon({
     itemmodifier: [quality("Defensive Quality", {
       attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
     }, { rank: 2, rank_current: 3 })],
   }));
 
-  assert.equal(byName(plan, "attr1700000000001").changes[0].value, "3");
+  assert.equal(byName(plan, "attr1700000000001").changes[0].value, "2");
+});
+
+test("a same-named attachment quality is not counted in both rank_current and its own effect", () => {
+  // Live repro: prepareData summarizes the direct and Reflex Grip qualities as rank_current 2.
+  // The planner also walks the attachment itself, so using that summary for the direct source
+  // would turn two real ranks into three Active Effect ranks.
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    itemmodifier: [
+      quality("Defensive Quality", {
+        attr1750856619648: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+      }, { rank: 1, rank_current: 2 }),
+      quality("Deflection Quality", {
+        attr1783702766974: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+      }, { rank: 1, rank_current: 2 }),
+    ],
+    itemattachment: [{
+      name: "Reflex Grip",
+      system: {
+        attributes: {},
+        itemmodifier: [
+          quality("Defensive Quality", {
+            attr1784307106492: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+          }, { rank: 1, active: true }),
+          quality("Deflection Quality", {
+            attr1786133420626: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+          }, { rank: 1, active: true }),
+        ],
+      },
+    }],
+  }));
+
+  const defenceChanges = plan.desired.flatMap((effect) => effect.changes)
+    .filter((change) => change.key.includes("system.stats.defence"));
+  const total = (key) => defenceChanges
+    .filter((change) => change.key === key)
+    .reduce((sum, change) => sum + Number(change.value), 0);
+
+  assert.equal(total("system.stats.defence.melee"), 2);
+  assert.equal(total("system.stats.defence.ranged"), 2);
+  assert.ok(defenceChanges.every((change) => change.value === "1"));
 });
 
 // --- the NaN that killed Lucan's Lightsaber Pike -------------------------------------

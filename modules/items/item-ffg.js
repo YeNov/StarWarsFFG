@@ -408,10 +408,13 @@ export class ItemFFG extends ItemBaseFFG {
 
         if (data?.itemmodifier) {
           data.itemmodifier.forEach((modifier) => {
-            if (modifier?.system) {
-              modifier.system.rank_current = modifier.system.rank;
-            }
-            data.adjusteditemmodifier.push({ ...modifier });
+            // adjusteditemmodifier is a derived summary for display. Keep its nested system
+            // independent so aggregating attachment ranks cannot mutate the source modifier
+            // that Active Effect reconciliation reads.
+            data.adjusteditemmodifier.push({
+              ...modifier,
+              system: { ...modifier.system, rank_current: modifier.system?.rank },
+            });
             data.damage.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "damage", "Weapon Stat");
             data.crit.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "critical", "Weapon Stat");
             data.encumbrance.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "encumbrance", "Weapon Stat");
@@ -457,12 +460,11 @@ export class ItemFFG extends ItemBaseFFG {
                     foundItem.system.rank_current = parseInt(foundItem.system.rank_current, 10) + 1;
                   }
                 } else {
-                  if (am.system?.rank) {
-                    am.system.rank_current = 1;
-                  } else {
-                    am.system.rank_current = null;
-                  }
-                  data.adjusteditemmodifier.push({...am, adjusted: true});
+                  data.adjusteditemmodifier.push({
+                    ...am,
+                    system: { ...am.system, rank_current: am.system?.rank ? 1 : null },
+                    adjusted: true,
+                  });
                 }
               });
             }
@@ -513,10 +515,12 @@ export class ItemFFG extends ItemBaseFFG {
 
         if (data?.itemmodifier) {
           data.itemmodifier.forEach((modifier) => {
-            if (modifier?.system) {
-              modifier.system.rank_current = modifier.system.rank;
-            }
-            data.adjusteditemmodifier.push({ ...modifier });
+            // See the weapon branch above: the summarized copy must not share its system
+            // object with the source quality.
+            data.adjusteditemmodifier.push({
+              ...modifier,
+              system: { ...modifier.system, rank_current: modifier.system?.rank },
+            });
             data.soak.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "soak", "Armor Stat");
             data.defence.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "defence", "Armor Stat");
             data.encumbrance.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "encumbrance", "Armor Stat");
@@ -548,12 +552,11 @@ export class ItemFFG extends ItemBaseFFG {
                     foundItem.system.rank_current = parseInt(foundItem.system.rank_current, 10) + 1;
                   }
                 } else {
-                  if (am.system?.rank) {
-                    am.system.rank_current = 1;
-                  } else {
-                    am.system.rank_current = null;
-                  }
-                  data.adjusteditemmodifier.push({...am, adjusted: true});
+                  data.adjusteditemmodifier.push({
+                    ...am,
+                    system: { ...am.system, rank_current: am.system?.rank ? 1 : null },
+                    adjusted: true,
+                  });
                 }
               });
             }

@@ -327,13 +327,14 @@ export default class ItemHelpers {
       }
     };
 
-    // A quality applies once per rank. `rank_current` is derived in prepareData; a plan built
-    // against a not-yet-prepared snapshot must fall back rather than multiply by undefined.
+    // A quality applies once per source rank. `rank_current` is presentation-only: prepareData
+    // aggregates same-named direct and attachment qualities into it for the summarized UI. The
+    // planner walks those sources separately, so using the aggregate here counts attachments
+    // once in `rank_current` and again when their own attributes are visited below.
     const ranksOf = (modifier, source) => {
-      const raw = [modifier?.system?.rank_current, modifier?.system?.rank]
-        .find((candidate) => candidate !== undefined && candidate !== null && candidate !== "");
+      const raw = modifier?.system?.rank;
       const ranks = Number(raw);
-      if (!Number.isFinite(ranks)) {
+      if (raw === undefined || raw === null || raw === "" || !Number.isFinite(ranks)) {
         warnings.push({ code: "bad-rank", name: modifier?.name ?? "", source, detail: String(raw) });
         return 1;
       }
@@ -660,13 +661,15 @@ export default class ItemHelpers {
         for (const attr of Object.keys(modifier.system.attributes)) {
           const matchingEffect = existingEffects.find(effect => effect.name === attr);
           if (matchingEffect) {
-            // the mod should be applied once per rank. rank_current is derived in
-            // prepareData, so a sync that runs against a not-yet-prepared snapshot
-            // would otherwise multiply undefined and write NaN into the effect.
-            const ranks = Number(modifier.system.rank_current ?? modifier.system.rank);
+            // Sync this source's own rank only. rank_current is the summarized rank across
+            // same-named direct and attachment qualities; attachments have their own effects.
+            const rawRank = modifier.system.rank;
+            const ranks = (rawRank === undefined || rawRank === null || rawRank === "")
+              ? 1
+              : Number(rawRank);
             const newValue = ranks * Number(modifier.system.attributes[attr].value);
             if (!Number.isFinite(newValue)) {
-              CONFIG.logger.warn(`Skipping AE sync for ${attr} on ${item.name}: rank_current=${modifier.system.rank_current}, rank=${modifier.system.rank}, value=${modifier.system.attributes[attr].value}`);
+              CONFIG.logger.warn(`Skipping AE sync for ${attr} on ${item.name}: rank=${modifier.system.rank}, value=${modifier.system.attributes[attr].value}`);
               continue;
             }
             CONFIG.logger.debug(`Located ${attr}, updating with new value of ${newValue}`);
