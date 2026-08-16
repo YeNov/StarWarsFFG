@@ -17,6 +17,7 @@ import CombatantFFG, {
 } from "./combat-ffg.js";
 import { ActiveEffectFFG} from "./active-effects/active-effect-ffg.js";
 import { ItemFFG } from "./items/item-ffg.js";
+import ItemHelpers from "./helpers/item-helpers.js";
 import { ItemSheetFFG } from "./items/item-sheet-ffg.js";
 import { ItemSheetFFGV2 } from "./items/item-sheet-ffg-v2.js";
 import { CodexItemSheet } from "./items/codex-item-sheet.js";
@@ -1625,6 +1626,16 @@ function isCurrentVersionNullOrBlank(currentVersion) {
 // Handle migration duties
 Hooks.once("ready", async () => {
   SettingsHelpers.readyLevelSetting();
+
+  // GM-callable maintenance entry points. `repairModifierEffects` rebuilds every weapon /
+  // armour / attachment's quality Active Effects from the qualities actually on it, which
+  // repairs items corrupted before the reconciler existed -- effects left with a `NaN`
+  // value, with no key at all, or orphaned by a quality that was since removed. Preview with
+  // `await game.starwarsffg.repairModifierEffects({dryRun: true})`, then run it for real.
+  game.starwarsffg = Object.assign(game.starwarsffg ?? {}, {
+    repairModifierEffects: (options) => ItemHelpers.repairModifierEffects(options),
+    reconcileModifierEffects: (item, options) => ItemHelpers.reconcileModifierEffects(item, options),
+  });
 
   // Self-heal a stale `defaultSheetTheme` client value. The setting originally
   // offered a bare "codex" option; the scheme-fold replaced it with per-scheme

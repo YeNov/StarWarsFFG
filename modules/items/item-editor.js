@@ -724,6 +724,9 @@ export class itemEditor extends FFGFormApplication {
         }
       }
       await this.data.sourceObject.update({system: {itemattachment: updateData}});
+      // same reconcile as the itemmodifier branch below: the per-attribute patching above
+      // cannot repair an effect that is already wrong, and matches by bare attribute key
+      await ItemHelpers.reconcileModifierEffects(this.data.sourceObject);
     }
 
     // if it's a mod, locate the mod to update
@@ -758,49 +761,13 @@ export class itemEditor extends FFGFormApplication {
         }
       }
 
-      // iterate over the submitted data to find new/updated entries
-      for (const modKey of Object.keys(formData.system.attributes)) {
-        if (modKey.startsWith("-=")) {
-          continue;
-        }
-
-        const match = existingActiveEffects.find(i => i.name === modKey);
-        const explodedMods = ModifierHelpers.explodeMod(
-          formData.system.attributes[modKey].modtype,
-          formData.system.attributes[modKey].mod
-        );
-
-        const changes = [];
-        for (const curMod of explodedMods) {
-          const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
-          if (!key) continue;
-          changes.push({
-            key,
-            mode: AE_MODES.ADD,
-            value: formData.system.attributes[modKey].value,
-          });
-        }
-        if (!changes.length) continue;
-
-        if (match) {
-          // existing entry
-          CONFIG.logger.debug(`>>>> Staged AE changes for update: ${JSON.stringify(changes)}`);
-          await match.update({
-            changes: changes,
-            disabled: !equipped,
-          });
-        } else {
-          // new entry
-          const effect = {
-            name: modKey,
-            changes: changes,
-            disabled: !equipped,
-          };
-          CONFIG.logger.debug(`>>>> Staged AE for creation: ${JSON.stringify(effect)}`);
-          await this.data.sourceObject.createEmbeddedDocuments("ActiveEffect", [effect]);
-        }
-      }
       await this.data.sourceObject.update({system: {itemmodifier: updateData}});
+      // Rebuild the parent's effects from all of its qualities rather than patching the one
+      // being edited. Matching by bare attribute key here meant that editing a quality which
+      // shared a key with another (the YN pack ships Deflective duplicated from Defensive,
+      // key and all) rewrote the OTHER quality's effect -- which looked like a fix, because
+      // the defence appeared, while silently taking away the one it overwrote.
+      await ItemHelpers.reconcileModifierEffects(this.data.sourceObject);
     }
     // needed to re-render the mod form (as the input can change types based on the selected modType)
     this.render(true)
@@ -963,8 +930,13 @@ export class talentEditor extends itemEditor {
 
         const changes = [];
         for (const curMod of explodedMods) {
+          const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+          // getModKeyPath returns undefined for a mod it does not recognise; pushing that
+          // persists a change with no key, which applies to nothing and is invisible on the
+          // sheet -- it just looks like the modifier silently does not work
+          if (!key) continue;
           changes.push({
-            key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
+            key,
             mode: AE_MODES.ADD,
             value: formData.attributes[modKey].value,
           });
@@ -1169,8 +1141,13 @@ export class forcePowerEditor extends itemEditor {
 
         const changes = [];
         for (const curMod of explodedMods) {
+          const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+          // getModKeyPath returns undefined for a mod it does not recognise; pushing that
+          // persists a change with no key, which applies to nothing and is invisible on the
+          // sheet -- it just looks like the modifier silently does not work
+          if (!key) continue;
           changes.push({
-            key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
+            key,
             mode: AE_MODES.ADD,
             value: formData.attributes[modKey].value,
           });

@@ -1530,7 +1530,12 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       let formData = {};
       foundry.utils.setProperty(formData, `data.${itemType}`, items);
 
-      this.object.update(formData);
+      // awaited so the reconcile below sees the removal. The explicit delete above only
+      // finds the FIRST effect matching each attribute key, so a key shared by two qualities
+      // leaves the other behind; reconciling against the remaining qualities sweeps up
+      // whatever no longer has a source.
+      await this.object.update(formData);
+      await ItemHelpers.reconcileModifierEffects(this.object);
     });
 
     html.find(".item-pill .rank").on("click", (event) => {
@@ -2536,9 +2541,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
 
     itemObject.id = foundry.utils.randomID(); // why do we do this?!
 
-    // for a rank-only update, we simply update the rank of an existing attr, not transfer AEs
-    let rankOnlyUpdate = false;
-
     if ((itemObject.type === "itemattachment" || itemObject.type === "itemmodifier") && ((obj.type === "shipweapon" && itemObject.system.type === "weapon") || obj.type === itemObject.system.type || itemObject.system.type === "all" || obj.type === "itemattachment")) {
       let items = obj?.system[itemObject.type];
       if (!items) {
@@ -2556,7 +2558,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           }
 
           if (foundItem && this.object.type !== "itemattachment") {
-            rankOnlyUpdate = true;
+            // dropping a quality the item already has stacks its rank instead of duplicating it
             foundItem.system.rank = (parseInt(foundItem.system.rank) + parseInt(itemObject.system.rank)).toString();
           } else {
             items.push(itemObject);
@@ -2582,11 +2584,13 @@ export class ItemSheetFFG extends FFGDocumentSheet {
 
       await obj.update(formData);
       // TODO: this happens even if there isn't enough HP (meaning the item gets rejected)
-      if (rankOnlyUpdate) {
-        await ItemHelpers.syncAEStatus(this.object, this.object.effects);
-      } else {
-        await this._transferActiveEffects(itemObject);
-      }
+      // Rebuild the item's effects from the qualities it now carries rather than copying the
+      // dropped item's own effects across. Copying could only ever work when the source
+      // quality happened to carry effects (imported ones do not), and it left the rank-only
+      // branch unable to create a missing effect at all -- `syncAEStatus` updates existing
+      // effects and never creates. Reconciling covers both branches and, unlike a bare copy,
+      // gives colliding attribute keys distinct effects instead of one overwriting the other.
+      await ItemHelpers.reconcileModifierEffects(obj);
     }
   }
 

@@ -36,8 +36,9 @@ const ALLOWED_SHAPE = {
   "foundry.utils": [
     "randomID", "deepClone", "mergeObject", "duplicate", "getProperty", "setProperty", "isEmpty",
   ],
-  CONFIG: ["FFG"],
+  CONFIG: ["FFG", "logger"],
   "CONFIG.FFG": ["characterCreator"],
+  "CONFIG.logger": ["debug", "warn", "error", "log"],
   CONST: ["DOCUMENT_OWNERSHIP_LEVELS"],
   game: ["user", "users", "settings", "i18n"],
   "game.users": ["activeGM"],

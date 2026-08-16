@@ -196,6 +196,413 @@ export default class ItemHelpers {
   }
 
   /**
+   * Item types whose Active Effects are wholly derived from their attributes / qualities,
+   * and which `reconcileModifierEffects` is therefore allowed to rebuild.
+   */
+  static get RECONCILABLE_TYPES() {
+    return ["weapon", "armour", "shipweapon", "itemattachment"];
+  }
+
+  /**
+   * True for Active Effect names this system generates for attribute-derived modifiers.
+   *
+   * Attribute keys are minted as `attr<timestamp>` (see `uniqueAttrs`), and the reconciler
+   * appends `_<n>` when two qualities collide on one key. Anything else -- `(inherent)`,
+   * the `Brawn`-style inherent species keys, or an effect the user added by hand through
+   * Foundry's own Active Effect config -- is off limits: the reconciler must never delete
+   * an effect it did not create.
+   *
+   * @param {string} name
+   * @returns {boolean}
+   */
+  static isSystemEffectName(name) {
+    return /^attr\d+(?:_\d+)?$/.test(String(name ?? ""));
+  }
+
+  /**
+   * Compute the complete set of Active Effects an item *should* have, derived from its own
+   * attributes plus every quality on it (directly, or through an attachment).
+   *
+   * This is the single source of truth the incremental patch-in-six-places approach never
+   * had. It is deliberately pure -- plain data in, a plan out, no document access -- both so
+   * it can be unit tested and so a caller can diff before writing.
+   *
+   * Guarantees, each of which corresponds to a way live worlds got corrupted:
+   *   - a change is only emitted when `getModKeyPath` yields a real key (no keyless changes)
+   *   - a value is only emitted when it is finite (no `NaN` poisoning the actor's stat)
+   *   - two qualities sharing one attribute key get distinct effects, and the collision is
+   *     reported in `renames` so the caller can settle it on the item data
+   *
+   * @param {object} itemData - an ItemFFG or equivalent plain data `{type, system}`
+   * @returns {{
+   *   desired: Array<{name: string, changes: Array<object>, disabled: boolean}>,
+   *   ownedNames: Set<string>,
+   *   renames: Array<{path: Array<string|number>, from: string, to: string}>,
+   *   warnings: Array<{code: string, name: string, source: string, detail: string}>
+   * }}
+   */
+  static planModifierEffects(itemData) {
+    const system = itemData?.system ?? {};
+    const equippable = system.equippable;
+    // a non-equippable item (an attachment, a bare world weapon template) is never suspended
+    const baseDisabled = equippable ? !equippable.equipped : false;
+
+    const desired = [];
+    const ownedNames = new Set();
+    const renames = [];
+    const warnings = [];
+    const claimed = new Set();
+
+    // The first claimant of an attribute key keeps it, so effects already named after that
+    // key stay matched; later claimants are suffixed deterministically. Determinism matters:
+    // reconciliation runs repeatedly and must converge rather than churn new names each pass.
+    const claim = (key, path) => {
+      if (!claimed.has(key)) {
+        claimed.add(key);
+        return key;
+      }
+      let suffix = 2;
+      while (claimed.has(`${key}_${suffix}`)) suffix += 1;
+      const renamed = `${key}_${suffix}`;
+      claimed.add(renamed);
+      renames.push({ path, from: key, to: renamed });
+      return renamed;
+    };
+
+    const addAttributes = (attributes, { ranks, path, disabled, source }) => {
+      for (const rawKey of Object.keys(attributes ?? {})) {
+        // `-=key` deletion markers are update syntax, not attributes
+        if (rawKey.startsWith("-=")) continue;
+        const attr = attributes[rawKey];
+        if (!attr || typeof attr !== "object") continue;
+
+        const name = claim(rawKey, path);
+        // claimed before validation: an attribute the item genuinely carries is "owned" even
+        // when it yields no Active Effect, which is what keeps it from looking like an orphan
+        ownedNames.add(name);
+
+        // Only `attr<n>` keys are ours to manage. Inherent keys (`Brawn`, `Soak`, and the
+        // hand-authored names an imported item can carry) are owned by the `(inherent)`
+        // effect and by applyActiveEffectOnUpdate, which likewise only creates effects for
+        // `attr`-prefixed keys. Planning them here would mint a duplicate grant.
+        if (!ItemHelpers.isSystemEffectName(name)) continue;
+
+        if (attr.modtype === undefined || attr.mod === undefined) {
+          warnings.push({ code: "incomplete-attribute", name, source, detail: "" });
+          continue;
+        }
+
+        // Checkbox / boolean grants (career skills, flags) are switches, not amounts -- a
+        // rank-3 quality does not grant a career skill three times.
+        let value;
+        if (typeof attr.value === "boolean" || attr.isCheckbox === true) {
+          value = String(attr.value);
+        } else {
+          const numeric = Number(attr.value);
+          if (!Number.isFinite(numeric)) {
+            warnings.push({ code: "bad-value", name, source, detail: String(attr.value) });
+            continue;
+          }
+          value = String(numeric * ranks);
+        }
+
+        const changes = [];
+        for (const curMod of ModifierHelpers.explodeMod(attr.modtype, attr.mod)) {
+          const key = ModifierHelpers.getModKeyPath(curMod["modType"], curMod["mod"]);
+          if (!key) {
+            // NOT necessarily an error. Plenty of legitimate modifier types have no actor
+            // stat to target and are applied by other subsystems entirely -- `Weapon Stat`
+            // damage/crit through ItemFFG.prepareData, and the Roll/Result modifiers (boost,
+            // setback, advantage) through the dice pool builder. Recording rather than
+            // emitting keeps a keyless change out of the database; the *effect* such an
+            // attribute may already own is deliberately left alone by the reconciler.
+            warnings.push({ code: "no-key", name, source, detail: `${curMod["modType"]}/${curMod["mod"]}` });
+            continue;
+          }
+          changes.push({ key, mode: AE_MODES.ADD, value });
+        }
+        if (!changes.length) continue;
+
+        desired.push({ name, changes, disabled });
+      }
+    };
+
+    // A quality applies once per rank. `rank_current` is derived in prepareData; a plan built
+    // against a not-yet-prepared snapshot must fall back rather than multiply by undefined.
+    const ranksOf = (modifier, source) => {
+      const raw = [modifier?.system?.rank_current, modifier?.system?.rank]
+        .find((candidate) => candidate !== undefined && candidate !== null && candidate !== "");
+      const ranks = Number(raw);
+      if (!Number.isFinite(ranks)) {
+        warnings.push({ code: "bad-rank", name: modifier?.name ?? "", source, detail: String(raw) });
+        return 1;
+      }
+      return ranks;
+    };
+
+    // 1. the item's own attributes -- these claim their keys first
+    addAttributes(system.attributes, {
+      ranks: 1,
+      path: ["attributes"],
+      disabled: baseDisabled,
+      source: itemData?.name ?? "",
+    });
+
+    // 2. qualities applied directly to the item
+    const modifiers = Array.isArray(system.itemmodifier) ? system.itemmodifier : [];
+    modifiers.forEach((modifier, index) => {
+      addAttributes(modifier?.system?.attributes, {
+        ranks: ranksOf(modifier, modifier?.name ?? ""),
+        path: ["itemmodifier", index],
+        disabled: baseDisabled,
+        source: modifier?.name ?? "",
+      });
+    });
+
+    // 3. attachments, and the qualities installed into them
+    const attachments = Array.isArray(system.itemattachment) ? system.itemattachment : [];
+    attachments.forEach((attachment, attachmentIndex) => {
+      addAttributes(attachment?.system?.attributes, {
+        ranks: 1,
+        path: ["itemattachment", attachmentIndex],
+        disabled: baseDisabled,
+        source: attachment?.name ?? "",
+      });
+
+      const installed = Array.isArray(attachment?.system?.itemmodifier) ? attachment.system.itemmodifier : [];
+      installed.forEach((modification, index) => {
+        addAttributes(modification?.system?.attributes, {
+          ranks: ranksOf(modification, modification?.name ?? ""),
+          path: ["itemattachment", attachmentIndex, "itemmodifier", index],
+          // a modification sitting in an attachment but not installed grants nothing, even
+          // when the parent item is equipped (mirrors shouldUpdateAEStatus)
+          disabled: baseDisabled || modification?.system?.active === false,
+          source: modification?.name ?? "",
+        });
+      });
+    });
+
+    return { desired, ownedNames, renames, warnings };
+  }
+
+  /**
+   * True when an existing Active Effect already matches what the plan wants, so reconciliation
+   * can skip writing it. Values are compared as strings because Foundry stores them that way.
+   * @param effect - the existing ActiveEffect document
+   * @param planned - the corresponding entry from `planModifierEffects().desired`
+   * @returns {boolean}
+   */
+  static effectMatchesPlan(effect, planned) {
+    if (!!effect.disabled !== !!planned.disabled) return false;
+    const current = effect.changes ?? [];
+    if (current.length !== planned.changes.length) return false;
+    return planned.changes.every((want, index) => {
+      const have = current[index];
+      return have
+        && have.key === want.key
+        && Number(have.mode) === Number(want.mode)
+        && String(have.value) === String(want.value);
+    });
+  }
+
+  /**
+   * Render an effect's payload as short readable strings, so a reconcile report can show what
+   * it is about to change rather than only that it changed. A rewrite that turns out to be a
+   * no-op in play still deserves to be visible when a GM is reviewing a bulk repair.
+   * @param changes - an effect's `changes` array
+   * @param disabled
+   * @returns {{disabled: boolean, changes: string[]}}
+   */
+  static describeEffect(changes, disabled) {
+    return {
+      disabled: !!disabled,
+      changes: (changes ?? []).map(
+        (change) => `${change.key || "(no key)"}=${change.value} (mode ${change.mode})`,
+      ),
+    };
+  }
+
+  /**
+   * Turn the collision renames from a plan into a single item update.
+   * Built from `_source` where available so reconciliation never persists derived fields.
+   * @param item
+   * @param renames - `planModifierEffects().renames`
+   * @returns {object|null} - an update payload, or null when nothing needs rewriting
+   */
+  static buildAttrRenameUpdate(item, renames) {
+    const source = item._source?.system ?? item.system ?? {};
+    const modifiers = foundry.utils.deepClone(source.itemmodifier ?? []);
+    const attachments = foundry.utils.deepClone(source.itemattachment ?? []);
+    let touchedModifiers = false;
+    let touchedAttachments = false;
+
+    for (const rename of renames) {
+      const [root, index, sub, subIndex] = rename.path;
+      let attributes;
+      if (root === "itemmodifier") {
+        attributes = modifiers[index]?.system?.attributes;
+        touchedModifiers = true;
+      } else if (root === "itemattachment" && sub === "itemmodifier") {
+        attributes = attachments[index]?.system?.itemmodifier?.[subIndex]?.system?.attributes;
+        touchedAttachments = true;
+      } else if (root === "itemattachment") {
+        attributes = attachments[index]?.system?.attributes;
+        touchedAttachments = true;
+      }
+      if (!attributes || !(rename.from in attributes)) continue;
+      attributes[rename.to] = attributes[rename.from];
+      delete attributes[rename.from];
+    }
+
+    const system = {};
+    if (touchedModifiers) system.itemmodifier = modifiers;
+    if (touchedAttachments) system.itemattachment = attachments;
+    return Object.keys(system).length ? { system } : null;
+  }
+
+  /**
+   * Rebuild an item's attribute-derived Active Effects so they match the qualities actually
+   * on it -- creating what is missing, correcting what has drifted, and removing what no
+   * longer has a source.
+   *
+   * This replaces the previous approach of patching effects from each call site in turn
+   * (`syncAEStatus`, the item editor, the drop handler, the delete handler), which could not
+   * repair an already-corrupt effect and matched effects by bare attribute key, so two
+   * qualities sharing a key silently overwrote one another.
+   *
+   * @param item - the ItemFFG to reconcile
+   * @param {object} [options]
+   * @param {boolean} [options.applyRenames=true] - persist attribute-key collision fixes.
+   *   Pass false from inside an update hook to avoid a re-entrant write.
+   * @param {boolean} [options.dryRun=false] - compute the work without performing it
+   * @returns {Promise<{created: string[], updated: string[], deleted: string[], renamed: object[], warnings: object[]}|null>}
+   */
+  static async reconcileModifierEffects(item, { applyRenames = true, dryRun = false } = {}) {
+    if (!item || !ItemHelpers.RECONCILABLE_TYPES.includes(item.type)) return null;
+    // compendium-resident documents are not ours to rewrite from a sheet interaction
+    if (item.pack) return null;
+    if (item.isEmbedded && item.actor?.compendium?.metadata) return null;
+
+    let plan = ItemHelpers.planModifierEffects(item);
+    const renamed = plan.renames.slice();
+
+    if (plan.renames.length && applyRenames && !dryRun) {
+      const update = ItemHelpers.buildAttrRenameUpdate(item, plan.renames);
+      if (update) {
+        await item.update(update, { render: false });
+        // re-plan against the settled data so effect names match what was just persisted
+        plan = ItemHelpers.planModifierEffects(item);
+      }
+    }
+
+    const existing = item.getEmbeddedCollection("ActiveEffect");
+    const bySystemName = new Map();
+    const toDelete = [];
+    for (const effect of existing) {
+      // `(inherent)` and anything hand-made are left strictly alone
+      if (!ItemHelpers.isSystemEffectName(effect.name)) continue;
+      if (bySystemName.has(effect.name)) {
+        // a duplicate name is the residue of a past attribute-key collision
+        toDelete.push(effect);
+        continue;
+      }
+      bySystemName.set(effect.name, effect);
+    }
+
+    const toCreate = [];
+    const toUpdate = [];
+    const updateDetails = [];
+    for (const want of plan.desired) {
+      const match = bySystemName.get(want.name);
+      if (!match) {
+        toCreate.push({ name: want.name, changes: want.changes, disabled: want.disabled });
+        continue;
+      }
+      bySystemName.delete(want.name);
+      if (!ItemHelpers.effectMatchesPlan(match, want)) {
+        toUpdate.push({ _id: match.id, changes: want.changes, disabled: want.disabled });
+        updateDetails.push({
+          name: want.name,
+          from: ItemHelpers.describeEffect(match.changes, match.disabled),
+          to: ItemHelpers.describeEffect(want.changes, want.disabled),
+        });
+      }
+    }
+    // An effect is only an orphan when the attribute that produced it is GONE -- a quality
+    // that was removed. An attribute that still exists but yields no Active Effect (damage,
+    // boost, setback, advantage: see the "no-key" note in planModifierEffects) keeps its
+    // effect untouched. Deleting on "not in desired" instead of "not owned" would wipe the
+    // placeholder effect of every Accurate/Inaccurate/damage modifier in the world.
+    for (const leftover of bySystemName.values()) {
+      if (!plan.ownedNames.has(leftover.name)) toDelete.push(leftover);
+    }
+
+    const summary = {
+      created: toCreate.map((effect) => effect.name),
+      // objects, not bare names: an update is the one outcome whose significance cannot be
+      // judged from the name alone, so it carries its own before/after
+      updated: updateDetails,
+      deleted: toDelete.map((effect) => effect.name),
+      renamed,
+      warnings: plan.warnings,
+    };
+
+    if (dryRun) return summary;
+
+    if (toDelete.length) {
+      await item.deleteEmbeddedDocuments("ActiveEffect", toDelete.map((effect) => effect.id), { render: false });
+    }
+    if (toUpdate.length) {
+      await item.updateEmbeddedDocuments("ActiveEffect", toUpdate, { render: false });
+    }
+    if (toCreate.length) {
+      await item.createEmbeddedDocuments("ActiveEffect", toCreate, { render: false });
+    }
+
+    if (summary.created.length || summary.updated.length || summary.deleted.length) {
+      CONFIG.logger.debug(`Reconciled modifier effects on ${item.name}`, summary);
+    }
+    return summary;
+  }
+
+  /**
+   * Run `reconcileModifierEffects` over every weapon / armour / attachment in the world, so
+   * items corrupted before the reconciler existed are repaired without opening each sheet.
+   *
+   * Intended to be called by a GM from the console:
+   *   `await game.starwarsffg.repairModifierEffects({dryRun: true})` to preview,
+   *   then without `dryRun` to apply.
+   *
+   * @param {object} [options]
+   * @param {boolean} [options.dryRun=false] - report what would change without changing it
+   * @returns {Promise<{scanned: number, changed: Array<object>}>}
+   */
+  static async repairModifierEffects({ dryRun = false } = {}) {
+    const report = { scanned: 0, changed: [] };
+    const targets = [...game.items];
+    for (const actor of game.actors) targets.push(...actor.items);
+
+    for (const item of targets) {
+      if (!ItemHelpers.RECONCILABLE_TYPES.includes(item.type)) continue;
+      report.scanned += 1;
+      const summary = await ItemHelpers.reconcileModifierEffects(item, { dryRun });
+      if (!summary) continue;
+      if (!summary.created.length && !summary.updated.length && !summary.deleted.length && !summary.renamed.length) {
+        continue;
+      }
+      report.changed.push({
+        item: item.name,
+        actor: item.actor?.name ?? null,
+        uuid: item.uuid,
+        ...summary,
+      });
+    }
+
+    CONFIG.logger.debug(`repairModifierEffects scanned ${report.scanned} item(s), ${report.changed.length} needed work`);
+    return report;
+  }
+
+  /**
    * Determines if a given Active Effect should have a status updated or not - based on the item it's a part of
    * For example, if a piece of armor has an attachment with a modification with a mod that's not installed,
    *  that mod should not apply any effect to the actor - even if the armor is equipped / unequipped
