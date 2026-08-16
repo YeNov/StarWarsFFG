@@ -1,5 +1,6 @@
 import ModifierHelpers from "../helpers/modifiers.js";
 import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate-talents.js";
+import { applyCharacterDefenceCap } from "../helpers/defence-helpers.js";
 
 /**
  * Extend the base Actor entity.
@@ -221,6 +222,13 @@ export class ActorFFG extends Actor {
       this._prepareCharacterData(actor);
       this._prepareSources(actor);
     }
+
+    // Active Effects have already been applied when Foundry reaches derived-data
+    // preparation, so this caps the final effective value from every source.
+    applyCharacterDefenceCap(
+      data.stats?.defence,
+      game.settings.get("starwarsffg", "enforceDefenseMaximum"),
+    );
   }
 
   _prepareSharedData(actorData) {

@@ -146,6 +146,17 @@ export default class SettingsHelpers {
       onChange: this.debouncedReload,
     });
 
+    // Enforce the Star Wars FFG cap of 4 on each character/NPC defence value.
+    game.settings.register("starwarsffg", "enforceDefenseMaximum", {
+      name: game.i18n.localize("SWFFG.Settings.EnforceDefenseMaximum.Name"),
+      hint: game.i18n.localize("SWFFG.Settings.EnforceDefenseMaximum.Hint"),
+      scope: "world",
+      config: false,
+      default: true,
+      type: Boolean,
+      onChange: this.debouncedReload,
+    });
+
     // Enable auto Soak calculation
     game.settings.register("starwarsffg", "privateTriggers", {
       name: game.i18n.localize("SWFFG.EnablePrivateTriggers"),

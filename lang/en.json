@@ -374,6 +374,8 @@
   "SWFFG.SettingsVehicleRangeHint": "Switch between Star Wars or Genesys vehicle range bands.",
   "SWFFG.Settings.UseDefense.Name": "Use Defense When Building Pool",
   "SWFFG.Settings.UseDefense.Hint": "Automatically add setback dice from targeted actors to the dice pool",
+  "SWFFG.Settings.EnforceDefenseMaximum.Name": "Enforce Defense Maximum of 4",
+  "SWFFG.Settings.EnforceDefenseMaximum.Hint": "Clamp each character and NPC's melee and ranged defense to 4, as required by the Star Wars FFG rules.",
   "SWFFG.Settings.Simulate.Name": "Dice Simulation Mode",
   "SWFFG.Settings.Simulate.Hint": "Display success likelihood when creating a dice pool. Uses SWRPG online",
   "SWFFG.Settings.SimulateCount.Name": "Dice Simulation Count",
