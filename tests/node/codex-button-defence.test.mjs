@@ -124,3 +124,43 @@ test("the defence block lists no class that no template uses", () => {
   const stale = [...defendedClasses()].filter((c) => !inTemplates.has(c)).sort();
   assert.deepEqual(stale, [], `stale entries in the defence block: ${stale.join(", ")}`);
 });
+
+/**
+ * The defence block wins with !important, so any background/border a defended
+ * class declares the ordinary way is dead -- the control silently renders with
+ * no fill and no border for EVERYONE, module or not. Every such value has to be
+ * set as a --cdx-btn-* token instead.
+ *
+ * This is not hypothetical: the first pass at the defence block missed six such
+ * rules (the base .cdx-cr-change plus five eldritch overrides), which made the
+ * credits CHANGE button invisible on all six schemes. A line-oriented grep found
+ * nothing because the declarations sit on different lines from the selector.
+ */
+test("no defended class sets background or border outside the defence block", () => {
+  const defended = defendedClasses();
+  const offenders = [];
+
+  for (const file of readdirSync(join(ROOT, "styles")).filter((f) => /^cdx.*\.css$/.test(f))) {
+    const css = readFileSync(join(ROOT, "styles", file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    // Innermost {...} only, which is what a flat stylesheet gives us.
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (selector.includes(":not(#_)")) continue; // the defence block itself
+      const hit = [...defended].find((c) => new RegExp(`\\.${c}(?![-\\w])`).test(selector));
+      if (!hit) continue;
+      for (const [, prop] of body.matchAll(/(?:^|;)\s*(background|border)(?:-[a-z]+)?\s*:/g)) {
+        const full = body.match(new RegExp(`(?:^|;)\\s*(${prop}(?:-[a-z]+)?)\\s*:`))?.[1] ?? prop;
+        if (full === "border-radius") continue;
+        offenders.push(`${file}: "${selector.trim().slice(0, 60)}" sets ${full} (use --cdx-btn-*)`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    [...new Set(offenders)].sort(),
+    [],
+    "these declarations are overridden by the !important defence block and will not render.\n" +
+      "Convert them to --cdx-btn-bg / --cdx-btn-bw / --cdx-btn-bc, or split the rule if it also\n" +
+      "targets a non-button element:\n  " +
+      [...new Set(offenders)].sort().join("\n  ")
+  );
+});

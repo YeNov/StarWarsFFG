@@ -324,9 +324,10 @@
   box-shadow:inset 0 0 0 1px var(--cdx-rust-bright),0 0 8px rgba(154,65,48,.32);
 }
 .cdx form.scheme-eldritch .cdx-cr-change {
-  background:rgba(64,48,25,.94);
-  border-color:#6b5d46;
+  --cdx-btn-bg:rgba(64,48,25,.94);
+  --cdx-btn-bc:#6b5d46;
   color:#aaa18f;
+  --color-text-primary:#aaa18f;
 }
 .cdx form.scheme-eldritch .cdx-cr-editor {
   background:#111411;
@@ -404,15 +405,17 @@
 }
 .cdx form.scheme-eldritch .cdx-stat-head span > i { color:#aa9b85; }
 .cdx form.scheme-eldritch .cdx-rest {
-  background:#111411;
-  border-color:#5b5243;
+  --cdx-btn-bg:#111411;
+  --cdx-btn-bc:#5b5243;
   color:#c6b89f;
+  --color-text-primary:#c6b89f;
   border-radius:0;
 }
 .cdx form.scheme-eldritch .cdx-rest:hover {
-  background:#2c2418;
-  border-color:var(--cdx-brass);
+  --cdx-btn-bg:#2c2418;
+  --cdx-btn-bc:var(--cdx-brass);
   color:#b2a998;
+  --color-text-primary:#b2a998;
 }
 .cdx form.scheme-eldritch :is(.cdx-step,.cdx-ammo-step) {
   --cdx-btn-bg:linear-gradient(180deg,#1b1d19,#0b0d0c);
@@ -685,15 +688,17 @@
   background:linear-gradient(90deg,rgba(112,96,70,.022),transparent 38%,rgba(0,0,0,.08));
 }
 .cdx form.scheme-eldritch .cdx-wipeout {
-  background:#17110f;
-  border-color:#814433;
+  --cdx-btn-bg:#17110f;
+  --cdx-btn-bc:#814433;
   border-radius:0;
   color:#c98b75;
+  --color-text-primary:#c98b75;
 }
 .cdx form.scheme-eldritch .cdx-wipeout:hover {
-  background:#65291f;
-  border-color:#a65b44;
+  --cdx-btn-bg:#65291f;
+  --cdx-btn-bc:#a65b44;
   color:#f0d3c4;
+  --color-text-primary:#f0d3c4;
 }
 .cdx form.scheme-eldritch .cdx-wp-unit-in {
   background:#101310;
@@ -737,9 +742,13 @@
   background:linear-gradient(180deg,#3b2d1b,#17130e);
   color:#a69b87;
 }
-.cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip.derived .cdx-chip-box,
-.cdx form.scheme-eldritch .cdx-veh-zones .cdx-ratio-step {
+/* Split: .cdx-chip-box is a div and keeps a plain border-color, but
+   .cdx-ratio-step is a defended button and must go through the token. */
+.cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip.derived .cdx-chip-box {
   border-color:#655a46;
+}
+.cdx form.scheme-eldritch .cdx-veh-zones .cdx-ratio-step {
+  --cdx-btn-bc:#655a46;
 }
 
 /* --- Standard and detailed item sheets ---------------------------------- */

@@ -245,11 +245,15 @@
   transform:translateY(-100%); opacity:0; pointer-events:none;
   transition:transform .18s ease, opacity .18s ease;
   padding:24px 0 4px; line-height:1; cursor:pointer; /* line-height:1 cancels mandar's 28px button line-height that centred the label; the big top padding drops it into the revealed (bottom) half of the tab */
-  background:rgba(185,137,47,.5);                                   /* half-transparent body (fallback) */
-  background:color-mix(in srgb, var(--cdx-brass) 50%, transparent);
-  border:2px solid var(--cdx-brass);                                /* solid outline, same colour */
+  /* Half-transparent brass body with a solid outline in the same colour. The old
+     plain-rgba fallback for pre-color-mix engines is gone: a custom property
+     cannot express it (an unsupported color-mix makes the CONSUMING declaration
+     invalid at computed-value time rather than falling back to an earlier one),
+     and Foundry V13 needs a Chromium newer than color-mix anyway. */
+  --cdx-btn-bg:color-mix(in srgb, var(--cdx-brass) 50%, transparent);
+  --cdx-btn-bw:2px; --cdx-btn-bc:var(--cdx-brass);
   clip-path:polygon(0 0, 100% 0, 100% calc(100% - var(--cdx-notch)), calc(100% - var(--cdx-notch)) 100%, var(--cdx-notch) 100%, 0 calc(100% - var(--cdx-notch)));
-  color:var(--cdx-chip-label);
+  color:var(--cdx-chip-label); --color-text-primary:var(--cdx-chip-label);
   font-family:"Orbitron"; font-weight:900; font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
 }
 .cdx .cdx-credits-wrap:hover .cdx-cr-change { transform:translateY(-50%); opacity:1; pointer-events:auto; }
