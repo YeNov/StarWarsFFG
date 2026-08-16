@@ -285,8 +285,11 @@ export class ItemFFG extends ItemBaseFFG {
 
         const changes = [];
         for (const curMod of explodedMods) {
+          const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+          // undefined for an unrecognised mod -- a keyless change applies to nothing
+          if (!key) continue;
           changes.push({
-            key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
+            key,
             mode: AE_MODES.ADD,
             value: attr?.value,
           });
@@ -314,6 +317,11 @@ export class ItemFFG extends ItemBaseFFG {
           await effect.update({disabled: !equipped});
         }
       }
+      // Equipping is the one moment a stale quality effect reliably becomes visible, so take
+      // it as the cue to rebuild them from the qualities on the item. `applyRenames: false`
+      // because we are inside _onUpdate -- settling an attribute-key collision writes to the
+      // item, and that re-entrant update belongs on an explicit path, not an equip toggle.
+      await ItemHelpers.reconcileModifierEffects(this, { applyRenames: false });
     }
 
     // Gear has no equipped state, so the Codex "carried" toggle is its only in-sheet trigger

@@ -771,8 +771,12 @@ export default class ModifierHelpers {
 
         const changes = [];
         for (const curMod of explodedMods) {
+          const modPath = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+          // an unrecognised mod yields undefined here; persisting a keyless change creates an
+          // effect that applies to nothing and cannot be diagnosed from the sheet
+          if (!modPath) continue;
           changes.push({
-            key: ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']),
+            key: modPath,
             mode: AE_MODES.ADD,
             value: formData.data.attributes[k].value,
           });

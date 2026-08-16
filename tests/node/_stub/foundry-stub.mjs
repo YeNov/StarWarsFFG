@@ -101,6 +101,12 @@ globalThis.foundry = {
 
 globalThis.CONFIG = {
   FFG: { characterCreator },
+  // The system's own logging shim (installed by swffg-main at init), not a Foundry API.
+  // Pure helpers such as ModifierHelpers.getModKeyPath log diagnostics through it on the
+  // paths that matter most to test -- the ones that reject bad input -- so without it those
+  // branches throw instead of returning. A sink, deliberately: tests assert on returned
+  // plans, never on log output.
+  logger: { debug() {}, warn() {}, error() {}, log() {} },
 };
 
 globalThis.CONST = {
