@@ -8,15 +8,28 @@
   <ul class="items-list">
     {{#each data.doNotSubmit.qualities as |item id|}}
       <li class="item flexrow force-power expand-desc" data-item-id="{{item.modId}}" data-desc="{{item.description}}" data-upgrade-name="{{item.name}}" data-item-type="itemmodifier" data-item-index="{{ itemIndex }}">
-        <div class="item-name">
-          {{item.name}}
+        <div class="item-name quality-name-with-sources">
+          <div class="quality-name">{{item.name}}</div>
+          <div class="quality-source-breakdown">
+            {{#each item.summarizedRanks as |rankIndex rankSource|}}
+              {{#if (eq rankSource "mods")}}
+                <span class="quality-source quality-source-own">{{#if (ne rankIndex 0)}}{{rankIndex}} {{/if}}{{localize "SWFFG.Items.Sheets.Qualities.Own"}}</span>
+              {{else}}
+                <span class="quality-source quality-source-attachment">{{#if (ne rankIndex 0)}}{{rankIndex}} · {{/if}}{{rankSource}} {{localize "SWFFG.Items.Sheets.Qualities.FromAttachment"}}</span>
+              {{/if}}
+            {{/each}}
+          </div>
         </div>
 
         {{!-- check if it has ranks and print the appropriate message --}}
         {{#if (ne item.totalRanks 0) }}
           <div data-tooltip="
           {{#each item.summarizedRanks as |rankIndex rankSource| }}
-            {{ rankIndex }} {{ localize "SWFFG.Items.Sheets.Qualities.Ranks" }} {{ rankSource }}<br>
+            {{#if (eq rankSource "mods")}}
+              {{rankIndex}} — {{localize "SWFFG.Items.Sheets.Qualities.Own"}}<br>
+            {{else}}
+              {{rankIndex}} — {{rankSource}} {{localize "SWFFG.Items.Sheets.Qualities.FromAttachment"}}<br>
+            {{/if}}
           {{/each}}
           " data-tooltip-direction="UP">
             {{ item.totalRanks }}
@@ -33,8 +46,6 @@
           {{#if item.includeControls}}
           <a class="item-control item-edit" title="Edit Item"><i class="fas fa-edit"></i></a>
           <a class="item-control item-delete" title="Delete Item"><i class="fas fa-trash"></i></a>
-          {{ else }}
-            {{ localize "SWFFG.Items.Sheets.Qualities.FromAttachment" }}
           {{/if}}
         </div>
       </li>
