@@ -1313,9 +1313,8 @@
   font-family:"Orbitron"; font-weight:700; font-size:11px; color:var(--cdx-dim); white-space:nowrap;
 }
 .cdx .cdx-item-body .item.force-power .fa-circle-question { color:var(--cdx-dim); font-size:11px; }
-/* Edit / delete controls. Higher specificity (+ .talent-list) to beat mandar's
-   `.item-controls { width:20px }`, which clips the "(from attachment)" label that
-   takes the controls' place for qualities inherited from an attachment. */
+/* Edit / delete controls. Higher specificity (+ .talent-list) overrides the
+   base fixed width so both controls fit without clipping. */
 .cdx .cdx-item-body .talent-list .item-controls {
   width:auto; flex:none; margin:0; display:flex; align-items:center; gap:9px;
   font-family:"Orbitron"; font-weight:600; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:var(--cdx-dim); white-space:nowrap;

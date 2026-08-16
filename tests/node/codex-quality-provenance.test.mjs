@@ -13,6 +13,9 @@ const codexCss = read("styles/cdx.css");
 const parseJson = (rel) => JSON.parse(read(rel).replace(/^\uFEFF/, ""));
 const english = parseJson("lang/en.json");
 const ukrainian = parseJson("lang/ua.json");
+const catalogs = fs.readdirSync(path.join(root, "lang"))
+  .filter(file => file.endsWith(".json"))
+  .map(file => [file, parseJson(`lang/${file}`)]);
 
 test("quality summaries retain separate own-item and attachment rank sources", () => {
   assert.match(itemSheet, /summarizedRanks:\s*\{\s*mods:\s*0/);
@@ -29,14 +32,31 @@ test("quality rows visibly render both own and attachment provenance", () => {
   assert.match(template, /SWFFG\.Items\.Sheets\.Qualities\.FromAttachment/);
 });
 
+test("attachment-only rows do not repeat the legacy provenance label in the controls column", () => {
+  const controls = template.match(/<div class="item-controls">([\s\S]*?)<\/div>/)?.[1] ?? "";
+  assert.doesNotMatch(controls, /FromAttachment/);
+});
+
 test("Codex styles all provenance as the same dim secondary line", () => {
   assert.match(codexCss, /\.quality-source-breakdown\s*\{/);
   assert.match(codexCss, /\.quality-source\s*\{[^}]*color:var\(--cdx-dim\)/s);
   assert.doesNotMatch(codexCss, /\.quality-source-(?:own|attachment)\s*\{[^}]*color:/s);
 });
 
-test("own-quality provenance is localized in the maintained English and Ukrainian catalogs", () => {
-  const key = "SWFFG.Items.Sheets.Qualities.Own";
-  assert.equal(english[key], "(own)");
-  assert.equal(ukrainian[key], "(власна)");
+test("active quality provenance is localized in the maintained English and Ukrainian catalogs", () => {
+  const ownKey = "SWFFG.Items.Sheets.Qualities.Own";
+  const attachmentKey = "SWFFG.Items.Sheets.Qualities.FromAttachment";
+  assert.equal(english[ownKey], "(own)");
+  assert.equal(ukrainian[ownKey], "(власна)");
+  assert.equal(english[attachmentKey], "(from attachment)");
+  assert.equal(ukrainian[attachmentKey], "(від обвісу)");
+});
+
+test("removed attachment provenance localization keys are not orphaned in any catalog", () => {
+  const removedKeys = ["SWFFG.FromAttachment", "SWFFG.Items.Sheets.Qualities.Ranks"];
+  for (const [file, catalog] of catalogs) {
+    for (const key of removedKeys) {
+      assert.equal(catalog[key], undefined, `${key} remains in ${file}`);
+    }
+  }
 });
