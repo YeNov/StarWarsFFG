@@ -168,7 +168,7 @@
         <thead><tr><th>{{localize "SWFFG.MotivationName"}}</th><th>{{localize "SWFFG.MotivationMagnitude"}}</th><th>{{localize "SWFFG.MotivationDescription"}}</th><th><a class="add-obligation"><i class="far fa-plus-square"></i></a></th></tr></thead>
         <tbody>
         {{#each items as |item|}}{{#if (or (eq item.type "duty")(eq item.type "obligation")(eq item.type "morality"))}}
-          <tr><td>{{item.name}}</td><td>{{#if (eq item.system.type "morality")}}{{item.system.subtype}}{{else}}{{item.system.magnitude}}{{/if}}</td><td>{{{item.system.renderedDesc}}}</td><td class="cdx-tbl-ctl"><a class="edit-item" data-id="{{id}}"><i class="fas fa-edit"></i></a><a class="remove-item" data-id="{{id}}"><i class="fas fa-trash"></i></a></td></tr>
+          <tr><td>{{item.name}}</td><td>{{#if (eq item.system.type "morality")}}{{item.system.subtype}}{{else}}{{item.system.magnitude}}{{/if}}</td><td>{{{item.system.renderedDesc}}}</td><td class="cdx-tbl-ctl"><a class="edit-item" data-id="{{id}}" title="Edit"><i class="fas fa-edit"></i></a><a class="remove-item" data-id="{{id}}" title="Delete"><i class="fas fa-trash"></i></a></td></tr>
         {{/if}}{{/each}}
         </tbody>
       </table>
