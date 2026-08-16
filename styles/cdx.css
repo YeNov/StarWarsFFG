@@ -75,8 +75,21 @@
    every scheme instead. Hence one !important consumer here, reading --cdx-btn-*.
    Custom property assignments cascade on ordinary specificity, so schemes keep
    overriding by SETTING TOKENS and never need !important of their own.
-   Longhand border-* (not the shorthand) so a scheme can move colour alone. */
-.cdx form :is(.cdx-tab,.cdx-step,.cdx-ammo-step,.cdx-ratio-step,.cdx-hcollapse-btn) {
+   Longhand border-* (not the shorthand) so a scheme can move colour alone.
+   `:not(#_)` matches everything (no element may have id "_") but contributes
+   ID-level specificity, lifting this to (1,2,2). An id beats any number of
+   classes, so this still wins if a module marks its own rule !important --
+   between two important declarations the cascade falls back to specificity, and
+   without this the block sat at (0,2,1) against their (0,5,3). Safe to be this
+   specific ONLY because nothing else declares these properties any more.
+   The list is explicit rather than a bare `button`: the Bio tab embeds TinyMCE
+   and ProseMirror INSIDE this form and their toolbars are <button>s, which a
+   blanket rule would flatten. tests/node/codex-button-defence.test.mjs asserts
+   every cdx-* button class in the templates appears below. */
+.cdx:not(#_) form button:is(.cdx-tab,.cdx-step,.cdx-ammo-step,.cdx-ratio-step,.cdx-hcollapse-btn,
+  .cdx-cr-op,.cdx-cr-change,.cdx-cr-confirm,.cdx-cr-cancel,.cdx-gs-step,.cdx-inj-mechfail,
+  .cdx-inj-medfail,.cdx-inj-resilience,.cdx-item-ammo-step,.cdx-rest,.cdx-strain-rest,
+  .cdx-restrict-btn,.cdx-wipeout) {
   background:var(--cdx-btn-bg,transparent) !important;
   border-width:var(--cdx-btn-bw,0) !important;
   border-style:var(--cdx-btn-bs,solid) !important;
@@ -329,12 +342,12 @@
    to ~default width and clip the name). flex:1 + min-width:0 lets it span the gap. */
 .cdx .cdx-header.cdx-hcollapsed:not(:has(.cdx-header-main)) .cdx-name { font-size:18px; flex:1; width:auto; min-width:0; }
 .cdx .cdx-cr-op, .cdx .cdx-cr-confirm, .cdx .cdx-cr-cancel {
-  width:24px; height:24px; flex:none; border:1px solid var(--cdx-line); background:transparent; color:var(--cdx-ink);
+  width:24px; height:24px; flex:none; --cdx-btn-bw:1px; --cdx-btn-bc:var(--cdx-line); color:var(--cdx-ink);
   border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; padding:0;
 }
-.cdx .cdx-cr-op.active { background:var(--cdx-accent); color:#fff; border-color:var(--cdx-accent); }
-.cdx .cdx-cr-confirm { color:#2f7d3a; } .cdx .cdx-cr-confirm:hover { background:rgba(47,125,58,.14); }
-.cdx .cdx-cr-cancel { color:#a51f17; } .cdx .cdx-cr-cancel:hover { background:rgba(165,31,23,.14); }
+.cdx .cdx-cr-op.active { --cdx-btn-bg:var(--cdx-accent); color:#fff; --color-text-primary:#fff; --cdx-btn-bc:var(--cdx-accent); }
+.cdx .cdx-cr-confirm { color:#2f7d3a; --color-text-primary:#2f7d3a; } .cdx .cdx-cr-confirm:hover { --cdx-btn-bg:rgba(47,125,58,.14); }
+.cdx .cdx-cr-cancel { color:#a51f17; --color-text-primary:#a51f17; } .cdx .cdx-cr-cancel:hover { --cdx-btn-bg:rgba(165,31,23,.14); }
 .cdx .cdx-cr-amount {
   width:8ch; text-align:center; font-family:"Orbitron"; font-weight:700; font-size:13px;
   background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; color:var(--cdx-ink); padding:3px 2px;
@@ -439,7 +452,7 @@
   background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:1.2px;
   text-transform:uppercase; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; clip-path:var(--cdx-clip-top);
 }
-.cdx .cdx-rest { width:20px; height:18px; border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.12); color:#fff; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
+.cdx .cdx-rest { width:20px; height:18px; --cdx-btn-bw:1px; --cdx-btn-bc:rgba(255,255,255,.4); --cdx-btn-bg:rgba(255,255,255,.12); color:#fff; --color-text-primary:#fff; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
 .cdx .cdx-stat-body { padding:6px 8px 7px; text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center; }
 .cdx .cdx-thresh { display:flex; align-items:baseline; justify-content:center; gap:2px; }
 .cdx .cdx-thresh input { width:2.2em; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:26px; color:var(--cdx-ink); padding:0; }
@@ -561,10 +574,10 @@
    sheets, which otherwise stretches it across the row and wraps the label. */
 .cdx .cdx-wipeout {
   flex:none; width:auto; display:inline-flex; align-items:center; gap:6px; padding:3px 11px; cursor:pointer;
-  background:transparent; border:1px solid var(--cdx-ink); border-radius:3px;
+  --cdx-btn-bw:1px; --cdx-btn-bc:var(--cdx-ink); border-radius:3px;
   font-family:"Orbitron"; font-weight:700; font-size:9.5px; letter-spacing:.8px; text-transform:uppercase; color:var(--cdx-ink);
 }
-.cdx .cdx-wipeout:hover { background:var(--cdx-accent); border-color:var(--cdx-accent); color:#fff; }
+.cdx .cdx-wipeout:hover { --cdx-btn-bg:var(--cdx-accent); --cdx-btn-bc:var(--cdx-accent); color:#fff; --color-text-primary:#fff; }
 .cdx .cdx-wipeout > i { font-size:11px; }
 
 /* Combined wound pool — full-width panel below the top row. flex:none is
@@ -922,10 +935,10 @@
 .cdx .cdx-inj-recovery { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; justify-content:flex-start; }
 .cdx .cdx-inj-resilience,
 .cdx .cdx-inj-medfail,
-.cdx .cdx-inj-mechfail { font-family:"Orbitron"; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; line-height:1; color:var(--cdx-ink); background:var(--cdx-paper); border:1px solid var(--cdx-line); border-radius:3px; padding:4px 8px; cursor:pointer; white-space:nowrap; }
+.cdx .cdx-inj-mechfail { font-family:"Orbitron"; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; line-height:1; color:var(--cdx-ink); --cdx-btn-bg:var(--cdx-paper); --cdx-btn-bw:1px; --cdx-btn-bc:var(--cdx-line); border-radius:3px; padding:4px 8px; cursor:pointer; white-space:nowrap; }
 .cdx .cdx-inj-resilience:hover,
 .cdx .cdx-inj-medfail:hover,
-.cdx .cdx-inj-mechfail:hover { border-color:var(--cdx-accent, var(--cdx-ink)); color:var(--cdx-accent, var(--cdx-ink)); }
+.cdx .cdx-inj-mechfail:hover { --cdx-btn-bc:var(--cdx-accent, var(--cdx-ink)); color:var(--cdx-accent, var(--cdx-ink)); --color-text-primary:var(--cdx-accent, var(--cdx-ink)); }
 .cdx .cdx-inj-resilience:disabled { opacity:.5; cursor:default; }
 /* Fixed recovery slot: a button OR a labelled pip bar always fills the same
    width, so the card never reflows as a path flips between actionable and cooling. */
@@ -1228,7 +1241,7 @@
 .cdx .cdx-rv-in { flex:1; width:100%; text-align:center; }
 /* width:auto is REQUIRED: mandar forces button{width:100%} inside sheets, which
    otherwise stretches (R) across the box and over the value. */
-.cdx .cdx-restrict-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:auto; display:inline-block; font-family:"Orbitron"; font-weight:900; font-size:13px; line-height:1; color:var(--cdx-dim); background:transparent; border:none; cursor:pointer; padding:0; }
+.cdx .cdx-restrict-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:auto; display:inline-block; font-family:"Orbitron"; font-weight:900; font-size:13px; line-height:1; color:var(--cdx-dim); --color-text-primary:var(--cdx-dim); cursor:pointer; padding:0; }
 .cdx .cdx-istat.cdx-restricted .cdx-restrict-btn { color:#cf2e2e; }
 .cdx .cdx-restrict-btn:hover { color:#cf2e2e; }
 /* Talent: taller stat boxes; the activation select is the clickable block. */
