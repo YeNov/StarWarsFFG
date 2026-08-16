@@ -29,9 +29,10 @@ test("quality rows visibly render both own and attachment provenance", () => {
   assert.match(template, /SWFFG\.Items\.Sheets\.Qualities\.FromAttachment/);
 });
 
-test("Codex styles provenance as a compact secondary line", () => {
+test("Codex styles all provenance as the same dim secondary line", () => {
   assert.match(codexCss, /\.quality-source-breakdown\s*\{/);
-  assert.match(codexCss, /\.quality-source-attachment\s*\{/);
+  assert.match(codexCss, /\.quality-source\s*\{[^}]*color:var\(--cdx-dim\)/s);
+  assert.doesNotMatch(codexCss, /\.quality-source-(?:own|attachment)\s*\{[^}]*color:/s);
 });
 
 test("own-quality provenance is localized in the maintained English and Ukrainian catalogs", () => {

@@ -1306,7 +1306,6 @@
   font-family:"Orbitron"; font-weight:600; font-size:7.5px; line-height:1.25; letter-spacing:.35px; text-transform:uppercase;
 }
 .cdx .cdx-item-body .item.force-power .quality-source { white-space:nowrap; color:var(--cdx-dim); }
-.cdx .cdx-item-body .item.force-power .quality-source-attachment { color:var(--cdx-accent); }
 .cdx .cdx-item-body .item.force-power .item-name .restricted { color:#cf2e2e; }
 /* Middle column — ranks count (qualities) or "Hardpoints: N" (attachments). */
 .cdx .cdx-item-body .item.force-power > div:not(.item-name):not(.item-controls) {
