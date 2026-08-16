@@ -784,6 +784,7 @@
   "SWFFG.Items.Popout.Buttons.Modification.Add": "Додати Модифікацію",
   "SWFFG.Items.Popout.Type.Warning": "Увага! Ця зміна потягне за собою негайну зміни УСІХ базових та покращених модифікацій",
   "SWFFG.Items.Sheets.Qualities.FromAttachment": "(від обвісу)",
+  "SWFFG.Items.Sheets.Qualities.Own": "(власна)",
   "SWFFG.Items.Sheets.Qualities.Ranks": "ранги від",
   "SWFFG.Items.Attachments.Label.Hardpoints": "Використовує {hardpoints} вузлів",
   "SWFFG.Settings.Purchase.Specialization.Name": "Компендіуми Спеціалізацій",
