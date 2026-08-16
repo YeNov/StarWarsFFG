@@ -324,9 +324,10 @@
   box-shadow:inset 0 0 0 1px var(--cdx-rust-bright),0 0 8px rgba(154,65,48,.32);
 }
 .cdx form.scheme-eldritch .cdx-cr-change {
-  background:rgba(64,48,25,.94);
-  border-color:#6b5d46;
+  --cdx-btn-bg:rgba(64,48,25,.94);
+  --cdx-btn-bc:#6b5d46;
   color:#aaa18f;
+  --color-text-primary:#aaa18f;
 }
 .cdx form.scheme-eldritch .cdx-cr-editor {
   background:#111411;
@@ -335,8 +336,9 @@
   box-shadow:0 6px 18px rgba(0,0,0,.62),inset 0 0 0 1px rgba(112,96,70,.09);
 }
 .cdx form.scheme-eldritch .cdx-hcollapse-btn {
-  background:linear-gradient(180deg,#342a1b,#17140e);
+  --cdx-btn-bg:linear-gradient(180deg,#342a1b,#17140e);
   color:#a79b86;
+  --color-text-primary:#a79b86;
   box-shadow:inset 0 0 0 1px rgba(112,96,70,.34);
 }
 
@@ -403,27 +405,31 @@
 }
 .cdx form.scheme-eldritch .cdx-stat-head span > i { color:#aa9b85; }
 .cdx form.scheme-eldritch .cdx-rest {
-  background:#111411;
-  border-color:#5b5243;
+  --cdx-btn-bg:#111411;
+  --cdx-btn-bc:#5b5243;
   color:#c6b89f;
+  --color-text-primary:#c6b89f;
   border-radius:0;
 }
 .cdx form.scheme-eldritch .cdx-rest:hover {
-  background:#2c2418;
-  border-color:var(--cdx-brass);
+  --cdx-btn-bg:#2c2418;
+  --cdx-btn-bc:var(--cdx-brass);
   color:#b2a998;
+  --color-text-primary:#b2a998;
 }
 .cdx form.scheme-eldritch :is(.cdx-step,.cdx-ammo-step) {
-  background:linear-gradient(180deg,#1b1d19,#0b0d0c);
-  border-color:#5f523a;
+  --cdx-btn-bg:linear-gradient(180deg,#1b1d19,#0b0d0c);
+  --cdx-btn-bc:#5f523a;
   border-radius:0;
   color:#b4a58c;
+  --color-text-primary:#b4a58c;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.72);
 }
 .cdx form.scheme-eldritch :is(.cdx-step,.cdx-ammo-step):hover {
-  background:#2c2418;
-  border-color:var(--cdx-brass);
+  --cdx-btn-bg:#2c2418;
+  --cdx-btn-bc:var(--cdx-brass);
   color:#afa490;
+  --color-text-primary:#afa490;
 }
 .cdx form.scheme-eldritch .cdx-track.bar,
 .cdx form.scheme-eldritch .cdx-pip,
@@ -510,16 +516,18 @@
   box-shadow:inset 0 0 0 1px rgba(178,90,66,.55);
 }
 .cdx form.scheme-eldritch .cdx-ratio-step {
-  background:#111411;
-  border-color:#625745;
+  --cdx-btn-bg:#111411;
+  --cdx-btn-bc:#625745;
   border-radius:2px;
   color:#a49982;
+  --color-text-primary:#a49982;
   box-shadow:inset 0 0 0 1px #050605;
 }
 .cdx form.scheme-eldritch .cdx-ratio-step:hover {
-  background:#2d2417;
-  border-color:#75674c;
+  --cdx-btn-bg:#2d2417;
+  --cdx-btn-bc:#75674c;
   color:#b5aa95;
+  --color-text-primary:#b5aa95;
 }
 .cdx form.scheme-eldritch .cdx-chip-div { background:rgba(112,96,70,.18); }
 
@@ -532,17 +540,20 @@
 .cdx form.scheme-eldritch :is(.cdx-tab,.sheet-tabs .item),
 .cdx.cdx-embed > form.scheme-eldritch nav.tabs .item {
   color:#9f927f;
+  --color-text-primary:#9f927f;
   text-shadow:none;
 }
 .cdx form.scheme-eldritch :is(.cdx-tab,.sheet-tabs .item):hover,
 .cdx.cdx-embed > form.scheme-eldritch nav.tabs .item:hover {
   color:#aaa08b;
-  background:rgba(112,96,70,.04);
+  --color-text-primary:#aaa08b;
+  --cdx-btn-bg:rgba(112,96,70,.04);
 }
 .cdx form.scheme-eldritch :is(.cdx-tab.active,.sheet-tabs .item.active),
 .cdx.cdx-embed > form.scheme-eldritch nav.tabs .item.active {
-  background:var(--cdx-active-bg);
+  --cdx-btn-bg:var(--cdx-active-bg);
   color:var(--cdx-active-ink);
+  --color-text-primary:var(--cdx-active-ink);
   clip-path:none;
   box-shadow:inset 0 0 0 1px rgba(112,96,70,.4),inset 0 -3px 0 #0b0d0c;
 }
@@ -677,15 +688,17 @@
   background:linear-gradient(90deg,rgba(112,96,70,.022),transparent 38%,rgba(0,0,0,.08));
 }
 .cdx form.scheme-eldritch .cdx-wipeout {
-  background:#17110f;
-  border-color:#814433;
+  --cdx-btn-bg:#17110f;
+  --cdx-btn-bc:#814433;
   border-radius:0;
   color:#c98b75;
+  --color-text-primary:#c98b75;
 }
 .cdx form.scheme-eldritch .cdx-wipeout:hover {
-  background:#65291f;
-  border-color:#a65b44;
+  --cdx-btn-bg:#65291f;
+  --cdx-btn-bc:#a65b44;
   color:#f0d3c4;
+  --color-text-primary:#f0d3c4;
 }
 .cdx form.scheme-eldritch .cdx-wp-unit-in {
   background:#101310;
@@ -729,9 +742,13 @@
   background:linear-gradient(180deg,#3b2d1b,#17130e);
   color:#a69b87;
 }
-.cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip.derived .cdx-chip-box,
-.cdx form.scheme-eldritch .cdx-veh-zones .cdx-ratio-step {
+/* Split: .cdx-chip-box is a div and keeps a plain border-color, but
+   .cdx-ratio-step is a defended button and must go through the token. */
+.cdx form.scheme-eldritch .cdx-veh-zones .cdx-chip.derived .cdx-chip-box {
   border-color:#655a46;
+}
+.cdx form.scheme-eldritch .cdx-veh-zones .cdx-ratio-step {
+  --cdx-btn-bc:#655a46;
 }
 
 /* --- Standard and detailed item sheets ---------------------------------- */
