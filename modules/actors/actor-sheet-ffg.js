@@ -1554,6 +1554,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     html.find(".force-conflict .remove-force-powers").on("click", async (event) => {
       event.preventDefault();
       const itemsToDelete = this.actor.items.filter((i) => (i.type === "forcepower"));
+      if (!(await this._ffgConfirmDelete({ name: game.i18n.localize("SWFFG.ForcePowers") }))) return;
       itemsToDelete.forEach((i) => {
           this.actor.items.get(i.id).delete();
       });
