@@ -500,6 +500,34 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     return super._buyCore(event);
   }
 
+  /**
+   * @override — Codex sheets confirm every destructive delete with a DialogV2
+   * prompt. One policy for all Codex delete controls: item cards and the
+   * species/career pills (via the stock `.item-delete` handler), the spec/
+   * force/sig pill stacks (via `onDelete`), crew, and the motivation table.
+   * DialogV2 is referenced inline (not destructured at module load) to avoid
+   * poisoning Node imports of this module.
+   * @param {object} [options]
+   * @param {string} [options.name]  Display name of the thing being deleted.
+   * @returns {Promise<boolean>} true only when the user chooses Delete.
+   */
+  async _ffgConfirmDelete({ name = "" } = {}) {
+    const content = name
+      ? game.i18n.format("SWFFG.ConfirmDelete.Content", { name })
+      : game.i18n.localize("SWFFG.ConfirmDelete.ContentGeneric");
+    const confirmed = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Delete") },
+      classes: ["dialog", "starwarsffg"],
+      content: `<p>${content}</p>`,
+      buttons: [
+        { action: "delete", icon: "fas fa-trash", label: game.i18n.localize("SWFFG.Delete") },
+        { action: "cancel", icon: "fas fa-times", label: game.i18n.localize("SWFFG.Cancel"), default: true },
+      ],
+      rejectClose: false,
+    });
+    return confirmed === "delete";
+  }
+
   _cdxActivate(html) {
     const root = html?.[0] ?? this.form ?? this.element;
     if (!root) return;
@@ -576,9 +604,11 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     this._cdxPillStack?.destroy();
     this._cdxPillStack = new CdxPillStack(root, {
       onActivate: (id) => { this.actor?.items?.get(id)?.sheet?.render(true); },
-      onDelete: (id) => {
+      onDelete: async (id) => {
         if (this.actor?.verifyEditModeIsNotEnabled?.() === false) return;
-        this.actor?.items?.get(id)?.delete();
+        const item = this.actor?.items?.get(id);
+        if (!(await this._ffgConfirmDelete({ name: item?.name }))) return;
+        item?.delete();
       },
     });
 

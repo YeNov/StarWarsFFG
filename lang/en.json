@@ -464,6 +464,8 @@
   "SWFFG.TalentSource": "Talent Rank Sources for",
   "SWFFG.DeleteTalent.Title": "Delete Talent",
   "SWFFG.DeleteTalent.Content": "Are you sure you want to delete the talent <strong>{name}</strong>? This cannot be undone.",
+  "SWFFG.ConfirmDelete.Content": "Are you sure you want to delete <strong>{name}</strong>? This cannot be undone.",
+  "SWFFG.ConfirmDelete.ContentGeneric": "Are you sure you want to delete this? This cannot be undone.",
   "SWFFG.EnableStrainThreshold": "Enable Strain Threshold",
   "SWFFG.EnableStrainThresholdHint": "Enables the Strain Threshold field on the character sheet",
   "SWFFG.EnableForcePool": "Enable Force Pool",
