@@ -113,7 +113,7 @@
           <div class="cdx-statcol"><span class="cdx-sc-k">CRIT</span><span class="cdx-sc-v">{{item.system.crit.value}}{{#if (and (ne item.system.crit.value item.system.crit.adjusted) (or (gt item.system.crit.adjusted.length 0) (gt item.system.crit.adjusted 0)))}} ({{item.system.crit.adjusted}}){{/if}}</span></div>
           <div class="cdx-statcol"><span class="cdx-sc-k">RANGE</span><span class="cdx-sc-v">{{localize item.system.range.label}}</span></div>
         </div>
-        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control item-edit" title="Edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="Delete"><i class="fas fa-trash"></i></a></span></div>
+        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control item-edit" title="{{localize "SWFFG.Edit"}}" aria-label="{{localize "SWFFG.Edit"}}"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a></span></div>
         {{#with (lookup ../cdxAmmo item._id)}}
         <div class="cdx-ammo" data-weapon-id="{{item._id}}">
           <span class="cdx-ammo-k">{{localize "SWFFG.Ammo"}}</span>
@@ -136,7 +136,7 @@
           <div class="cdx-card-title">{{item.name}}</div>
         </div>
         <div class="cdx-statcols"><div class="cdx-statcol"><span class="cdx-sc-k">HP</span><span class="cdx-sc-v">{{item.system.hardpoints.value}}</span></div></div>
-        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control item-edit" title="Edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="Delete"><i class="fas fa-trash"></i></a></span></div>
+        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control item-edit" title="{{localize "SWFFG.Edit"}}" aria-label="{{localize "SWFFG.Edit"}}"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a></span></div>
       </div>
       {{/iff}} {{/each}}
     </div>
@@ -163,7 +163,7 @@
       {{/if}}
       {{/with}}
       <div class="cdx-inj-sev">{{renderMultiple item.system.severity '<img class="cdx-sev-img" src="systems/starwarsffg/images/dice/starwars/purple.png" />'}}</div>
-      <div class="cdx-card-ctl item-controls"><a class="item-control item-edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete"><i class="fas fa-trash"></i></a></div>
+      <div class="cdx-card-ctl item-controls"><a class="item-control item-edit" title="{{localize "SWFFG.Edit"}}" aria-label="{{localize "SWFFG.Edit"}}"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a></div>
     </div>
     {{/iff}} {{/each}}
   </section>
@@ -181,7 +181,7 @@
             <div class="cdx-wpn-skill"><span class="cdx-wpn-skill-k">{{ item.role }}</span>{{#unless (eq item.role "(none)")}}<span class="cdx-wpn-skill-dot">·</span><span class="crew dice-pool">{{{ item.roll }}}</span>{{/unless}}</div>
           </div>
         </div>
-        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control crew-edit" title="Edit Role"><i class="fas fa-edit"></i></a><a class="item-control crew-delete" title="Remove"><i class="fas fa-trash"></i></a></span></div>
+        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control crew-edit" title="{{localize "SWFFG.EditRole"}}" aria-label="{{localize "SWFFG.EditRole"}}"><i class="fas fa-edit"></i></a><a class="item-control crew-delete" title="{{localize "SWFFG.Remove"}}" aria-label="{{localize "SWFFG.Remove"}}"><i class="fas fa-trash"></i></a></span></div>
       </div>
       {{/iff}} {{/each}}
     </div>
@@ -201,7 +201,7 @@
           <div class="cdx-statcol"><span class="cdx-sc-k">QTY</span><div class="item-quantity cdx-qty"><span class="quantity decrease"><i class="far fa-minus-square"></i></span><span class="cdx-qty-v">{{item.system.quantity.value}}</span><span class="quantity increase"><i class="far fa-plus-square"></i></span></div></div>
           <div class="cdx-statcol"><span class="cdx-sc-k">ENC</span><span class="cdx-sc-v">{{item.system.encumbrance.value}}</span></div>
         </div>
-        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control item-edit" title="Edit"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="Delete"><i class="fas fa-trash"></i></a></span></div>
+        <div class="cdx-card-ctl item-controls"><span class="cdx-sc-k">&nbsp;</span><span class="cdx-card-ctl-icons"><a class="item-control item-edit" title="{{localize "SWFFG.Edit"}}" aria-label="{{localize "SWFFG.Edit"}}"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a></span></div>
       </div>
       {{/if}} {{/each}}
     </div>

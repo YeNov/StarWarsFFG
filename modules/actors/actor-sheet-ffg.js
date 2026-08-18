@@ -427,6 +427,20 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   /* -------------------------------------------- */
 
+  /**
+   * Confirmation gate for the sheet's destructive delete controls. The default
+   * sheet deletes immediately (returns true); subclasses (the Codex sheets)
+   * override this to require a confirmation dialog. Centralised so every delete
+   * control — `.item-delete`, `.crew-delete`, `.remove-item`, and the Codex
+   * pill stacks — shares one policy instead of duplicating dialog code.
+   * @param {object} [options]
+   * @param {string} [options.name]  Display name of the thing being deleted.
+   * @returns {Promise<boolean>} true to proceed with deletion.
+   */
+  async _ffgConfirmDelete({ name = "" } = {}) {
+    return true;
+  }
+
   /** @override */
   activateListeners(html) {
     super.activateListeners(html);
@@ -901,13 +915,15 @@ export class ActorSheetFFG extends FFGActorSheet {
     });
 
     // Delete Inventory Item
-    html.find(".item-delete").click((ev) => {
+    html.find(".item-delete").click(async (ev) => {
       if(!this.actor.verifyEditModeIsNotEnabled()) {
         return;
       }
 
       const li = $(ev.currentTarget).parents(".item");
-      this.actor.items.get(li.data("itemId"))?.delete();
+      const item = this.actor.items.get(li.data("itemId"));
+      if (!(await this._ffgConfirmDelete({ name: item?.name }))) return;
+      item?.delete();
       li.slideUp(200, () => this.render(false));
     });
 
@@ -974,6 +990,8 @@ export class ActorSheetFFG extends FFGActorSheet {
       const crew_role = $(ev.currentTarget).parents(".item").data("role-name");
       const actor = this.actor;
 
+      const crew_name = game.actors.get(crew_member_id)?.name ?? crew_role;
+      if (!(await this._ffgConfirmDelete({ name: crew_name }))) return;
       deregister_crew(actor, crew_member_id, crew_role);
     });
 
@@ -1505,6 +1523,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       if (!item) {
         return ui.notifications.warn("Unable to remove item: cannot find it!");
       }
+      if (!(await this._ffgConfirmDelete({ name: item?.name }))) return;
       await this.object.deleteEmbeddedDocuments("Item", [id]);
     });
 
@@ -1535,6 +1554,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     html.find(".force-conflict .remove-force-powers").on("click", async (event) => {
       event.preventDefault();
       const itemsToDelete = this.actor.items.filter((i) => (i.type === "forcepower"));
+      if (!(await this._ffgConfirmDelete({ name: game.i18n.localize("SWFFG.ForcePowers") }))) return;
       itemsToDelete.forEach((i) => {
           this.actor.items.get(i.id).delete();
       });
