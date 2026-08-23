@@ -77,7 +77,7 @@ export class CodexItemSheet extends ItemSheetFFG {
     super._applyLegacyRootClasses(form, context);
   }
 
-  /** Bespoke template for the four detailed types; generic frame otherwise. @override */
+  /** Bespoke template where the type has one; generic frame otherwise. @override */
   get template() {
     const base = "systems/starwarsffg/templates/items/codex";
     const type = this.item?.type;
