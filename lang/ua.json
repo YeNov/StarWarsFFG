@@ -731,6 +731,7 @@
   "SWFFG.Actors.Sheets.Refund.Text": "Точно хочеш повернути ОД за покупку?",
   "SWFFG.Actors.Sheets.Refund.Confirm": "Повернути ОД",
   "SWFFG.Actors.Sheets.Refund.Cancel": "Відмінити повернення ОД",
+  "SWFFG.Actors.Sheets.Refund.Unavailable": "Цей запис не містить даних про покупку, тому повернути ОД автоматично не вийде. Скоригуй ОД вручну та прибери покупку самостійно.",
   "SWFFG.Actors.Sheets.Purchase.LogTitle": "Журнал обліку ОД",
   "SWFFG.Actors.Sheets.Purchase.DialogTitle": "Придбати {itemType}",
   "SWFFG.Actors.Sheets.Purchase.ConfirmPurchase": "Підтвердити",

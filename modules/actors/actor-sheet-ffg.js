@@ -12,6 +12,7 @@ import ImportHelpers from "../importer/import-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import ActorHelpers, {xpLogEarn, xpLogSpend} from "../helpers/actor-helpers.js";
 import ItemHelpers from "../helpers/item-helpers.js";
+import { resolveRefundTarget } from "../helpers/xp-refund.js";
 import EmbeddedItemHelpers from "../helpers/embeddeditem-helpers.js";
 import EffectHelpers from "../helpers/effects.js";
 import { killMinion, killMinionGroup } from "../helpers/minions.js";
@@ -2097,8 +2098,14 @@ export class ActorSheetFFG extends FFGActorSheet {
    */
   async _refundPurchase(purchaseId, mode) {
     CONFIG.logger.debug(`refunding ${mode} for ${purchaseId}`);
-    const purchasedEffect = this.object.getEmbeddedCollection("ActiveEffect").find(ae => ae.name.includes(purchaseId));
-    if (purchasedEffect) {
+    // Item purchases (force powers, specializations, talents) have no Active Effect, so the
+    // lookup has to consider the XP log too -- and an empty id must match NOTHING, since
+    // `name.includes("")` is true for every effect and used to delete an unrelated purchase.
+    const target = resolveRefundTarget(purchaseId, {
+      effects: this.object.getEmbeddedCollection("ActiveEffect").contents,
+      logEntries: this.object.getFlag("starwarsffg", "xpLog") || [],
+    });
+    if (target.kind !== "none") {
       DialogV2.wait({
         window: { title: game.i18n.localize("SWFFG.Actors.Sheets.Refund.DialogTitle") },
         classes: ["dialog", "starwarsffg"],
@@ -2112,8 +2119,52 @@ export class ActorSheetFFG extends FFGActorSheet {
             callback: async () => {
                 if(!this.actor.verifyEditModeIsNotEnabled()) return;
 
-                await this.object.deleteEmbeddedDocuments("ActiveEffect", [purchasedEffect.id]);
-                CONFIG.logger.debug("deleted AE, updating log");
+                if (target.kind === "effect") {
+                  await this.object.deleteEmbeddedDocuments("ActiveEffect", [target.effectId]);
+                  CONFIG.logger.debug("deleted AE, updating log");
+                } else if (target.kind === "xp") {
+                  // A self adjustment moved both figures; reverse exactly that, sign included.
+                  const source = this.object._source.system.experience;
+                  await this.object.update({
+                    system: {
+                      experience: {
+                        available: (Number(source.available) || 0) - target.amount,
+                        total: (Number(source.total) || 0) - target.amount,
+                      },
+                    },
+                  });
+                  CONFIG.logger.debug("reversed XP adjustment, updating log");
+                } else {
+                  // Item grants and tree nodes both charged the actor directly (see _buyCore /
+                  // _buyTreeNode), so the refund puts the XP back the same way. Reading `_source`
+                  // skips the AE-modified prepared value, which would re-apply every other purchase.
+                  if (target.kind === "item") {
+                    if (this.object.items.get(target.itemId)) {
+                      await this.object.deleteEmbeddedDocuments("Item", [target.itemId]);
+                    } else {
+                      CONFIG.logger.warn(`granted item ${target.itemId} is already gone; refunding the XP only`);
+                    }
+                  } else {
+                    const treeItem = this.object.items.get(target.itemId);
+                    if (treeItem) {
+                      await treeItem.update({[target.path]: false});
+                      // Un-learning a node has to withdraw whatever effects it granted, the same
+                      // way learning it granted them.
+                      await ItemHelpers.syncAEStatus(treeItem, treeItem.getEmbeddedCollection("ActiveEffect"));
+                    } else {
+                      CONFIG.logger.warn(`item ${target.itemId} is already gone; refunding the XP only`);
+                    }
+                  }
+                  const sourceAvailableXP = Number(this.object._source.system.experience.available) || 0;
+                  await this.object.update({
+                    system: {
+                      experience: {
+                        available: sourceAvailableXP + target.cost,
+                      },
+                    },
+                  });
+                  CONFIG.logger.debug("undid the purchase and restored XP, updating log");
+                }
                 let logEntries = this.object.getFlag("starwarsffg", "xpLog") || [];
                 let cost = 0;
                 let description = 'unknown';
@@ -2122,6 +2173,7 @@ export class ActorSheetFFG extends FFGActorSheet {
                     cost = entry.xp.cost;
                     description = entry.description;
                     entry.id = undefined;  // denotes that there is no an AE for the purchase
+                    entry.undo = undefined;  // already reversed, so it can never be refunded twice
                   }
                 }
                 const date = new Date().toISOString().slice(0, 10);
@@ -2149,7 +2201,12 @@ export class ActorSheetFFG extends FFGActorSheet {
         rejectClose: false,
       });
     } else {
+      // Entries written before purchases recorded how to reverse themselves, and the PC
+      // wizard's `pcw:<commitId>:spend` bookkeeping id, both land here: they carry an id but
+      // nothing that identifies what was bought. A console warning left the player clicking a
+      // button that silently did nothing, so say so.
       CONFIG.logger.warn(`Could not locate purchase with ID ${purchaseId}`);
+      ui.notifications.warn(game.i18n.localize("SWFFG.Actors.Sheets.Refund.Unavailable"));
     }
   }
 
@@ -2742,7 +2799,9 @@ export class ActorSheetFFG extends FFGActorSheet {
                   return;
                 }
               }
-              await this.object.createEmbeddedDocuments("Item", [purchasedItem]);
+              // Keep the created document: its id is what the refund path deletes.
+              // `purchasedItem` is the world/compendium source and carries a different id.
+              const [grantedItem] = await this.object.createEmbeddedDocuments("Item", [purchasedItem]);
               // This does not use _spendXp as it's granting items, which AEs cannot reasonably do,
               // so the XP has to be deducted from the stored value directly.
               //
@@ -2763,7 +2822,17 @@ export class ActorSheetFFG extends FFGActorSheet {
                   },
                 },
               });
-              await xpLogSpend(game.actors.get(this.object.id), `new ${action} ${purchasedItem.name}`, cost, availableXP - cost, totalXP, undefined);
+              // No Active Effect exists for an item grant, so the purchase id is minted here and
+              // paired with the granted item; that pair is what makes the entry refundable.
+              await xpLogSpend(
+                game.actors.get(this.object.id),
+                `new ${action} ${purchasedItem.name}`,
+                cost,
+                availableXP - cost,
+                totalXP,
+                grantedItem?.id ? foundry.utils.randomID() : undefined,
+                grantedItem?.id ? { type: "item", itemId: grantedItem.id } : undefined,
+              );
             },
           },
           {
@@ -2882,7 +2951,11 @@ export class ActorSheetFFG extends FFGActorSheet {
                 availableXPToLog + adjustAmount,
                 updatedTotalXP,
                 adjustReason,
-                "Self"
+                "Self",
+                foundry.utils.randomID(),
+                // An adjustment moved BOTH figures and can be negative, so reversing it needs the
+                // signed amount -- there is no Active Effect here to delete.
+                { type: "xp", amount: adjustAmount },
               );
             } finally {
               await ActorHelpers.endEditMode(this.actor, AEState, true);
