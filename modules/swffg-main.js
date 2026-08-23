@@ -1239,9 +1239,12 @@ Hooks.once("init", async function () {
   // resolving. Drop the alias entry in the release after V2-full lands.
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
-  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Detailed
-  // templates: weapon/armour/gear/talent; a generic Codex frame covers the other
-  // simple types. Complex tree/config types keep the stock sheet (not listed).
+  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Per-type
+  // template routing lives in CodexItemSheet#template: most types listed here
+  // have a bespoke codex-<type>.html — including the force power,
+  // specialization and signature ability trees — and the rest fall back to the
+  // generic codex-item.html frame. Types left out of this list keep the stock
+  // sheet: career, itemmodifier and species.
   const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "forcepower", "specialization", "signatureability", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
   foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
     types: CODEX_ITEM_TYPES,
