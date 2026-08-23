@@ -1,17 +1,55 @@
-`2.0.4`
-* System data is now schema-validated (`template.json` has been replaced by System Data Models):
+`2.1.0`
+The first release of this fork, on top of upstream `2.0.3`. It runs on Foundry V13 and V14, and covers roughly 900 commits across 39 merged pull requests.
+
+**Installing:** this fork shares the `starwarsffg` id with upstream, so it installs over an existing Star Wars FFG install rather than alongside it. Install it from *Setup → Systems → Install System* by pasting the manifest URL, not from the system browser. From this version on, update checks point at this fork instead of upstream.
+
+* Foundry compatibility:
+  * Runs on **Foundry V14** (verified 14.364), with V13 as the minimum.
+  * The ApplicationV2 port is finished — every V1 compatibility shim has been removed, and dialogs, form applications and sheets are native V2.
+* **Breaking — system data is now schema-validated** (`template.json` has been replaced by System Data Models):
   * **For GMs:** no action needed, and nothing is lost. The schema is applied when the client reads a document; the stored data is untouched. A field the schema does not declare simply stops being visible to the system.
   * **For module and macro authors:** ad-hoc `system.*` paths written by a module or macro are **no longer visible to the system** — they are still stored, but sheets and system code read them as `undefined`, and updates to them are dropped from the change set. Use `system.attributes`, which is a freeform bag by design, as the sanctioned extension point.
-* Fixes:
-  * Restricted gear (`rarity.isrestricted`) is shown and honoured again — the flag was reading as false everywhere, which also stopped the character creator filtering restricted items out of shops
-  * Item damage condition (`status`) works again on weapons, armour and ship weapons — a damaged item once more adds its Setback die, and too-damaged gear is blocked from being rolled
-  * Ship weapon attack rolls work again — the skill a ship weapon rolls with was not being read
-  * Rival token strain bars display again
-  * The stimpack/medical counter, character bio details (age, build, eyes, gender, hair, height, motivations), obligation and duty lists, vehicle backup hyperdrive, and the talent/force-power/signature-ability tree editor's edit mode all read their stored values again
-  * The Homestead Upgrade sheet works again — its description editor, modifiers tab and price were all inert
-  * Fixes the pre-V10 wounds/strain (`real_value`) upgrade path, which discarded the value it was meant to recover instead of writing it back
-  * Fixes an issue where knowledge skills are consumed but ranks are not added ([#2239](https://github.com/StarWarsFoundryVTT/StarWarsFFG/issues/2239))
-  * Fixes issues where active players filter being disabled is ignored by group manager and invalid actor types being included in group manager actor list ([#2174](https://github.com/StarWarsFoundryVTT/StarWarsFFG/issues/2174))
+* New — **Codex II sheets**: an opt-in, bespoke set of actor and item sheets, selected through the *Default Sheet Theme* setting. The stock sheets are untouched unless you pick a Codex theme.
+  * Covers character, rival, nemesis, minion and vehicle actors; weapon, armour, gear, crit, ship weapon and attachment items; and rebuilt talent-tree sheets for force powers, specializations and signature abilities.
+  * Seven colour schemes — Republic, Empire, Dark, Light, Mercenary, and two Eldritch Horror variants (Scholar and Fate) with per-actor procedural header sigils. The scheme can be set per actor from the header palette menu.
+  * Inventory: a **carried** toggle, so items left on a ship or at a base stop counting toward encumbrance, and drag grips to reorder weapon, armour and gear cards within their category.
+  * Deleting anything from a Codex sheet now asks for confirmation first, including the bulk *Remove Force Powers* control. Every control has a localized tooltip and an aria-label.
+  * Sheets are hardened against third-party UI module CSS, which was rendering some values black-on-black on the darker schemes ([#45](https://github.com/YeNov/StarWarsFFG/issues/45)).
+  * Portraits, scroll positions and expanded-card state survive a re-render, and talent and item cards open from local prepared data instead of a document lookup.
+* New — **PC creation wizard**: a guided character-creation flow with source selection, resumable drafts, and a review pass before anything is written. Handles starting XP and credits, background, obligation and motivation picks, career and specialization bonus skills, XP spends, inventory and attachments, and shows a live preview of the resulting character.
+* New — **Hyperdrive character import**: imports characters exported from hyperdrivegenerator.com, preserving advances, morality, attachments, Force upgrades, XP accounting, career skills, and equipment and attachment modifiers. Species option skill ranks — the ones a player picks from a species menu, rather than the species' fixed grants — are imported as well.
+* New — **adjust a posted roll from chat** (right-click): reroll a die in place, add or remove dice, or add and subtract result symbols. Changes persist for every client.
+* New — **automatic adversary difficulty**: when a targeted token has Adversary ranks, the roll dialog shows a Base Pool / Adversary Pool toggle above the dice pool, and the roll button, preview and success chance follow whichever is selected. Manual edits always apply to the base pool, so switching modes never loses them. Governed by the default-on *Enable Adversary Calculation* world setting. Rolls are also forwarded to the GM for logging.
+* New — **Crit-Trauma weekly recovery counter** for the Codex sheets: a per-injury tracker for whether this week's healing attempt has been used, driven off a single GM-advanced in-game day. Follows the EotE rules, where Resilience self-healing and Medicine assistance are independent once-per-week-per-injury attempts.
+* New — **limited ammo on vehicle weapons**, with a *Use Limited Ammo Quality* world setting that switches the system between manual magazines (the default, entered by hand per item) and magazines driven by the **Limited Ammo** weapon quality. Magazines initialize to the quality's threshold when a weapon first gains it, and an emptied magazine stays empty through later edits.
+* New — **talent trees enforce connectivity**: a node can only be bought if it is a root, or adjacent to a learned node through an active link. The Buy control disappears once something is bought, and the `islearned` checkbox is GM-only, closing the path that let a player be charged twice for the same talent.
+* New — **character defense is capped at 4** after modifiers, under a default-on setting in Combat Settings.
+* Fixes — XP and Active Effects:
+  * **Every XP purchase is refundable now**, not just skill ranks and characteristics. Force powers, specializations, talent items and tree nodes all log a purchase id, so the XP log's refund button works against them.
+  * A cancelled or failed XP purchase no longer leaves every Active Effect on the actor disabled in the database, which had been silently dropping species, talent and gear characteristic bonuses along with everything derived from them.
+  * Gear Active Effects stuck disabled by an interrupted bulk suspend can recover: gear resyncs its effects on the carried toggle, the way weapons and armour already did on equip. Individual modifiers also gained an enabled toggle.
+  * Buying an item no longer suspends every Active Effect on the actor to do it.
+  * Weapon quality effects are reconciled against the qualities actually on the item, instead of being patched six different ways by six call sites. This repairs effects that were already wrong, including `NaN` values that silently removed the defence they were meant to grant.
+* Fixes — items and qualities:
+  * Attachment-granted qualities are no longer counted twice, once through the aggregated rank and once through their own Active Effect.
+  * Item sheets show where a quality came from: `(own)` for direct qualities, or the attachment's name for granted ones.
+  * Quality pills no longer vanish from a roll when a weapon carries a stale source uuid from being duplicated or imported off another actor.
+  * Qualities duplicated in the UI no longer inherit the source quality's OggDude import id.
+  * Restricted gear (`rarity.isrestricted`) is shown and honoured again — the flag was reading as false everywhere, which also stopped the character creator filtering restricted items out of shops.
+  * Item damage condition (`status`) works again on weapons, armour and ship weapons — a damaged item once more adds its Setback die, and too-damaged gear is blocked from being rolled.
+* Fixes — sheets and dialogs:
+  * The crew roles dialog works again; under ApplicationV2 no rows rendered and the add button had no handler ([#43](https://github.com/YeNov/StarWarsFFG/issues/43)).
+  * The Sources tab is labelled for what it holds. It claimed "Long Description and Sources" everywhere, but only talents declare a long description ([#44](https://github.com/YeNov/StarWarsFFG/issues/44)).
+  * Pop-out modifier edits are no longer overwritten by an asynchronous re-render.
+  * Ship weapon attack rolls work again — the skill a ship weapon rolls with was not being read.
+  * Rival token strain bars display again.
+  * The stimpack/medical counter, character bio details (age, build, eyes, gender, hair, height, motivations), obligation and duty lists, vehicle backup hyperdrive, and the talent/force-power/signature-ability tree editor's edit mode all read their stored values again.
+  * The Homestead Upgrade sheet works again — its description editor, modifiers tab and price were all inert.
+  * Dotted `flags.*` item updates are no longer silently discarded.
+  * The pre-V10 wounds/strain (`real_value`) upgrade path no longer discards the value it was meant to recover.
+  * Knowledge skills are no longer consumed without adding ranks ([#2239](https://github.com/StarWarsFoundryVTT/StarWarsFFG/issues/2239)).
+  * The group manager honours the active-players filter and no longer lists invalid actor types ([#2174](https://github.com/StarWarsFoundryVTT/StarWarsFFG/issues/2174)).
+* Actor sheet rendering is faster: item validation hooks moved out of render-time registration, constructor-time flag writes removed, and listeners and context menus registered once instead of per render.
 
 `2.0.3`
 * Enhancements:
