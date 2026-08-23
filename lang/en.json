@@ -832,6 +832,7 @@
   "SWFFG.Actors.Sheets.Refund.Text": "Are you sure you want to refund XP for purchase?",
   "SWFFG.Actors.Sheets.Refund.Confirm": "Refund Purchase",
   "SWFFG.Actors.Sheets.Refund.Cancel": "Cancel Refund",
+  "SWFFG.Actors.Sheets.Refund.Unavailable": "This entry has no record of what it bought, so it cannot be refunded automatically. Adjust the XP by hand and remove the purchase yourself.",
   "SWFFG.Actors.Sheets.Purchase.LogTitle": "XP Spend Log",
   "SWFFG.Actors.Sheets.Purchase.DialogTitle": "Purchase {itemType}",
   "SWFFG.Actors.Sheets.Purchase.ConfirmPurchase": "Purchase",

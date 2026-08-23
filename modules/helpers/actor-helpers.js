@@ -207,12 +207,14 @@ export default class ActorHelpers {
  * @param available - XP available
  * @param total - XP total
  * @param statusId - ID of the associated active effect (if in use)
+ * @param undo - descriptor of how to reverse this purchase, for the paths that create no active
+ *               effect (item grants and tree nodes). See modules/helpers/xp-refund.js.
  * @returns {Promise<void>}
  */
-export async function xpLogSpend(actor, action, cost, available, total, statusId=undefined) {
+export async function xpLogSpend(actor, action, cost, available, total, statusId=undefined, undo=undefined) {
   const xpLog = actor.getFlag("starwarsffg", "xpLog") || [];
   const date = new Date().toISOString().slice(0, 10);
-  const newEntry = buildXpSpendEntry({ description: action, cost, available, total, statusId, date });
+  const newEntry = buildXpSpendEntry({ description: action, cost, available, total, statusId, undo, date });
   await actor.setFlag("starwarsffg", "xpLog", [newEntry, ...xpLog]);
   await notifyXpSpend(actor, action);
 }
@@ -246,11 +248,11 @@ async function notifyXpSpend(actor, action) {
  * @param granter - string for who did the granting
  * @returns {Promise<void>}
  */
-export async function xpLogEarn(actor, grant, available, total, note, granter="GM", statusId=undefined) {
+export async function xpLogEarn(actor, grant, available, total, note, granter="GM", statusId=undefined, undo=undefined) {
   const xpLog = actor.getFlag("starwarsffg", "xpLog") || [];
   const date = new Date().toISOString().slice(0, 10);
   // id is passed through because XP grants are not done by Active Effects
-  const newEntry = buildXpEarnEntry({ grant, available, total, note, statusId, date, granter });
+  const newEntry = buildXpEarnEntry({ grant, available, total, note, statusId, undo, date, granter });
   await actor.setFlag("starwarsffg", "xpLog", [newEntry, ...xpLog]);
 }
 

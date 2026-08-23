@@ -189,7 +189,7 @@
       </div>
     </div>
     <div class="cdx-xp-log">
-      {{#each xpLog as |entry|}}<div class="cdx-xp-entry {{entry.action}}">{{entry.date}}: {{entry.action}} <b>{{entry.description}}</b> for {{entry.xp.cost}} xp ({{entry.xp.available}} avail, {{entry.xp.total}} total){{#if (or (eq entry.action "purchased") (eq entry.action "adjusted"))}} <a class="xp refund" title="Refund" data-id="{{entry.id}}"><i class="fa-solid fa-rotate-left"></i></a>{{/if}}</div>{{/each}}
+      {{#each xpLog as |entry|}}<div class="cdx-xp-entry {{entry.action}}">{{entry.date}}: {{entry.action}} <b>{{entry.description}}</b> for {{entry.xp.cost}} xp ({{entry.xp.available}} avail, {{entry.xp.total}} total){{#if entry.id}}{{#if (or (eq entry.action "purchased") (eq entry.action "adjusted"))}} <a class="xp refund" title="{{localize "SWFFG.Actors.Sheets.Refund.Confirm"}}" data-id="{{entry.id}}"><i class="fa-solid fa-rotate-left"></i></a>{{/if}}{{/if}}</div>{{/each}}
     </div>
   </section>
   {{/if}}

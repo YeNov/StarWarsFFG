@@ -47,6 +47,9 @@ test("buildXpSpendEntry: shape — id, xp{cost,available,total}, date", () => {
   assert.deepEqual(entry, {
     action: "purchased",
     id: "ae9",
+    // Purchases with no Active Effect record how to reverse themselves here;
+    // rank purchases have an effect to delete, so they leave it undefined.
+    undo: undefined,
     xp: { cost: 5, available: 20, total: 50 },
     date: "2026-07-21",
     description: "d",

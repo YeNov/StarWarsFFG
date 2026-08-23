@@ -1842,7 +1842,17 @@ export class ItemSheetFFG extends FFGDocumentSheet {
             // manual pipeline instead, rendering to reflect the purchase.
             await this._onSubmit(new Event("submit", { cancelable: true }), { render: true });
             owner.update({system: {experience: {available: availableXP - cost}}});
-            await xpLogSpend(owner, `specialization ${baseName} talent ${talent}`, cost, availableXP - cost, totalXP);
+            // Learning a talent ticks a flag on the specialization item, which no Active Effect
+            // can express, so the log entry has to carry the path back to it to be refundable.
+            await xpLogSpend(
+              owner,
+              `specialization ${baseName} talent ${talent}`,
+              cost,
+              availableXP - cost,
+              totalXP,
+              foundry.utils.randomID(),
+              { type: "node", itemId: this.object.id, path: `system.talents.${talentId}.islearned` },
+            );
           },
         },
         {
@@ -1947,7 +1957,17 @@ export class ItemSheetFFG extends FFGDocumentSheet {
                 // abort an already-charged purchase or leave XP spent with nothing
                 // learned, so swallow it rather than letting it gate the steps below.
                 try {
-                  await xpLogSpend(owner, `${config.logLabel} ${baseName} upgrade ${upgradeName}`, cost, availableXPToLog - cost, totalXP);
+                  await xpLogSpend(
+                    owner,
+                    `${config.logLabel} ${baseName} upgrade ${upgradeName}`,
+                    cost,
+                    availableXPToLog - cost,
+                    totalXP,
+                    foundry.utils.randomID(),
+                    // The node is learned further down as `system.<treeProp>.<upgradeId>.islearned`;
+                    // record that same path so a refund can un-learn exactly this node.
+                    { type: "node", itemId: this.object.id, path: `system.${config.treeProp}.${upgradeId}.islearned` },
+                  );
                 } catch (e) {
                   CONFIG.logger.warn(`Failed to write XP spend log for ${owner.name}`, e);
                 }
