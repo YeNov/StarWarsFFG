@@ -23,7 +23,7 @@ import { getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing
- *  file throws ENOENT when the sheet renders. (talent still pending.) */
+ *  file throws ENOENT when the sheet renders. */
 const CODEX_DETAILED = new Set(["gear", "weapon", "armour", "talent", "forcepower", "specialization", "signatureability"]);
 
 // Detailed Codex equipment sheets place a fixed image beside a dense two- or
