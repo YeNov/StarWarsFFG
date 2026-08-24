@@ -1,6 +1,7 @@
 import ModifierHelpers from "../helpers/modifiers.js";
 import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate-talents.js";
 import { applyCharacterDefenceCap } from "../helpers/defence-helpers.js";
+import { buildSkillDefaults } from "../helpers/skill-defaults.js";
 
 /**
  * Extend the base Actor entity.
@@ -184,7 +185,15 @@ export class ActorFFG extends Actor {
 
     // if the actor has skills, add custom skills
     if (data.skills) {
-      let skills = JSON.parse(JSON.stringify(CONFIG.FFG.skills));
+      // `CONFIG.FFG.skills` alone only restores names — it holds no characteristic or type. Actors
+      // stored with a partial skills dictionary (the Adversaries importer wrote one until the
+      // template.json retirement was accounted for) need the active theme's definitions too, or
+      // their skills roll an empty pool and fall outside every category below.
+      let skilltheme;
+      try {
+        skilltheme = game.settings.get("starwarsffg", "skilltheme");
+      } catch (e) { /* settings not ready yet — buildSkillDefaults falls back to the stock list */ }
+      let skills = buildSkillDefaults(CONFIG.FFG.skills, CONFIG.FFG.alternateskilllists, skilltheme);
 
       data.skills = foundry.utils.mergeObject(skills, data.skills);
 
