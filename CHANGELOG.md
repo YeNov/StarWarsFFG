@@ -1,3 +1,10 @@
+`2.1.1`
+A hotfix for `2.1.0`.
+
+* Fixed — **imported adversaries lost their skill definitions** ([#58](https://github.com/YeNov/StarWarsFFG/issues/58)). Every skill an adversary had no rank in rendered with an empty dice pool and outside any category header. The Adversaries importer writes a skills dictionary holding ranks alone, which `template.json` used to complete when the actor was created; the System Data Models introduced in `2.1.0` store what they are given instead, so each skill's characteristic and category were dropped on the way in.
+  * **Adversaries imported before this fix repair themselves.** No re-import, no migration, and tokens already placed on a scene are fine — update the system and reload.
+  * The importer now takes its definitions from the active skill theme, so a custom or alternate skill list is honoured, and a theme that has since been uninstalled falls back to the stock list instead of discarding the adversary.
+
 `2.1.0`
 The first release of this fork, on top of upstream `2.0.3`. It runs on Foundry V13 and V14, and covers roughly 900 commits across 39 merged pull requests.
 
