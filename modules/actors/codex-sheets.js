@@ -756,8 +756,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const path = ev.currentTarget.dataset.cdxPath;
         if (!path) return;
         const max = Number(ev.currentTarget.dataset.cdxMax);
-        const cur = Number(foundry.utils.getProperty(this.actor, path)) || 0;
-        const src = Number(foundry.utils.getProperty(this.actor._source, path)) || 0;
+        // data-cdx-fallback: what an unset path counts as (a shield zone that has
+        // never been damaged holds no flag but reads as its full rating), so the
+        // first click steps from there rather than from 0.
+        const fbRaw = ev.currentTarget.dataset.cdxFallback;
+        const fb = fbRaw === "" || fbRaw == null ? null : Number(fbRaw);
+        const read = (doc) => {
+          const v = foundry.utils.getProperty(doc, path);
+          return Number(v ?? (Number.isFinite(fb) ? fb : 0)) || 0;
+        };
+        const cur = read(this.actor);
+        const src = read(this.actor._source);
         const bonus = cur - src; // active-effect contribution, kept out of the write
         let val = cur + dir;
         val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
@@ -1433,7 +1442,26 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const spMax = Number(s.speed?.max) || 0;
         const spVal = Number(s.speed?.value) || 0;
         ctx.cdxVehSpeedPct = spMax > 0 ? Math.max(0, Math.min(100, Math.round((spVal / spMax) * 100))) : 0;
-      } catch (e) { ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0"; }
+        // 4-zone shields as a current-of-rating pair, the same shape as the Speed
+        // chip. `system.stats.shields.<zone>` stays what it has always been — the
+        // ship's RATING, what importers write, what the stock sheet shows and what
+        // "Vehicle Stat → Shields" active effects add to — and the value left after
+        // damage lives in a Codex flag beside it. Unset (never damaged) reads as
+        // full, so an untouched vehicle shows rating-of-rating. The steppers move
+        // only the flag, so knocking a zone down never edits the ship's stats and
+        // an attachment's bonus still shows up in the rating.
+        const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
+        ctx.cdxVehShields = {};
+        for (const zone of ["fore", "aft", "port", "starboard"]) {
+          const rating = Math.trunc(Number(s.shields?.[zone]) || 0);
+          const stored = shieldFlags?.[zone];
+          const cur = stored == null ? rating : Math.max(0, Math.trunc(Number(stored) || 0));
+          ctx.cdxVehShields[zone] = { cur, max: rating };
+        }
+      } catch (e) {
+        ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0";
+        ctx.cdxVehShields = { fore: { cur: 0, max: 0 }, aft: { cur: 0, max: 0 }, port: { cur: 0, max: 0 }, starboard: { cur: 0, max: 0 } };
+      }
     }
     return ctx;
   }
