@@ -739,7 +739,16 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     });
     // Ratio-chip steppers (−/+): adjust the value at data-cdx-path, clamped to
     // [0, data-cdx-max]. Drives the Force chip (committed dice) and the vehicle
-    // Speed chip from one handler. Always active (a play action).
+    // Speed / 4-zone Shield chips from one handler. Always active (a play action).
+    //
+    // The chip DISPLAYS the prepared value (source + Active Effects) but update()
+    // writes the SOURCE, so the two must not be conflated: item modifiers become
+    // ADD active effects on these very paths (see modifiers.js getModKeyPath —
+    // "Vehicle Stat" → system.stats.shields.*). Writing the prepared number back
+    // bakes the bonus into the source and the AE re-adds it on the next prepare:
+    // with a +1 shield attachment, "+" moved the chip by 2 and "−" appeared to do
+    // nothing (source went down 1, display stayed put). So: clamp the EFFECTIVE
+    // value, then subtract the AE bonus to get the number actually stored.
     root.querySelectorAll(".cdx-ratio-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault(); ev.stopPropagation();
@@ -748,10 +757,15 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         if (!path) return;
         const max = Number(ev.currentTarget.dataset.cdxMax);
         const cur = Number(foundry.utils.getProperty(this.actor, path)) || 0;
+        const src = Number(foundry.utils.getProperty(this.actor._source, path)) || 0;
+        const bonus = cur - src; // active-effect contribution, kept out of the write
         let val = cur + dir;
         val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
-        if (val === cur) return;
-        await this.actor.update({ [path]: val });
+        // Never store a negative source: a chip whose whole value comes from an AE
+        // simply can't be stepped below the bonus.
+        const next = Math.max(0, val - bonus);
+        if (next === src) return;
+        await this.actor.update({ [path]: next });
       });
     });
     // Minion Group-Strength steppers (members alive ±1). Alive count is DERIVED
