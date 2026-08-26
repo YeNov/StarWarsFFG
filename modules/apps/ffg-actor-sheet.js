@@ -134,7 +134,19 @@ export class FFGActorSheet extends FFGDocumentSheet {
     // throws on Object.keys(undefined), which would abort submit-on-close and
     // leave the × button unable to close the sheet. Guard with {}.
     const overrides = foundry.utils.flattenObject(this.actor.overrides ?? {});
-    for (const k of Object.keys(overrides)) delete data[k];
+    for (const k of Object.keys(overrides)) {
+      delete data[k];
+      // The sheets name their fields `data.*` (V1 shape; ActorHelpers.actorUpdate
+      // runs migrateDataToSystem on submit), while `overrides` is keyed `system.*`.
+      // Deleting only the `system.*` key therefore stripped nothing for the sheet
+      // fields that actually exist, and the PREPARED value (source + active
+      // effects) was written straight back into the source — the AE then re-added
+      // its bonus on the next prepare, so an AE-boosted stat crept up by the bonus
+      // on every submit. Edit mode usually hides this by suspending the actor's
+      // AEs, but not when that suspension is missing (e.g. the edit-mode flag left
+      // on across a reload, so nothing re-suspended them this session).
+      if (k.startsWith("system.")) delete data[`data.${k.slice(7)}`];
+    }
     return data;
   }
 

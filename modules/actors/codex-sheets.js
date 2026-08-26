@@ -739,7 +739,16 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     });
     // Ratio-chip steppers (−/+): adjust the value at data-cdx-path, clamped to
     // [0, data-cdx-max]. Drives the Force chip (committed dice) and the vehicle
-    // Speed chip from one handler. Always active (a play action).
+    // Speed / 4-zone Shield chips from one handler. Always active (a play action).
+    //
+    // The chip DISPLAYS the prepared value (source + Active Effects) but update()
+    // writes the SOURCE, so the two must not be conflated: item modifiers become
+    // ADD active effects on these very paths (see modifiers.js getModKeyPath —
+    // "Vehicle Stat" → system.stats.shields.*). Writing the prepared number back
+    // bakes the bonus into the source and the AE re-adds it on the next prepare:
+    // with a +1 shield attachment, "+" moved the chip by 2 and "−" appeared to do
+    // nothing (source went down 1, display stayed put). So: clamp the EFFECTIVE
+    // value, then subtract the AE bonus to get the number actually stored.
     root.querySelectorAll(".cdx-ratio-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault(); ev.stopPropagation();
@@ -747,11 +756,29 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const path = ev.currentTarget.dataset.cdxPath;
         if (!path) return;
         const max = Number(ev.currentTarget.dataset.cdxMax);
-        const cur = Number(foundry.utils.getProperty(this.actor, path)) || 0;
+        // data-cdx-fallback: what an unset path counts as (a shield zone still at
+        // its rating holds no flag but reads as that rating), so the first click
+        // steps from there rather than from 0.
+        const fbRaw = ev.currentTarget.dataset.cdxFallback;
+        const fb = fbRaw === "" || fbRaw == null ? null : Number(fbRaw);
+        const read = (doc) => {
+          const v = foundry.utils.getProperty(doc, path);
+          return Number(v ?? (Number.isFinite(fb) ? fb : 0)) || 0;
+        };
+        const cur = read(this.actor);
+        const src = read(this.actor._source);
+        const bonus = cur - src; // active-effect contribution, kept out of the write
         let val = cur + dir;
         val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
-        if (val === cur) return;
-        await this.actor.update({ [path]: val });
+        // The EFFECTIVE value is what's clamped to [0, max]; the stored number is
+        // then whatever makes that come out right, negative included. Shields (and
+        // any other AE-boosted stat) must be reducible all the way to 0 in play —
+        // a deflector-shield attachment doesn't make the zone unstrippable — so the
+        // source is deliberately allowed to go down to −bonus. The chip itself
+        // never shows a negative number, since the AE adds the bonus back.
+        const next = val - bonus;
+        if (next === src) return;
+        await this.actor.update({ [path]: next });
       });
     });
     // Minion Group-Strength steppers (members alive ±1). Alive count is DERIVED
@@ -1415,7 +1442,30 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const spMax = Number(s.speed?.max) || 0;
         const spVal = Number(s.speed?.value) || 0;
         ctx.cdxVehSpeedPct = spMax > 0 ? Math.max(0, Math.min(100, Math.round((spVal / spMax) * 100))) : 0;
-      } catch (e) { ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0"; }
+        // 4-zone shields as a current-of-rating pair, the same shape as the Speed
+        // chip. `system.stats.shields.<zone>` stays what it has always been — the
+        // ship's RATING, what importers write, what the stock sheet shows and what
+        // "Vehicle Stat → Shields" active effects add to — while the CURRENT value
+        // of each zone lives in a Codex flag beside it. Zones move around in play
+        // for several reasons (Angle Deflector Shields and friends reassign points
+        // between zones, hits strip them, powers restore them), which is why the
+        // steppers are uncapped: a zone can legitimately sit above its own rating
+        // while another sits below. Unset reads as the rating, so a vehicle nobody
+        // has touched shows rating-of-rating. The steppers move only the flag, so
+        // re-angling shields never edits the ship's stats and an attachment's bonus
+        // still shows up in the rating.
+        const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
+        ctx.cdxVehShields = {};
+        for (const zone of ["fore", "aft", "port", "starboard"]) {
+          const rating = Math.trunc(Number(s.shields?.[zone]) || 0);
+          const stored = shieldFlags?.[zone];
+          const cur = stored == null ? rating : Math.max(0, Math.trunc(Number(stored) || 0));
+          ctx.cdxVehShields[zone] = { cur, max: rating };
+        }
+      } catch (e) {
+        ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0";
+        ctx.cdxVehShields = { fore: { cur: 0, max: 0 }, aft: { cur: 0, max: 0 }, port: { cur: 0, max: 0 }, starboard: { cur: 0, max: 0 } };
+      }
     }
     return ctx;
   }

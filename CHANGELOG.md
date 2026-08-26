@@ -1,3 +1,8 @@
+`Unreleased`
+
+* Fixed — **vehicle shield zones on the Codex II sheets**. On a ship whose shields were boosted by an attachment, “+” moved a zone by two and “−” did nothing. Zones now read *current of rating* like Speed and step freely in either direction, so points can be shifted between them.
+* Fixed — **stats boosted by an active effect crept upward every time an actor sheet was saved**. The boosted value was written back as the stored one and the effect then added its bonus again on top.
+
 `2.1.1`
 A hotfix for `2.1.0`.
 

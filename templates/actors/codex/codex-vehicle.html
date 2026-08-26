@@ -75,10 +75,10 @@
       <div class="cdx-panel-head">Defence · 4-Zone</div>
       <div class="cdx-veh-zones">
         <div class="cdx-veh-radar"><img class="cdx-veh-radar-img" src="{{data.silhouetteImage}}" data-edit="system.silhouetteImage" title="Top view" /></div>
-        <div class="cdx-zone fore">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.fore path="stats.shields.fore" label=(localize "SWFFG.VehicleDefenseFore") noMax=true noClamp=true disabled=disabled}}</div>
-        <div class="cdx-zone aft">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.aft path="stats.shields.aft" label=(localize "SWFFG.VehicleDefenseAft") noMax=true noClamp=true disabled=disabled}}</div>
-        <div class="cdx-zone port">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.port path="stats.shields.port" label=(localize "SWFFG.VehicleDefensePort") noMax=true noClamp=true disabled=disabled}}</div>
-        <div class="cdx-zone stbd">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=data.stats.shields.starboard path="stats.shields.starboard" label=(localize "SWFFG.VehicleDefenseStarboard") noMax=true noClamp=true disabled=disabled}}</div>
+        <div class="cdx-zone fore">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.fore.cur maxValue=cdxVehShields.fore.max absPath="flags.starwarsffg.codexShields.fore" maxPath="stats.shields.fore" fallback=cdxVehShields.fore.max lockCur=true label=(localize "SWFFG.VehicleDefenseFore") noClamp=true disabled=disabled}}</div>
+        <div class="cdx-zone aft">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.aft.cur maxValue=cdxVehShields.aft.max absPath="flags.starwarsffg.codexShields.aft" maxPath="stats.shields.aft" fallback=cdxVehShields.aft.max lockCur=true label=(localize "SWFFG.VehicleDefenseAft") noClamp=true disabled=disabled}}</div>
+        <div class="cdx-zone port">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.port.cur maxValue=cdxVehShields.port.max absPath="flags.starwarsffg.codexShields.port" maxPath="stats.shields.port" fallback=cdxVehShields.port.max lockCur=true label=(localize "SWFFG.VehicleDefensePort") noClamp=true disabled=disabled}}</div>
+        <div class="cdx-zone stbd">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.starboard.cur maxValue=cdxVehShields.starboard.max absPath="flags.starwarsffg.codexShields.starboard" maxPath="stats.shields.starboard" fallback=cdxVehShields.starboard.max lockCur=true label=(localize "SWFFG.VehicleDefenseStarboard") noClamp=true disabled=disabled}}</div>
       </div>
     </div>
     </div>
