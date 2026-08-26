@@ -756,9 +756,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const path = ev.currentTarget.dataset.cdxPath;
         if (!path) return;
         const max = Number(ev.currentTarget.dataset.cdxMax);
-        // data-cdx-fallback: what an unset path counts as (a shield zone that has
-        // never been damaged holds no flag but reads as its full rating), so the
-        // first click steps from there rather than from 0.
+        // data-cdx-fallback: what an unset path counts as (a shield zone still at
+        // its rating holds no flag but reads as that rating), so the first click
+        // steps from there rather than from 0.
         const fbRaw = ev.currentTarget.dataset.cdxFallback;
         const fb = fbRaw === "" || fbRaw == null ? null : Number(fbRaw);
         const read = (doc) => {
@@ -1445,11 +1445,15 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         // 4-zone shields as a current-of-rating pair, the same shape as the Speed
         // chip. `system.stats.shields.<zone>` stays what it has always been — the
         // ship's RATING, what importers write, what the stock sheet shows and what
-        // "Vehicle Stat → Shields" active effects add to — and the value left after
-        // damage lives in a Codex flag beside it. Unset (never damaged) reads as
-        // full, so an untouched vehicle shows rating-of-rating. The steppers move
-        // only the flag, so knocking a zone down never edits the ship's stats and
-        // an attachment's bonus still shows up in the rating.
+        // "Vehicle Stat → Shields" active effects add to — while the CURRENT value
+        // of each zone lives in a Codex flag beside it. Zones move around in play
+        // for several reasons (Angle Deflector Shields and friends reassign points
+        // between zones, hits strip them, powers restore them), which is why the
+        // steppers are uncapped: a zone can legitimately sit above its own rating
+        // while another sits below. Unset reads as the rating, so a vehicle nobody
+        // has touched shows rating-of-rating. The steppers move only the flag, so
+        // re-angling shields never edits the ship's stats and an attachment's bonus
+        // still shows up in the rating.
         const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
         ctx.cdxVehShields = {};
         for (const zone of ["fore", "aft", "port", "starboard"]) {
