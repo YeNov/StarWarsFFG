@@ -761,9 +761,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const bonus = cur - src; // active-effect contribution, kept out of the write
         let val = cur + dir;
         val = Math.max(0, Number.isFinite(max) ? Math.min(max, val) : val);
-        // Never store a negative source: a chip whose whole value comes from an AE
-        // simply can't be stepped below the bonus.
-        const next = Math.max(0, val - bonus);
+        // The EFFECTIVE value is what's clamped to [0, max]; the stored number is
+        // then whatever makes that come out right, negative included. Shields (and
+        // any other AE-boosted stat) must be reducible all the way to 0 in play —
+        // a deflector-shield attachment doesn't make the zone unstrippable — so the
+        // source is deliberately allowed to go down to −bonus. The chip itself
+        // never shows a negative number, since the AE adds the bonus back.
+        const next = val - bonus;
         if (next === src) return;
         await this.actor.update({ [path]: next });
       });
