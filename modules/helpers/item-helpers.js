@@ -643,34 +643,21 @@ export default class ItemHelpers {
    */
   static async repairModifierEffects({ dryRun = false } = {}) {
     const report = { scanned: 0, changed: [] };
-    const targets = [...game.items];
-    for (const actor of game.actors) targets.push(...actor.items);
-    // Unlinked tokens may own Item overrides (or entirely token-local Items) in their ActorDelta.
-    // Those synthetic actors are not members of game.actors, so a world-actor-only sweep leaves
-    // their talent effects untouched. Inherited Items are safe to revisit: reconciliation matches
-    // effects by name and creates nothing when the base actor's repair has already propagated.
-    for (const scene of game.scenes ?? []) {
-      for (const token of scene.tokens ?? []) {
-        if (token.actorLink || !token.actor) continue;
-        targets.push(...token.actor.items);
-      }
-    }
-
-    for (const item of targets) {
+    const reconcileItem = async (item) => {
       if (ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) {
         report.scanned += 1;
         const summary = await ItemHelpers.reconcileAttributeEffects(item, { dryRun });
         if (summary?.created.length) {
           report.changed.push({ item: item.name, actor: item.actor?.name ?? null, uuid: item.uuid, ...summary });
         }
-        continue;
+        return;
       }
-      if (!ItemHelpers.RECONCILABLE_TYPES.includes(item.type)) continue;
+      if (!ItemHelpers.RECONCILABLE_TYPES.includes(item.type)) return;
       report.scanned += 1;
       const summary = await ItemHelpers.reconcileModifierEffects(item, { dryRun });
-      if (!summary) continue;
+      if (!summary) return;
       if (!summary.created.length && !summary.updated.length && !summary.deleted.length && !summary.renamed.length) {
-        continue;
+        return;
       }
       report.changed.push({
         item: item.name,
@@ -678,6 +665,24 @@ export default class ItemHelpers {
         uuid: item.uuid,
         ...summary,
       });
+    };
+
+    // Repair world and base-actor Items first. Creating an effect on a base Actor makes Foundry
+    // rebuild every dependent unlinked token's synthetic Item collection. Holding token Item
+    // references across that rebuild would leave us writing to detached documents and could fork
+    // an inherited item into the ActorDelta with a duplicate effect.
+    for (const item of game.items ?? []) await reconcileItem(item);
+    for (const actor of game.actors ?? []) {
+      for (const item of actor.items ?? []) await reconcileItem(item);
+    }
+
+    // Read token Items only after base propagation has settled, so these are the current synthetic
+    // documents. This also covers token-local Items and Item overrides that game.actors cannot see.
+    for (const scene of game.scenes ?? []) {
+      for (const token of scene.tokens ?? []) {
+        if (token.actorLink || !token.actor) continue;
+        for (const item of token.actor.items ?? []) await reconcileItem(item);
+      }
     }
 
     CONFIG.logger.debug(`repairModifierEffects scanned ${report.scanned} item(s), ${report.changed.length} needed work`);

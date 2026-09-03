@@ -161,3 +161,56 @@ test("the repair sweep includes talent items owned only by an unlinked token act
   assert.equal(report.scanned, 1);
   assert.deepEqual(report.changed.map((entry) => entry.uuid), [item.uuid]);
 });
+
+test("the repair sweep re-reads synthetic token items after repairing their base actor", async () => {
+  let baseCreates = 0;
+  let staleTokenCreates = 0;
+  const replacement = {
+    type: "talent",
+    name: "Current token talent",
+    uuid: "Scene.scene.Token.token.Actor.actor.Item.talent",
+    pack: null,
+    isEmbedded: true,
+    actor: { name: "Token Nemesis" },
+    system: {
+      attributes: {
+        Cool: { mod: "Cool", modtype: "Skill Boost", value: 1 },
+      },
+    },
+    getEmbeddedCollection: () => [{ name: "Cool" }],
+  };
+  const tokenActor = { items: [] };
+  const staleTokenItem = {
+    ...replacement,
+    name: "Detached token talent",
+    getEmbeddedCollection: () => [],
+    createEmbeddedDocuments: async () => { staleTokenCreates += 1; },
+  };
+  tokenActor.items = [staleTokenItem];
+
+  const baseItem = {
+    ...replacement,
+    name: "Base talent",
+    uuid: "Actor.actor.Item.talent",
+    actor: { name: "Base Nemesis" },
+    getEmbeddedCollection: () => [],
+    createEmbeddedDocuments: async () => {
+      baseCreates += 1;
+      // Mirrors TokenDocument#_onUpdateBaseActor: the synthetic collection is rebuilt and
+      // the Item captured before the base repair becomes detached.
+      tokenActor.items = [replacement];
+    },
+  };
+  Object.assign(game, {
+    items: [],
+    actors: [{ items: [baseItem] }],
+    scenes: [{ tokens: [{ actorLink: false, actor: tokenActor }] }],
+  });
+
+  const report = await ItemHelpers.repairModifierEffects();
+
+  assert.equal(baseCreates, 1);
+  assert.equal(staleTokenCreates, 0);
+  assert.equal(report.scanned, 2);
+  assert.deepEqual(report.changed.map((entry) => entry.uuid), [baseItem.uuid]);
+});
