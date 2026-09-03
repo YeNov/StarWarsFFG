@@ -118,3 +118,30 @@ test("reconciles talents hydrated inside a newly created actor", async () => {
     { key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 1 },
   ]);
 });
+
+test("the repair sweep includes talent items owned only by an unlinked token actor", async () => {
+  const item = {
+    type: "talent",
+    name: "Token-only Skilled Jockey",
+    uuid: "Scene.scene.Token.token.Actor.actor.Item.skilled-jockey",
+    pack: null,
+    isEmbedded: true,
+    actor: { name: "Token Nemesis" },
+    system: {
+      attributes: {
+        "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 },
+      },
+    },
+    getEmbeddedCollection: () => [],
+  };
+  Object.assign(game, {
+    items: [],
+    actors: [],
+    scenes: [{ tokens: [{ actorLink: false, actor: { items: [item] } }] }],
+  });
+
+  const report = await ItemHelpers.repairModifierEffects({ dryRun: true });
+
+  assert.equal(report.scanned, 1);
+  assert.deepEqual(report.changed.map((entry) => entry.uuid), [item.uuid]);
+});

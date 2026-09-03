@@ -645,6 +645,16 @@ export default class ItemHelpers {
     const report = { scanned: 0, changed: [] };
     const targets = [...game.items];
     for (const actor of game.actors) targets.push(...actor.items);
+    // Unlinked tokens may own Item overrides (or entirely token-local Items) in their ActorDelta.
+    // Those synthetic actors are not members of game.actors, so a world-actor-only sweep leaves
+    // their talent effects untouched. Inherited Items are safe to revisit: reconciliation matches
+    // effects by name and creates nothing when the base actor's repair has already propagated.
+    for (const scene of game.scenes ?? []) {
+      for (const token of scene.tokens ?? []) {
+        if (token.actorLink || !token.actor) continue;
+        targets.push(...token.actor.items);
+      }
+    }
 
     for (const item of targets) {
       if (ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) {
