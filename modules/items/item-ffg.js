@@ -292,41 +292,31 @@ export class ItemFFG extends ItemBaseFFG {
       await itemEffect.update({changes: newChanges});
     }
 
-    // Attribute effects normally change when their source attribute changes. A ranked
-    // talent also changes every numeric grant when its rank changes, even though the
-    // attributes themselves are untouched by that update.
-    const attributeKeysToSync = new Set(Object.keys(changed?.system?.attributes ?? {}));
-    const plannedFreeformEffects = new Map(
-      ModifierHelpers.planAttributeEffects(this).map(effect => [effect.name, effect.changes])
-    );
-    if (this.type === "talent" && changed?.system?.ranks) {
-      for (const attrKey of plannedFreeformEffects.keys()) attributeKeysToSync.add(attrKey);
-    }
-
-    // iterate over the changed data to look for any changes to attributes
-    if (attributeKeysToSync.size) {
-      for (const attrKey of attributeKeysToSync) {
+    // iterate over the changed data to look for any changes to attributes.
+    // A rank change deliberately does NOT resync here: the stored effect holds the per-rank
+    // grant and ActorFFG#applyActiveEffects derives the total, so there is nothing to rewrite --
+    // and rewriting would silently discard an effect the user edited through Foundry's own
+    // Active Effect config, which the repair sweep goes to trouble to preserve.
+    if (changed?.system?.attributes) {
+      for (const attrKey of Object.keys(changed.system.attributes)) {
         const existingEffect = existingEffects.find(i => i.name === attrKey);
         const attr = this.system.attributes[attrKey];
-        let changes = plannedFreeformEffects.get(attrKey);
-        if (!changes) {
-          // Defensive: only explode mods if modtype and mod are defined
-          let explodedMods = [];
-          if (attr && typeof attr.modtype !== 'undefined' && typeof attr.mod !== 'undefined') {
-            explodedMods = ModifierHelpers.explodeMod(attr.modtype, attr.mod);
-          }
+        // Defensive: only explode mods if modtype and mod are defined
+        let explodedMods = [];
+        if (attr && typeof attr.modtype !== 'undefined' && typeof attr.mod !== 'undefined') {
+          explodedMods = ModifierHelpers.explodeMod(attr.modtype, attr.mod);
+        }
 
-          changes = [];
-          for (const curMod of explodedMods) {
-            const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
-            // undefined for an unrecognised mod -- a keyless change applies to nothing
-            if (!key) continue;
-            changes.push({
-              key,
-              mode: AE_MODES.ADD,
-              value: attr?.value,
-            });
-          }
+        const changes = [];
+        for (const curMod of explodedMods) {
+          const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+          // undefined for an unrecognised mod -- a keyless change applies to nothing
+          if (!key) continue;
+          changes.push({
+            key,
+            mode: AE_MODES.ADD,
+            value: attr?.value,
+          });
         }
 
         if (existingEffect) {

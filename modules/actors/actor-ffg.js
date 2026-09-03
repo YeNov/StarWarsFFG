@@ -788,6 +788,23 @@ export class ActorFFG extends Actor {
       }
     }
 
+    // Scale a ranked talent's modifiers by its current rank, for the same reason and from the
+    // same source: the Active Effect persists the PER-RANK grant, so changing the rank updates
+    // the modifier without rewriting (and risking staling) the stored effect, and a compendium
+    // copy carries the right value however it reaches an actor.
+    for (const effect of this.allApplicableEffects()) {
+      const sourceItem = effect.parent;
+      if (sourceItem?.documentName !== "Item") continue;
+      const rank = ModifierHelpers.rankMultiplier(sourceItem);
+      if (rank === 1) continue; // unranked, or a rank that would not usefully scale
+      for (let idx = 0; idx < effect.changes.length; idx++) {
+        const change = effect.changes[idx];
+        const baseValue = Number(effect._source?.changes?.[idx]?.value ?? change.value);
+        if (!Number.isFinite(baseValue)) continue; // checkbox grants (Career Skill) are switches
+        change.value = baseValue * rank;
+      }
+    }
+
     // Compute the effective Force rating so we can fill in the Force-Boost skill dice below.
     // IMPORTANT: allApplicableEffects() also yields *inactive* (disabled/suppressed) effects.
     // Core skips those inside applyActiveEffects via `!effect.active`, and we must do the same:

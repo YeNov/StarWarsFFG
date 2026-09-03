@@ -496,10 +496,13 @@ export default class ModifierHelpers {
         // a mod with no property path (the "Remove Setback" roll modifier, weapon stats)
         // is read off the rolled item itself; a keyless change applies to nothing
         if (!modPath) continue;
+        // The PER-RANK grant is what gets persisted. A ranked talent's total is derived at apply
+        // time from this base (ActorFFG.applyActiveEffects), so the stored effect never goes
+        // stale when the rank changes and a compendium copy is correct however it is dragged out.
         changes.push({
           key: modPath,
           mode: AE_MODES.ADD,
-          value: ModifierHelpers.getAttributeEffectValue(itemData, attribute),
+          value: attribute.value,
         });
       }
       if (changes.length) planned.push({ name: key, changes });
@@ -508,21 +511,22 @@ export default class ModifierHelpers {
   }
 
   /**
-   * Resolve the value stored in a free-form attribute Active Effect. Ranked talents grant
-   * each numeric modifier once per purchased rank, while checkbox grants remain switches.
+   * How many times a ranked talent grants each of its numeric modifiers. Applied to the stored
+   * per-rank value at effect-application time, mirroring the quantity scaling in
+   * `ActorFFG#applyActiveEffects`.
+   *
+   * A rank that is not a usable number never scales the grant away: `ranks.current` is a nullable
+   * NumberField and a cleared Rank field persists `null`, which `Number()` would turn into a
+   * silent 0 and wipe the modifier.
    *
    * @param {object} itemData - an ItemFFG or equivalent plain `{type, system}`
-   * @param {object} attribute - one entry from `system.attributes`
-   * @returns {*} the value to persist on the Active Effect change
+   * @returns {number} the multiplier, always >= 1
    */
-  static getAttributeEffectValue(itemData, attribute) {
-    if (!itemData?.system?.ranks?.ranked) return attribute?.value;
-    if (typeof attribute?.value === "boolean" || attribute?.isCheckbox === true) return attribute?.value;
-
-    const value = Number(attribute?.value);
+  static rankMultiplier(itemData) {
+    if (!itemData?.system?.ranks?.ranked) return 1;
     const rank = Number(itemData.system.ranks.current);
-    if (!Number.isFinite(value) || !Number.isFinite(rank)) return attribute?.value;
-    return value * rank;
+    if (!Number.isFinite(rank) || rank < 1) return 1;
+    return rank;
   }
 
   /**
@@ -722,17 +726,6 @@ export default class ModifierHelpers {
     const existing = item.getEmbeddedCollection("ActiveEffect");
     const toDelete = [];
     const toCreate = [];
-    const plannedFreeformEffects = new Map(ModifierHelpers.planAttributeEffects({
-      type: item.type,
-      system: {
-        ...item.system,
-        attributes: formData.data?.attributes ?? item.system?.attributes,
-        ranks: {
-          ...item.system?.ranks,
-          ...formData.data?.ranks,
-        },
-      },
-    }).map(effect => [effect.name, effect.changes]));
 
     // first update anything inherent to the item type (such as "brawn" on "species")
     const inherentEffectName = `(inherent)`;
@@ -854,25 +847,22 @@ export default class ModifierHelpers {
     if (formData.data?.attributes) {
       for (let k of Object.keys(formData.data.attributes)) {
         const match = existing.find(i => i.name === k);
-        let changes = plannedFreeformEffects.get(k);
-        if (!changes) {
-          const explodedMods = ModifierHelpers.explodeMod(
-            formData.data.attributes[k].modtype,
-            formData.data.attributes[k].mod
-          );
+        const explodedMods = ModifierHelpers.explodeMod(
+          formData.data.attributes[k].modtype,
+          formData.data.attributes[k].mod
+        );
 
-          changes = [];
-          for (const curMod of explodedMods) {
-            const modPath = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
-            // an unrecognised mod yields undefined here; persisting a keyless change creates an
-            // effect that applies to nothing and cannot be diagnosed from the sheet
-            if (!modPath) continue;
-            changes.push({
-              key: modPath,
-              mode: AE_MODES.ADD,
-              value: formData.data.attributes[k].value,
-            });
-          }
+        const changes = [];
+        for (const curMod of explodedMods) {
+          const modPath = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+          // an unrecognised mod yields undefined here; persisting a keyless change creates an
+          // effect that applies to nothing and cannot be diagnosed from the sheet
+          if (!modPath) continue;
+          changes.push({
+            key: modPath,
+            mode: AE_MODES.ADD,
+            value: formData.data.attributes[k].value,
+          });
         }
 
         // check if an active effect exists - create it if not, update it if it does

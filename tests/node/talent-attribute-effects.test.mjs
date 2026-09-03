@@ -51,12 +51,28 @@ test("keeps the sheet's own attr-keyed modifiers, so both naming styles work", (
   }]);
 });
 
-test("multiplies a ranked talent's numeric effects by its current rank", () => {
+test("stores a ranked talent's PER-RANK grant, not the multiplied total", () => {
+  // The rank multiplier is applied at effect-application time (ActorFFG#applyActiveEffects),
+  // so the persisted value stays the per-rank grant and never goes stale when the rank changes.
   const effects = ModifierHelpers.planAttributeEffects(talent({
     "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 },
   }, { ranked: true, current: 3 }));
 
-  assert.equal(effects[0].changes[0].value, 3);
+  assert.equal(effects[0].changes[0].value, 1);
+});
+
+test("scales a ranked talent by its current rank at apply time", () => {
+  assert.equal(ModifierHelpers.rankMultiplier(talent({}, { ranked: true, current: 3 })), 3);
+  assert.equal(ModifierHelpers.rankMultiplier(talent({}, { ranked: false, current: 3 })), 1);
+  assert.equal(ModifierHelpers.rankMultiplier(talent({}, undefined)), 1);
+});
+
+test("a rank that is not a usable number never scales a grant away", () => {
+  // `ranks.current` is a nullable NumberField and a cleared Rank field persists null.
+  // Number(null) and Number("") are both 0, which would silently wipe the modifier.
+  for (const current of [null, "", undefined, NaN, 0, -2, "nonsense"]) {
+    assert.equal(ModifierHelpers.rankMultiplier(talent({}, { ranked: true, current })), 1, `rank ${current}`);
+  }
 });
 
 test("does not multiply a ranked talent's checkbox grants", () => {
@@ -135,8 +151,11 @@ test("reconciles talents hydrated inside a newly created actor", async () => {
   ]);
 });
 
-test("rescales an existing ranked effect only when it matches the legacy payload", async () => {
-  const updates = [];
+test("leaves an existing ranked effect alone - there is nothing to migrate", async () => {
+  // The stored value is the per-rank grant, which is exactly what an effect written before
+  // rank scaling existed already holds, so reconciliation stays create-only and no repair
+  // pass can rewrite a working effect (or a hand-edited one) behind the user's back.
+  let updated = false;
   const item = {
     type: "talent",
     name: "Ranked Skilled Jockey",
@@ -156,17 +175,14 @@ test("rescales an existing ranked effect only when it matches the legacy payload
       disabled: false,
       changes: [{ key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 1 }],
     }],
-    updateEmbeddedDocuments: async (_type, effects) => updates.push(...effects),
+    updateEmbeddedDocuments: async () => { updated = true; },
   };
 
   const summary = await ItemHelpers.reconcileAttributeEffects(item);
 
   assert.deepEqual(summary.created, []);
-  assert.deepEqual(summary.updated.map((entry) => entry.name), ["Piloting:_Space"]);
-  assert.deepEqual(updates, [{
-    _id: "legacy-effect",
-    changes: [{ key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 3 }],
-  }]);
+  assert.deepEqual(summary.updated, []);
+  assert.equal(updated, false);
 });
 
 test("preserves a hand-edited ranked talent effect during repair", async () => {
