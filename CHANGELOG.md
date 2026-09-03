@@ -2,6 +2,7 @@
 
 * Fixed — **a talent granted as a standalone item did nothing**. Its modifiers (Skilled Jockey's removed setback, say) applied only when the talent was bought from a specialization tree, so adversaries — which have no trees — never got them. Talents added from now on work as dropped.
   * **Talents already on an actor need one repair pass.** As a GM, reload and run `await game.starwarsffg.repairModifierEffects()` in the console; add `{dryRun: true}` first to see what it would change.
+* Fixed — **installing a ship attachment charged its hard points twice on the Codex II vehicle sheet**. A 2/5 ship fitted with a 2-HP attachment read 4/3: the cost was added to the used count and subtracted from the rating at the same time. The readout now shows hard points used of the hull's own rating, and the rating is what the field edits.
 * Fixed — **vehicle shield zones on the Codex II sheets**. On a ship whose shields were boosted by an attachment, “+” moved a zone by two and “−” did nothing. Zones now read *current of rating* like Speed and step freely in either direction, so points can be shifted between them.
 * Fixed — **stats boosted by an active effect crept upward every time an actor sheet was saved**. The boosted value was written back as the stored one and the effect then added its bonus again on top.
 

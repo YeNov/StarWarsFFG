@@ -30,6 +30,7 @@ import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
+import { vehicleHardpoints } from "../helpers/vehicle-hardpoints.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
@@ -1418,8 +1419,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         ctx.cdxMinionWoundHint = game.i18n.format("SWFFG.Codex.WoundsSuffered", { n: unit });
       } catch (e) { ctx.cdxMinionGroups = []; }
     }
-    // Vehicle derived data: hull/strain damage tracks, hardpoints used (sum of
-    // attachment hardpoints), crew count, and a compact cost string.
+    // Vehicle derived data: hull/strain damage tracks, hard points used/rating,
+    // crew count, and a compact cost string.
     if (this.actor?.type === "vehicle") {
       try {
         const s = this.actor.system?.stats ?? {};
@@ -1427,13 +1428,20 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           hull: this._cdxTrack(Number(s.hullTrauma?.value) || 0, Number(s.hullTrauma?.max) || 0),
           strain: this._cdxTrack(Number(s.systemStrain?.value) || 0, Number(s.systemStrain?.max) || 0),
         };
-        let hpUsed = 0, crew = 0, crit = 0;
+        let crew = 0, crit = 0;
         for (const it of (this.actor.items ?? [])) {
-          if (it.type === "shipattachment") hpUsed += Number(it.system?.hardpoints?.value) || 0;
           if (it.type === "shipcrew") crew += 1;
           if (it.type === "criticaldamage") crit += 1;
         }
-        ctx.cdxVehHpUsed = hpUsed;
+        // Hard points are used-of-rating. The stored stat is NOT the rating: each
+        // attachment subtracts its own cost from it through an inherent Active
+        // Effect, so pairing the summed costs with it charged every attachment
+        // twice (2/5 became 4/3 on a 2-HP install). vehicleHardpoints gives the
+        // rating back. The edit field is bound to the rating for the same reason —
+        // submitting the sheet must not bake an attachment spend into the source.
+        const hp = vehicleHardpoints(this.actor);
+        ctx.cdxVehHpUsed = hp.used;
+        ctx.cdxVehHpMax = hp.max;
         ctx.cdxVehCrewCount = crew;
         ctx.cdxVehCritCount = crit;
         const cost = Number(s.cost?.value) || 0;
