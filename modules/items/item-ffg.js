@@ -304,27 +304,41 @@ export class ItemFFG extends ItemBaseFFG {
       await itemEffect.update({changes: newChanges});
     }
 
+    // Attribute effects normally change when their source attribute changes. A ranked
+    // talent also changes every numeric grant when its rank changes, even though the
+    // attributes themselves are untouched by that update.
+    const attributeKeysToSync = new Set(Object.keys(changed?.system?.attributes ?? {}));
+    const plannedFreeformEffects = new Map(
+      ModifierHelpers.planAttributeEffects(this).map(effect => [effect.name, effect.changes])
+    );
+    if (this.type === "talent" && changed?.system?.ranks) {
+      for (const attrKey of plannedFreeformEffects.keys()) attributeKeysToSync.add(attrKey);
+    }
+
     // iterate over the changed data to look for any changes to attributes
-    if (changed?.system?.attributes) {
-      for (const attrKey of Object.keys(changed.system.attributes)) {
+    if (attributeKeysToSync.size) {
+      for (const attrKey of attributeKeysToSync) {
         const existingEffect = existingEffects.find(i => i.name === attrKey);
         const attr = this.system.attributes[attrKey];
-        // Defensive: only explode mods if modtype and mod are defined
-        let explodedMods = [];
-        if (attr && typeof attr.modtype !== 'undefined' && typeof attr.mod !== 'undefined') {
-          explodedMods = ModifierHelpers.explodeMod(attr.modtype, attr.mod);
-        }
+        let changes = plannedFreeformEffects.get(attrKey);
+        if (!changes) {
+          // Defensive: only explode mods if modtype and mod are defined
+          let explodedMods = [];
+          if (attr && typeof attr.modtype !== 'undefined' && typeof attr.mod !== 'undefined') {
+            explodedMods = ModifierHelpers.explodeMod(attr.modtype, attr.mod);
+          }
 
-        const changes = [];
-        for (const curMod of explodedMods) {
-          const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
-          // undefined for an unrecognised mod -- a keyless change applies to nothing
-          if (!key) continue;
-          changes.push({
-            key,
-            mode: AE_MODES.ADD,
-            value: attr?.value,
-          });
+          changes = [];
+          for (const curMod of explodedMods) {
+            const key = ModifierHelpers.getModKeyPath(curMod['modType'], curMod['mod']);
+            // undefined for an unrecognised mod -- a keyless change applies to nothing
+            if (!key) continue;
+            changes.push({
+              key,
+              mode: AE_MODES.ADD,
+              value: attr?.value,
+            });
+          }
         }
 
         if (existingEffect) {

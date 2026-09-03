@@ -24,7 +24,7 @@ import ItemHelpers from "../../modules/helpers/item-helpers.js";
  * attributes produce", used at item-create time, on sheet save, and by the repair sweep.
  */
 
-const talent = (attributes) => ({ type: "talent", system: { attributes } });
+const talent = (attributes, ranks = undefined) => ({ type: "talent", system: { attributes, ranks } });
 
 test("plans one effect per attribute, named after the attribute key", () => {
   // The real Skilled Jockey payload, as stored in the yn-talents pack.
@@ -49,6 +49,22 @@ test("keeps the sheet's own attr-keyed modifiers, so both naming styles work", (
     name: "attr1788201846321",
     changes: [{ key: "system.skills.Cool.boost", mode: AE_MODES.ADD, value: 2 }],
   }]);
+});
+
+test("multiplies a ranked talent's numeric effects by its current rank", () => {
+  const effects = ModifierHelpers.planAttributeEffects(talent({
+    "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 },
+  }, { ranked: true, current: 3 }));
+
+  assert.equal(effects[0].changes[0].value, 3);
+});
+
+test("does not multiply a ranked talent's checkbox grants", () => {
+  const effects = ModifierHelpers.planAttributeEffects(talent({
+    Brawl: { mod: "Brawl", modtype: "Career Skill", value: true, isCheckbox: true },
+  }, { ranked: true, current: 3 }));
+
+  assert.equal(effects[0].changes[0].value, true);
 });
 
 test("explodes a modifier that targets more than one path", () => {
