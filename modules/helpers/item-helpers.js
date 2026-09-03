@@ -567,8 +567,47 @@ export default class ItemHelpers {
   }
 
   /**
+   * Create the Active Effects a freeform-attribute item (a talent) is missing, from its own
+   * attributes. The item-create counterpart of `ItemFFG#_onCreateAttributeAEs`, for the
+   * items that were already in the world before that ran.
+   *
+   * Create-only by design, unlike `reconcileModifierEffects`: a talent's effects are named
+   * after hand-authored attribute keys, so an effect that is present but does not match the
+   * plan may well be one the user edited through Foundry's own Active Effect config. Editing
+   * the modifier on the talent sheet still updates its effect (see applyActiveEffectOnUpdate).
+   *
+   * @param {ItemFFG} item
+   * @param {object} [options]
+   * @param {boolean} [options.dryRun=false] - report what would be created without creating it
+   * @returns {Promise<{created: string[], updated: [], deleted: [], renamed: [], warnings: []}|null>}
+   */
+  static async reconcileAttributeEffects(item, { dryRun = false } = {}) {
+    if (!item || item.pack) return null;
+    if (item.isEmbedded && item.actor?.compendium?.metadata) return null;
+
+    const planned = ModifierHelpers.planAttributeEffects(item);
+    if (!planned.length) return null;
+
+    const existing = item.getEmbeddedCollection("ActiveEffect");
+    const toCreate = planned.filter((effect) => !existing.find((candidate) => candidate.name === effect.name));
+    const summary = { created: toCreate.map((effect) => effect.name), updated: [], deleted: [], renamed: [], warnings: [] };
+    if (dryRun || !toCreate.length) return summary;
+
+    await item.createEmbeddedDocuments(
+      "ActiveEffect",
+      toCreate.map((effect) => ({ ...effect, img: item.img })),
+      { render: false },
+    );
+    CONFIG.logger.debug(`Created ${toCreate.length} attribute Active Effect(s) on ${item.name}`, summary);
+    return summary;
+  }
+
+  /**
    * Run `reconcileModifierEffects` over every weapon / armour / attachment in the world, so
-   * items corrupted before the reconciler existed are repaired without opening each sheet.
+   * items corrupted before the reconciler existed are repaired without opening each sheet,
+   * and `reconcileAttributeEffects` over every talent, so one whose modifiers never became
+   * Active Effects (imported talents, which name their attributes after the modifier) starts
+   * applying them.
    *
    * Intended to be called by a GM from the console:
    *   `await game.starwarsffg.repairModifierEffects({dryRun: true})` to preview,
@@ -584,6 +623,14 @@ export default class ItemHelpers {
     for (const actor of game.actors) targets.push(...actor.items);
 
     for (const item of targets) {
+      if (ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) {
+        report.scanned += 1;
+        const summary = await ItemHelpers.reconcileAttributeEffects(item, { dryRun });
+        if (summary?.created.length) {
+          report.changed.push({ item: item.name, actor: item.actor?.name ?? null, uuid: item.uuid, ...summary });
+        }
+        continue;
+      }
       if (!ItemHelpers.RECONCILABLE_TYPES.includes(item.type)) continue;
       report.scanned += 1;
       const summary = await ItemHelpers.reconcileModifierEffects(item, { dryRun });
