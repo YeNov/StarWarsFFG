@@ -12,12 +12,13 @@
  * a 2-HP attachment made it 4/3 rather than 4/5.
  *
  * So the rating is reconstructed here: take the prepared value and give back
- * exactly what the attachments' `(inherent)` effects took from it. Anything else
- * that touches the path -- including a separate effect on the same attachment
- * that GRANTS hard points -- is left in, and an
- * attachment whose effect never got its cost written (they are created zeroed
- * and only filled in when the item sheet is submitted) still spends its hard
- * points through `used`, so the pair stays consistent either way.
+ * exactly what the attachments SPENT out of it -- every negative ADD on the path
+ * from a `shipattachment`, whichever effect carries it. Anything that GRANTS hard
+ * points is positive and is left in, so an attachment that adds capacity raises
+ * the rating instead of being mistaken for part of its own cost. An attachment
+ * whose effect never got its cost written (they are created zeroed and only
+ * filled in when the item sheet is submitted) still spends its hard points
+ * through `used`, so the pair stays consistent either way.
  *
  * Pure and dependency-free (no imports, no game/DOM access) so it can be unit
  * tested headlessly.
@@ -64,11 +65,16 @@ export function vehicleHardpoints(actor) {
   let spent = 0;
   for (const effect of appliedEffectsOf(actor)) {
     if (effect?.parent?.type !== "shipattachment") continue;
-    if (effect.name !== "(inherent)") continue;
     for (const change of effect.changes ?? []) {
       if (change?.key !== HARDPOINT_PATH) continue;
       if ((change.mode ?? AE_MODE_ADD) !== AE_MODE_ADD) continue;
-      spent += Number(change.value) || 0;
+      const value = Number(change.value) || 0;
+      // Only a SPEND is given back. A cost is always written negative (modifiers.js writes
+      // `hardpoints.value * -1`), a grant positive, so the sign is the structural signal --
+      // unlike the effect's name, which the user can change in Foundry's own AE config and
+      // which a cost authored as a modifier row never carries in the first place.
+      if (value >= 0) continue;
+      spent += value;
     }
   }
 
