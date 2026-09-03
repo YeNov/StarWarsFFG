@@ -746,13 +746,24 @@ export class ActorFFG extends Actor {
     return allowed !== false ? this.update(updates) : this;
   }
 
-  /** @override **/
-  applyActiveEffects(...args) {
+  /**
+   * Hide every effect from this client while it owns Edit Mode. Filtering at the
+   * applicability boundary keeps all consumers consistent: core can still clear
+   * `overrides` and `statuses`, while `appliedEffects` no longer exposes effects
+   * that were deliberately withheld from prepared actor data.
+   * @override
+   */
+  *allApplicableEffects() {
     // Edit Mode ownership is persisted, but the source-only disabled state applied by
     // beginEditMode is intentionally not. Suppress effect application from the persisted
     // flags as well so reloading while editing cannot bring the effects back while leaving
     // the source fields editable. Other clients still prepare this actor normally.
     if (ActorHelpers.isEditModeOwner(this)) return;
+    yield* super.allApplicableEffects();
+  }
+
+  /** @override **/
+  applyActiveEffects(...args) {
 
     // Scale each item's modifiers by its quantity (e.g. carrying 2 of a gear item that grants
     // +1 Encumbrance capacity should grant +2). The Active Effect persists the per-item value;

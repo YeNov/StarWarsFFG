@@ -19,16 +19,20 @@ test("recognizes only the client that owns persisted Edit Mode", () => {
   assert.equal(ActorHelpers.isEditModeOwner(undefined), false);
 });
 
-test("ActorFFG skips Active Effect application before touching any effects", () => {
+test("ActorFFG filters applicable effects but still lets core clear its state", () => {
   // ActorFFG cannot be imported into the deliberately minimal Node tier because it extends
   // Foundry's Actor document. Keep a narrow wiring assertion here while the state predicate
   // above remains a normal executable unit test.
   const source = fs.readFileSync(new URL("../../modules/actors/actor-ffg.js", import.meta.url), "utf8");
-  const method = source.indexOf("applyActiveEffects(...args)");
-  const guard = source.indexOf("ActorHelpers.isEditModeOwner(this)", method);
-  const firstEffectRead = source.indexOf("this.allApplicableEffects()", method);
+  const applicable = source.indexOf("*allApplicableEffects()");
+  const guard = source.indexOf("ActorHelpers.isEditModeOwner(this)", applicable);
+  const parentEffects = source.indexOf("yield* super.allApplicableEffects()", guard);
+  const apply = source.indexOf("applyActiveEffects(...args)", parentEffects);
+  const parentApply = source.indexOf("return super.applyActiveEffects(...args)", apply);
 
-  assert.ok(method >= 0);
-  assert.ok(guard > method);
-  assert.ok(firstEffectRead > guard);
+  assert.ok(applicable >= 0);
+  assert.ok(guard > applicable);
+  assert.ok(parentEffects > guard);
+  assert.ok(apply > parentEffects);
+  assert.ok(parentApply > apply);
 });
