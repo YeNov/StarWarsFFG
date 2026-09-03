@@ -48,6 +48,7 @@ import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { ReplaceDie } from "./helpers/replace-die.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
+import { shouldApplySkillTheme } from "./helpers/skill-theme.js";
 import DataImporter from "./importer/data-importer.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
 import RollBuilderFFG from "./dice/roll-builder.js";
@@ -859,26 +860,37 @@ Hooks.once("init", async function () {
       console.error(err);
     }
 
-    Hooks.on("createActor", (actor) => {
-      if (actor.type !== "vehicle" && actor.type !== "homestead") {
-        if (CONFIG.FFG?.alternateskilllists?.length) {
-          let skilllist = game.settings.get("starwarsffg", "skilltheme");
-          try {
-            let skills = JSON.parse(JSON.stringify(CONFIG.FFG.alternateskilllists.find((list) => list.id === skilllist)));
-            CONFIG.logger.log(`Applying skill theme ${skilllist} to actor`);
-
-            if (!actor?.flags?.starwarsffg?.hasOwnProperty('ffgimportid') && JSON.stringify(Object.keys(skills.skills).sort()) !== JSON.stringify(Object.keys(actor.system.skills).sort())) {
-              // only apply the skills if it wasn't an imported actor and the skills loaded are not the same
-              actor.update({
-                system: {
-                  skills: skills.skills,
-                },
-              });
-            }
-          } catch (err) {
-            CONFIG.logger.warn(err);
-          }
-        }
+    // Give an actor created blank the world's skill theme instead of the stock Star Wars list the
+    // DataModel defaults to.
+    //
+    // This runs in preCreate, not createActor, for two reasons. It has to read the actor's SOURCE
+    // skills: by the time the document exists, prepareDerivedData has merged the theme's
+    // definitions in and pruned everything outside CONFIG.FFG.skills, so the prepared dictionary
+    // already resembles the theme whatever was stored. And preCreate runs only on the client that
+    // initiated the create, so the theme is folded into the document being written rather than
+    // chased with a second update() that every connected client would race to submit.
+    Hooks.on("preCreateActor", (actor) => {
+      if (actor.type === "vehicle" || actor.type === "homestead") return;
+      if (!CONFIG.FFG?.alternateskilllists?.length) return;
+      try {
+        const skilllist = game.settings.get("starwarsffg", "skilltheme");
+        const theme = CONFIG.FFG.alternateskilllists.find((list) => list.id === skilllist);
+        const stock = defaultSkillList.find((list) => list.id === "starwars")?.skills;
+        // The theme dictionary is rank 0 throughout, so writing it over authored skills erases
+        // them (issue #62). shouldApplySkillTheme only says yes for a dictionary still identical
+        // to the DataModel default; see helpers/skill-theme.js.
+        if (!shouldApplySkillTheme(actor._source?.system?.skills, theme?.skills, stock)) return;
+        CONFIG.logger.log(`Applying skill theme ${skilllist} to actor`);
+        // `==skills`, not `skills`: `skills` is a TypedObjectField, whose _updateDiff merges the
+        // proposed entries into the stored ones key by key (common/data/fields.mjs), so a plain
+        // write would leave every stock skill the theme has no entry for (Astrogation in a Genesys
+        // world, say) behind in _source. They are invisible - prepareDerivedData prunes anything
+        // outside CONFIG.FFG.skills - but they are still stored, and would resurface if the world
+        // ever went back to the stock list. `==` is the schema's forced-replacement key and swaps
+        // the whole dictionary.
+        actor.updateSource({ "system.==skills": JSON.parse(JSON.stringify(theme.skills)) });
+      } catch (err) {
+        CONFIG.logger.warn(err);
       }
     });
 
