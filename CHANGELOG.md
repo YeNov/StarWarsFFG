@@ -14,6 +14,7 @@
 * Fixed — **stats boosted by an active effect crept upward every time an actor sheet was saved**. The boosted value was written back as the stored one and the effect then added its bonus again on top.
 * Fixed — **granting XP could leave a character with every Active Effect switched off for everyone**. If the grant failed part-way — from the group manager or by buying an item on the sheet — the effects it had suspended were never switched back on, and characteristics, soak and defence stayed collapsed to their base values.
 * Fixed — **reloading while Edit Mode was enabled brought Active Effects back without locking the source fields**. The editing player could change a field, but the sheet mistook that value for an effect override and silently discarded it. Effects now remain suspended for that player until Edit Mode is turned off, and another GM can turn it off without leaving client-local effects stuck disabled.
+  * Opening Sheet Options for an unrelated setting no longer takes the editing session away from another GM who is using it.
 
 `2.1.1`
 A hotfix for `2.1.0`.

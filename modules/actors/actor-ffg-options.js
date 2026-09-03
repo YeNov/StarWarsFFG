@@ -145,7 +145,16 @@ export default class ActorOptions {
               // ActorFFG filters all applicable effects for this client from these persisted
               // flags. Keeping suspension in document preparation means another GM can also
               // turn the mode off without leaving client-local effect sources disabled.
-              updateObject[`flags.starwarsffg.config.editModeActor`] = game.user.id;
+              //
+              // Claim ownership only if nobody holds it. The checkbox renders from the shared
+              // flag, so it shows ticked to everyone: reassigning on every Accept would let a
+              // GM who opened this dialog for an unrelated setting silently take the session
+              // from whoever is mid-edit -- locking their fields, and suppressing every effect
+              // for a bystander who never asked for Edit Mode.
+              const owner = this.data.object.getFlag("starwarsffg", "config.editModeActor");
+              if (!owner || !game.users.get(owner)?.active) {
+                updateObject[`flags.starwarsffg.config.editModeActor`] = game.user.id;
+              }
             } else {
               updateObject[`flags.starwarsffg.config.editModeActor`] = "";
             }
