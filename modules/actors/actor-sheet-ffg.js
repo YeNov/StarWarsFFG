@@ -404,9 +404,10 @@ export class ActorSheetFFG extends FFGActorSheet {
     }
 
     data.actor.items = ActorSheetFFG.sortForActorSheet(data.actor.items);
-    const editModeEnabled = this.object.getFlag("starwarsffg", "config.enableEditMode");
-    const editModeActor = this.object.getFlag("starwarsffg", "config.editModeActor");
-    data.disabled = !(editModeEnabled && editModeActor === game.user.id);
+    // Same predicate ActorFFG#allApplicableEffects uses to withhold effects. The two MUST agree:
+    // unlocking a field whose effect is still applied is what makes an AE-boosted stat creep on
+    // every submit, so they read from one helper rather than a second hand-written copy.
+    data.disabled = !ActorHelpers.isEditModeOwner(this.object);
 
     data.modTypeSelected = "all"; // TODO: should this be something else?
     data.modifierTypes = CONFIG.FFG.allowableModifierTypes;

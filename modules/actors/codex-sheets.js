@@ -32,6 +32,7 @@ import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers
 import { placeCodexPopup } from "./codex-popup-position.js";
 import { vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings } from "../helpers/vehicle-hardpoints.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
+import ActorHelpers from "../helpers/actor-helpers.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -548,12 +549,14 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // Reflect FFG edit mode as a class so view-only chrome can hide itself when
     // editing is off — e.g. the career-skill ("CS") column, which is redundant
     // with the left career highlight. Mirrors data.disabled in the base getData.
-    const editEnabled = !!this.actor?.getFlag?.("starwarsffg", "config.enableEditMode");
-    const editOn = !!(
-      editEnabled &&
-      this.actor?.getFlag?.("starwarsffg", "config.editModeActor") === game.user?.id
-    );
+    // One predicate, shared with the base getData and with ActorFFG#allApplicableEffects — see
+    // ActorHelpers.isEditModeOwner for why field editability and effect suppression must agree.
+    const editOn = ActorHelpers.isEditModeOwner(this.actor);
     (form ?? root).classList.toggle("cdx-editmode", editOn);
+    // Deliberately NOT the ownership predicate: the purchase/delete handlers reject while the
+    // mode is on for anybody (ActorFFG#verifyEditModeIsNotEnabled tests the bare flag), so the
+    // XP-buy gate below has to test the same bare flag or it would offer a purchase that fails.
+    const editEnabled = !!this.actor?.getFlag?.("starwarsffg", "config.enableEditMode");
 
     // Reflect GM status as a class so GM-only chrome can hide itself for players —
     // currently the per-pill delete cross (species/career/spec/force/sig). CSS
