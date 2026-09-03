@@ -860,27 +860,30 @@ Hooks.once("init", async function () {
       console.error(err);
     }
 
-    Hooks.on("createActor", (actor) => {
-      if (actor.type !== "vehicle" && actor.type !== "homestead") {
-        if (CONFIG.FFG?.alternateskilllists?.length) {
-          let skilllist = game.settings.get("starwarsffg", "skilltheme");
-          try {
-            const theme = CONFIG.FFG.alternateskilllists.find((list) => list.id === skilllist);
-            // The theme dictionary is rank 0 across the board, so applying it to an actor that was
-            // created from authored data erases its ranks rather than re-theming it (issue #62).
-            // shouldApplySkillTheme decides; see helpers/skill-theme.js.
-            if (shouldApplySkillTheme(actor, theme?.skills)) {
-              CONFIG.logger.log(`Applying skill theme ${skilllist} to actor`);
-              actor.update({
-                system: {
-                  skills: JSON.parse(JSON.stringify(theme.skills)),
-                },
-              });
-            }
-          } catch (err) {
-            CONFIG.logger.warn(err);
-          }
-        }
+    // Give an actor created blank the world's skill theme instead of the stock Star Wars list the
+    // DataModel defaults to.
+    //
+    // This runs in preCreate, not createActor, for two reasons. It has to read the actor's SOURCE
+    // skills: by the time the document exists, prepareDerivedData has merged the theme's
+    // definitions in and pruned everything outside CONFIG.FFG.skills, so the prepared dictionary
+    // already resembles the theme whatever was stored. And preCreate runs only on the client that
+    // initiated the create, so the theme is folded into the document being written rather than
+    // chased with a second update() that every connected client would race to submit.
+    Hooks.on("preCreateActor", (actor) => {
+      if (actor.type === "vehicle" || actor.type === "homestead") return;
+      if (!CONFIG.FFG?.alternateskilllists?.length) return;
+      try {
+        const skilllist = game.settings.get("starwarsffg", "skilltheme");
+        const theme = CONFIG.FFG.alternateskilllists.find((list) => list.id === skilllist);
+        const stock = defaultSkillList.find((list) => list.id === "starwars")?.skills;
+        // The theme dictionary is rank 0 throughout, so writing it over authored skills erases
+        // them (issue #62). shouldApplySkillTheme only says yes for a dictionary still identical
+        // to the DataModel default; see helpers/skill-theme.js.
+        if (!shouldApplySkillTheme(actor._source?.system?.skills, theme?.skills, stock)) return;
+        CONFIG.logger.log(`Applying skill theme ${skilllist} to actor`);
+        actor.updateSource({ "system.skills": JSON.parse(JSON.stringify(theme.skills)) });
+      } catch (err) {
+        CONFIG.logger.warn(err);
       }
     });
 
