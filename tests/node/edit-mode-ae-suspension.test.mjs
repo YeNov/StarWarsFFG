@@ -36,3 +36,11 @@ test("ActorFFG filters applicable effects but still lets core clear its state", 
   assert.ok(apply > parentEffects);
   assert.ok(parentApply > apply);
 });
+
+test("Sheet Options uses the persisted owner instead of client-local effect mutations", () => {
+  const source = fs.readFileSync(new URL("../../modules/actors/actor-ffg-options.js", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /_suspendedAECache|beginEditMode|endEditMode/);
+  assert.match(source, /config\.editModeActor.*game\.user\.id/);
+  assert.match(source, /await this\.data\.object\.update\(updateObject\)/);
+});

@@ -1,26 +1,6 @@
-import ActorHelpers from "../helpers/actor-helpers.js";
-
 const { DialogV2 } = foundry.applications.api;
 
 export default class ActorOptions {
-  /**
-   * Per-actor cache of suspended Active Effect state, keyed by actor UUID.
-   *
-   * `ActorOptions` is reinstantiated on every sheet render (see
-   * `actor-sheet-ffg.js` activateListeners), so instance state cannot survive
-   * the `sheet.render(true)` call that the edit-mode handler issues itself.
-   * The cache must live on the class so the next dialog open can find the
-   * original AE state recorded when edit mode was first enabled and use it
-   * to revert via `ActorHelpers.endEditMode`. Without this, toggling edit
-   * mode OFF after a re-render finds an empty `this.suspended`, skips
-   * `endEditMode`, and leaves AEs disabled until world reload.
-   *
-   * The cache is lost on full page reload. ActorFFG.applyActiveEffects also checks the
-   * persisted Edit Mode owner flags, so effects remain suppressed for the editing client;
-   * turning Edit Mode off without a cache simply resumes normal effect preparation.
-   */
-  static _suspendedAECache = new Map();
-
   /**
    * Per-actor Sheet Options dialog instance, keyed by actor uuid. Used to
    * enforce a single-instance policy: a second click on the Sheet Options
@@ -161,27 +141,17 @@ export default class ActorOptions {
 
             // read the most recent version, not the registered flag version
             const editMode = updateObject['flags.starwarsffg.config.enableEditMode'];
-            const cache = ActorOptions._suspendedAECache;
-            const cacheKey = this.data.object.uuid;
-            const stored = cache.get(cacheKey);
             if (editMode) {
-              if (!stored) {
-                // suspend AEs
-                const suspended = await ActorHelpers.beginEditMode(this.data.object);
-                cache.set(cacheKey, suspended);
-                updateObject[`flags.starwarsffg.config.editModeActor`] = game.user.id;
-              }
+              // ActorFFG filters all applicable effects for this client from these persisted
+              // flags. Keeping suspension in document preparation means another GM can also
+              // turn the mode off without leaving client-local effect sources disabled.
+              updateObject[`flags.starwarsffg.config.editModeActor`] = game.user.id;
             } else {
-              // unsuspend AEs
-              if (stored) {
-                await ActorHelpers.endEditMode(this.data.object, stored);
-                cache.delete(cacheKey);
-              }
               updateObject[`flags.starwarsffg.config.editModeActor`] = "";
             }
 
-            this.data.object.update(updateObject);
-            this.data.object.sheet.render(true);
+            await this.data.object.update(updateObject);
+            await this.data.object.sheet.render(true);
           },
         },
         {
