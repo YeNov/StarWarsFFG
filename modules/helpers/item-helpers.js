@@ -395,6 +395,17 @@ export default class ItemHelpers {
    */
   static effectMatchesPlan(effect, planned) {
     if (!!effect.disabled !== !!planned.disabled) return false;
+    return ItemHelpers.effectChangesMatch(effect, planned);
+  }
+
+  /**
+   * Compare only an effect's change payload, preserving status when a migration needs to
+   * recognize an old generated value without changing whether the effect is enabled.
+   * @param effect - the existing ActiveEffect document
+   * @param planned - an object carrying the desired `changes`
+   * @returns {boolean}
+   */
+  static effectChangesMatch(effect, planned) {
     const current = effect.changes ?? [];
     if (current.length !== planned.changes.length) return false;
     return planned.changes.every((want, index) => {
@@ -567,19 +578,18 @@ export default class ItemHelpers {
   }
 
   /**
-   * Create the Active Effects a freeform-attribute item (a talent) is missing, from its own
-   * attributes. The item-create counterpart of `ItemFFG#_onCreateAttributeAEs`, for the
-   * items that were already in the world before that ran.
+   * Reconcile the Active Effects a freeform-attribute item (a talent) derives from its own
+   * attributes. Missing effects are created. An existing ranked effect is rescaled only when
+   * it exactly matches the old unranked generated payload; any hand-edited payload is left alone.
    *
-   * Create-only by design, unlike `reconcileModifierEffects`: a talent's effects are named
-   * after hand-authored attribute keys, so an effect that is present but does not match the
-   * plan may well be one the user edited through Foundry's own Active Effect config. Editing
-   * the modifier on the talent sheet still updates its effect (see applyActiveEffectOnUpdate).
+   * Unlike `reconcileModifierEffects`, this never generally rewrites a mismatch: a talent's
+   * effects are named after hand-authored attribute keys, so a different payload may be one the
+   * user edited through Foundry's own Active Effect config.
    *
    * @param {ItemFFG} item
    * @param {object} [options]
    * @param {boolean} [options.dryRun=false] - report what would be created without creating it
-   * @returns {Promise<{created: string[], updated: [], deleted: [], renamed: [], warnings: []}|null>}
+   * @returns {Promise<{created: string[], updated: object[], deleted: [], renamed: [], warnings: []}|null>}
    */
   static async reconcileAttributeEffects(item, { dryRun = false } = {}) {
     if (!item || item.pack) return null;
@@ -589,16 +599,54 @@ export default class ItemHelpers {
     if (!planned.length) return null;
 
     const existing = item.getEmbeddedCollection("ActiveEffect");
-    const toCreate = planned.filter((effect) => !existing.find((candidate) => candidate.name === effect.name));
-    const summary = { created: toCreate.map((effect) => effect.name), updated: [], deleted: [], renamed: [], warnings: [] };
-    if (dryRun || !toCreate.length) return summary;
+    const toCreate = [];
+    const toUpdate = [];
+    const updated = [];
+    const legacyUnscaled = item.system?.ranks?.ranked
+      ? new Map(ModifierHelpers.planAttributeEffects({
+        type: item.type,
+        system: {
+          attributes: item.system?.attributes,
+          ranks: { ...item.system.ranks, ranked: false },
+        },
+      }).map((effect) => [effect.name, effect]))
+      : new Map();
 
-    await item.createEmbeddedDocuments(
-      "ActiveEffect",
-      toCreate.map((effect) => ({ ...effect, img: item.img })),
-      { render: false },
-    );
-    CONFIG.logger.debug(`Created ${toCreate.length} attribute Active Effect(s) on ${item.name}`, summary);
+    for (const effect of planned) {
+      const match = existing.find((candidate) => candidate.name === effect.name);
+      if (!match) {
+        toCreate.push(effect);
+        continue;
+      }
+
+      const oldPlan = legacyUnscaled.get(effect.name);
+      if (!oldPlan || ItemHelpers.effectChangesMatch(match, effect)) continue;
+      // This exact old payload is the fingerprint of a system-generated pre-scaling effect.
+      // A different value or shape is treated as a user customization and preserved.
+      if (!ItemHelpers.effectChangesMatch(match, oldPlan)) continue;
+      toUpdate.push({ _id: match.id, changes: effect.changes });
+      updated.push({
+        name: effect.name,
+        from: ItemHelpers.describeEffect(match.changes, match.disabled),
+        to: ItemHelpers.describeEffect(effect.changes, match.disabled),
+      });
+    }
+
+    const summary = { created: toCreate.map((effect) => effect.name), updated, deleted: [], renamed: [], warnings: [] };
+    if (dryRun || (!toCreate.length && !toUpdate.length)) return summary;
+
+    if (toUpdate.length) {
+      await item.updateEmbeddedDocuments("ActiveEffect", toUpdate, { render: false });
+    }
+
+    if (toCreate.length) {
+      await item.createEmbeddedDocuments(
+        "ActiveEffect",
+        toCreate.map((effect) => ({ ...effect, img: item.img })),
+        { render: false },
+      );
+    }
+    CONFIG.logger.debug(`Reconciled attribute Active Effects on ${item.name}`, summary);
     return summary;
   }
 
@@ -620,7 +668,7 @@ export default class ItemHelpers {
       if (!ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) continue;
       report.scanned += 1;
       const summary = await ItemHelpers.reconcileAttributeEffects(item, { dryRun });
-      if (!summary?.created.length) continue;
+      if (!summary?.created.length && !summary?.updated.length) continue;
       report.changed.push({ item: item.name, actor: actor.name ?? null, uuid: item.uuid, ...summary });
     }
     return report;
@@ -647,7 +695,7 @@ export default class ItemHelpers {
       if (ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) {
         report.scanned += 1;
         const summary = await ItemHelpers.reconcileAttributeEffects(item, { dryRun });
-        if (summary?.created.length) {
+        if (summary?.created.length || summary?.updated.length) {
           report.changed.push({ item: item.name, actor: item.actor?.name ?? null, uuid: item.uuid, ...summary });
         }
         return;

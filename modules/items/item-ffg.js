@@ -221,19 +221,7 @@ export class ItemFFG extends ItemBaseFFG {
    * importing, duplicating or re-dropping an item never doubles a grant.
    */
   async _onCreateAttributeAEs() {
-    // compendium-resident documents are populated by the importer, not from here
-    if (this.pack) return;
-    const planned = ModifierHelpers.planAttributeEffects(this);
-    if (!planned.length) return;
-
-    const existing = this.getEmbeddedCollection("ActiveEffect");
-    const toCreate = planned
-      .filter((effect) => !existing.find((candidate) => candidate.name === effect.name))
-      .map((effect) => ({ ...effect, img: this.img }));
-    if (!toCreate.length) return;
-
-    CONFIG.logger.debug(`Creating ${toCreate.length} attribute Active Effect(s) for ${this.name}/${this.type}`);
-    await this.createEmbeddedDocuments("ActiveEffect", toCreate, { render: false });
+    await ItemHelpers.reconcileAttributeEffects(this);
   }
 
   /**

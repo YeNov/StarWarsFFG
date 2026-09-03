@@ -135,6 +135,68 @@ test("reconciles talents hydrated inside a newly created actor", async () => {
   ]);
 });
 
+test("rescales an existing ranked effect only when it matches the legacy payload", async () => {
+  const updates = [];
+  const item = {
+    type: "talent",
+    name: "Ranked Skilled Jockey",
+    img: "icons/skilled-jockey.webp",
+    uuid: "Actor.adversary.Item.ranked-skilled-jockey",
+    pack: null,
+    isEmbedded: true,
+    system: {
+      ranks: { ranked: true, current: 3 },
+      attributes: {
+        "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 },
+      },
+    },
+    getEmbeddedCollection: () => [{
+      id: "legacy-effect",
+      name: "Piloting:_Space",
+      disabled: false,
+      changes: [{ key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 1 }],
+    }],
+    updateEmbeddedDocuments: async (_type, effects) => updates.push(...effects),
+  };
+
+  const summary = await ItemHelpers.reconcileAttributeEffects(item);
+
+  assert.deepEqual(summary.created, []);
+  assert.deepEqual(summary.updated.map((entry) => entry.name), ["Piloting:_Space"]);
+  assert.deepEqual(updates, [{
+    _id: "legacy-effect",
+    changes: [{ key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 3 }],
+  }]);
+});
+
+test("preserves a hand-edited ranked talent effect during repair", async () => {
+  let updated = false;
+  const item = {
+    type: "talent",
+    name: "Customized Skilled Jockey",
+    pack: null,
+    isEmbedded: true,
+    system: {
+      ranks: { ranked: true, current: 3 },
+      attributes: {
+        "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 },
+      },
+    },
+    getEmbeddedCollection: () => [{
+      id: "custom-effect",
+      name: "Piloting:_Space",
+      disabled: false,
+      changes: [{ key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 2 }],
+    }],
+    updateEmbeddedDocuments: async () => { updated = true; },
+  };
+
+  const summary = await ItemHelpers.reconcileAttributeEffects(item);
+
+  assert.deepEqual(summary.updated, []);
+  assert.equal(updated, false);
+});
+
 test("the repair sweep includes talent items owned only by an unlinked token actor", async () => {
   const item = {
     type: "talent",
