@@ -48,6 +48,7 @@ import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { ReplaceDie } from "./helpers/replace-die.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
+import { shouldApplySkillTheme } from "./helpers/skill-theme.js";
 import DataImporter from "./importer/data-importer.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
 import RollBuilderFFG from "./dice/roll-builder.js";
@@ -864,14 +865,15 @@ Hooks.once("init", async function () {
         if (CONFIG.FFG?.alternateskilllists?.length) {
           let skilllist = game.settings.get("starwarsffg", "skilltheme");
           try {
-            let skills = JSON.parse(JSON.stringify(CONFIG.FFG.alternateskilllists.find((list) => list.id === skilllist)));
-            CONFIG.logger.log(`Applying skill theme ${skilllist} to actor`);
-
-            if (!actor?.flags?.starwarsffg?.hasOwnProperty('ffgimportid') && JSON.stringify(Object.keys(skills.skills).sort()) !== JSON.stringify(Object.keys(actor.system.skills).sort())) {
-              // only apply the skills if it wasn't an imported actor and the skills loaded are not the same
+            const theme = CONFIG.FFG.alternateskilllists.find((list) => list.id === skilllist);
+            // The theme dictionary is rank 0 across the board, so applying it to an actor that was
+            // created from authored data erases its ranks rather than re-theming it (issue #62).
+            // shouldApplySkillTheme decides; see helpers/skill-theme.js.
+            if (shouldApplySkillTheme(actor, theme?.skills)) {
+              CONFIG.logger.log(`Applying skill theme ${skilllist} to actor`);
               actor.update({
                 system: {
-                  skills: skills.skills,
+                  skills: JSON.parse(JSON.stringify(theme.skills)),
                 },
               });
             }

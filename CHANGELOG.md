@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Fixed — **duplicating an imported adversary wiped its skill ranks** ([#62](https://github.com/YeNov/StarWarsFFG/issues/62)). A copy made from the sidebar loses the original's import id on purpose, and the system read that as "blank actor" and overwrote the whole skill list with the world's skill theme, which is rank 0 throughout. Copies now keep the skills they were made from.
 * Fixed — **a talent granted as a standalone item did nothing**. Its modifiers (Skilled Jockey's removed setback, say) applied only when the talent was bought from a specialization tree, so adversaries — which have no trees — never got them. Talents added from now on work as dropped.
   * **Talents already on an actor need one repair pass.** As a GM, reload and run `await game.starwarsffg.repairModifierEffects()` in the console; add `{dryRun: true}` first to see what it would change.
 * Fixed — **installing a ship attachment charged its hard points twice on the Codex II vehicle sheet**. A 2/5 ship fitted with a 2-HP attachment read 4/3: the cost was added to the used count and subtracted from the rating at the same time. The readout now shows hard points used of the hull's own rating, and the rating is what the field edits.
