@@ -12,8 +12,9 @@
  * a 2-HP attachment made it 4/3 rather than 4/5.
  *
  * So the rating is reconstructed here: take the prepared value and give back
- * exactly what the attachments' own effects took from it. Anything else that
- * touches the path -- a mod that GRANTS hard points, say -- is left in, and an
+ * exactly what the attachments' `(inherent)` effects took from it. Anything else
+ * that touches the path -- including a separate effect on the same attachment
+ * that GRANTS hard points -- is left in, and an
  * attachment whose effect never got its cost written (they are created zeroed
  * and only filled in when the item sheet is submitted) still spends its hard
  * points through `used`, so the pair stays consistent either way.
@@ -52,6 +53,7 @@ export function vehicleHardpoints(actor) {
   let spent = 0;
   for (const effect of appliedEffectsOf(actor)) {
     if (effect?.parent?.type !== "shipattachment") continue;
+    if (effect.name !== "(inherent)") continue;
     for (const change of effect.changes ?? []) {
       if (change?.key !== HARDPOINT_PATH) continue;
       if ((change.mode ?? AE_MODE_ADD) !== AE_MODE_ADD) continue;

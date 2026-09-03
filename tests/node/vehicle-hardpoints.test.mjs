@@ -20,6 +20,7 @@ function vehicle({ shown, attachments = [] }) {
   attachments.forEach((a, i) => {
     if (a.effect === undefined) return;
     appliedEffects.push({
+      name: a.effectName ?? "(inherent)",
       parent: items[i],
       changes: [{ key: HARDPOINT_PATH, mode: a.mode ?? 2, value: a.effect }],
     });
@@ -60,6 +61,18 @@ test("hard points granted from elsewhere stay in the capacity", () => {
   assert.deepEqual(vehicleHardpoints(actor), { used: 2, max: 9 });
 });
 
+test("a separate effect on an attachment can grant hard points", () => {
+  // A 5-HP hull spends 2 on the attachment and gains 1 from a separate modifier.
+  // The prepared value is 4; only giving back the inherent -2 reconstructs 6.
+  const actor = vehicle({ shown: 4, attachments: [{ hp: 2, effect: -2 }] });
+  actor.appliedEffects.push({
+    name: "Reinforced Mount",
+    parent: actor.items[0],
+    changes: [{ key: HARDPOINT_PATH, mode: 2, value: 1 }],
+  });
+  assert.deepEqual(vehicleHardpoints(actor), { used: 2, max: 6 });
+});
+
 test("only ADD-mode spends are added back; other modes are left alone", () => {
   const actor = vehicle({ shown: 0, attachments: [{ hp: 2, effect: 0, mode: 5 }] });
   assert.deepEqual(vehicleHardpoints(actor), { used: 2, max: 0 });
@@ -83,9 +96,9 @@ test("the Codex vehicle sheet shows used-of-rating and edits the rating", () => 
 test("an actor exposing only allApplicableEffects() is read the same way", () => {
   const item = { type: "shipattachment", system: { hardpoints: { value: 2 } } };
   const effects = [
-    { parent: item, active: true, changes: [{ key: HARDPOINT_PATH, mode: 2, value: -2 }] },
+    { name: "(inherent)", parent: item, active: true, changes: [{ key: HARDPOINT_PATH, mode: 2, value: -2 }] },
     // A disabled effect never reached the prepared value, so it must not be given back.
-    { parent: item, active: false, changes: [{ key: HARDPOINT_PATH, mode: 2, value: -7 }] },
+    { name: "(inherent)", parent: item, active: false, changes: [{ key: HARDPOINT_PATH, mode: 2, value: -7 }] },
   ];
   const actor = {
     items: [item],
