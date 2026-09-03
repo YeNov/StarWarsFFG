@@ -62,7 +62,7 @@
           <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.VehicleNavicomputer"}}</span><span class="cdx-sys-v">{{#if disabled}}{{#if data.stats.navicomputer.value}}Yes{{else}}No{{/if}}{{else}}<input type="checkbox" name="data.stats.navicomputer.value" data-dtype="Boolean" {{checked data.stats.navicomputer.value}} />{{/if}}</span></div>
           <div class="cdx-sysrow"><span class="cdx-sys-k">Crew</span><span class="cdx-sys-v">{{cdxVehCrewCount}}</span></div>
           <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.VehiclePassengerCapacity"}}</span><span class="cdx-sys-v">{{#if disabled}}{{data.stats.passengerCapacity.value}}{{else}}<input type="text" name="data.stats.passengerCapacity.value" value="{{data.stats.passengerCapacity.value}}" data-dtype="Number" />{{/if}}</span></div>
-          <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.VehicleHardPoints"}}</span><span class="cdx-sys-v">{{#if disabled}}{{data.stats.customizationHardPoints.value}}{{else}}<input type="text" name="data.stats.customizationHardPoints.value" value="{{data.stats.customizationHardPoints.value}}" data-dtype="Number" />{{/if}}</span></div>
+          <div class="cdx-sysrow"><span class="cdx-sys-k">{{localize "SWFFG.VehicleHardPoints"}}</span><span class="cdx-sys-v">{{#if disabled}}{{cdxVehHpUsed}} / {{cdxVehHpMax}}{{else}}<input type="text" name="data.stats.customizationHardPoints.value" value="{{cdxVehHpMax}}" data-dtype="Number" />{{/if}}</span></div>
           <div class="cdx-sysrow"><span class="cdx-sys-k">Space Vehicle</span><span class="cdx-sys-v">{{#if disabled}}{{#if data.spaceShip}}Yes{{else}}No{{/if}}{{else}}<input type="checkbox" name="data.spaceShip" data-dtype="Boolean" {{checked data.spaceShip}} />{{/if}}</span></div>
         </div>
       </div>
@@ -128,7 +128,7 @@
   {{!-- Attachments --}}
   <section class="cdx-pane items" data-tab="attachments">
     <div class="cdx-cards">
-      <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipAttachments"}}</span><span class="cdx-head-enc"><span class="cdx-ge-k">{{localize "SWFFG.VehicleHardPoints"}}</span> <span class="cdx-ge-v">{{cdxVehHpUsed}} / {{data.stats.customizationHardPoints.value}}</span></span><span class="item-add shipattachment"><i class="far fa-plus-square"></i></span></div>
+      <div class="cdx-cards-head"><span>{{localize "SWFFG.VehicleTabShipAttachments"}}</span><span class="cdx-head-enc"><span class="cdx-ge-k">{{localize "SWFFG.VehicleHardPoints"}}</span> <span class="cdx-ge-v">{{cdxVehHpUsed}} / {{cdxVehHpMax}}</span></span><span class="item-add shipattachment"><i class="far fa-plus-square"></i></span></div>
       {{#each items as |item id|}} {{#iff item.type '==' 'shipattachment'}}
       <div class="item cdx-card gear" data-item-id="{{item._id}}">
         <div class="cdx-card-main">
