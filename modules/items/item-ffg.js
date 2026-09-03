@@ -88,6 +88,7 @@ export class ItemFFG extends ItemBaseFFG {
     await super._onCreate(data, options, user);
 
     await this._onCreateAEs(options, force);
+    await this._onCreateAttributeAEs();
   }
 
   async _onCreateAEs(options, force=false) {
@@ -202,6 +203,37 @@ export class ItemFFG extends ItemBaseFFG {
         await this.createEmbeddedDocuments("ActiveEffect", [effects]);
       }
     }
+  }
+
+  /**
+   * Mint the Active Effects a freeform-attribute item (currently: a talent) needs, for the
+   * case where the item sheet never ran.
+   *
+   * A talent pulled from a compendium carries its modifiers in `system.attributes` and, in
+   * every OggDude-derived pack, no effects at all -- and only an Active Effect reaches the
+   * actor. Re-saving its sheet could not help either, because those attributes are named
+   * after the modifier rather than `attr<timestamp>`. The one path that did build them
+   * (`ImportHelpers.applyTalentActiveEffects`) covers talents embedded in a specialization,
+   * which is why the same talent worked on a character who bought it from a tree and did
+   * nothing when granted as a standalone item -- the only way to grant one to an adversary.
+   *
+   * Idempotent: an effect whose name already matches the attribute is left alone, so
+   * importing, duplicating or re-dropping an item never doubles a grant.
+   */
+  async _onCreateAttributeAEs() {
+    // compendium-resident documents are populated by the importer, not from here
+    if (this.pack) return;
+    const planned = ModifierHelpers.planAttributeEffects(this);
+    if (!planned.length) return;
+
+    const existing = this.getEmbeddedCollection("ActiveEffect");
+    const toCreate = planned
+      .filter((effect) => !existing.find((candidate) => candidate.name === effect.name))
+      .map((effect) => ({ ...effect, img: this.img }));
+    if (!toCreate.length) return;
+
+    CONFIG.logger.debug(`Creating ${toCreate.length} attribute Active Effect(s) for ${this.name}/${this.type}`);
+    await this.createEmbeddedDocuments("ActiveEffect", toCreate, { render: false });
   }
 
   /**

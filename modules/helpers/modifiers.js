@@ -447,6 +447,63 @@ export default class ModifierHelpers {
 
 
   /**
+   * Item types whose `system.attributes` are theirs alone: no `(inherent)` effect owns any
+   * of their keys (see ItemFFG#_onCreateAEs, which builds inherent effects for species,
+   * gear, weapon, armour, shipattachment, career and specialization only).
+   *
+   * For every other type an attribute key that is not `attr<timestamp>` belongs to the
+   * inherent effect -- `Brawn` on a species, `Soak` on armour -- and minting a second
+   * effect for it would apply the grant twice. That is what the `attr` prefix check in
+   * `applyActiveEffectOnUpdate` guards, and this list is the exception to it.
+   */
+  static get FREEFORM_ATTRIBUTE_EFFECT_TYPES() {
+    return ["talent"];
+  }
+
+  /**
+   * The Active Effects an item's own attributes should produce, named after the attribute
+   * key so repeated runs match rather than duplicate.
+   *
+   * Only an Active Effect reaches the actor: the roll paths read `system.skills.<skill>.*`
+   * and never consult a talent's attributes. The item sheet mints `attr<timestamp>` keys and
+   * `applyActiveEffectOnUpdate` creates effects for those, but an imported talent names its
+   * attributes after the modifier ("Piloting:_Space") and so produced no effect at all --
+   * unless it happened to sit in a specialization, whose own importer path
+   * (`ImportHelpers.applyTalentActiveEffects`) has no such prefix rule. Hence a talent that
+   * worked when bought from a tree did nothing when granted as a standalone item.
+   *
+   * Deliberately pure -- plain data in, effect data out, no document access -- so it can be
+   * unit tested and so every caller (item create, sheet save, repair sweep) plans alike.
+   *
+   * @param {object} itemData - an ItemFFG or equivalent plain `{type, system}`
+   * @returns {Array<{name: string, changes: Array<{key: string, mode: number, value: *}>}>}
+   */
+  static planAttributeEffects(itemData) {
+    if (!ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(itemData?.type)) return [];
+
+    const attributes = itemData?.system?.attributes ?? {};
+    const planned = [];
+    for (const key of Object.keys(attributes)) {
+      // `-=key` deletion markers are update syntax, not attributes
+      if (key.startsWith("-=")) continue;
+      const attribute = attributes[key];
+      if (!attribute || typeof attribute !== "object") continue;
+      if (attribute.modtype === undefined || attribute.mod === undefined) continue;
+
+      const changes = [];
+      for (const curMod of ModifierHelpers.explodeMod(attribute.modtype, attribute.mod)) {
+        const modPath = ModifierHelpers.getModKeyPath(curMod["modType"], curMod["mod"]);
+        // a mod with no property path (the "Remove Setback" roll modifier, weapon stats)
+        // is read off the rolled item itself; a keyless change applies to nothing
+        if (!modPath) continue;
+        changes.push({ key: modPath, mode: AE_MODES.ADD, value: attribute.value });
+      }
+      if (changes.length) planned.push({ name: key, changes });
+    }
+    return planned;
+  }
+
+  /**
    * Given a mod and mod type, expand them into a list of mods which should be applied
    * For example, modifying Brawn also modifies Encumbrance
    * @param modType
@@ -790,6 +847,15 @@ export default class ModifierHelpers {
         } else if (k.startsWith("attr")) {
           // user-created active effects only - skip inherent effects like "brawn" on "species"
           // new entry
+          toCreate.push({
+            name: k,
+            changes: changes,
+          });
+        } else if (changes.length && ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) {
+          // An imported talent names its attributes after the modifier ("Piloting:_Space")
+          // rather than `attr<timestamp>`, and no inherent effect owns those keys, so the
+          // prefix check above would leave the modifier with nothing to apply it -- forever,
+          // since re-saving the sheet takes this same path. See planAttributeEffects.
           toCreate.push({
             name: k,
             changes: changes,

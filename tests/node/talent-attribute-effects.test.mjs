@@ -1,0 +1,91 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import "./_stub/foundry-stub.mjs";
+import { AE_MODES } from "../../modules/config/ffg-active-effect-modes.js";
+import ModifierHelpers from "../../modules/helpers/modifiers.js";
+
+/**
+ * A talent carries its modifiers in `system.attributes`, but only an Active Effect ever
+ * reaches the actor: the roll paths read `system.skills.<skill>.*` and nothing consults a
+ * talent's attributes directly. Two mechanisms used to mint those effects and neither
+ * covered a standalone talent item:
+ *
+ *   - `applyActiveEffectOnUpdate` (item sheet save) creates an effect only for attribute
+ *     keys named `attr<timestamp>`, which the item sheet mints. A talent imported from
+ *     OggDude names its attributes after the modifier instead ("Piloting:_Space"), so no
+ *     effect was ever created and re-saving the sheet did not help either.
+ *   - `applyTalentActiveEffects` covers talents embedded in a SPECIALIZATION, which is why
+ *     the same talent worked on a PC who bought it from a tree and did nothing on an
+ *     adversary, where a standalone talent item is the only way to grant one.
+ *
+ * `planAttributeEffects` is the shared, pure answer to "which effects should this item's
+ * attributes produce", used at item-create time, on sheet save, and by the repair sweep.
+ */
+
+const talent = (attributes) => ({ type: "talent", system: { attributes } });
+
+test("plans one effect per attribute, named after the attribute key", () => {
+  // The real Skilled Jockey payload, as stored in the yn-talents pack.
+  const effects = ModifierHelpers.planAttributeEffects(talent({
+    "Piloting:_Planetary": { mod: "Piloting: Planetary", modtype: "Skill Remove Setback", value: 1 },
+    "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 },
+  }));
+
+  assert.equal(effects.length, 2);
+  assert.deepEqual(effects.map((e) => e.name).sort(), ["Piloting:_Planetary", "Piloting:_Space"]);
+  assert.deepEqual(effects.find((e) => e.name === "Piloting:_Space").changes, [
+    { key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 1 },
+  ]);
+});
+
+test("keeps the sheet's own attr-keyed modifiers, so both naming styles work", () => {
+  const effects = ModifierHelpers.planAttributeEffects(talent({
+    attr1788201846321: { mod: "Cool", modtype: "Skill Boost", value: 2 },
+  }));
+
+  assert.deepEqual(effects, [{
+    name: "attr1788201846321",
+    changes: [{ key: "system.skills.Cool.boost", mode: AE_MODES.ADD, value: 2 }],
+  }]);
+});
+
+test("explodes a modifier that targets more than one path", () => {
+  const [effect] = ModifierHelpers.planAttributeEffects(talent({
+    Defence: { mod: "Defence", modtype: "Stat", value: 1 },
+  }));
+
+  assert.deepEqual(effect.changes.map((c) => c.key), [
+    "system.stats.defence.melee",
+    "system.stats.defence.ranged",
+  ]);
+});
+
+test("emits nothing for an attribute that yields no active-effect key", () => {
+  // "Remove Setback" (the Roll Modifiers flavour) has no property path -- it is read off a
+  // rolled weapon by getDicePoolModifiers. A keyless change would be an effect that applies
+  // to nothing and cannot be diagnosed from the sheet.
+  assert.deepEqual(ModifierHelpers.planAttributeEffects(talent({
+    Setbacks: { mod: "Setback", modtype: "Remove Setback", value: 1 },
+  })), []);
+});
+
+test("skips incomplete attributes and update-syntax deletion markers", () => {
+  assert.deepEqual(ModifierHelpers.planAttributeEffects(talent({
+    "-=Piloting:_Space": null,
+    Broken: { value: 1 },
+    AlsoBroken: null,
+  })), []);
+});
+
+test("applies only to item types whose attributes no inherent effect owns", () => {
+  // A species' non-attr keys ("Brawn") are already carried by its "(inherent)" effect;
+  // planning them here would double every species grant.
+  const species = {
+    type: "species",
+    system: { attributes: { Brawn: { mod: "Brawn", modtype: "Characteristic", value: 3 } } },
+  };
+
+  assert.deepEqual(ModifierHelpers.planAttributeEffects(species), []);
+  assert.deepEqual(ModifierHelpers.planAttributeEffects(undefined), []);
+});

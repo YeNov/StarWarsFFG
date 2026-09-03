@@ -1633,7 +1633,9 @@ Hooks.once("ready", async () => {
   // GM-callable maintenance entry points. `repairModifierEffects` rebuilds every weapon /
   // armour / attachment's quality Active Effects from the qualities actually on it, which
   // repairs items corrupted before the reconciler existed -- effects left with a `NaN`
-  // value, with no key at all, or orphaned by a quality that was since removed. Preview with
+  // value, with no key at all, or orphaned by a quality that was since removed. It also
+  // creates the Active Effects a talent's modifiers never produced (imported talents name
+  // their attributes after the modifier rather than `attr<n>`). Preview with
   // `await game.starwarsffg.repairModifierEffects({dryRun: true})`, then run it for real.
   game.starwarsffg = Object.assign(game.starwarsffg ?? {}, {
     repairModifierEffects: (options) => ItemHelpers.repairModifierEffects(options),
