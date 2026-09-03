@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import { AE_MODES } from "../../modules/config/ffg-active-effect-modes.js";
 import ModifierHelpers from "../../modules/helpers/modifiers.js";
+import ItemHelpers from "../../modules/helpers/item-helpers.js";
 
 /**
  * A talent carries its modifiers in `system.attributes`, but only an Active Effect ever
@@ -88,4 +89,32 @@ test("applies only to item types whose attributes no inherent effect owns", () =
 
   assert.deepEqual(ModifierHelpers.planAttributeEffects(species), []);
   assert.deepEqual(ModifierHelpers.planAttributeEffects(undefined), []);
+});
+
+test("reconciles talents hydrated inside a newly created actor", async () => {
+  const created = [];
+  const item = {
+    type: "talent",
+    name: "Skilled Jockey",
+    img: "icons/skilled-jockey.webp",
+    uuid: "Actor.adversary.Item.skilled-jockey",
+    pack: null,
+    isEmbedded: true,
+    system: {
+      attributes: {
+        "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 },
+      },
+    },
+    getEmbeddedCollection: () => [],
+    createEmbeddedDocuments: async (_type, effects) => created.push(...effects),
+  };
+  const actor = { name: "Imported Nemesis", items: [item] };
+
+  const report = await ItemHelpers.reconcileActorAttributeEffects(actor);
+
+  assert.equal(report.scanned, 1);
+  assert.deepEqual(report.changed.map((entry) => entry.item), ["Skilled Jockey"]);
+  assert.deepEqual(created[0].changes, [
+    { key: "system.skills.Piloting: Space.remsetback", mode: AE_MODES.ADD, value: 1 },
+  ]);
 });

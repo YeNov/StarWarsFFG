@@ -603,6 +603,30 @@ export default class ItemHelpers {
   }
 
   /**
+   * Reconcile freeform attribute effects for every applicable Item already embedded in an Actor.
+   *
+   * Creating an Actor from a complete source hydrates its embedded Items without dispatching an
+   * Item create operation, so ItemFFG#_onCreateAttributeAEs never runs for those descendants. Actor
+   * importers call this after Actor.create() to cover that lifecycle boundary explicitly.
+   *
+   * @param {ActorFFG} actor
+   * @param {object} [options]
+   * @param {boolean} [options.dryRun=false]
+   * @returns {Promise<{scanned: number, changed: Array<object>}>}
+   */
+  static async reconcileActorAttributeEffects(actor, { dryRun = false } = {}) {
+    const report = { scanned: 0, changed: [] };
+    for (const item of actor?.items ?? []) {
+      if (!ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) continue;
+      report.scanned += 1;
+      const summary = await ItemHelpers.reconcileAttributeEffects(item, { dryRun });
+      if (!summary?.created.length) continue;
+      report.changed.push({ item: item.name, actor: actor.name ?? null, uuid: item.uuid, ...summary });
+    }
+    return report;
+  }
+
+  /**
    * Run `reconcileModifierEffects` over every weapon / armour / attachment in the world, so
    * items corrupted before the reconciler existed are repaired without opening each sheet,
    * and `reconcileAttributeEffects` over every talent, so one whose modifiers never became
