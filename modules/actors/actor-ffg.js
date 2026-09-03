@@ -600,7 +600,12 @@ export class ActorFFG extends Actor {
       }
     }
 
-    // handle indirect active effects - which come from items
+    // handle indirect active effects - which come from items.
+    // Skipped entirely while this client owns Edit Mode: allApplicableEffects withholds these
+    // effects from the prepared data, so listing them here would have the roll dialog and the
+    // weapon-card tooltip advertise dice that are not in the pool. The `disabled` test below is
+    // not enough on its own -- edit-mode suspension no longer sets that flag.
+    if (ActorHelpers.isEditModeOwner(actorData)) return;
     for (const item of actorData.items) {
       const itemActiveEffects = item.getEmbeddedCollection("ActiveEffect");
       for (const effect of itemActiveEffects) {
@@ -747,24 +752,33 @@ export class ActorFFG extends Actor {
   }
 
   /**
-   * Hide every effect from this client while it owns Edit Mode. Filtering at the
-   * applicability boundary keeps all consumers consistent: core can still clear
-   * `overrides` and `statuses`, while `appliedEffects` no longer exposes effects
-   * that were deliberately withheld from prepared actor data.
+   * Withhold stat-granting effects from this client while it owns Edit Mode. Filtering at the
+   * applicability boundary keeps all consumers consistent: core can still clear `overrides`
+   * and `statuses`, while `appliedEffects` no longer exposes effects that were deliberately
+   * withheld from prepared actor data.
    * @override
    */
-  *allApplicableEffects() {
+  *allApplicableEffects(...args) {
     // Edit Mode ownership is persisted, but the source-only disabled state applied by
     // beginEditMode is intentionally not. Suppress effect application from the persisted
     // flags as well so reloading while editing cannot bring the effects back while leaving
     // the source fields editable. Other clients still prepare this actor normally.
-    if (ActorHelpers.isEditModeOwner(this)) return;
-    yield* super.allApplicableEffects();
+    if (!ActorHelpers.isEditModeOwner(this)) {
+      yield* super.allApplicableEffects(...args);
+      return;
+    }
+    // Edit Mode only needs the stat write-back loop stopped. Core derives `statuses`,
+    // `temporaryEffects` and therefore the canvas/combat-tracker status icons from this same
+    // generator, so withholding condition effects would blank a GM's own token icons and make
+    // hasStatusEffect()/isDefeated() read false for them alone -- persistently, since the flag
+    // now survives a reload. Conditions grant no stat the sheet can round-trip, so they stay.
+    for (const effect of super.allApplicableEffects(...args)) {
+      if (effect?.statuses?.size) yield effect;
+    }
   }
 
   /** @override **/
   applyActiveEffects(...args) {
-
     // Scale each item's modifiers by its quantity (e.g. carrying 2 of a gear item that grants
     // +1 Encumbrance capacity should grant +2). The Active Effect persists the per-item value;
     // we derive the scaled value here from the effect's source so that changing quantity updates

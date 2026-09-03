@@ -114,7 +114,15 @@ export default class ActorHelpers {
    */
   static isEditModeOwner(actor, userId = globalThis.game?.user?.id) {
     if (!userId || !actor?.getFlag?.("starwarsffg", "config.enableEditMode")) return false;
-    return actor.getFlag("starwarsffg", "config.editModeActor") === userId;
+    if (actor.getFlag("starwarsffg", "config.editModeActor") !== userId) return false;
+    // A synthetic token actor inherits its base actor's flags (BaseActorDelta merges them), so
+    // enabling Edit Mode on a base actor would otherwise suspend effects on every unlinked token
+    // of it, on every scene. Only the document the flag was written to owns the session.
+    if (actor.isToken) {
+      const own = actor.token?.delta?._source?.flags?.starwarsffg?.config;
+      if (own?.enableEditMode === undefined) return false;
+    }
+    return true;
   }
 
   /**

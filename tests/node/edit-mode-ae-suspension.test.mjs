@@ -19,22 +19,47 @@ test("recognizes only the client that owns persisted Edit Mode", () => {
   assert.equal(ActorHelpers.isEditModeOwner(undefined), false);
 });
 
-test("ActorFFG filters applicable effects but still lets core clear its state", () => {
+test("an unlinked token does not inherit its base actor's Edit Mode", () => {
+  // BaseActorDelta merges the base actor's flags into every synthetic token actor, so without
+  // this guard ticking Edit Mode on one base actor would suspend effects on all of its tokens.
+  const tokenActor = (ownConfig) => Object.assign(actor(), {
+    isToken: true,
+    token: { delta: { _source: { flags: { starwarsffg: ownConfig ? { config: ownConfig } : {} } } } },
+  });
+
+  assert.equal(ActorHelpers.isEditModeOwner(tokenActor(null)), false, "inherited only");
+  assert.equal(ActorHelpers.isEditModeOwner(tokenActor({ enableEditMode: true })), true, "set on the token itself");
+});
+
+test("ActorFFG withholds stat effects in Edit Mode but keeps conditions applying", () => {
   // ActorFFG cannot be imported into the deliberately minimal Node tier because it extends
   // Foundry's Actor document. Keep a narrow wiring assertion here while the state predicate
   // above remains a normal executable unit test.
   const source = fs.readFileSync(new URL("../../modules/actors/actor-ffg.js", import.meta.url), "utf8");
-  const applicable = source.indexOf("*allApplicableEffects()");
-  const guard = source.indexOf("ActorHelpers.isEditModeOwner(this)", applicable);
-  const parentEffects = source.indexOf("yield* super.allApplicableEffects()", guard);
-  const apply = source.indexOf("applyActiveEffects(...args)", parentEffects);
-  const parentApply = source.indexOf("return super.applyActiveEffects(...args)", apply);
+  const body = source.slice(
+    source.indexOf("*allApplicableEffects("),
+    source.indexOf("applyActiveEffects(...args)"),
+  );
 
-  assert.ok(applicable >= 0);
-  assert.ok(guard > applicable);
-  assert.ok(parentEffects > guard);
-  assert.ok(apply > parentEffects);
-  assert.ok(parentApply > apply);
+  assert.ok(body.length > 0, "allApplicableEffects must precede applyActiveEffects");
+  assert.match(body, /ActorHelpers\.isEditModeOwner\(this\)/);
+  // Core derives statuses/temporaryEffects (and so the token status icons) from this same
+  // generator, so condition effects must keep flowing even while stat grants are withheld.
+  assert.match(body, /effect\?\.statuses\?\.size/);
+  // The phase argument core passes in V14 has to reach super, as applyActiveEffects already does.
+  assert.match(body, /yield\* super\.allApplicableEffects\(\.\.\.args\)/);
+  assert.match(source, /return super\.applyActiveEffects\(\.\.\.args\)/);
+});
+
+test("the stale-flag migration is gated on a real version comparison", () => {
+  const source = fs.readFileSync(new URL("../../modules/swffg-migration.js", import.meta.url), "utf8");
+
+  // parseFloat("2.1.2") === parseFloat("2.1.1") === 2.1, so a parseFloat gate cannot tell one
+  // patch release from another and a migration behind one would never run for the release that
+  // needed it. Every version comparison in this file has to compare version strings.
+  assert.doesNotMatch(source, /if\s*\([^)]*parseFloat/);
+  assert.match(source, /foundry\.utils\.isNewerVersion/);
+  assert.match(source, /olderThan\(oldVersion, "2\.1\.2"\)[\s\S]{0,80}clearStaleEditMode/);
 });
 
 test("Sheet Options uses the persisted owner instead of client-local effect mutations", () => {
