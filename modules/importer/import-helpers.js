@@ -1138,10 +1138,12 @@ export default class ImportHelpers {
             }
           } else {
             if(t.Ranks) {
-              if(talent.data?.ranks)
+              // `talent` is the serialized compendium document, so its fields live under
+              // `system` -- the old `data` spelling silently dropped every imported rank.
+              if(talent.system?.ranks)
               {
                 let ranks = parseInt(t.Ranks, 10);
-                talent.data.ranks.current = ranks;
+                if (Number.isFinite(ranks)) talent.system.ranks.current = ranks;
               }
             }
             adversary.items.push(talent);
