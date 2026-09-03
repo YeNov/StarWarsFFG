@@ -691,11 +691,18 @@ export default class ItemHelpers {
     }
 
     // Read token Items only after base propagation has settled, so these are the current synthetic
-    // documents. This also covers token-local Items and Item overrides that game.actors cannot see.
+    // documents. Only the Items the ActorDelta actually manages are visited: everything else in a
+    // synthetic collection is inherited from the base Actor and was already repaired above, so
+    // re-visiting it would double-count `scanned` and -- under dryRun, where the base pass writes
+    // nothing -- report the same item again under a token uuid that the real run never produces.
     for (const scene of game.scenes ?? []) {
       for (const token of scene.tokens ?? []) {
         if (token.actorLink || !token.actor) continue;
-        for (const item of token.actor.items ?? []) await reconcileItem(item);
+        const managed = token.delta?.items;
+        for (const item of token.actor.items ?? []) {
+          if (managed?.manages && !managed.manages(item.id)) continue;
+          await reconcileItem(item);
+        }
       }
     }
 
