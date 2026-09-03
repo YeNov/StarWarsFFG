@@ -47,6 +47,23 @@ export function vehicleHardpointSourceRating(actor) {
 }
 
 /**
+ * Read a vehicle's four shield zone ratings from unprepared source data, for the same sheet
+ * error fallback. These render as editable inputs in Edit Mode, so a fabricated zero would be
+ * submitted straight back over the stored ratings.
+ * @param {object} actor
+ * @returns {{fore: number, aft: number, port: number, starboard: number}}
+ */
+export function vehicleShieldSourceRatings(actor) {
+  const shields = actor?._source?.system?.stats?.shields ?? {};
+  const ratings = {};
+  for (const zone of ["fore", "aft", "port", "starboard"]) {
+    const rating = Math.trunc(Number(shields[zone]));
+    ratings[zone] = Number.isFinite(rating) ? rating : 0;
+  }
+  return ratings;
+}
+
+/**
  * @param {object} actor - a vehicle Actor (or any object with `items`,
  *   `appliedEffects` and prepared `system`).
  * @returns {{used: number, max: number}} hard points spent by attachments, and

@@ -30,7 +30,7 @@ import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
-import { vehicleHardpoints, vehicleHardpointSourceRating } from "../helpers/vehicle-hardpoints.js";
+import { vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings } from "../helpers/vehicle-hardpoints.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
@@ -1471,14 +1471,26 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           ctx.cdxVehShields[zone] = { cur, max: rating };
         }
       } catch (e) {
+        // Malformed legacy data aborted the richer vehicle context. Every RATING in this
+        // fallback must come from stored source data, never a fabricated zero: the hull and
+        // shield ratings render as editable inputs in Edit Mode, and the sheet submits its whole
+        // form on change AND on close, so a zero here is written straight over the stored value.
+        CONFIG.logger?.warn?.("Codex: falling back to source vehicle stats", e);
         ctx.cdxVehTracks = { hull: {}, strain: {} };
         ctx.cdxVehHpUsed = 0;
-        // Preserve the persisted hull rating if malformed legacy data aborts the richer vehicle
-        // context. A blank (or arbitrary zero) Edit Mode field could otherwise overwrite it.
         ctx.cdxVehHpMax = vehicleHardpointSourceRating(this.actor);
         ctx.cdxVehCrewCount = 0;
+        ctx.cdxVehCritCount = 0;
+        ctx.cdxVehSpeedPct = 0;
         ctx.cdxVehCost = "0";
-        ctx.cdxVehShields = { fore: { cur: 0, max: 0 }, aft: { cur: 0, max: 0 }, port: { cur: 0, max: 0 }, starboard: { cur: 0, max: 0 } };
+        const shieldRatings = vehicleShieldSourceRatings(this.actor);
+        const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
+        ctx.cdxVehShields = {};
+        for (const zone of ["fore", "aft", "port", "starboard"]) {
+          const stored = shieldFlags?.[zone];
+          const cur = stored == null ? shieldRatings[zone] : Math.max(0, Math.trunc(Number(stored) || 0));
+          ctx.cdxVehShields[zone] = { cur, max: shieldRatings[zone] };
+        }
       }
     }
     return ctx;
