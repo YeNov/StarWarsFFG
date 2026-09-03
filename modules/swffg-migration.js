@@ -19,7 +19,9 @@ export async function handleUpdate() {
   if (registeredVersion !== runningVersion) {
     await handleMigration(registeredVersion, runningVersion);
     await sendChanges(runningVersion);
-    if (parseFloat(registeredVersion) >= 2.0 || !registeredVersion) {
+    // A fresh world, or one already on 2.0+, records the version it just ran. Anything older is
+    // left unregistered so the unsupported-world warning fires again on every load.
+    if (!registeredVersion || !olderThan(registeredVersion, "2.0")) {
       await game.settings.set("starwarsffg", "systemMigrationVersion", runningVersion);
     } else {
       // do not register the updated warning and instead throw an error every time that the world is unsupported
@@ -36,16 +38,64 @@ export async function handleUpdate() {
  */
 async function handleMigration(oldVersion, newVersion) {
   // migration handlers should be added here going forward
-  if (parseFloat(oldVersion) < 1.901) {
+  if (olderThan(oldVersion, "1.901")) {
     await migrateTo1_901();
   }
-  if (parseFloat(oldVersion) < 1.906) {
+  if (olderThan(oldVersion, "1.906")) {
     await migrateTo1_906();
   }
-  if (parseFloat(oldVersion) < 1.907) {
+  if (olderThan(oldVersion, "1.907")) {
     await migrateTo1907();
   }
+  if (olderThan(oldVersion, "2.1.2")) {
+    await clearStaleEditMode();
+  }
   await warnTheme();
+}
+
+/**
+ * Whether a world was last run on a version older than `target`.
+ *
+ * Compares version STRINGS. The obvious `parseFloat(oldVersion) < 2.1.2` does not work: parseFloat
+ * stops at the second dot, so every patch release of a minor collapses to the same number and
+ * `2.1.1` and `2.1.2` compare equal -- a migration gated that way would never run for the release
+ * that needed it. A world with no recorded version (a fresh install, or one predating the setting)
+ * counts as older, which is what every caller here wants.
+ *
+ * @param {string} oldVersion - the version recorded in `systemMigrationVersion`
+ * @param {string} target - the version whose migration is being gated
+ * @returns {boolean}
+ */
+function olderThan(oldVersion, target) {
+  if (!oldVersion) return true;
+  return foundry.utils.isNewerVersion(target, oldVersion);
+}
+
+/**
+ * Turn Edit Mode off on every actor that still has it flagged on.
+ *
+ * Edit Mode is a transient authoring affordance, but nothing ever auto-cleared its flag: the
+ * Sheet Options dialog is its only writer. That was harmless while suspension was session-local
+ * (a reload restored the effects), and is not any more -- ActorFFG#allApplicableEffects now reads
+ * the persisted flags, so an actor somebody left ticked months ago would prepare with its stat
+ * effects withheld for the recorded editor, on every reload, until that user reopened Sheet
+ * Options on each actor.
+ *
+ * @returns {Promise<void>}
+ */
+async function clearStaleEditMode() {
+  try {
+    const stale = game.actors.filter((actor) => actor.getFlag("starwarsffg", "config.enableEditMode"));
+    if (!stale.length) return;
+    await Actor.updateDocuments(stale.map((actor) => ({
+      _id: actor.id,
+      "flags.starwarsffg.config.enableEditMode": false,
+      "flags.starwarsffg.config.editModeActor": "",
+    })));
+    CONFIG.logger.debug(`Cleared stale Edit Mode flags on ${stale.length} actor(s)`);
+  } catch (err) {
+    CONFIG.logger.error("Unable to clear stale Edit Mode flags.", err);
+  }
 }
 
 /**
