@@ -2,7 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-import { HARDPOINT_PATH, vehicleHardpoints } from "../../modules/helpers/vehicle-hardpoints.js";
+import {
+  HARDPOINT_PATH,
+  vehicleHardpoints,
+  vehicleHardpointSourceRating,
+} from "../../modules/helpers/vehicle-hardpoints.js";
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
@@ -81,6 +85,16 @@ test("only ADD-mode spends are added back; other modes are left alone", () => {
 test("a vehicle with nothing installed reads as its own rating", () => {
   assert.deepEqual(vehicleHardpoints(vehicle({ shown: 5 })), { used: 0, max: 5 });
   assert.deepEqual(vehicleHardpoints(undefined), { used: 0, max: 0 });
+});
+
+test("the sheet error fallback preserves the stored hull rating", () => {
+  assert.equal(vehicleHardpointSourceRating({
+    _source: { system: { stats: { customizationHardPoints: { value: 5 } } } },
+  }), 5);
+  assert.equal(vehicleHardpointSourceRating({}), 0);
+
+  const sheet = read("modules/actors/codex-sheets.js");
+  assert.match(sheet, /cdxVehHpMax = vehicleHardpointSourceRating\(this\.actor\)/);
 });
 
 test("the Codex vehicle sheet shows used-of-rating and edits the rating", () => {

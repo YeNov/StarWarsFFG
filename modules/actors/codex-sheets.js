@@ -30,7 +30,7 @@ import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
-import { vehicleHardpoints } from "../helpers/vehicle-hardpoints.js";
+import { vehicleHardpoints, vehicleHardpointSourceRating } from "../helpers/vehicle-hardpoints.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
@@ -1471,7 +1471,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           ctx.cdxVehShields[zone] = { cur, max: rating };
         }
       } catch (e) {
-        ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0";
+        ctx.cdxVehTracks = { hull: {}, strain: {} };
+        ctx.cdxVehHpUsed = 0;
+        // Preserve the persisted hull rating if malformed legacy data aborts the richer vehicle
+        // context. A blank (or arbitrary zero) Edit Mode field could otherwise overwrite it.
+        ctx.cdxVehHpMax = vehicleHardpointSourceRating(this.actor);
+        ctx.cdxVehCrewCount = 0;
+        ctx.cdxVehCost = "0";
         ctx.cdxVehShields = { fore: { cur: 0, max: 0 }, aft: { cur: 0, max: 0 }, port: { cur: 0, max: 0 }, starboard: { cur: 0, max: 0 } };
       }
     }

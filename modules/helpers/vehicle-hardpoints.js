@@ -35,6 +35,17 @@ function appliedEffectsOf(actor) {
 }
 
 /**
+ * Read the hull rating from unprepared source data for a sheet error fallback. Unlike the
+ * prepared value, this cannot include an attachment's Active Effect spend.
+ * @param {object} actor
+ * @returns {number}
+ */
+export function vehicleHardpointSourceRating(actor) {
+  const rating = Number(actor?._source?.system?.stats?.customizationHardPoints?.value);
+  return Number.isFinite(rating) ? rating : 0;
+}
+
+/**
  * @param {object} actor - a vehicle Actor (or any object with `items`,
  *   `appliedEffects` and prepared `system`).
  * @returns {{used: number, max: number}} hard points spent by attachments, and
