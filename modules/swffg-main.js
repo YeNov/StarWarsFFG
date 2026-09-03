@@ -881,7 +881,14 @@ Hooks.once("init", async function () {
         // to the DataModel default; see helpers/skill-theme.js.
         if (!shouldApplySkillTheme(actor._source?.system?.skills, theme?.skills, stock)) return;
         CONFIG.logger.log(`Applying skill theme ${skilllist} to actor`);
-        actor.updateSource({ "system.skills": JSON.parse(JSON.stringify(theme.skills)) });
+        // `==skills`, not `skills`: `skills` is a TypedObjectField, whose _updateDiff merges the
+        // proposed entries into the stored ones key by key (common/data/fields.mjs), so a plain
+        // write would leave every stock skill the theme has no entry for (Astrogation in a Genesys
+        // world, say) behind in _source. They are invisible - prepareDerivedData prunes anything
+        // outside CONFIG.FFG.skills - but they are still stored, and would resurface if the world
+        // ever went back to the stock list. `==` is the schema's forced-replacement key and swaps
+        // the whole dictionary.
+        actor.updateSource({ "system.==skills": JSON.parse(JSON.stringify(theme.skills)) });
       } catch (err) {
         CONFIG.logger.warn(err);
       }

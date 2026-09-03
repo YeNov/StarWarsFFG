@@ -13,7 +13,8 @@
  * landed with every rank zeroed.
  *
  * The invariant these tests pin is the one that matters, not the shape of the guard: an actor whose
- * skills are NOT byte-for-byte the model default is never rewritten, whatever its provenance.
+ * skills are not structurally identical to the model default is never rewritten, whatever its
+ * provenance. Key order is not authorship, so it does not count as a difference.
  */
 
 import test from "node:test";
