@@ -104,6 +104,20 @@ export default class ActorHelpers {
   }
 
   /**
+   * Whether this client owns the actor's persisted Edit Mode session. Active Effects must
+   * remain suppressed for that client even after a full reload, when the transient effect
+   * state cache used by the Sheet Options dialog no longer exists.
+   *
+   * @param {Actor|object} actor
+   * @param {string|undefined} userId
+   * @returns {boolean}
+   */
+  static isEditModeOwner(actor, userId = globalThis.game?.user?.id) {
+    if (!userId || !actor?.getFlag?.("starwarsffg", "config.enableEditMode")) return false;
+    return actor.getFlag("starwarsffg", "config.editModeActor") === userId;
+  }
+
+  /**
    * Records the state of all active effects on the actor and then suspends them.
    * This is used to enable manual editing without an infinite loop from the two being combined
    * Note that this returns a state, which is REQUIRED to restore the original AE state

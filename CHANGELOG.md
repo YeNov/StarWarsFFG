@@ -10,6 +10,7 @@
   * A separate modifier on an attachment that grants hard points now increases the rating instead of being mistaken for part of that attachment's cost.
 * Fixed — **vehicle shield zones on the Codex II sheets**. On a ship whose shields were boosted by an attachment, “+” moved a zone by two and “−” did nothing. Zones now read *current of rating* like Speed and step freely in either direction, so points can be shifted between them.
 * Fixed — **stats boosted by an active effect crept upward every time an actor sheet was saved**. The boosted value was written back as the stored one and the effect then added its bonus again on top.
+* Fixed — **reloading while Edit Mode was enabled brought Active Effects back without locking the source fields**. The editing player could change a field, but the sheet mistook that value for an effect override and silently discarded it. Effects now remain suspended for that player until Edit Mode is turned off.
 
 `2.1.1`
 A hotfix for `2.1.0`.

@@ -144,7 +144,8 @@ export class FFGActorSheet extends FFGDocumentSheet {
       // its bonus on the next prepare, so an AE-boosted stat crept up by the bonus
       // on every submit. Edit mode usually hides this by suspending the actor's
       // AEs, but not when that suspension is missing (e.g. the edit-mode flag left
-      // on across a reload, so nothing re-suspended them this session).
+      // on across a reload). ActorFFG.applyActiveEffects now honours the persisted
+      // Edit Mode owner flags so that reload path is suspended before this form is built.
       if (k.startsWith("system.")) delete data[`data.${k.slice(7)}`];
     }
     return data;

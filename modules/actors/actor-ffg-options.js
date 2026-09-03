@@ -15,8 +15,9 @@ export default class ActorOptions {
    * mode OFF after a re-render finds an empty `this.suspended`, skips
    * `endEditMode`, and leaves AEs disabled until world reload.
    *
-   * Lost on full page reload, which is acceptable — edit mode is a transient
-   * authoring affordance, not persisted state.
+   * The cache is lost on full page reload. ActorFFG.applyActiveEffects also checks the
+   * persisted Edit Mode owner flags, so effects remain suppressed for the editing client;
+   * turning Edit Mode off without a cache simply resumes normal effect preparation.
    */
   static _suspendedAECache = new Map();
 

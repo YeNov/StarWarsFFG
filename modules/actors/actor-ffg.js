@@ -1,4 +1,5 @@
 import ModifierHelpers from "../helpers/modifiers.js";
+import ActorHelpers from "../helpers/actor-helpers.js";
 import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate-talents.js";
 import { applyCharacterDefenceCap } from "../helpers/defence-helpers.js";
 import { buildSkillDefaults } from "../helpers/skill-defaults.js";
@@ -747,6 +748,12 @@ export class ActorFFG extends Actor {
 
   /** @override **/
   applyActiveEffects(...args) {
+    // Edit Mode ownership is persisted, but the source-only disabled state applied by
+    // beginEditMode is intentionally not. Suppress effect application from the persisted
+    // flags as well so reloading while editing cannot bring the effects back while leaving
+    // the source fields editable. Other clients still prepare this actor normally.
+    if (ActorHelpers.isEditModeOwner(this)) return;
+
     // Scale each item's modifiers by its quantity (e.g. carrying 2 of a gear item that grants
     // +1 Encumbrance capacity should grant +2). The Active Effect persists the per-item value;
     // we derive the scaled value here from the effect's source so that changing quantity updates
