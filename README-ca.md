@@ -12,7 +12,7 @@ El sistema per a Foundry VTT no conté regles ni contingut propietari dels diver
 
 Per a més informació i documentació, incloent diverses guies "Com fer-ho", consulta la [secció Wiki del repositori original](https://github.com/StarWarsFoundryVTT/StarWarsFFG/wiki).
 
-- Per suport sobre aquest sistema de joc: Discord [The Foundry](https://discord.gg/foundryvtt) #starwars-ffg
+- Per suport sobre aquest fork: pregunteu a les [Discussions](https://github.com/YeNov/StarWarsFFG/discussions), o obriu una [Issue](https://github.com/YeNov/StarWarsFFG/issues) per a un error o una petició de funcionalitat. El canal #starwars-ffg del Discord The Foundry dóna suport al sistema original, no a aquest fork.
 - Llegeix aquest document en un altre idioma: [English](https://github.com/YeNov/StarWarsFFG/blob/main/README.md), [Français](https://github.com/YeNov/StarWarsFFG/blob/main/README-fr.md)
 
 # Instal·lació del sistema de joc Star Wars FFG

@@ -1,4 +1,5 @@
-`Unreleased`
+`2.1.2`
+Bug fixes for `2.1.1`, mostly around talents, Edit Mode and the Codex II vehicle sheet.
 
 * Fixed — **duplicating an imported adversary wiped its skill ranks** ([#62](https://github.com/YeNov/StarWarsFFG/issues/62)). A copy made from the sidebar loses the original's import id on purpose, and the system read that as "a blank actor" and overwrote the whole skill list with the world's skill theme, which is rank 0 throughout. An actor is now only given the theme's skills when it is created with the system's untouched default list, so nothing that already has ranks — a duplicate, an import, a compendium copy — can be overwritten.
   * **Copies made before this fix are not repaired**, because the ranks are gone from them. Duplicate the intact original again.

@@ -4,7 +4,7 @@ Ceci est une implémentation du jeu de rôle  [Star Wars de Fantasy Flight Games
 
 Ce dépôt est un fork de [StarWarsFoundryVTT/StarWarsFFG](https://github.com/StarWarsFoundryVTT/StarWarsFFG). Il partage le même identifiant de système, `starwarsffg` : il s'installe donc à la place du système d'origine, et non à côté.
 
-- Pour le support de ce systeme de jeu : Discord [The Foundry](https://discord.gg/bNyxuk9) #starwars-ffg
+- Pour le support de ce fork : posez votre question dans les [Discussions](https://github.com/YeNov/StarWarsFFG/discussions), ou ouvrez une [Issue](https://github.com/YeNov/StarWarsFFG/issues) pour un bug ou une demande de fonctionnalité. Le canal #starwars-ffg du Discord The Foundry concerne le système d'origine, pas ce fork.
 - Pour le support de la communauté Francaise : Discord [La Fonderie](https://discord.gg/pPSDNJk) #starwars-ffg
 - Lire ce document dans une autre langue : [English](https://github.com/YeNov/StarWarsFFG/blob/main/README.md), [Català](https://github.com/YeNov/StarWarsFFG/blob/main/README-ca.md)
 
