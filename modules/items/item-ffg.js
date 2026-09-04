@@ -49,6 +49,28 @@ export class ItemFFG extends ItemBaseFFG {
         this.updateSource({img: "icons/svg/item-bag.svg"});
       }
     }
+
+    // Fold the item's generated Active Effects into its own source, so it is created complete.
+    // This used to happen after creation, from _onCreate -- which runs on every connected client
+    // whose user matches the creating user. One user can be connected from several windows, so
+    // each of them performed its own create and the item ended up with one duplicate effect per
+    // extra session, doubling the modifier. _preCreate runs once, on the initiating client only,
+    // so there is no follow-up write left for a second window to repeat.
+    //
+    // Planned after the image is settled above, so the effects inherit the final img.
+    const parent = operation?.parent ?? this.parent;
+    // An item dropped onto an actor is a copy of one that already carries its inherent effect,
+    // so it is not planned again -- except for the equippable types, whose modifier-adjusted
+    // values are re-saved on create. Mirrors the condition _onCreateAEs used.
+    const forceInherent = !!parent && ["weapon", "shipweapon", "armour"].includes(this.type);
+    const planned = ModifierHelpers.planMissingEffects(this._source, {
+      includeInherent: !parent || forceInherent,
+    });
+    if (planned.length) {
+      CONFIG.logger.debug(`Planning ${planned.length} Active Effect(s) into ${this.name}/${this.type} on create`);
+      this.updateSource({ effects: [...(this._source.effects ?? []), ...planned] });
+    }
+
     return {data, operation, user};
   }
 
@@ -58,7 +80,6 @@ export class ItemFFG extends ItemBaseFFG {
       // only run onCreate for the user actually performing the update
       return;
     }
-    let force = false;
     // Ensure we're dealing with an embedded item
     if (this.isEmbedded && this.actor) {
       // If this is a weapon or armour item we must ensure its modifier-adjusted values are saved to the database
@@ -66,7 +87,6 @@ export class ItemFFG extends ItemBaseFFG {
         let that = this.toObject(true);
         delete that._id;
         await this.update(that);
-        force = true;
       }
     }
 
@@ -85,10 +105,10 @@ export class ItemFFG extends ItemBaseFFG {
       );
     }
 
+    // The generated Active Effects are planned into the item in _preCreate, not created here.
+    // See ModifierHelpers.planMissingEffects for why: this hook runs once per connected client
+    // of the creating user, so writing them here duplicated them for anyone with two windows open.
     await super._onCreate(data, options, user);
-
-    await this._onCreateAEs(options, force);
-    await this._onCreateAttributeAEs();
   }
 
   async _onCreateAEs(options, force=false) {
@@ -203,25 +223,6 @@ export class ItemFFG extends ItemBaseFFG {
         await this.createEmbeddedDocuments("ActiveEffect", [effects]);
       }
     }
-  }
-
-  /**
-   * Mint the Active Effects a freeform-attribute item (currently: a talent) needs, for the
-   * case where the item sheet never ran.
-   *
-   * A talent pulled from a compendium carries its modifiers in `system.attributes` and, in
-   * every OggDude-derived pack, no effects at all -- and only an Active Effect reaches the
-   * actor. Re-saving its sheet could not help either, because those attributes are named
-   * after the modifier rather than `attr<timestamp>`. The one path that did build them
-   * (`ImportHelpers.applyTalentActiveEffects`) covers talents embedded in a specialization,
-   * which is why the same talent worked on a character who bought it from a tree and did
-   * nothing when granted as a standalone item -- the only way to grant one to an adversary.
-   *
-   * Idempotent: an effect whose name already matches the attribute is left alone, so
-   * importing, duplicating or re-dropping an item never doubles a grant.
-   */
-  async _onCreateAttributeAEs() {
-    await ItemHelpers.reconcileAttributeEffects(this);
   }
 
   /**

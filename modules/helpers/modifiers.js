@@ -478,6 +478,97 @@ export default class ModifierHelpers {
    * @param {object} itemData - an ItemFFG or equivalent plain `{type, system}`
    * @returns {Array<{name: string, changes: Array<{key: string, mode: number, value: *}>}>}
    */
+  /**
+   * Item types that own an `(inherent)` Active Effect -- the one the item itself grants, as
+   * opposed to the free-form modifier rows a user adds.
+   */
+  static INHERENT_EFFECT_TYPES = ["species", "gear", "weapon", "armour", "shipattachment", "career", "specialization"];
+
+  /**
+   * Plan the `(inherent)` Active Effect an item is created with.
+   *
+   * Weapon/armour/gear/shipattachment changes are created zeroed and filled in when the item
+   * sheet is first submitted; career and specialization carry placeholder career-skill slots.
+   * A species is the only type whose changes are built from its own attributes.
+   *
+   * Pure -- plain data in, effect data out, no document access -- so it can be planned into an
+   * item's source before the item exists, and unit tested.
+   *
+   * @param {object} itemData - an ItemFFG or equivalent plain `{type, img, system}`
+   * @returns {{name: string, img: string, changes: Array<object>}|null}
+   */
+  static planInherentEffect(itemData) {
+    if (!ModifierHelpers.INHERENT_EFFECT_TYPES.includes(itemData?.type)) return null;
+
+    const changes = [];
+    const push = (modType, mod, value) => {
+      for (const curMod of ModifierHelpers.explodeMod(modType, mod)) {
+        const key = ModifierHelpers.getModKeyPath(curMod["modType"], curMod["mod"]);
+        // an unrecognised mod yields undefined; a keyless change applies to nothing
+        if (!key) continue;
+        changes.push({ key, mode: AE_MODES.ADD, value });
+      }
+    };
+
+    if (itemData.type === "species") {
+      const attributes = itemData.system?.attributes ?? {};
+      for (const key of Object.keys(attributes)) {
+        // migrated data may carry user-added attr<timestamp> rows; those are not part of the
+        // species' own grant and keep their separate effects
+        if (key.startsWith("attr")) continue;
+        push(attributes[key]?.modtype, key, attributes[key]?.value);
+      }
+    } else if (["gear", "weapon"].includes(itemData.type)) {
+      push("Stat", "Encumbrance", 0);
+    } else if (itemData.type === "armour") {
+      for (const stat of ["Encumbrance", "Defence", "Soak"]) push("Stat", stat, 0);
+    } else if (itemData.type === "shipattachment") {
+      push("Vehicle Stat", "Vehicle.Hardpoints", 0);
+    } else if (itemData.type === "career") {
+      for (let i = 0; i < 8; i++) changes.push({ key: "(none)", mode: AE_MODES.ADD, value: true });
+    } else if (itemData.type === "specialization") {
+      for (let i = 0; i < 5; i++) changes.push({ key: "(none)", mode: AE_MODES.ADD, value: true });
+    }
+
+    return { name: "(inherent)", img: itemData.img, changes };
+  }
+
+  /**
+   * Plan every generated Active Effect an item does not already have, ready to be folded into
+   * its own source at creation time.
+   *
+   * These used to be written after the item was created, from `ItemFFG#_onCreate`. That hook
+   * runs on every connected client whose user matches the creating user, and one user can be
+   * connected from several windows -- so each window performed its own create and the item ended
+   * up with one duplicate per extra session, doubling the modifier. Planning them into the
+   * document instead means the item arrives complete and there is no follow-up write to repeat.
+   *
+   * Matching by effect NAME is what makes a compendium copy, a duplicate or a re-drop idempotent:
+   * those arrive with their effects already attached.
+   *
+   * @param {object} itemData - an ItemFFG or equivalent plain `{type, img, system, effects}`
+   * @param {object} [options]
+   * @param {boolean} [options.includeInherent=true] - plan the `(inherent)` effect as well
+   * @returns {Array<object>} effect data to add; empty when nothing is missing
+   */
+  static planMissingEffects(itemData, { includeInherent = true } = {}) {
+    if (!itemData) return [];
+    const existing = new Set((itemData.effects ?? []).map((effect) => effect?.name));
+    const planned = [];
+
+    if (includeInherent && !existing.has("(inherent)")) {
+      const inherent = ModifierHelpers.planInherentEffect(itemData);
+      if (inherent) planned.push(inherent);
+    }
+
+    for (const effect of ModifierHelpers.planAttributeEffects(itemData)) {
+      if (existing.has(effect.name)) continue;
+      planned.push({ ...effect, img: itemData.img });
+    }
+
+    return planned;
+  }
+
   static planAttributeEffects(itemData) {
     if (!ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(itemData?.type)) return [];
 
