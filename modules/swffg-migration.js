@@ -1,5 +1,6 @@
 import { AE_MODES } from "./config/ffg-active-effect-modes.js";
 import ModifierHelpers from "./helpers/modifiers.js";
+import ItemHelpers from "./helpers/item-helpers.js";
 
 /**
  * Handles all logic related to migrating the system to a new version, including sending notifications
@@ -50,6 +51,9 @@ async function handleMigration(oldVersion, newVersion) {
   if (olderThan(oldVersion, "2.1.2")) {
     await clearStaleEditMode();
   }
+  if (olderThan(oldVersion, "2.1.3")) {
+    await repairCareerSkillGrants();
+  }
   await warnTheme();
 }
 
@@ -95,6 +99,31 @@ async function clearStaleEditMode() {
     CONFIG.logger.debug(`Cleared stale Edit Mode flags on ${stale.length} actor(s)`);
   } catch (err) {
     CONFIG.logger.error("Unable to clear stale Edit Mode flags.", err);
+  }
+}
+
+/**
+ * Give every career and specialization already in the world the `(inherent)` Active Effect that
+ * flags its career skills on the actor.
+ *
+ * That effect is the whole grant -- nothing reads `system.careerSkills` at roll or sheet time --
+ * and it used to be written only by the OggDude importer or by saving the item's own sheet. A
+ * specialization bought from a compendium built any other way arrived with its career skills in
+ * its data and no effect to apply them, so (for instance) a character who took Soresu Defender
+ * after creation kept Lightsaber as a non-career skill and was overcharged for every rank.
+ *
+ * @returns {Promise<void>}
+ */
+async function repairCareerSkillGrants() {
+  try {
+    const report = await ItemHelpers.repairCareerSkillEffects();
+    if (!report.changed.length) return;
+    CONFIG.logger.debug(`Repaired career-skill grants on ${report.changed.length} item(s)`, report.changed);
+    ui.notifications.info(
+      `Star Wars FFG: restored the career skills granted by ${report.changed.length} career(s)/specialization(s).`
+    );
+  } catch (err) {
+    CONFIG.logger.error("Unable to repair career-skill grants.", err);
   }
 }
 

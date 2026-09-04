@@ -100,49 +100,19 @@ export default class ItemHelpers {
           }
         }
       }
-    } else if (this.object.type === "career") {
-      // apply career skills from Careers
+    } else if (["career", "specialization"].includes(this.object.type)) {
+      // apply career skills from the career / specialization
       const existingEffects = this.object.getEmbeddedCollection("ActiveEffect");
       const itemEffect = existingEffects.find(i => i.name === `(inherent)`);
-      const changes = [];
-      for (let i = 0; i < 8; i++) {
-        let path;
-        const skill = formData.data.careerSkills[`careerSkill${i}`];
-        if (skill !== "(none)") {
-          path = `system.skills.${skill}.careerskill`;
-        } else {
-          path = "(none)";
-        }
-        changes.push({
-          key: path,
-          mode: AE_MODES.ADD,
-          value: true,
-        });
-      }
+      const changes = ModifierHelpers.planCareerSkillChanges(this.object.type, formData.data.careerSkills);
       if (itemEffect) {
         await itemEffect.update({changes: changes});
-      }
-    } else if (this.object.type === "specialization") {
-      // apply career skills from Careers
-      const existingEffects = this.object.getEmbeddedCollection("ActiveEffect");
-      const itemEffect = existingEffects.find(i => i.name === `(inherent)`);
-      const changes = [];
-      for (let i = 0; i < 5; i++) {
-        let path;
-        const skill = formData.data.careerSkills[`careerSkill${i}`];
-        if (skill !== "(none)") {
-          path = `system.skills.${skill}.careerskill`;
-        } else {
-          path = "(none)";
-        }
-        changes.push({
-          key: path,
-          mode: AE_MODES.ADD,
-          value: true,
-        });
-      }
-      if (itemEffect) {
-        await itemEffect.update({changes: changes});
+      } else {
+        // an item built without its inherent effect (an older pack export, a hand-authored spec)
+        // has nothing to grant its career skills through, so give it one now
+        await this.object.createEmbeddedDocuments("ActiveEffect", [
+          {name: "(inherent)", img: this.object.img, changes: changes},
+        ]);
       }
     }
   }
@@ -637,6 +607,108 @@ export default class ItemHelpers {
       if (!summary?.created.length && !summary?.updated.length) continue;
       report.changed.push({ item: item.name, actor: actor.name ?? null, uuid: item.uuid, ...summary });
     }
+    return report;
+  }
+
+  /**
+   * What one career / specialization needs doing to its `(inherent)` Active Effect for its
+   * career skills to actually reach the actor.
+   *
+   * Pure -- plain data in, a plan out -- so the decision is testable without a live world.
+   *
+   * @param {object} itemData - an ItemFFG or equivalent plain `{type, system, effects}`
+   * @returns {{action: "none"|"create"|"update", changes: Array<object>, effectId: string|null}}
+   */
+  static planCareerSkillRepair(itemData) {
+    const none = { action: "none", changes: [], effectId: null };
+    if (!ModifierHelpers.CAREER_SKILL_SLOTS[itemData?.type]) return none;
+
+    const changes = ModifierHelpers.planCareerSkillChanges(itemData.type, itemData.system?.careerSkills);
+    const effect = (itemData.effects ?? []).find((candidate) => candidate?.name === "(inherent)");
+    if (!effect) return { action: "create", changes, effectId: null };
+
+    const id = effect._id ?? effect.id ?? null;
+    // Stored change values come back as strings ("true"), so compare the keys and the order --
+    // which is what the grant is -- rather than the raw change objects.
+    const current = (effect.changes ?? []).map((change) => change?.key);
+    const wanted = changes.map((change) => change.key);
+    const matches = current.length === wanted.length && current.every((key, i) => key === wanted[i]);
+    return matches ? none : { action: "update", changes, effectId: id };
+  }
+
+  /**
+   * Give one career / specialization the `(inherent)` Active Effect that grants its career
+   * skills, or correct the one it has.
+   *
+   * @param {Item} item - the item to repair
+   * @param {object} [options]
+   * @param {boolean} [options.dryRun=false] - report what would change without changing it
+   * @returns {Promise<{action: string, skills: Array<string>}|null>} null when nothing to do
+   */
+  static async reconcileCareerSkillEffects(item, { dryRun = false } = {}) {
+    // a compendium's own copy is left alone; it is repaired when it is dropped onto an actor
+    if (item?.compendium) return null;
+    const plan = ItemHelpers.planCareerSkillRepair(item?.toObject?.() ?? item);
+    if (plan.action === "none") return null;
+
+    const skills = plan.changes
+      .filter((change) => change.key !== "(none)")
+      .map((change) => change.key.replace(/^system\.skills\./, "").replace(/\.careerskill$/, ""));
+
+    if (!dryRun) {
+      if (plan.action === "create") {
+        await item.createEmbeddedDocuments("ActiveEffect", [
+          { name: "(inherent)", img: item.img, changes: plan.changes },
+        ]);
+      } else {
+        await item.updateEmbeddedDocuments("ActiveEffect", [
+          { _id: plan.effectId, changes: plan.changes },
+        ]);
+      }
+    }
+    return { action: plan.action, skills };
+  }
+
+  /**
+   * Run `reconcileCareerSkillEffects` over every career and specialization in the world, so a
+   * character who bought one whose career skills never became an Active Effect gets them.
+   *
+   * Intended to be called by a GM from the console:
+   *   `await game.starwarsffg.repairCareerSkillEffects({dryRun: true})` to preview,
+   *   then without `dryRun` to apply.
+   *
+   * @param {object} [options]
+   * @param {boolean} [options.dryRun=false] - report what would change without changing it
+   * @returns {Promise<{scanned: number, changed: Array<object>}>}
+   */
+  static async repairCareerSkillEffects({ dryRun = false } = {}) {
+    const report = { scanned: 0, changed: [] };
+    const repair = async (item) => {
+      if (!ModifierHelpers.CAREER_SKILL_SLOTS[item?.type]) return;
+      report.scanned += 1;
+      const summary = await ItemHelpers.reconcileCareerSkillEffects(item, { dryRun });
+      if (!summary) return;
+      report.changed.push({ item: item.name, actor: item.actor?.name ?? null, uuid: item.uuid, ...summary });
+    };
+
+    // World and base-actor Items first, for the same reason repairModifierEffects does it in
+    // this order: writing to a base Actor's item rebuilds every unlinked token's synthetic copy.
+    for (const item of game.items ?? []) await repair(item);
+    for (const actor of game.actors ?? []) {
+      for (const item of actor.items ?? []) await repair(item);
+    }
+    for (const scene of game.scenes ?? []) {
+      for (const token of scene.tokens ?? []) {
+        if (token.actorLink || !token.actor) continue;
+        const managed = token.delta?.items;
+        for (const item of token.actor.items ?? []) {
+          if (managed?.manages && !managed.manages(item.id)) continue;
+          await repair(item);
+        }
+      }
+    }
+
+    CONFIG.logger.debug(`repairCareerSkillEffects scanned ${report.scanned} item(s), ${report.changed.length} needed work`);
     return report;
   }
 

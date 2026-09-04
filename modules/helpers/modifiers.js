@@ -485,10 +485,47 @@ export default class ModifierHelpers {
   static INHERENT_EFFECT_TYPES = ["species", "gear", "weapon", "armour", "shipattachment", "career", "specialization"];
 
   /**
+   * How many career-skill slots each type carries in `system.careerSkills`.
+   */
+  static CAREER_SKILL_SLOTS = { career: 8, specialization: 5 };
+
+  /**
+   * The career-skill changes a career or specialization's `(inherent)` Active Effect is made of.
+   *
+   * Nothing on the actor derives career skills from an item's `system.careerSkills` -- the effect
+   * IS the grant, so an item whose effect was never filled in flags no skill at all. Every slot
+   * produces a change, an unset one keeping the literal `"(none)"` key (which matches nothing on
+   * the actor), because the item sheet rewrites this list by index on save.
+   *
+   * Pure -- plain data in, changes out -- so every writer (item create, sheet save, import, the
+   * repair sweep) builds the same list.
+   *
+   * @param {string} type - item type; anything other than career/specialization yields nothing
+   * @param {object} [careerSkills] - the item's `system.careerSkills` dictionary
+   * @returns {Array<{key: string, mode: number, value: boolean}>}
+   */
+  static planCareerSkillChanges(type, careerSkills) {
+    const slots = ModifierHelpers.CAREER_SKILL_SLOTS[type];
+    if (!slots) return [];
+
+    const changes = [];
+    for (let i = 0; i < slots; i++) {
+      const skill = careerSkills?.[`careerSkill${i}`];
+      changes.push({
+        key: skill && skill !== "(none)" ? `system.skills.${skill}.careerskill` : "(none)",
+        mode: AE_MODES.ADD,
+        value: true,
+      });
+    }
+    return changes;
+  }
+
+  /**
    * Plan the `(inherent)` Active Effect an item is created with.
    *
    * Weapon/armour/gear/shipattachment changes are created zeroed and filled in when the item
-   * sheet is first submitted; career and specialization carry placeholder career-skill slots.
+   * sheet is first submitted; career and specialization carry the career-skill grants built from
+   * their own `system.careerSkills`.
    * A species is the only type whose changes are built from its own attributes.
    *
    * Pure -- plain data in, effect data out, no document access -- so it can be planned into an
@@ -524,10 +561,8 @@ export default class ModifierHelpers {
       for (const stat of ["Encumbrance", "Defence", "Soak"]) push("Stat", stat, 0);
     } else if (itemData.type === "shipattachment") {
       push("Vehicle Stat", "Vehicle.Hardpoints", 0);
-    } else if (itemData.type === "career") {
-      for (let i = 0; i < 8; i++) changes.push({ key: "(none)", mode: AE_MODES.ADD, value: true });
-    } else if (itemData.type === "specialization") {
-      for (let i = 0; i < 5; i++) changes.push({ key: "(none)", mode: AE_MODES.ADD, value: true });
+    } else if (["career", "specialization"].includes(itemData.type)) {
+      changes.push(...ModifierHelpers.planCareerSkillChanges(itemData.type, itemData.system?.careerSkills));
     }
 
     return { name: "(inherent)", img: itemData.img, changes };
