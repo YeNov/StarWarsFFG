@@ -64,6 +64,7 @@ import {xpLogUndo} from "./helpers/actor-helpers.js";
 import {register_system_tours} from "./helpers/tours.js";
 import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
 import { computeCritAvailability } from "./helpers/crit-availability.js";
+import { refreshSheetsForRemoteUpdate } from "./helpers/sheet-sync.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -1463,6 +1464,15 @@ Hooks.on("canvasInit", () => {
   const current = CONFIG.statusEffects;
   const cleaned = dedupeStatusEffectsById(current);
   if (cleaned.length !== current.length) CONFIG.statusEffects = cleaned;
+});
+
+// An item sheet submits with `render: false` so a re-render cannot swap the DOM out from under
+// whoever is typing. Foundry applies that flag on every client, and ItemHelpers.itemUpdate's
+// compensating re-renders only run locally -- so anyone ELSE with that item, or its owning actor,
+// open kept seeing stale values until they reloaded. Refresh them here; they have no edit in
+// progress to protect. See helpers/sheet-sync.js.
+Hooks.on("updateItem", (doc, changed, options, userId) => {
+  refreshSheetsForRemoteUpdate(doc, options, userId, game.user?.id);
 });
 
 Hooks.on("renderChatInput", (app, html, data) => {
