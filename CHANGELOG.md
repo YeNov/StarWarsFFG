@@ -1,3 +1,8 @@
+`Unreleased`
+
+* Fixed — **an item made while you had the world open in two windows got each of its effects twice**, so a talent granted double its modifier and a piece of gear counted its encumbrance twice. An item's effects are now built into the item as it is created, instead of being added straight afterwards by every window you had open.
+  * **Items already made this way keep their duplicates.** Open the item's Effects tab and delete the extra copy, or delete and re-add the item.
+
 `2.1.2`
 Bug fixes for `2.1.1`, mostly around talents, Edit Mode and the Codex II vehicle sheet.
 
