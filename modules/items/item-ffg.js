@@ -61,8 +61,12 @@ export class ItemFFG extends ItemBaseFFG {
     const parent = operation?.parent ?? this.parent;
     // An item dropped onto an actor is a copy of one that already carries its inherent effect,
     // so it is not planned again -- except for the equippable types, whose modifier-adjusted
-    // values are re-saved on create. Mirrors the condition _onCreateAEs used.
-    const forceInherent = !!parent && ["weapon", "shipweapon", "armour"].includes(this.type);
+    // values are re-saved on create, and career/specialization, whose inherent effect is the
+    // only thing that grants their career skills and which the packs people drop from were
+    // frequently built without (it was written only by the OggDude importer or by saving the
+    // item's own sheet). Planning is matched by effect NAME, so an item that already carries
+    // one is left exactly as it is.
+    const forceInherent = !!parent && ["weapon", "shipweapon", "armour", "career", "specialization"].includes(this.type);
     const planned = ModifierHelpers.planMissingEffects(this._source, {
       includeInherent: !parent || forceInherent,
     });

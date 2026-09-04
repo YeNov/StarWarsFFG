@@ -1662,6 +1662,10 @@ Hooks.once("ready", async () => {
   game.starwarsffg = Object.assign(game.starwarsffg ?? {}, {
     repairModifierEffects: (options) => ItemHelpers.repairModifierEffects(options),
     reconcileModifierEffects: (item, options) => ItemHelpers.reconcileModifierEffects(item, options),
+    // `repairCareerSkillEffects` gives every career / specialization the `(inherent)` Active
+    // Effect that flags its career skills on the actor -- the ones bought from a pack that was
+    // built without it granted no career skills at all.
+    repairCareerSkillEffects: (options) => ItemHelpers.repairCareerSkillEffects(options),
   });
 
   // Self-heal a stale `defaultSheetTheme` client value. The setting originally

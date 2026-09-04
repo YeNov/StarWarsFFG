@@ -3188,40 +3188,10 @@ export default class ImportHelpers {
 
     // careers and specializations are created with the template, then populated with the data passed in
     // check for careerSkills being set and update them
-    if (item.type === "career" && inherentEffect) {
-      const changes = [];
-      for (let i = 0; i < 8; i++) {
-        let path;
-        const skill = item.system.careerSkills[`careerSkill${i}`];
-        if (skill !== "(none)") {
-          path = `system.skills.${skill}.careerskill`;
-        } else {
-          path = "(none)";
-        }
-        changes.push({
-          key: path,
-          mode: AE_MODES.ADD,
-          value: true,
-        });
-      }
-      await inherentEffect.update({changes: changes});
-    } else if (item.type === "specialization" && inherentEffect) {
-      const changes = [];
-      for (let i = 0; i < 5; i++) {
-        let path;
-        const skill = item.system.careerSkills[`careerSkill${i}`];
-        if (skill !== "(none)") {
-          path = `system.skills.${skill}.careerskill`;
-        } else {
-          path = "(none)";
-        }
-        changes.push({
-          key: path,
-          mode: AE_MODES.ADD,
-          value: true,
-        });
-      }
-      await inherentEffect.update({changes: changes});
+    if (["career", "specialization"].includes(item.type) && inherentEffect) {
+      await inherentEffect.update({
+        changes: ModifierHelpers.planCareerSkillChanges(item.type, item.system.careerSkills),
+      });
     }
 
     if (toCreate.length) {
