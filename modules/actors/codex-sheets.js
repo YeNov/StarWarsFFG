@@ -30,8 +30,9 @@ import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
-import { vehicleHardpoints } from "../helpers/vehicle-hardpoints.js";
+import { vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings } from "../helpers/vehicle-hardpoints.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
+import ActorHelpers from "../helpers/actor-helpers.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -548,12 +549,14 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // Reflect FFG edit mode as a class so view-only chrome can hide itself when
     // editing is off — e.g. the career-skill ("CS") column, which is redundant
     // with the left career highlight. Mirrors data.disabled in the base getData.
-    const editEnabled = !!this.actor?.getFlag?.("starwarsffg", "config.enableEditMode");
-    const editOn = !!(
-      editEnabled &&
-      this.actor?.getFlag?.("starwarsffg", "config.editModeActor") === game.user?.id
-    );
+    // One predicate, shared with the base getData and with ActorFFG#allApplicableEffects — see
+    // ActorHelpers.isEditModeOwner for why field editability and effect suppression must agree.
+    const editOn = ActorHelpers.isEditModeOwner(this.actor);
     (form ?? root).classList.toggle("cdx-editmode", editOn);
+    // Deliberately NOT the ownership predicate: the purchase/delete handlers reject while the
+    // mode is on for anybody (ActorFFG#verifyEditModeIsNotEnabled tests the bare flag), so the
+    // XP-buy gate below has to test the same bare flag or it would offer a purchase that fails.
+    const editEnabled = !!this.actor?.getFlag?.("starwarsffg", "config.enableEditMode");
 
     // Reflect GM status as a class so GM-only chrome can hide itself for players —
     // currently the per-pill delete cross (species/career/spec/force/sig). CSS
@@ -1471,8 +1474,26 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           ctx.cdxVehShields[zone] = { cur, max: rating };
         }
       } catch (e) {
-        ctx.cdxVehTracks = { hull: {}, strain: {} }; ctx.cdxVehHpUsed = 0; ctx.cdxVehCrewCount = 0; ctx.cdxVehCost = "0";
-        ctx.cdxVehShields = { fore: { cur: 0, max: 0 }, aft: { cur: 0, max: 0 }, port: { cur: 0, max: 0 }, starboard: { cur: 0, max: 0 } };
+        // Malformed legacy data aborted the richer vehicle context. Every RATING in this
+        // fallback must come from stored source data, never a fabricated zero: the hull and
+        // shield ratings render as editable inputs in Edit Mode, and the sheet submits its whole
+        // form on change AND on close, so a zero here is written straight over the stored value.
+        CONFIG.logger?.warn?.("Codex: falling back to source vehicle stats", e);
+        ctx.cdxVehTracks = { hull: {}, strain: {} };
+        ctx.cdxVehHpUsed = 0;
+        ctx.cdxVehHpMax = vehicleHardpointSourceRating(this.actor);
+        ctx.cdxVehCrewCount = 0;
+        ctx.cdxVehCritCount = 0;
+        ctx.cdxVehSpeedPct = 0;
+        ctx.cdxVehCost = "0";
+        const shieldRatings = vehicleShieldSourceRatings(this.actor);
+        const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
+        ctx.cdxVehShields = {};
+        for (const zone of ["fore", "aft", "port", "starboard"]) {
+          const stored = shieldFlags?.[zone];
+          const cur = stored == null ? shieldRatings[zone] : Math.max(0, Math.trunc(Number(stored) || 0));
+          ctx.cdxVehShields[zone] = { cur, max: shieldRatings[zone] };
+        }
       }
     }
     return ctx;

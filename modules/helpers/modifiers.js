@@ -496,11 +496,37 @@ export default class ModifierHelpers {
         // a mod with no property path (the "Remove Setback" roll modifier, weapon stats)
         // is read off the rolled item itself; a keyless change applies to nothing
         if (!modPath) continue;
-        changes.push({ key: modPath, mode: AE_MODES.ADD, value: attribute.value });
+        // The PER-RANK grant is what gets persisted. A ranked talent's total is derived at apply
+        // time from this base (ActorFFG.applyActiveEffects), so the stored effect never goes
+        // stale when the rank changes and a compendium copy is correct however it is dragged out.
+        changes.push({
+          key: modPath,
+          mode: AE_MODES.ADD,
+          value: attribute.value,
+        });
       }
       if (changes.length) planned.push({ name: key, changes });
     }
     return planned;
+  }
+
+  /**
+   * How many times a ranked talent grants each of its numeric modifiers. Applied to the stored
+   * per-rank value at effect-application time, mirroring the quantity scaling in
+   * `ActorFFG#applyActiveEffects`.
+   *
+   * A rank that is not a usable number never scales the grant away: `ranks.current` is a nullable
+   * NumberField and a cleared Rank field persists `null`, which `Number()` would turn into a
+   * silent 0 and wipe the modifier.
+   *
+   * @param {object} itemData - an ItemFFG or equivalent plain `{type, system}`
+   * @returns {number} the multiplier, always >= 1
+   */
+  static rankMultiplier(itemData) {
+    if (!itemData?.system?.ranks?.ranked) return 1;
+    const rank = Number(itemData.system.ranks.current);
+    if (!Number.isFinite(rank) || rank < 1) return 1;
+    return rank;
   }
 
   /**

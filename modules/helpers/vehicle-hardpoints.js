@@ -12,11 +12,13 @@
  * a 2-HP attachment made it 4/3 rather than 4/5.
  *
  * So the rating is reconstructed here: take the prepared value and give back
- * exactly what the attachments' own effects took from it. Anything else that
- * touches the path -- a mod that GRANTS hard points, say -- is left in, and an
- * attachment whose effect never got its cost written (they are created zeroed
- * and only filled in when the item sheet is submitted) still spends its hard
- * points through `used`, so the pair stays consistent either way.
+ * exactly what the attachments SPENT out of it -- every negative ADD on the path
+ * from a `shipattachment`, whichever effect carries it. Anything that GRANTS hard
+ * points is positive and is left in, so an attachment that adds capacity raises
+ * the rating instead of being mistaken for part of its own cost. An attachment
+ * whose effect never got its cost written (they are created zeroed and only
+ * filled in when the item sheet is submitted) still spends its hard points
+ * through `used`, so the pair stays consistent either way.
  *
  * Pure and dependency-free (no imports, no game/DOM access) so it can be unit
  * tested headlessly.
@@ -31,6 +33,34 @@ function appliedEffectsOf(actor) {
     return [...actor.allApplicableEffects()].filter((e) => e.active);
   }
   return [];
+}
+
+/**
+ * Read the hull rating from unprepared source data for a sheet error fallback. Unlike the
+ * prepared value, this cannot include an attachment's Active Effect spend.
+ * @param {object} actor
+ * @returns {number}
+ */
+export function vehicleHardpointSourceRating(actor) {
+  const rating = Number(actor?._source?.system?.stats?.customizationHardPoints?.value);
+  return Number.isFinite(rating) ? rating : 0;
+}
+
+/**
+ * Read a vehicle's four shield zone ratings from unprepared source data, for the same sheet
+ * error fallback. These render as editable inputs in Edit Mode, so a fabricated zero would be
+ * submitted straight back over the stored ratings.
+ * @param {object} actor
+ * @returns {{fore: number, aft: number, port: number, starboard: number}}
+ */
+export function vehicleShieldSourceRatings(actor) {
+  const shields = actor?._source?.system?.stats?.shields ?? {};
+  const ratings = {};
+  for (const zone of ["fore", "aft", "port", "starboard"]) {
+    const rating = Math.trunc(Number(shields[zone]));
+    ratings[zone] = Number.isFinite(rating) ? rating : 0;
+  }
+  return ratings;
 }
 
 /**
@@ -55,7 +85,13 @@ export function vehicleHardpoints(actor) {
     for (const change of effect.changes ?? []) {
       if (change?.key !== HARDPOINT_PATH) continue;
       if ((change.mode ?? AE_MODE_ADD) !== AE_MODE_ADD) continue;
-      spent += Number(change.value) || 0;
+      const value = Number(change.value) || 0;
+      // Only a SPEND is given back. A cost is always written negative (modifiers.js writes
+      // `hardpoints.value * -1`), a grant positive, so the sign is the structural signal --
+      // unlike the effect's name, which the user can change in Foundry's own AE config and
+      // which a cost authored as a modifier row never carries in the first place.
+      if (value >= 0) continue;
+      spent += value;
     }
   }
 

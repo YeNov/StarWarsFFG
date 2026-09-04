@@ -132,21 +132,28 @@ export class ActorSheetFFG extends FFGActorSheet {
                 }
 
                 const AEState = await ActorHelpers.beginEditMode(this.actor, true);
-                const updatedAvailableXP = this.actor.system.experience.available;
-                await this.object.update({
-                  system: {
-                    experience: {
-                      available: updatedAvailableXP - cost,
+                // beginEditMode persisted disabled=true on every AE on the actor; endEditMode
+                // MUST run even if the update or log step throws, otherwise the character is
+                // left with all effects disabled for the whole world (characteristics, soak,
+                // wounds and defence collapse to base) with no way to tell why.
+                try {
+                  const updatedAvailableXP = this.actor.system.experience.available;
+                  await this.object.update({
+                    system: {
+                      experience: {
+                        available: updatedAvailableXP - cost,
+                      }
                     }
-                  }
-                });
-                await xpLogSpend(
-                    this.actor, `${game.i18n.localize("SWFFG.DragDrop.XPLog")} ${itemData.type} ${itemData.name}`,
-                    cost,
-                    this.actor.system.experience.available,
-                    this.actor.system.experience.total
-                );
-                await ActorHelpers.endEditMode(this.actor, AEState, true);
+                  });
+                  await xpLogSpend(
+                      this.actor, `${game.i18n.localize("SWFFG.DragDrop.XPLog")} ${itemData.type} ${itemData.name}`,
+                      cost,
+                      this.actor.system.experience.available,
+                      this.actor.system.experience.total
+                  );
+                } finally {
+                  await ActorHelpers.endEditMode(this.actor, AEState, true);
+                }
               },
             },
             {
@@ -397,9 +404,10 @@ export class ActorSheetFFG extends FFGActorSheet {
     }
 
     data.actor.items = ActorSheetFFG.sortForActorSheet(data.actor.items);
-    const editModeEnabled = this.object.getFlag("starwarsffg", "config.enableEditMode");
-    const editModeActor = this.object.getFlag("starwarsffg", "config.editModeActor");
-    data.disabled = !(editModeEnabled && editModeActor === game.user.id);
+    // Same predicate ActorFFG#allApplicableEffects uses to withhold effects. The two MUST agree:
+    // unlocking a field whose effect is still applied is what makes an AE-boosted stat creep on
+    // every submit, so they read from one helper rather than a second hand-written copy.
+    data.disabled = !ActorHelpers.isEditModeOwner(this.object);
 
     data.modTypeSelected = "all"; // TODO: should this be something else?
     data.modifierTypes = CONFIG.FFG.allowableModifierTypes;

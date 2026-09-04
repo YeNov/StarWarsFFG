@@ -395,6 +395,16 @@ export default class ItemHelpers {
    */
   static effectMatchesPlan(effect, planned) {
     if (!!effect.disabled !== !!planned.disabled) return false;
+    return ItemHelpers.effectChangesMatch(effect, planned);
+  }
+
+  /**
+   * Compare only an effect's change payload, ignoring whether the effect is enabled.
+   * @param effect - the existing ActiveEffect document
+   * @param planned - an object carrying the desired `changes`
+   * @returns {boolean}
+   */
+  static effectChangesMatch(effect, planned) {
     const current = effect.changes ?? [];
     if (current.length !== planned.changes.length) return false;
     return planned.changes.every((want, index) => {
@@ -573,8 +583,11 @@ export default class ItemHelpers {
    *
    * Create-only by design, unlike `reconcileModifierEffects`: a talent's effects are named
    * after hand-authored attribute keys, so an effect that is present but does not match the
-   * plan may well be one the user edited through Foundry's own Active Effect config. Editing
-   * the modifier on the talent sheet still updates its effect (see applyActiveEffectOnUpdate).
+   * plan may well be one the user edited through Foundry's own Active Effect config. Nor is
+   * there anything to migrate -- the stored value is the per-rank grant, which is what every
+   * existing effect already holds; `ActorFFG#applyActiveEffects` derives the ranked total.
+   * Editing the modifier on the talent sheet still updates its effect (see
+   * applyActiveEffectOnUpdate).
    *
    * @param {ItemFFG} item
    * @param {object} [options]
@@ -590,6 +603,7 @@ export default class ItemHelpers {
 
     const existing = item.getEmbeddedCollection("ActiveEffect");
     const toCreate = planned.filter((effect) => !existing.find((candidate) => candidate.name === effect.name));
+
     const summary = { created: toCreate.map((effect) => effect.name), updated: [], deleted: [], renamed: [], warnings: [] };
     if (dryRun || !toCreate.length) return summary;
 
@@ -598,8 +612,32 @@ export default class ItemHelpers {
       toCreate.map((effect) => ({ ...effect, img: item.img })),
       { render: false },
     );
-    CONFIG.logger.debug(`Created ${toCreate.length} attribute Active Effect(s) on ${item.name}`, summary);
+    CONFIG.logger.debug(`Reconciled attribute Active Effects on ${item.name}`, summary);
     return summary;
+  }
+
+  /**
+   * Reconcile freeform attribute effects for every applicable Item already embedded in an Actor.
+   *
+   * Creating an Actor from a complete source hydrates its embedded Items without dispatching an
+   * Item create operation, so ItemFFG#_onCreateAttributeAEs never runs for those descendants. Actor
+   * importers call this after Actor.create() to cover that lifecycle boundary explicitly.
+   *
+   * @param {ActorFFG} actor
+   * @param {object} [options]
+   * @param {boolean} [options.dryRun=false]
+   * @returns {Promise<{scanned: number, changed: Array<object>}>}
+   */
+  static async reconcileActorAttributeEffects(actor, { dryRun = false } = {}) {
+    const report = { scanned: 0, changed: [] };
+    for (const item of actor?.items ?? []) {
+      if (!ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) continue;
+      report.scanned += 1;
+      const summary = await ItemHelpers.reconcileAttributeEffects(item, { dryRun });
+      if (!summary?.created.length && !summary?.updated.length) continue;
+      report.changed.push({ item: item.name, actor: actor.name ?? null, uuid: item.uuid, ...summary });
+    }
+    return report;
   }
 
   /**
@@ -619,24 +657,21 @@ export default class ItemHelpers {
    */
   static async repairModifierEffects({ dryRun = false } = {}) {
     const report = { scanned: 0, changed: [] };
-    const targets = [...game.items];
-    for (const actor of game.actors) targets.push(...actor.items);
-
-    for (const item of targets) {
+    const reconcileItem = async (item) => {
       if (ModifierHelpers.FREEFORM_ATTRIBUTE_EFFECT_TYPES.includes(item.type)) {
         report.scanned += 1;
         const summary = await ItemHelpers.reconcileAttributeEffects(item, { dryRun });
-        if (summary?.created.length) {
+        if (summary?.created.length || summary?.updated.length) {
           report.changed.push({ item: item.name, actor: item.actor?.name ?? null, uuid: item.uuid, ...summary });
         }
-        continue;
+        return;
       }
-      if (!ItemHelpers.RECONCILABLE_TYPES.includes(item.type)) continue;
+      if (!ItemHelpers.RECONCILABLE_TYPES.includes(item.type)) return;
       report.scanned += 1;
       const summary = await ItemHelpers.reconcileModifierEffects(item, { dryRun });
-      if (!summary) continue;
+      if (!summary) return;
       if (!summary.created.length && !summary.updated.length && !summary.deleted.length && !summary.renamed.length) {
-        continue;
+        return;
       }
       report.changed.push({
         item: item.name,
@@ -644,6 +679,31 @@ export default class ItemHelpers {
         uuid: item.uuid,
         ...summary,
       });
+    };
+
+    // Repair world and base-actor Items first. Creating an effect on a base Actor makes Foundry
+    // rebuild every dependent unlinked token's synthetic Item collection. Holding token Item
+    // references across that rebuild would leave us writing to detached documents and could fork
+    // an inherited item into the ActorDelta with a duplicate effect.
+    for (const item of game.items ?? []) await reconcileItem(item);
+    for (const actor of game.actors ?? []) {
+      for (const item of actor.items ?? []) await reconcileItem(item);
+    }
+
+    // Read token Items only after base propagation has settled, so these are the current synthetic
+    // documents. Only the Items the ActorDelta actually manages are visited: everything else in a
+    // synthetic collection is inherited from the base Actor and was already repaired above, so
+    // re-visiting it would double-count `scanned` and -- under dryRun, where the base pass writes
+    // nothing -- report the same item again under a token uuid that the real run never produces.
+    for (const scene of game.scenes ?? []) {
+      for (const token of scene.tokens ?? []) {
+        if (token.actorLink || !token.actor) continue;
+        const managed = token.delta?.items;
+        for (const item of token.actor.items ?? []) {
+          if (managed?.manages && !managed.manages(item.id)) continue;
+          await reconcileItem(item);
+        }
+      }
     }
 
     CONFIG.logger.debug(`repairModifierEffects scanned ${report.scanned} item(s), ${report.changed.length} needed work`);

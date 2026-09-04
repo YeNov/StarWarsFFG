@@ -1,4 +1,5 @@
 import ModifierHelpers from "../helpers/modifiers.js";
+import ActorHelpers from "../helpers/actor-helpers.js";
 import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate-talents.js";
 import { applyCharacterDefenceCap } from "../helpers/defence-helpers.js";
 import { buildSkillDefaults } from "../helpers/skill-defaults.js";
@@ -599,7 +600,12 @@ export class ActorFFG extends Actor {
       }
     }
 
-    // handle indirect active effects - which come from items
+    // handle indirect active effects - which come from items.
+    // Skipped entirely while this client owns Edit Mode: allApplicableEffects withholds these
+    // effects from the prepared data, so listing them here would have the roll dialog and the
+    // weapon-card tooltip advertise dice that are not in the pool. The `disabled` test below is
+    // not enough on its own -- edit-mode suspension no longer sets that flag.
+    if (ActorHelpers.isEditModeOwner(actorData)) return;
     for (const item of actorData.items) {
       const itemActiveEffects = item.getEmbeddedCollection("ActiveEffect");
       for (const effect of itemActiveEffects) {
@@ -745,6 +751,32 @@ export class ActorFFG extends Actor {
     return allowed !== false ? this.update(updates) : this;
   }
 
+  /**
+   * Withhold stat-granting effects from this client while it owns Edit Mode. Filtering at the
+   * applicability boundary keeps all consumers consistent: core can still clear `overrides`
+   * and `statuses`, while `appliedEffects` no longer exposes effects that were deliberately
+   * withheld from prepared actor data.
+   * @override
+   */
+  *allApplicableEffects(...args) {
+    // Edit Mode ownership is persisted, but the source-only disabled state applied by
+    // beginEditMode is intentionally not. Suppress effect application from the persisted
+    // flags as well so reloading while editing cannot bring the effects back while leaving
+    // the source fields editable. Other clients still prepare this actor normally.
+    if (!ActorHelpers.isEditModeOwner(this)) {
+      yield* super.allApplicableEffects(...args);
+      return;
+    }
+    // Edit Mode only needs the stat write-back loop stopped. Core derives `statuses`,
+    // `temporaryEffects` and therefore the canvas/combat-tracker status icons from this same
+    // generator, so withholding condition effects would blank a GM's own token icons and make
+    // hasStatusEffect()/isDefeated() read false for them alone -- persistently, since the flag
+    // now survives a reload. Conditions grant no stat the sheet can round-trip, so they stay.
+    for (const effect of super.allApplicableEffects(...args)) {
+      if (effect?.statuses?.size) yield effect;
+    }
+  }
+
   /** @override **/
   applyActiveEffects(...args) {
     // Scale each item's modifiers by its quantity (e.g. carrying 2 of a gear item that grants
@@ -767,6 +799,23 @@ export class ActorFFG extends Actor {
         const baseValue = parseInt(effect._source?.changes?.[idx]?.value ?? change.value, 10);
         if (isNaN(baseValue)) continue; // non-numeric grants (e.g. career-skill flag) don't scale
         change.value = baseValue * quantity;
+      }
+    }
+
+    // Scale a ranked talent's modifiers by its current rank, for the same reason and from the
+    // same source: the Active Effect persists the PER-RANK grant, so changing the rank updates
+    // the modifier without rewriting (and risking staling) the stored effect, and a compendium
+    // copy carries the right value however it reaches an actor.
+    for (const effect of this.allApplicableEffects()) {
+      const sourceItem = effect.parent;
+      if (sourceItem?.documentName !== "Item") continue;
+      const rank = ModifierHelpers.rankMultiplier(sourceItem);
+      if (rank === 1) continue; // unranked, or a rank that would not usefully scale
+      for (let idx = 0; idx < effect.changes.length; idx++) {
+        const change = effect.changes[idx];
+        const baseValue = Number(effect._source?.changes?.[idx]?.value ?? change.value);
+        if (!Number.isFinite(baseValue)) continue; // checkbox grants (Career Skill) are switches
+        change.value = baseValue * rank;
       }
     }
 

@@ -3,6 +3,7 @@ import Helpers from "../helpers/common.js";
 import {migrateDataToSystem} from "../helpers/migration.js";
 import {ItemFFG} from "../items/item-ffg.js";
 import ModifierHelpers from "../helpers/modifiers.js";
+import ItemHelpers from "../helpers/item-helpers.js";
 
 export default class ImportHelpers {
   /**
@@ -1137,10 +1138,12 @@ export default class ImportHelpers {
             }
           } else {
             if(t.Ranks) {
-              if(talent.data?.ranks)
+              // `talent` is the serialized compendium document, so its fields live under
+              // `system` -- the old `data` spelling silently dropped every imported rank.
+              if(talent.system?.ranks)
               {
                 let ranks = parseInt(t.Ranks, 10);
-                talent.data.ranks.current = ranks;
+                if (Number.isFinite(ranks)) talent.system.ranks.current = ranks;
               }
             }
             adversary.items.push(talent);
@@ -1384,7 +1387,8 @@ export default class ImportHelpers {
       adversary.name += " " + String(new Date().toLocaleString());
     }
 
-    await Actor.create(adversary);
+    const createdActor = await Actor.create(adversary);
+    await ItemHelpers.reconcileActorAttributeEffects(createdActor);
 
     updateDialog(100);
   }
@@ -1483,7 +1487,8 @@ export default class ImportHelpers {
       adversary.name += " " + String(new Date().toLocaleString());
     }
 
-    await Actor.create(adversary);
+    const createdActor = await Actor.create(adversary);
+    await ItemHelpers.reconcileActorAttributeEffects(createdActor);
 
     updateDialog(100);
   }

@@ -363,16 +363,24 @@ export class GroupManager extends FFGFormApplication {
           label: game.i18n.localize("SWFFG.GrantXP"),
           default: true,
           callback: async () => {
-            const state = await ActorHelpers.beginEditMode(character, true);
             const container = document.getElementById(id);
             const amount = container.querySelector('input[name="amount"]');
             const note = container.querySelector('input[name="note"]').value;
-            const available = +character.system.experience.available + +amount.value;
-            const total = +character.system.experience.total + +amount.value;
-            character.update({ ["system.experience.total"]: +character.system.experience.total + +amount.value });
-            character.update({ ["system.experience.available"]: +character.system.experience.available + +amount.value });
-            await xpLogEarn(character, amount.value, available, total, note);
-            await ActorHelpers.endEditMode(character, state, true);
+            const state = await ActorHelpers.beginEditMode(character, true);
+            // beginEditMode persisted disabled=true on every AE on this character; endEditMode
+            // MUST run even if the XP write or the log step throws, or the character is left
+            // with every effect disabled world-wide.
+            try {
+              const available = +character.system.experience.available + +amount.value;
+              const total = +character.system.experience.total + +amount.value;
+              await character.update({
+                ["system.experience.total"]: total,
+                ["system.experience.available"]: available,
+              });
+              await xpLogEarn(character, amount.value, available, total, note);
+            } finally {
+              await ActorHelpers.endEditMode(character, state, true);
+            }
             ui.notifications.info(`Granted ${amount.value} XP to ${character.name}.`);
           },
         },
@@ -412,13 +420,23 @@ export class GroupManager extends FFGFormApplication {
                 continue;
               }
               const state = await ActorHelpers.beginEditMode(character, true);
-              const available = +character.system.experience.available + +amount.value;
-              const total = +character.system.experience.total + +amount.value;
-              character.update({ ["system.experience.total"]: +character.system.experience.total + +amount.value });
-              character.update({ ["system.experience.available"]: +character.system.experience.available + +amount.value });
-              await xpLogEarn(character, amount.value, available, total, note);
-              await ActorHelpers.endEditMode(character, state, true);
-              ui.notifications.info(`Granted ${amount.value} XP to ${character.name}.`);
+              // As above: restore this character's effects even if its own XP write or log
+              // throws, and do not let one bad character abort the rest of the party.
+              try {
+                const available = +character.system.experience.available + +amount.value;
+                const total = +character.system.experience.total + +amount.value;
+                await character.update({
+                  ["system.experience.total"]: total,
+                  ["system.experience.available"]: available,
+                });
+                await xpLogEarn(character, amount.value, available, total, note);
+                ui.notifications.info(`Granted ${amount.value} XP to ${character.name}.`);
+              } catch (err) {
+                CONFIG.logger.error(`Unable to grant XP to ${character.name}.`, err);
+                ui.notifications.error(`Unable to grant XP to ${character.name}; see the console.`);
+              } finally {
+                await ActorHelpers.endEditMode(character, state, true);
+              }
             }
           },
         },
