@@ -12,7 +12,7 @@ The system for Foundry VTT contains no rules or proprietary content from the var
 
 For more info and documentation including various "How-To" guides, please check out the [Wiki section of the upstream repo](https://github.com/StarWarsFoundryVTT/StarWarsFFG/wiki).
 
-- For support on this game system : Discord [The Foundry](https://discord.gg/foundryvtt) #starwars-ffg
+- For support with this fork : ask in [Discussions](https://github.com/YeNov/StarWarsFFG/discussions), or open an [Issue](https://github.com/YeNov/StarWarsFFG/issues) for a bug or a feature request. The Foundry Discord's #starwars-ffg channel supports the upstream system, not this fork, so please report problems here instead.
 - Read this document in another language : [Français](https://github.com/YeNov/StarWarsFFG/blob/main/README-fr.md), [Català](https://github.com/YeNov/StarWarsFFG/blob/main/README-ca.md)
 - This system supports simulated dice rolls to determine success chance. Powered by [SWRPG Online](https://github.com/swrpg-online/monte-carlo)
 
