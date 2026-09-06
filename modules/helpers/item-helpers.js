@@ -1,5 +1,6 @@
 import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ModifierHelpers from "./modifiers.js";
+import { groupTalentsByName, planDuplicateRepair } from "./talent-stacking.js";
 
 export default class ItemHelpers {
   static async itemUpdate(event, formData, { render = false } = {}) {
@@ -709,6 +710,59 @@ export default class ItemHelpers {
     }
 
     CONFIG.logger.debug(`repairCareerSkillEffects scanned ${report.scanned} item(s), ${report.changed.length} needed work`);
+    return report;
+  }
+
+  /**
+   * Merge duplicate talent items on every actor into one item per talent, with the
+   * ranks summed.
+   *
+   * A ranked talent added more than once used to arrive as a second item with the
+   * same name. The sheets merged them for display, so the copies drifted apart
+   * unnoticed -- a tier edited on one, modifiers on another.
+   *
+   * Rank multiplication is equivalent only when the copies' behavior-bearing data
+   * agrees. Groups with different descriptions, modifiers, effects or other flags
+   * are reported as `conflicting-data` and left untouched for a GM to resolve.
+   *
+   * Intended to be called by a GM from the console:
+   *   `await game.starwarsffg.repairDuplicateTalents({dryRun: true})` to preview,
+   *   then without `dryRun` to apply.
+   *
+   * @param {object} [options]
+   * @param {boolean} [options.dryRun=false] - report what would change without changing it
+   * @returns {Promise<{scanned: number, actors: Array<object>, skipped: Array<object>}>}
+   */
+  static async repairDuplicateTalents({ dryRun = false } = {}) {
+    const report = { scanned: 0, actors: [], skipped: [] };
+    for (const actor of game.actors ?? []) {
+      const talents = actor.items?.filter((i) => i.type === "talent") ?? [];
+      if (!talents.length) continue;
+      report.scanned += 1;
+      const merged = [];
+      for (const [name, copies] of groupTalentsByName(talents)) {
+        const plan = planDuplicateRepair(copies);
+        if (!plan) continue;
+        if (plan.action === "skip") {
+          // `conflicting-data` means at least one description, modifier, effect or
+          // other behavior-bearing field differs. Never choose a winner silently.
+          report.skipped.push({ actor: actor.name, name, reason: plan.reason });
+          continue;
+        }
+        merged.push({ name, from: copies.length, to: plan.rank });
+        if (dryRun) continue;
+        const update = { _id: plan.keepId, "system.ranks.current": plan.rank, "system.tier": plan.tier };
+        if (Object.keys(plan.grantedRanks).length) {
+          update["flags.starwarsffg.grantedRanks"] = plan.grantedRanks;
+        }
+        await actor.updateEmbeddedDocuments("Item", [update]);
+        await actor.deleteEmbeddedDocuments("Item", plan.deleteIds.filter(Boolean));
+      }
+      if (merged.length) report.actors.push({ actor: actor.name, merged });
+    }
+    CONFIG.logger.debug(
+      `repairDuplicateTalents scanned ${report.scanned} actor(s), ${report.actors.length} had duplicates, ${report.skipped.length} group(s) skipped`,
+    );
     return report;
   }
 

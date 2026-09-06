@@ -7,6 +7,7 @@ import ModifierHelpers from "../helpers/modifiers.js";
 import Helpers from "../helpers/common.js";
 import ItemHelpers from "../helpers/item-helpers.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue, getInitialLimitedAmmoValue } from "../helpers/ammo-helpers.js";
+import { collapseTalentBatch, planTalentGrant, talentName } from "../helpers/talent-stacking.js";
 
 /**
  * Extend the basic Item with some very simple modifications.
@@ -30,6 +31,42 @@ export class ItemFFG extends ItemBaseFFG {
       }
     } catch (e) { /* settings not ready yet, etc. — fall back to the default */ }
     return super._getSheetClass();
+  }
+
+  /** @override
+   * Two copies of a talent the actor does NOT yet have arrive in the same create
+   * batch (an importer, a multi-item drop), and each would see an actor without it,
+   * so the per-document `_preCreate` calls cannot merge them against each other.
+   * `_preCreateOperation` is the final client-side workflow before the operation is
+   * sent to the server; changing `documents` here changes what is persisted.
+   */
+  static async _preCreateOperation(documents, operation, user) {
+    const allowed = await super._preCreateOperation(documents, operation, user);
+    if (allowed === false) return false;
+    if (operation?.parent?.documentName !== "Actor" || documents.length < 2) return;
+
+    const sources = documents.map((document) => document.toObject());
+    const collapsed = collapseTalentBatch(sources);
+    if (collapsed.length === sources.length) return;
+
+    // Keep the already-prepared pending Document for each surviving source. Ranked
+    // merges return a copied source, so match that one back to the first same-named
+    // talent; untouched entries retain object identity.
+    const used = new Set();
+    const survivors = collapsed.map((source) => {
+      let index = sources.indexOf(source);
+      if (index < 0) {
+        const name = talentName(source?.name);
+        index = sources.findIndex((candidate, at) =>
+          !used.has(at) && candidate?.type === "talent" && talentName(candidate?.name) === name
+        );
+      }
+      if (index < 0) throw new Error(`Could not match collapsed talent ${source?.name ?? "<unnamed>"}`);
+      used.add(index);
+      documents[index].updateSource(source);
+      return documents[index];
+    });
+    documents.splice(0, documents.length, ...survivors);
   }
 
   /** @override **/
@@ -59,6 +96,44 @@ export class ItemFFG extends ItemBaseFFG {
     //
     // Planned after the image is settled above, so the effects inherit the final img.
     const parent = operation?.parent ?? this.parent;
+
+    // Talents stack as ranks on one item, never as duplicate items. This is the one
+    // point every add path goes through -- XP buy, drag-drop, compendium drop, the
+    // species grant hook, importers, macros -- and it runs once, on the initiating
+    // client only, so the increment below cannot be applied twice.
+    // See docs/superpowers/specs/2026-09-06-talent-rank-merging-design.md.
+    if (this.type === "talent" && parent?.documentName === "Actor" && game.user.id === user.id) {
+      const plan = planTalentGrant(parent.items.filter((i) => i.type === "talent"), this._source);
+      if (plan.action === "refuse") {
+        ui.notifications.warn(game.i18n.format("SWFFG.TalentStackingNotRanked", { name: this.name, actor: parent.name }));
+        return false;
+      }
+      if (plan.action === "increment") {
+        const existing = parent.items.get(plan.itemId);
+        if (existing) {
+          const update = { "system.ranks.current": plan.total };
+          // A grantor (a species, say) records what it contributed so removing it can
+          // take back exactly that much. A talent bought with XP records nothing here;
+          // its ranks are tracked by the XP log's undo descriptor instead.
+          const grantedBy = this._source?.flags?.starwarsffg?.grantedBy;
+          if (grantedBy) {
+            const held = Number(existing.getFlag("starwarsffg", "grantedRanks")?.[grantedBy]) || 0;
+            update[`flags.starwarsffg.grantedRanks.${grantedBy}`] = held + plan.ranks;
+          }
+          try {
+            await existing.update(update);
+            ui.notifications.info(game.i18n.format("SWFFG.TalentStackingMerged", { name: existing.name, rank: plan.total, actor: parent.name }));
+          } catch (err) {
+            CONFIG.logger.error(`Failed to add ${plan.ranks} rank(s) of ${this.name} to ${parent.name}`, err);
+            // Reject the entire create. Cancelling after a failed update would make
+            // the requested talent disappear while callers believed it had merged.
+            throw err;
+          }
+          return false;
+        }
+      }
+    }
+
     // An item dropped onto an actor is a copy of one that already carries its inherent effect,
     // so it is not planned again -- except for the equippable types, whose modifier-adjusted
     // values are re-saved on create, and career/specialization, whose inherent effect is the
