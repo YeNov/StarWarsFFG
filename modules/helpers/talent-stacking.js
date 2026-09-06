@@ -99,3 +99,118 @@ export function collapseTalentBatch(entries) {
   }
   return out;
 }
+
+/**
+ * What should happen when `ranks` ranks are taken back off a talent -- an XP refund,
+ * or a species that granted it being removed.
+ *
+ * @param {object} talent  the talent item
+ * @param {number} [ranks=1]  how many ranks the grantor is taking back
+ * @returns {{action: "decrement", total: number}|{action: "delete"}}
+ */
+export function planTalentRevoke(talent, ranks = 1) {
+  if (!talent?.system?.ranks?.ranked) return { action: "delete" };
+  const take = Math.max(1, Math.trunc(Number(ranks) || 1));
+  const total = talentRanks(talent) - take;
+  return total > 0 ? { action: "decrement", total } : { action: "delete" };
+}
+
+/** Group talent items by trimmed name, preserving the order they were given in. */
+export function groupTalentsByName(talents) {
+  const groups = new Map();
+  for (const talent of (talents ?? [])) {
+    const name = talentName(talent?.name);
+    if (!name) continue;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(talent);
+  }
+  return groups;
+}
+
+/** Creation timestamp used to pick the copy to keep; absent stats sort last-stable. */
+function createdTime(item) {
+  const time = Number(item?._stats?.createdTime);
+  return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
+}
+
+/**
+ * Stable comparison payload for deciding whether deleting copies is lossless.
+ * Identity, ordering, rank, tier and the provenance totals are deliberately
+ * excluded because the repair chooses or combines those fields. Everything else
+ * (including descriptions, modifiers, effects and non-provenance flags) must agree.
+ */
+function repairPayload(item) {
+  const source = typeof item?.toObject === "function" ? item.toObject() : item;
+  const clone = JSON.parse(JSON.stringify(source ?? {}));
+  clone.name = talentName(clone.name);
+  for (const key of ["_id", "id", "_stats", "folder", "sort", "ownership"]) delete clone[key];
+  if (clone.system?.ranks) delete clone.system.ranks.current;
+  if (clone.system) delete clone.system.tier;
+  if (clone.flags?.starwarsffg) {
+    delete clone.flags.starwarsffg.grantedRanks;
+    if (!Object.keys(clone.flags.starwarsffg).length) delete clone.flags.starwarsffg;
+  }
+  if (clone.flags && !Object.keys(clone.flags).length) delete clone.flags;
+  return stableStringify(clone);
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
+ * How to merge a group of same-named talent items into one.
+ *
+ * @param {object[]} talents  every copy of one talent on an actor
+ * @returns {null
+ *          |{action: "skip", reason: "not-ranked"|"conflicting-data"}
+ *          |{action: "merge", keepId: string|null, rank: number, tier: number,
+ *            grantedRanks: Record<string, number>, deleteIds: Array<string|null>}}
+ */
+export function planDuplicateRepair(talents) {
+  const copies = (talents ?? []).filter(Boolean);
+  if (copies.length < 2) return null;
+  // Summing ranks onto a talent that has none would invent data; report instead.
+  if (copies.some((t) => !t.system?.ranks?.ranked)) return { action: "skip", reason: "not-ranked" };
+  // Deleting a copy is safe only when rank/tier/provenance are the sole differences.
+  // A description, modifier, effect or other flag that drifted must be resolved by a
+  // GM rather than silently discarded by the automatic repair.
+  const payload = repairPayload(copies[0]);
+  if (copies.some((copy) => repairPayload(copy) !== payload)) {
+    return { action: "skip", reason: "conflicting-data" };
+  }
+
+  // Stable sort: equal (or absent) timestamps keep the given order, so the first
+  // copy the actor lists is the one kept.
+  const ordered = copies
+    .map((talent, index) => ({ talent, index }))
+    .sort((a, b) => (createdTime(a.talent) - createdTime(b.talent)) || (a.index - b.index))
+    .map((entry) => entry.talent);
+
+  const grantedRanks = {};
+  let rank = 0;
+  let tier = 0;
+  for (const copy of ordered) {
+    rank += talentRanks(copy);
+    const copyTier = Number.parseInt(copy?.system?.tier, 10);
+    if (Number.isFinite(copyTier) && copyTier > tier) tier = copyTier;
+    for (const [grantor, granted] of Object.entries(copy?.flags?.starwarsffg?.grantedRanks ?? {})) {
+      const amount = Number(granted);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      grantedRanks[grantor] = (grantedRanks[grantor] ?? 0) + Math.trunc(amount);
+    }
+  }
+
+  return {
+    action: "merge",
+    keepId: talentId(ordered[0]),
+    rank,
+    tier: tier > 0 ? tier : 1,
+    grantedRanks,
+    deleteIds: ordered.slice(1).map(talentId),
+  };
+}
