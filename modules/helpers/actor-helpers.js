@@ -119,7 +119,12 @@ export default class ActorHelpers {
     // enabling Edit Mode on a base actor would otherwise suspend effects on every unlinked token
     // of it, on every scene. Only the document the flag was written to owns the session.
     if (actor.isToken) {
-      const own = actor.token?.delta?._source?.flags?.starwarsffg?.config;
+      // Read the delta from the TOKEN DOCUMENT's own source, never through `token.delta`.
+      // Touching that field constructs the ActorDelta, which constructs the synthetic actor,
+      // which prepares data -> applyActiveEffects -> allApplicableEffects -> back into this
+      // check -> the delta again: an unbounded recursion that overflowed the stack while a
+      // scene's unlinked tokens were being prepared. The raw source carries the same flags.
+      const own = actor.token?._source?.delta?.flags?.starwarsffg?.config;
       if (own?.enableEditMode === undefined) return false;
     }
     return true;

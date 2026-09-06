@@ -24,7 +24,25 @@ test("an unlinked token does not inherit its base actor's Edit Mode", () => {
   // this guard ticking Edit Mode on one base actor would suspend effects on all of its tokens.
   const tokenActor = (ownConfig) => Object.assign(actor(), {
     isToken: true,
-    token: { delta: { _source: { flags: { starwarsffg: ownConfig ? { config: ownConfig } : {} } } } },
+    token: { _source: { delta: { flags: { starwarsffg: ownConfig ? { config: ownConfig } : {} } } } },
+  });
+
+  assert.equal(ActorHelpers.isEditModeOwner(tokenActor(null)), false, "inherited only");
+  assert.equal(ActorHelpers.isEditModeOwner(tokenActor({ enableEditMode: true })), true, "set on the token itself");
+});
+
+test("the token check never materializes the ActorDelta", () => {
+  // Reading `token.delta` CONSTRUCTS the ActorDelta, which constructs the synthetic actor,
+  // which prepares data -> applyActiveEffects -> allApplicableEffects -> back here: an
+  // infinite recursion that overflowed the stack on world load ("Failed data preparation
+  // for Scene...Token...Actor. Maximum call stack size exceeded"). The token document's own
+  // _source already carries the delta data, so read that and touch no getter.
+  const tokenActor = (ownConfig) => Object.assign(actor(), {
+    isToken: true,
+    token: {
+      _source: { delta: { flags: { starwarsffg: ownConfig ? { config: ownConfig } : {} } } },
+      get delta() { throw new Error("materialized the ActorDelta"); },
+    },
   });
 
   assert.equal(ActorHelpers.isEditModeOwner(tokenActor(null)), false, "inherited only");
