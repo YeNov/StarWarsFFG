@@ -142,6 +142,8 @@
   "SWFFG.TalentsActivation": "Activation",
   "SWFFG.TalentsRank": "Rank",
   "SWFFG.TalentsCurrentTier": "Current Tier",
+  "SWFFG.Talents.Stacking.NotRanked": "{name} is not a ranked talent, and {actor} already has it. Nothing was added.",
+  "SWFFG.Talents.Stacking.Merged": "{name} is now rank {rank} on {actor}.",
   "SWFFG.DescriptionXP": "XP",
   "SWFFG.DescriptionXPAvailable": "Available",
   "SWFFG.DescriptionXPTotal": "Total",
