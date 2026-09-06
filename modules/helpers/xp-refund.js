@@ -33,6 +33,7 @@
  * @param {Array<object>} [sources.logEntries]                      the actor's `xpLog` flag
  * @returns {{kind: "effect", effectId: string}
  *          |{kind: "item", itemId: string, cost: number}
+ *          |{kind: "talent-rank", itemId: string, ranks: number, cost: number}
  *          |{kind: "node", itemId: string, path: string, cost: number}
  *          |{kind: "xp", amount: number}
  *          |{kind: "none"}}
@@ -48,6 +49,14 @@ export function resolveRefundTarget(purchaseId, { effects = [], logEntries = [] 
   const cost = Number(entry?.xp?.cost) || 0;
 
   if (undo?.type === "item" && undo.itemId) return { kind: "item", itemId: undo.itemId, cost };
+  // A talent purchase that merged into a talent the actor already had bought ranks,
+  // not a document: the refund takes those ranks back and deletes the item only if
+  // that empties it. Entries logged before merging existed carry `item` and still
+  // delete, so nothing already in an XP log changes meaning.
+  if (undo?.type === "talent-rank" && undo.itemId) {
+    const ranks = Math.max(1, Math.trunc(Number(undo.ranks) || 1));
+    return { kind: "talent-rank", itemId: undo.itemId, ranks, cost };
+  }
   if (undo?.type === "node" && undo.itemId && undo.path) {
     return { kind: "node", itemId: undo.itemId, path: undo.path, cost };
   }

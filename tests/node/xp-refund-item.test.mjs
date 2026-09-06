@@ -178,3 +178,40 @@ test("the Codex XP log hides the refund button for entries with no purchase id",
   assert.ok(entry, "could not locate the Codex refund button");
   assert.match(entry, /\{\{#if entry\.id\}\}/, "legacy id-less entries must not render a refund button");
 });
+
+test("a merged talent purchase resolves to the ranks it added", () => {
+  const logEntries = [{ id: "RANK000000000001", xp: { cost: 15 }, undo: { type: "talent-rank", itemId: "tal1", ranks: 1 } }];
+  assert.deepEqual(resolveRefundTarget("RANK000000000001", { logEntries }), {
+    kind: "talent-rank",
+    itemId: "tal1",
+    ranks: 1,
+    cost: 15,
+  });
+});
+
+test("a talent-rank descriptor with no ranks recorded takes back one", () => {
+  const logEntries = [{ id: "RANK000000000002", xp: { cost: 5 }, undo: { type: "talent-rank", itemId: "tal1" } }];
+  assert.equal(resolveRefundTarget("RANK000000000002", { logEntries }).ranks, 1);
+});
+
+test("a talent-rank descriptor with no item resolves to nothing", () => {
+  const logEntries = [{ id: "RANK000000000003", xp: { cost: 5 }, undo: { type: "talent-rank" } }];
+  assert.deepEqual(resolveRefundTarget("RANK000000000003", { logEntries }), { kind: "none" });
+});
+
+test("an item descriptor logged before merging still deletes the item", () => {
+  const logEntries = [{ id: "ITEM000000000001", xp: { cost: 10 }, undo: { type: "item", itemId: "tal9" } }];
+  assert.deepEqual(resolveRefundTarget("ITEM000000000001", { logEntries }), { kind: "item", itemId: "tal9", cost: 10 });
+});
+
+test("an item purchase distinguishes an explicit merge from refusal or cancellation", () => {
+  const start = sheet.indexOf('createEmbeddedDocuments("Item", [purchasedItem])');
+  const body = sheet.slice(start - 1200, sheet.indexOf('action: "cancel"', start));
+  assert.match(body, /planTalentGrant/);
+  assert.match(body, /grantPlan\.action === "refuse"[\s\S]*return;/);
+  assert.match(body, /grantPlan\.action === "increment"/);
+  const cancellationGuard = body.indexOf("if (!undo)");
+  const xpDeduction = body.indexOf("_source.system.experience.available");
+  assert.ok(cancellationGuard >= 0 && cancellationGuard < xpDeduction,
+    "a cancelled create must abort before XP is deducted");
+});

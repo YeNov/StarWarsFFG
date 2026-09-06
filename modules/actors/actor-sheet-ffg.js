@@ -27,6 +27,7 @@ import {
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
+import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
 import {itemPillHover} from "../swffg-main.js";
 import {
   findOwnedTalentSourceId,
@@ -2146,7 +2147,19 @@ export class ActorSheetFFG extends FFGActorSheet {
                   // Item grants and tree nodes both charged the actor directly (see _buyCore /
                   // _buyTreeNode), so the refund puts the XP back the same way. Reading `_source`
                   // skips the AE-modified prepared value, which would re-apply every other purchase.
-                  if (target.kind === "item") {
+                  if (target.kind === "talent-rank") {
+                    const talent = this.object.items.get(target.itemId);
+                    if (talent) {
+                      const plan = planTalentRevoke(talent, target.ranks);
+                      if (plan.action === "delete") {
+                        await this.object.deleteEmbeddedDocuments("Item", [talent.id]);
+                      } else {
+                        await talent.update({ "system.ranks.current": plan.total });
+                      }
+                    } else {
+                      CONFIG.logger.warn(`talent ${target.itemId} is already gone; refunding the XP only`);
+                    }
+                  } else if (target.kind === "item") {
                     if (this.object.items.get(target.itemId)) {
                       await this.object.deleteEmbeddedDocuments("Item", [target.itemId]);
                     } else {
@@ -2809,7 +2822,28 @@ export class ActorSheetFFG extends FFGActorSheet {
               }
               // Keep the created document: its id is what the refund path deletes.
               // `purchasedItem` is the world/compendium source and carries a different id.
+              // Plan before creating. An empty result is ambiguous: another hook may
+              // cancel a create, and a non-ranked duplicate is deliberately refused.
+              // Only an explicit increment plan may become a talent-rank undo.
+              const grantPlan = purchasedItem.type === "talent"
+                ? planTalentGrant(this.object.items.filter((i) => i.type === "talent"), purchasedItem)
+                : { action: "create" };
+              if (grantPlan.action === "refuse") {
+                ui.notifications.warn(game.i18n.format("SWFFG.Talents.Stacking.NotRanked", {
+                  name: purchasedItem.name,
+                  actor: this.object.name,
+                }));
+                return;
+              }
               const [grantedItem] = await this.object.createEmbeddedDocuments("Item", [purchasedItem]);
+              const undo = grantedItem?.id
+                ? { type: "item", itemId: grantedItem.id }
+                : (grantPlan.action === "increment"
+                  ? { type: "talent-rank", itemId: grantPlan.itemId, ranks: grantPlan.ranks }
+                  : undefined);
+              if (!undo) {
+                throw new Error(`Creation of purchased ${purchasedItem.type} ${purchasedItem.name} was cancelled`);
+              }
               // This does not use _spendXp as it's granting items, which AEs cannot reasonably do,
               // so the XP has to be deducted from the stored value directly.
               //
@@ -2838,8 +2872,8 @@ export class ActorSheetFFG extends FFGActorSheet {
                 cost,
                 availableXP - cost,
                 totalXP,
-                grantedItem?.id ? foundry.utils.randomID() : undefined,
-                grantedItem?.id ? { type: "item", itemId: grantedItem.id } : undefined,
+                undo ? foundry.utils.randomID() : undefined,
+                undo,
               );
             },
           },
