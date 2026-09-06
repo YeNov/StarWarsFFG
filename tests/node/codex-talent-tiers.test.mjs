@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { buildTalentTierMap, groupTalentsByTier } from "../../modules/actors/codex-talent-tiers.js";
 
 /** Minimal stand-ins for the actor items the map is built from. */
-const talentItem = (name, tier) => ({ type: "talent", name, system: { tier } });
+const talentItem = (name, tier, modifiedTime) => ({ type: "talent", name, system: { tier }, _stats: { modifiedTime } });
 const specItem = (name, talents) => ({ type: "specialization", name, system: { talents } });
 
 test("standalone talent items take their own tier", () => {
@@ -45,13 +45,38 @@ test("unlearned specialization slots and empty slots are ignored", () => {
   assert.equal(map.size, 0);
 });
 
-test("a talent found at several tiers keeps the lowest", () => {
+test("a talent's own item tier beats the row it sits on in a tree", () => {
   const map = buildTalentTierMap([
     specItem("A", { talent12: { name: "Grit", islearned: true } }),
-    specItem("B", { talent4: { name: "Grit", islearned: true } }),
     talentItem("Grit", 5),
   ]);
-  assert.equal(map.get("Grit"), 2);
+  assert.equal(map.get("Grit"), 5);
+});
+
+test("a talent in several trees and on no item keeps the lowest row", () => {
+  const map = buildTalentTierMap([
+    specItem("A", { talent12: { name: "Parry", islearned: true } }),
+    specItem("B", { talent4: { name: "Parry", islearned: true } }),
+  ]);
+  assert.equal(map.get("Parry"), 2);
+});
+
+test("duplicate talent items are decided by the one edited most recently", () => {
+  const map = buildTalentTierMap([
+    talentItem("Precise Aim", 1, 1000),
+    talentItem("Precise Aim", 2, 2000),
+  ]);
+  assert.equal(map.get("Precise Aim"), 2);
+  const reversed = buildTalentTierMap([
+    talentItem("Precise Aim", 2, 2000),
+    talentItem("Precise Aim", 3, 3000),
+  ]);
+  assert.equal(reversed.get("Precise Aim"), 3);
+});
+
+test("duplicates with no usable timestamp fall back to the highest tier", () => {
+  const map = buildTalentTierMap([talentItem("Grit", 1), talentItem("Grit", 4)]);
+  assert.equal(map.get("Grit"), 4);
 });
 
 test("groups ascending by tier and keeps the incoming order within a tier", () => {
