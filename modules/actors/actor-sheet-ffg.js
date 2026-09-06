@@ -2829,7 +2829,7 @@ export class ActorSheetFFG extends FFGActorSheet {
                 ? planTalentGrant(this.object.items.filter((i) => i.type === "talent"), purchasedItem)
                 : { action: "create" };
               if (grantPlan.action === "refuse") {
-                ui.notifications.warn(game.i18n.format("SWFFG.Talents.Stacking.NotRanked", {
+                ui.notifications.warn(game.i18n.format("SWFFG.TalentStackingNotRanked", {
                   name: purchasedItem.name,
                   actor: this.object.name,
                 }));

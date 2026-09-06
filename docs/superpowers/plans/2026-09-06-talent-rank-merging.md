@@ -4,7 +4,7 @@
 
 **Goal:** Adding a talent an actor already has raises that talent's rank on the existing item instead of creating a second item, and removing ranks gives back exactly what was added.
 
-**Architecture:** All decisions live in one pure module, `modules/helpers/talent-stacking.js`, unit-tested under node. Foundry wiring is thin: `ItemFFG._preCreate` cancels a duplicate create and increments instead, `ActorFFG._preCreateDescendantDocuments` folds duplicates inside one batch, and the two removal paths (XP refund, species removal) revoke ranks through the same module. A GM-callable repair merges duplicates that already exist.
+**Architecture:** All decisions live in one pure module, `modules/helpers/talent-stacking.js`, unit-tested under node. Foundry wiring is thin: `ItemFFG._preCreate` cancels a duplicate create and increments instead, `ItemFFG._preCreateOperation` folds duplicates inside one outgoing batch before it is sent to the server, and the two removal paths (XP refund, species removal) revoke ranks through the same module. A conservative GM-callable repair merges duplicates that already exist only when their behavior-bearing data agrees.
 
 **Tech Stack:** Foundry VTT v13 (ApplicationV2 era), ES modules, `node --test` (`npm test`), Handlebars templates, no build step for JS.
 
@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Branch: `talent-rank-merging`, off `main`. Do not push or open a PR without a `CHANGELOG.md` entry (repo `CLAUDE.md` treats a missing entry as unfinished work).
-- GitHub write actions only in the `YeNov/StarWarsFFG` fork, as the `YeNov` gh account (`gh auth switch --user YeNov` before pushing, back to `yehornovakov` after).
+- GitHub write actions only in the `YeNov/StarWarsFFG` fork, as the `YeNov` gh account (`gh auth switch --user YeNov` before pushing). Never switch this checkout to `yehornovakov`; that identity is forbidden in this repository.
 - Never run `gulp css` / `npm run compile`. `styles/*.css` are hand-maintained; this plan touches no CSS.
 - Tests: `npm test` runs `node --test "tests/node/**/*.test.mjs"`. Baseline before this plan: **567 pass / 0 fail**. Every task must leave that suite green.
 - `npm run check:imports` must stay PASS. New modules must be importable under node — no Foundry globals at module scope in `modules/helpers/talent-stacking.js`.
@@ -31,8 +31,7 @@
 | --- | --- |
 | `modules/helpers/talent-stacking.js` (create) | Pure planning: grant, batch collapse, revoke, duplicate repair. No Foundry globals. |
 | `tests/node/talent-stacking.test.mjs` (create) | Unit tests for all four planners. |
-| `modules/items/item-ffg.js` (modify, `_preCreate` ~line 36) | Cancel a duplicate talent create; increment the existing item instead. |
-| `modules/actors/actor-ffg.js` (modify, after `_preCreate` ~line 57) | `_preCreateDescendantDocuments` folds duplicates within one create batch. |
+| `modules/items/item-ffg.js` (modify, `_preCreate` ~line 36 and static `_preCreateOperation`) | Cancel a duplicate talent create; increment the existing item instead; fold duplicates within one outgoing create batch before persistence. |
 | `modules/actors/actor-sheet-ffg.js` (modify, ~2150 refund, ~2810 buy) | Log a `talent-rank` undo for a merged purchase; refund it by decrementing. |
 | `modules/helpers/xp-refund.js` (modify) | Resolve the new `talent-rank` undo descriptor. |
 | `modules/swffg-main.js` (modify, ~1986 create hook, ~2050 delete hook, ~1665 registration) | Species grants carry provenance; species removal revokes ranks; register the repair helper. |
@@ -306,7 +305,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `talentName`, `talentRanks` from Task 1.
 - Produces:
   - `planTalentRevoke(talent: object, ranks?: number): {action: "decrement", total: number} | {action: "delete"}`
-  - `planDuplicateRepair(talents: object[]): null | {action: "skip", reason: "not-ranked"} | {action: "merge", keepId: string|null, rank: number, tier: number, grantedRanks: Record<string, number>, deleteIds: (string|null)[]}`
+  - `planDuplicateRepair(talents: object[]): null | {action: "skip", reason: "not-ranked"|"conflicting-data"} | {action: "merge", keepId: string|null, rank: number, tier: number, grantedRanks: Record<string, number>, deleteIds: (string|null)[]}`
   - `groupTalentsByName(talents: object[]): Map<string, object[]>`
 
 - [ ] **Step 1: Write the failing tests**
@@ -370,6 +369,12 @@ test("a group containing a non-ranked talent is skipped rather than summed", () 
   assert.deepEqual(plan, { action: "skip", reason: "not-ranked" });
 });
 
+test("duplicates with different behavior-bearing data are skipped", () => {
+  const a = { ...talent("Grit", { id: "a" }), system: { ...talent("Grit").system, description: "A" } };
+  const b = { ...talent("Grit", { id: "b" }), system: { ...talent("Grit").system, description: "B" } };
+  assert.deepEqual(planDuplicateRepair([a, b]), { action: "skip", reason: "conflicting-data" });
+});
+
 test("copies with no creation timestamp keep the order they were given", () => {
   const plan = planDuplicateRepair([talent("Grit", { id: "a" }), talent("Grit", { id: "b" })]);
   assert.equal(plan.keepId, "a");
@@ -421,11 +426,40 @@ function createdTime(item) {
 }
 
 /**
+ * Stable comparison payload for deciding whether deleting copies is lossless.
+ * Identity, ordering, rank, tier and the provenance totals are deliberately
+ * excluded because the repair chooses or combines those fields. Everything else
+ * (including descriptions, modifiers, effects and non-provenance flags) must agree.
+ */
+function repairPayload(item) {
+  const source = typeof item?.toObject === "function" ? item.toObject() : item;
+  const clone = JSON.parse(JSON.stringify(source ?? {}));
+  clone.name = talentName(clone.name);
+  for (const key of ["_id", "id", "_stats", "folder", "sort", "ownership"]) delete clone[key];
+  if (clone.system?.ranks) delete clone.system.ranks.current;
+  if (clone.system) delete clone.system.tier;
+  if (clone.flags?.starwarsffg) {
+    delete clone.flags.starwarsffg.grantedRanks;
+    if (!Object.keys(clone.flags.starwarsffg).length) delete clone.flags.starwarsffg;
+  }
+  if (clone.flags && !Object.keys(clone.flags).length) delete clone.flags;
+  return stableStringify(clone);
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
  * How to merge a group of same-named talent items into one.
  *
  * @param {object[]} talents  every copy of one talent on an actor
  * @returns {null
- *          |{action: "skip", reason: "not-ranked"}
+ *          |{action: "skip", reason: "not-ranked"|"conflicting-data"}
  *          |{action: "merge", keepId: string|null, rank: number, tier: number,
  *            grantedRanks: Record<string, number>, deleteIds: Array<string|null>}}
  */
@@ -434,6 +468,13 @@ export function planDuplicateRepair(talents) {
   if (copies.length < 2) return null;
   // Summing ranks onto a talent that has none would invent data; report instead.
   if (copies.some((t) => !t.system?.ranks?.ranked)) return { action: "skip", reason: "not-ranked" };
+  // Deleting a copy is safe only when rank/tier/provenance are the sole differences.
+  // A description, modifier, effect or other flag that drifted must be resolved by a
+  // GM rather than silently discarded by the automatic repair.
+  const payload = repairPayload(copies[0]);
+  if (copies.some((copy) => repairPayload(copy) !== payload)) {
+    return { action: "skip", reason: "conflicting-data" };
+  }
 
   // Stable sort: equal (or absent) timestamps keep the given order, so the first
   // copy the actor lists is the one kept.
@@ -472,12 +513,12 @@ Note `talentId` is already defined in Task 1 — do not redefine it.
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `node --test tests/node/talent-stacking.test.mjs`
-Expected: PASS, 21 tests.
+Expected: PASS, 22 tests.
 
 - [ ] **Step 5: Run the full suite**
 
 Run: `npm test`
-Expected: 588 pass / 0 fail.
+Expected: 589 pass / 0 fail.
 
 - [ ] **Step 6: Commit**
 
@@ -498,11 +539,10 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `modules/items/item-ffg.js` (`_preCreate`, ~line 36)
-- Modify: `modules/actors/actor-ffg.js` (after `_preCreate`, ~line 64)
 - Modify: `lang/en.json`
 
 **Interfaces:**
-- Consumes: `planTalentGrant`, `collapseTalentBatch`, `talentRanks` (Task 1).
+- Consumes: `planTalentGrant`, `collapseTalentBatch`, `talentName` (Task 1).
 - Produces: a talent create on an actor that already has that talent no longer produces a second item. The increment writes `system.ranks.current` and, when the create data carries `flags.starwarsffg.grantedBy`, adds to `flags.starwarsffg.grantedRanks[<grantor id>]` on the surviving item (Task 5 supplies that flag).
 
 - [ ] **Step 1: Add the localization strings**
@@ -521,7 +561,7 @@ Verify the file still parses: `node -e "JSON.parse(require('fs').readFileSync('l
 In `modules/items/item-ffg.js`, add to the imports at the top:
 
 ```javascript
-import { planTalentGrant, talentRanks } from "../helpers/talent-stacking.js";
+import { collapseTalentBatch, planTalentGrant, talentName } from "../helpers/talent-stacking.js";
 ```
 
 Then, inside `async _preCreate(data, operation, user)`, immediately AFTER the existing line
@@ -561,7 +601,9 @@ insert:
             ui.notifications.info(game.i18n.format("SWFFG.Talents.Stacking.Merged", { name: existing.name, rank: plan.total, actor: parent.name }));
           } catch (err) {
             CONFIG.logger.error(`Failed to add ${plan.ranks} rank(s) of ${this.name} to ${parent.name}`, err);
-            ui.notifications.error(game.i18n.format("SWFFG.Talents.Stacking.NotRanked", { name: this.name, actor: parent.name }));
+            // Reject the entire create. Cancelling after a failed update would make
+            // the requested talent disappear while callers believed it had merged.
+            throw err;
           }
           return false;
         }
@@ -571,53 +613,71 @@ insert:
 
 `return false` cancels the creation, so no second item appears.
 
-- [ ] **Step 3: Fold duplicates inside one create batch**
+- [ ] **Step 3: Fold duplicates inside one outgoing create batch**
 
-In `modules/actors/actor-ffg.js`, add to the imports:
-
-```javascript
-import { collapseTalentBatch } from "../helpers/talent-stacking.js";
-```
-
-and add this method directly after `_preCreate` (~line 64):
+Add this static method to `ItemFFG`, directly before the instance `_preCreate` method:
 
 ```javascript
   /** @override
    * Two copies of a talent the actor does NOT yet have arrive in the same create
    * batch (an importer, a multi-item drop), and each would see an actor without it,
-   * so `ItemFFG._preCreate` cannot merge them against each other. Fold them here
-   * first; whatever survives is then merged against the actor per item.
+   * so the per-document `_preCreate` calls cannot merge them against each other.
+   * `_preCreateOperation` is the final client-side workflow before the operation is
+   * sent to the server; changing `documents` here changes what is persisted.
    */
-  async _preCreateDescendantDocuments(parent, collection, data, options, userId) {
-    if (collection === "items" && Array.isArray(data) && data.some((d) => d?.type === "talent")) {
-      const collapsed = collapseTalentBatch(data);
-      if (collapsed.length !== data.length) {
-        data.length = 0;
-        data.push(...collapsed);
+  static async _preCreateOperation(documents, operation, user) {
+    const allowed = await super._preCreateOperation(documents, operation, user);
+    if (allowed === false) return false;
+    if (operation?.parent?.documentName !== "Actor" || documents.length < 2) return;
+
+    const sources = documents.map((document) => document.toObject());
+    const collapsed = collapseTalentBatch(sources);
+    if (collapsed.length === sources.length) return;
+
+    // Keep the already-prepared pending Document for each surviving source. Ranked
+    // merges return a copied source, so match that one back to the first same-named
+    // talent; untouched entries retain object identity.
+    const used = new Set();
+    const survivors = collapsed.map((source) => {
+      let index = sources.indexOf(source);
+      if (index < 0) {
+        const name = talentName(source?.name);
+        index = sources.findIndex((candidate, at) =>
+          !used.has(at) && candidate?.type === "talent" && talentName(candidate?.name) === name
+        );
       }
-    }
-    return super._preCreateDescendantDocuments(parent, collection, data, options, userId);
+      if (index < 0) throw new Error(`Could not match collapsed talent ${source?.name ?? "<unnamed>"}`);
+      used.add(index);
+      documents[index].updateSource(source);
+      return documents[index];
+    });
+    documents.splice(0, documents.length, ...survivors);
   }
 ```
 
+Do **not** use `ActorFFG._preCreateDescendantDocuments` for this. In v13 that event
+is dispatched from the client database response handler after the server has already
+written the documents; mutating its `data` array would only hide the persisted
+duplicates locally until the next reload.
+
 - [ ] **Step 4: Verify nothing regressed and the modules still import**
 
-Run: `npm test` — expected 588 pass / 0 fail.
+Run: `npm test` — expected 589 pass / 0 fail.
 Run: `npm run check:imports` — expected PASS.
-Run: `npx eslint modules/items/item-ffg.js modules/actors/actor-ffg.js modules/helpers/talent-stacking.js` — expected 0 errors (warnings are pre-existing).
+Run: `npx eslint modules/items/item-ffg.js modules/helpers/talent-stacking.js` — expected 0 errors (warnings are pre-existing).
 
 There is no headless harness for Foundry document hooks; the behaviour is verified live in Task 7.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add modules/items/item-ffg.js modules/actors/actor-ffg.js lang/en.json
+git add modules/items/item-ffg.js lang/en.json
 git commit -m "Merge a duplicate talent into the existing item's rank on create
 
 ItemFFG._preCreate cancels the create and raises the existing talent's rank
 instead; a non-ranked talent the actor already has is refused with a warning.
-ActorFFG._preCreateDescendantDocuments folds same-named talents inside one
-batch first, since neither copy would otherwise see the other.
+ItemFFG._preCreateOperation folds same-named talents inside an outgoing batch
+before it is sent to the server, since neither copy would otherwise see the other.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -632,7 +692,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Test: `tests/node/xp-refund-item.test.mjs`
 
 **Interfaces:**
-- Consumes: `planTalentRevoke` (Task 2); the create-side merge (Task 3), which is why `createEmbeddedDocuments` can now return an empty array.
+- Consumes: `planTalentGrant`, `planTalentRevoke` (Tasks 1-2) and the create-side merge (Task 3). The purchase path plans the outcome before creating, so an empty create result is never treated as proof that a merge succeeded.
 - Produces: `resolveRefundTarget` additionally returns `{kind: "talent-rank", itemId: string, ranks: number, cost: number}` for an undo descriptor `{type: "talent-rank", itemId, ranks}`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -664,12 +724,24 @@ test("an item descriptor logged before merging still deletes the item", () => {
   const logEntries = [{ id: "ITEM000000000001", xp: { cost: 10 }, undo: { type: "item", itemId: "tal9" } }];
   assert.deepEqual(resolveRefundTarget("ITEM000000000001", { logEntries }), { kind: "item", itemId: "tal9", cost: 10 });
 });
+
+test("an item purchase distinguishes an explicit merge from refusal or cancellation", () => {
+  const start = sheet.indexOf('createEmbeddedDocuments("Item", [purchasedItem])');
+  const body = sheet.slice(start - 1200, sheet.indexOf('action: "cancel"', start));
+  assert.match(body, /planTalentGrant/);
+  assert.match(body, /grantPlan\.action === "refuse"[\s\S]*return;/);
+  assert.match(body, /grantPlan\.action === "increment"/);
+  const cancellationGuard = body.indexOf("if (!undo)");
+  const xpDeduction = body.indexOf("_source.system.experience.available");
+  assert.ok(cancellationGuard >= 0 && cancellationGuard < xpDeduction,
+    "a cancelled create must abort before XP is deducted");
+});
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `node --test tests/node/xp-refund-item.test.mjs`
-Expected: FAIL — the first three return `{kind: "none"}`.
+Expected: FAIL — the first three return `{kind: "none"}`, and the purchase-source assertion cannot find the explicit grant plan or cancellation guard.
 
 - [ ] **Step 3: Resolve the new descriptor**
 
@@ -708,17 +780,28 @@ In `modules/actors/actor-sheet-ffg.js`, in the talent purchase callback, replace
 with:
 
 ```javascript
-              // A talent the actor already has merges into that item's rank instead of
-              // creating a document (ItemFFG._preCreate), so createEmbeddedDocuments
-              // returns nothing. Find the target BEFORE the create so the purchase is
-              // still refundable either way.
-              const mergeTarget = purchasedItem.type === "talent"
-                ? this.object.items.find((i) => i.type === "talent" && i.name?.trim() === purchasedItem.name?.trim())
-                : null;
+              // Plan before creating. An empty result is ambiguous: another hook may
+              // cancel a create, and a non-ranked duplicate is deliberately refused.
+              // Only an explicit increment plan may become a talent-rank undo.
+              const grantPlan = purchasedItem.type === "talent"
+                ? planTalentGrant(this.object.items.filter((i) => i.type === "talent"), purchasedItem)
+                : { action: "create" };
+              if (grantPlan.action === "refuse") {
+                ui.notifications.warn(game.i18n.format("SWFFG.Talents.Stacking.NotRanked", {
+                  name: purchasedItem.name,
+                  actor: this.object.name,
+                }));
+                return;
+              }
               const [grantedItem] = await this.object.createEmbeddedDocuments("Item", [purchasedItem]);
               const undo = grantedItem?.id
                 ? { type: "item", itemId: grantedItem.id }
-                : (mergeTarget?.id ? { type: "talent-rank", itemId: mergeTarget.id, ranks: 1 } : undefined);
+                : (grantPlan.action === "increment"
+                  ? { type: "talent-rank", itemId: grantPlan.itemId, ranks: grantPlan.ranks }
+                  : undefined);
+              if (!undo) {
+                throw new Error(`Creation of purchased ${purchasedItem.type} ${purchasedItem.name} was cancelled`);
+              }
 ```
 
 Then replace the two arguments at the end of the `xpLogSpend` call:
@@ -740,7 +823,7 @@ with:
 In `modules/actors/actor-sheet-ffg.js`, add to the imports:
 
 ```javascript
-import { planTalentRevoke } from "../helpers/talent-stacking.js";
+import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
 ```
 
 In the refund callback's final `else` block (the one shared by item grants and tree nodes, which restores the XP afterwards), replace:
@@ -769,7 +852,7 @@ with:
 
 - [ ] **Step 7: Verify**
 
-Run: `npm test` — expected 592 pass / 0 fail.
+Run: `npm test` — expected 594 pass / 0 fail.
 Run: `npx eslint modules/actors/actor-sheet-ffg.js modules/helpers/xp-refund.js` — expected 0 errors.
 
 - [ ] **Step 8: Commit**
@@ -886,7 +969,7 @@ with:
 
 - [ ] **Step 3: Verify**
 
-Run: `npm test` — expected 592 pass / 0 fail (no new tests; this task is wiring over tested planners).
+Run: `npm test` — expected 594 pass / 0 fail (no new tests; this task is wiring over tested planners).
 Run: `npm run check:imports` — expected PASS.
 Run: `npx eslint modules/swffg-main.js` — expected 0 errors.
 
@@ -937,9 +1020,9 @@ and add this static method after `repairCareerSkillEffects`:
    * same name. The sheets merged them for display, so the copies drifted apart
    * unnoticed -- a tier edited on one, modifiers on another.
    *
-   * Active Effects need no repair: a ranked talent's numeric modifiers are scaled at
-   * application time by `ModifierHelpers.rankMultiplier`, so one item at rank 2
-   * grants exactly what two items at rank 1 granted.
+   * Rank multiplication is equivalent only when the copies' behavior-bearing data
+   * agrees. Groups with different descriptions, modifiers, effects or other flags
+   * are reported as `conflicting-data` and left untouched for a GM to resolve.
    *
    * Intended to be called by a GM from the console:
    *   `await game.starwarsffg.repairDuplicateTalents({dryRun: true})` to preview,
@@ -960,6 +1043,8 @@ and add this static method after `repairCareerSkillEffects`:
         const plan = planDuplicateRepair(copies);
         if (!plan) continue;
         if (plan.action === "skip") {
+          // `conflicting-data` means at least one description, modifier, effect or
+          // other behavior-bearing field differs. Never choose a winner silently.
           report.skipped.push({ actor: actor.name, name, reason: plan.reason });
           continue;
         }
@@ -998,13 +1083,13 @@ In `CHANGELOG.md`, add to the top `Unreleased` block:
 
 ```markdown
 * Fixed — **a talent added twice became two separate copies instead of going up a rank**. The sheet showed "Grit 2" while the character actually carried two Grit items, which then drifted apart: editing one left the other stale, and the tier you set on one might not be the one displayed. Buying, dropping or importing a talent a character already has now raises that talent's rank, and a talent with no ranks can't be added twice at all.
-  * **Characters with duplicates from before this are not repaired automatically.** As a GM, run `await game.starwarsffg.repairDuplicateTalents({dryRun: true})` in the console to see what would merge, then without `dryRun` to do it.
+  * **Characters with duplicates from before this are not repaired automatically.** As a GM, run `await game.starwarsffg.repairDuplicateTalents({dryRun: true})` in the console to see what would merge, then without `dryRun` to do it. Groups whose descriptions, modifiers, effects or other behavior differ are reported and left untouched for manual review.
   * Refunding a rank in the XP log now takes back one rank instead of deleting the whole talent, and removing a species gives back only the ranks that species granted — it used to delete a same-named talent the character had bought.
 ```
 
 - [ ] **Step 4: Verify**
 
-Run: `npm test` — expected 592 pass / 0 fail.
+Run: `npm test` — expected 594 pass / 0 fail.
 Run: `npm run check:imports` — expected PASS.
 Run: `npx eslint modules/helpers/item-helpers.js modules/swffg-main.js` — expected 0 errors.
 Run: `node -e "JSON.parse(require('fs').readFileSync('lang/en.json','utf8'));console.log('json ok')"`
@@ -1015,10 +1100,10 @@ Run: `node -e "JSON.parse(require('fs').readFileSync('lang/en.json','utf8'));con
 git add modules/helpers/item-helpers.js modules/swffg-main.js CHANGELOG.md
 git commit -m "Add repairDuplicateTalents for actors that already have duplicates
 
-Merges each group of same-named talent items into the oldest copy with the
-ranks summed, the highest tier kept and the granted-rank provenance combined.
-A group containing a non-ranked talent is reported, not merged. dryRun
-previews without writing.
+Merges each safe group of same-named talent items into the oldest copy with
+the ranks summed, the highest tier kept and the granted-rank provenance combined.
+Non-ranked groups and groups with conflicting behavior-bearing data are reported,
+not merged. dryRun previews without writing.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -1043,7 +1128,7 @@ This cannot be automated: there is no headless Foundry harness in this repo (the
 4. **Drop a duplicate.** Drag a talent the character already has from a compendium. Expect: rank goes up, no second item, an info notification.
 5. **Non-ranked duplicate.** Drag a non-ranked talent the character already has. Expect: a warning, no change.
 6. **Species.** Add a species granting a talent the character bought, then remove the species. Expect: after adding, one item with the ranks combined; after removing, the character's own ranks survive.
-7. **Repair.** Run `await game.starwarsffg.repairDuplicateTalents({dryRun: true})` and check the report includes Nyxara's `Precise Aim`; then run it for real and confirm one item at rank 2 remains, and the Codex talents tab still groups it under the tier it should be.
+7. **Repair.** Run `await game.starwarsffg.repairDuplicateTalents({dryRun: true})`. Check an identical duplicate such as Nyxara's `Precise Aim` appears under `merged`, then run it for real and confirm one item at rank 2 remains. Also create a duplicate whose description or effect differs and confirm it appears under `skipped` with `reason: "conflicting-data"` and both items remain.
 
 - [ ] **Step 2: Fix or proceed**
 
@@ -1061,7 +1146,6 @@ Merge when CI (if any) and review are clear, then:
 
 ```bash
 git checkout main && git pull --ff-only
-gh auth switch --user yehornovakov
 ```
 
 ---

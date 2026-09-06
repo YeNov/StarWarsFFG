@@ -105,7 +105,7 @@ export class ItemFFG extends ItemBaseFFG {
     if (this.type === "talent" && parent?.documentName === "Actor" && game.user.id === user.id) {
       const plan = planTalentGrant(parent.items.filter((i) => i.type === "talent"), this._source);
       if (plan.action === "refuse") {
-        ui.notifications.warn(game.i18n.format("SWFFG.Talents.Stacking.NotRanked", { name: this.name, actor: parent.name }));
+        ui.notifications.warn(game.i18n.format("SWFFG.TalentStackingNotRanked", { name: this.name, actor: parent.name }));
         return false;
       }
       if (plan.action === "increment") {
@@ -122,7 +122,7 @@ export class ItemFFG extends ItemBaseFFG {
           }
           try {
             await existing.update(update);
-            ui.notifications.info(game.i18n.format("SWFFG.Talents.Stacking.Merged", { name: existing.name, rank: plan.total, actor: parent.name }));
+            ui.notifications.info(game.i18n.format("SWFFG.TalentStackingMerged", { name: existing.name, rank: plan.total, actor: parent.name }));
           } catch (err) {
             CONFIG.logger.error(`Failed to add ${plan.ranks} rank(s) of ${this.name} to ${parent.name}`, err);
             // Reject the entire create. Cancelling after a failed update would make
