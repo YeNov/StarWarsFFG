@@ -1667,6 +1667,10 @@ Hooks.once("ready", async () => {
     // Effect that flags its career skills on the actor -- the ones bought from a pack that was
     // built without it granted no career skills at all.
     repairCareerSkillEffects: (options) => ItemHelpers.repairCareerSkillEffects(options),
+    // `repairDuplicateTalents` merges talents that were added more than once as
+    // separate items into one item with the ranks summed -- the state actors were
+    // left in before talents stacked as ranks.
+    repairDuplicateTalents: (options) => ItemHelpers.repairDuplicateTalents(options),
   });
 
   // Self-heal a stale `defaultSheetTheme` client value. The setting originally
