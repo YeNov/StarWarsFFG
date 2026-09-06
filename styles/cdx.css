@@ -975,6 +975,10 @@
 /* Abilities / signature-ability sub-lists reuse the talent grid; space them off the block above. */
 .cdx .cdx-talents.cdx-tlist { margin-top:12px; }
 .cdx .cdx-cards-head { grid-column:1/-1; }
+/* Tier group headings on the talents tab ("Sort Talents by Tier"). Subordinate
+   to the section head above them: smaller, dimmer, tighter above. */
+.cdx .cdx-tier-head { font-size:9.5px; letter-spacing:1.2px; color:var(--cdx-dim); margin:6px 0 4px; }
+.cdx .cdx-cards-head + .cdx-tier-head { margin-top:0; }
 .cdx .cdx-talent { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; cursor:pointer; }
 .cdx .cdx-tal-head { background:var(--cdx-accent); color:#fff; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
 .cdx .cdx-tal-name { font-family:"Orbitron"; font-weight:700; font-size:12px; }
