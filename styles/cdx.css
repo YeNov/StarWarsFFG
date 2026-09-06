@@ -979,6 +979,10 @@
    to the section head above them: smaller, dimmer, tighter above. */
 .cdx .cdx-tier-head { font-size:9.5px; letter-spacing:1.2px; color:var(--cdx-dim); margin:6px 0 4px; }
 .cdx .cdx-cards-head + .cdx-tier-head { margin-top:0; }
+/* Rule trailing the tier label: starts at the text, centred on it, and fades
+   out by about the middle of the sheet. currentColor keeps it on the label's
+   colour in every scheme. */
+.cdx .cdx-tier-head::after { content:""; flex:1 1 auto; height:1px; margin-left:8px; background:linear-gradient(to right, currentColor 0%, transparent 45%); }
 .cdx .cdx-talent { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; cursor:pointer; }
 .cdx .cdx-tal-head { background:var(--cdx-accent); color:#fff; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
 .cdx .cdx-tal-name { font-family:"Orbitron"; font-weight:700; font-size:12px; }
