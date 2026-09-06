@@ -9,9 +9,7 @@
   <span class="cdx-fp-s">{{localize "SWFFG.ForcePoolCommitted"}} / {{localize "SWFFG.ForcePoolAvailable"}}</span>
 </div></div>
 {{/if}}
-<div class="cdx-talents">
-  <div class="cdx-cards-head"><span class="ffg-purchase" data-buy-action="talent">{{localize "SWFFG.Talents"}}</span></div>
-  {{#each talentList as |item id|}}
+{{#*inline "cdxTalentCard"}}
   <div class="item specialization-talent-item cdx-talent" data-item-id="{{item.itemId}}" data-item-name="{{item.name}}">
     <div class="cdx-tal-head"><span class="cdx-tal-name">{{item.name}}{{#if item.rank}} {{item.rank}}{{/if}}</span></div>
     <div class="cdx-card-ctl item-controls">
@@ -20,7 +18,18 @@
       {{#if item.canDelete}}<a class="item-control item-talent-delete" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a>{{else}}<a class="item-control item-info" title="{{localize "SWFFG.Info"}}" aria-label="{{localize "SWFFG.Info"}}"><i class="fas fa-info-circle"></i></a>{{/if}}
     </div>
   </div>
+{{/inline}}
+<div class="cdx-talents">
+  <div class="cdx-cards-head"><span class="ffg-purchase" data-buy-action="talent">{{localize "SWFFG.Talents"}}</span></div>
+  {{#if cdxTalentTiers}}
+  {{!-- Grouped by talent tier ("Sort Talents by Tier" setting). --}}
+  {{#each cdxTalentTiers as |group|}}
+  <div class="cdx-cards-head cdx-tier-head"><span>{{group.label}}</span></div>
+  {{#each group.talents as |item id|}}{{> cdxTalentCard item=item}}{{/each}}
   {{/each}}
+  {{else}}
+  {{#each talentList as |item id|}}{{> cdxTalentCard item=item}}{{/each}}
+  {{/if}}
 </div>
 {{!-- Abilities — codex card style, matching the talents above. --}}
 {{#contains items "type" "ability"}}

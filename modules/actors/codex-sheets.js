@@ -26,6 +26,7 @@ import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { getFatedSigilMask } from "./codex-fated-sigil.js";
+import { buildTalentTierMap, groupTalentsByTier } from "./codex-talent-tiers.js";
 import { availFor } from "../helpers/crit-availability.js";
 import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
@@ -1400,6 +1401,21 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         t.cdxAct = /out of turn/i.test(String(act)) ? "Active (OOT)" : String(act);
       }
     } catch (e) { /* leave talentList untouched */ }
+    // Optional tier grouping for the talent cards ("Sort Talents by Tier", on by
+    // default). The flat talentList is left in place - the template falls back to
+    // it whenever cdxTalentTiers is absent - and the order inside each tier is the
+    // one talentList already had, so the core activation/name sorting still holds.
+    try {
+      if (game.settings.get("starwarsffg", "codexTalentTierSorting")) {
+        const groups = groupTalentsByTier(ctx.talentList, buildTalentTierMap(this.actor?.items));
+        if (groups.length) {
+          ctx.cdxTalentTiers = groups.map((g) => ({
+            ...g,
+            label: game.i18n.format("SWFFG.Codex.TalentTier", { tier: g.tier }),
+          }));
+        }
+      }
+    } catch (e) { /* fall back to the flat talent list */ }
     // Minion combined-wound-pool track: a grid of member groups, each
     // `unit_wounds` segments wide, filled left-to-right by total wounds suffered.
     // Precomputed here (booleans) rather than via Handlebars arithmetic helpers,

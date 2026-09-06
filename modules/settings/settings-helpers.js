@@ -423,6 +423,18 @@ export default class SettingsHelpers {
       type: Boolean,
     });
 
+    // Codex talents tab: group the talent cards under "Tier N" headings instead of
+    // showing one flat list. On by default. Read by the codex sheet's _prepareContext.
+    game.settings.register("starwarsffg", "codexTalentTierSorting", {
+      name: game.i18n.localize("SWFFG.Settings.codex.TalentTierSorting.Name"),
+      hint: game.i18n.localize("SWFFG.Settings.codex.TalentTierSorting.Hint"),
+      scope: "world",
+      config: false,
+      default: true,
+      type: Boolean,
+      onChange: () => refreshOpenCodexSheets(),
+    });
+
     // Crit-Trauma weekly recovery counter: the campaign day drives the once-per-week
     // cooldown on crit self-heal / Medicine / Mechanics attempts. Advanced from the
     // Destiny Tracker [+] control; not shown in the config menu.

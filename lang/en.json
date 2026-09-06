@@ -544,6 +544,8 @@
   "SWFFG.Settings.codex.Label": "Configure Codex",
   "SWFFG.Settings.codex.AdvantageHealsStrain.Name": "Advantages Heal Strain (House Rule)",
   "SWFFG.Settings.codex.AdvantageHealsStrain.Hint": "During Post-Encounter strain recovery, every 2 advantages recovers 1 additional strain. This is a house rule — by the book, only successes recover strain. On by default; disable for by-the-book recovery.",
+  "SWFFG.Settings.codex.TalentTierSorting.Name": "Sort Talents by Tier",
+  "SWFFG.Settings.codex.TalentTierSorting.Hint": "On the Codex sheet's Talents tab, group talent cards under \"Tier 1\", \"Tier 2\" ... headings instead of one flat list. A talent taken in more than one place is listed at the lowest tier it was found at. On by default.",
   "SWFFG.Settings.codex.VehicleCritWeeklyLimit.Name": "Vehicle Crit Weekly Limit (House Rule)",
   "SWFFG.Settings.codex.VehicleCritWeeklyLimit.Hint": "Apply the once-per-week Mechanics cooldown to vehicle critical hits. RAW allows unlimited Mechanics retries, so this is Off by default.",
   "SWFFG.SkillsNameAlchemy": "Alchemy",

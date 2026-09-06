@@ -612,6 +612,9 @@
   border-bottom:1px solid rgba(112,96,70,.22);
   padding-bottom:4px;
 }
+/* Tier heads carry their own trailing rule (cdx.css), so drop the section
+   head's underline on them rather than drawing two lines. */
+.cdx form.scheme-eldritch .cdx-tier-head { border-bottom:none; padding-bottom:0; }
 .cdx form.scheme-eldritch .cdx-card:hover,
 .cdx form.scheme-eldritch .cdx-injury:hover,
 .cdx form.scheme-eldritch .cdx-item-body .item.force-power:hover {
