@@ -65,6 +65,7 @@ import {register_system_tours} from "./helpers/tours.js";
 import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
 import { computeCritAvailability } from "./helpers/crit-availability.js";
 import { refreshSheetsForRemoteUpdate } from "./helpers/sheet-sync.js";
+import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -1995,7 +1996,15 @@ Hooks.once("ready", async () => {
           const talentUuid = item.system.talents[talentId].source;
           const talent = await fromUuid(talentUuid);
           if (talent) {
-            toAdd.push(talent);
+            // Carry the grant's provenance in the create data: whether the talent is
+            // created fresh or merged into one the character already has, removing the
+            // species must take back exactly what it gave. `grantedBy` is what
+            // ItemFFG._preCreate folds into the surviving item's grantedRanks.
+            const talentData = talent.toObject();
+            foundry.utils.setProperty(talentData, "flags.starwarsffg.fromSpecies", true);
+            foundry.utils.setProperty(talentData, "flags.starwarsffg.grantedBy", item.id);
+            foundry.utils.setProperty(talentData, `flags.starwarsffg.grantedRanks.${item.id}`, talentRanks(talentData));
+            toAdd.push(talentData);
           }
         }
         // abilities
@@ -2047,12 +2056,29 @@ Hooks.once("ready", async () => {
           currentTotal - grantedXp,
         );
         const toDelete = [];
+        const toUpdate = [];
         for(const talentId of Object.keys(item.system.talents)) {
           const speciesTalent = item.system.talents[talentId];
-          const actorTalent = actor.items.find(i => i.name === speciesTalent.name && i.type === "talent");
-          if (actorTalent) {
+          const wanted = String(speciesTalent?.name ?? "").trim();
+          const actorTalent = actor.items.find(i => i.type === "talent" && String(i.name ?? "").trim() === wanted);
+          if (!actorTalent) continue;
+          // Take back only what this species granted. The talent may also hold ranks the
+          // character bought -- before this, the whole item was deleted by name, which
+          // took those with it.
+          const granted = Number(actorTalent.getFlag("starwarsffg", "grantedRanks")?.[item.id]) || 1;
+          const plan = planTalentRevoke(actorTalent, granted);
+          if (plan.action === "delete") {
             toDelete.push(actorTalent.id);
+          } else {
+            toUpdate.push({
+              _id: actorTalent.id,
+              "system.ranks.current": plan.total,
+              [`flags.starwarsffg.grantedRanks.-=${item.id}`]: null,
+            });
           }
+        }
+        if (toUpdate.length > 0) {
+          await actor.updateEmbeddedDocuments("Item", toUpdate);
         }
         // build the abilities list
         for (const ability of actor.items.filter(i => i.type === "ability" && i.system?.fromSpecies === item.id)) {
