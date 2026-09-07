@@ -202,6 +202,45 @@ test("a wielded weapon adds the linked characteristic to damage, and a vehicle's
   );
 });
 
+test("a second pass over the same system object rebuilds every adjusted value from scratch", () => {
+  // ActorFFG#prepareDerivedData re-prepares the actor's weapons, because Foundry prepares
+  // embedded items BEFORE it applies the actor's Active Effects -- so the first pass folds in
+  // the pre-effect characteristic. The second pass must land on exactly the values a single
+  // pass at the final characteristic would produce: nothing counted twice, nothing left over.
+  const build = () => weapon({
+    characteristic: { value: "Brawn" },
+    attributes: { "Sharpened": attr("damage", "Weapon Stat", 1) },
+    itemmodifier: [quality("Vicious", { 0: attr("critical", "Weapon Stat", 1) }, { rank: 2 })],
+    itemattachment: [{
+      name: "Vicious Mod",
+      type: "itemattachment",
+      system: {
+        rank: null,
+        hardpoints: { value: 1 },
+        attributes: { 0: attr("damage", "Weapon Stat", 1) },
+        itemmodifier: [{ name: "Vicious", type: "itemmodifier", system: { rank: 1, active: true, attributes: {} } }],
+      },
+    }],
+  });
+  const characteristics = (value) => ({ Brawn: { value } });
+
+  // Pass one with the base Brawn, pass two on the SAME object once the effects have applied.
+  const twice = build();
+  applyItemAdjustments(twice, "weapon", ctx({ isEmbedded: true, characteristics: characteristics(2) }));
+  applyItemAdjustments(twice, "weapon", ctx({ isEmbedded: true, characteristics: characteristics(4) }));
+
+  const once = applyItemAdjustments(build(), "weapon", ctx({ isEmbedded: true, characteristics: characteristics(4) }));
+
+  assert.deepEqual(twice, once);
+  // 6 base + 1 attachment + 1 own row + Brawn 4 — the Brawn is added once, not twice.
+  assert.equal(twice.damage.adjusted, 12);
+  // Vicious rank 2 + 1 from the attachment, and it is still listed once.
+  assert.equal(twice.adjusteditemmodifier.length, 1);
+  assert.equal(twice.adjusteditemmodifier[0].system.rank_current, 3);
+  assert.equal(twice.crit.adjusted, 5);
+  assert.equal(twice.hardpoints.current, 2);
+});
+
 test("armour sums soak and defence from its qualities, attachments and own rows", () => {
   const attachment = {
     name: "Reinforcement",

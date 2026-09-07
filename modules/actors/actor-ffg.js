@@ -184,6 +184,29 @@ export class ActorFFG extends Actor {
     const data = actor.system;
     const flags = actor.flags;
 
+    // Re-derive the weapons AFTER the actor's Active Effects have landed.
+    //
+    // Foundry's order is prepareBaseData -> prepareEmbeddedDocuments -> prepareDerivedData,
+    // and Actor#prepareEmbeddedDocuments prepares every embedded item FIRST and only then
+    // calls applyActiveEffects(). A weapon folds the wielder's characteristic into
+    // `system.damage.adjusted` (Brawn for a melee weapon), and characteristic bonuses from a
+    // species, talent or cybernetic are Active Effect changes on
+    // `system.characteristics.<X>.value` -- so the first pass read the pre-effect number and
+    // the sheet, the roll dialog and the chat card all showed damage from the base
+    // characteristic alone. This is the first point Foundry gives us after the effects apply.
+    //
+    // applyItemAdjustments() resets every `.adjusted` from `.value` and rebuilds
+    // `adjusteditemmodifier` from scratch before adding anything, so the second pass is
+    // idempotent (pinned by tests/node/item-adjustments.test.mjs). Only the two weapon types
+    // are re-prepared: they are the only ones whose derived values depend on the actor, and
+    // talents/specializations/force powers/signature abilities do far more work in theirs.
+    // _calculateDerivedValues() (the encumbrance sum) runs later in this method, so it still
+    // sees the final numbers.
+    for (const item of actor.items) {
+      if (item.type !== "weapon" && item.type !== "shipweapon") continue;
+      item.prepareDerivedData();
+    }
+
     // if the actor has skills, add custom skills
     if (data.skills) {
       // `CONFIG.FFG.skills` alone only restores names — it holds no characteristic or type. Actors
