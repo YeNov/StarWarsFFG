@@ -1,4 +1,5 @@
 import { GroupManager } from "./groupmanager-ffg.js";
+import { DestinyQueue, DESTINY_LIGHT, DESTINY_DARK } from "./helpers/destiny-queue.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -18,8 +19,20 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
   constructor(object = {}, options = {}) {
     super(options);
     this.object = object;
-    this.destinyQueue = [];
-    this.isRunningQueue = false;
+    // Every mutation of the destiny pool -- player flip, player roll, GM flip,
+    // GM roll, GM add/remove -- goes through this one serialized queue on the
+    // active GM's client. See modules/helpers/destiny-queue.js.
+    this.destinyQueue = new DestinyQueue({
+      get: (key) => game.settings.get("starwarsffg", key),
+      set: (key, value) => game.settings.set("starwarsffg", key, value),
+      // Resolved lazily: CONFIG.logger is installed at init, and this widget can
+      // be constructed before then.
+      logger: {
+        debug: (...args) => CONFIG.logger?.debug?.(...args),
+        warn: (...args) => CONFIG.logger?.warn?.(...args),
+        error: (...args) => CONFIG.logger?.error?.(...args),
+      },
+    });
     if (options?.menu) {
       this.menu = options.menu;
     }
@@ -55,7 +68,7 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
   /** @override */
   async _prepareContext(_options) {
     // Get current value
-    let destinyPool = { light: game.settings.get("starwarsffg", "dPoolLight"), dark: game.settings.get("starwarsffg", "dPoolDark") };
+    let destinyPool = { light: game.settings.get("starwarsffg", DESTINY_LIGHT), dark: game.settings.get("starwarsffg", DESTINY_DARK) };
     let destinyPoolLabel = { light: game.settings.get("starwarsffg", "destiny-pool-light"), dark: game.settings.get("starwarsffg", "destiny-pool-dark") };
 
     // filter menu based on role.
@@ -137,57 +150,59 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
       const remove = event.ctrlKey || event.metaKey;
       var flipType = null;
       var actionType = null;
-      if (pointType == "dPoolLight") {
-        flipType = "dPoolDark";
+      if (pointType == DESTINY_LIGHT) {
+        flipType = DESTINY_DARK;
         typeName = game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-light"));
       } else {
-        flipType = "dPoolLight";
+        flipType = DESTINY_LIGHT;
         typeName = game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-dark"));
       }
       var messageText;
 
       if (!add && !remove) {
+        // A local courtesy check for instant feedback; the GM re-validates the
+        // source pool at the moment the flip is actually applied, because by then
+        // somebody else may have spent the last point.
         if (game.settings.get("starwarsffg", pointType) == 0) {
           ui.notifications.warn(`Cannot flip a ${typeName} point; 0 remaining.`);
           return;
-        } else {
-          let pool = { light: 0, dark: 0 };
-          if (flipType == "dPoolLight") {
-            pool.light = game.settings.get("starwarsffg", flipType) + 1;
-            pool.dark = game.settings.get("starwarsffg", pointType) - 1;
-          } else if (flipType == "dPoolDark") {
-            pool.dark = game.settings.get("starwarsffg", flipType) + 1;
-            pool.light = game.settings.get("starwarsffg", pointType) - 1;
-          }
-
-          if (game.user.isGM) {
-            game.settings.set("starwarsffg", "dPoolLight", pool.light);
-            game.settings.set("starwarsffg", "dPoolDark", pool.dark);
-          } else {
-            await game.socket.emit("system.starwarsffg", { pool });
-          }
-
-          messageText = `<div class="destiny-flip ${flipType}">
-          <div class="destiny-title">${game.i18n.localize("SWFFG.DestinyFlipMessage")}: <span class="${typeName}">${typeName}</span></div>
-          <div class="destiny-left ${flipType !== "dPoolDark"} dark">${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-dark"))} ${game.i18n.localize("SWFFG.DestinyFlipRemaining")}: ${pool.dark}</div>
-          <div class="destiny-left ${flipType !== "dPoolLight"} light">${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-light"))} ${game.i18n.localize("SWFFG.DestinyFlipRemaining")}: ${pool.light}</div>
-          </div>`;
         }
+
+        // Send the INTENTION (move one point from this pool to the other), not a
+        // pair of totals computed from what this client happens to see. The GM
+        // client is the only one that touches the pool, and it does so through
+        // the serialized queue.
+        if (game.user.isGM) {
+          const request = { type: "destiny-flip", from: pointType, to: flipType, requestedBy: game.user.id };
+          const outcome = (await this.destinyQueue.submit(request)).find((r) => r.request === request);
+          // Refused because the pool emptied between the check above and the write.
+          if (outcome && !outcome.applied) {
+            ui.notifications.warn(`Cannot flip a ${typeName} point; 0 remaining.`);
+            return;
+          }
+        } else {
+          await game.socket.emit("system.starwarsffg", { destinyFlip: { from: pointType, to: flipType } });
+        }
+
+        // The remaining totals are deliberately not printed here: the client
+        // asking for the flip cannot know them (the GM applies it, possibly after
+        // other requests), and the tracker widget shows the live pool anyway.
+        messageText = `<div class="destiny-flip ${flipType}">
+          <div class="destiny-title">${game.i18n.localize("SWFFG.DestinyFlipMessage")}: <span class="${typeName}">${typeName}</span></div>
+          </div>`;
       } else if (add) {
         if (!game.user.isGM) {
           ui.notifications.warn("Only GMs can add or remove points from the Destiny Pool.");
           return;
         }
-        const setting = game.settings.settings.get(`starwarsffg.${pointType}`);
-        game.settings.set("starwarsffg", pointType, game.settings.get("starwarsffg", pointType) + 1);
+        await this.destinyQueue.submit({ type: "destiny-adjust", pool: pointType, delta: 1 });
         messageText = "Added a " + typeName + " point.";
       } else if (remove) {
         if (!game.user.isGM) {
           ui.notifications.warn("Only GMs can add or remove points from the Destiny Pool.");
           return;
         }
-        const setting = game.settings.settings.get(`starwarsffg.${pointType}`);
-        game.settings.set("starwarsffg", pointType, game.settings.get("starwarsffg", pointType) - 1);
+        await this.destinyQueue.submit({ type: "destiny-adjust", pool: pointType, delta: -1 });
         messageText = "Removed a " + typeName + " point.";
       }
 
@@ -268,42 +283,30 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
           await game.socket.emit("system.starwarsffg", { canIRollDestinyResponse: args[0]?.canIRollDestiny, rolled });
         }
 
-        // Handle user initiated destiny pool flips
-        if (args[0]?.pool) {
-          const light = await game.settings.get("starwarsffg", "dPoolLight");
-          const dark = await game.settings.get("starwarsffg", "dPoolDark");
-
-          const request = {
-            id: "player",
+        // Handle user initiated destiny pool flips. The payload is an intention;
+        // the queue validates `from` against the pool at processing time, so a
+        // stale client view cannot push the pool negative. `args[1]` is the
+        // authenticated sender id Foundry appends to a socket callback.
+        if (args[0]?.destinyFlip) {
+          this.destinyQueue.enqueue({
             type: "destiny-flip",
-            light: +light - +args[0].pool.light,
-            dark: +dark - +args[0].pool.dark,
-          };
-
-          // only allow one player flip at a time.
-          if (!this.destinyQueue.find((q) => q.id === args[0].destiny)) {
-            this.destinyQueue.push(request);
-          }
+            from: args[0].destinyFlip.from,
+            to: args[0].destinyFlip.to,
+            requestedBy: args[1],
+          });
         }
 
         // Handle user report for initial Destiny roll
-        if (args[0]?.destiny) {
-          const request = {
-            id: args[0].destiny,
+        if (args[0]?.destiny && CONFIG.FFG.DestinyGM === game.user.id) {
+          this.destinyQueue.enqueue({
             type: "destiny-roll",
+            roller: args[0].destiny,
             light: args[0].light,
             dark: args[0].dark,
-          };
-
-          // make sure only one player destiny roll is queued.
-          if (!this.destinyQueue.find((q) => q.id === args[0].destiny) && CONFIG.FFG.DestinyGM === game.user.id) {
-            this.destinyQueue.push(request);
-          }
+          });
         }
 
-        if (!this.isRunningQueue) {
-          this._processDestinyRequests();
-        }
+        await this.destinyQueue.drain();
       });
     }
   }
@@ -476,41 +479,11 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
     if (game.user.isGM) {
       const roll = await this._rollDestiny();
 
-      const light = await game.settings.get("starwarsffg", "dPoolLight");
-      const dark = await game.settings.get("starwarsffg", "dPoolDark");
-
-      await game.settings.set("starwarsffg", "dPoolLight", light + roll.ffg.light);
-      await game.settings.set("starwarsffg", "dPoolDark", dark + roll.ffg.dark);
+      // Through the queue like everything else, so a GM rolling while player
+      // requests are in flight cannot clobber them. No `roller`: the "has rolled"
+      // marker is a per-player setting and was never stamped for the GM.
+      await this.destinyQueue.submit({ type: "destiny-roll", light: roll.ffg.light, dark: roll.ffg.dark });
     }
-  }
-
-  async _processDestinyRequests() {
-    CONFIG.logger.debug(`Processing ${this.destinyQueue.length} Destiny Requests`);
-
-    while (this.destinyQueue.length > 0) {
-      const request = this.destinyQueue.shift();
-      CONFIG.logger.debug(`Processing Destiny Request (${request.type}) from User ${request.id}`, request);
-
-      const light = await game.settings.get("starwarsffg", "dPoolLight");
-      const dark = await game.settings.get("starwarsffg", "dPoolDark");
-
-      switch (request.type) {
-        case "destiny-roll": {
-          game.settings.set("starwarsffg", `destinyrollers${request.id}`, true);
-          await game.settings.set("starwarsffg", "dPoolLight", light + request.light);
-          await game.settings.set("starwarsffg", "dPoolDark", dark + request.dark);
-          break;
-        }
-        case "destiny-flip": {
-          await game.settings.set("starwarsffg", "dPoolLight", light - request.light);
-          game.settings.set("starwarsffg", "dPoolDark", dark - request.dark);
-          break;
-        }
-      }
-    }
-
-    CONFIG.logger.debug(`Done Processing Destiny Requests`);
-    this.isRunningQueue = false;
   }
 
   async _rollDestiny() {
