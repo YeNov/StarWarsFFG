@@ -98,10 +98,15 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    // Flex, not floats: die art has mixed aspect ratios (720x650 vs 700x700),
+    // so fixed-width floats of unequal height snag on each other when the pool
+    // wraps and strand dice at the right-hand end of a row.
+    display: flex;
+    flex-wrap: wrap;
     .roll {
+      flex: 0 0 40px;
       width: 40px;
-      float: left;
+      min-width: 0;
     }
   }
 }

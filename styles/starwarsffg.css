@@ -1443,11 +1443,13 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   list-style: none;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
 }
 .starwarsffg .ffgDiceArray .dice-rolls .roll {
+  flex: 0 0 40px;
   width: 40px;
-  float: left;
+  min-width: 0;
 }
 .starwarsffg.dice-roll .dice-result .dice-tooltip.expanded .dice-rolls .roll.isFFG {
   width: 24px;
