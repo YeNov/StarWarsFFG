@@ -17,14 +17,78 @@
 
 import { killMinion } from "./minions.js";
 import { availFor } from "./crit-availability.js";
+import { createKeyedSerializer } from "./keyed-serializer.js";
 
 const FFG_SOCKET = "system.starwarsffg";
 const APPLY_EVENT = "ffgApplyToTarget";
 const MESSAGE_EVENT = "ffgUpdateMessage";
 
 /**
+ * The numeric pools an "Apply Damage" may bump. Taken from apply-damage.js, which
+ * is the only producer: vehicles use hull trauma / system strain, everyone else
+ * wounds / strain. A forwarded request naming anything else is refused, so the
+ * bridge can never be talked into writing an arbitrary path on an actor the
+ * requesting player does not own.
+ */
+export const DAMAGE_PATHS = Object.freeze([
+  "system.stats.wounds.value",
+  "system.stats.strain.value",
+  "system.stats.hullTrauma.value",
+  "system.stats.systemStrain.value",
+]);
+
+/** The item types "Apply Critical" may embed (apply-crit.js draws them from a crit table). */
+export const CRIT_ITEM_TYPES = Object.freeze(["criticalinjury", "criticaldamage"]);
+
+/** Damage/crit/kill writes are chained per target actor -- see keyed-serializer.js. */
+const applyQueue = createKeyedSerializer();
+
+/** True for a value that is an object literal (not null, not an array). */
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Narrow a forwarded request down to an operation this bridge is willing to
+ * perform, discarding everything else the sender put in the payload.
+ *
+ * Pure by design (no `game`, no `CONFIG`) so the rules are testable in Node; the
+ * caller supplies the resolved target's type for the minion check.
+ *
+ * @param {object} data       The raw socket payload.
+ * @param {string} actorType  The resolved target actor's `type`.
+ * @returns {{ok: true, op: object}|{ok: false, reason: string}}
+ */
+export function narrowApplyRequest(data, actorType) {
+  switch (data?.type) {
+    case "damage": {
+      if (!DAMAGE_PATHS.includes(data.path)) return { ok: false, reason: "path" };
+      // A real, finite number -- not a coercible one. `Number(null)` is 0 and
+      // `Number("5")` is 5, and neither is anything apply-damage.js sends.
+      if (typeof data.delta !== "number" || !Number.isFinite(data.delta)) return { ok: false, reason: "delta" };
+      return { ok: true, op: { type: "damage", path: data.path, delta: data.delta } };
+    }
+    case "crit": {
+      const items = data.items;
+      if (!Array.isArray(items) || items.length === 0) return { ok: false, reason: "items" };
+      if (!items.every((i) => isPlainObject(i) && CRIT_ITEM_TYPES.includes(i.type))) {
+        return { ok: false, reason: "items" };
+      }
+      return { ok: true, op: { type: "crit", items } };
+    }
+    case "kill-minion": {
+      if (actorType !== "minion") return { ok: false, reason: "not-a-minion" };
+      return { ok: true, op: { type: "kill-minion" } };
+    }
+    default:
+      return { ok: false, reason: "type" };
+  }
+}
+
+/**
  * Perform the actual privileged operation against an actor the current client
- * is allowed to modify.
+ * is allowed to modify. Always reached through {@link serializedApply}, never
+ * called directly, so the read-modify-write below cannot interleave.
  * @param {Actor} actor
  * @param {object} op
  * @param {"damage"|"crit"|"kill-minion"} op.type
@@ -45,16 +109,66 @@ async function performApply(actor, op) {
 }
 
 /**
+ * Queue an operation behind anything already running against the same actor.
+ * Two "Apply Damage" clicks resolved a moment apart used to read the same
+ * starting wounds and the second write erased the first.
+ * @param {Actor} actor
+ * @param {object} op
+ * @returns {Promise<void>}
+ */
+function serializedApply(actor, op) {
+  return applyQueue.run(actor.uuid ?? actor.id ?? "unknown-actor", () => performApply(actor, op));
+}
+
+/** A ChatMessage's author id, across the V13 rename. */
+function messageAuthorId(message) {
+  return message?.author?.id ?? message?.user?.id ?? message?.user;
+}
+
+/**
+ * May this requestor have a privileged apply performed on their behalf?
+ *
+ * Deliberately NOT ownership of the target: the whole point of the bridge is
+ * that the attacking player does not own the NPC they are shooting at. What is
+ * checked instead is the originating context -- the attack chat card. The
+ * requestor must be a GM, or the card's own author, which is exactly the rule
+ * apply-damage.js:24-28 already uses to decide who even sees the Apply button.
+ * The card's uuid is in hand at every call site, so this costs one local lookup
+ * and nothing else. Without it, any connected player could apply arbitrary
+ * damage to any actor in the world.
+ *
+ * Pure, so the rules are testable in Node.
+ *
+ * @param {User|undefined} requestor  `game.users.get(requestorId)` -- Foundry's own sender id.
+ * @param {ChatMessage|null} origin   The resolved originating chat card, if any.
+ * @param {string} requestorId
+ * @returns {{ok: true}|{ok: false, reason: string}}
+ */
+export function isApplyRequestAuthorized(requestor, origin, requestorId) {
+  if (!requestor?.active) return { ok: false, reason: "requestor" };
+  if (requestor.isGM) return { ok: true };
+  if (!origin || messageAuthorId(origin) !== requestorId) return { ok: false, reason: "origin" };
+  return { ok: true };
+}
+
+/**
  * Apply a privileged write to a (possibly unowned) target actor. Writes locally
  * when the current user can modify the actor, otherwise forwards the request to
  * the active GM over the system socket.
  *
- * An optional `op.gmChat` (a ChatMessage.create payload) is posted by whoever
- * performs the write -- so a GM-only whisper is authored by the GM rather than
- * by a non-owning player, who would otherwise be able to see their own whisper.
+ * An optional `op.gmChat` (`{content}`) is posted by whoever performs the write
+ * -- so a GM-only whisper is authored by the GM rather than by a non-owning
+ * player, who would otherwise be able to see their own whisper. On the forwarded
+ * path only the content survives; the GM rebuilds the speaker and the whisper
+ * list itself.
+ *
+ * `op.originUuid` must be the uuid of the chat card the request came from. The
+ * GM authorizes against it (see {@link registerGMBridge}), so a forward without
+ * one is refused.
  *
  * @param {Actor} actor  The resolved target actor (synthetic token actor is fine).
- * @param {object} op     See {@link performApply}; may also carry `gmChat`.
+ * @param {object} op     See {@link performApply}; also carries `originUuid` and
+ *   optionally `gmChat`.
  * @returns {Promise<"local"|"forwarded"|false>} "local" if applied on this
  *   client, "forwarded" if handed to the active GM, false if it could not be
  *   applied (no GM connected). The caller uses this to avoid double-posting
@@ -62,7 +176,7 @@ async function performApply(actor, op) {
  */
 export async function applyToTargetActor(actor, op) {
   if (actor?.isOwner) {
-    await performApply(actor, op);
+    await serializedApply(actor, op);
     return "local";
   }
   if (!game.users.activeGM) {
@@ -130,7 +244,7 @@ export function registerGMBridge() {
         if (!message) return;
         // AUTHORIZE: requestor must be a GM or the message's own author (mirrors
         // the client-side gate and the locked GM-or-owner rule).
-        const authorId = message.author?.id ?? message.user?.id ?? message.user;
+        const authorId = messageAuthorId(message);
         const requestor = game.users.get(requestorId);
         if (!(requestor?.isGM || requestorId === authorId)) {
           CONFIG.logger?.warn?.("FFG GM bridge: refused unauthorized message update", { requestorId, messageUuid: data.messageUuid });
@@ -150,11 +264,40 @@ export function registerGMBridge() {
       if (data?.event === APPLY_EVENT) {
         const actor = await fromUuid(data.actorUuid);
         if (!actor) return;
-        await performApply(actor, data);
+
+        // AUTHORIZE against the sender id Foundry supplies and the chat card the
+        // request came from -- see {@link isApplyRequestAuthorized} for why that,
+        // and not ownership of the target.
+        const requestor = game.users.get(requestorId);
+        // A malformed uuid throws rather than resolving to null; either way the
+        // request is unauthorized, not an internal failure.
+        const origin = data.originUuid ? await fromUuid(data.originUuid).catch(() => null) : null;
+        const auth = isApplyRequestAuthorized(requestor, origin, requestorId);
+        if (!auth.ok) {
+          CONFIG.logger?.warn?.("FFG GM bridge: refused an unauthorized apply", { reason: auth.reason, requestorId, originUuid: data.originUuid });
+          return;
+        }
+
+        // NARROW: only the three known operations, with their own fields checked.
+        const narrowed = narrowApplyRequest(data, actor.type);
+        if (!narrowed.ok) {
+          CONFIG.logger?.warn?.("FFG GM bridge: refused an out-of-scope apply", { reason: narrowed.reason, type: data.type, path: data.path });
+          return;
+        }
+
+        await serializedApply(actor, narrowed.op);
+
         // Posted GM-side so a GM-only whisper is authored by the GM, not the
-        // forwarding player (who would otherwise see their own whisper).
-        if (data.gmChat) {
-          await ChatMessage.create(data.gmChat);
+        // forwarding player (who would otherwise see their own whisper). The
+        // client supplies the breakdown text and nothing else: the speaker and the
+        // recipient list are rebuilt here, so a forwarded payload cannot pick its
+        // own audience, author or flags.
+        if (typeof data.gmChat?.content === "string") {
+          await ChatMessage.create({
+            content: data.gmChat.content,
+            speaker: actor.token ? ChatMessage.getSpeaker({ token: actor.token }) : ChatMessage.getSpeaker({ actor }),
+            whisper: game.users.filter((u) => u.isGM).map((u) => u.id),
+          });
         }
         return;
       }

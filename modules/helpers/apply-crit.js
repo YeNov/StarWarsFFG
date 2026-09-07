@@ -86,7 +86,7 @@ export class ApplyCrit {
 
     if (type === "minion") {
       try {
-        const ok = await applyToTargetActor(realActor, { type: "kill-minion" });
+        const ok = await applyToTargetActor(realActor, { type: "kill-minion", originUuid: message.uuid });
         if (!ok) return;
       } catch (err) {
         CONFIG.logger?.warn?.("ApplyCrit: kill minion failed", err);
@@ -206,7 +206,7 @@ export class ApplyCrit {
               // Embeds the crit item on the target actor; when the clicking
               // player does not own the target, this forwards to the active GM
               // (see gm-bridge.js).
-              const ok = await applyToTargetActor(realActor, { type: "crit", items: [item.toObject()] });
+              const ok = await applyToTargetActor(realActor, { type: "crit", items: [item.toObject()], originUuid: message.uuid });
               if (!ok) return;
               await ChatMessage.create({
                 speaker: ChatMessage.getSpeaker({ token: target.document }),
