@@ -51,6 +51,17 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   pools = new Map();
 
+  /**
+   * Item types whose description is printed through `system.renderedDesc` by the
+   * character sheet's obligation / motivation / background tables (and the Codex
+   * sheet's equivalents). Nothing else needs the enrichment, and it costs one
+   * `enrichHTML` per item, so the list stays tight — extend it if a template
+   * starts rendering `renderedDesc` for another type. (Duty and Morality are
+   * `obligation` items distinguished by `system.type`, not item types of their
+   * own -- the templates' `eq item.type "duty"` branches never match.)
+   */
+  static RENDERED_DESC_TYPES = ["motivation", "background", "obligation"];
+
   static DEFAULT_OPTIONS = {
     // `v2` is REQUIRED, not cosmetic: the served stylesheets key actor-sheet
     // layout off `.starwarsffg.sheet.actor.v2`. It was the makeDefault sheet
@@ -216,6 +227,25 @@ export class ActorSheetFFG extends FFGActorSheet {
     return -1;
   }
 
+  /**
+   * Build `system.renderedDesc` -- the description with FFG dice codes turned
+   * into glyphs -- for the item types whose description the actor sheets print
+   * in a table. Presentation only: it is written onto the prepared (in-memory)
+   * item data, never onto the stored document, and is rebuilt on every render.
+   * @param {Iterable<Item>} items
+   */
+  async _prepareRenderedDescriptions(items) {
+    for (const item of items ?? []) {
+      if (!ActorSheetFFG.RENDERED_DESC_TYPES.includes(item.type)) continue;
+      try {
+        item.system.renderedDesc = await PopoutEditor.renderDiceImages(item.system.description, this.actor);
+      } catch (err) {
+        CONFIG.logger?.warn?.(`Failed to render the description of ${item.name}`, err);
+        item.system.renderedDesc = item.system.description ?? "";
+      }
+    }
+  }
+
   /* -------------------------------------------- */
 
   /** @override */
@@ -262,6 +292,15 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     data.token = this.token;
     data.items = this.actor.items;
+
+    // The dice-glyph-enriched description the obligation/motivation/background
+    // tables render (`item.system.renderedDesc`). This used to be built in
+    // ItemFFG#prepareData, which had to be `async` to await the enrichment --
+    // and Foundry does not await data preparation, so the actor's own derived
+    // pass ran while every item was still mid-prepare. Enrichment is a render
+    // concern, so it happens here instead, for the handful of item types whose
+    // description is actually displayed this way.
+    await this._prepareRenderedDescriptions(data.items);
 
     if (options?.action === "update" && this.object.compendium) {
       data.item = foundry.utils.mergeObject(data.actor, options.data);

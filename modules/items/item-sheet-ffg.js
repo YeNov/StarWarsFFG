@@ -711,9 +711,14 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       );
     }
 
-    data.renderedDesc = PopoutEditor.renderDiceImages(data.description, this.actor ? this.actor : {});
+    // renderDiceImages is async; without the await this assigned a pending Promise,
+    // which is always truthy -- so the fallback below could never run and the value
+    // itself was unusable. No item template reads `renderedDesc` today (only the
+    // actor sheets' obligation/motivation/background tables do, and they build their
+    // own), so this is kept correct rather than removed.
+    data.renderedDesc = await PopoutEditor.renderDiceImages(data.description, this.actor ? this.actor : {});
     if (!data.renderedDesc) {
-      data.data.renderedDesc = PopoutEditor.renderDiceImages(data?.item?.system?.description, this.actor ? this.actor : {});
+      data.data.renderedDesc = await PopoutEditor.renderDiceImages(data?.item?.system?.description, this.actor ? this.actor : {});
     }
 
     // get summarized data for qualities (e.g. weapons)
