@@ -281,6 +281,43 @@ test("duplicate request IDs share the original write and its completed result", 
   assert.equal(c.values.get("Actor.target"), 10);
 });
 
+test("the duplicate guard is bounded but never forgets work still in flight", async () => {
+  const users = [user("gm", true)];
+  users.activeGM = users[0];
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const writes = [];
+  const coordinator = createActorApplyCoordinator({
+    getUserId: () => "gm", getUsers: () => users, makeRequestId: () => "unused",
+    resolveActor: async (uuid) => ({ uuid, type: "character", testUserPermission: () => true }),
+    performApply: async (actor, op) => { writes.push(op.delta); if (op.delta === 1) await gate; },
+    prepareForwarded: (actor, op) => op,
+    send: () => {}, postChat: async () => {},
+    receivedLimit: 2,
+  });
+  // Distinct actors so the per-actor queue does not serialize them behind the
+  // one held open below.
+  const forwarded = (requestId, delta) => ({
+    ...damage(delta), event: APPLY_EVENT, actorUuid: `Actor.${requestId}`, executorId: "gm", requestId,
+  });
+
+  const blocked = coordinator.receive(forwarded("r1", 1), "owner");
+  await coordinator.receive(forwarded("r2", 2), "owner");
+  await coordinator.receive(forwarded("r3", 3), "owner");
+
+  // Three entries against a limit of two, but r1 has not finished, so pruning
+  // must have taken a completed one instead. A resend of r1 therefore still
+  // joins the original write rather than starting a second.
+  const resent = coordinator.receive(forwarded("r1", 1), "owner");
+  release();
+  await Promise.all([blocked, resent]);
+  assert.deepEqual(writes, [1, 2, 3]);
+
+  // The most recent completed request is still suppressed too.
+  await coordinator.receive(forwarded("r3", 3), "owner");
+  assert.deepEqual(writes, [1, 2, 3]);
+});
+
 test("missing socket sender never executes a raw request", async () => {
   const c = clients();
   for (const sender of [undefined, null, ""]) {

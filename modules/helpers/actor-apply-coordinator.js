@@ -43,6 +43,7 @@ export function selectApplyExecutor(actor, users) {
  * @param {function(Error): void} io.onChatError
  * @param {function(object): void} [io.onPending] Warn once while confirmation is overdue.
  * @param {number} [io.timeoutMs=15000]
+ * @param {number} [io.receivedLimit=200] Completed requests kept for duplicate suppression.
  */
 export function createActorApplyCoordinator(io) {
   const queue = createKeyedSerializer();
@@ -142,11 +143,33 @@ export function createActorApplyCoordinator(io) {
         entry.result = result;
         return result;
       });
-      if (key) received.set(key, entry);
+      if (key) {
+        received.set(key, entry);
+        pruneReceived();
+      }
     }
     const result = entry.result ?? await entry.processing;
     if (data.requestId && result) {
       io.send({ event: APPLY_RESULT_EVENT, requestId: data.requestId, recipientId: senderId, ...result });
+    }
+  }
+
+  /**
+   * Keep the duplicate-suppression cache from growing for the life of a session.
+   *
+   * It answers "have I already done this exact request?", so it only has to
+   * outlive the sender's own polling, not the campaign. The oldest COMPLETED
+   * entry goes first: dropping one that is still processing would let its own
+   * resend start a second write of the same hit, which is the thing this cache
+   * exists to prevent. Map iterates in insertion order, so the first match is
+   * the oldest.
+   */
+  function pruneReceived() {
+    if (received.size <= (io.receivedLimit ?? 200)) return;
+    for (const [candidate, value] of received) {
+      if (!value.result) continue;
+      received.delete(candidate);
+      return;
     }
   }
 
