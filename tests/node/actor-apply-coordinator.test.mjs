@@ -218,6 +218,28 @@ test("an overdue request remains pending and accepts a late acknowledgement", as
   assert.equal(await applying, "forwarded");
 });
 
+test("a request is settled, not polled forever, once its writer disconnects", async () => {
+  const users = [user("gm", true)];
+  users.activeGM = users[0];
+  const sent = [];
+  let warn;
+  const warned = new Promise((resolve) => { warn = resolve; });
+  const coordinator = createActorApplyCoordinator({
+    getUserId: () => "owner", getUsers: () => users, makeRequestId: () => "request",
+    send: (data) => sent.push(data), timeoutMs: 5, onPending: warn,
+  });
+  const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, damage(5));
+  await warned;
+  // The GM drops off. Its reply and its record of this request went with it, and
+  // a newly elected writer must not be asked to replay a possibly-applied hit.
+  users[0].active = false;
+  users.activeGM = null;
+  await assert.rejects(applying, { name: "ApplyRequestError", message: /disconnected before confirming/ });
+  const polls = sent.filter((d) => d.event === APPLY_STATUS_EVENT).length;
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(sent.filter((d) => d.event === APPLY_STATUS_EVENT).length, polls);
+});
+
 test("a write queued beyond the deadline reports pending and later applies only once", async () => {
   let release, warn;
   const gate = new Promise((resolve) => { release = resolve; });

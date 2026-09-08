@@ -80,6 +80,16 @@ export function createActorApplyCoordinator(io) {
       const request = { executorId, resolve, reject, timer: null, warned: false };
       const checkStatus = () => {
         if (!pending.has(requestId)) return;
+        // Once the addressed writer is gone, nothing will ever answer: its reply
+        // and its record of this request went with it, and a newly elected writer
+        // must not be asked to replay a write that may already have happened.
+        // Settle instead of polling an empty seat forever, and say plainly that
+        // the outcome is unknown rather than implying the hit was lost.
+        if (!Array.from(io.getUsers()).some((user) => user.id === executorId && user.active)) {
+          pending.delete(requestId);
+          reject(new ApplyRequestError("The client applying this disconnected before confirming it. Check the target before applying it again."));
+          return;
+        }
         // Losing a reply does not cancel the queued write. Keep its caller and
         // identity alive; a status query can recover the reply without another hit.
         request.timer = setTimeout(checkStatus, io.timeoutMs ?? 15000);
