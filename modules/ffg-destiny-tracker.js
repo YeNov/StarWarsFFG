@@ -172,24 +172,23 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
         // pair of totals computed from what this client happens to see. The GM
         // client is the only one that touches the pool, and it does so through
         // the serialized queue.
+        //
+        // The chat card is posted by whichever client APPLIES the flip, not by the
+        // one that asks for it -- that is the only client that knows the resulting
+        // totals. See _announceFlips().
         if (game.user.isGM) {
+          // A drain may carry other clients' requests too, and a request of ours
+          // may be drained by a call already in flight -- so announcing always
+          // takes the whole batch, whichever call it comes back on.
           const request = { type: "destiny-flip", from: pointType, to: flipType, requestedBy: game.user.id };
-          const outcome = (await this.destinyQueue.submit(request)).find((r) => r.request === request);
-          // Refused because the pool emptied between the check above and the write.
-          if (outcome && !outcome.applied) {
-            ui.notifications.warn(`Cannot flip a ${typeName} point; 0 remaining.`);
-            return;
-          }
+          await this._announceFlips(await this.destinyQueue.submit(request));
+        } else if (!game.users.activeGM) {
+          // Nobody is listening: the pool is only ever written by the active GM.
+          ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM"));
         } else {
           await game.socket.emit("system.starwarsffg", { destinyFlip: { from: pointType, to: flipType } });
         }
-
-        // The remaining totals are deliberately not printed here: the client
-        // asking for the flip cannot know them (the GM applies it, possibly after
-        // other requests), and the tracker widget shows the live pool anyway.
-        messageText = `<div class="destiny-flip ${flipType}">
-          <div class="destiny-title">${game.i18n.localize("SWFFG.DestinyFlipMessage")}: <span class="${typeName}">${typeName}</span></div>
-          </div>`;
+        return;
       } else if (add) {
         if (!game.user.isGM) {
           ui.notifications.warn("Only GMs can add or remove points from the Destiny Pool.");
@@ -206,8 +205,10 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
         messageText = "Removed a " + typeName + " point.";
       }
 
+      // Only the GM add/remove paths still reach this: a flip is announced by the
+      // client that applied it, and returns above.
       ChatMessage.create({
-        user: game.user.id,
+        author: game.user.id,
         content: messageText,
       });
     });
@@ -306,7 +307,61 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
           });
         }
 
-        await this.destinyQueue.drain();
+        await this._announceFlips(await this.destinyQueue.drain());
+      });
+    }
+  }
+
+  /**
+   * Post the chat card for every flip in a processed batch.
+   *
+   * The client that ASKS for a flip cannot know the totals it will leave behind:
+   * the active GM applies it, possibly behind other queued requests. So the card
+   * is posted here, by the client that actually performed the write, using the
+   * pool the queue read back afterwards -- the "Remaining" lines are measured,
+   * not predicted. It is attributed to the player who asked (a GM may author a
+   * message as another user), so it reads exactly as it always has.
+   *
+   * A drain processes whatever is queued, including requests from other clients,
+   * so this takes the whole batch rather than one result.
+   *
+   * @param {object[]} results  what DestinyQueue#submit or #drain returned
+   * @returns {Promise<void>}
+   */
+  async _announceFlips(results) {
+    for (const result of results ?? []) {
+      const request = result?.request;
+      if (request?.type !== "destiny-flip") continue;
+
+      const fromLabel = game.i18n.localize(
+        game.settings.get("starwarsffg", request.from === DESTINY_LIGHT ? "destiny-pool-light" : "destiny-pool-dark")
+      );
+
+      // Refused because the pool emptied between the asking client's check and
+      // the write. Rare, but the asker's tracker simply does not move, so say why:
+      // in the notification bar if we asked for it ourselves, otherwise whispered
+      // to whoever did. Never a public card -- nothing happened.
+      if (!result.applied) {
+        if (!request.requestedBy || request.requestedBy === game.user.id) {
+          ui.notifications.warn(`Cannot flip a ${fromLabel} point; 0 remaining.`);
+        } else {
+          await ChatMessage.create({
+            content: `Could not flip a ${fromLabel} point; 0 remaining.`,
+            whisper: [request.requestedBy],
+          });
+        }
+        continue;
+      }
+
+      const pool = result.pool ?? { light: 0, dark: 0 };
+      const flipType = request.to;
+      await ChatMessage.create({
+        author: request.requestedBy ?? game.user.id,
+        content: `<div class="destiny-flip ${flipType}">
+          <div class="destiny-title">${game.i18n.localize("SWFFG.DestinyFlipMessage")}: <span class="${fromLabel}">${fromLabel}</span></div>
+          <div class="destiny-left ${flipType !== DESTINY_DARK} dark">${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-dark"))} ${game.i18n.localize("SWFFG.DestinyFlipRemaining")}: ${pool.dark}</div>
+          <div class="destiny-left ${flipType !== DESTINY_LIGHT} light">${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-light"))} ${game.i18n.localize("SWFFG.DestinyFlipRemaining")}: ${pool.light}</div>
+          </div>`,
       });
     }
   }
