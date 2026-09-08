@@ -8,7 +8,8 @@ import { slotDictField, editingField } from "./_tree-fields.js";
  *
  * `collection` / `renderedDesc` really are derived props added during
  * prepare/getData, so they stay undeclared (they leak into stored data on save,
- * and dropping them is a cleanup, not a loss — prepareData recreates them).
+ * and dropping them is a cleanup, not a loss — data preparation recreates
+ * `collection`, and the actor sheets rebuild `renderedDesc` on every render).
  * `isEditing` is NOT in that group, contrary to an earlier note here: a raw-DB
  * audit found it persisted on 43/43 force powers, and the stock sheet's hidden
  * input round-trips it through the document. It is declared via `editingField`.

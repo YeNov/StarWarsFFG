@@ -18,6 +18,9 @@ const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
 const itemSheet = read("modules/items/item-sheet-ffg.js");
 const itemEditor = read("modules/items/item-editor.js");
 const itemFfg = read("modules/items/item-ffg.js");
+// The adjusted/summarized-quality arithmetic moved out of ItemFFG#prepareData when that
+// override was made synchronous; the provenance invariant below travels with it.
+const itemAdjustments = read("modules/helpers/item-adjustments.js");
 const modifiers = read("modules/helpers/modifiers.js");
 const main = read("modules/swffg-main.js");
 
@@ -65,10 +68,12 @@ test("equipping reconciles without triggering a re-entrant item write", () => {
 test("quality summaries do not leak aggregate rank_current into their source modifiers", () => {
   // adjusteditemmodifier is presentation data. If it shares `system` with a direct or nested
   // modifier, incrementing the summarized rank changes the source that the AE planner reads.
-  assert.doesNotMatch(itemFfg, /modifier\.system\.rank_current\s*=/);
-  assert.doesNotMatch(itemFfg, /am\.system\.rank_current\s*=/);
-  assert.match(itemFfg, /system:\s*\{\s*\.\.\.modifier\.system,\s*rank_current:/);
-  assert.match(itemFfg, /system:\s*\{\s*\.\.\.am\.system,\s*rank_current:/);
+  for (const source of [itemFfg, itemAdjustments]) {
+    assert.doesNotMatch(source, /modifier\.system\.rank_current\s*=/);
+    assert.doesNotMatch(source, /am\.system\.rank_current\s*=/);
+  }
+  assert.match(itemAdjustments, /system:\s*\{\s*\.\.\.modifier\.system,\s*rank_current:/);
+  assert.match(itemAdjustments, /system:\s*\{\s*\.\.\.am\.system,\s*rank_current:/);
 });
 
 test("no effect-building site pushes a key it has not checked", () => {

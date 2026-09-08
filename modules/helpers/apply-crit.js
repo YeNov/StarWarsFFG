@@ -90,7 +90,7 @@ export class ApplyCrit {
         if (!ok) return;
       } catch (err) {
         CONFIG.logger?.warn?.("ApplyCrit: kill minion failed", err);
-        ui.notifications.warn(game.i18n.localize("SWFFG.ApplyCrit.TargetGone"));
+        ui.notifications.warn(err.name === "ApplyRequestError" ? err.message : game.i18n.localize("SWFFG.ApplyCrit.TargetGone"));
       }
       return;
     }
@@ -214,7 +214,7 @@ export class ApplyCrit {
               });
             } catch (err) {
               CONFIG.logger?.warn?.("ApplyCrit: createEmbeddedDocuments failed", err);
-              ui.notifications.warn(game.i18n.localize("SWFFG.ApplyCrit.TargetGone"));
+              ui.notifications.warn(err.name === "ApplyRequestError" ? err.message : game.i18n.localize("SWFFG.ApplyCrit.TargetGone"));
             }
           },
         },

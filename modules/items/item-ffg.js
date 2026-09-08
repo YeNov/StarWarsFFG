@@ -6,6 +6,7 @@ import ImportHelpers from "../importer/import-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import Helpers from "../helpers/common.js";
 import ItemHelpers from "../helpers/item-helpers.js";
+import { applyItemAdjustments } from "../helpers/item-adjustments.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue, getInitialLimitedAmmoValue } from "../helpers/ammo-helpers.js";
 import { collapseTalentBatch, planTalentGrant, talentName } from "../helpers/talent-stacking.js";
 
@@ -313,12 +314,14 @@ export class ItemFFG extends ItemBaseFFG {
    * the raw `.value` for gear). `.adjusted` is a derived value, but it is also a
    * persisted field written by the hidden `encumbrance.adjusted` input on the
    * weapon/armour sheets. On a value-only edit that hidden input re-submits its
-   * previously-rendered (stale) number, and the async `prepareData()` recompute
-   * lands too late to influence the actor's synchronous derived-data pass -- so
-   * the carried total never moves. Recompute `.adjusted` here from the incoming
-   * value, preserving any modifier/attachment delta, so the persisted value the
-   * actor reads is correct. (Gear needs no handling: it carries no hidden
-   * adjusted field and the actor reads its raw value directly.)
+   * previously-rendered (stale) number. `prepareDerivedData()` now overwrites
+   * `.adjusted` synchronously before the actor reads it, so the carried total is
+   * correct either way -- but the STORED number would still be the stale one,
+   * and `toObject()` consumers read it (the weapon snapshot embedded in a roll's
+   * chat card, exports, compendium copies). Recompute `.adjusted` here from the
+   * incoming value, preserving any modifier/attachment delta, so source and
+   * derived agree. (Gear needs no handling: it carries no hidden adjusted field
+   * and the actor reads its raw value directly.)
    * @override
    */
   async _preUpdate(changed, options, user) {
@@ -446,17 +449,32 @@ export class ItemFFG extends ItemBaseFFG {
 
   /**
    * Augment the basic Item data model with additional dynamic data.
+   *
+   * SYNCHRONOUS, deliberately. Foundry's `ClientDocument#prepareData` is
+   * `prepareBaseData → prepareEmbeddedDocuments → prepareDerivedData` with no
+   * awaits, and `_safePrepareData` wraps the call in a try/catch — so an `async`
+   * override is neither awaited (the actor read half-prepared items) nor
+   * error-handled (a rejected promise escapes that catch). The numbers live in
+   * {@link prepareDerivedData}; the one genuinely async step, rendering the
+   * description's dice glyphs, has moved to the sheets that display it.
+   * @override
    */
-  async prepareData() {
-    await super.prepareData();
+  prepareData() {
+    super.prepareData();
+    this._prepareFfgFlags();
+  }
 
-    // Get the Item's data
+  /**
+   * Maintain the `flags.starwarsffg` bookkeeping (compendium/owned/uuid markers).
+   * Kept exactly as it was, including the `updateSource` on a flagless item:
+   * `updateSource` is synchronous, and it re-enters `prepareData` exactly once
+   * (the flags then exist, so the branch is not taken again).
+   */
+  _prepareFfgFlags() {
     const item = this;
-    const actor = this.actor ? this.actor : {};
-    const data = item.system;
 
     if (!item.flags.starwarsffg) {
-      await item.updateSource({
+      item.updateSource({
         flags: {
           starwarsffg: {
             isCompendium: !!this.compendium,
@@ -483,247 +501,32 @@ export class ItemFFG extends ItemBaseFFG {
         }
       }
     }
+  }
 
-    data.renderedDesc = await PopoutEditor.renderDiceImages(data.description, actor);
+  /**
+   * Every derived ("adjusted") number on the item.
+   *
+   * Foundry runs this for each embedded item inside the owning actor's
+   * `prepareEmbeddedDocuments()`, i.e. before the actor's own
+   * `prepareDerivedData()` — so by the time the actor sums
+   * `system.encumbrance.adjusted` across its items, these values are final.
+   * The arithmetic itself is a pure function so it can be tested in Node; see
+   * modules/helpers/item-adjustments.js.
+   * @override
+   */
+  prepareDerivedData() {
+    super.prepareDerivedData();
 
-    // perform localisation of dynamic values
-    switch (this.type) {
-      case "weapon":
-      case "shipweapon":
-        // Apply item attachments / modifiers
-        data.damage.value = parseInt(data.damage.value, 10);
-        data.crit.value = parseInt(data.crit.value, 10);
-        data.encumbrance.value = parseInt(data.encumbrance.value, 10);
-        data.price.value = parseInt(data.price.value, 10);
-        data.rarity.value = parseInt(data.rarity.value, 10);
-        data.hardpoints.value = parseInt(data.hardpoints.value, 10);
-
-        data.range.adjusted = data.range.value;
-        data.damage.adjusted = parseInt(data.damage.value, 10);
-        data.crit.adjusted = parseInt(data.crit.value, 10);
-        data.encumbrance.adjusted = parseInt(data.encumbrance.value, 10);
-        data.price.adjusted = parseInt(data.price.value, 10);
-        data.rarity.adjusted = parseInt(data.rarity.value, 10);
-        data.hardpoints.adjusted = parseInt(data.hardpoints.value, 10);
-
-        data.adjusteditemmodifier = [];
-
-        const rangeSetting = (this.type === "shipweapon") ? CONFIG.FFG.vehicle_ranges : CONFIG.FFG.ranges;
-
-        if (data?.itemmodifier) {
-          data.itemmodifier.forEach((modifier) => {
-            // adjusteditemmodifier is a derived summary for display. Keep its nested system
-            // independent so aggregating attachment ranks cannot mutate the source modifier
-            // that Active Effect reconciliation reads.
-            data.adjusteditemmodifier.push({
-              ...modifier,
-              system: { ...modifier.system, rank_current: modifier.system?.rank },
-            });
-            data.damage.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "damage", "Weapon Stat");
-            data.crit.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "critical", "Weapon Stat");
-            data.encumbrance.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "encumbrance", "Weapon Stat");
-            data.price.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "price", "Weapon Stat");
-            data.rarity.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "rarity", "Weapon Stat");
-            data.hardpoints.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "hardpoints", "Weapon Stat");
-            const range = ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "range", "Weapon Stat");
-            const currentRangeIndex = Object.values(rangeSetting).findIndex((r) => r.value === data.range.value);
-            let newRange = currentRangeIndex + range;
-            if (newRange < 0) newRange = 0;
-            if (newRange >= Object.values(rangeSetting).length) newRange = Object.values(rangeSetting).length - 1;
-
-            data.range.adjusted = Object.values(rangeSetting)[newRange].value;
-          });
-        }
-
-        if (data?.itemattachment) {
-          data.itemattachment.forEach((attachment) => {
-            const activeModifiers = attachment.system?.itemmodifier?.filter((i) => i?.system?.active && !i?.system?.broken) || [];
-            data.damage.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "damage", "Weapon Stat");
-            data.crit.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "critical", "Weapon Stat");
-            if (data.crit.adjusted < 1) data.crit.adjusted = 1;
-            data.encumbrance.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "encumbrance", "Weapon Stat");
-            data.price.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "price", "Weapon Stat");
-            data.rarity.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "rarity", "Weapon Stat");
-            data.hardpoints.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "hardpoints", "Weapon Stat");
-            const range = ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "range", "Weapon Stat");
-            const currentRangeIndex = Object.values(rangeSetting).findIndex((r) => r.value === data.range.value);
-            let newRange = currentRangeIndex + range;
-            if (newRange < 0) newRange = 0;
-            if (newRange >= Object.values(rangeSetting).length) newRange = Object.values(rangeSetting).length - 1;
-
-            data.range.adjusted = Object.values(rangeSetting)[newRange].value;
-
-            if (attachment?.system?.itemmodifier) {
-              const activeMods = attachment.system.itemmodifier.filter((i) => i?.system?.active && !i?.system?.broken);
-
-              activeMods.forEach((am) => {
-                const foundItem = data.adjusteditemmodifier.find((i) => i.name === am.name);
-
-                if (foundItem) {
-                  if (foundItem.system?.rank) {
-                    foundItem.system.rank_current = parseInt(foundItem.system.rank_current, 10) + 1;
-                  }
-                } else {
-                  data.adjusteditemmodifier.push({
-                    ...am,
-                    system: { ...am.system, rank_current: am.system?.rank ? 1 : null },
-                    adjusted: true,
-                  });
-                }
-              });
-            }
-          });
-        }
-
-        // Weapon Stat / damage modifiers listed on the weapon itself. Each modifier row is
-        // backed by an Active Effect whose disabled state is driven by the sheet's "enabled"
-        // checkbox, so skip any whose backing effect is disabled -- otherwise an unchecked
-        // modifier keeps adding its damage. This runs for standalone items too (not only when
-        // embedded) so the adjusted damage is shown before the weapon is owned by an actor.
-        if (this.actor?.type !== "vehicle") {
-          let damageAdd = 0;
-          for (let attr in data.attributes) {
-            if (data.attributes[attr].mod === "damage" && data.attributes[attr].modtype === "Weapon Stat") {
-              const backingEffect = this.effects.find((e) => e.name === attr);
-              if (backingEffect?.disabled) continue;
-              damageAdd += parseInt(data.attributes[attr].value, 10);
-            }
-          }
-          data.damage.adjusted += damageAdd;
-          // Adding the wielder's characteristic to damage (e.g. Brawn for melee) needs an actor.
-          if (this.isEmbedded && this.actor && ModifierHelpers.shouldApplyCharacteristicToDamage(data)) {
-            data.damage.adjusted += parseInt(actor.system.characteristics[data.characteristic.value].value, 10);
-          }
-        }
-
-        const rangeLabel = (this.type === "weapon" ? `SWFFG.WeaponRange` : `SWFFG.VehicleRange`) + this._capitalize(data.range.adjusted);
-        data.range.label = rangeLabel;
-
-        break;
-      case "armour":
-        data.soak.value = parseInt(data.soak.value, 10);
-        data.defence.value = parseInt(data.defence.value, 10);
-        data.encumbrance.value = parseInt(data.encumbrance.value, 10);
-        data.price.value = parseInt(data.price.value, 10);
-        data.rarity.value = parseInt(data.rarity.value, 10);
-        data.hardpoints.value = parseInt(data.hardpoints.value, 10);
-
-        data.soak.adjusted = parseInt(data.soak.value, 10);
-        data.defence.adjusted = parseInt(data.defence.value, 10);
-        data.encumbrance.adjusted = parseInt(data.encumbrance.value, 10);
-        data.price.adjusted = parseInt(data.price.value, 10);
-        data.rarity.adjusted = parseInt(data.rarity.value, 10);
-        data.hardpoints.adjusted = parseInt(data.hardpoints.value, 10);
-
-        data.adjusteditemmodifier = [];
-
-        if (data?.itemmodifier) {
-          data.itemmodifier.forEach((modifier) => {
-            // See the weapon branch above: the summarized copy must not share its system
-            // object with the source quality.
-            data.adjusteditemmodifier.push({
-              ...modifier,
-              system: { ...modifier.system, rank_current: modifier.system?.rank },
-            });
-            data.soak.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "soak", "Armor Stat");
-            data.defence.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "defence", "Armor Stat");
-            data.encumbrance.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "encumbrance", "Armor Stat");
-            data.price.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "price", "Armor Stat");
-            data.rarity.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "rarity", "Armor Stat");
-            data.hardpoints.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(modifier, [], "hardpoints", "Armor Stat");
-          });
-        }
-
-        if (data?.itemattachment) {
-          data.itemattachment.forEach((attachment) => {
-            const activeModifiers = attachment.system?.itemmodifier?.filter((i) => i?.system?.active && !i?.system?.broken) || [];
-            data.soak.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "soak", "Armor Stat");
-            data.soak.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "Soak", "Stat");
-            data.defence.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "defence", "Armor Stat");
-            data.encumbrance.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "encumbrance", "Armor Stat");
-            data.price.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "price", "Armor Stat");
-            data.rarity.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "rarity", "Armor Stat");
-            data.hardpoints.adjusted += ModifierHelpers.getCalculatedValueFromCurrentAndArray(attachment, activeModifiers, "hardpoints", "Armor Stat");
-
-            if (attachment?.system?.itemmodifier) {
-              const activeMods = attachment.system.itemmodifier.filter((i) => i?.system?.active && !i?.system?.broken);
-
-              activeMods.forEach((am) => {
-                const foundItem = data.adjusteditemmodifier.find((i) => i.name === am.name);
-
-                if (foundItem) {
-                  if (foundItem.system?.rank) {
-                    foundItem.system.rank_current = parseInt(foundItem.system.rank_current, 10) + 1;
-                  }
-                } else {
-                  data.adjusteditemmodifier.push({
-                    ...am,
-                    system: { ...am.system, rank_current: am.system?.rank ? 1 : null },
-                    adjusted: true,
-                  });
-                }
-              });
-            }
-          });
-        }
-
-        // Armor Stat / Stat modifiers listed on the armour itself. Each modifier row is backed
-        // by an Active Effect whose disabled state is driven by the sheet's "enabled" checkbox,
-        // so skip any whose backing effect is disabled -- otherwise an unchecked modifier keeps
-        // applying. Runs for standalone items too (not only when embedded) so the adjusted
-        // values are shown before the armour is owned by an actor.
-        if (this.actor?.type !== "vehicle") {
-          let soakAdd = 0, defenceAdd = 0, encumbranceAdd = 0;
-          for (let attr in data.attributes) {
-            let modtype = data.attributes[attr].modtype;
-            if (modtype === "Armor Stat" || modtype === "Stat" || modtype === "Stat All") {
-              const backingEffect = this.effects.find((e) => e.name === attr);
-              if (backingEffect?.disabled) continue;
-              switch (data.attributes[attr].mod.toLocaleLowerCase()) {
-                case "soak":
-                  soakAdd += parseInt(data.attributes[attr].value, 10);
-                  break;
-                case "defence":
-                  defenceAdd += parseInt(data.attributes[attr].value, 10);
-                  break;
-                case "encumbrance":
-                  encumbranceAdd += parseInt(data.attributes[attr].value, 10);
-                  break;
-                default:
-                  break;
-              }
-            }
-          }
-          data.soak.adjusted += soakAdd;
-          data.defence.adjusted += defenceAdd;
-          data.encumbrance.adjusted += encumbranceAdd;
-        }
-        break;
-      case "talent":
-        const cleanedActivationName = data.activation.value.replace(/[\W_]+/g, "");
-        const activationId = `SWFFG.TalentActivations${this._capitalize(cleanedActivationName)}`;
-        data.activation.label = activationId;
-        break;
-
-      case "gear":
-        data.encumbrance.value = parseInt(data.encumbrance.value, 10);
-        break;
-
-      default:
-    }
-
-    if (["weapon", "armour", "shipweapon"].includes(this.type)) {
-      // get all item attachments
-      let totalHPUsed = 0;
-
-      if (data?.itemattachment?.length) {
-        data.itemattachment.forEach((attachment) => {
-          totalHPUsed += attachment.system?.hardpoints?.value || 0;
-        });
-      }
-
-      data.hardpoints.current = data.hardpoints.value - totalHPUsed;
-    }
+    applyItemAdjustments(this.system, this.type, {
+      ranges: CONFIG.FFG?.ranges,
+      vehicleRanges: CONFIG.FFG?.vehicle_ranges,
+      // A modifier row is backed by an Active Effect whose disabled state is driven by
+      // the sheet's "enabled" checkbox.
+      isEffectDisabled: (name) => !!this.effects.find((e) => e.name === name)?.disabled,
+      actorType: this.actor?.type,
+      isEmbedded: this.isEmbedded,
+      characteristics: this.actor?.system?.characteristics,
+    });
 
     if (this.type === "forcepower") {
       this._prepareForcePowers();
@@ -864,7 +667,7 @@ export class ItemFFG extends ItemBaseFFG {
     const data = foundry.utils.duplicate(this.system);
 
     // duplicate() serializes the DataModel using source data, which may not include
-    // computed adjusted values from prepareData(). Copy them from the live system.
+    // computed adjusted values from prepareDerivedData(). Copy them from the live system.
     const liveSystem = this.system;
     if (data.damage && liveSystem.damage) data.damage.adjusted = liveSystem.damage.adjusted;
     if (data.crit && liveSystem.crit) data.crit.adjusted = liveSystem.crit.adjusted;

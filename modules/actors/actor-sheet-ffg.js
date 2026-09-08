@@ -51,6 +51,17 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   pools = new Map();
 
+  /**
+   * Item types whose description is printed through `system.renderedDesc` by the
+   * character sheet's obligation / motivation / background tables (and the Codex
+   * sheet's equivalents). Nothing else needs the enrichment, and it costs one
+   * `enrichHTML` per item, so the list stays tight — extend it if a template
+   * starts rendering `renderedDesc` for another type. (Duty and Morality are
+   * `obligation` items distinguished by `system.type`, not item types of their
+   * own -- the templates' `eq item.type "duty"` branches never match.)
+   */
+  static RENDERED_DESC_TYPES = ["motivation", "background", "obligation"];
+
   static DEFAULT_OPTIONS = {
     // `v2` is REQUIRED, not cosmetic: the served stylesheets key actor-sheet
     // layout off `.starwarsffg.sheet.actor.v2`. It was the makeDefault sheet
@@ -216,7 +227,43 @@ export class ActorSheetFFG extends FFGActorSheet {
     return -1;
   }
 
+  /**
+   * Build `system.renderedDesc` -- the description with FFG dice codes turned
+   * into glyphs -- for the item types whose description the actor sheets print
+   * in a table. Presentation only: it is written onto the prepared (in-memory)
+   * item data, never onto the stored document, and is rebuilt on every render.
+   * @param {Iterable<Item>} items
+   */
+  async _prepareRenderedDescriptions(items) {
+    for (const item of items ?? []) {
+      if (!ActorSheetFFG.RENDERED_DESC_TYPES.includes(item.type)) continue;
+      try {
+        item.system.renderedDesc = await PopoutEditor.renderDiceImages(item.system.description, this.actor);
+      } catch (err) {
+        CONFIG.logger?.warn?.(`Failed to render the description of ${item.name}`, err);
+        item.system.renderedDesc = item.system.description ?? "";
+      }
+    }
+  }
+
   /* -------------------------------------------- */
+
+  /**
+   * Enrichment is a RENDER concern, so it belongs here rather than in getData().
+   * getData() is also called well off the render path -- DiceHelpers reads it
+   * for every skill and weapon roll, and three drop handlers read it too -- and
+   * none of those display an obligation/motivation/background description. Doing
+   * it there spent an enrichHTML per such item on every roll for output nobody
+   * looked at. This is the only path that reaches a template.
+   * @override
+   */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    // `system.renderedDesc` on the prepared (in-memory) items, for the tables in
+    // ffg-character-sheet.html and codex-character.html. Rebuilt on every render.
+    await this._prepareRenderedDescriptions(context?.items);
+    return context;
+  }
 
   /** @override */
   async getData(options) {
