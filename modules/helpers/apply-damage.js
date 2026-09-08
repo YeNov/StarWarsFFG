@@ -166,9 +166,8 @@ export class ApplyDamage {
             // Detailed breakdown for the GM only. It must be authored by a GM:
             // a chat message's author always sees it regardless of whisper, so if
             // the attacking (non-owning) player posted this, they would see the
-            // target's soak/pierce math. When the damage write is forwarded to the
-            // GM, the GM posts this whisper too; we only post it here when we
-            // applied the damage locally (i.e. we are the GM or the target's owner).
+            // target's soak/pierce math. The GM writer posts it; without a GM
+            // connected, only the public announcement below is posted.
             const gmChat = {
               speaker,
               whisper: gmIds,
@@ -186,14 +185,13 @@ export class ApplyDamage {
 
             let result;
             try {
-              // Writes to the target actor; when the clicking player does not own
-              // the target, this forwards to the active GM along with gmChat
-              // (see gm-bridge.js).
+              // All clients share the elected writer's queue, including owners.
+              // Forwarded calls wait for that writer to confirm completion.
               result = await applyToTargetActor(a, { type: "damage", path, delta: applied, gmChat });
               if (!result) return;
             } catch (err) {
               CONFIG.logger?.warn?.("ApplyDamage: actor.update failed", err);
-              ui.notifications.warn(game.i18n.localize("SWFFG.ApplyDamage.TargetGone"));
+              ui.notifications.warn(err.name === "ApplyRequestError" ? err.message : game.i18n.localize("SWFFG.ApplyDamage.TargetGone"));
               return;
             }
 
@@ -209,7 +207,7 @@ export class ApplyDamage {
             });
 
             // On the forwarded path the GM already posted the whisper.
-            if (result === "local") {
+            if (result === "local" && game.user.isGM) {
               await ChatMessage.create(gmChat);
             }
           },

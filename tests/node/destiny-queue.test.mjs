@@ -211,3 +211,68 @@ test("a failed write is logged and the queue keeps going", async () => {
   assert.equal(logger.errors.length, 1);
   assert.equal(queue.isRunningQueue, false);
 });
+
+for (const starter of [
+  { type: "destiny-adjust", pool: DESTINY_LIGHT, delta: 1 },
+  { type: "destiny-adjust", pool: DESTINY_LIGHT, delta: -1 },
+  { type: "destiny-roll", light: 1, dark: 0 },
+]) {
+  test(`a ${starter.type}${starter.delta === undefined ? "" : ` ${starter.delta}`} drain delivers every flip result even when its return value is ignored`, async () => {
+    const io = store({ [DESTINY_LIGHT]: 2 }, { delay: 2 });
+    const announced = [];
+    const queue = new DestinyQueue({ ...io, onResult: async (result) => { announced.push(result); } });
+    const draining = queue.submit(starter);
+    const flipping = queue.submit({ type: "destiny-flip", from: DESTINY_LIGHT, to: DESTINY_DARK, requestedBy: "player" });
+    // The busy caller receives no batch; neither caller consumes returned results.
+    assert.deepEqual(await flipping, []);
+    await draining;
+    const flips = announced.filter((r) => r.request.type === "destiny-flip");
+    assert.equal(flips.length, 1);
+    assert.equal(flips[0].applied, true);
+    assert.deepEqual(flips[0].pool, { light: io.values[DESTINY_LIGHT], dark: 1 });
+    assert.equal(flips[0].request.requestedBy, "player");
+  });
+}
+
+test("an add/remove drain delivers both a successful flip and the last-point refusal once", async () => {
+  const io = store();
+  const announced = [];
+  const queue = new DestinyQueue({ ...io, onResult: async (result) => { announced.push(result); } });
+  const draining = queue.submit({ type: "destiny-adjust", pool: DESTINY_LIGHT, delta: 1 });
+  await queue.submit({ type: "destiny-flip", from: DESTINY_LIGHT, to: DESTINY_DARK, requestedBy: "a" });
+  await queue.submit({ type: "destiny-flip", from: DESTINY_LIGHT, to: DESTINY_DARK, requestedBy: "b" });
+  await draining;
+  assert.equal(announced.length, 3);
+  assert.deepEqual(announced[1].pool, { light: 0, dark: 1 });
+  assert.equal(announced[2].reason, "empty");
+  assert.equal(announced[2].request.requestedBy, "b");
+});
+
+test("announcement failure preserves the write result and does not stop later announcements", async () => {
+  const io = store({ [DESTINY_LIGHT]: 2 });
+  const logger = recording();
+  const announced = [];
+  const queue = new DestinyQueue({ ...io, logger, onResult: async (result) => {
+    announced.push(result);
+    if (announced.length === 1) throw new Error("chat unavailable");
+  } });
+  queue.enqueue({ type: "destiny-flip", from: DESTINY_LIGHT, to: DESTINY_DARK });
+  queue.enqueue({ type: "destiny-flip", from: DESTINY_LIGHT, to: DESTINY_DARK });
+  const results = await queue.drain();
+  assert.equal(announced.length, 2);
+  assert.ok(results.every((r) => r.applied));
+  assert.equal(io.values[DESTINY_DARK], 2);
+  assert.equal(logger.errors.length, 1);
+  assert.equal(queue.isRunningQueue, false);
+});
+
+test("write errors also reach the result callback without masquerading as an empty pool", async () => {
+  const io = store({ [DESTINY_LIGHT]: 1 });
+  const announced = [];
+  const queue = new DestinyQueue({ get: io.get, set: async () => { throw new Error("offline"); },
+    onResult: async (result) => { announced.push(result); } });
+  await queue.submit({ type: "destiny-flip", from: DESTINY_LIGHT, to: DESTINY_DARK });
+  assert.equal(announced.length, 1);
+  assert.equal(announced[0].applied, false);
+  assert.equal(announced[0].reason, "error");
+});

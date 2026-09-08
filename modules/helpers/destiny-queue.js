@@ -46,13 +46,16 @@ export class DestinyQueue {
    * @param {function(string): (number|Promise<number>)} io.get   Read a world setting.
    * @param {function(string, *): Promise<*>} io.set              Write a world setting.
    * @param {object} [io.logger]  CONFIG.logger, or any {debug,warn,error} sink.
+   * @param {function(object): Promise<void>} [io.onResult] Called once per processed
+   *   request, including refusals/errors, regardless of which caller drains it.
    */
-  constructor({ get, set, logger } = {}) {
+  constructor({ get, set, logger, onResult } = {}) {
     this.requests = [];
     this.isRunningQueue = false;
     this._get = get;
     this._set = set;
     this._logger = logger ?? { debug() {}, warn() {}, error() {} };
+    this._onResult = onResult;
   }
 
   /** How many requests are waiting. */
@@ -101,11 +104,20 @@ export class DestinyQueue {
       while (this.requests.length > 0) {
         const request = this.requests.shift();
         this._logger.debug?.(`Processing Destiny Request (${request.type})`, request);
+        let result;
         try {
-          results.push(await this._process(request));
+          result = await this._process(request);
         } catch (err) {
           this._logger.error?.("Destiny queue: a request failed and was dropped", { request, err });
-          results.push({ request, applied: false, reason: "error", error: err });
+          result = { request, applied: false, reason: "error", error: err };
+        }
+        results.push(result);
+        try {
+          await this._onResult?.(result);
+        } catch (err) {
+          // Announcement failure must not retry a persisted mutation, turn it
+          // into a failed write, or prevent later results from being delivered.
+          this._logger.error?.("Destiny queue: could not announce a result", { request, err });
         }
       }
     } finally {

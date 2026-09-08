@@ -1,5 +1,6 @@
 import { GroupManager } from "./groupmanager-ffg.js";
 import { DestinyQueue, DESTINY_LIGHT, DESTINY_DARK } from "./helpers/destiny-queue.js";
+import { createDestinyDispatcher } from "./helpers/destiny-dispatcher.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -19,12 +20,13 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
   constructor(object = {}, options = {}) {
     super(options);
     this.object = object;
-    // Every mutation of the destiny pool -- player flip, player roll, GM flip,
+    // Every tracker mutation of the pool -- player flip, player roll, GM flip,
     // GM roll, GM add/remove -- goes through this one serialized queue on the
     // active GM's client. See modules/helpers/destiny-queue.js.
     this.destinyQueue = new DestinyQueue({
       get: (key) => game.settings.get("starwarsffg", key),
       set: (key, value) => game.settings.set("starwarsffg", key, value),
+      onResult: (result) => this._announceDestinyResult(result),
       // Resolved lazily: CONFIG.logger is installed at init, and this widget can
       // be constructed before then.
       logger: {
@@ -32,6 +34,14 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
         warn: (...args) => CONFIG.logger?.warn?.(...args),
         error: (...args) => CONFIG.logger?.error?.(...args),
       },
+    });
+    this.destinyDispatcher = createDestinyDispatcher({
+      getUser: () => game.user,
+      getActiveGM: () => game.users.activeGM,
+      findUser: (id) => game.users.get(id),
+      queue: this.destinyQueue,
+      send: (data) => game.socket.emit("system.starwarsffg", data),
+      onNoGM: () => ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM")),
     });
     if (options?.menu) {
       this.menu = options.menu;
@@ -149,7 +159,6 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
       const add = event.shiftKey;
       const remove = event.ctrlKey || event.metaKey;
       var flipType = null;
-      var actionType = null;
       if (pointType == DESTINY_LIGHT) {
         flipType = DESTINY_DARK;
         typeName = game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-light"));
@@ -157,7 +166,6 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
         flipType = DESTINY_LIGHT;
         typeName = game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-dark"));
       }
-      var messageText;
 
       if (!add && !remove) {
         // A local courtesy check for instant feedback; the GM re-validates the
@@ -175,42 +183,22 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
         //
         // The chat card is posted by whichever client APPLIES the flip, not by the
         // one that asks for it -- that is the only client that knows the resulting
-        // totals. See _announceFlips().
-        if (game.user.isGM) {
-          // A drain may carry other clients' requests too, and a request of ours
-          // may be drained by a call already in flight -- so announcing always
-          // takes the whole batch, whichever call it comes back on.
-          const request = { type: "destiny-flip", from: pointType, to: flipType, requestedBy: game.user.id };
-          await this._announceFlips(await this.destinyQueue.submit(request));
-        } else if (!game.users.activeGM) {
-          // Nobody is listening: the pool is only ever written by the active GM.
-          ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM"));
-        } else {
-          await game.socket.emit("system.starwarsffg", { destinyFlip: { from: pointType, to: flipType } });
-        }
+        // totals. See _announceDestinyResult(). This includes other GMs.
+        await this.destinyDispatcher.submit({ type: "destiny-flip", from: pointType, to: flipType });
         return;
       } else if (add) {
         if (!game.user.isGM) {
           ui.notifications.warn("Only GMs can add or remove points from the Destiny Pool.");
           return;
         }
-        await this.destinyQueue.submit({ type: "destiny-adjust", pool: pointType, delta: 1 });
-        messageText = "Added a " + typeName + " point.";
+        await this.destinyDispatcher.submit({ type: "destiny-adjust", pool: pointType, delta: 1 });
       } else if (remove) {
         if (!game.user.isGM) {
           ui.notifications.warn("Only GMs can add or remove points from the Destiny Pool.");
           return;
         }
-        await this.destinyQueue.submit({ type: "destiny-adjust", pool: pointType, delta: -1 });
-        messageText = "Removed a " + typeName + " point.";
+        await this.destinyDispatcher.submit({ type: "destiny-adjust", pool: pointType, delta: -1 });
       }
-
-      // Only the GM add/remove paths still reach this: a flip is announced by the
-      // client that applied it, and returns above.
-      ChatMessage.create({
-        author: game.user.id,
-        content: messageText,
-      });
     });
 
     // Campaign-day advance ([+], GM only): bump the world day by 1 directly, no
@@ -265,6 +253,10 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
           // limit rolling to a single GM
           return;
         }
+        if (args[0]?.destinyRequest || args[0]?.destinyFlip) {
+          await this.destinyDispatcher.receive(args[0], args[1]);
+          return;
+        }
         // Can user roll destiny? Or have they already rolled
         if (args[0]?.canIRollDestiny) {
           let rolled = false;
@@ -284,19 +276,6 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
           await game.socket.emit("system.starwarsffg", { canIRollDestinyResponse: args[0]?.canIRollDestiny, rolled });
         }
 
-        // Handle user initiated destiny pool flips. The payload is an intention;
-        // the queue validates `from` against the pool at processing time, so a
-        // stale client view cannot push the pool negative. `args[1]` is the
-        // authenticated sender id Foundry appends to a socket callback.
-        if (args[0]?.destinyFlip) {
-          this.destinyQueue.enqueue({
-            type: "destiny-flip",
-            from: args[0].destinyFlip.from,
-            to: args[0].destinyFlip.to,
-            requestedBy: args[1],
-          });
-        }
-
         // Handle user report for initial Destiny roll
         if (args[0]?.destiny && CONFIG.FFG.DestinyGM === game.user.id) {
           this.destinyQueue.enqueue({
@@ -307,63 +286,57 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
           });
         }
 
-        await this._announceFlips(await this.destinyQueue.drain());
+        await this.destinyQueue.drain();
       });
     }
   }
 
   /**
-   * Post the chat card for every flip in a processed batch.
-   *
-   * The client that ASKS for a flip cannot know the totals it will leave behind:
-   * the active GM applies it, possibly behind other queued requests. So the card
-   * is posted here, by the client that actually performed the write, using the
-   * pool the queue read back afterwards -- the "Remaining" lines are measured,
-   * not predicted. It is attributed to the player who asked (a GM may author a
-   * message as another user), so it reads exactly as it always has.
-   *
-   * A drain processes whatever is queued, including requests from other clients,
-   * so this takes the whole batch rather than one result.
-   *
-   * @param {object[]} results  what DestinyQueue#submit or #drain returned
+   * Announce each outcome directly from the queue. A GM add/remove or roll can
+   * drain someone else's flip; its result must not depend on that caller reading
+   * the returned batch. The writer posts measured totals and credits the asker.
+   * @param {object} result  the queue's per-request completion result
    * @returns {Promise<void>}
    */
-  async _announceFlips(results) {
-    for (const result of results ?? []) {
-      const request = result?.request;
-      if (request?.type !== "destiny-flip") continue;
+  async _announceDestinyResult(result) {
+    const request = result?.request;
+    if (!request) return;
 
-      const fromLabel = game.i18n.localize(
-        game.settings.get("starwarsffg", request.from === DESTINY_LIGHT ? "destiny-pool-light" : "destiny-pool-dark")
-      );
+    const pointLabel = game.i18n.localize(game.settings.get("starwarsffg",
+      (request.from ?? request.pool) === DESTINY_LIGHT ? "destiny-pool-light" : "destiny-pool-dark"));
 
-      // Refused because the pool emptied between the asking client's check and
-      // the write. Rare, but the asker's tracker simply does not move, so say why:
-      // in the notification bar if we asked for it ourselves, otherwise whispered
-      // to whoever did. Never a public card -- nothing happened.
-      if (!result.applied) {
-        if (!request.requestedBy || request.requestedBy === game.user.id) {
-          ui.notifications.warn(`Cannot flip a ${fromLabel} point; 0 remaining.`);
-        } else {
-          await ChatMessage.create({
-            content: `Could not flip a ${fromLabel} point; 0 remaining.`,
-            whisper: [request.requestedBy],
-          });
-        }
-        continue;
+    if (!result.applied) {
+      let content = "Could not change the Destiny Pool: invalid request.";
+      if (result.reason === "empty") content = `Cannot flip a ${pointLabel} point; 0 remaining.`;
+      if (result.reason === "error") content = "Could not finish changing the Destiny Pool. Check its totals before trying again.";
+      const recipient = request.requestedBy ?? request.roller;
+      if (!recipient || recipient === game.user.id) {
+        ui.notifications.warn(content);
+      } else {
+        await ChatMessage.create({ content, whisper: [recipient] });
       }
+      return;
+    }
 
-      const pool = result.pool ?? { light: 0, dark: 0 };
-      const flipType = request.to;
+    if (request.type === "destiny-adjust") {
       await ChatMessage.create({
         author: request.requestedBy ?? game.user.id,
-        content: `<div class="destiny-flip ${flipType}">
-          <div class="destiny-title">${game.i18n.localize("SWFFG.DestinyFlipMessage")}: <span class="${fromLabel}">${fromLabel}</span></div>
+        content: `${request.delta > 0 ? "Added" : "Removed"} a ${pointLabel} point.`,
+      });
+      return;
+    }
+    // Rolls already post their dice chat before submitting the pool contribution.
+    if (request.type !== "destiny-flip") return;
+    const pool = result.pool ?? { light: 0, dark: 0 };
+    const flipType = request.to;
+    await ChatMessage.create({
+      author: request.requestedBy ?? game.user.id,
+      content: `<div class="destiny-flip ${flipType}">
+          <div class="destiny-title">${game.i18n.localize("SWFFG.DestinyFlipMessage")}: <span class="${pointLabel}">${pointLabel}</span></div>
           <div class="destiny-left ${flipType !== DESTINY_DARK} dark">${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-dark"))} ${game.i18n.localize("SWFFG.DestinyFlipRemaining")}: ${pool.dark}</div>
           <div class="destiny-left ${flipType !== DESTINY_LIGHT} light">${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-light"))} ${game.i18n.localize("SWFFG.DestinyFlipRemaining")}: ${pool.light}</div>
           </div>`,
-      });
-    }
+    });
   }
 
   /**
@@ -537,7 +510,7 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
       // Through the queue like everything else, so a GM rolling while player
       // requests are in flight cannot clobber them. No `roller`: the "has rolled"
       // marker is a per-player setting and was never stamped for the GM.
-      await this.destinyQueue.submit({ type: "destiny-roll", light: roll.ffg.light, dark: roll.ffg.dark });
+      await this.destinyDispatcher.submit({ type: "destiny-roll", light: roll.ffg.light, dark: roll.ffg.dark });
     }
   }
 
