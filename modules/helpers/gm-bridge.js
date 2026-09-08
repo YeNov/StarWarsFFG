@@ -128,26 +128,21 @@ function messageAuthorId(message) {
 /**
  * May this requestor have a privileged apply performed on their behalf?
  *
- * Deliberately NOT ownership of the target: the whole point of the bridge is
- * that the attacking player does not own the NPC they are shooting at. What is
- * checked instead is the originating context -- the attack chat card. The
- * requestor must be a GM, or the card's own author, which is exactly the rule
- * apply-damage.js:24-28 already uses to decide who even sees the Apply button.
- * The card's uuid is in hand at every call site, so this costs one local lookup
- * and nothing else. Without it, any connected player could apply arbitrary
- * damage to any actor in the world.
+ * A connected user, and nothing more. NOT ownership of the target -- the whole
+ * point of the bridge is that the attacking player does not own the NPC they are
+ * shooting at -- and deliberately NOT the originating chat card either: a table
+ * is a trusted room, and requiring a card the player authored would break any
+ * macro or module that applies damage without one. What still holds is
+ * {@link narrowApplyRequest}: a forwarded request can only do one of the three
+ * things this bridge exists to do, whatever the payload asks for.
  *
- * Pure, so the rules are testable in Node.
+ * Pure, so the rule is testable in Node.
  *
  * @param {User|undefined} requestor  `game.users.get(requestorId)` -- Foundry's own sender id.
- * @param {ChatMessage|null} origin   The resolved originating chat card, if any.
- * @param {string} requestorId
  * @returns {{ok: true}|{ok: false, reason: string}}
  */
-export function isApplyRequestAuthorized(requestor, origin, requestorId) {
+export function isApplyRequestAuthorized(requestor) {
   if (!requestor?.active) return { ok: false, reason: "requestor" };
-  if (requestor.isGM) return { ok: true };
-  if (!origin || messageAuthorId(origin) !== requestorId) return { ok: false, reason: "origin" };
   return { ok: true };
 }
 
@@ -156,19 +151,17 @@ export function isApplyRequestAuthorized(requestor, origin, requestorId) {
  * when the current user can modify the actor, otherwise forwards the request to
  * the active GM over the system socket.
  *
- * An optional `op.gmChat` (`{content}`) is posted by whoever performs the write
- * -- so a GM-only whisper is authored by the GM rather than by a non-owning
- * player, who would otherwise be able to see their own whisper. On the forwarded
- * path only the content survives; the GM rebuilds the speaker and the whisper
- * list itself.
+ * An optional `op.gmChat` (a ChatMessage.create payload) is posted by whoever
+ * performs the write -- so a GM-only whisper is authored by the GM rather than
+ * by a non-owning player, who would otherwise be able to see their own whisper.
  *
- * `op.originUuid` must be the uuid of the chat card the request came from. The
- * GM authorizes against it (see {@link registerGMBridge}), so a forward without
- * one is refused.
+ * Callable from a macro: a forward needs no chat card behind it, only a
+ * connected active GM. The GM narrows what it will do to the three operations
+ * below (see {@link narrowApplyRequest}), so a damage `path` outside
+ * {@link DAMAGE_PATHS} is refused even though the request itself is accepted.
  *
  * @param {Actor} actor  The resolved target actor (synthetic token actor is fine).
- * @param {object} op     See {@link performApply}; also carries `originUuid` and
- *   optionally `gmChat`.
+ * @param {object} op     See {@link performApply}; may also carry `gmChat`.
  * @returns {Promise<"local"|"forwarded"|false>} "local" if applied on this
  *   client, "forwarded" if handed to the active GM, false if it could not be
  *   applied (no GM connected). The caller uses this to avoid double-posting
@@ -265,16 +258,11 @@ export function registerGMBridge() {
         const actor = await fromUuid(data.actorUuid);
         if (!actor) return;
 
-        // AUTHORIZE against the sender id Foundry supplies and the chat card the
-        // request came from -- see {@link isApplyRequestAuthorized} for why that,
-        // and not ownership of the target.
-        const requestor = game.users.get(requestorId);
-        // A malformed uuid throws rather than resolving to null; either way the
-        // request is unauthorized, not an internal failure.
-        const origin = data.originUuid ? await fromUuid(data.originUuid).catch(() => null) : null;
-        const auth = isApplyRequestAuthorized(requestor, origin, requestorId);
+        // AUTHORIZE: a connected user, from the sender id Foundry supplies. See
+        // {@link isApplyRequestAuthorized} for what is deliberately NOT checked.
+        const auth = isApplyRequestAuthorized(game.users.get(requestorId));
         if (!auth.ok) {
-          CONFIG.logger?.warn?.("FFG GM bridge: refused an unauthorized apply", { reason: auth.reason, requestorId, originUuid: data.originUuid });
+          CONFIG.logger?.warn?.("FFG GM bridge: refused an apply from an unknown user", { reason: auth.reason, requestorId });
           return;
         }
 
@@ -289,15 +277,11 @@ export function registerGMBridge() {
 
         // Posted GM-side so a GM-only whisper is authored by the GM, not the
         // forwarding player (who would otherwise see their own whisper). The
-        // client supplies the breakdown text and nothing else: the speaker and the
-        // recipient list are rebuilt here, so a forwarded payload cannot pick its
-        // own audience, author or flags.
-        if (typeof data.gmChat?.content === "string") {
-          await ChatMessage.create({
-            content: data.gmChat.content,
-            speaker: actor.token ? ChatMessage.getSpeaker({ token: actor.token }) : ChatMessage.getSpeaker({ actor }),
-            whisper: game.users.filter((u) => u.isGM).map((u) => u.id),
-          });
+        // payload is taken as sent, speaker and whisper list included: the sender
+        // built it from the same target and the same GM list we would, and
+        // rebuilding it here would only lose the token the player actually shot at.
+        if (data.gmChat) {
+          await ChatMessage.create(data.gmChat);
         }
         return;
       }

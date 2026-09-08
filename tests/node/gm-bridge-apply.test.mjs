@@ -6,9 +6,11 @@
  *      `current + delta`. Two overlapping requests both read the same starting
  *      value, so 5 and 7 against 0 produced 7 instead of 12. Every operation now
  *      runs through a per-actor promise chain.
- *   2. The GM-side branch performed whatever the payload said, with no
- *      authorization and no narrowing, and then created a ChatMessage from a
- *      client-supplied payload. Both are now checked before anything is written.
+ *   2. The GM-side branch performed whatever the payload said: any `path`, any
+ *      `delta`, any item. It is now narrowed to the three operations the bridge
+ *      exists for, and the sender must at least be a connected user. Who that
+ *      user is, and whether a chat card sits behind the request, is deliberately
+ *      NOT checked -- see isApplyRequestAuthorized.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -153,34 +155,16 @@ test("an unknown operation is refused outright", () => {
 /*  Authorization                                                             */
 /* -------------------------------------------------------------------------- */
 
-/** A chat card, as `fromUuid` resolves it GM-side. */
-const card = (authorId) => ({ author: { id: authorId } });
-
 test("a request from an unknown or disconnected user is refused", () => {
-  assert.deepEqual(isApplyRequestAuthorized(undefined, card("p1"), "p1"), { ok: false, reason: "requestor" });
-  assert.deepEqual(isApplyRequestAuthorized(null, card("p1"), "p1"), { ok: false, reason: "requestor" });
-  assert.deepEqual(
-    isApplyRequestAuthorized({ id: "p1", active: false, isGM: false }, card("p1"), "p1"),
-    { ok: false, reason: "requestor" },
-  );
+  assert.deepEqual(isApplyRequestAuthorized(undefined), { ok: false, reason: "requestor" });
+  assert.deepEqual(isApplyRequestAuthorized(null), { ok: false, reason: "requestor" });
+  assert.deepEqual(isApplyRequestAuthorized({ id: "p1", active: false, isGM: false }), { ok: false, reason: "requestor" });
 });
 
-test("a connected player may act only on a chat card they authored", () => {
-  const player = { id: "p1", active: true, isGM: false };
-  assert.deepEqual(isApplyRequestAuthorized(player, card("p1"), "p1"), { ok: true });
-  assert.deepEqual(isApplyRequestAuthorized(player, card("p2"), "p1"), { ok: false, reason: "origin" });
-  // No origin at all -- an ad-hoc payload, not something a chat card produced.
-  assert.deepEqual(isApplyRequestAuthorized(player, null, "p1"), { ok: false, reason: "origin" });
-});
-
-test("a connected GM may act on any card, including one that no longer exists", () => {
-  const gm = { id: "gm", active: true, isGM: true };
-  assert.deepEqual(isApplyRequestAuthorized(gm, card("p1"), "gm"), { ok: true });
-  assert.deepEqual(isApplyRequestAuthorized(gm, null, "gm"), { ok: true });
-});
-
-test("the pre-V13 author field is still understood", () => {
-  const player = { id: "p1", active: true, isGM: false };
-  assert.deepEqual(isApplyRequestAuthorized(player, { user: "p1" }, "p1"), { ok: true });
-  assert.deepEqual(isApplyRequestAuthorized(player, { user: { id: "p1" } }, "p1"), { ok: true });
+test("any connected user may forward, with or without a chat card behind it", () => {
+  // Deliberate: a table is a trusted room, and requiring a card the player
+  // authored would break a macro that applies damage without one. What a
+  // forwarded request may DO is still narrowed, above.
+  assert.deepEqual(isApplyRequestAuthorized({ id: "p1", active: true, isGM: false }), { ok: true });
+  assert.deepEqual(isApplyRequestAuthorized({ id: "gm", active: true, isGM: true }), { ok: true });
 });

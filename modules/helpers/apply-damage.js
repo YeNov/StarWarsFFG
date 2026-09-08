@@ -189,9 +189,7 @@ export class ApplyDamage {
               // Writes to the target actor; when the clicking player does not own
               // the target, this forwards to the active GM along with gmChat
               // (see gm-bridge.js).
-              // originUuid: the chat card this came from. The GM authorizes against
-              // it (only its author or a GM may forward an apply) -- see gm-bridge.js.
-              result = await applyToTargetActor(a, { type: "damage", path, delta: applied, gmChat, originUuid: message.uuid });
+              result = await applyToTargetActor(a, { type: "damage", path, delta: applied, gmChat });
               if (!result) return;
             } catch (err) {
               CONFIG.logger?.warn?.("ApplyDamage: actor.update failed", err);
