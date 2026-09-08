@@ -248,6 +248,23 @@ export class ActorSheetFFG extends FFGActorSheet {
 
   /* -------------------------------------------- */
 
+  /**
+   * Enrichment is a RENDER concern, so it belongs here rather than in getData().
+   * getData() is also called well off the render path -- DiceHelpers reads it
+   * for every skill and weapon roll, and three drop handlers read it too -- and
+   * none of those display an obligation/motivation/background description. Doing
+   * it there spent an enrichHTML per such item on every roll for output nobody
+   * looked at. This is the only path that reaches a template.
+   * @override
+   */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    // `system.renderedDesc` on the prepared (in-memory) items, for the tables in
+    // ffg-character-sheet.html and codex-character.html. Rebuilt on every render.
+    await this._prepareRenderedDescriptions(context?.items);
+    return context;
+  }
+
   /** @override */
   async getData(options) {
     const data = await super.getData(options);
@@ -292,15 +309,6 @@ export class ActorSheetFFG extends FFGActorSheet {
 
     data.token = this.token;
     data.items = this.actor.items;
-
-    // The dice-glyph-enriched description the obligation/motivation/background
-    // tables render (`item.system.renderedDesc`). This used to be built in
-    // ItemFFG#prepareData, which had to be `async` to await the enrichment --
-    // and Foundry does not await data preparation, so the actor's own derived
-    // pass ran while every item was still mid-prepare. Enrichment is a render
-    // concern, so it happens here instead, for the handful of item types whose
-    // description is actually displayed this way.
-    await this._prepareRenderedDescriptions(data.items);
 
     if (options?.action === "update" && this.object.compendium) {
       data.item = foundry.utils.mergeObject(data.actor, options.data);
