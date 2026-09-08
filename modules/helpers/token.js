@@ -139,10 +139,22 @@ export function drawAdversaryCount(token) {
     } else {
       token.adversaryLevel.removeChildren().forEach(i => i.destroy());
     }
+    // The badge art was drawn against a 1x1 token on Foundry's default 100px grid, so a fixed
+    // scale left it the same handful of pixels on every scene. token.w/token.h are the token's
+    // on-canvas size -- its grid footprint multiplied by the scene's grid size -- so deriving
+    // the scale from them keeps the badge proportional on coarser or finer grids and on tokens
+    // larger than one square. Scaling off the smaller dimension keeps a tall or wide token from
+    // stretching it, and the bottom-centre anchor keeps it pinned to the token's lower edge
+    // instead of drifting towards the middle as the token grows.
+    const referenceTokenSize = 100;
+    const badgeScale = 0.15;
+    const bottomMargin = 7;
+    const tokenScale = Math.min(token.w, token.h) / referenceTokenSize;
     const sprite = PIXI.Sprite.from(`systems/starwarsffg/images/adversary/adversary-${adversaryLevel}.png`);
-    sprite.scale.set(0.15, 0.15);
-    sprite.x = (token.w / 2) - 20;
-    sprite.y = token.h / 2 + 15;
+    sprite.anchor.set(0.5, 1);
+    sprite.scale.set(badgeScale * tokenScale, badgeScale * tokenScale);
+    sprite.x = token.w / 2;
+    sprite.y = token.h - (bottomMargin * tokenScale);
     if (adversaryLevel > 5) {
       sprite.tint = overflowColor;
       adversaryLevel = 6;

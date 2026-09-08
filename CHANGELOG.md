@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Fixed — **the adversary rank badge on a token ignored the size of the token it sat on**. It was drawn at a fixed pixel size in a fixed spot, so on a scene with a coarser or finer grid — or on any token bigger than one square — it shrank to a speck in the middle of the token, or hung off the bottom of a small one. The badge is now sized and placed relative to the token, so it looks the same on every scene.
 * Fixed — **simultaneous hits could overwrite each other's damage**. Damage, crits and minion kills now run one at a time per target across players and GMs, preserving owner permissions; without a GM, one active owner handles owner actions. Forwarded actions confirm completion before reporting success.
 * Fixed — **slow apply requests now stay pending and accept late confirmation**, with status checks that never resend the damage. Duplicate requests are recognized during the writer's session; when no GM is connected, damage still applies but its detailed GM whisper is omitted.
 * Fixed — **simultaneous Destiny tracker actions could lose points, including when multiple GMs were connected**. Flips, rolls and GM add/remove actions now share the active GM's queue; flips check the available points when applied.
