@@ -202,9 +202,17 @@ export class ActorFFG extends Actor {
     // talents/specializations/force powers/signature abilities do far more work in theirs.
     // _calculateDerivedValues() (the encumbrance sum) runs later in this method, so it still
     // sees the final numbers.
-    for (const item of actor.items) {
-      if (item.type !== "weapon" && item.type !== "shipweapon") continue;
-      item.prepareDerivedData();
+    // The characteristic fold is the ONLY part of applyItemAdjustments that reads
+    // the actor, and it is skipped outright for a vehicle's weapons and for any
+    // weapon with no characteristic set. Re-preparing those would recompute the
+    // identical numbers, so gate on the same two conditions the helper uses and
+    // leave the rest of the inventory alone.
+    if (actor.type !== "vehicle") {
+      for (const item of actor.items) {
+        if (item.type !== "weapon" && item.type !== "shipweapon") continue;
+        if (!ModifierHelpers.shouldApplyCharacteristicToDamage(item.system)) continue;
+        item.prepareDerivedData();
+      }
     }
 
     // if the actor has skills, add custom skills

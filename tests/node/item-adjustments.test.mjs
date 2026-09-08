@@ -202,6 +202,27 @@ test("a wielded weapon adds the linked characteristic to damage, and a vehicle's
   );
 });
 
+test("the wielder cannot change a weapon with no characteristic, nor a vehicle's", () => {
+  // ActorFFG#prepareDerivedData re-prepares a weapon after the actor's Active
+  // Effects land, so the characteristic fold sees post-effect values. It skips
+  // the two cases below, which is only safe while the wielder cannot influence
+  // them at all -- so pin that: same source, wildly different characteristics,
+  // identical output.
+  const none = weapon({ characteristic: { value: "" } });
+  const brawn = weapon({ characteristic: { value: "Brawn" } });
+  const lean = { Brawn: { value: 1 } };
+  const strong = { Brawn: { value: 6 } };
+
+  assert.deepEqual(
+    applyItemAdjustments(structuredClone(none), "weapon", ctx({ isEmbedded: true, characteristics: lean })),
+    applyItemAdjustments(structuredClone(none), "weapon", ctx({ isEmbedded: true, characteristics: strong })),
+  );
+  assert.deepEqual(
+    applyItemAdjustments(structuredClone(brawn), "weapon", ctx({ isEmbedded: true, actorType: "vehicle", characteristics: lean })),
+    applyItemAdjustments(structuredClone(brawn), "weapon", ctx({ isEmbedded: true, actorType: "vehicle", characteristics: strong })),
+  );
+});
+
 test("a second pass over the same system object rebuilds every adjusted value from scratch", () => {
   // ActorFFG#prepareDerivedData re-prepares the actor's weapons, because Foundry prepares
   // embedded items BEFORE it applies the actor's Active Effects -- so the first pass folds in
