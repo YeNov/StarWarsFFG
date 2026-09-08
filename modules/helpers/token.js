@@ -41,7 +41,16 @@ export function drawMinionCount(token) {
   if (!game.settings.get("starwarsffg", "showMinionCount")) {
     return;
   }
-  const borderWidth = 0.35;
+  // The tally was laid out in fixed pixels, so it only ever fit the 1x1 token on a 100px grid
+  // it was built against. token.w/token.h are the token's on-canvas size -- its grid footprint
+  // multiplied by the scene's grid size -- so a coarser grid left the pips as specks, and a
+  // finer one made the row wider than the token: availableSpace below went negative and the
+  // pips hung off both edges. Every pixel measurement here is now scaled by the token's own
+  // footprint, off the smaller dimension so a non-square token cannot stretch the row.
+  const referenceTokenSize = 100;
+  const tokenScale = Math.min(token.w, token.h) / referenceTokenSize;
+  const borderWidth = 0.35 * tokenScale;
+  const cornerRadius = 2 * tokenScale;
   const friendlyColor = "0x00A2E84D";
   const enemyColor = "0x8800154D";
   const overflowColor = "0xDAA520";
@@ -61,9 +70,10 @@ export function drawMinionCount(token) {
   }
 
   const tokenWidth = token.w;
-  const markerWidth = 7;
-  const markerHeight = 15;
-  const insideGap = 5;
+  const markerWidth = 7 * tokenScale;
+  const markerHeight = 15 * tokenScale;
+  const insideGap = 5 * tokenScale;
+  const bottomMargin = 2 * tokenScale;
   const availableSpace = tokenWidth - ((markerWidth * maxCount) + (insideGap * (maxCount - 1)));
   const outsideGap = availableSpace / 2;
 
@@ -72,17 +82,17 @@ export function drawMinionCount(token) {
       "∞",
       {
         fontFamily: "Arial",
-        fontSize: 48,
+        fontSize: 48 * tokenScale,
         fill: overflowColor,
         align: "center",
         stroke: "0x000000",
-        strokeThickness: 1,
+        strokeThickness: 1 * tokenScale,
         fontWeight: "bold" ,
       }
     );
     text.anchor.set(0.5);
     text.x = tokenWidth / 2;
-    text.y = token.h - 12;
+    text.y = token.h - (12 * tokenScale);
     token.minionCount.addChild(text);
   } else {
     for (let i = 0; i < curCount; i++) {
@@ -91,12 +101,12 @@ export function drawMinionCount(token) {
       element.lineStyle(borderWidth, "0x000000", 1);
       // draw the rectangle
       element.beginFill(friendlyColor);
-      element.drawRoundedRect(0, 0, markerWidth, markerHeight, 2);
+      element.drawRoundedRect(0, 0, markerWidth, markerHeight, cornerRadius);
       element.endFill();
       element.endFill();
       // position it
       element.x = (i * (markerWidth + insideGap)) + outsideGap;
-      element.y = token.h - markerHeight - 2;
+      element.y = token.h - markerHeight - bottomMargin;
       // add it to the container
       token.minionCount.addChild(element);
     }
@@ -107,11 +117,11 @@ export function drawMinionCount(token) {
       element.lineStyle(borderWidth, "0x000000", 1);
       // draw the rectangle
       element.beginFill(enemyColor);
-      element.drawRoundedRect(0, 0, markerWidth, markerHeight, 2);
+      element.drawRoundedRect(0, 0, markerWidth, markerHeight, cornerRadius);
       element.endFill();
       // position it
       element.x = ((i + curCount) * (markerWidth + insideGap)) + outsideGap;
-      element.y = token.h - markerHeight - 2;
+      element.y = token.h - markerHeight - bottomMargin;
       // add it to the container
       token.minionCount.addChild(element);
     }
