@@ -4,7 +4,7 @@ import { isAmmoTracked, getAmmoValue } from "../helpers/ammo-helpers.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
 import { characterDefenceDice } from "../helpers/defence-helpers.js";
-import { resolveDefenceTarget } from "../helpers/vehicle-defence.js";
+import { resolveDefenceTarget, zoneReticleSvg } from "../helpers/vehicle-defence.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -251,6 +251,25 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       this._updatePreview(html);
     });
 
+    // Delegated so it survives the panel being rebuilt on every target change.
+    const selectZone = (event) => {
+      const group = event.target?.closest?.(".ffg-zone");
+      if (!group) return;
+      event.preventDefault();
+      const index = Number(group.dataset.zoneIndex);
+      const zone = this._defenceTarget.zones[index];
+      if (!zone) return;
+      // Clicking the selected zone again clears it back to none.
+      this._defenceZone = this._defenceZone === zone.key ? null : zone.key;
+      this._refreshDefencePanel($(this.element));
+      this._updatePreview($(this.element));
+    };
+    html.find(".ffg-defence-panel").on("click", selectZone);
+    html.find(".ffg-defence-panel").on("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+      selectZone(event);
+    });
+
     this._defenceTarget = resolveDefenceTarget(game.user?.targets);
     this._refreshAdversary(html);
     this._adversaryHookId = Hooks.on("targetToken", (user) => {
@@ -477,7 +496,78 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     const label = html.find(".adversary-pool-label")[0];
     if (label) label.textContent = game.i18n.format("SWFFG.Adversary.AdversaryPool", { ranks: this.adversaryRanks });
     this._syncAdversaryButtons(html);
+    this._refreshDefencePanel(html);
     this._updatePreview(html);
+  }
+
+  /**
+   * Grow or shrink the window by the panel's width, once each way.
+   *
+   * A hard setPosition({width: 510}) would stomp a dialog the user had already
+   * resized, so the change is a delta and `_defencePanelShown` stops repeated
+   * retargeting from accumulating it.
+   */
+  _setDefencePanelWidth(show) {
+    if (show === this._defencePanelShown) return;
+    const PANEL_WIDTH = 160;
+    const current = this.position?.width;
+    if (typeof current === "number") {
+      this.setPosition({ width: show ? current + PANEL_WIDTH : Math.max(350, current - PANEL_WIDTH) });
+    }
+    this._defencePanelShown = show;
+  }
+
+  /** Rebuild the defence panel from `this._defenceTarget`. */
+  _refreshDefencePanel(html) {
+    const panel = html.find(".ffg-defence-panel")[0];
+    if (!panel) return;
+
+    // The same gate the dice and the card snapshot use, so a non-attack roll with a
+    // ship targeted shows no picker.
+    const status = this._defenceEligible() ? this._defenceTarget.status : "none";
+    const show = status === "single" || status === "ambiguous";
+    panel.hidden = !show;
+    this._setDefencePanelWidth(show);
+    if (!show) return;
+
+    const ship = panel.querySelector(".ffg-defence-ship");
+    const reticle = panel.querySelector(".ffg-defence-reticle");
+    const selected = panel.querySelector(".ffg-defence-selected");
+    const warning = panel.querySelector(".ffg-defence-warning");
+
+    if (status === "ambiguous") {
+      // textContent, not innerHTML: actor names are world-authored.
+      ship.textContent = "";
+      reticle.innerHTML = "";
+      selected.textContent = "";
+      warning.textContent = game.i18n.localize("SWFFG.VehicleDefenseZone.Ambiguous");
+      return;
+    }
+
+    ship.textContent = this._defenceTarget.actor?.name ?? "";
+    const zones = this._defenceTarget.zones.map((zone) => {
+      const label = this._defenceZoneLabel(zone.key);
+      return {
+        key: zone.key,
+        label,
+        value: zone.value,
+        ariaLabel: game.i18n.format("SWFFG.VehicleDefenseZone.ZoneAria", {
+          zone: label,
+          dice: Math.max(0, zone.value),
+        }),
+      };
+    });
+    reticle.innerHTML = zoneReticleSvg({ zones, selected: this._defenceZone });
+
+    const picked = zones.find((zone) => zone.key === this._defenceZone);
+    selected.textContent = picked
+      ? game.i18n.format("SWFFG.VehicleDefenseZone.Selected", {
+          zone: picked.label,
+          dice: Math.max(0, picked.value),
+        })
+      : game.i18n.localize("SWFFG.VehicleDefenseZone.None");
+    selected.classList.toggle("ffg-defence-none", !picked);
+    warning.textContent = picked ? "" : game.i18n.localize("SWFFG.VehicleDefenseZone.NoneWarning");
   }
 
   /** Highlight the active Base/Adversary pool button and label the Roll button. */
