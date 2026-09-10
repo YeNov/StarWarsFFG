@@ -7,7 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { ZONE_ORDER, vehicleDefenceZones } from "../../modules/helpers/vehicle-defence.js";
+import { ZONE_ORDER, resolveDefenceTarget, vehicleDefenceZones } from "../../modules/helpers/vehicle-defence.js";
 
 /** Actor stand-in carrying a prepared `stats.shields` block. */
 const vehicle = (shields) => ({ type: "vehicle", system: { stats: { shields } } });
@@ -74,4 +74,56 @@ test("a shields block holding only a label yields no zones", () => {
 
 test("ZONE_ORDER is arrangement only and never decides which zones exist", () => {
   assert.deepEqual(ZONE_ORDER, ["fore", "starboard", "aft", "port"]);
+});
+
+/** Token stand-ins. `game.user.targets` is a Set of Tokens, so tests pass Sets. */
+const shipToken = (shields) => ({ actor: { type: "vehicle", system: { stats: { shields } } } });
+const troopToken = () => ({ actor: { type: "character", system: { stats: { defence: { ranged: 1, melee: 0 } } } } });
+
+test("no targets at all resolves to none", () => {
+  const result = resolveDefenceTarget(new Set());
+  assert.equal(result.status, "none");
+  assert.equal(result.actor, null);
+  assert.deepEqual(result.zones, []);
+});
+
+test("a lone non-vehicle target resolves to none", () => {
+  assert.equal(resolveDefenceTarget(new Set([troopToken()])).status, "none");
+});
+
+test("exactly one vehicle resolves to single, carrying its zones", () => {
+  const token = shipToken({ fore: 2, port: 1, starboard: 1, aft: 0 });
+  const result = resolveDefenceTarget(new Set([token]));
+  assert.equal(result.status, "single");
+  assert.equal(result.actor, token.actor);
+  assert.deepEqual(result.zones.map((z) => z.key), ["fore", "starboard", "aft", "port"]);
+});
+
+test("a non-vehicle alongside one vehicle is still single", () => {
+  const token = shipToken({ fore: 2, aft: 1 });
+  const result = resolveDefenceTarget(new Set([troopToken(), token]));
+  assert.equal(result.status, "single");
+  assert.equal(result.actor, token.actor);
+});
+
+test("two vehicles are ambiguous and carry no zones", () => {
+  const result = resolveDefenceTarget(new Set([shipToken({ fore: 2 }), shipToken({ fore: 3 })]));
+  assert.equal(result.status, "ambiguous");
+  assert.equal(result.actor, null);
+  assert.deepEqual(result.zones, []);
+});
+
+test("a vehicle whose shields yield no zones takes the none path", () => {
+  // Same outcome as targeting no vehicle at all: no panel, no contribution.
+  assert.equal(resolveDefenceTarget(new Set([shipToken({ label: "Shields" })])).status, "none");
+  assert.equal(resolveDefenceTarget(new Set([shipToken(undefined)])).status, "none");
+});
+
+test("a null or undefined target collection resolves to none rather than throwing", () => {
+  assert.equal(resolveDefenceTarget(undefined).status, "none");
+  assert.equal(resolveDefenceTarget(null).status, "none");
+});
+
+test("a target with no actor is ignored", () => {
+  assert.equal(resolveDefenceTarget(new Set([{ actor: null }])).status, "none");
 });

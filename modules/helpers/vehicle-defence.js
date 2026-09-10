@@ -56,3 +56,33 @@ export function vehicleDefenceZones(actor) {
     .sort((a, b) => rank(a.zone.key) - rank(b.zone.key) || a.index - b.index)
     .map((entry) => entry.zone);
 }
+
+/**
+ * Which vehicle, if any, this roll resolves against.
+ *
+ * Only a SINGLE vehicle target is supported. Two ships lit up at once is genuinely
+ * ambiguous -- the attacker may be fore of one and aft of the other -- so rather
+ * than guess or silently contribute nothing, the caller is told to say so on screen.
+ *
+ * A vehicle whose shields yield no zones takes the `none` path, because there is
+ * nothing to pick and a reticle with no wedges would be a dead control.
+ *
+ * @param {Iterable<object>|null|undefined} targets `game.user.targets`, or any iterable of Tokens.
+ * @returns {{status: "none"|"single"|"ambiguous", actor: object|null, zones: Array<{key: string, value: number}>}}
+ */
+export function resolveDefenceTarget(targets) {
+  const none = { status: "none", actor: null, zones: [] };
+  if (!targets) return none;
+
+  const vehicles = [];
+  for (const token of targets) {
+    if (token?.actor?.type === "vehicle") vehicles.push(token.actor);
+  }
+  if (vehicles.length === 0) return none;
+  if (vehicles.length > 1) return { status: "ambiguous", actor: null, zones: [] };
+
+  const actor = vehicles[0];
+  const zones = vehicleDefenceZones(actor);
+  if (zones.length === 0) return none;
+  return { status: "single", actor, zones };
+}
