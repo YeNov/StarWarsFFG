@@ -713,6 +713,19 @@ Hooks.once("init", async function () {
     default: true,
     type: Boolean,
   });
+  // Vehicle defence zones: the zone card in the roll dialog, its setback and its
+  // chat-card line. World-scoped because it decides how attacks against vehicles
+  // are resolved at the table, not how one client displays them. Turning it off
+  // leaves character defence alone -- that is `useDefense` above -- so a table
+  // that does not want per-zone shields still gets defence against people.
+  game.settings.register("starwarsffg", "enableVehicleDefenceZones", {
+    name: game.i18n.localize("SWFFG.Settings.enableVehicleDefenceZones.Name"),
+    hint: game.i18n.localize("SWFFG.Settings.enableVehicleDefenceZones.Hint"),
+    scope: "world",
+    config: false,
+    default: true,
+    type: Boolean,
+  });
    /**
    * Register roll simulation mode
    */

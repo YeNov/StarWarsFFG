@@ -668,6 +668,15 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
    * on screen and on the chat card.
    */
   _resolveDefenceTarget() {
+    // One gate for the whole feature. Reporting "no vehicle targeted" switches off
+    // the card, the zone setback and the chat-card line together, because each of
+    // those already keys off the resolved status. Character defence is untouched:
+    // that is the separate `useDefense` setting.
+    if (!game.settings.get("starwarsffg", "enableVehicleDefenceZones")) {
+      this._defenceTarget = { status: "none", actor: null, zones: [] };
+      this._defenceZone = null;
+      return;
+    }
     this._defenceTarget = resolveDefenceTarget(game.user?.targets);
     this._defenceZone = this._defenceTarget.status === "single"
       ? (this._defenceTarget.zones[0]?.key ?? null)

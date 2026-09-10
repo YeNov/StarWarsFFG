@@ -297,10 +297,17 @@ re-rendered from stored data after a reload:
 
 ### When nothing appears at all
 
-No panel, and no newly calculated vehicle contribution, when any of these hold: the `useDefense`
-client setting is off; the roll is not a `weapon`/`shipweapon`; the pool arrived with
-`targetDefenceResolved: true`; no targeted token is a vehicle; or the vehicle's `shields` yields
-zero numeric zones. Clearing all targets hides the panel and restores the width.
+No card, and no newly calculated vehicle contribution, when any of these hold: the world setting
+`enableVehicleDefenceZones` is off; the `useDefense` client setting is off; the roll is not a
+`weapon`/`shipweapon`; the pool arrived with `targetDefenceResolved: true`; no targeted token is
+a vehicle; or the vehicle's `shields` yields zero numeric zones. Clearing all targets closes the
+card.
+
+`enableVehicleDefenceZones` (world, default **on**) is the whole feature's switch, applied at a
+single point: target resolution reports `none`, and the card, the zone setback and the chat-card
+line all key off that status already. It deliberately does **not** touch character defence, which
+remains `useDefense`'s business, so a table that does not want per-zone shields still gets
+defence against people. It sits beside `useDefense` in the Combat settings dialog.
 
 ## New module
 
