@@ -417,6 +417,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           <button class="ffg-pool-to-player">${game.i18n.localize("SWFFG.SentDicePoolRoll")}</button>
         </div>`;
 
+        // rollPool already contains this client's target-derived defence. Tell the
+        // recipient so their own targeting does not add it again, and carry the zone
+        // snapshot so the eventual card still names the zone the sender picked.
+        this.roll.targetDefenceResolved = true;
+        this.roll.defenceZone = zoneSnapshot;
+
         let chatOptions = {
           user: game.user.id,
           content: messageText,

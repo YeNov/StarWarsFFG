@@ -1604,7 +1604,23 @@ Hooks.on("renderChatMessageHTML", async (message, html) => {
 
     const dicePool = new DicePoolFFG(poolData.dicePool);
 
-    DiceHelpers.displayRollDialog(poolData.roll.data, dicePool, poolData.description, poolData.roll.skillName, poolData.roll.item, poolData.roll.flavor, poolData.roll.sound);
+    // The sent pool already holds the sender's target-derived defence, so the
+    // recipient must not resolve it again from their own targets. Messages sent
+    // before this change carry none of these fields and fall back to the defaults.
+    DiceHelpers.displayRollDialog(
+      poolData.roll.data,
+      dicePool,
+      poolData.description,
+      poolData.roll.skillName,
+      poolData.roll.item,
+      poolData.roll.flavor,
+      poolData.roll.sound,
+      {
+        skillValue: poolData.roll.skillValue ?? null,
+        targetDefenceResolved: poolData.roll.targetDefenceResolved === true,
+        defenceZone: poolData.roll.defenceZone ?? null,
+      },
+    );
   });
 
   // collapse / expand item details
