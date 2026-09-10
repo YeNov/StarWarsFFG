@@ -212,3 +212,26 @@ test("the wedges run clockwise from the top, so the order reads nautically", () 
 test("no zones yields an empty string rather than an empty reticle", () => {
   assert.equal(zoneReticleSvg({ zones: [], selected: null }), "");
 });
+
+test("the value is stacked directly under the zone name in every wedge", () => {
+  // Radial placement put the value nearer the hub, which reads as ABOVE the name
+  // on the bottom wedge and beside it on the left and right ones. The pair must
+  // stack the same way whichever direction the wedge faces.
+  for (const count of [1, 2, 4, 6]) {
+    const keys = Array.from({ length: count }, (_, i) => `z${i}`);
+    const svg = zoneReticleSvg({ zones: labelled(...keys), selected: null });
+    const names = [...svg.matchAll(/<text class="ffg-zone-name" x="([\d.-]+)" y="([\d.-]+)"/g)];
+    const values = [...svg.matchAll(/<text class="ffg-zone-value" x="([\d.-]+)" y="([\d.-]+)"/g)];
+    assert.equal(names.length, count);
+    assert.equal(values.length, count);
+    for (let i = 0; i < count; i++) {
+      const [, nx, ny] = names[i];
+      const [, vx, vy] = values[i];
+      assert.equal(vx, nx, `wedge ${i} of ${count}: value shares the name's x`);
+      assert.ok(
+        Number(vy) > Number(ny),
+        `wedge ${i} of ${count}: value y ${vy} must sit below name y ${ny}`,
+      );
+    }
+  }
+});

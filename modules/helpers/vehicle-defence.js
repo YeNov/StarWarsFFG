@@ -99,8 +99,15 @@ const VIEWBOX = 120;
 const CENTRE = 60;
 const OUTER_R = 54;
 const INNER_R = 21;
-const LABEL_R = 40;
-const VALUE_R = 30;
+/**
+ * Both text lines share one anchor at the middle of the ring, and the value is
+ * offset straight DOWN from the name. Placing them at two different radii instead
+ * would rotate the pair with the wedge -- readable at the top, but putting the
+ * number above the name on the bottom wedge and beside it on the sides.
+ */
+const TEXT_R = 37;
+const NAME_DY = -3;
+const VALUE_DY = 10;
 
 /** Point on a circle, measuring degrees CLOCKWISE from 12 o'clock. */
 function polar(radius, degrees) {
@@ -166,8 +173,9 @@ export function zoneReticleSvg({ zones, selected }) {
   const wedges = zones.map((zone, index) => {
     const centreAngle = index * sweep;
     const path = donutPath(centreAngle - sweep / 2, centreAngle + sweep / 2);
-    const [labelX, labelY] = polar(LABEL_R, centreAngle);
-    const [valueX, valueY] = polar(VALUE_R, centreAngle);
+    const [textX, textY] = polar(TEXT_R, centreAngle);
+    const [labelX, labelY] = [textX, Math.round((textY + NAME_DY) * 100) / 100];
+    const [valueX, valueY] = [textX, Math.round((textY + VALUE_DY) * 100) / 100];
     const isSelected = selected != null && zone.key === selected;
     const zeroClass = zone.value <= 0 ? " ffg-zone-empty" : "";
     return [
