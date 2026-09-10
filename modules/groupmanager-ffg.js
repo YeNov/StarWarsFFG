@@ -1,6 +1,7 @@
 import {xpLogEarn} from "./helpers/actor-helpers.js";
 import ActorHelpers from "./helpers/actor-helpers.js";
 import { FFGFormApplication } from "./apps/ffg-form-application.js";
+import { collectXpGrantTargets, defaultXpSelection } from "./helpers/xp-grant-targets.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -204,15 +205,11 @@ export class GroupManager extends FFGFormApplication {
       const c = game.actors.get(character);
       this._grantXP(c);
     });
-    // Add XP to all characters.
+    // Grant XP to a chosen set of characters. Deliberately NOT read off the rendered
+    // rows: this table is filtered by `pcListMode`, and on its default a character
+    // whose player is logged out has no row here at all.
     html.find(".bulk-XP").click((ev) => {
-      const characters = [];
-      const groupmanager = document.getElementById("group-manager");
-      const charlist = groupmanager.querySelectorAll('tr[class="player-character"]');
-      charlist.forEach((element) => {
-        characters.push(element.dataset["character"]);
-      });
-      this._bulkXP(characters);
+      this._grantGroupXP();
     });
 
     html.find(".obligation-button").click((ev) => {
@@ -364,24 +361,9 @@ export class GroupManager extends FFGFormApplication {
           default: true,
           callback: async () => {
             const container = document.getElementById(id);
-            const amount = container.querySelector('input[name="amount"]');
+            const amount = container.querySelector('input[name="amount"]').value;
             const note = container.querySelector('input[name="note"]').value;
-            const state = await ActorHelpers.beginEditMode(character, true);
-            // beginEditMode persisted disabled=true on every AE on this character; endEditMode
-            // MUST run even if the XP write or the log step throws, or the character is left
-            // with every effect disabled world-wide.
-            try {
-              const available = +character.system.experience.available + +amount.value;
-              const total = +character.system.experience.total + +amount.value;
-              await character.update({
-                ["system.experience.total"]: total,
-                ["system.experience.available"]: available,
-              });
-              await xpLogEarn(character, amount.value, available, total, note);
-            } finally {
-              await ActorHelpers.endEditMode(character, state, true);
-            }
-            ui.notifications.info(`Granted ${amount.value} XP to ${character.name}.`);
+            await this._applyXP(character, amount, note);
           },
         },
         {
@@ -394,15 +376,74 @@ export class GroupManager extends FFGFormApplication {
     });
   }
 
-  async _bulkXP(characters) {
+  /**
+   * Add XP to one character and record it in that character's XP log.
+   *
+   * beginEditMode persists disabled=true on every Active Effect this character carries,
+   * so endEditMode MUST run even when the write or the log step throws -- otherwise the
+   * character is left with every effect disabled, world-wide. A failure is reported and
+   * swallowed rather than thrown, so one bad character cannot abort the rest of a group
+   * grant halfway through.
+   *
+   * @param {Actor} character  The character to pay.
+   * @param {number|string} amount  XP to add, as entered in the dialog.
+   * @param {string} note  Free-text reason recorded in the XP log.
+   */
+  async _applyXP(character, amount, note) {
+    if (character?.type !== "character") {
+      return;
+    }
+    const state = await ActorHelpers.beginEditMode(character, true);
+    try {
+      const available = +character.system.experience.available + +amount;
+      const total = +character.system.experience.total + +amount;
+      await character.update({
+        ["system.experience.total"]: total,
+        ["system.experience.available"]: available,
+      });
+      await xpLogEarn(character, amount, available, total, note);
+      ui.notifications.info(`Granted ${amount} XP to ${character.name}.`);
+    } catch (err) {
+      CONFIG.logger.error(`Unable to grant XP to ${character.name}.`, err);
+      ui.notifications.error(`Unable to grant XP to ${character.name}; see the console.`);
+    } finally {
+      await ActorHelpers.endEditMode(character, state, true);
+    }
+  }
+
+  /**
+   * Grant XP to a chosen set of characters.
+   *
+   * Offers every player-owned character rather than the rows of this window's table:
+   * that table obeys the `pcListMode` setting, and on its default ("Active Only") a
+   * character whose player is not logged in never appears -- which used to make them
+   * unreachable, since the button read the rendered rows. Everyone is ticked by default;
+   * controlling tokens before pressing the button ticks just those characters instead.
+   */
+  async _grantGroupXP() {
+    const characters = collectXpGrantTargets({
+      actors: game.actors,
+      users: game.users,
+      includeGMCharacters: game.settings.get("starwarsffg", "GMCharactersInGroupManager"),
+    });
+    if (!characters.length) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.GrantXPNoCharacters"));
+      return;
+    }
+
+    // A token's own actor is a synthetic copy when the token is unlinked; actorId is the
+    // world actor either way, which is the one that owns the XP.
+    const controlledActorIds = (canvas?.tokens?.controlled ?? []).map((token) => token.document?.actorId).filter(Boolean);
+    const selection = defaultXpSelection({ characters, controlledActorIds });
+
     const id = foundry.utils.randomID();
-    const description = game.i18n.localize("SWFFG.GrantXPToAllCharacters");
     const content = await foundry.applications.handlebars.renderTemplate("systems/starwarsffg/templates/grant-xp.html", {
       id,
+      characters: characters.map((character) => ({ ...character, selected: selection.has(character.id) })),
     });
 
     DialogV2.wait({
-      window: { title: description },
+      window: { title: game.i18n.localize("SWFFG.GrantXPToCharacters") },
       content,
       buttons: [
         {
@@ -412,31 +453,15 @@ export class GroupManager extends FFGFormApplication {
           default: true,
           callback: async () => {
             const container = document.getElementById(id);
-            const amount = container.querySelector('input[name="amount"]');
+            const amount = container.querySelector('input[name="amount"]').value;
             const note = container.querySelector('input[name="note"]').value;
-            for (const c of characters) {
-              const character = game.actors.get(c);
-              if (character?.type !== "character") {
-                continue;
-              }
-              const state = await ActorHelpers.beginEditMode(character, true);
-              // As above: restore this character's effects even if its own XP write or log
-              // throws, and do not let one bad character abort the rest of the party.
-              try {
-                const available = +character.system.experience.available + +amount.value;
-                const total = +character.system.experience.total + +amount.value;
-                await character.update({
-                  ["system.experience.total"]: total,
-                  ["system.experience.available"]: available,
-                });
-                await xpLogEarn(character, amount.value, available, total, note);
-                ui.notifications.info(`Granted ${amount.value} XP to ${character.name}.`);
-              } catch (err) {
-                CONFIG.logger.error(`Unable to grant XP to ${character.name}.`, err);
-                ui.notifications.error(`Unable to grant XP to ${character.name}; see the console.`);
-              } finally {
-                await ActorHelpers.endEditMode(character, state, true);
-              }
+            const chosen = [...container.querySelectorAll('input[name="grant-target"]:checked')].map((box) => box.value);
+            if (!chosen.length) {
+              ui.notifications.warn(game.i18n.localize("SWFFG.GrantXPNoTargets"));
+              return;
+            }
+            for (const actorId of chosen) {
+              await this._applyXP(game.actors.get(actorId), amount, note);
             }
           },
         },
@@ -446,6 +471,18 @@ export class GroupManager extends FFGFormApplication {
           label: game.i18n.localize("SWFFG.Cancel"),
         },
       ],
+      render: (event, dialog) => {
+        const root = dialog.element;
+        const setAll = (checked) => root.querySelectorAll('input[name="grant-target"]').forEach((box) => (box.checked = checked));
+        root.querySelector(".grant-xp-all")?.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          setAll(true);
+        });
+        root.querySelector(".grant-xp-none")?.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          setAll(false);
+        });
+      },
       rejectClose: false,
     });
   }
