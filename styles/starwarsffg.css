@@ -1357,11 +1357,36 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   min-width: 0;
 }
 .starwarsffg .ffg-defence-panel {
-  flex: 0 0 158px;
+  /* Sits to the LEFT of the dice column and slides out from the dialog's edge.
+     Width carries the open state so it can be transitioned; the `hidden`
+     attribute cannot. Closed it is zero-width and clipped, so it takes no space
+     and catches no clicks. */
+  flex: 0 0 auto;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(0, 0, 0, 0);
+  transition: width 180ms ease, opacity 140ms ease, border-color 180ms ease;
+}
+.starwarsffg .ffg-defence-panel.ffg-defence-open {
+  width: 158px;
+  opacity: 1;
+  pointer-events: auto;
+  border-right-color: rgba(0, 0, 0, 0.35);
+}
+.starwarsffg .ffg-defence-inner {
+  /* Fixed width so the contents do not reflow while the panel is animating. */
+  width: 158px;
   box-sizing: border-box;
   padding: 8px 6px;
-  border-left: 1px solid rgba(0, 0, 0, 0.35);
   text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .starwarsffg .ffg-defence-panel {
+    transition: none;
+  }
 }
 .starwarsffg .ffg-defence-heading {
   font-size: 8.5px;

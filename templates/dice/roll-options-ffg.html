@@ -1,4 +1,17 @@
 <form style="overflow-y: scroll; scrollbar-width: thin; display: flex; align-items: stretch;">
+  {{!-- Slides out to the LEFT of the dialog. Filled in by
+        RollBuilderFFG._refreshDefencePanel, and open only while a single vehicle
+        (or an ambiguous pair) is targeted on an attack roll. Width, not the
+        `hidden` attribute, carries the open state: `hidden` cannot transition. --}}
+  <aside class="ffg-defence-panel" aria-hidden="true">
+    <div class="ffg-defence-inner">
+      <div class="ffg-defence-heading">{{localize "SWFFG.VehicleDefenseZone.Heading"}}</div>
+      <div class="ffg-defence-ship"></div>
+      <div class="ffg-defence-reticle"></div>
+      <div class="ffg-defence-selected"></div>
+      <div class="ffg-defence-warning"></div>
+    </div>
+  </aside>
   <div class="dice-pool-dialog">
     <div class="adversary-pool-toggle" style="display: none;">
       <button type="button" class="adversary-mode-btn" data-mode="base">{{localize "SWFFG.Adversary.BasePool"}}</button>
@@ -151,13 +164,4 @@
       <button class="btn">{{localize "SWFFG.SkillsRoll"}}</button>
     </div>
   </div>
-  {{!-- Filled in by RollBuilderFFG._refreshDefencePanel, and shown only while a
-        single vehicle (or an ambiguous pair) is targeted on an attack roll. --}}
-  <aside class="ffg-defence-panel" hidden>
-    <div class="ffg-defence-heading">{{localize "SWFFG.VehicleDefenseZone.Heading"}}</div>
-    <div class="ffg-defence-ship"></div>
-    <div class="ffg-defence-reticle"></div>
-    <div class="ffg-defence-selected"></div>
-    <div class="ffg-defence-warning"></div>
-  </aside>
 </form>

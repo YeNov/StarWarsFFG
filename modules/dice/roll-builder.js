@@ -542,7 +542,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     // ship targeted shows no picker.
     const status = this._defenceEligible() ? this._defenceTarget.status : "none";
     const show = status === "single" || status === "ambiguous";
-    panel.hidden = !show;
+    // A class, not the `hidden` attribute: `hidden` cannot be transitioned, and the
+    // panel slides out from the dialog's left edge.
+    panel.classList.toggle("ffg-defence-open", show);
+    panel.setAttribute("aria-hidden", show ? "false" : "true");
     this._setDefencePanelWidth(show);
     if (!show) return;
 
