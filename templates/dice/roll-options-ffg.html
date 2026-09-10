@@ -1,4 +1,9 @@
-<form style="overflow-y: scroll; scrollbar-width: thin; display: flex; align-items: stretch;">
+<form style="overflow-y: scroll; scrollbar-width: thin;">
+  {{!-- The row the panel and the dice column live in. This wrapper is load-bearing:
+       roll-options-ffg.html is a root PART, so Foundry discards the <form> above and
+       any layout put on it. Without an element we own inside it, the panel and the
+       column become plain siblings and stack vertically. --}}
+  <div class="ffg-dialog-row">
   {{!-- Slides out to the LEFT of the dialog. Filled in by
         RollBuilderFFG._refreshDefencePanel, and open only while a single vehicle
         (or an ambiguous pair) is targeted on an attack roll. Width, not the
@@ -163,5 +168,6 @@
     <div class="roll-button flexrow">
       <button class="btn">{{localize "SWFFG.SkillsRoll"}}</button>
     </div>
+  </div>
   </div>
 </form>

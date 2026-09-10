@@ -1660,6 +1660,12 @@ img {
   flex: 1 1 auto;
   min-width: 0;
 }
+.starwarsffg .ffg-dialog-row {
+  /* The flex row itself. It cannot live on the template's <form>: this is a root
+     PART, so Foundry discards that element and every style on it. */
+  display: flex;
+  align-items: stretch;
+}
 .starwarsffg .ffg-defence-panel {
   /* Sits to the LEFT of the dice column and slides out from the dialog's edge.
      Width carries the open state so it can be transitioned; the `hidden`
