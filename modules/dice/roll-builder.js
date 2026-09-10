@@ -1,11 +1,15 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
 import { DicePoolFFG } from "./pool.js";
 import { isAmmoTracked, getAmmoValue } from "../helpers/ammo-helpers.js";
+// The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
+// through it would close an import cycle.
+import { characterDefenceDice } from "../helpers/defence-helpers.js";
+import { resolveDefenceTarget } from "../helpers/vehicle-defence.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 export default class RollBuilderFFG extends HandlebarsApplicationMixin(ApplicationV2) {
-  constructor(rollData, rollDicePool, rollDescription, rollSkillName, rollItem, rollAdditionalFlavor, rollSound) {
+  constructor(rollData, rollDicePool, rollDescription, rollSkillName, rollItem, rollAdditionalFlavor, rollSound, rollOptions = {}) {
     super();
     this.roll = {
       data: rollData,
@@ -13,6 +17,17 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       item: rollItem,
       sound: rollSound,
       flavor: rollAdditionalFlavor,
+      // The skill's `.value` ("Ranged: Heavy"), not its label -- character defence
+      // keys off it. Callers that know it pass it; a weapon roll can recover it from
+      // the item; anything else contributes no character defence, exactly as a skill
+      // outside the two lists always has.
+      skillValue: rollOptions.skillValue ?? rollItem?.system?.skill?.value ?? null,
+      // True when this pool arrived with all target-derived defence already in it --
+      // a pool sent to another player. The recipient's own targets must not add it
+      // a second time.
+      targetDefenceResolved: rollOptions.targetDefenceResolved === true,
+      // {key, label, dice} carried by such a pool so its chat card keeps the line.
+      defenceZone: rollOptions.defenceZone ?? null,
     };
     this.dicePool = rollDicePool;
     this.description = rollDescription;
@@ -21,6 +36,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     // to the Adversary pool so the upgrade is applied by default (mirrors the old
     // checkbox defaulting to checked). Only takes effect while adversaryRanks > 0.
     this._adversaryMode = true;
+    /** Selected defence zone key, or null. Cleared on every target change. */
+    this._defenceZone = null;
+    /** Latest resolveDefenceTarget() result; refreshed by the targetToken hook. */
+    this._defenceTarget = { status: "none", actor: null, zones: [] };
+    /** Whether the side panel is currently widening the window. */
+    this._defencePanelShown = false;
   }
 
   /**
@@ -230,9 +251,15 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       this._updatePreview(html);
     });
 
+    this._defenceTarget = resolveDefenceTarget(game.user?.targets);
     this._refreshAdversary(html);
     this._adversaryHookId = Hooks.on("targetToken", (user) => {
       if (user?.id !== game.user.id) return;
+      // Any target change rebuilds target-derived state from the NEW target. The
+      // selection is always cleared, even when the new vehicle happens to share a
+      // zone key, so every change costs one deliberate pick.
+      this._defenceTarget = resolveDefenceTarget(game.user?.targets);
+      this._defenceZone = null;
       this._refreshAdversary(html);
     });
 
@@ -250,7 +277,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // `targetToken` hook (see _onRender), so capturing the resolved pool here --
       // rather than reading ranks after the awaits (status-effect cleanup, ammo/item
       // updates) -- keeps the executed roll consistent with the on-screen preview.
-      const rollPool = this._effectivePool();
+      // Snapshot defence and the pool together, synchronously, BEFORE the awaits
+      // below (status effects, item repair, ammo). A target change during one of
+      // those awaits must not make the chat card describe a different pool from the
+      // one actually rolled.
+      const defenceSnapshot = this._defenceDice();
+      const zoneSnapshot = this._defenceZoneSnapshot();
+      const rollPool = this._effectivePool(defenceSnapshot);
       // Forward roll diagnostics to the GM machine (and log locally) so the table
       // can audit what each player's client computed -- on every roll. The
       // adversary pool is only meaningful when an Adversary is targeted (ranks > 0).
@@ -494,11 +527,92 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
    * difficulty upgraded once per Adversary rank, leaving the base pool untouched so
    * the two modes can be toggled back and forth freely.
    */
-  _effectivePool() {
+  /**
+   * Whether target-derived defence applies to this roll at all.
+   *
+   * Shared by the dice calculation, the side panel and the chat-card snapshot, so
+   * the three cannot disagree: a Piloting check with a ship targeted must show no
+   * picker and stamp no "no zone chosen" line on its card, even though a vehicle
+   * is targeted.
+   */
+  _defenceEligible() {
+    if (this.roll.targetDefenceResolved) return false;
+    if (!game.settings.get("starwarsffg", "useDefense")) return false;
+    const item = this.roll.item;
+    return item?.type === "weapon"
+      || item?.type === "shipweapon"
+      || item?.metaData?.tags?.includes("weapon") === true;
+  }
+
+  /**
+   * Localised zone name, falling back to the capitalised raw key.
+   *
+   * `game.i18n.localize` hands back the key itself when there is no string, so a
+   * future zone with no translation would otherwise read
+   * "SWFFG.VehicleDefenseDorsal" on screen and on the chat card.
+   */
+  _defenceZoneLabel(key) {
+    const suffix = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+    const localised = game.i18n.localize(`SWFFG.VehicleDefense${suffix}`);
+    return localised === `SWFFG.VehicleDefense${suffix}` ? suffix : localised;
+  }
+
+  /**
+   * Setback dice from whatever this roll is aimed at, right now.
+   *
+   * Character defence and the vehicle zone are combined with `Math.max`, which
+   * preserves the max-across-targets behaviour the system has always had when more
+   * than one thing is targeted. A pool that arrived already resolved contributes
+   * nothing: it holds the sender's exact defence, not a request to recompute it
+   * from the recipient's targeting.
+   */
+  _defenceDice() {
+    if (!this._defenceEligible()) return 0;
+
+    const targets = game.user?.targets ?? [];
+    const character = characterDefenceDice({ skillValue: this.roll.skillValue, targets });
+
+    let zone = 0;
+    if (this._defenceTarget.status === "single" && this._defenceZone != null) {
+      const selected = this._defenceTarget.zones.find((z) => z.key === this._defenceZone);
+      zone = Math.max(0, selected?.value ?? 0);
+    }
+    return Math.max(character, zone);
+  }
+
+  /**
+   * The zone line this roll should carry, frozen at click time.
+   * `dice` is what the zone actually contributed, which is 0 when character defence
+   * won the `Math.max`; the line reports the zone chosen, not the winning number.
+   * @returns {{key: string|null, label: string|null, dice: number}|null}
+   */
+  _defenceZoneSnapshot() {
+    // Checked before eligibility: a received pool is not eligible to resolve
+    // defence again, but it still carries the sender's zone for its card.
+    if (this.roll.targetDefenceResolved) return this.roll.defenceZone;
+    if (!this._defenceEligible()) return null;
+
+    const status = this._defenceTarget.status;
+    if (status === "none") return null;
+    // `ambiguous` is still a vehicle attack that went out with no zone applied, so
+    // the card must say so just as an unpicked single target does. Returning null
+    // here would let a two-vehicle roll pass silently, which is exactly the quiet
+    // failure the loud-not-blocking rule exists to prevent.
+    if (status === "ambiguous" || this._defenceZone == null) return { key: null, label: null, dice: 0 };
+
+    const zone = this._defenceTarget.zones.find((z) => z.key === this._defenceZone);
+    if (!zone) return { key: null, label: null, dice: 0 };
+    return { key: zone.key, label: this._defenceZoneLabel(zone.key), dice: Math.max(0, zone.value) };
+  }
+
+  _effectivePool(defenceOverride = null) {
+    const defence = defenceOverride == null ? this._defenceDice() : defenceOverride;
     const adversaryActive = this._adversaryMode && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
-    if (!adversaryActive) return this.dicePool;
+    // No modification at all: hand back the live base pool that manual edits mutate.
+    if (!adversaryActive && defence === 0) return this.dicePool;
     const clone = this._clonePool();
-    clone.upgradeDifficulty(this.adversaryRanks);
+    clone.setback += defence;
+    if (adversaryActive) clone.upgradeDifficulty(this.adversaryRanks);
     return clone;
   }
 
