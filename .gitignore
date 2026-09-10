@@ -10,3 +10,6 @@ cypress/screenshots/
 /blob-report/
 /playwright/.cache/
 state.json
+
+# Superpowers brainstorming mockups
+.superpowers/

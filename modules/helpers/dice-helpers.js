@@ -4,6 +4,7 @@ import ModifierHelpers from "../helpers/modifiers.js";
 import ImportHelpers from "../importer/import-helpers.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { isAmmoTracked, hasAmmoToFire } from "./ammo-helpers.js";
+import { characterDefenceDice } from "./defence-helpers.js";
 
 export default class DiceHelpers {
   static async rollSkill(obj, event, type, flavorText, sound) {
@@ -80,14 +81,15 @@ export default class DiceHelpers {
 
     const itemData = item || {};
     const status = this.getWeaponStatus(itemData);
-    let defenseDice = this.getDefenseDice(skill, itemData);
 
     // TODO: Get weapon specific modifiers from itemmodifiers and itemattachments
 
+    // No defence here: the dialog resolves it from live targets so re-targeting
+    // after this pool was built is still reflected in the preview and the roll.
     let dicePool = new DicePoolFFG({
       ability: Math.max(characteristic.value, skill.rank),
       boost: skill.boost ?? 0,
-      setback: (skill.setback ?? 0) + status.setback + defenseDice,
+      setback: (skill.setback ?? 0) + status.setback,
       force: skill.force ?? 0,
       advantage: skill.advantage ?? 0,
       dark: skill.dark ?? 0,
@@ -113,31 +115,49 @@ export default class DiceHelpers {
     }
 
     dicePool = new DicePoolFFG(await this.getModifiers(dicePool, itemData));
-    await this.displayRollDialog(data, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize(skill.label)}`, skill.label, itemData, flavorText, sound);
+    await this.displayRollDialog(data, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize(skill.label)}`, skill.label, itemData, flavorText, sound, { skillValue: skill.value });
   }
 
-  static getDefenseDice(skill, itemData){
-    let defenseDice = 0;
-    if (game.settings.get("starwarsffg", "useDefense")) {
-      let isRanged = ["Ranged: Light", "Ranged: Heavy", "Gunnery"].includes(skill.value);
-      let isMelee = ["Melee", "Brawl", "Lightsaber"].includes(skill.value);
-      if (itemData?.type === "weapon" || itemData?.metaData?.tags?.includes("weapon")) {
-        if (game.user.targets.size > 0) {
-          for (const target of game.user.targets) {
-            if (isRanged) {
-              defenseDice = Math.max(defenseDice, target.actor.system.stats.defence.ranged);
-            } else if (isMelee) {
-              defenseDice = Math.max(defenseDice, target.actor.system.stats.defence.melee);
-            }
-          }
-        }
-      }
-    }
-    return defenseDice;
+  /**
+   * Setback dice from targeted characters' defence.
+   *
+   * The `useDefense` client setting and the "is this an attack?" check live here;
+   * the calculation itself is in defence-helpers.js so it can be unit tested.
+   *
+   * NOTE: this no longer runs while a pool is being BUILT. The roll dialog resolves
+   * defence from `_effectivePool()` against live targets, so re-targeting mid-dialog
+   * is reflected in both the preview and the roll. Vehicles are not handled here at
+   * all -- their per-zone defence is the dialog's zone picker.
+   *
+   * Both call shapes are accepted. The old one was `(skill, itemData)` with the
+   * targets read implicitly, and a world macro written against it would otherwise
+   * pass a skill OBJECT where a string is now expected -- matching neither skill
+   * list and silently returning 0 with no error to notice.
+   *
+   * @param {string|object|null} skillValue the attacking skill's `.value`
+   *   ("Ranged: Heavy"), or the whole skill object.
+   * @param {object} item the weapon or ship weapon being rolled.
+   * @param {Iterable<object>} [targets] defaults to `game.user.targets`.
+   */
+  static getDefenseDice(skillValue, item, targets) {
+    if (!game.settings.get("starwarsffg", "useDefense")) return 0;
+    const isWeapon = item?.type === "weapon"
+      || item?.type === "shipweapon"
+      || item?.metaData?.tags?.includes("weapon");
+    if (!isWeapon) return 0;
+    const value = typeof skillValue === "string" ? skillValue : (skillValue?.value ?? null);
+    return characterDefenceDice({ skillValue: value, targets: targets ?? game.user?.targets ?? [] });
   }
 
-  static async displayRollDialog(data, dicePool, description, skillName, item, flavorText, sound) {
-    return new RollBuilderFFG(data, dicePool, description, skillName, item, flavorText, sound).render(true);
+  /**
+   * @param {object} rollOptions optional, non-positional extras:
+   *   `skillValue` the attacking skill's `.value`, needed for character defence;
+   *   `targetDefenceResolved` true when the pool already contains all target-derived
+   *     defence (a pool sent to another player), which locks further defence off;
+   *   `defenceZone` a `{key, label, dice}` snapshot carried by such a pool.
+   */
+  static async displayRollDialog(data, dicePool, description, skillName, item, flavorText, sound, rollOptions = {}) {
+    return new RollBuilderFFG(data, dicePool, description, skillName, item, flavorText, sound, rollOptions).render(true);
   }
 
   static async addSkillDicePool(data, elem, item = null) {
@@ -237,11 +257,11 @@ export default class DiceHelpers {
 
     const skill = actor.system.skills[itemData.skill.value];
     const characteristic = actor.system.characteristics[skill.characteristic];
-    let defenseDice = this.getDefenseDice(skill, itemData);
+    // No defence here -- see rollSkill: the dialog resolves it from live targets.
     let dicePool = new DicePoolFFG({
       ability: Math.max(characteristic.value, skill.rank),
       boost: skill.boost,
-      setback: (skill.setback ?? 0) + status.setback + defenseDice,
+      setback: (skill.setback ?? 0) + status.setback,
       force: skill.force,
       advantage: skill.advantage,
       dark: skill.dark,
@@ -261,7 +281,7 @@ export default class DiceHelpers {
 
     dicePool = new DicePoolFFG(await this.getModifiers(dicePool, item));
 
-    this.displayRollDialog(actorSheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${skill.label}`, skill.label, item, flavorText, sound);
+    this.displayRollDialog(actorSheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${skill.label}`, skill.label, item, flavorText, sound, { skillValue: itemData.skill.value });
   }
 
   // Takes a skill object, characteristic object, difficulty number and ActorSheetFFG.getData() object and creates the appropriate roll dialog.

@@ -1349,6 +1349,178 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   cursor: pointer;
   box-shadow: none;
 }
+
+/* Vehicle defence zone picker. The dialog's form is a flex row; the existing
+   column keeps its width and the panel sits beside it. */
+.starwarsffg .dice-pool-dialog {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The zone card hangs off the OUTSIDE of the roll window's left edge.
+
+   Both `.application` and `.window-content` set `overflow: hidden`, so the card is
+   clipped away wherever it sits inside the window. _relocateDefencePanel lifts it
+   to be a direct child of `.application`, and this one dialog relaxes that clip so
+   it can overhang. `.window-content` keeps its own clip, so nothing else escapes.
+   !important because system styles are layered and lose to core on specificity. */
+.starwarsffg.roll-builder-dialog {
+  overflow: visible !important;
+}
+.starwarsffg .ffg-defence-panel {
+  position: absolute;
+  right: 100%;
+  top: 48px;
+  margin-right: -2px;
+  display: flex;
+  align-items: flex-start;
+  /* Height comes from the content: this is a small card, not a full-height column. */
+  max-width: 180px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(8px);
+  transition: opacity 140ms ease, transform 180ms ease;
+}
+.starwarsffg .ffg-defence-panel.ffg-defence-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+/* Minimising hides .window-content, but the card is a sibling of it. */
+.starwarsffg.roll-builder-dialog.minimized .ffg-defence-panel,
+.starwarsffg.roll-builder-dialog.minimizing .ffg-defence-panel {
+  display: none;
+}
+.starwarsffg .ffg-defence-inner {
+  width: 158px;
+  box-sizing: border-box;
+  padding: 8px 6px;
+  text-align: center;
+  overflow: hidden;
+  background: var(--background, rgba(20, 20, 24, 0.95));
+  /* Left edge belongs to the tab, right edge butts against the window. */
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-left: none;
+  border-right: none;
+  box-shadow: -3px 0 8px rgba(0, 0, 0, 0.45);
+  transition: width 180ms ease, padding 180ms ease, opacity 140ms ease;
+}
+.starwarsffg .ffg-defence-panel.ffg-defence-collapsed .ffg-defence-inner {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  border-width: 1px 0;
+}
+/* The grab tab, kept against the window edge so it stays reachable when collapsed. */
+.starwarsffg .ffg-defence-toggle {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 34px;
+  margin: 6px 0 0 0;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--background, rgba(20, 20, 24, 0.95));
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  box-shadow: -3px 0 8px rgba(0, 0, 0, 0.45);
+  color: inherit;
+}
+.starwarsffg .ffg-defence-toggle::before {
+  content: "❯";
+  font-size: 10px;
+}
+.starwarsffg .ffg-defence-panel.ffg-defence-collapsed .ffg-defence-toggle::before {
+  content: "❮";
+}
+@media (prefers-reduced-motion: reduce) {
+  .starwarsffg .ffg-defence-panel,
+  .starwarsffg .ffg-defence-inner {
+    transition: none;
+  }
+}
+.starwarsffg .ffg-defence-heading {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+.starwarsffg .ffg-defence-ship {
+  font-size: 10px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.starwarsffg .ffg-defence-selected {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a8791f;
+}
+.starwarsffg .ffg-defence-selected.ffg-defence-none {
+  font-weight: 500;
+  color: #a3521f;
+}
+.starwarsffg .ffg-defence-warning {
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: #a3521f;
+}
+.starwarsffg .ffg-zone-reticle {
+  width: 140px;
+  height: 140px;
+}
+.starwarsffg .ffg-zone-wedge {
+  fill: rgba(0, 0, 0, 0.12);
+  stroke: rgba(0, 0, 0, 0.4);
+  stroke-width: 1.4;
+}
+.starwarsffg .ffg-zone {
+  cursor: pointer;
+}
+.starwarsffg .ffg-zone:hover .ffg-zone-wedge {
+  fill: rgba(168, 121, 31, 0.25);
+}
+.starwarsffg .ffg-zone-selected .ffg-zone-wedge {
+  fill: rgba(168, 121, 31, 0.45);
+  stroke: #a8791f;
+  stroke-width: 1.6;
+}
+.starwarsffg .ffg-zone:focus-visible {
+  outline: none;
+}
+.starwarsffg .ffg-zone:focus-visible .ffg-zone-wedge {
+  stroke: #2f6fa3;
+  stroke-width: 2.2;
+}
+.starwarsffg .ffg-zone-name {
+  font-size: 9px;
+  text-anchor: middle;
+  fill: currentColor;
+}
+.starwarsffg .ffg-zone-value {
+  font-size: 12px;
+  text-anchor: middle;
+  fill: currentColor;
+}
+.starwarsffg .ffg-zone-empty .ffg-zone-name,
+.starwarsffg .ffg-zone-empty .ffg-zone-value {
+  opacity: 0.55;
+}
+.starwarsffg .ffg-zone-hub {
+  fill: rgba(0, 0, 0, 0.25);
+  stroke: rgba(0, 0, 0, 0.4);
+  stroke-width: 1.4;
+}
+.starwarsffg .ffg-zone-unpicked .ffg-zone-wedge {
+  fill: rgba(163, 82, 31, 0.14);
+  stroke: #a3521f;
+  stroke-dasharray: 4 3;
+}
+.starwarsffg .ffg-zone-unpicked .ffg-zone-hub {
+  stroke: #a3521f;
+}
 .starwarsffg .dice-pool-dialog .adversary-mode-btn::before {
   content: "";
   flex: 0 0 auto;

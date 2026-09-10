@@ -1,4 +1,22 @@
 <form style="overflow-y: scroll; scrollbar-width: thin;">
+  {{!-- A small card that hangs off the OUTSIDE of the window's left edge.
+        _onRender moves it up to be a direct child of `.application`: inside
+        `.window-content` it would be clipped, and this template is a root PART, so
+        anything relying on the <form> below surviving is not reliable either. --}}
+  <aside class="ffg-defence-panel" aria-hidden="true">
+    {{!-- The tab leads, so it sits on the card's OUTER edge. The card is anchored by
+          its right edge at the window, so collapsing retracts it rightward and
+          carries the tab along until the tab alone is left beside the window. --}}
+    <button type="button" class="ffg-defence-toggle" aria-expanded="true"
+            title="{{localize "SWFFG.VehicleDefenseZone.Toggle"}}"></button>
+    <div class="ffg-defence-inner">
+      <div class="ffg-defence-heading">{{localize "SWFFG.VehicleDefenseZone.Heading"}}</div>
+      <div class="ffg-defence-ship"></div>
+      <div class="ffg-defence-reticle"></div>
+      <div class="ffg-defence-selected"></div>
+      <div class="ffg-defence-warning"></div>
+    </div>
+  </aside>
   <div class="dice-pool-dialog">
     <div class="adversary-pool-toggle" style="display: none;">
       <button type="button" class="adversary-mode-btn" data-mode="base">{{localize "SWFFG.Adversary.BasePool"}}</button>

@@ -1,11 +1,15 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
 import { DicePoolFFG } from "./pool.js";
 import { isAmmoTracked, getAmmoValue } from "../helpers/ammo-helpers.js";
+// The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
+// through it would close an import cycle.
+import { characterDefenceDice } from "../helpers/defence-helpers.js";
+import { resolveDefenceTarget, zoneReticleSvg } from "../helpers/vehicle-defence.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 export default class RollBuilderFFG extends HandlebarsApplicationMixin(ApplicationV2) {
-  constructor(rollData, rollDicePool, rollDescription, rollSkillName, rollItem, rollAdditionalFlavor, rollSound) {
+  constructor(rollData, rollDicePool, rollDescription, rollSkillName, rollItem, rollAdditionalFlavor, rollSound, rollOptions = {}) {
     super();
     this.roll = {
       data: rollData,
@@ -13,6 +17,17 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       item: rollItem,
       sound: rollSound,
       flavor: rollAdditionalFlavor,
+      // The skill's `.value` ("Ranged: Heavy"), not its label -- character defence
+      // keys off it. Callers that know it pass it; a weapon roll can recover it from
+      // the item; anything else contributes no character defence, exactly as a skill
+      // outside the two lists always has.
+      skillValue: rollOptions.skillValue ?? rollItem?.system?.skill?.value ?? null,
+      // True when this pool arrived with all target-derived defence already in it --
+      // a pool sent to another player. The recipient's own targets must not add it
+      // a second time.
+      targetDefenceResolved: rollOptions.targetDefenceResolved === true,
+      // {key, label, dice} carried by such a pool so its chat card keeps the line.
+      defenceZone: rollOptions.defenceZone ?? null,
     };
     this.dicePool = rollDicePool;
     this.description = rollDescription;
@@ -21,6 +36,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     // to the Adversary pool so the upgrade is applied by default (mirrors the old
     // checkbox defaulting to checked). Only takes effect while adversaryRanks > 0.
     this._adversaryMode = true;
+    /** Selected defence zone key, or null. Cleared on every target change. */
+    this._defenceZone = null;
+    /** Latest resolveDefenceTarget() result; refreshed by the targetToken hook. */
+    this._defenceTarget = { status: "none", actor: null, zones: [] };
   }
 
   /**
@@ -230,9 +249,44 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       this._updatePreview(html);
     });
 
+    // Hang the card on the window before anything binds to it, so `html.find` still
+    // reaches it (it stays a descendant of this.element, just not of the content).
+    this._relocateDefencePanel();
+
+    html.find(".ffg-defence-toggle").on("click", (event) => {
+      event.preventDefault();
+      const panel = this.element.querySelector(".ffg-defence-panel");
+      const collapsed = panel.classList.toggle("ffg-defence-collapsed");
+      event.currentTarget.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    });
+
+    // Delegated so it survives the panel being rebuilt on every target change.
+    const selectZone = (event) => {
+      const group = event.target?.closest?.(".ffg-zone");
+      if (!group) return;
+      event.preventDefault();
+      const index = Number(group.dataset.zoneIndex);
+      const zone = this._defenceTarget.zones[index];
+      if (!zone) return;
+      // Clicking the selected zone again clears it back to none.
+      this._defenceZone = this._defenceZone === zone.key ? null : zone.key;
+      this._refreshDefencePanel($(this.element));
+      this._updatePreview($(this.element));
+    };
+    html.find(".ffg-defence-panel").on("click", selectZone);
+    html.find(".ffg-defence-panel").on("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+      selectZone(event);
+    });
+
+    this._resolveDefenceTarget();
     this._refreshAdversary(html);
     this._adversaryHookId = Hooks.on("targetToken", (user) => {
       if (user?.id !== game.user.id) return;
+      // Any target change rebuilds target-derived state from the NEW target,
+      // including the pre-selected zone -- a choice made against the old ship is
+      // never carried over, even when both have a zone of the same name.
+      this._resolveDefenceTarget();
       this._refreshAdversary(html);
     });
 
@@ -250,7 +304,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // `targetToken` hook (see _onRender), so capturing the resolved pool here --
       // rather than reading ranks after the awaits (status-effect cleanup, ammo/item
       // updates) -- keeps the executed roll consistent with the on-screen preview.
-      const rollPool = this._effectivePool();
+      // Snapshot defence and the pool together, synchronously, BEFORE the awaits
+      // below (status effects, item repair, ammo). A target change during one of
+      // those awaits must not make the chat card describe a different pool from the
+      // one actually rolled.
+      const defenceSnapshot = this._defenceDice();
+      const zoneSnapshot = this._defenceZoneSnapshot();
+      const rollPool = this._effectivePool(defenceSnapshot);
       // Forward roll diagnostics to the GM machine (and log locally) so the table
       // can audit what each player's client computed -- on every roll. The
       // adversary pool is only meaningful when an Adversary is targeted (ranks > 0).
@@ -365,6 +425,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           <button class="ffg-pool-to-player">${game.i18n.localize("SWFFG.SentDicePoolRoll")}</button>
         </div>`;
 
+        // rollPool already contains this client's target-derived defence. Tell the
+        // recipient so their own targeting does not add it again, and carry the zone
+        // snapshot so the eventual card still names the zone the sender picked.
+        this.roll.targetDefenceResolved = true;
+        this.roll.defenceZone = zoneSnapshot;
+
         let chatOptions = {
           user: game.user.id,
           content: messageText,
@@ -390,6 +456,16 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         // Roll the pool snapshotted at click time (above) so the executed roll
         // matches the on-screen preview even if targeting changed during the awaits.
         const roll = new game.ffg.RollFFG(rollPool.renderDiceExpression(), this.roll.item, rollPool, this.roll.flavor);
+        // The click-time snapshot, not a fresh read: the card must describe the
+        // pool that was actually rolled, even if targeting changed during the awaits.
+        roll.defenceZoneText = zoneSnapshot === null
+          ? null
+          : zoneSnapshot.key === null
+            ? game.i18n.localize("SWFFG.VehicleDefenseZone.CardNone")
+            : game.i18n.format("SWFFG.VehicleDefenseZone.CardLine", {
+                zone: zoneSnapshot.label,
+                dice: zoneSnapshot.dice,
+              });
         // check if this is a crew roll - and it's a roll for a weapon
         if (this.roll.item && this.roll.item.hasOwnProperty('crew') && Object.keys(this.roll.item).length > 1) {
           await this.roll.item.update({"flags": {"starwarsffg": {"crew": this.roll.item.crew}}})
@@ -444,7 +520,78 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     const label = html.find(".adversary-pool-label")[0];
     if (label) label.textContent = game.i18n.format("SWFFG.Adversary.AdversaryPool", { ranks: this.adversaryRanks });
     this._syncAdversaryButtons(html);
+    this._refreshDefencePanel(html);
     this._updatePreview(html);
+  }
+
+  /**
+   * Lift the card out of the window's content and hang it on the window itself.
+   *
+   * `.window-content` sets `overflow: hidden`, so a card positioned outside the
+   * window's left edge would be clipped away entirely while it lives in there. As a
+   * direct child of `.application` it escapes that (paired with the scoped
+   * `overflow` relaxation in the stylesheets) and still moves, resizes and closes
+   * with the window for free -- no position syncing, unlike a body-level element.
+   */
+  _relocateDefencePanel() {
+    const panel = this.element?.querySelector?.(".ffg-defence-panel");
+    if (panel && panel.parentElement !== this.element) this.element.appendChild(panel);
+    return panel;
+  }
+
+  /** Rebuild the defence panel from `this._defenceTarget`. */
+  _refreshDefencePanel(html) {
+    const panel = html.find(".ffg-defence-panel")[0];
+    if (!panel) return;
+
+    // The same gate the dice and the card snapshot use, so a non-attack roll with a
+    // ship targeted shows no picker.
+    const status = this._defenceEligible() ? this._defenceTarget.status : "none";
+    const show = status === "single" || status === "ambiguous";
+    // A class, not the `hidden` attribute: `hidden` cannot be transitioned, and the
+    // card slides out from the window's left edge.
+    panel.classList.toggle("ffg-defence-open", show);
+    panel.setAttribute("aria-hidden", show ? "false" : "true");
+    if (!show) return;
+
+    const ship = panel.querySelector(".ffg-defence-ship");
+    const reticle = panel.querySelector(".ffg-defence-reticle");
+    const selected = panel.querySelector(".ffg-defence-selected");
+    const warning = panel.querySelector(".ffg-defence-warning");
+
+    if (status === "ambiguous") {
+      // textContent, not innerHTML: actor names are world-authored.
+      ship.textContent = "";
+      reticle.innerHTML = "";
+      selected.textContent = "";
+      warning.textContent = game.i18n.localize("SWFFG.VehicleDefenseZone.Ambiguous");
+      return;
+    }
+
+    ship.textContent = this._defenceTarget.actor?.name ?? "";
+    const zones = this._defenceTarget.zones.map((zone) => {
+      const label = this._defenceZoneLabel(zone.key);
+      return {
+        key: zone.key,
+        label,
+        value: zone.value,
+        ariaLabel: game.i18n.format("SWFFG.VehicleDefenseZone.ZoneAria", {
+          zone: label,
+          dice: Math.max(0, zone.value),
+        }),
+      };
+    });
+    reticle.innerHTML = zoneReticleSvg({ zones, selected: this._defenceZone });
+
+    const picked = zones.find((zone) => zone.key === this._defenceZone);
+    selected.textContent = picked
+      ? game.i18n.format("SWFFG.VehicleDefenseZone.Selected", {
+          zone: picked.label,
+          dice: Math.max(0, picked.value),
+        })
+      : game.i18n.localize("SWFFG.VehicleDefenseZone.None");
+    selected.classList.toggle("ffg-defence-none", !picked);
+    warning.textContent = picked ? "" : game.i18n.localize("SWFFG.VehicleDefenseZone.NoneWarning");
   }
 
   /** Highlight the active Base/Adversary pool button and label the Roll button. */
@@ -494,11 +641,122 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
    * difficulty upgraded once per Adversary rank, leaving the base pool untouched so
    * the two modes can be toggled back and forth freely.
    */
-  _effectivePool() {
+  /**
+   * Whether target-derived defence applies to this roll at all.
+   *
+   * Shared by the dice calculation, the side panel and the chat-card snapshot, so
+   * the three cannot disagree: a Piloting check with a ship targeted must show no
+   * picker and stamp no "no zone chosen" line on its card, even though a vehicle
+   * is targeted.
+   */
+  _defenceEligible() {
+    if (this.roll.targetDefenceResolved) return false;
+    if (!game.settings.get("starwarsffg", "useDefense")) return false;
+    const item = this.roll.item;
+    return item?.type === "weapon"
+      || item?.type === "shipweapon"
+      || item?.metaData?.tags?.includes("weapon") === true;
+  }
+
+  /**
+   * Re-read the targeted vehicle and pre-select a zone.
+   *
+   * The default is the FIRST zone in display order -- fore on every stock vehicle.
+   * It is taken from the data rather than named, so a craft whose schema has no
+   * `fore` still gets a sensible default instead of none. The unpicked state is
+   * still reachable: clicking the selected wedge clears it, and that still warns
+   * on screen and on the chat card.
+   */
+  _resolveDefenceTarget() {
+    // One gate for the whole feature. Reporting "no vehicle targeted" switches off
+    // the card, the zone setback and the chat-card line together, because each of
+    // those already keys off the resolved status. Character defence is untouched:
+    // that is the separate `useDefense` setting.
+    if (!game.settings.get("starwarsffg", "enableVehicleDefenceZones")) {
+      this._defenceTarget = { status: "none", actor: null, zones: [] };
+      this._defenceZone = null;
+      return;
+    }
+    this._defenceTarget = resolveDefenceTarget(game.user?.targets);
+    this._defenceZone = this._defenceTarget.status === "single"
+      ? (this._defenceTarget.zones[0]?.key ?? null)
+      : null;
+  }
+
+  /**
+   * Localised zone name, falling back to the capitalised raw key.
+   *
+   * `game.i18n.localize` hands back the key itself when there is no string, so a
+   * future zone with no translation would otherwise read
+   * "SWFFG.VehicleDefenseDorsal" on screen and on the chat card.
+   */
+  _defenceZoneLabel(key) {
+    const suffix = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+    const localised = game.i18n.localize(`SWFFG.VehicleDefense${suffix}`);
+    return localised === `SWFFG.VehicleDefense${suffix}` ? suffix : localised;
+  }
+
+  /**
+   * Setback dice from whatever this roll is aimed at, right now.
+   *
+   * Character defence and the vehicle zone are combined with `Math.max`, which
+   * preserves the max-across-targets behaviour the system has always had when more
+   * than one thing is targeted. A pool that arrived already resolved contributes
+   * nothing: it holds the sender's exact defence, not a request to recompute it
+   * from the recipient's targeting.
+   */
+  _defenceDice() {
+    if (!this._defenceEligible()) return 0;
+
+    const targets = game.user?.targets ?? [];
+    const character = characterDefenceDice({ skillValue: this.roll.skillValue, targets });
+
+    let zone = 0;
+    if (this._defenceTarget.status === "single" && this._defenceZone != null) {
+      const selected = this._defenceTarget.zones.find((z) => z.key === this._defenceZone);
+      zone = Math.max(0, selected?.value ?? 0);
+    }
+    return Math.max(character, zone);
+  }
+
+  /**
+   * The zone line this roll should carry, frozen at click time.
+   * `dice` is what the zone actually contributed, which is 0 when character defence
+   * won the `Math.max`; the line reports the zone chosen, not the winning number.
+   * @returns {{key: string|null, label: string|null, dice: number}|null}
+   */
+  _defenceZoneSnapshot() {
+    // Checked before eligibility: a received pool is not eligible to resolve
+    // defence again, but it still carries the sender's zone for its card.
+    if (this.roll.targetDefenceResolved) return this.roll.defenceZone;
+    if (!this._defenceEligible()) return null;
+
+    const status = this._defenceTarget.status;
+    if (status === "none") return null;
+    // `ambiguous` is still a vehicle attack that went out with no zone applied, so
+    // the card must say so just as an unpicked single target does. Returning null
+    // here would let a two-vehicle roll pass silently, which is exactly the quiet
+    // failure the loud-not-blocking rule exists to prevent.
+    if (status === "ambiguous" || this._defenceZone == null) return { key: null, label: null, dice: 0 };
+
+    const zone = this._defenceTarget.zones.find((z) => z.key === this._defenceZone);
+    if (!zone) return { key: null, label: null, dice: 0 };
+    return { key: zone.key, label: this._defenceZoneLabel(zone.key), dice: Math.max(0, zone.value) };
+  }
+
+  _effectivePool(defenceOverride = null) {
+    const defence = defenceOverride == null ? this._defenceDice() : defenceOverride;
     const adversaryActive = this._adversaryMode && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
-    if (!adversaryActive) return this.dicePool;
+    // A negative base setback is an "ignore N defence" adjustment, not a count of
+    // dice, so it cancels defence and then floors at zero. It must never leave here
+    // negative: the preview would draw nothing for it and the roll would clamp it
+    // anyway, but the logged pool summary would report a die count that cannot exist.
+    const netSetback = Math.max(0, this.dicePool.setback + defence);
+    // Nothing to change: hand back the live base pool that manual edits mutate.
+    if (!adversaryActive && netSetback === this.dicePool.setback) return this.dicePool;
     const clone = this._clonePool();
-    clone.upgradeDifficulty(this.adversaryRanks);
+    clone.setback = netSetback;
+    if (adversaryActive) clone.upgradeDifficulty(this.adversaryRanks);
     return clone;
   }
 
@@ -506,6 +764,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     html.find(".pool-value input").each((key, value) => {
       const name = $(value).attr("name");
       value.value = this.dicePool[name];
+      // Setback alone may be driven below zero, as an "ignore N defence"
+      // adjustment for talents that partially ignore a target's defence. Target
+      // defence is no longer baked into the pool the input edits, so without this
+      // the input floors at 0 and the defence cannot be taken off at all. The
+      // other dice are counts of real dice and stay non-negative.
+      if (name === "setback") $(value).attr("allowNegative", true);
     });
 
     html.find(".pool-additional input").each((key, value) => {

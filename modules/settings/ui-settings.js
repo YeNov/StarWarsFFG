@@ -174,6 +174,7 @@ export class combatSettings extends ffgSettings {
       "starwarsffg.initiativeRule",
       "starwarsffg.removeCombatantAction",
       "starwarsffg.useDefense",
+      "starwarsffg.enableVehicleDefenceZones",
       "starwarsffg.enforceDefenseMaximum",
       "starwarsffg.additionalStatuses",
     ];
