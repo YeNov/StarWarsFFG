@@ -16,6 +16,7 @@
 - **GitHub writes go only to `YeNov/StarWarsFFG`.** Never to `StarWarsFoundryVTT/StarWarsFFG`. `upstream` is read-only.
 - **Never run `gulp css` or `npm run compile`.** Both `styles/starwarsffg.css` and `styles/mandar.css` are hand-maintained and the SCSS has drifted. Every CSS rule must be written into **both** files: the active `mandarBeskarAstromech` theme disables `starwarsffg.css` entirely, so a rule in only one file is invisible.
 - **Node test tier boundary.** `tests/node/_stub/foundry-stub.mjs` deliberately refuses to stub `foundry.applications.*`, `Hooks`, `Actor`, `Item`, `ChatMessage`, `ui.notifications`, or any DOM API, and `tests/node/stub-boundary.test.mjs` enforces that statically and at runtime. `modules/dice/roll-builder.js` destructures `foundry.applications.api` at module scope, so it and everything importing it (including `modules/helpers/dice-helpers.js`) **cannot** be imported in a Node test. Verified: `node -e "import('./modules/helpers/dice-helpers.js')"` fails with `foundry is not defined`. Those files are verified live in Foundry, never headlessly. Do not try to grow the stub.
+- **Every shell command in this plan is POSIX — run them through the Bash tool (Git Bash), not PowerShell.** They use `tail`, `head` and `grep`, none of which exist as PowerShell cmdlets. Do **not** translate them to `Select-Object -Last` / `Select-String`: this workspace's PowerShell is 5.1, where redirecting a native executable's stderr wraps every line in an ErrorRecord (`NativeCommandError`) and sets `$?` to `$false` even when the process exited 0. `npm test 2>&1 | ...` would then report a failure on a completely passing suite, which is worse than no gate at all. The commands as written were run verbatim in Git Bash to establish the baselines below.
 - **Verified baselines, measured on this branch before any change:**
   - `npm test` → **690 pass, 0 fail**.
   - `npm run check:imports` → **PASS — 0 unpinned findings**.
@@ -44,7 +45,7 @@
 | `tests/node/vehicle-defence.test.mjs` (new) | Tests for Tasks 1–3. | — |
 | `tests/node/character-defence-dice.test.mjs` (new) | Tests for Task 4. | — |
 
-**One deliberate deviation from the spec, and why.** The spec has `_effectivePool()` calling `DiceHelpers.getDefenseDice`. `modules/helpers/dice-helpers.js` already imports `modules/dice/roll-builder.js` (line 2), so that would close an import cycle in exactly the area where a module-eval poisoning incident has bitten this codebase before. Instead the *calculation* moves to the pure `defence-helpers.js`, which `roll-builder.js` imports directly with no cycle. `DiceHelpers.getDefenseDice` survives with the spec's new signature as a delegating wrapper, so any world macro calling it keeps working. Behaviour is identical either way.
+**One deliberate deviation from the spec, and why.** The spec has `_effectivePool()` calling `DiceHelpers.getDefenseDice`. `modules/helpers/dice-helpers.js` already imports `modules/dice/roll-builder.js` (line 2), so that would close an import cycle in exactly the area where a module-eval poisoning incident has bitten this codebase before. Instead the *calculation* moves to the pure `defence-helpers.js`, which `roll-builder.js` imports directly with no cycle. `DiceHelpers.getDefenseDice` survives as a delegating wrapper carrying the spec's new signature, and additionally tolerates the old `(skill, itemData)` shape so a world macro written against it keeps working rather than silently returning zero. Behaviour is identical either way.
 
 ---
 
@@ -768,12 +769,15 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Interfaces:**
 - Consumes: `characterDefenceDice` (Task 4), `resolveDefenceTarget` (Task 2).
 - Produces:
-  - `DiceHelpers.getDefenseDice(skillValue, item, targets): number` — the gated wrapper.
+  - `DiceHelpers.getDefenseDice(skillValue, item, targets): number` — the gated wrapper. Accepts either a skill `.value` string or a whole skill object, and defaults omitted `targets` to `game.user.targets`, so the previous `(skill, itemData)` call shape still works.
   - `DiceHelpers.displayRollDialog(data, dicePool, description, skillName, item, flavorText, sound, rollOptions = {})`.
   - `RollBuilderFFG` constructor eighth parameter `rollOptions = {}`, accepting `{skillValue, targetDefenceResolved, defenceZone}`.
   - `this.roll.skillValue`, `this.roll.targetDefenceResolved`, `this.roll.defenceZone` on the dialog.
   - `this._defenceZone` (selected key or `null`), `this._defenceTarget` (a `resolveDefenceTarget` result).
+  - `RollBuilderFFG.prototype._defenceEligible(): boolean` — the single eligibility gate, used by all three defence paths.
+  - `RollBuilderFFG.prototype._defenceZoneLabel(key): string` — localised zone name with a capitalised-key fallback.
   - `RollBuilderFFG.prototype._defenceDice(): number`.
+  - `RollBuilderFFG.prototype._defenceZoneSnapshot(): {key: string|null, label: string|null, dice: number} | null`.
 
 **Why both files in one task:** Task 5 removes defence from the pools built in `dice-helpers.js` and adds it in `roll-builder.js`. Split across two commits, the tree in between rolls attacks with no defence at all. Landing them together keeps every commit working.
 
@@ -793,16 +797,21 @@ Replace the whole of `getDefenseDice` (currently lines 119-137) with:
    *
    * The `useDefense` client setting and the "is this an attack?" check live here;
    * the calculation itself is in defence-helpers.js so it can be unit tested.
-   * Kept as a static because world macros may call it.
    *
-   * NOTE: this no longer runs while a pool is being BUILT. The roll dialog calls it
-   * from `_effectivePool()` against live targets, so re-targeting mid-dialog is
-   * reflected in both the preview and the roll. Vehicles are not handled here at
+   * NOTE: this no longer runs while a pool is being BUILT. The roll dialog resolves
+   * defence from `_effectivePool()` against live targets, so re-targeting mid-dialog
+   * is reflected in both the preview and the roll. Vehicles are not handled here at
    * all -- their per-zone defence is the dialog's zone picker.
    *
-   * @param {string|null} skillValue the attacking skill's `.value`, e.g. "Ranged: Heavy".
+   * Both call shapes are accepted. The old one was `(skill, itemData)` with the
+   * targets read implicitly, and a world macro written against it would otherwise
+   * pass a skill OBJECT where a string is now expected -- matching neither skill
+   * list and silently returning 0 with no error to notice.
+   *
+   * @param {string|object|null} skillValue the attacking skill's `.value`
+   *   ("Ranged: Heavy"), or the whole skill object.
    * @param {object} item the weapon or ship weapon being rolled.
-   * @param {Iterable<object>} targets `game.user.targets`.
+   * @param {Iterable<object>} [targets] defaults to `game.user.targets`.
    */
   static getDefenseDice(skillValue, item, targets) {
     if (!game.settings.get("starwarsffg", "useDefense")) return 0;
@@ -810,7 +819,8 @@ Replace the whole of `getDefenseDice` (currently lines 119-137) with:
       || item?.type === "shipweapon"
       || item?.metaData?.tags?.includes("weapon");
     if (!isWeapon) return 0;
-    return characterDefenceDice({ skillValue, targets });
+    const value = typeof skillValue === "string" ? skillValue : (skillValue?.value ?? null);
+    return characterDefenceDice({ skillValue: value, targets: targets ?? game.user?.targets ?? [] });
   }
 ```
 
@@ -920,6 +930,36 @@ Add this method to `RollBuilderFFG`, immediately above `_effectivePool`:
 
 ```js
   /**
+   * Whether target-derived defence applies to this roll at all.
+   *
+   * Shared by the dice calculation, the side panel and the chat-card snapshot, so
+   * the three cannot disagree: a Piloting check with a ship targeted must show no
+   * picker and stamp no "no zone chosen" line on its card, even though a vehicle
+   * is targeted.
+   */
+  _defenceEligible() {
+    if (this.roll.targetDefenceResolved) return false;
+    if (!game.settings.get("starwarsffg", "useDefense")) return false;
+    const item = this.roll.item;
+    return item?.type === "weapon"
+      || item?.type === "shipweapon"
+      || item?.metaData?.tags?.includes("weapon") === true;
+  }
+
+  /**
+   * Localised zone name, falling back to the capitalised raw key.
+   *
+   * `game.i18n.localize` hands back the key itself when there is no string, so a
+   * future zone with no translation would otherwise read
+   * "SWFFG.VehicleDefenseDorsal" on screen and on the chat card.
+   */
+  _defenceZoneLabel(key) {
+    const suffix = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+    const localised = game.i18n.localize(`SWFFG.VehicleDefense${suffix}`);
+    return localised === `SWFFG.VehicleDefense${suffix}` ? suffix : localised;
+  }
+
+  /**
    * Setback dice from whatever this roll is aimed at, right now.
    *
    * Character defence and the vehicle zone are combined with `Math.max`, which
@@ -929,13 +969,7 @@ Add this method to `RollBuilderFFG`, immediately above `_effectivePool`:
    * from the recipient's targeting.
    */
   _defenceDice() {
-    if (this.roll.targetDefenceResolved) return 0;
-    if (!game.settings.get("starwarsffg", "useDefense")) return 0;
-    const item = this.roll.item;
-    const isWeapon = item?.type === "weapon"
-      || item?.type === "shipweapon"
-      || item?.metaData?.tags?.includes("weapon");
-    if (!isWeapon) return 0;
+    if (!this._defenceEligible()) return 0;
 
     const targets = game.user?.targets ?? [];
     const character = characterDefenceDice({ skillValue: this.roll.skillValue, targets });
@@ -1014,16 +1048,22 @@ Add the snapshot helper beside `_defenceDice`:
    * @returns {{key: string, label: string, dice: number}|null}
    */
   _defenceZoneSnapshot() {
+    // Checked before eligibility: a received pool is not eligible to resolve
+    // defence again, but it still carries the sender's zone for its card.
     if (this.roll.targetDefenceResolved) return this.roll.defenceZone;
-    if (this._defenceTarget.status !== "single") return null;
-    if (this._defenceZone == null) return { key: null, label: null, dice: 0 };
+    if (!this._defenceEligible()) return null;
+
+    const status = this._defenceTarget.status;
+    if (status === "none") return null;
+    // `ambiguous` is still a vehicle attack that went out with no zone applied, so
+    // the card must say so just as an unpicked single target does. Returning null
+    // here would let a two-vehicle roll pass silently, which is exactly the quiet
+    // failure the loud-not-blocking rule exists to prevent.
+    if (status === "ambiguous" || this._defenceZone == null) return { key: null, label: null, dice: 0 };
+
     const zone = this._defenceTarget.zones.find((z) => z.key === this._defenceZone);
-    if (!zone) return null;
-    return {
-      key: zone.key,
-      label: game.i18n.localize(`SWFFG.VehicleDefense${zone.key.charAt(0).toUpperCase()}${zone.key.slice(1)}`),
-      dice: Math.max(0, zone.value),
-    };
+    if (!zone) return { key: null, label: null, dice: 0 };
+    return { key: zone.key, label: this._defenceZoneLabel(zone.key), dice: Math.max(0, zone.value) };
   }
 ```
 
@@ -1073,8 +1113,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Modify: `lang/en.json`
 
 **Interfaces:**
-- Consumes: `zoneReticleSvg` (Task 3), `this._defenceTarget` / `this._defenceZone` (Task 5).
-- Produces: `_refreshDefencePanel(html)`, `_defenceZoneLabel(key)`, `_setDefencePanelWidth(show)`; DOM contract `aside.ffg-defence-panel` containing `.ffg-defence-ship`, `.ffg-defence-reticle`, `.ffg-defence-selected`, `.ffg-defence-warning`.
+- Consumes: `zoneReticleSvg` (Task 3), and `this._defenceTarget`, `this._defenceZone`, `_defenceEligible()`, `_defenceZoneLabel()` (all Task 5).
+- Produces: `_refreshDefencePanel(html)`, `_setDefencePanelWidth(show)`; DOM contract `aside.ffg-defence-panel` containing `.ffg-defence-ship`, `.ffg-defence-reticle`, `.ffg-defence-selected`, `.ffg-defence-warning`.
 
 - [ ] **Step 1: Add the localisation keys**
 
@@ -1130,13 +1170,6 @@ import { resolveDefenceTarget, zoneReticleSvg } from "../helpers/vehicle-defence
 Add these methods beside `_refreshAdversary`:
 
 ```js
-  /** Localised zone name, falling back to the capitalised raw key. */
-  _defenceZoneLabel(key) {
-    const suffix = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-    const localised = game.i18n.localize(`SWFFG.VehicleDefense${suffix}`);
-    return localised === `SWFFG.VehicleDefense${suffix}` ? suffix : localised;
-  }
-
   /**
    * Grow or shrink the window by the panel's width, once each way.
    *
@@ -1159,8 +1192,9 @@ Add these methods beside `_refreshAdversary`:
     const panel = html.find(".ffg-defence-panel")[0];
     if (!panel) return;
 
-    const enabled = game.settings.get("starwarsffg", "useDefense") && !this.roll.targetDefenceResolved;
-    const status = enabled ? this._defenceTarget.status : "none";
+    // The same gate the dice and the card snapshot use, so a non-attack roll with a
+    // ship targeted shows no picker.
+    const status = this._defenceEligible() ? this._defenceTarget.status : "none";
     const show = status === "single" || status === "ambiguous";
     panel.hidden = !show;
     this._setDefencePanelWidth(show);
@@ -1634,16 +1668,17 @@ Open the world with this system, **hard-reload** the client (modules are cached 
 3. **Click the selected wedge again.** Selection clears back to the warning state and the setback dice leave the preview.
 4. **Retarget to a different vehicle.** Panel rebuilds with the new ship's name and values; the selection is cleared even if both ships have a `fore`.
 5. **Retarget to a character.** Panel disappears, window returns to its previous width, and the character's ranged defence now appears in the preview.
-6. **Target two vehicles.** Reticle replaced by `Target one vehicle to pick a zone.`, no vehicle setback.
-7. **Personal ranged weapon at a vehicle.** No longer throws; the picker appears as for a ship weapon.
-8. **Ship weapon at a character.** Their `defence.ranged` appears in the preview for the first time.
-9. **A two-zone vehicle.** Edit a test vehicle so only `fore` and `aft` are non-zero — then confirm the reticle still shows all four wedges, because *all four are declared in the schema*. To exercise the two-wedge path you must temporarily reduce the declared fields in `modules/data/models/actor/vehicle.js`; if you do, revert it afterwards. Note the outcome either way.
-10. **Send To Player with a zone picked.** As GM, pick a zone, send the pool to a player. On their client, target something of their own and open the pool: no additional defence is added, no panel is shown, and their eventual card still names the sender's zone.
-11. **Target change during the post-click awaits.** Pick a zone on an ammo-tracked weapon, press Roll, and immediately retarget. The rolled setback and the card's zone must both describe the click-time state.
-12. **Keyboard.** Tab through the wedges: focus is visible and distinct from hover. Enter and Space each toggle the focused wedge, and `aria-pressed`, the selected line and the preview dice all move together.
-13. **Baseline regressions.** An ordinary skill roll with no target is unchanged. A weapon roll with `useDefense` turned off shows no panel and adds no defence. The Adversary toggle still upgrades difficulty, and does so *alongside* a zone setback rather than replacing it.
-14. **Both themes.** Repeat case 1 under the `mandarBeskarAstromech` theme and under the stock theme; the panel must be styled in both.
-15. **Reload with a card on screen.** Reload the client and confirm the zone line is still on the existing chat card (this is what the `toJSON`/`fromData` plumbing buys).
+6. **Target two vehicles.** Reticle replaced by `Target one vehicle to pick a zone.`, no vehicle setback. Roll: the card must still carry `No defence zone chosen` — an ambiguous roll went out without shields applied, and passing silently is the failure the loud-not-blocking rule exists to prevent.
+7. **Non-weapon roll with a vehicle targeted.** Target a ship and roll a plain skill check (Piloting: Space, or any skill row on the sheet). No panel, no window widening, no setback, and **no zone line on the chat card** — defence does not apply to a non-attack, so nothing about it may appear.
+8. **Personal ranged weapon at a vehicle.** No longer throws; the picker appears as for a ship weapon.
+9. **Ship weapon at a character.** Their `defence.ranged` appears in the preview for the first time.
+10. **A two-zone vehicle.** Edit a test vehicle so only `fore` and `aft` are non-zero — then confirm the reticle still shows all four wedges, because *all four are declared in the schema*. To exercise the two-wedge path you must temporarily reduce the declared fields in `modules/data/models/actor/vehicle.js`; if you do, revert it afterwards. Note the outcome either way.
+11. **Send To Player with a zone picked.** As GM, pick a zone, send the pool to a player. On their client, target something of their own and open the pool: no additional defence is added, no panel is shown, and their eventual card still names the sender's zone.
+12. **Target change during the post-click awaits.** Pick a zone on an ammo-tracked weapon, press Roll, and immediately retarget. The rolled setback and the card's zone must both describe the click-time state.
+13. **Keyboard.** Tab through the wedges: focus is visible and distinct from hover. Enter and Space each toggle the focused wedge, and `aria-pressed`, the selected line and the preview dice all move together.
+14. **Baseline regressions.** An ordinary skill roll with no target is unchanged. A weapon roll with `useDefense` turned off shows no panel and adds no defence. The Adversary toggle still upgrades difficulty, and does so *alongside* a zone setback rather than replacing it.
+15. **Both themes.** Repeat case 1 under the `mandarBeskarAstromech` theme and under the stock theme; the panel must be styled in both.
+16. **Reload with a card on screen.** Reload the client and confirm the zone line is still on the existing chat card (this is what the `toJSON`/`fromData` plumbing buys).
 
 - [ ] **Step 5: Fix anything live verification turned up, then re-run the gates**
 
@@ -1653,12 +1688,12 @@ Any fix gets its own commit. Re-run Step 2's four commands afterwards.
 
 ## Self-Review
 
-**Spec coverage.** Every section of the spec maps to a task: zone reading → 1; ordering/geometry → 1 and 3; target resolution → 2; side panel and its states → 6 (styling 7); keyboard operability → 3 and 6; live rebuild on target change → 5 step 6; applying the setback and the click-time snapshot → 5; unifying character defence → 4 and 5; pools sent to another player → 9; chat card → 8; "when nothing appears at all" → the `_defenceDice` and `_refreshDefencePanel` gates in 5 and 6; new module API → 1–3; files-changed table → all tasks; localisation keys → 6; testing → the per-task test steps plus 10 step 4; risks → 10 step 4 cases 11 and 13, and the flex-row check folded into 6 and 10.
+**Spec coverage.** Every section of the spec maps to a task: zone reading → 1; ordering/geometry → 1 and 3; target resolution → 2; side panel and its states → 6 (styling 7); keyboard operability → 3 and 6; live rebuild on target change → 5 step 6; applying the setback and the click-time snapshot → 5; unifying character defence → 4 and 5; pools sent to another player → 9; chat card → 8; "when nothing appears at all" → the shared `_defenceEligible` gate in 5, applied in 5 and 6; new module API → 1–3; files-changed table → all tasks; localisation keys → 6; testing → the per-task test steps plus 10 step 4; risks → 10 step 4 cases 12 and 14, and the flex-row check folded into 6 and 10.
 
 **One spec requirement I deliberately implemented differently**, called out in File Structure above: the spec has `_effectivePool()` calling `DiceHelpers.getDefenseDice`, which would close an import cycle, so the calculation moved to `defence-helpers.js` and `getDefenseDice` survives as a delegating wrapper. Behaviour is identical.
 
 **Placeholder scan.** No TBD/TODO, no "handle edge cases", no "similar to Task N". Every code step carries the actual code and every run step carries the actual command and expected output.
 
-**Type consistency.** `vehicleDefenceZones` returns `{key, value}` throughout (Tasks 1, 2, 5, 6). `zoneReticleSvg` takes the richer `{key, label, value, ariaLabel}`, which only Task 6 constructs — matching the spec's rule that localisation stays outside the pure helper. `resolveDefenceTarget`'s `{status, actor, zones}` is consumed unchanged in Tasks 5 and 6. `_defenceZoneSnapshot()` returns `{key, label, dice}` in Task 5 and is consumed with those exact fields in Tasks 8 and 9. `characterDefenceDice({skillValue, targets})` is called with that shape in both Task 5 call sites.
+**Type consistency.** `vehicleDefenceZones` returns `{key, value}` throughout (Tasks 1, 2, 5, 6). `zoneReticleSvg` takes the richer `{key, label, value, ariaLabel}`, which only Task 6 constructs — matching the spec's rule that localisation stays outside the pure helper. `resolveDefenceTarget`'s `{status, actor, zones}` is consumed unchanged in Tasks 5 and 6. `_defenceZoneSnapshot()` returns `{key, label, dice}` — with `key`/`label` null for an unpicked or ambiguous vehicle roll, and the whole thing null when no vehicle is targeted or the roll is not an attack — in Task 5, and is consumed with those exact fields in Tasks 8 and 9. Task 8's card text branches on `key === null`, which is what turns an unpicked *or* ambiguous roll into the `CardNone` warning. `characterDefenceDice({skillValue, targets})` is called with that shape in both Task 5 call sites.
 
 **Test count arithmetic.** 690 baseline → 700 (Task 1, +10) → 708 (Task 2, +8) → 717 (Task 3, +9) → 727 (Task 4, +10), and 727 thereafter.
