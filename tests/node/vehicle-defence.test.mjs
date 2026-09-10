@@ -7,7 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { ZONE_ORDER, resolveDefenceTarget, vehicleDefenceZones } from "../../modules/helpers/vehicle-defence.js";
+import { ZONE_ORDER, resolveDefenceTarget, vehicleDefenceZones, zoneReticleSvg } from "../../modules/helpers/vehicle-defence.js";
 
 /** Actor stand-in carrying a prepared `stats.shields` block. */
 const vehicle = (shields) => ({ type: "vehicle", system: { stats: { shields } } });
@@ -126,4 +126,89 @@ test("a null or undefined target collection resolves to none rather than throwin
 
 test("a target with no actor is ignored", () => {
   assert.equal(resolveDefenceTarget(new Set([{ actor: null }])).status, "none");
+});
+
+const labelled = (...keys) => keys.map((key, i) => ({
+  key,
+  label: key.toUpperCase(),
+  value: i,
+  ariaLabel: `${key}, ${i} setback`,
+}));
+
+test("one wedge is emitted per zone", () => {
+  const four = zoneReticleSvg({ zones: labelled("fore", "starboard", "aft", "port"), selected: null });
+  assert.equal((four.match(/class="ffg-zone[ "]/g) ?? []).length, 4);
+  const two = zoneReticleSvg({ zones: labelled("fore", "aft"), selected: null });
+  assert.equal((two.match(/class="ffg-zone[ "]/g) ?? []).length, 2);
+  const six = zoneReticleSvg({ zones: labelled("a", "b", "c", "d", "e", "f"), selected: null });
+  assert.equal((six.match(/class="ffg-zone[ "]/g) ?? []).length, 6);
+});
+
+test("exactly the selected zone is marked, by index not by key", () => {
+  const svg = zoneReticleSvg({ zones: labelled("fore", "starboard", "aft", "port"), selected: "aft" });
+  assert.equal((svg.match(/aria-pressed="true"/g) ?? []).length, 1);
+  assert.equal((svg.match(/aria-pressed="false"/g) ?? []).length, 3);
+  assert.match(svg, /data-zone-index="2"[^>]*aria-pressed="true"/);
+  // Raw zone keys must never reach an attribute value.
+  assert.doesNotMatch(svg, /data-zone-key=/);
+});
+
+test("nothing selected puts the whole reticle in its warning state", () => {
+  const svg = zoneReticleSvg({ zones: labelled("fore", "aft"), selected: null });
+  assert.match(svg, /class="ffg-zone-reticle ffg-zone-unpicked"/);
+  assert.equal((svg.match(/aria-pressed="true"/g) ?? []).length, 0);
+});
+
+test("a selected zone clears the warning state", () => {
+  const svg = zoneReticleSvg({ zones: labelled("fore", "aft"), selected: "fore" });
+  assert.match(svg, /class="ffg-zone-reticle"/);
+  assert.doesNotMatch(svg, /ffg-zone-unpicked/);
+});
+
+test("every wedge is keyboard-operable", () => {
+  const svg = zoneReticleSvg({ zones: labelled("fore", "aft"), selected: null });
+  assert.equal((svg.match(/role="button"/g) ?? []).length, 2);
+  assert.equal((svg.match(/tabindex="0"/g) ?? []).length, 2);
+  assert.equal((svg.match(/aria-label="/g) ?? []).length, 2);
+});
+
+test("displayed text is XML-escaped", () => {
+  const svg = zoneReticleSvg({
+    zones: [{ key: "fore", label: `Fore & "aft" <hack>`, value: 1, ariaLabel: `a & b` }],
+    selected: null,
+  });
+  assert.doesNotMatch(svg, /<hack>/);
+  assert.match(svg, /Fore &amp; &quot;aft&quot; &lt;hack&gt;/);
+  assert.match(svg, /aria-label="a &amp; b"/);
+});
+
+test("a single zone draws a complete donut instead of a degenerate 360 arc", () => {
+  // SVG cannot draw an arc whose endpoints coincide -- it renders nothing at all.
+  const svg = zoneReticleSvg({ zones: labelled("fore"), selected: null });
+  const path = svg.match(/ d="([^"]+)"/)[1];
+  const outerArcs = (path.match(/A 54 54/g) ?? []).length;
+  const innerArcs = (path.match(/A 21 21/g) ?? []).length;
+  assert.equal(outerArcs, 2, "outer ring split into two half arcs");
+  assert.equal(innerArcs, 2, "inner ring split into two half arcs");
+  assert.match(path, /Z$/);
+});
+
+test("the wedges run clockwise from the top, so the order reads nautically", () => {
+  const svg = zoneReticleSvg({ zones: labelled("fore", "starboard", "aft", "port"), selected: null });
+  // Anchored on the path element: a bare /d="/ also matches inside aria-presseD=".
+  const starts = [...svg.matchAll(/<path class="ffg-zone-wedge" d="M ([\d.-]+) ([\d.-]+)/g)]
+    .map(([, x, y]) => [Number(x), Number(y)]);
+  assert.equal(starts.length, 4);
+  // Each wedge begins at its anticlockwise edge, so wedge 0 (fore) starts top-left
+  // and sweeps across the top; 1 (starboard) down the right; 2 (aft) across the
+  // bottom; 3 (port) up the left.
+  const [fore, starboard, aft, port] = starts;
+  assert.ok(fore[0] < 60 && fore[1] < 60, `fore starts top-left, got ${fore}`);
+  assert.ok(starboard[0] > 60 && starboard[1] < 60, `starboard starts top-right, got ${starboard}`);
+  assert.ok(aft[0] > 60 && aft[1] > 60, `aft starts bottom-right, got ${aft}`);
+  assert.ok(port[0] < 60 && port[1] > 60, `port starts bottom-left, got ${port}`);
+});
+
+test("no zones yields an empty string rather than an empty reticle", () => {
+  assert.equal(zoneReticleSvg({ zones: [], selected: null }), "");
 });
