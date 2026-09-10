@@ -124,15 +124,21 @@ A non-vehicle targeted alongside a single vehicle does not make it ambiguous.
 
 ### The side panel
 
-The dialog keeps its 350 px column untouched. A ~158 px `<aside>` **slides out from the dialog's
-left edge** while the eligible roll has either a `single` or `ambiguous` vehicle-target status, and
-the window widens to make room. The reticle itself appears only for `single`; `ambiguous` uses the
-same aside for its explanation. The aside is closed for `none`.
+The dialog is left entirely alone. A ~158 px `<aside>` is a **small card attached to the outside of
+the window's left edge**, sized to its content rather than the window's height, and it never
+widens or reflows the dice column. It appears while the eligible roll has either a `single` or
+`ambiguous` vehicle-target status; the reticle itself appears only for `single`, and `ambiguous`
+uses the same card for its explanation. A tab on the card's window-facing edge collapses and
+reopens it.
 
-The open state is carried by **width**, not the `hidden` attribute, because `hidden` cannot be
-transitioned. Closed, the panel is zero-width, clipped and click-through, so it occupies nothing;
-an inner fixed-width wrapper keeps the contents from reflowing mid-animation, and the transition
-is dropped under `prefers-reduced-motion`.
+Getting outside the window takes two things, because both `.application` and `.window-content`
+set `overflow: hidden`. The card is lifted at render time to be a direct child of
+`.application`, and that clip is relaxed **for this dialog alone**; `.window-content` keeps its
+own, so no other content can escape. Being a child of the window rather than of `document.body`
+means it moves, resizes, minimises and closes with the window with no position syncing.
+
+Visibility is carried by a class, not the `hidden` attribute, which cannot be transitioned; the
+transition is dropped under `prefers-reduced-motion`.
 
 For `single`, panel contents are, top to bottom: a small-caps `Defence zone` heading, the
 vehicle's name, the reticle, and the selected zone plus its setback (`Fore · +2 setback`). Within
