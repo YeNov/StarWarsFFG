@@ -51,9 +51,10 @@ in the dialog follows the current targets.
 | Where the value comes from | `system.stats.shields.<zone>` directly. Never aggregated. |
 | How zones are enumerated | From the actor's own prepared `shields` object, never a hardcoded key list. |
 | Zone count | Whatever the data has. Four today; two or six must work with no code change. |
-| Nothing picked | The roll is **allowed**, loudly: warning styling, warning line, and a note on the chat card. Never blocked. |
+| Default selection | The first zone in display order (fore on every stock vehicle) is pre-selected, read from the data rather than named. |
+| Nothing picked | Reachable by clicking the selected wedge to clear it. The roll is **allowed**, loudly: warning styling, warning line, and a note on the chat card. Never blocked. |
 | Multiple vehicles targeted | Unsupported: no reticle, no vehicle setback, and the reason is stated on screen. |
-| Target changes mid-dialog | Rebuild target-derived state from the new target. Selection always cleared. |
+| Target changes mid-dialog | Rebuild target-derived state from the new target, re-defaulting the zone. A choice made against the old ship is never carried over. |
 | Character defence | Becomes live too, resolved in the same place as the zone. |
 | Chat card | One line recording the zone and its setback, or the missing-zone warning. |
 
@@ -123,13 +124,21 @@ A non-vehicle targeted alongside a single vehicle does not make it ambiguous.
 
 ### The side panel
 
-The dialog keeps its 350 px column untouched. A ~158 px `<aside>` appears to its right while the
-eligible roll has either a `single` or `ambiguous` vehicle-target status, and the window widens to
-make room. The reticle itself appears only for `single`; `ambiguous` uses the same aside for its
-explanation. The aside is hidden for `none`.
+The dialog keeps its 350 px column untouched. A ~158 px `<aside>` **slides out from the dialog's
+left edge** while the eligible roll has either a `single` or `ambiguous` vehicle-target status, and
+the window widens to make room. The reticle itself appears only for `single`; `ambiguous` uses the
+same aside for its explanation. The aside is closed for `none`.
+
+The open state is carried by **width**, not the `hidden` attribute, because `hidden` cannot be
+transitioned. Closed, the panel is zero-width, clipped and click-through, so it occupies nothing;
+an inner fixed-width wrapper keeps the contents from reflowing mid-animation, and the transition
+is dropped under `prefers-reduced-motion`.
 
 For `single`, panel contents are, top to bottom: a small-caps `Defence zone` heading, the
-vehicle's name, the reticle, and the selected zone plus its setback (`Fore · +2 setback`). For
+vehicle's name, the reticle, and the selected zone plus its setback (`Fore · +2 setback`). Within
+each wedge the zone's value is stacked directly **under** its name, both anchored at the middle of
+the ring — placing them at two different radii instead rotates the pair with the wedge, putting the
+number above the name at the bottom and beside it on the sides. For
 `ambiguous`, the heading remains but the vehicle name, reticle, and selected-value line are
 replaced by the explanatory placeholder.
 
@@ -165,9 +174,9 @@ The existing `targetToken` hook registered in `_onRender`
 `user?.id !== game.user.id` guard, so another player's targeting never touches this dialog.
 
 **Rule: any target change rebuilds the target-derived state from the new target.** The panel is
-torn down and rebuilt from the new vehicle's zones, and the selection is *always* cleared — even
-when the new ship happens to have the same zone key. Every target change therefore costs one
-deliberate pick.
+torn down and rebuilt from the new vehicle's zones, and the selection is *always* re-defaulted to
+that ship's first zone rather than carried over — even when the new ship happens to have a zone
+of the same name.
 
 This rebuilds only the target-derived parts, not the whole dialog. A full `render()` would wipe
 manual pool edits and any flavour/sound values already entered, which is exactly why

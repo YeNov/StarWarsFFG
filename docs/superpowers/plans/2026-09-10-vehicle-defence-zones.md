@@ -1663,10 +1663,10 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 Open the world with this system, **hard-reload** the client (modules are cached — otherwise you are testing the previous code), and work through every case. Report the actual result of each; do not mark the task done on any that fails.
 
-1. **Ship weapon at one vehicle.** Panel appears, window widens, ship name correct. Click a wedge: it fills gold, the selected line reads `Fore · +2 setback`, and exactly that many setback dice appear in the pool preview. Roll — the chat card carries `Fore zone · +2 setback`.
-2. **Roll with nothing picked.** Wedges dashed amber, `None chosen`, warning line shown, Roll button still enabled. The card says `No defence zone chosen`.
+1. **Ship weapon at one vehicle.** Panel slides out to the LEFT, window widens, ship name correct. Fore arrives already selected. Click another wedge: it fills gold, the selected line reads `Fore · +2 setback`, and exactly that many setback dice appear in the pool preview. Roll — the chat card carries `Fore zone · +2 setback`.
+2. **Roll with nothing picked.** Click the selected wedge to clear it first (fore is pre-selected). Wedges dashed amber, `None chosen`, warning line shown, Roll button still enabled. The card says `No defence zone chosen`.
 3. **Click the selected wedge again.** Selection clears back to the warning state and the setback dice leave the preview.
-4. **Retarget to a different vehicle.** Panel rebuilds with the new ship's name and values; the selection is cleared even if both ships have a `fore`.
+4. **Retarget to a different vehicle.** Panel rebuilds with the new ship's name and values, and the zone re-defaults to that ship's fore rather than carrying the old pick over.
 5. **Retarget to a character.** Panel disappears, window returns to its previous width, and the character's ranged defence now appears in the preview.
 6. **Target two vehicles.** Reticle replaced by `Target one vehicle to pick a zone.`, no vehicle setback. Roll: the card must still carry `No defence zone chosen` — an ambiguous roll went out without shields applied, and passing silently is the failure the loud-not-blocking rule exists to prevent.
 7. **Non-weapon roll with a vehicle targeted.** Target a ship and roll a plain skill check (Piloting: Space, or any skill row on the sheet). No panel, no window widening, no setback, and **no zone line on the chat card** — defence does not apply to a non-attack, so nothing about it may appear.
@@ -1679,6 +1679,7 @@ Open the world with this system, **hard-reload** the client (modules are cached 
 14. **Baseline regressions.** An ordinary skill roll with no target is unchanged. A weapon roll with `useDefense` turned off shows no panel and adds no defence. The Adversary toggle still upgrades difficulty, and does so *alongside* a zone setback rather than replacing it.
 15. **Both themes.** Repeat case 1 under the `mandarBeskarAstromech` theme and under the stock theme; the panel must be styled in both.
 16. **Reload with a card on screen.** Reload the client and confirm the zone line is still on the existing chat card (this is what the `toJSON`/`fromData` plumbing buys).
+17. **Number placement.** On a four-zone ship the value sits directly under its zone name in every wedge, including aft at the bottom and port/starboard at the sides — never above or beside it.
 
 - [ ] **Step 5: Fix anything live verification turned up, then re-run the gates**
 
