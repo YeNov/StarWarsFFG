@@ -1349,6 +1349,101 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   cursor: pointer;
   box-shadow: none;
 }
+
+/* Vehicle defence zone picker. The dialog's form is a flex row; the existing
+   column keeps its width and the panel sits beside it. */
+.starwarsffg .dice-pool-dialog {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.starwarsffg .ffg-defence-panel {
+  flex: 0 0 158px;
+  box-sizing: border-box;
+  padding: 8px 6px;
+  border-left: 1px solid rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+.starwarsffg .ffg-defence-heading {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+.starwarsffg .ffg-defence-ship {
+  font-size: 10px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.starwarsffg .ffg-defence-selected {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a8791f;
+}
+.starwarsffg .ffg-defence-selected.ffg-defence-none {
+  font-weight: 500;
+  color: #a3521f;
+}
+.starwarsffg .ffg-defence-warning {
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: #a3521f;
+}
+.starwarsffg .ffg-zone-reticle {
+  width: 140px;
+  height: 140px;
+}
+.starwarsffg .ffg-zone-wedge {
+  fill: rgba(0, 0, 0, 0.12);
+  stroke: rgba(0, 0, 0, 0.4);
+  stroke-width: 1.4;
+}
+.starwarsffg .ffg-zone {
+  cursor: pointer;
+}
+.starwarsffg .ffg-zone:hover .ffg-zone-wedge {
+  fill: rgba(168, 121, 31, 0.25);
+}
+.starwarsffg .ffg-zone-selected .ffg-zone-wedge {
+  fill: rgba(168, 121, 31, 0.45);
+  stroke: #a8791f;
+  stroke-width: 1.6;
+}
+.starwarsffg .ffg-zone:focus-visible {
+  outline: none;
+}
+.starwarsffg .ffg-zone:focus-visible .ffg-zone-wedge {
+  stroke: #2f6fa3;
+  stroke-width: 2.2;
+}
+.starwarsffg .ffg-zone-name {
+  font-size: 9px;
+  text-anchor: middle;
+  fill: currentColor;
+}
+.starwarsffg .ffg-zone-value {
+  font-size: 12px;
+  text-anchor: middle;
+  fill: currentColor;
+}
+.starwarsffg .ffg-zone-empty .ffg-zone-name,
+.starwarsffg .ffg-zone-empty .ffg-zone-value {
+  opacity: 0.55;
+}
+.starwarsffg .ffg-zone-hub {
+  fill: rgba(0, 0, 0, 0.25);
+  stroke: rgba(0, 0, 0, 0.4);
+  stroke-width: 1.4;
+}
+.starwarsffg .ffg-zone-unpicked .ffg-zone-wedge {
+  fill: rgba(163, 82, 31, 0.14);
+  stroke: #a3521f;
+  stroke-dasharray: 4 3;
+}
+.starwarsffg .ffg-zone-unpicked .ffg-zone-hub {
+  stroke: #a3521f;
+}
 .starwarsffg .dice-pool-dialog .adversary-mode-btn::before {
   content: "";
   flex: 0 0 auto;
