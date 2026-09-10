@@ -270,15 +270,14 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       selectZone(event);
     });
 
-    this._defenceTarget = resolveDefenceTarget(game.user?.targets);
+    this._resolveDefenceTarget();
     this._refreshAdversary(html);
     this._adversaryHookId = Hooks.on("targetToken", (user) => {
       if (user?.id !== game.user.id) return;
-      // Any target change rebuilds target-derived state from the NEW target. The
-      // selection is always cleared, even when the new vehicle happens to share a
-      // zone key, so every change costs one deliberate pick.
-      this._defenceTarget = resolveDefenceTarget(game.user?.targets);
-      this._defenceZone = null;
+      // Any target change rebuilds target-derived state from the NEW target,
+      // including the pre-selected zone -- a choice made against the old ship is
+      // never carried over, even when both have a zone of the same name.
+      this._resolveDefenceTarget();
       this._refreshAdversary(html);
     });
 
@@ -651,6 +650,22 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     return item?.type === "weapon"
       || item?.type === "shipweapon"
       || item?.metaData?.tags?.includes("weapon") === true;
+  }
+
+  /**
+   * Re-read the targeted vehicle and pre-select a zone.
+   *
+   * The default is the FIRST zone in display order -- fore on every stock vehicle.
+   * It is taken from the data rather than named, so a craft whose schema has no
+   * `fore` still gets a sensible default instead of none. The unpicked state is
+   * still reachable: clicking the selected wedge clears it, and that still warns
+   * on screen and on the chat card.
+   */
+  _resolveDefenceTarget() {
+    this._defenceTarget = resolveDefenceTarget(game.user?.targets);
+    this._defenceZone = this._defenceTarget.status === "single"
+      ? (this._defenceTarget.zones[0]?.key ?? null)
+      : null;
   }
 
   /**
