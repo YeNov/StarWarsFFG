@@ -73,9 +73,11 @@ code change.
 Per-zone display value is the stored number. The setback contribution is `Math.max(0, value)`,
 so a zone driven negative by an Active Effect displays as stored but cannot roll negative dice.
 
-Labels resolve `SWFFG.VehicleDefense<Key>` (`Fore`, `Aft`, `Port`, `Starboard` already exist at
-[en.json:201-204](../../../lang/en.json)), falling back to the capitalised raw key for any zone
-without a string.
+Zone extraction itself remains dependency-free and returns `{key, value}`. The dialog's
+presentation layer adds labels by resolving `SWFFG.VehicleDefense<Key>` (`Fore`, `Aft`, `Port`,
+`Starboard` already exist at [en.json:201-204](../../../lang/en.json)), falling back to the
+capitalised raw key for any zone without a string. Keeping localisation outside the helper is
+what allows `vehicle-defence.js` to remain independent of `game`.
 
 ### Ordering and geometry
 
@@ -98,7 +100,7 @@ donut: outer radius 54, inner radius 21, in a `0 0 120 120` viewBox. Consequence
 | --- | --- |
 | 4 numeric zones (today) | Sorted `fore, starboard, aft, port`; four 90° wedges |
 | 2 numeric zones (`fore`, `aft`) | Two 180° wedges — top half, bottom half |
-| 1 numeric zone | One full-circle wedge; clicking anywhere selects it |
+| 1 numeric zone | One full-circle wedge, drawn as two 180° arcs; clicking anywhere selects it |
 | 5 zones, one unknown (`dorsal`) | Known four sorted first, `dorsal` appended; five 72° wedges |
 | `shields` missing, `null`, or not an object | Zero zones → no panel, same path as "not a vehicle" |
 | Only `label` present | Zero numeric zones → no panel |
@@ -121,11 +123,15 @@ A non-vehicle targeted alongside a single vehicle does not make it ambiguous.
 
 ### The side panel
 
-The dialog keeps its 350 px column untouched. A ~158 px `<aside>` appears to its right **only**
-while a single vehicle is targeted, and the window widens to make room.
+The dialog keeps its 350 px column untouched. A ~158 px `<aside>` appears to its right while the
+eligible roll has either a `single` or `ambiguous` vehicle-target status, and the window widens to
+make room. The reticle itself appears only for `single`; `ambiguous` uses the same aside for its
+explanation. The aside is hidden for `none`.
 
-Panel contents, top to bottom: a small-caps `Defence zone` heading, the vehicle's name, the
-reticle, and the selected zone plus its setback (`Fore · +2 setback`).
+For `single`, panel contents are, top to bottom: a small-caps `Defence zone` heading, the
+vehicle's name, the reticle, and the selected zone plus its setback (`Fore · +2 setback`). For
+`ambiguous`, the heading remains but the vehicle name, reticle, and selected-value line are
+replaced by the explanatory placeholder.
 
 States:
 
@@ -137,6 +143,11 @@ States:
 - **Hover** — faint gold pre-light on the wedge under the cursor.
 
 Clicking the selected wedge again clears the selection back to "none".
+
+Every wedge is keyboard-operable as well as clickable: it is focusable, has `role="button"`, an
+`aria-label` containing the zone name and setback value, and an `aria-pressed` state matching the
+selection. Enter or Space performs the same toggle as a click, and keyboard focus receives a
+visible outline independent of hover styling.
 
 The hub is an empty circle. It deliberately carries no number: the wedge already shows the zone
 value and the dice pool preview on the left already shows the setback dice appearing, so a hub
@@ -160,8 +171,11 @@ deliberate pick.
 
 This rebuilds only the target-derived parts, not the whole dialog. A full `render()` would wipe
 manual pool edits and any flavour/sound values already entered, which is exactly why
-`_refreshAdversary` manipulates the DOM instead of re-rendering. The panel is injected as
-`innerHTML` for the same reason.
+`_refreshAdversary` manipulates the DOM instead of re-rendering. The panel's constant structural
+shell may be injected as `innerHTML`, but actor names are assigned with `textContent`. The SVG
+uses numeric zone indexes in `data-*` attributes rather than raw keys, and `zoneReticleSvg`
+XML-escapes every displayed label before interpolation. No actor-authored or schema-derived text
+is inserted as raw markup.
 
 ### Applying the setback
 
@@ -190,6 +204,13 @@ Working in `_effectivePool()` means the preview and the roll cannot disagree, th
 untouched so re-picking a zone needs no delta bookkeeping, and manual `+setback` edits and the
 Adversary clone keep working unchanged.
 
+At Roll-button click, the handler synchronously snapshots the target collection, selected zone,
+resolved status, and formatted chat-card value at the same moment it snapshots the effective
+pool. `_effectivePool()` consumes that snapshot for the executed pool, and the later `RollFFG`
+construction uses the same snapshot for `defenceZone`. None of the awaited status-effect, item,
+or ammo work between those two points may re-read `_defenceZone` or `game.user.targets`; a target
+change during an await must not make the card describe a different pool from the one rolled.
+
 ### Unifying character defence
 
 `getDefenseDice` stops being called from `rollSkill` ([:83](../../../modules/helpers/dice-helpers.js))
@@ -212,10 +233,31 @@ defence.)
 **Skill identity in the dialog.** `getDefenseDice` needs the skill's `.value`
 (`"Ranged: Heavy"`), but the dialog is handed `skill.label`. `RollBuilderFFG` gains
 `this.roll.skillValue`, resolved as: an explicit new optional trailing argument to
-`displayRollDialog` → else `this.roll.item?.system?.skill?.value` → else `null`. Only `rollSkill`
-and `rollItem` pass the explicit value; the other nine call sites are untouched and fall through.
-A `null` skillValue contributes 0 character defence, matching today's behaviour for a skill in
-neither list.
+`displayRollDialog` → else `this.roll.item?.system?.skill?.value` → else `null`. Initial rolls from
+`rollSkill` and `rollItem` pass the explicit value; ordinary non-attack call sites remain
+untouched and fall through. The sent-pool replay path described below passes through the value
+stored on `this.roll`. A `null` skillValue contributes 0 character defence, matching today's
+behaviour for a skill in neither list.
+
+### Pools sent to another player
+
+The existing Send To Player path sends `rollPool`, which is already the result of
+`_effectivePool()`. A recipient must therefore treat target-derived defence as **resolved and
+locked**. Otherwise opening the received pool while targeting a character or vehicle would add
+defence a second time.
+
+The sent message carries two additional fields inside its existing `roll` flag data:
+
+- `targetDefenceResolved: true`, meaning the received `DicePoolFFG` already includes all
+  target-derived defence and `_effectivePool()` must not call `getDefenseDice` or add a zone;
+- the click-time `defenceZone` snapshot, when a vehicle was involved, so the eventual roll keeps
+  the same chat-card line.
+
+The chat-message handler in `swffg-main.js` passes those fields, plus the stored `skillValue`,
+back into `displayRollDialog`. A received resolved pool hides the vehicle-zone panel and ignores
+the recipient's live targets for defence: the sent pool contains the sender's exact defence
+contribution, not a request to recalculate it from another user's targeting state. Manual pool
+edits still operate on that received base pool; Adversary behavior is unchanged by this flag.
 
 ### Chat card
 
@@ -224,12 +266,14 @@ existing `additionalFlavorText` block — deliberately **not** folded into that 
 the player's own flavour text.
 
 Content is `Fore zone · +2 setback`, or the warning `No defence zone chosen` when the roll went
-out unpicked. Absent entirely for rolls with no vehicle target.
+out unpicked. It is absent for an ordinary roll with no vehicle target, but a received resolved
+pool retains the sender's carried zone snapshot even though the recipient's panel is hidden.
 
 Plumbing mirrors `flavorText` exactly, in all four places, or the line is lost when a message is
 re-rendered from stored data after a reload:
 
-- assigned on the `RollFFG` instance in the Roll handler
+- snapshotted synchronously with the effective pool, then assigned on the `RollFFG` instance in
+  the Roll handler
   ([roll-builder.js:392](../../../modules/dice/roll-builder.js));
 - re-applied onto `this.data` in `render()` ([roll.js:278](../../../modules/dice/roll.js)) —
   necessary because `render()` overwrites `this.data` from the item uuid;
@@ -238,9 +282,10 @@ re-rendered from stored data after a reload:
 
 ### When nothing appears at all
 
-No panel, and no vehicle contribution, when any of these hold: the `useDefense` client setting is
-off; the roll is not a `weapon`/`shipweapon`; no targeted token is a vehicle; the vehicle's
-`shields` yields zero numeric zones. Clearing all targets hides the panel and restores the width.
+No panel, and no newly calculated vehicle contribution, when any of these hold: the `useDefense`
+client setting is off; the roll is not a `weapon`/`shipweapon`; the pool arrived with
+`targetDefenceResolved: true`; no targeted token is a vehicle; or the vehicle's `shields` yields
+zero numeric zones. Clearing all targets hides the panel and restores the width.
 
 ## New module
 
@@ -251,18 +296,21 @@ headlessly testable.
 ```js
 export const ZONE_ORDER = ["fore", "starboard", "aft", "port"];
 
-/** Ordered zones for a vehicle: [{key, label, value}]. Empty for malformed data. */
+/** Ordered zones for a vehicle: [{key, value}]. Empty for malformed data. */
 export function vehicleDefenceZones(actor)
 
 /** {status: "none"|"single"|"ambiguous", actor, zones} from a target collection. */
 export function resolveDefenceTarget(targets)
 
-/** SVG markup string for the reticle. Wedge count = zones.length. */
+/** SVG markup string for labelled zones. Wedge count = zones.length. */
 export function zoneReticleSvg({ zones, selected })
 ```
 
 `zoneReticleSvg` returning a **string** rather than touching the DOM keeps the geometry unit
-testable; the dialog only assigns it to `innerHTML`.
+testable; the dialog only assigns it to `innerHTML`. The helper treats labels as text, escapes
+them for XML, and emits only numeric zone indexes in attributes. The one-zone case is special:
+SVG cannot draw a visible 360° arc whose endpoints coincide, so its donut path uses two 180° arc
+segments.
 
 ## Files changed
 
@@ -272,6 +320,7 @@ testable; the dialog only assigns it to `innerHTML`.
 | `modules/helpers/dice-helpers.js` | `getDefenseDice` guarded, accepts `shipweapon`, returns 0 for vehicles; the two calls in `rollSkill`/`rollItem` removed; optional `skillValue` passed to `displayRollDialog`. |
 | `modules/dice/roll-builder.js` | `_defenceZone` state, panel build/refresh on the existing `targetToken` hook, width delta, defence folded into `_effectivePool()`, zone text onto the `RollFFG`. |
 | `modules/dice/roll.js` | `defenceZone` carried through `render`/`toJSON`/`fromData` alongside `flavorText`. |
+| `modules/swffg-main.js` | Received sent pools pass through the resolved-defence flag, zone snapshot, and stored skill value. |
 | `templates/dice/roll-options-ffg.html` | Flex row: existing column plus an empty `<aside>` container, hidden by default. |
 | `templates/dice/roll-ffg.html` | The chat-card line. |
 | `styles/starwarsffg.css` **and** `styles/mandar.css` | Panel and reticle styling. Both files are hand-maintained and the active theme disables the other, so a rule in only one is invisible. Do not run `gulp css`. |
@@ -292,8 +341,9 @@ are reused for wedge labels. English only; other languages fall back via `checkd
   malformed `shields`, and applies `ZONE_ORDER` with unknown keys appended.
 - `resolveDefenceTarget` returns each of the three statuses, including a vehicle plus a
   non-vehicle resolving to `single`.
-- `zoneReticleSvg` emits N wedges for N zones, marks exactly the selected one, and emits the
-  warning styling when `selected` is null.
+- `zoneReticleSvg` emits N wedges for N zones, marks exactly the selected one, emits the warning
+  styling when `selected` is null, and escapes label text. Its one-zone path uses two non-degenerate
+  arcs and forms a complete donut rather than a zero-length 360° arc.
 
 **Live verification in Foundry** (run from the console after a hard reload — the Functional
 Testing macro is dead on V13):
@@ -307,6 +357,12 @@ Testing macro is dead on V13):
 6. Personal ranged weapon at a vehicle: no longer throws.
 7. Ship weapon at a character: picks up `defence.ranged` for the first time.
 8. Baseline regression: an ordinary skill roll with no target is unchanged.
+9. Send a pool with a selected vehicle zone to another player: their targets do not add defence
+   again, and their eventual chat card retains the sender's zone line.
+10. Change targets immediately after pressing Roll while an item/ammo update is pending: the
+    rolled setback and chat-card zone still describe the click-time snapshot.
+11. Tab to every wedge and toggle it with Enter and Space; focus, `aria-pressed`, preview dice,
+    and selected styling all update together.
 
 ## Risks
 
