@@ -203,6 +203,7 @@
   "SWFFG.VehicleDefensePort": "Port",
   "SWFFG.VehicleDefenseStarboard": "Stbd",
   "SWFFG.VehicleDefenseZone.Heading": "Defence zone",
+  "SWFFG.VehicleDefenseZone.Toggle": "Show or hide the defence zone card",
   "SWFFG.VehicleDefenseZone.Selected": "{zone} · +{dice} setback",
   "SWFFG.VehicleDefenseZone.None": "None chosen",
   "SWFFG.VehicleDefenseZone.NoneWarning": "Rolling without the target's shields.",

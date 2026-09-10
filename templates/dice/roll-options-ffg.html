@@ -1,13 +1,8 @@
 <form style="overflow-y: scroll; scrollbar-width: thin;">
-  {{!-- The row the panel and the dice column live in. This wrapper is load-bearing:
-       roll-options-ffg.html is a root PART, so Foundry discards the <form> above and
-       any layout put on it. Without an element we own inside it, the panel and the
-       column become plain siblings and stack vertically. --}}
-  <div class="ffg-dialog-row">
-  {{!-- Slides out to the LEFT of the dialog. Filled in by
-        RollBuilderFFG._refreshDefencePanel, and open only while a single vehicle
-        (or an ambiguous pair) is targeted on an attack roll. Width, not the
-        `hidden` attribute, carries the open state: `hidden` cannot transition. --}}
+  {{!-- A small card that hangs off the OUTSIDE of the window's left edge.
+        _onRender moves it up to be a direct child of `.application`: inside
+        `.window-content` it would be clipped, and this template is a root PART, so
+        anything relying on the <form> below surviving is not reliable either. --}}
   <aside class="ffg-defence-panel" aria-hidden="true">
     <div class="ffg-defence-inner">
       <div class="ffg-defence-heading">{{localize "SWFFG.VehicleDefenseZone.Heading"}}</div>
@@ -16,6 +11,8 @@
       <div class="ffg-defence-selected"></div>
       <div class="ffg-defence-warning"></div>
     </div>
+    <button type="button" class="ffg-defence-toggle" aria-expanded="true"
+            title="{{localize "SWFFG.VehicleDefenseZone.Toggle"}}"></button>
   </aside>
   <div class="dice-pool-dialog">
     <div class="adversary-pool-toggle" style="display: none;">
@@ -168,6 +165,5 @@
     <div class="roll-button flexrow">
       <button class="btn">{{localize "SWFFG.SkillsRoll"}}</button>
     </div>
-  </div>
   </div>
 </form>

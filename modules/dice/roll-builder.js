@@ -40,8 +40,6 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     this._defenceZone = null;
     /** Latest resolveDefenceTarget() result; refreshed by the targetToken hook. */
     this._defenceTarget = { status: "none", actor: null, zones: [] };
-    /** Whether the side panel is currently widening the window. */
-    this._defencePanelShown = false;
   }
 
   /**
@@ -249,6 +247,17 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       this._adversaryMode = event.currentTarget.dataset.mode === "adversary";
       this._syncAdversaryButtons(html);
       this._updatePreview(html);
+    });
+
+    // Hang the card on the window before anything binds to it, so `html.find` still
+    // reaches it (it stays a descendant of this.element, just not of the content).
+    this._relocateDefencePanel();
+
+    html.find(".ffg-defence-toggle").on("click", (event) => {
+      event.preventDefault();
+      const panel = this.element.querySelector(".ffg-defence-panel");
+      const collapsed = panel.classList.toggle("ffg-defence-collapsed");
+      event.currentTarget.setAttribute("aria-expanded", collapsed ? "false" : "true");
     });
 
     // Delegated so it survives the panel being rebuilt on every target change.
@@ -516,20 +525,18 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
   }
 
   /**
-   * Grow or shrink the window by the panel's width, once each way.
+   * Lift the card out of the window's content and hang it on the window itself.
    *
-   * A hard setPosition({width: 510}) would stomp a dialog the user had already
-   * resized, so the change is a delta and `_defencePanelShown` stops repeated
-   * retargeting from accumulating it.
+   * `.window-content` sets `overflow: hidden`, so a card positioned outside the
+   * window's left edge would be clipped away entirely while it lives in there. As a
+   * direct child of `.application` it escapes that (paired with the scoped
+   * `overflow` relaxation in the stylesheets) and still moves, resizes and closes
+   * with the window for free -- no position syncing, unlike a body-level element.
    */
-  _setDefencePanelWidth(show) {
-    if (show === this._defencePanelShown) return;
-    const PANEL_WIDTH = 160;
-    const current = this.position?.width;
-    if (typeof current === "number") {
-      this.setPosition({ width: show ? current + PANEL_WIDTH : Math.max(350, current - PANEL_WIDTH) });
-    }
-    this._defencePanelShown = show;
+  _relocateDefencePanel() {
+    const panel = this.element?.querySelector?.(".ffg-defence-panel");
+    if (panel && panel.parentElement !== this.element) this.element.appendChild(panel);
+    return panel;
   }
 
   /** Rebuild the defence panel from `this._defenceTarget`. */
@@ -542,10 +549,9 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     const status = this._defenceEligible() ? this._defenceTarget.status : "none";
     const show = status === "single" || status === "ambiguous";
     // A class, not the `hidden` attribute: `hidden` cannot be transitioned, and the
-    // panel slides out from the dialog's left edge.
+    // card slides out from the window's left edge.
     panel.classList.toggle("ffg-defence-open", show);
     panel.setAttribute("aria-hidden", show ? "false" : "true");
-    this._setDefencePanelWidth(show);
     if (!show) return;
 
     const ship = panel.querySelector(".ffg-defence-ship");

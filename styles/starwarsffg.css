@@ -1356,41 +1356,85 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   flex: 1 1 auto;
   min-width: 0;
 }
-.starwarsffg .ffg-dialog-row {
-  /* The flex row itself. It cannot live on the template's <form>: this is a root
-     PART, so Foundry discards that element and every style on it. */
-  display: flex;
-  align-items: stretch;
+/* The zone card hangs off the OUTSIDE of the roll window's left edge.
+
+   Both `.application` and `.window-content` set `overflow: hidden`, so the card is
+   clipped away wherever it sits inside the window. _relocateDefencePanel lifts it
+   to be a direct child of `.application`, and this one dialog relaxes that clip so
+   it can overhang. `.window-content` keeps its own clip, so nothing else escapes.
+   !important because system styles are layered and lose to core on specificity. */
+.starwarsffg.roll-builder-dialog {
+  overflow: visible !important;
 }
 .starwarsffg .ffg-defence-panel {
-  /* Sits to the LEFT of the dice column and slides out from the dialog's edge.
-     Width carries the open state so it can be transitioned; the `hidden`
-     attribute cannot. Closed it is zero-width and clipped, so it takes no space
-     and catches no clicks. */
-  flex: 0 0 auto;
-  width: 0;
-  overflow: hidden;
+  position: absolute;
+  right: 100%;
+  top: 48px;
+  margin-right: -2px;
+  display: flex;
+  align-items: flex-start;
+  /* Height comes from the content: this is a small card, not a full-height column. */
+  max-width: 180px;
   opacity: 0;
   pointer-events: none;
-  box-sizing: border-box;
-  border-right: 1px solid rgba(0, 0, 0, 0);
-  transition: width 180ms ease, opacity 140ms ease, border-color 180ms ease;
+  transform: translateX(8px);
+  transition: opacity 140ms ease, transform 180ms ease;
 }
 .starwarsffg .ffg-defence-panel.ffg-defence-open {
-  width: 158px;
   opacity: 1;
   pointer-events: auto;
-  border-right-color: rgba(0, 0, 0, 0.35);
+  transform: translateX(0);
+}
+/* Minimising hides .window-content, but the card is a sibling of it. */
+.starwarsffg.roll-builder-dialog.minimized .ffg-defence-panel,
+.starwarsffg.roll-builder-dialog.minimizing .ffg-defence-panel {
+  display: none;
 }
 .starwarsffg .ffg-defence-inner {
-  /* Fixed width so the contents do not reflow while the panel is animating. */
   width: 158px;
   box-sizing: border-box;
   padding: 8px 6px;
   text-align: center;
+  overflow: hidden;
+  background: var(--background, rgba(20, 20, 24, 0.95));
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  box-shadow: -3px 0 8px rgba(0, 0, 0, 0.45);
+  transition: width 180ms ease, padding 180ms ease, opacity 140ms ease;
+}
+.starwarsffg .ffg-defence-panel.ffg-defence-collapsed .ffg-defence-inner {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  border-width: 1px 0;
+}
+/* The grab tab, kept against the window edge so it stays reachable when collapsed. */
+.starwarsffg .ffg-defence-toggle {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 34px;
+  margin: 6px 0 0 0;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--background, rgba(20, 20, 24, 0.95));
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  color: inherit;
+}
+.starwarsffg .ffg-defence-toggle::before {
+  content: "❮";
+  font-size: 10px;
+}
+.starwarsffg .ffg-defence-panel.ffg-defence-collapsed .ffg-defence-toggle::before {
+  content: "❯";
 }
 @media (prefers-reduced-motion: reduce) {
-  .starwarsffg .ffg-defence-panel {
+  .starwarsffg .ffg-defence-panel,
+  .starwarsffg .ffg-defence-inner {
     transition: none;
   }
 }
