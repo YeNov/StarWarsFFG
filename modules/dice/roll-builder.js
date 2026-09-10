@@ -442,6 +442,16 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         // Roll the pool snapshotted at click time (above) so the executed roll
         // matches the on-screen preview even if targeting changed during the awaits.
         const roll = new game.ffg.RollFFG(rollPool.renderDiceExpression(), this.roll.item, rollPool, this.roll.flavor);
+        // The click-time snapshot, not a fresh read: the card must describe the
+        // pool that was actually rolled, even if targeting changed during the awaits.
+        roll.defenceZoneText = zoneSnapshot === null
+          ? null
+          : zoneSnapshot.key === null
+            ? game.i18n.localize("SWFFG.VehicleDefenseZone.CardNone")
+            : game.i18n.format("SWFFG.VehicleDefenseZone.CardLine", {
+                zone: zoneSnapshot.label,
+                dice: zoneSnapshot.dice,
+              });
         // check if this is a crew roll - and it's a roll for a weapon
         if (this.roll.item && this.roll.item.hasOwnProperty('crew') && Object.keys(this.roll.item).length > 1) {
           await this.roll.item.update({"flags": {"starwarsffg": {"crew": this.roll.item.crew}}})
