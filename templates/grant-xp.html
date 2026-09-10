@@ -1,5 +1,25 @@
 <div id="{{id}}">
   <div class="grant-xp"></div>
+  {{#if characters}}
+  <div class="grant-xp-targets" style="margin-bottom: 8px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+      <strong>{{localize "SWFFG.PlayerCharacters"}}</strong>
+      <span style="flex: 0 0 auto; white-space: nowrap;">
+        <a class="grant-xp-all">{{localize "SWFFG.GrantXPAll"}}</a> /
+        <a class="grant-xp-none">{{localize "SWFFG.GrantXPNone"}}</a>
+      </span>
+    </div>
+    <div style="max-height: 220px; overflow-y: auto; margin-top: 4px;">
+      {{#each characters}}
+      <label style="display: flex; align-items: center; gap: 6px; padding: 1px 0;">
+        <input type="checkbox" name="grant-target" value="{{this.id}}" style="flex: 0 0 auto; margin: 0;" {{#if this.selected}}checked{{/if}} />
+        <span>{{this.name}}</span>
+        {{#if this.offline}}<span style="opacity: 0.6; font-style: italic;">({{localize "SWFFG.GrantXPOffline"}})</span>{{/if}}
+      </label>
+      {{/each}}
+    </div>
+  </div>
+  {{/if}}
   <table style="text-align: center;">
     <tr>
       <td>{{localize "SWFFG.Amount"}}</td>
