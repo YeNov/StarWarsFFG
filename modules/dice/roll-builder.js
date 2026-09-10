@@ -738,10 +738,15 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
   _effectivePool(defenceOverride = null) {
     const defence = defenceOverride == null ? this._defenceDice() : defenceOverride;
     const adversaryActive = this._adversaryMode && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
-    // No modification at all: hand back the live base pool that manual edits mutate.
-    if (!adversaryActive && defence === 0) return this.dicePool;
+    // A negative base setback is an "ignore N defence" adjustment, not a count of
+    // dice, so it cancels defence and then floors at zero. It must never leave here
+    // negative: the preview would draw nothing for it and the roll would clamp it
+    // anyway, but the logged pool summary would report a die count that cannot exist.
+    const netSetback = Math.max(0, this.dicePool.setback + defence);
+    // Nothing to change: hand back the live base pool that manual edits mutate.
+    if (!adversaryActive && netSetback === this.dicePool.setback) return this.dicePool;
     const clone = this._clonePool();
-    clone.setback += defence;
+    clone.setback = netSetback;
     if (adversaryActive) clone.upgradeDifficulty(this.adversaryRanks);
     return clone;
   }
@@ -750,6 +755,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     html.find(".pool-value input").each((key, value) => {
       const name = $(value).attr("name");
       value.value = this.dicePool[name];
+      // Setback alone may be driven below zero, as an "ignore N defence"
+      // adjustment for talents that partially ignore a target's defence. Target
+      // defence is no longer baked into the pool the input edits, so without this
+      // the input floors at 0 and the defence cannot be taken off at all. The
+      // other dice are counts of real dice and stay non-negative.
+      if (name === "setback") $(value).attr("allowNegative", true);
     });
 
     html.find(".pool-additional input").each((key, value) => {
