@@ -27,7 +27,7 @@ import { AdversarySheetFFG } from "./actors/adversary-sheet-ffg.js";
 import { AdversarySheetFFGV2 } from "./actors/adversary-sheet-ffg-v2.js";
 import { CodexActorSheet, CodexAdversarySheet } from "./actors/codex-sheets.js";
 import { DicePoolFFG, RollFFG } from "./dice-pool-ffg.js";
-import { GroupManager } from "./groupmanager-ffg.js";
+import { GroupManager, refreshGroupManager } from "./groupmanager-ffg.js";
 import PopoutEditor from "./popout-editor.js";
 
 import DiceHelpers from "./helpers/dice-helpers.js";
@@ -787,11 +787,7 @@ Hooks.once("init", async function () {
       formula: formula,
       decimals: 2,
     };
-    if (canvas) {
-      if (canvas?.groupmanager?.window) {
-        canvas.groupmanager.window.render(true);
-      }
-    }
+    refreshGroupManager();
   }
 
   async function gameSkillsList() {

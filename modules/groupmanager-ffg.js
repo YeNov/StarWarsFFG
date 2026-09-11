@@ -3,6 +3,7 @@ import ActorHelpers from "./helpers/actor-helpers.js";
 import { FFGFormApplication } from "./apps/ffg-form-application.js";
 import { collectXpGrantTargets, defaultXpSelection, rememberXpExclusions } from "./helpers/xp-grant-targets.js";
 import { buildTrackTable, matchRange, buildMoralityList, closestMorality } from "./helpers/obligation-tracks.js";
+import { DESTINY_LIGHT, DESTINY_DARK } from "./helpers/destiny-queue.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -129,6 +130,8 @@ export class GroupManager extends FFGFormApplication {
     this.moralities = buildMoralityList(characters);
 
     const dPool = { light: game.settings.get("starwarsffg", "dPoolLight"), dark: game.settings.get("starwarsffg", "dPoolDark") };
+    // What the pool inputs are about to show; _updateObject writes only a side edited away from it.
+    this._drawnPool = { ...dPool };
     const initiative = CONFIG.Combat.initiative.formula;
     const isGM = game.user.isGM;
     const theme = CONFIG.FFG.theme;
@@ -174,29 +177,13 @@ export class GroupManager extends FFGFormApplication {
     // Everything below here is only needed if the sheet is editable
     if (!this.isEditable) return;
 
-    // Flip destiny pool DARK to LIGHT
-    html.find(".destiny-flip-dtl").click((ev) => {
-      let LightPool = this.form.elements["dPool.light"].value;
-      let DarkPool = this.form.elements["dPool.dark"].value;
-      if (DarkPool > 0) {
-        LightPool++;
-        DarkPool--;
-        this.form.elements["dPool.light"].value = LightPool;
-        this.form.elements["dPool.dark"].value = DarkPool;
-      }
-    });
-
-    // Flip destiny pool LIGHT to DARK
-    html.find(".destiny-flip-ltd").click((ev) => {
-      let LightPool = this.form.elements["dPool.light"].value;
-      let DarkPool = this.form.elements["dPool.dark"].value;
-      if (LightPool > 0) {
-        LightPool--;
-        DarkPool++;
-        this.form.elements["dPool.light"].value = LightPool;
-        this.form.elements["dPool.dark"].value = DarkPool;
-      }
-    });
+    // Flips and the reset go through the Destiny Tracker's queue, like every other change to
+    // the pool. The flips used to edit this form's inputs, and the click then submitted the
+    // whole form -- absolute totals written around the queue, clobbering anything a player
+    // had flipped or rolled in between.
+    html.find(".destiny-flip-dtl").click(() => this._submitDestiny({ type: "destiny-flip", from: DESTINY_DARK, to: DESTINY_LIGHT }));
+    html.find(".destiny-flip-ltd").click(() => this._submitDestiny({ type: "destiny-flip", from: DESTINY_LIGHT, to: DESTINY_DARK }));
+    html.find(".destiny-reset").click(() => this._resetDestinyPool());
 
     // Listen for initiative dropdown change and update initiative formula accordingly.
     html.find(".initiative-mode").change((ev) => {
@@ -268,9 +255,35 @@ export class GroupManager extends FFGFormApplication {
    */
   _updateObject(event, formData) {
     const formDPool = foundry.utils.expandObject(formData).dPool || {};
-    game.settings.set("starwarsffg", "dPoolLight", formDPool.light);
-    game.settings.set("starwarsffg", "dPoolDark", formDPool.dark);
+    // Write only a side the GM actually edited here. The form holds the pool as it was when
+    // this window last drew; writing an untouched side back would put back whatever a player
+    // flipped or rolled since -- which is what every button on this window used to do, since
+    // each one submitted the form, and what closing it still does.
+    for (const [side, key] of [["light", "dPoolLight"], ["dark", "dPoolDark"]]) {
+      if (formDPool[side] === undefined || Number(formDPool[side]) === Number(this._drawnPool?.[side])) continue;
+      game.settings.set("starwarsffg", key, formDPool[side]);
+    }
     return formData;
+  }
+
+  /** Send a change to the Destiny Pool through the Destiny Tracker's queue (see helpers/destiny-queue.js). */
+  async _submitDestiny(request) {
+    const dispatcher = foundry.applications.instances.get("destiny-tracker")?.destinyDispatcher;
+    if (!dispatcher) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.DestinyTrackerMissing"));
+      return;
+    }
+    await dispatcher.submit(request);
+  }
+
+  /** Empty both sides of the Destiny Pool once the GM confirms -- say, before a new session's roll. */
+  async _resetDestinyPool() {
+    const confirmed = await DialogV2.confirm({
+      window: { title: game.i18n.localize("SWFFG.DestinyPoolResetButton") },
+      content: `<p>${game.i18n.localize("SWFFG.DestinyPoolResetConfirm")}</p>`,
+      rejectClose: false,
+    });
+    if (confirmed) await this._submitDestiny({ type: "destiny-reset" });
   }
 
   async _rollObligation() {
@@ -556,23 +569,27 @@ export class GroupManager extends FFGFormApplication {
   }
 }
 
-// Catch updates to connected players and update the group manager window if necessary.
-Hooks.on("renderPlayerList", (playerList) => {
-  const groupmanager = canvas?.groupmanager?.window;
-  if (groupmanager) {
-    groupmanager.render();
-  }
-});
-// Catch updates to actors and update the group manager window if necessary.
-Hooks.on("updateActor", (actor, data, options, id) => {
-  const groupmanager = canvas?.groupmanager?.window;
-  if (groupmanager) {
-    groupmanager.render();
-  }
-});
-Hooks.on("renderActorSheet", (actor, data, options, id) => {
-  const groupmanager = canvas?.groupmanager?.window;
-  if (groupmanager) {
-    groupmanager.render();
-  }
-});
+/**
+ * Re-render the open Group Manager, if there is one; core tracks every open ApplicationV2 by
+ * its id. These call sites used to look for `canvas.groupmanager.window`, which nothing has
+ * ever set, so an open Group Manager never refreshed -- it showed the party, the tables and
+ * the Destiny Pool as they were when it was opened. Debounced, because one change often
+ * arrives as a burst of updates (an XP grant writes the actor, its effects and its log).
+ */
+export const refreshGroupManager = foundry.utils.debounce(() => {
+  foundry.applications.instances.get("group-manager")?.render();
+}, 100);
+
+// The party: characters changing, being created or deleted, players connecting, and players
+// being assigned a character -- which is what "Active Only" lists. (This used to listen for
+// renderPlayerList and renderActorSheet, which V13 no longer fires: its classes are Players
+// and ActorSheetV2.)
+for (const hook of ["updateActor", "createActor", "deleteActor", "updateUser", "userConnected"]) {
+  Hooks.on(hook, () => refreshGroupManager());
+}
+// Items on a character: Obligation, Duty and Morality entries feed the tables, armour the soak.
+for (const hook of ["createItem", "updateItem", "deleteItem"]) {
+  Hooks.on(hook, (item) => {
+    if (item?.parent?.documentName === "Actor") refreshGroupManager();
+  });
+}

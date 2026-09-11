@@ -325,6 +325,13 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
       });
       return;
     }
+    if (request.type === "destiny-reset") {
+      await ChatMessage.create({
+        author: request.requestedBy ?? game.user.id,
+        content: game.i18n.localize("SWFFG.DestinyPoolReset"),
+      });
+      return;
+    }
     // Rolls already post their dice chat before submitting the pool contribution.
     if (request.type !== "destiny-flip") return;
     const pool = result.pool ?? { light: 0, dark: 0 };

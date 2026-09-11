@@ -15,9 +15,14 @@
     <h1>{{localize "SWFFG.DestinyPool"}}</h1>
     <div class="grid grid-3col">
       <label>{{localize labels.light}}:<img src="systems/starwarsffg/images/dice/{{this.theme}}/lightside.png" alt="{{localize labels.light}}:" /><input type="text" name="dPool.light" value="{{dPool.light}}" data-dtype="Number" placeholder="0" /></label>
+      {{!-- type="button" throughout this window: a button without one submits the form, and the
+            form writes the Destiny Pool. --}}
       <div style="display: flex; justify-content: center; align-items: center; gap: 4px;">
-        <button class="destiny-flip-dtl" style="flex: 0 0 auto;"><i class="fas fa-arrow-left"></i></button>
-        <button class="destiny-flip-ltd" style="flex: 0 0 auto;"><i class="fas fa-arrow-right"></i></button>
+        {{#if isGM}}
+        <button type="button" class="destiny-flip-dtl" style="flex: 0 0 auto;"><i class="fas fa-arrow-left"></i></button>
+        <button type="button" class="destiny-reset" style="flex: 0 0 auto;" title="{{localize "SWFFG.DestinyPoolResetButton"}}"><i class="fas fa-rotate-left"></i></button>
+        <button type="button" class="destiny-flip-ltd" style="flex: 0 0 auto;"><i class="fas fa-arrow-right"></i></button>
+        {{/if}}
       </div>
       <label>{{localize labels.dark}}:<img src="systems/starwarsffg/images/dice/{{this.theme}}/darkside.png" alt="{{localize labels.dark}}:" /><input type="text" name="dPool.dark" value="{{dPool.dark}}" data-dtype="Number" placeholder="0" /></label>
     </div>
@@ -27,8 +32,8 @@
   <div class="group-actions">
     <h2>{{localize "SWFFG.GroupActions"}}</h2>
     <div style="display: flex;">
-      <button class="group-to-combat"><i class="fas fa-fist-raised"></i></button>
-      <button class="bulk-XP">{{localize "SWFFG.DescriptionXP"}}</button>
+      <button type="button" class="group-to-combat"><i class="fas fa-fist-raised"></i></button>
+      <button type="button" class="bulk-XP">{{localize "SWFFG.DescriptionXP"}}</button>
     </div>
   </div>
   {{/if}}
@@ -57,9 +62,9 @@
           <!-- <td><input type="text" value="{{c.system.obligation.value}}" disabled /></td> -->
           {{#if ../isGM}}
           <td>
-            <button class="add-to-combat" data-character="{{c.id}}"><i class="fas fa-fist-raised"></i></button>
+            <button type="button" class="add-to-combat" data-character="{{c.id}}"><i class="fas fa-fist-raised"></i></button>
           </td>
-          <td><button class="add-XP" data-character="{{c.id}}">{{localize "SWFFG.DescriptionXP"}}</button></td>
+          <td><button type="button" class="add-XP" data-character="{{c.id}}">{{localize "SWFFG.DescriptionXP"}}</button></td>
           {{/if}}
         </tr>
         {{/each}}{{else}}
@@ -69,9 +74,9 @@
           <td><input type="text" value="N/A" disabled /></td>
           <td><input type="text" value="N/A" disabled /></td>
           <td>
-            <button disabled class="" data-character="N/A"><i class="fas fa-fist-raised"></i></button>
+            <button type="button" disabled class="" data-character="N/A"><i class="fas fa-fist-raised"></i></button>
           </td>
-          <td><button disabled>{{localize "SWFFG.DescriptionXP"}}</button></td>
+          <td><button type="button" disabled>{{localize "SWFFG.DescriptionXP"}}</button></td>
         </tr>
         {{/if}}
       </tbody>
@@ -83,6 +88,7 @@
         actor update. Tab labels stay plain text: core reads the clicked element's data-tab. --}}
   {{#if triggerTabs.length}}
   <div class="trigger-tables">
+    <h1>{{localize "SWFFG.GroupRolls"}}</h1>
     <nav class="tabs" data-group="triggers">
       {{#each triggerTabs as |t|}}
       <a class="{{t.cssClass}}" data-action="tab" data-group="triggers" data-tab="{{t.id}}">{{t.label}}</a>
@@ -107,8 +113,9 @@
         </tbody>
       </table>
       {{#if isGM}}
-      <div style="display: flex;">
-        <button class="obligation-button"><i class="fas fa-dice-d20"></i></button>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="flex: 0 0 auto;">{{localize "SWFFG.RollForGroup" type=(localize "SWFFG.DescriptionObligation")}}</span>
+        <button type="button" class="obligation-button"><i class="fas fa-dice-d20"></i></button>
       </div>
       {{/if}}
     </div>
@@ -132,8 +139,9 @@
         </tbody>
       </table>
       {{#if isGM}}
-      <div style="display: flex;">
-        <button class="duty-button"><i class="fas fa-dice-d20"></i></button>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="flex: 0 0 auto;">{{localize "SWFFG.RollForGroup" type=(localize "SWFFG.DescriptionDuty")}}</span>
+        <button type="button" class="duty-button"><i class="fas fa-dice-d20"></i></button>
       </div>
       {{/if}}
     </div>
@@ -158,8 +166,9 @@
           {{/each}}
         </tbody>
       </table>
-      <div style="display: flex;">
-        <button class="morality-button" title="{{localize "SWFFG.MoralityTriggerHint"}}"><i class="fas fa-dice-d20"></i></button>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="flex: 0 0 auto;">{{localize "SWFFG.RollForGroup" type=(localize "SWFFG.DescriptionMorality")}}</span>
+        <button type="button" class="morality-button" title="{{localize "SWFFG.MoralityTriggerHint"}}"><i class="fas fa-dice-d20"></i></button>
       </div>
     </div>
     {{/if}}
