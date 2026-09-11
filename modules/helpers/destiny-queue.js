@@ -17,6 +17,7 @@
  *   { type: "destiny-roll",   light, dark, roller? }   add a rolled result
  *   { type: "destiny-flip",   from, to, requestedBy? } move ONE point across
  *   { type: "destiny-adjust", pool, delta }            GM add/remove
+ *   { type: "destiny-reset",  requestedBy? }           GM: empty both pools
  *
  * A flip is an INTENTION, not a pair of totals. The client used to compute the
  * replacement totals from what it could see and send those; the GM turned them
@@ -32,7 +33,7 @@ export const DESTINY_DARK = "dPoolDark";
 /** The two world settings that hold the pool. Nothing else may be written. */
 export const DESTINY_POOLS = Object.freeze([DESTINY_LIGHT, DESTINY_DARK]);
 
-const REQUEST_TYPES = Object.freeze(["destiny-roll", "destiny-flip", "destiny-adjust"]);
+const REQUEST_TYPES = Object.freeze(["destiny-roll", "destiny-flip", "destiny-adjust", "destiny-reset"]);
 
 /** A number, or 0 for anything that is not one. */
 function count(value) {
@@ -187,6 +188,14 @@ export class DestinyQueue {
         const current = await this._read(pool);
         await this._set(pool, current + Number(delta));
         return { request, applied: true, pool: await this._pools() };
+      }
+
+      case "destiny-reset": {
+        // Absolute, and applied in queue order: whatever was queued ahead of the reset is
+        // cleared with it, whatever arrives behind it adds to an empty pool.
+        await this._set(DESTINY_LIGHT, 0);
+        await this._set(DESTINY_DARK, 0);
+        return { request, applied: true, pool: { light: 0, dark: 0 } };
       }
 
       default:

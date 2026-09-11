@@ -11,6 +11,8 @@ function prepareRequest(request, user) {
       // Player rolls still use the tracker's existing roll-permission handshake.
       // GM rolls never stamp a player's "has rolled" setting.
       return user.isGM ? { type: request.type, light: request.light, dark: request.dark, requestedBy } : null;
+    case "destiny-reset":
+      return user.isGM ? { type: request.type, requestedBy } : null;
     default:
       return null;
   }

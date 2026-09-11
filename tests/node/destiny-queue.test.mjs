@@ -276,3 +276,32 @@ test("write errors also reach the result callback without masquerading as an emp
   assert.equal(announced[0].applied, false);
   assert.equal(announced[0].reason, "error");
 });
+
+// --- reset ------------------------------------------------------------------
+// A reset empties both pools as the request is PROCESSED, not as it was sent: it
+// is not a pair of totals worked out from a stale reading, so it composes in order
+// with whatever else is queued around it.
+
+test("a reset empties both pools", async () => {
+  const io = store({ [DESTINY_LIGHT]: 3, [DESTINY_DARK]: 2 });
+  const queue = queueOn(io);
+
+  const [result] = await queue.submit({ type: "destiny-reset", requestedBy: "gm" });
+
+  assert.equal(io.values[DESTINY_LIGHT], 0);
+  assert.equal(io.values[DESTINY_DARK], 0);
+  assert.equal(result.applied, true);
+});
+
+test("a reset clears a roll queued ahead of it, and a roll queued behind it survives", async () => {
+  const io = store({ [DESTINY_LIGHT]: 1, [DESTINY_DARK]: 1 }, { delay: 2 });
+  const queue = queueOn(io);
+
+  const draining = queue.submit({ type: "destiny-roll", light: 2, dark: 0, roller: "playerA" });
+  queue.enqueue({ type: "destiny-reset", requestedBy: "gm" });
+  queue.enqueue({ type: "destiny-roll", light: 0, dark: 1, roller: "playerB" });
+  await draining;
+
+  assert.equal(io.values[DESTINY_LIGHT], 0);
+  assert.equal(io.values[DESTINY_DARK], 1);
+});
