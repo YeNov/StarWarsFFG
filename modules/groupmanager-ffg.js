@@ -2,7 +2,7 @@ import {xpLogEarn} from "./helpers/actor-helpers.js";
 import ActorHelpers from "./helpers/actor-helpers.js";
 import { FFGFormApplication } from "./apps/ffg-form-application.js";
 import { collectXpGrantTargets, defaultXpSelection } from "./helpers/xp-grant-targets.js";
-import { buildRangeTable } from "./helpers/obligation-duty-table.js";
+import { buildTrackTable, matchRange, buildMoralityList, closestMorality } from "./helpers/obligation-tracks.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -11,6 +11,7 @@ export class GroupManager extends FFGFormApplication {
     super(object, options);
     this.obligations = [];
     this.duties = [];
+    this.moralities = [];
   }
 
   static DEFAULT_OPTIONS = {
@@ -108,24 +109,36 @@ export class GroupManager extends FFGFormApplication {
     // and only emptied in the constructor -- and this window re-renders on every actor
     // update -- so the tables grew a copy of every entry per render and kept characters
     // who had since left the group, where the d100 could still land on them.
-    this.obligations = buildRangeTable(characters, "obligationlist");
-    this.duties = buildRangeTable(characters, "dutylist");
+    // The tables come from each character's Obligation/Duty entries plus its baseline
+    // (see buildTrackTable) -- they used to read only the old importer's lists, so an
+    // entry added on the sheet never reached them.
+    this.obligations = buildTrackTable(characters, "obligation");
+    this.duties = buildTrackTable(characters, "duty");
+    this.moralities = buildMoralityList(characters);
 
     const dPool = { light: game.settings.get("starwarsffg", "dPoolLight"), dark: game.settings.get("starwarsffg", "dPoolDark") };
     const initiative = CONFIG.Combat.initiative.formula;
     const isGM = game.user.isGM;
     const theme = CONFIG.FFG.theme;
-    players.hasObligation = this.obligations?.length;
-    let obligations = this.obligations;
-    players.hasDuty = this.duties?.length;
-    let duties = this.duties;
+    // A baseline slice carries no entry name; the table shows the track's name instead.
+    const labelled = (table, label) => table.map((row) => ({ ...row, label: row.type || label }));
+    const obligations = labelled(this.obligations, game.i18n.localize("SWFFG.DescriptionObligation"));
+    const duties = labelled(this.duties, game.i18n.localize("SWFFG.DescriptionDuty"));
+    const moralities = this.moralities.map((row) => ({ ...row, strengths: row.strengths.join(", "), weaknesses: row.weaknesses.join(", ") }));
+    players.hasObligation = obligations.length;
+    players.hasDuty = duties.length;
+    // GM only: the rules let a player keep their Morality secret from the rest of the table.
+    players.hasMorality = isGM && moralities.length;
+    // One d100 against every table at once (Force and Destiny Core Rulebook p. 339) only
+    // means something when the group uses more than one of them.
+    const showTriggerAll = isGM && [obligations, duties, moralities].filter((table) => table.length).length >= 2;
 
     const labels = {
       light: game.settings.get("starwarsffg", "destiny-pool-light"),
       dark: game.settings.get("starwarsffg", "destiny-pool-dark"),
     };
 
-    return { dPool, players, initiative, isGM, pcListMode, characters, obligations, duties, theme, labels };
+    return { dPool, players, initiative, isGM, pcListMode, characters, obligations, duties, moralities, showTriggerAll, theme, labels };
   }
 
   /* -------------------------------------------- */
@@ -210,6 +223,14 @@ export class GroupManager extends FFGFormApplication {
       this._rollDuty();
     });
 
+    html.find(".morality-button").click((ev) => {
+      this._rollMorality();
+    });
+
+    html.find(".trigger-all-button").click((ev) => {
+      this._rollAllTriggers();
+    });
+
     // Open character sheet on row click.
     html.find(".player-character").click((ev) => {
       if (!$(ev.target).hasClass("fas") && ev.target.localName !== "button") {
@@ -244,21 +265,78 @@ export class GroupManager extends FFGFormApplication {
     this._rollTable(this.duties, game.i18n.localize("SWFFG.DescriptionDuty"));
   }
 
+  /**
+   * Triggering Morality (Force and Destiny Core Rulebook p. 323): whoever's Morality is
+   * closest to a d100.
+   */
+  async _rollMorality() {
+    const total = await this._rollD100(game.i18n.localize("SWFFG.DescriptionMorality"));
+    this._postTrigger(this._moralityResult(total));
+  }
+
+  /**
+   * One d100 applied to the Obligation table, the Duty table and the Morality list
+   * together (Force and Destiny Core Rulebook p. 339), reported as one message.
+   */
+  async _rollAllTriggers() {
+    const total = await this._rollD100(game.i18n.localize("SWFFG.OneRollTriggers"));
+    const results = [];
+    if (this.obligations.length) results.push(this._rangeResult(this.obligations, total, game.i18n.localize("SWFFG.DescriptionObligation")));
+    if (this.duties.length) results.push(this._rangeResult(this.duties, total, game.i18n.localize("SWFFG.DescriptionDuty")));
+    if (this.moralities.length) results.push(this._moralityResult(total));
+    this._postTrigger(results.join("<br>"));
+  }
+
   async _rollTable(table, type) {
-    let r = new Roll("1d100");
+    const total = await this._rollD100(type);
+    this._postTrigger(this._rangeResult(table, total, type));
+  }
+
+  /** Roll a d100 to chat, privately when trigger results are private. @returns {Promise<number>} */
+  async _rollD100(label) {
+    const r = new Roll("1d100");
     await r.evaluate();
-    let rollOptions = game.settings.get("starwarsffg", "privateTriggers") ? { rollMode: "gmroll" } : {};
+    const rollOptions = game.settings.get("starwarsffg", "privateTriggers") ? { rollMode: "gmroll" } : {};
     r.toMessage(
       {
-        flavor: `${game.i18n.localize("SWFFG.Rolling")} ${type}...`,
+        flavor: `${game.i18n.localize("SWFFG.Rolling")} ${label}...`,
       },
       rollOptions
     );
-    let filteredTable = table.filter((entry) => entry.rangeStart <= r.total && r.total <= entry.rangeEnd);
-    let tableResult = filteredTable?.length ? `${filteredTable[0].type} ${type} ${game.i18n.localize("SWFFG.Triggered")} ${game.i18n.localize("SWFFG.For")} @Actor[${filteredTable[0].playerId}]{${filteredTable[0].name}}` : `${game.i18n.localize("SWFFG.OptionValueNo")} ${type} ${game.i18n.localize("SWFFG.Triggered")}`;
-    let messageOptions = {
+    return r.total;
+  }
+
+  /** "Debt Obligation Triggered For Dax", or "No Obligation Triggered" past every slice. */
+  _rangeResult(table, total, type) {
+    const hit = matchRange(table, total);
+    if (!hit) return `${game.i18n.localize("SWFFG.OptionValueNo")} ${type} ${game.i18n.localize("SWFFG.Triggered")}`;
+    // A baseline slice has no entry name to put in front of the track's.
+    const what = [hit.type, type].filter(Boolean).join(" ");
+    return `${what} ${game.i18n.localize("SWFFG.Triggered")} ${game.i18n.localize("SWFFG.For")} @Actor[${hit.playerId}]{${hit.name}}`;
+  }
+
+  /**
+   * "Morality Triggered For Sarah (Compassion / Hatred)". Names the character's Emotional
+   * Strengths and Weaknesses, which the session is meant to engage -- but never the score,
+   * which a player may keep from the rest of the table. Every character equally close is
+   * named, since the rules give no tie-break.
+   */
+  _moralityResult(total) {
+    const type = game.i18n.localize("SWFFG.DescriptionMorality");
+    const hits = closestMorality(this.moralities, total);
+    if (!hits.length) return `${game.i18n.localize("SWFFG.OptionValueNo")} ${type} ${game.i18n.localize("SWFFG.Triggered")}`;
+    const who = hits.map((hit) => {
+      const emotions = [hit.strengths.join(", "), hit.weaknesses.join(", ")].filter(Boolean).join(" / ");
+      return `@Actor[${hit.playerId}]{${hit.name}}${emotions ? ` (${emotions})` : ""}`;
+    });
+    return `${type} ${game.i18n.localize("SWFFG.Triggered")} ${game.i18n.localize("SWFFG.For")} ${who.join(", ")}`;
+  }
+
+  /** Post a trigger result, whispered to the GMs when trigger results are private. */
+  _postTrigger(content) {
+    const messageOptions = {
       user: game.user.id,
-      content: tableResult,
+      content,
     };
     if (game.settings.get("starwarsffg", "privateTriggers")) {
       messageOptions.whisper = ChatMessage.getWhisperRecipients("GM");

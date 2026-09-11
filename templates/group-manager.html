@@ -76,6 +76,13 @@
       <button class="bulk-XP">{{localize "SWFFG.DescriptionXP"}}</button>
     </div>
   </div>
+  {{/if}} {{#if showTriggerAll}}
+  <div class="trigger-all-section">
+    <h2>{{localize "SWFFG.OneRollTriggers"}}</h2>
+    <div style="display: flex;">
+      <button class="trigger-all-button" title="{{localize "SWFFG.OneRollTriggersHint"}}"><i class="fas fa-dice-d20"></i></button>
+    </div>
+  </div>
   {{/if}} {{#if players.hasObligation}}
   <div class="obligation-section">
     <h2>{{localize "SWFFG.ObligationTable"}}</h2>
@@ -90,15 +97,17 @@
           {{#each obligations}}
           <tr class="obligation player-character" data-character="{{playerId}}">
             <td style="width: 100px;">{{name}}</td>
-            <td>{{type}}</td>
+            <td>{{label}}</td>
             <td>{{rangeStart}}-{{rangeEnd}}</td>
           </tr>
           {{/each}}
         </tbody>
       </table>
+      {{#if isGM}}
       <div style="display: flex;">
         <button class="obligation-button"><i class="fas fa-dice-d20"></i></button>
       </div>
+      {{/if}}
     </div>
   </div>
   {{/if}} {{#if players.hasDuty}}
@@ -115,14 +124,43 @@
           {{#each duties}}
           <tr class="obligation player-character" data-character="{{playerId}}">
             <td style="width: 100px;">{{name}}</td>
-            <td>{{type}}</td>
+            <td>{{label}}</td>
             <td>{{rangeStart}}-{{rangeEnd}}</td>
           </tr>
           {{/each}}
         </tbody>
       </table>
+      {{#if isGM}}
       <div style="display: flex;">
         <button class="duty-button"><i class="fas fa-dice-d20"></i></button>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  {{/if}} {{#if players.hasMorality}}
+  <div class="morality-section">
+    <h2>{{localize "SWFFG.MoralityTable"}}</h2>
+    <div class="morality-table">
+      <table style="text-align: center;">
+        <thead>
+          <th>{{localize "SWFFG.Name"}}</th>
+          <th>{{localize "SWFFG.DescriptionMorality"}}</th>
+          <th>{{localize "SWFFG.CharacterCreator.Obligation.EmotionalStrength"}}</th>
+          <th>{{localize "SWFFG.CharacterCreator.Obligation.EmotionalWeakness"}}</th>
+        </thead>
+        <tbody>
+          {{#each moralities}}
+          <tr class="obligation player-character" data-character="{{playerId}}">
+            <td style="width: 100px;">{{name}}</td>
+            <td>{{morality}}</td>
+            <td>{{strengths}}</td>
+            <td>{{weaknesses}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      <div style="display: flex;">
+        <button class="morality-button" title="{{localize "SWFFG.MoralityTriggerHint"}}"><i class="fas fa-dice-d20"></i></button>
       </div>
     </div>
   </div>
