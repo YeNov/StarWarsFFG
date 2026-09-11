@@ -492,6 +492,16 @@ export default class SettingsHelpers {
       type: Boolean,
     });
 
+    // The characters left unticked in the Group Manager's Grant XP dialog, so the dialog
+    // reopens the way it was left (see rememberXpExclusions). Per browser: it is one GM's
+    // working state, not world data. An array, stored the way arrayCrewRoles is.
+    game.settings.register("starwarsffg", "grantXpExcluded", {
+      scope: "client",
+      config: false,
+      default: [],
+      type: Object,
+    });
+
   }
 
   // Initialize System Settings after the Ready Hook

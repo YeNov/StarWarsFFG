@@ -1,7 +1,7 @@
 import {xpLogEarn} from "./helpers/actor-helpers.js";
 import ActorHelpers from "./helpers/actor-helpers.js";
 import { FFGFormApplication } from "./apps/ffg-form-application.js";
-import { collectXpGrantTargets, defaultXpSelection } from "./helpers/xp-grant-targets.js";
+import { collectXpGrantTargets, defaultXpSelection, rememberXpExclusions } from "./helpers/xp-grant-targets.js";
 import { buildTrackTable, matchRange, buildMoralityList, closestMorality } from "./helpers/obligation-tracks.js";
 
 const { DialogV2 } = foundry.applications.api;
@@ -485,7 +485,12 @@ export class GroupManager extends FFGFormApplication {
     // A token's own actor is a synthetic copy when the token is unlinked; actorId is the
     // world actor either way, which is the one that owns the XP.
     const controlledActorIds = (canvas?.tokens?.controlled ?? []).map((token) => token.document?.actorId).filter(Boolean);
-    const selection = defaultXpSelection({ characters, controlledActorIds });
+    // Controlled tokens are a one-off "pay these": such an opening neither uses nor
+    // overwrites the ticks remembered from the last ordinary one.
+    const fromTokens = characters.some((character) => controlledActorIds.includes(character.id));
+    const remembered = game.settings.get("starwarsffg", "grantXpExcluded");
+    const excludedIds = Array.isArray(remembered) ? remembered : [];
+    const selection = defaultXpSelection({ characters, controlledActorIds, excludedIds });
 
     const id = foundry.utils.randomID();
     const content = await foundry.applications.handlebars.renderTemplate("systems/starwarsffg/templates/grant-xp.html", {
@@ -524,7 +529,18 @@ export class GroupManager extends FFGFormApplication {
       ],
       render: (event, dialog) => {
         const root = dialog.element;
-        const setAll = (checked) => root.querySelectorAll('input[name="grant-target"]').forEach((box) => (box.checked = checked));
+        const boxes = () => [...root.querySelectorAll('input[name="grant-target"]')];
+        // Remember who is left unticked as it changes -- granted or cancelled, the dialog
+        // reopens the way it was left.
+        const remember = () => {
+          if (fromTokens) return;
+          const selectedIds = boxes().filter((box) => box.checked).map((box) => box.value);
+          game.settings.set("starwarsffg", "grantXpExcluded", rememberXpExclusions({ characters, selectedIds, previous: excludedIds }));
+        };
+        const setAll = (checked) => {
+          boxes().forEach((box) => (box.checked = checked));
+          remember();
+        };
         root.querySelector(".grant-xp-all")?.addEventListener("click", (ev) => {
           ev.preventDefault();
           setAll(true);
@@ -533,6 +549,7 @@ export class GroupManager extends FFGFormApplication {
           ev.preventDefault();
           setAll(false);
         });
+        boxes().forEach((box) => box.addEventListener("change", remember));
       },
       rejectClose: false,
     });
