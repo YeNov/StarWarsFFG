@@ -353,8 +353,6 @@
   "SWFFG.DutyTable": "Duty Table",
   "SWFFG.MoralityTable": "Morality Table",
   "SWFFG.MoralityTriggerHint": "Roll a d100: the character whose Morality is closest to it has their Morality triggered this session.",
-  "SWFFG.OneRollTriggers": "One Roll for All Triggers",
-  "SWFFG.OneRollTriggersHint": "Roll a single d100 against the Obligation table, the Duty table and the Morality list at once.",
   "SWFFG.TrackBreakdown": "Baseline {baseline} + entries {entries}",
   "SWFFG.Range": "Range",
   "SWFFG.Triggered": "Triggered",

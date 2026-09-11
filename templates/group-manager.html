@@ -23,6 +23,16 @@
     </div>
   </div>
 
+  {{#if isGM}}
+  <div class="group-actions">
+    <h2>{{localize "SWFFG.GroupActions"}}</h2>
+    <div style="display: flex;">
+      <button class="group-to-combat"><i class="fas fa-fist-raised"></i></button>
+      <button class="bulk-XP">{{localize "SWFFG.DescriptionXP"}}</button>
+    </div>
+  </div>
+  {{/if}}
+
   <div class="PC-list">
     <h1>{{localize "SWFFG.PlayerCharacters"}}</h1>
     <table style="text-align: center;">
@@ -68,25 +78,18 @@
     </table>
   </div>
 
-  {{#if isGM}}
-  <div class="group-actions">
-    <h2>{{localize "SWFFG.GroupActions"}}</h2>
-    <div style="display: flex;">
-      <button class="group-to-combat"><i class="fas fa-fist-raised"></i></button>
-      <button class="bulk-XP">{{localize "SWFFG.DescriptionXP"}}</button>
-    </div>
-  </div>
-  {{/if}} {{#if showTriggerAll}}
-  <div class="trigger-all-section">
-    <h2>{{localize "SWFFG.OneRollTriggers"}}</h2>
-    <div style="display: flex;">
-      <button class="trigger-all-button" title="{{localize "SWFFG.OneRollTriggersHint"}}"><i class="fas fa-dice-d20"></i></button>
-    </div>
-  </div>
-  {{/if}} {{#if players.hasObligation}}
-  <div class="obligation-section">
-    <h2>{{localize "SWFFG.ObligationTable"}}</h2>
-    <div class="obligation-table">
+  {{!-- Obligation / Duty / Morality: one tab per table the group uses. Core ApplicationV2 tabs --
+        the chosen tab lives in tabGroups.triggers, so it survives this window's re-render on every
+        actor update. Tab labels stay plain text: core reads the clicked element's data-tab. --}}
+  {{#if triggerTabs.length}}
+  <div class="trigger-tables">
+    <nav class="tabs" data-group="triggers">
+      {{#each triggerTabs as |t|}}
+      <a class="{{t.cssClass}}" data-action="tab" data-group="triggers" data-tab="{{t.id}}">{{t.label}}</a>
+      {{/each}}
+    </nav>
+    {{#if players.hasObligation}}
+    <div class="tab obligation-section {{tabs.obligation.cssClass}}" data-group="triggers" data-tab="obligation">
       <table style="text-align: center;">
         <thead>
           <th>{{localize "SWFFG.Name"}}</th>
@@ -109,11 +112,9 @@
       </div>
       {{/if}}
     </div>
-  </div>
-  {{/if}} {{#if players.hasDuty}}
-  <div class="duty-section">
-    <h2>{{localize "SWFFG.DutyTable"}}</h2>
-    <div class="duty-table">
+    {{/if}}
+    {{#if players.hasDuty}}
+    <div class="tab duty-section {{tabs.duty.cssClass}}" data-group="triggers" data-tab="duty">
       <table style="text-align: center;">
         <thead>
           <th>{{localize "SWFFG.Name"}}</th>
@@ -136,11 +137,9 @@
       </div>
       {{/if}}
     </div>
-  </div>
-  {{/if}} {{#if players.hasMorality}}
-  <div class="morality-section">
-    <h2>{{localize "SWFFG.MoralityTable"}}</h2>
-    <div class="morality-table">
+    {{/if}}
+    {{#if players.hasMorality}}
+    <div class="tab morality-section {{tabs.morality.cssClass}}" data-group="triggers" data-tab="morality">
       <table style="text-align: center;">
         <thead>
           <th>{{localize "SWFFG.Name"}}</th>
@@ -163,6 +162,7 @@
         <button class="morality-button" title="{{localize "SWFFG.MoralityTriggerHint"}}"><i class="fas fa-dice-d20"></i></button>
       </div>
     </div>
+    {{/if}}
   </div>
   {{/if}}
 </form>

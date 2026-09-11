@@ -40,6 +40,18 @@ export class GroupManager extends FFGFormApplication {
   };
 
   /**
+   * The Obligation / Duty / Morality tables, one tab each. Core keeps the chosen tab in
+   * `this.tabGroups.triggers` across renders -- which matters here, since this window
+   * re-renders on every actor update. Only the tabs whose table has rows are drawn.
+   */
+  static TABS = {
+    triggers: {
+      tabs: [{ id: "obligation" }, { id: "duty" }, { id: "morality" }],
+      initial: "obligation",
+    },
+  };
+
+  /**
    * GM-only editable. Computed live -- it cannot live in the static
    * DEFAULT_OPTIONS field, which is evaluated at class-definition time (module
    * load), before `game.user` exists.
@@ -129,16 +141,24 @@ export class GroupManager extends FFGFormApplication {
     players.hasDuty = duties.length;
     // GM only: the rules let a player keep their Morality secret from the rest of the table.
     players.hasMorality = isGM && moralities.length;
-    // One d100 against every table at once (Force and Destiny Core Rulebook p. 339) only
-    // means something when the group uses more than one of them.
-    const showTriggerAll = isGM && [obligations, duties, moralities].filter((table) => table.length).length >= 2;
+
+    // A tab only for each table the group actually uses. If the chosen one has just emptied
+    // (its last entry removed, its player gone), fall back to the first that remains.
+    const available = [
+      ["obligation", players.hasObligation, "SWFFG.DescriptionObligation"],
+      ["duty", players.hasDuty, "SWFFG.DescriptionDuty"],
+      ["morality", players.hasMorality, "SWFFG.DescriptionMorality"],
+    ].filter(([, inUse]) => inUse);
+    if (available.length && !available.some(([id]) => id === this.tabGroups.triggers)) this.tabGroups.triggers = available[0][0];
+    const tabs = this._prepareTabs("triggers");
+    const triggerTabs = available.map(([id, , label]) => ({ ...tabs[id], label: game.i18n.localize(label) }));
 
     const labels = {
       light: game.settings.get("starwarsffg", "destiny-pool-light"),
       dark: game.settings.get("starwarsffg", "destiny-pool-dark"),
     };
 
-    return { dPool, players, initiative, isGM, pcListMode, characters, obligations, duties, moralities, showTriggerAll, theme, labels };
+    return { dPool, players, initiative, isGM, pcListMode, characters, obligations, duties, moralities, tabs, triggerTabs, theme, labels };
   }
 
   /* -------------------------------------------- */
@@ -227,10 +247,6 @@ export class GroupManager extends FFGFormApplication {
       this._rollMorality();
     });
 
-    html.find(".trigger-all-button").click((ev) => {
-      this._rollAllTriggers();
-    });
-
     // Open character sheet on row click.
     html.find(".player-character").click((ev) => {
       if (!$(ev.target).hasClass("fas") && ev.target.localName !== "button") {
@@ -272,19 +288,6 @@ export class GroupManager extends FFGFormApplication {
   async _rollMorality() {
     const total = await this._rollD100(game.i18n.localize("SWFFG.DescriptionMorality"));
     this._postTrigger(this._moralityResult(total));
-  }
-
-  /**
-   * One d100 applied to the Obligation table, the Duty table and the Morality list
-   * together (Force and Destiny Core Rulebook p. 339), reported as one message.
-   */
-  async _rollAllTriggers() {
-    const total = await this._rollD100(game.i18n.localize("SWFFG.OneRollTriggers"));
-    const results = [];
-    if (this.obligations.length) results.push(this._rangeResult(this.obligations, total, game.i18n.localize("SWFFG.DescriptionObligation")));
-    if (this.duties.length) results.push(this._rangeResult(this.duties, total, game.i18n.localize("SWFFG.DescriptionDuty")));
-    if (this.moralities.length) results.push(this._moralityResult(total));
-    this._postTrigger(results.join("<br>"));
   }
 
   async _rollTable(table, type) {
