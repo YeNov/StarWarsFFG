@@ -2,6 +2,7 @@ import {xpLogEarn} from "./helpers/actor-helpers.js";
 import ActorHelpers from "./helpers/actor-helpers.js";
 import { FFGFormApplication } from "./apps/ffg-form-application.js";
 import { collectXpGrantTargets, defaultXpSelection } from "./helpers/xp-grant-targets.js";
+import { buildRangeTable } from "./helpers/obligation-duty-table.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -78,20 +79,10 @@ export class GroupManager extends FFGFormApplication {
       players.connected = true;
     }
     const characters = [];
-    let obligationRangeStart = 0;
-    let dutyRangeStart = 0;
     if (pcListMode === "active") {
       players.forEach((player) => {
         if (player.character) {
-          try {
-            obligationRangeStart = this._addCharacterObligationDuty(player.character, obligationRangeStart, player.character.system.obligationlist, "obligations");
-            dutyRangeStart = this._addCharacterObligationDuty(player.character, dutyRangeStart, player.character.system.dutylist, "duties");
-            //obligationRangeStart = this._addCharacterObligations(player.character, obligationRangeStart);
-            //dutyRangeStart = this._addCharacterDuties(player.character, dutyRangeStart);
-            characters.push(player.character);
-          } catch (err) {
-            CONFIG.logger.warn(`Unable to add player (${player.character.name}) to obligation/duty table`, err);
-          }
+          characters.push(player.character);
         }
       });
     } else if (pcListMode === "owned") {
@@ -109,17 +100,16 @@ export class GroupManager extends FFGFormApplication {
   return false;
 })
       .forEach((c) => {
-        try {
-          obligationRangeStart = this._addCharacterObligationDuty(c, obligationRangeStart, c.system.obligationlist, "obligations");
-          dutyRangeStart = this._addCharacterObligationDuty(c, dutyRangeStart, c.system.dutylist, "duties");
-          characters.push(c);
-          // obligationRangeStart = this._addCharacterObligations(c, obligationRangeStart);
-          // dutyRangeStart = this._addCharacterDuties(c, dutyRangeStart);
-        } catch (err) {
-          CONFIG.logger.warn(`Unable to add player (${c.name}) to obligation/duty table`, err);
-        }
+        characters.push(c);
       });
     }
+
+    // Rebuilt from nothing on every render. They used to be pushed into on each render
+    // and only emptied in the constructor -- and this window re-renders on every actor
+    // update -- so the tables grew a copy of every entry per render and kept characters
+    // who had since left the group, where the d100 could still land on them.
+    this.obligations = buildRangeTable(characters, "obligationlist");
+    this.duties = buildRangeTable(characters, "dutylist");
 
     const dPool = { light: game.settings.get("starwarsffg", "dPoolLight"), dark: game.settings.get("starwarsffg", "dPoolDark") };
     const initiative = CONFIG.Combat.initiative.formula;
@@ -244,26 +234,6 @@ export class GroupManager extends FFGFormApplication {
     game.settings.set("starwarsffg", "dPoolLight", formDPool.light);
     game.settings.set("starwarsffg", "dPoolDark", formDPool.dark);
     return formData;
-  }
-
-  _addCharacterObligationDuty(character, rangeStart, list, type) {
-    try {
-      Object.values(list).forEach((item) => {
-        let rangeEnd = rangeStart + parseInt(item.magnitude);
-        this[type].push({
-          playerId: character.id,
-          name: character.name,
-          type: item.type,
-          magnitude: item.magnitude,
-          rangeStart: rangeStart + 1,
-          rangeEnd: rangeEnd,
-        });
-        rangeStart = rangeEnd;
-      });
-    } catch (err) {
-      CONFIG.logger.warn(`Unable to add player ${character.name} `);
-    }
-    return rangeStart;
   }
 
   async _rollObligation() {
