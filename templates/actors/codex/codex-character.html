@@ -155,20 +155,30 @@
       </div></div>
     </div>
     {{#if (eq actor.type "character")}}
+    {{!-- Obligation and Duty show their total (baseline + entries), read-only, outside Edit
+          Mode, and their baseline, editable, in it: a disabled input is not submitted, so the
+          total is never saved back as a baseline. Morality and Conflict are set by hand. --}}
+    {{#if (or cdxOblig.show.obligation cdxOblig.show.duty cdxOblig.show.morality)}}
     <div class="cdx-bio-stats">
-      <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{cdxObligationLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.obligation.value" value="{{data.obligation.value}}" data-dtype="Number" /></div></div>
-      {{#if cdxShowForcePool}}
+      {{#if cdxOblig.show.obligation}}
+      <div class="cdx-panel cdx-bstat"{{#if cdxOblig.obligation.hint}} data-tooltip="{{cdxOblig.obligation.hint}}"{{/if}}><div class="cdx-panel-head">{{cdxObligationLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.obligation.value" value="{{cdxOblig.obligation.shown}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div></div>
+      {{/if}}
+      {{#if cdxOblig.show.duty}}
+      <div class="cdx-panel cdx-bstat"{{#if cdxOblig.duty.hint}} data-tooltip="{{cdxOblig.duty.hint}}"{{/if}}><div class="cdx-panel-head">{{cdxDutyLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.duty.value" value="{{cdxOblig.duty.shown}}" data-dtype="Number" {{#if disabled}}disabled{{/if}} /></div></div>
+      {{/if}}
+      {{#if cdxOblig.show.morality}}
       <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{cdxMoralityLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.morality.value" value="{{data.morality.value}}" data-dtype="Number" /></div></div>
       <div class="cdx-panel cdx-bstat"><div class="cdx-panel-head">{{cdxConflictLabel}}</div><div class="cdx-bstat-body"><input type="text" name="data.conflict.value" value="{{data.conflict.value}}" data-dtype="Number" /></div></div>
       {{/if}}
     </div>
+    {{/if}}
     <div class="cdx-float-soft-wrap"><div class="cdx-panel">
-      <div class="cdx-panel-head">{{cdxObligationLabel}} / {{cdxMoralityLabel}}</div>
+      <div class="cdx-panel-head">{{cdxObligationLabel}} / {{cdxDutyLabel}} / {{cdxMoralityLabel}}</div>
       <table class="cdx-table">
-        <thead><tr><th>{{localize "SWFFG.MotivationName"}}</th><th>{{localize "SWFFG.MotivationMagnitude"}}</th><th>{{localize "SWFFG.MotivationDescription"}}</th><th><a class="add-obligation"><i class="far fa-plus-square"></i></a></th></tr></thead>
+        <thead><tr><th>{{localize "SWFFG.MotivationName"}}</th><th>{{localize "SWFFG.CharacterCreator.Obligation.Label"}}</th><th>{{localize "SWFFG.MotivationMagnitude"}}</th><th>{{localize "SWFFG.MotivationDescription"}}</th><th><a class="add-obligation"><i class="far fa-plus-square"></i></a></th></tr></thead>
         <tbody>
         {{#each items as |item|}}{{#if (or (eq item.type "duty")(eq item.type "obligation")(eq item.type "morality"))}}
-          <tr><td>{{item.name}}</td><td>{{#if (eq item.system.type "morality")}}{{item.system.subtype}}{{else}}{{item.system.magnitude}}{{/if}}</td><td>{{{item.system.renderedDesc}}}</td><td class="cdx-tbl-ctl"><a class="edit-item" data-id="{{id}}" title="{{localize "SWFFG.Edit"}}" aria-label="{{localize "SWFFG.Edit"}}"><i class="fas fa-edit"></i></a><a class="remove-item" data-id="{{id}}" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a></td></tr>
+          <tr><td>{{item.name}}</td><td>{{lookup @root.cdxTrackLabels item.system.type}}</td><td>{{#if (eq item.system.type "morality")}}{{item.system.subtype}}{{else}}{{item.system.magnitude}}{{/if}}</td><td>{{{item.system.renderedDesc}}}</td><td class="cdx-tbl-ctl"><a class="edit-item" data-id="{{id}}" title="{{localize "SWFFG.Edit"}}" aria-label="{{localize "SWFFG.Edit"}}"><i class="fas fa-edit"></i></a><a class="remove-item" data-id="{{id}}" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a></td></tr>
         {{/if}}{{/each}}
         </tbody>
       </table>

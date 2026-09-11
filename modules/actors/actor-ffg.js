@@ -567,28 +567,11 @@ export class ActorFFG extends Actor {
       data.talentList = globalTalentList;
     }
 
-    if (data?.obligationlist && Object.keys(data.obligationlist).length > 0) {
-      let obligation = 0;
-      Object.keys(data.obligationlist).forEach((element) => {
-        const item = data.obligationlist[element];
-
-        if (parseInt(item.magnitude, 10)) {
-          obligation += parseInt(item.magnitude, 10);
-        }
-      });
-      data.obligations.value = obligation;
-    }
-
-    if (data?.dutylist && Object.keys(data.dutylist).length > 0) {
-      let duty = 0;
-      Object.keys(data.dutylist).forEach((element) => {
-        const item = data.dutylist[element];
-        if (parseInt(item.magnitude, 10)) {
-          duty += parseInt(item.magnitude, 10);
-        }
-      });
-      data.duty.value = duty;
-    }
+    // Obligation and Duty totals are NOT derived here. The stored value is the baseline, and
+    // the total (baseline + entry magnitudes) comes from helpers/obligation-tracks.js, which
+    // the sheets and the Group Manager call themselves -- a total set on system here is not in
+    // the schema, and the sheets' actor.toObject(false) would drop it. The old-list summing
+    // that used to sit here never ran (`data` is the Actor, not its system).
   }
 
   /**

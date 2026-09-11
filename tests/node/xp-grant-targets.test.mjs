@@ -18,7 +18,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { collectXpGrantTargets, defaultXpSelection } from "../../modules/helpers/xp-grant-targets.js";
+import { collectXpGrantTargets, defaultXpSelection, rememberXpExclusions } from "../../modules/helpers/xp-grant-targets.js";
 
 const user = (id, { isGM = false, active = false } = {}) => ({ id, isGM, active });
 
@@ -124,4 +124,42 @@ test("controlling tokens that are not player characters selects everyone rather 
   const selected = defaultXpSelection({ characters, controlledActorIds: ["stormtrooper"] });
 
   assert.deepEqual([...selected].sort(), ["dax", "mara"]);
+});
+
+// --- remembering the ticks between openings ---------------------------------
+
+test("characters left unticked last time start unticked", () => {
+  const characters = [{ id: "dax" }, { id: "mara" }, { id: "jax" }];
+
+  const selected = defaultXpSelection({ characters, excludedIds: ["mara"] });
+
+  assert.deepEqual([...selected].sort(), ["dax", "jax"]);
+});
+
+test("a character the dialog has not seen before starts ticked", () => {
+  const characters = [{ id: "dax" }, { id: "newcomer" }];
+
+  const selected = defaultXpSelection({ characters, excludedIds: ["dax"] });
+
+  assert.deepEqual([...selected], ["newcomer"]);
+});
+
+test("controlled tokens decide the ticks whatever was remembered", () => {
+  const characters = [{ id: "dax" }, { id: "mara" }];
+
+  const selected = defaultXpSelection({ characters, controlledActorIds: ["mara"], excludedIds: ["mara"] });
+
+  assert.deepEqual([...selected], ["mara"]);
+});
+
+test("what gets remembered is who was left unticked", () => {
+  const characters = [{ id: "dax" }, { id: "mara" }, { id: "jax" }];
+
+  assert.deepEqual(rememberXpExclusions({ characters, selectedIds: ["dax"] }), ["mara", "jax"]);
+});
+
+test("a remembered character missing from today's list stays remembered", () => {
+  const characters = [{ id: "dax" }];
+
+  assert.deepEqual(rememberXpExclusions({ characters, selectedIds: ["dax"], previous: ["retired", "dax"] }), ["retired"]);
 });

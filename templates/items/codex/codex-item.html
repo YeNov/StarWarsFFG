@@ -15,6 +15,18 @@
 
   <div class="cdx-iwmain">
     <img class="profile-img cdx-item-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
+    {{#if (eq item.type "obligation")}}
+    {{!-- An Obligation, Duty or Morality entry: the classic sheet's Type / Magnitude (or, for
+          Morality, Subtype) fields. The item sheet supplies the options for both lists. --}}
+    <div class="cdx-istats">
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.CharacterCreator.Obligation.Label"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.type">{{#selectFfg data.type}}{{#each data.obligationTypes as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+      {{#if (eq data.type "morality")}}
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.CharacterCreator.Obligation.SubType"}}</span><select class="cdx-istat-v cdx-istat-sel" name="data.subtype">{{#selectFfg data.subtype}}<option value=""></option>{{#each data.subtypes as |t|}}<option value="{{t.value}}">{{localize t.label}}</option>{{/each}}{{/selectFfg}}</select></div>
+      {{else}}
+      <div class="cdx-istat"><span class="cdx-istat-k">{{localize "SWFFG.CharacterCreator.Obligation.Magnitude"}}</span><input class="cdx-istat-v cdx-num" type="text" name="data.magnitude" value="{{data.magnitude}}" data-dtype="Number" /></div>
+      {{/if}}
+    </div>
+    {{/if}}
     {{#if data.itemmodifier.length}}
     <div class="cdx-iquals">{{#each data.itemmodifier as |q|}}<span class="cdx-iqual"{{#if q.system.description}} data-tooltip="{{q.system.description}}"{{/if}}>{{q.name}}{{#if q.system.rank}} {{q.system.rank}}{{/if}}</span>{{/each}}</div>
     {{/if}}

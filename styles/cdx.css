@@ -1059,6 +1059,8 @@
 .cdx .cdx-bio-stats .cdx-panel { flex:1; min-width:0; margin-bottom:0; }
 .cdx .cdx-bstat-body { padding:8px 10px; text-align:center; }
 .cdx .cdx-bstat-body input { width:100%; text-align:center; background:transparent; border:none; font-family:"Orbitron"; font-weight:900; font-size:24px; color:var(--cdx-ink); padding:0; }
+/* Obligation/Duty outside Edit Mode show their total in a disabled input; keep it legible, as the thresholds do. */
+.cdx .cdx-bstat-body input[disabled] { color:var(--cdx-ink); opacity:.9; }
 .cdx .cdx-table { width:100%; border-collapse:collapse; }
 .cdx .cdx-table th { background:var(--cdx-accent); color:#fff; font-family:"Orbitron"; font-size:9px; letter-spacing:.5px; text-transform:uppercase; padding:5px 8px; text-align:left; }
 .cdx .cdx-table td { padding:5px 8px; border-bottom:1px solid var(--cdx-line); font-size:12px; }

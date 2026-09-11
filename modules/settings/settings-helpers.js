@@ -9,6 +9,7 @@ import {
   codexSettings,
 } from "./ui-settings.js";
 import { refreshOpenCodexSheets } from "../actors/codex-sheets.js";
+import { refreshGroupManager } from "../groupmanager-ffg.js";
 
 export default class SettingsHelpers {
   // Initialize System Settings after the Init Hook
@@ -203,10 +204,7 @@ export default class SettingsHelpers {
         owned: game.i18n.localize("SWFFG.SettingsPCListModeOwned"),
       },
       onChange: (rule) => {
-        const groupmanager = canvas?.groupmanager?.window;
-        if (groupmanager) {
-          groupmanager.render();
-        }
+        refreshGroupManager();
       },
     });
 
@@ -218,10 +216,7 @@ export default class SettingsHelpers {
       config: false,
       type: Number,
       onChange: (rule) => {
-        const groupmanager = canvas?.groupmanager?.window;
-        if (groupmanager) {
-          groupmanager.render();
-        }
+        refreshGroupManager();
         let destinyLight = game.settings.get("starwarsffg", "dPoolLight");
         document.getElementById("destinyLight").setAttribute("data-value", destinyLight);
         document.getElementById("destinyLight").innerHTML = destinyLight + `<span>${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-light"))}</span>`;
@@ -234,10 +229,7 @@ export default class SettingsHelpers {
       config: false,
       type: Number,
       onChange: (rule) => {
-        const groupmanager = canvas?.groupmanager?.window;
-        if (groupmanager) {
-          groupmanager.render();
-        }
+        refreshGroupManager();
         let destinyDark = game.settings.get("starwarsffg", "dPoolDark");
         document.getElementById("destinyDark").setAttribute("data-value", destinyDark);
         document.getElementById("destinyDark").innerHTML = destinyDark + `<span>${game.i18n.localize(game.settings.get("starwarsffg", "destiny-pool-dark"))}</span>`;
@@ -490,6 +482,16 @@ export default class SettingsHelpers {
       config: false,
       default: false,
       type: Boolean,
+    });
+
+    // The characters left unticked in the Group Manager's Grant XP dialog, so the dialog
+    // reopens the way it was left (see rememberXpExclusions). Per browser: it is one GM's
+    // working state, not world data. An array, stored the way arrayCrewRoles is.
+    game.settings.register("starwarsffg", "grantXpExcluded", {
+      scope: "client",
+      config: false,
+      default: [],
+      type: Object,
     });
 
   }

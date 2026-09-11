@@ -120,3 +120,21 @@ test("no active GM warns without writing; subsequent actions use the new active 
   assert.equal(t.values[DESTINY_LIGHT], 0);
   assert.equal(t.values[DESTINY_DARK], 1);
 });
+
+test("a player cannot reset the pool, directly or through a forwarded request", async () => {
+  const t = table(2);
+  assert.equal(await t.submit("player", { type: "destiny-reset" }), false);
+  await t.receive("gmA", { destinyRequest: { type: "destiny-reset" } }, "player");
+  assert.equal(t.writes.length, 0);
+  assert.equal(t.values[DESTINY_LIGHT], 2);
+});
+
+test("a second GM's reset is written by the active GM", async () => {
+  const t = table(2);
+  assert.equal(await t.submit("gmB", { type: "destiny-reset" }), true);
+  await t.delivered();
+  assert.equal(t.values[DESTINY_LIGHT], 0);
+  assert.equal(t.values[DESTINY_DARK], 0);
+  assert.ok(t.writes.length > 0 && t.writes.every((w) => w.writer === "gmA"));
+  assert.equal(t.results[0].request.requestedBy, "gmB");
+});

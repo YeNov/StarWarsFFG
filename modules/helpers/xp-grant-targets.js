@@ -48,19 +48,43 @@ export function collectXpGrantTargets({ actors, users, includeGMCharacters = fal
 /**
  * The boxes that start ticked.
  *
- * Everyone, unless tokens are controlled when the dialog opens -- then just the
- * characters those tokens belong to. Controlling tokens that are not player characters
- * (a squad of stormtroopers, say) falls back to everyone, because opening the dialog on
- * an empty selection and granting nothing is never what was meant.
+ * Controlled tokens win: when any of them belong to listed characters, just those
+ * characters are ticked -- a one-off "pay these" that ignores what was remembered.
+ * Otherwise everyone is ticked except the characters left unticked last time
+ * (`excludedIds`). Remembering who was LEFT OUT, rather than who was ticked, means a
+ * character created since starts ticked, so nobody is quietly dropped from the XP.
+ * Controlling tokens that are not player characters (a squad of stormtroopers, say)
+ * counts as controlling none, because opening on an empty selection is never what was meant.
  *
  * @param {object} args
  * @param {Array<{id: string}>} args.characters       Rows from `collectXpGrantTargets`.
  * @param {Array<string>} [args.controlledActorIds]   Base actor ids of the controlled tokens.
+ * @param {Array<string>} [args.excludedIds]          Characters left unticked last time.
  * @returns {Set<string>} Ids to tick.
  */
-export function defaultXpSelection({ characters, controlledActorIds = [] }) {
+export function defaultXpSelection({ characters, controlledActorIds = [], excludedIds = [] }) {
   const all = characters.map((character) => character.id);
   const controlled = new Set(controlledActorIds);
   const narrowed = all.filter((id) => controlled.has(id));
-  return new Set(narrowed.length ? narrowed : all);
+  if (narrowed.length) return new Set(narrowed);
+  const excluded = new Set(excludedIds);
+  return new Set(all.filter((id) => !excluded.has(id)));
+}
+
+/**
+ * What to remember after the boxes change: every listed character left unticked, plus
+ * any remembered character who is not in today's list -- a character whose player lost
+ * ownership for a while should still be left out when they come back.
+ *
+ * @param {object} args
+ * @param {Array<{id: string}>} args.characters    Rows from `collectXpGrantTargets`.
+ * @param {Array<string>} args.selectedIds         The ticked characters.
+ * @param {Array<string>} [args.previous]          What was remembered before.
+ * @returns {Array<string>} Ids to remember as left unticked.
+ */
+export function rememberXpExclusions({ characters, selectedIds, previous = [] }) {
+  const listed = new Set(characters.map((character) => character.id));
+  const selected = new Set(selectedIds);
+  const unlisted = previous.filter((id) => !listed.has(id));
+  return [...unlisted, ...characters.map((character) => character.id).filter((id) => !selected.has(id))];
 }
