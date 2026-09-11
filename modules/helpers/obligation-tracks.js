@@ -85,6 +85,30 @@ export function trackVisibility(character, { editMode = false, forceUser = false
 }
 
 /**
+ * Obligation and Duty as a character sheet's boxes hold them. Outside Edit Mode a box holds
+ * the TOTAL and the sheet renders it read-only; in Edit Mode it holds the BASELINE -- the
+ * stored value -- which is what gets edited. Keeping the total out of an editable input is
+ * what stops it being saved back as a new baseline and counting the entries twice.
+ * @param {Actor} character
+ * @param {object} [options]
+ * @param {boolean} [options.editMode]   The viewing user owns the character's Edit Mode.
+ * @param {boolean} [options.forceUser]  Always show Morality (the Codex sheet's existing rule).
+ * @returns {{obligation: object, duty: object, show: {obligation: boolean, duty: boolean, morality: boolean}}}
+ *   each track as `{baseline, total, shown, fromEntries}`
+ */
+export function sheetTracks(character, { editMode = false, forceUser = false } = {}) {
+  const track = (key) => {
+    const { baseline, total } = characterTrack(character, key);
+    return { baseline, total, shown: editMode ? baseline : total, fromEntries: total - baseline };
+  };
+  return {
+    obligation: track("obligation"),
+    duty: track("duty"),
+    show: trackVisibility(character, { editMode, forceUser }),
+  };
+}
+
+/**
  * One character's slices of a track's d100 table. The baseline has to be accounted for
  * as well as the entries:
  *  - an old import's list names the baseline's slices, as long as it still adds up to it;

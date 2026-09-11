@@ -28,6 +28,7 @@ import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
+import { sheetTracks } from "../helpers/obligation-tracks.js";
 import {itemPillHover} from "../swffg-main.js";
 import {
   findOwnedTalentSourceId,
@@ -379,11 +380,7 @@ export class ActorSheetFFG extends FFGActorSheet {
         data.data.general.enrichedNotes = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.general?.notes) || "";
         data.data.general.enrichedFeatures = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.general?.features) || "";
         data.maxAttribute = game.settings.get("starwarsffg", "maxAttribute");
-        data.obligationItems = {
-          obligations: data.items.filter(i => i.system?.type === "obligation"),
-          duties: data.items.filter(i => i.system?.type === "duty"),
-          moralities: data.items.filter(i => i.system?.type === "morality"),
-        };
+        data.obligationTracks = ActorSheetFFG.obligationTrackContext(this.actor);
         break;
       case "vehicle":
         data.data.enrichedBio = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.biography);
@@ -469,6 +466,20 @@ export class ActorSheetFFG extends FFGActorSheet {
     data.effects = (this.actor.system.effects ?? []).map(EffectHelpers.transformEffects);
 
     return data;
+  }
+
+  /**
+   * Obligation / Duty / Morality boxes for a character sheet (see sheetTracks): the total
+   * outside Edit Mode, the baseline inside it. The templates disable the Obligation and Duty
+   * inputs outside Edit Mode, and a disabled input is left out of the submitted form, so the
+   * total is never saved back as a baseline. Shared with the Codex sheet.
+   * @param {Actor} actor
+   * @param {object} [options]
+   * @param {boolean} [options.forceUser]  Always show Morality (the Codex sheet's existing rule).
+   */
+  static obligationTrackContext(actor, { forceUser = false } = {}) {
+    // The same predicate that decides whether the rest of the sheet is editable.
+    return sheetTracks(actor, { editMode: ActorHelpers.isEditModeOwner(actor), forceUser });
   }
 
   /**

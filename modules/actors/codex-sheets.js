@@ -1302,8 +1302,11 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       game.settings.get("starwarsffg", settingKey) || game.i18n.localize(i18nKey);
     ctx.cdxCreditsLabel = cdxLabel("labelCredits", "SWFFG.DescriptionCredits");
     ctx.cdxObligationLabel = cdxLabel("labelObligation", "SWFFG.DescriptionObligation");
+    ctx.cdxDutyLabel = cdxLabel("labelDuty", "SWFFG.DescriptionDuty");
     ctx.cdxMoralityLabel = cdxLabel("labelMorality", "SWFFG.DescriptionMorality");
     ctx.cdxConflictLabel = cdxLabel("labelConflict", "SWFFG.DescriptionConflict");
+    // The entries list's Type column, keyed by an entry's system.type.
+    ctx.cdxTrackLabels = { obligation: ctx.cdxObligationLabel, duty: ctx.cdxDutyLabel, morality: ctx.cdxMoralityLabel };
     try {
       ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
       // Header pill stacks (specializations / force powers / signature abilities):
@@ -1326,6 +1329,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       const sigItems = cdxStack("signatureability");
       ctx.cdxSigs = sigItems; ctx.cdxSigCount = sigItems.length; ctx.cdxSigExtra = Math.max(0, sigItems.length - 1);
     } catch (e) { ctx.cdxCritCount = 0; }
+    // Obligation / Duty / Morality boxes: the same rules as the classic sheet (total outside
+    // Edit Mode, baseline inside it), except that a Force user keeps the Morality box this
+    // sheet has always shown them. The hint explains a box whose entries add to its baseline.
+    if (this.actor?.type === "character") {
+      const tracks = ActorSheetFFG.obligationTrackContext(this.actor, { forceUser: !!ctx.cdxShowForcePool });
+      for (const key of ["obligation", "duty"]) {
+        const t = tracks[key];
+        t.hint = t.fromEntries ? game.i18n.format("SWFFG.TrackBreakdown", { baseline: t.baseline, entries: t.fromEntries }) : "";
+      }
+      ctx.cdxOblig = tracks;
+    }
     ctx.cdxTracks = {};
     try {
       for (const stat of ["wounds", "strain"]) {

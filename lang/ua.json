@@ -311,6 +311,7 @@
   "SWFFG.MoralityTriggerHint": "Кидок d100: Моральність активується в персонажа, чия Моральність найближча до результату.",
   "SWFFG.OneRollTriggers": "Один кидок на все",
   "SWFFG.OneRollTriggersHint": "Один кидок d100 одразу для Таблиці Боргів, Таблиці Обов'язків і списку Моральності.",
+  "SWFFG.TrackBreakdown": "Базове значення {baseline} + записи {entries}",
   "SWFFG.Range": "Дистанція",
   "SWFFG.Triggered": "Активовано",
   "SWFFG.For": "Для",

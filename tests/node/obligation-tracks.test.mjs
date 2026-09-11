@@ -18,7 +18,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  entryMagnitude, characterTrack, trackVisibility,
+  entryMagnitude, characterTrack, trackVisibility, sheetTracks,
   buildTrackTable, matchRange, buildMoralityList, closestMorality,
 } from "../../modules/helpers/obligation-tracks.js";
 
@@ -92,6 +92,30 @@ test("Edit Mode shows every box, so a baseline can be set from nothing", () => {
 
 test("a Force user sees Morality even before it has been set", () => {
   assert.equal(trackVisibility(pc("dax", "Dax"), { forceUser: true }).morality, true);
+});
+
+// --- what a sheet's box holds ----------------------------------------------
+
+test("outside Edit Mode a box holds the total", () => {
+  const dax = pc("dax", "Dax", { obligation: 10, items: [entry("Debt", "obligation", 5)] });
+
+  assert.equal(sheetTracks(dax).obligation.shown, 15);
+});
+
+test("in Edit Mode a box holds the baseline, which is what gets edited", () => {
+  const dax = pc("dax", "Dax", { obligation: 10, items: [entry("Debt", "obligation", 5)] });
+
+  assert.equal(sheetTracks(dax, { editMode: true }).obligation.shown, 10);
+});
+
+test("a box reports how much its entries add, for the sheet's hint", () => {
+  const dax = pc("dax", "Dax", { duty: 10, items: [entry("Recon", "duty", 5), entry("Sabotage", "duty", 3)] });
+
+  assert.deepEqual(sheetTracks(dax).duty, { baseline: 10, total: 18, shown: 18, fromEntries: 8 });
+});
+
+test("the boxes a sheet draws follow Edit Mode too", () => {
+  assert.deepEqual(sheetTracks(pc("dax", "Dax"), { editMode: true }).show, { obligation: true, duty: true, morality: true });
 });
 
 // --- the Group Manager's d100 tables ---------------------------------------
