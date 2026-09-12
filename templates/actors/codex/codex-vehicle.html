@@ -69,16 +69,27 @@
       </div>
     </div>
 
-    {{!-- Defence: 4-zone shield diagram (Fore/Aft/Port/Starboard around a top-view image) --}}
+    {{!-- Defence: a shield chip per zone the craft actually has, around a top-view
+          image. Silhouette 4 and below defend fore and aft only, so only those two
+          chips are built for them; the override picker in the head forces either
+          count. A chip that is not rendered submits nothing, so the rating of a
+          zone that is out of play is left exactly as it was. --}}
     <div class="cdx-float-soft-wrap">
     <div class="cdx-panel cdx-veh-defence">
-      <div class="cdx-panel-head">Defence · 4-Zone</div>
+      <div class="cdx-panel-head">
+        <span>Defence · {{cdxVehZoneCount}}-Zone</span>
+        {{#unless disabled}}
+        <select class="cdx-veh-zone-mode" name="data.stats.defenceZones" title="{{localize "SWFFG.VehicleDefenseZone.ModeHint"}}">
+          {{selectOptions cdxVehZoneChoices selected=data.stats.defenceZones localize=true}}
+        </select>
+        {{/unless}}
+      </div>
       <div class="cdx-veh-zones">
         <div class="cdx-veh-radar"><img class="cdx-veh-radar-img" src="{{data.silhouetteImage}}" data-edit="system.silhouetteImage" title="Top view" /></div>
-        <div class="cdx-zone fore">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.fore.cur maxValue=cdxVehShields.fore.max absPath="flags.starwarsffg.codexShields.fore" maxPath="stats.shields.fore" fallback=cdxVehShields.fore.max lockCur=true label=(localize "SWFFG.VehicleDefenseFore") noClamp=true disabled=disabled}}</div>
-        <div class="cdx-zone aft">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.aft.cur maxValue=cdxVehShields.aft.max absPath="flags.starwarsffg.codexShields.aft" maxPath="stats.shields.aft" fallback=cdxVehShields.aft.max lockCur=true label=(localize "SWFFG.VehicleDefenseAft") noClamp=true disabled=disabled}}</div>
-        <div class="cdx-zone port">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.port.cur maxValue=cdxVehShields.port.max absPath="flags.starwarsffg.codexShields.port" maxPath="stats.shields.port" fallback=cdxVehShields.port.max lockCur=true label=(localize "SWFFG.VehicleDefensePort") noClamp=true disabled=disabled}}</div>
-        <div class="cdx-zone stbd">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.starboard.cur maxValue=cdxVehShields.starboard.max absPath="flags.starwarsffg.codexShields.starboard" maxPath="stats.shields.starboard" fallback=cdxVehShields.starboard.max lockCur=true label=(localize "SWFFG.VehicleDefenseStarboard") noClamp=true disabled=disabled}}</div>
+        {{#if cdxVehShields.fore}}<div class="cdx-zone fore">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.fore.cur maxValue=cdxVehShields.fore.max absPath="flags.starwarsffg.codexShields.fore" maxPath="stats.shields.fore" fallback=cdxVehShields.fore.max lockCur=true label=(localize "SWFFG.VehicleDefenseFore") noClamp=true disabled=disabled}}</div>{{/if}}
+        {{#if cdxVehShields.aft}}<div class="cdx-zone aft">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.aft.cur maxValue=cdxVehShields.aft.max absPath="flags.starwarsffg.codexShields.aft" maxPath="stats.shields.aft" fallback=cdxVehShields.aft.max lockCur=true label=(localize "SWFFG.VehicleDefenseAft") noClamp=true disabled=disabled}}</div>{{/if}}
+        {{#if cdxVehShields.port}}<div class="cdx-zone port">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.port.cur maxValue=cdxVehShields.port.max absPath="flags.starwarsffg.codexShields.port" maxPath="stats.shields.port" fallback=cdxVehShields.port.max lockCur=true label=(localize "SWFFG.VehicleDefensePort") noClamp=true disabled=disabled}}</div>{{/if}}
+        {{#if cdxVehShields.starboard}}<div class="cdx-zone stbd">{{> "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html" cur=cdxVehShields.starboard.cur maxValue=cdxVehShields.starboard.max absPath="flags.starwarsffg.codexShields.starboard" maxPath="stats.shields.starboard" fallback=cdxVehShields.starboard.max lockCur=true label=(localize "SWFFG.VehicleDefenseStarboard") noClamp=true disabled=disabled}}</div>{{/if}}
       </div>
     </div>
     </div>

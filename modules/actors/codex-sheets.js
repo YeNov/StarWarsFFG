@@ -32,6 +32,7 @@ import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
 import { vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings } from "../helpers/vehicle-hardpoints.js";
+import { defenceZoneModeChoices, vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 import ActorHelpers from "../helpers/actor-helpers.js";
 
@@ -1495,14 +1496,23 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         // has touched shows rating-of-rating. The steppers move only the flag, so
         // re-angling shields never edits the ship's stats and an attachment's bonus
         // still shows up in the rating.
+        //
+        // WHICH zones is the silhouette's call, not this loop's: a craft of
+        // silhouette 4 or below defends fore and aft only, unless the ship's own
+        // override says otherwise. Only the listed zones get a context entry, so
+        // the template's chips fall away with them -- and a chip that is not
+        // rendered submits nothing, leaving the rating of a zone that is out of
+        // play exactly as it was.
         const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
         ctx.cdxVehShields = {};
-        for (const zone of ["fore", "aft", "port", "starboard"]) {
+        for (const { key: zone } of vehicleDefenceZones(this.actor)) {
           const rating = Math.trunc(Number(s.shields?.[zone]) || 0);
           const stored = shieldFlags?.[zone];
           const cur = stored == null ? rating : Math.max(0, Math.trunc(Number(stored) || 0));
           ctx.cdxVehShields[zone] = { cur, max: rating };
         }
+        ctx.cdxVehZoneCount = Object.keys(ctx.cdxVehShields).length;
+        ctx.cdxVehZoneChoices = defenceZoneModeChoices();
       } catch (e) {
         // Malformed legacy data aborted the richer vehicle context. Every RATING in this
         // fallback must come from stored source data, never a fabricated zero: the hull and
@@ -1516,6 +1526,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         ctx.cdxVehCritCount = 0;
         ctx.cdxVehSpeedPct = 0;
         ctx.cdxVehCost = "0";
+        // All four zones here, deliberately, whatever the silhouette says. This
+        // path runs on data that already failed to prepare, so narrowing it could
+        // drop a zone whose rating is real, and these chips are editable inputs.
         const shieldRatings = vehicleShieldSourceRatings(this.actor);
         const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
         ctx.cdxVehShields = {};
@@ -1524,6 +1537,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           const cur = stored == null ? shieldRatings[zone] : Math.max(0, Math.trunc(Number(stored) || 0));
           ctx.cdxVehShields[zone] = { cur, max: shieldRatings[zone] };
         }
+        ctx.cdxVehZoneCount = 4;
+        ctx.cdxVehZoneChoices = defenceZoneModeChoices();
       }
     }
     return ctx;
