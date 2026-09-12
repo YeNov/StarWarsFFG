@@ -29,6 +29,7 @@ import {get_dice_pool} from "../helpers/dice-helpers.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
 import { sheetTracks } from "../helpers/obligation-tracks.js";
+import { defenceZoneModeChoices, vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import {itemPillHover} from "../swffg-main.js";
 import {
   findOwnedTalentSourceId,
@@ -384,6 +385,15 @@ export class ActorSheetFFG extends FFGActorSheet {
         break;
       case "vehicle":
         data.data.enrichedBio = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.biography);
+        // Which defence zones this craft actually has. Silhouette 4 and below
+        // defend fore and aft only, unless system.stats.defenceZones overrides it.
+        // A zone that is out of play is simply not rendered: its rating stays in
+        // the data untouched, and an absent input is absent from the submitted
+        // form, so nothing overwrites it.
+        data.defenceZoneShown = Object.fromEntries(
+          vehicleDefenceZones(this.actor).map((zone) => [zone.key, true]),
+        );
+        data.defenceZoneChoices = defenceZoneModeChoices();
         // add the crew to the items of the vehicle
         data.crew = [];
         // look up the flag data

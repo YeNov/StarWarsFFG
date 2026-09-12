@@ -3546,6 +3546,25 @@ img {
   position: relative;
 }
 
+/* Defence-zone override picker: sits opposite the block title, in the corner the
+   zone values leave free. The four values are positioned absolutely around the
+   silhouette, so a craft that shows only fore and aft needs no other change. */
+.starwarsffg.sheet.actor .vehicle .defense-block .defense-mode {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.starwarsffg.sheet.actor .vehicle .defense-block .defense-mode select {
+  width: auto;
+  max-width: 110px;
+  height: 20px;
+  font-size: 10px;
+}
 .starwarsffg.sheet.actor .vehicle .defense-block .defense-block-title {
   position: absolute;
   top: 0;

@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 
 import {
   DEFENCE_ZONE_MODES,
+  defenceZoneModeChoices,
   ZONE_ORDER,
   resolveDefenceTarget,
   vehicleDefenceZoneMode,
@@ -137,6 +138,17 @@ test("every mode the vehicle schema offers is one the resolver understands", () 
   }
   assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 6, "auto")), "four");
   assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 2, "auto")), "two");
+});
+
+test("the override picker offers every mode, keyed for the caller to localise", () => {
+  // Both sheets feed this straight to Handlebars `selectOptions ... localize=true`,
+  // so the values are localisation KEYS -- this module never touches `game`.
+  assert.deepEqual(defenceZoneModeChoices(), {
+    auto: "SWFFG.VehicleDefenseZone.ModeAuto",
+    two: "SWFFG.VehicleDefenseZone.ModeTwo",
+    four: "SWFFG.VehicleDefenseZone.ModeFour",
+  });
+  assert.deepEqual(Object.keys(defenceZoneModeChoices()), DEFENCE_ZONE_MODES);
 });
 
 test("a small craft overridden to four defends in all four zones", () => {

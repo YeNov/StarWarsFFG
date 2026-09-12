@@ -48,6 +48,24 @@ export const TWO_ZONE_KEYS = ["fore", "aft"];
 export const DEFENCE_ZONE_MODES = ["auto", "two", "four"];
 
 /**
+ * The override picker's options, as `{mode: localisation key}`.
+ *
+ * Both vehicle sheets hand this straight to Handlebars `selectOptions ...
+ * localize=true`, so the values are KEYS: this module must not touch `game`.
+ * Building it here rather than in each sheet is what stops the two drifting.
+ *
+ * @returns {Record<string, string>}
+ */
+export function defenceZoneModeChoices() {
+  return Object.fromEntries(
+    DEFENCE_ZONE_MODES.map((mode) => [
+      mode,
+      `SWFFG.VehicleDefenseZone.Mode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
+    ]),
+  );
+}
+
+/**
  * A vehicle's defence zones, ordered for display and narrowed by the silhouette rule.
  * @param {object} actor a prepared vehicle Actor (or any object with `system.stats.shields`).
  * @returns {Array<{key: string, value: number}>} empty for missing or malformed data.
