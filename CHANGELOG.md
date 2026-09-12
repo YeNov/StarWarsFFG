@@ -1,5 +1,8 @@
 `Unreleased`
 
+* Fixed — **Codex speed, shield and committed Force-dice buttons now preserve rapid clicks from multiple players.** Changes appear immediately on your sheet while one elected client saves each adjustment; acknowledgments reconcile the display without saving stale form values over newer changes.
+  * Reload Foundry on every connected client so all players use the new button protocol.
+
 * Added — **Failure and Threat status effects** ([#83](https://github.com/YeNov/StarWarsFFG/pull/83)), for the next check or for the rest of the combat, alongside the existing Boost, Setback, Success and Advantage ones in the token HUD. Each adds one Failure or Threat to every check the character makes; the next-check version is removed once they roll, and the combat version once they leave the combat or it ends.
 * Changed — **the token HUD's dice statuses are grouped** ([#83](https://github.com/YeNov/StarWarsFFG/pull/83)) so they're easier to find: first the dice added to the next check, then the dice added for this combat, then the fixed results (Success, Advantage, Failure, Threat) for the next check and for this combat.
 * Changed — **the Success and Advantage "This Combat" icons now leave a thin gap around their arrow** ([#83](https://github.com/YeNov/StarWarsFFG/pull/83)), as the new Failure and Threat ones do, so the arrow stays distinct from the symbol on the dark token HUD.

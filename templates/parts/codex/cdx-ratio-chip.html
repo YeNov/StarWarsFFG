@@ -1,8 +1,8 @@
 {{!--
   Reusable "ratio chip": a circular chip showing current / max with −/+ steppers.
   Hash params:
-    path      relative stat path, e.g. "stats.speed.value". The steppers write
-              system.<path>; the edit-mode current input binds data.<path>.
+    path      relative stat path, e.g. "stats.speed.value". Steppers and the
+              unnamed current input send deltas through the authority bridge.
     absPath   full document path for the CURRENT value, used verbatim instead of
               system.<path> (e.g. "flags.starwarsffg.codexShields.fore" for the
               vehicle shield zones, whose stat field holds the rating instead).
@@ -16,16 +16,16 @@
     variant   extra chip class (e.g. "force") for variant styling.
     align     alignment key for the Force background tint. Optional.
     ratioBg,ratioPct   tint the box white→red-orange by ratioPct (0–100). Optional.
-    noClamp   when true the steppers don't cap at max (only floor at 0).
+    noClamp   describes an uncapped chip; the authority enforces live bounds.
     lockCur,lockMax   when true the value / max are never editable (steppers only).
     disabled  locked (not edit mode) → text; edit mode → inputs (unless locked).
   The −/+ buttons carry data-cdx-path (absPath, else system.<path>), data-cdx-max
   and data-cdx-fallback so a single handler (.cdx-ratio-step) drives any ratio chip.
 --}}
-<div class="cdx-chip derived cdx-ratio {{variant}}{{#if ratioBg}} cdx-ratio-hot{{/if}}{{#if align}} cdx-align-{{align}}{{/if}}">
+<div class="cdx-chip derived cdx-ratio {{variant}}{{#if ratioBg}} cdx-ratio-hot{{/if}}{{#if align}} cdx-align-{{align}}{{/if}}" data-cdx-path="{{#if absPath}}{{absPath}}{{else}}system.{{path}}{{/if}}">
   <div class="cdx-chip-box static"{{#if ratioBg}} style="background:color-mix(in srgb, #e8451c {{ratioPct}}%, var(--cdx-paper2))"{{/if}}>
     <button type="button" class="cdx-ratio-step minus" data-dir="-1" data-cdx-path="{{#if absPath}}{{absPath}}{{else}}system.{{path}}{{/if}}" data-cdx-fallback="{{fallback}}"{{#unless noClamp}} data-cdx-max="{{maxValue}}"{{/unless}} title="{{label}}"><i class="fas fa-minus"></i></button>
-    {{#if disabled}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}{{#if lockCur}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}<input class="cdx-ratio-c" type="text" name="data.{{path}}" value="{{cur}}" data-dtype="Number" />{{/if}}{{/if}}
+    {{#if disabled}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}{{#if lockCur}}<span class="cdx-ratio-c">{{cur}}</span>{{else}}<input class="cdx-ratio-c" type="text" data-cdx-edit-path="system.{{path}}" value="{{cur}}" data-dtype="Number" />{{/if}}{{/if}}
     {{#unless noMax}}<span class="cdx-ratio-t">of {{#if disabled}}{{maxValue}}{{else}}{{#if lockMax}}{{maxValue}}{{else}}<input class="cdx-ratio-m" type="text" name="data.{{maxPath}}" value="{{maxValue}}" data-dtype="Number" />{{/if}}{{/if}}</span>{{/unless}}
     <button type="button" class="cdx-ratio-step plus" data-dir="1" data-cdx-path="{{#if absPath}}{{absPath}}{{else}}system.{{path}}{{/if}}" data-cdx-fallback="{{fallback}}"{{#unless noClamp}} data-cdx-max="{{maxValue}}"{{/unless}} title="{{label}}"><i class="fas fa-plus"></i></button>
   </div>
