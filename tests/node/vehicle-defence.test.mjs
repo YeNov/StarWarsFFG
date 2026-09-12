@@ -8,6 +8,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  DEFENCE_ZONE_MODES,
   ZONE_ORDER,
   resolveDefenceTarget,
   vehicleDefenceZoneMode,
@@ -125,6 +126,17 @@ test("a craft with no readable silhouette is not treated as small", () => {
 
 test("a literal silhouette 0 is readable and does narrow", () => {
   assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 0)), "two");
+});
+
+test("every mode the vehicle schema offers is one the resolver understands", () => {
+  // Both vehicle sheets build their picker from this list, so a mode offered
+  // there but unknown to the resolver would be selectable and silently do nothing.
+  assert.deepEqual(DEFENCE_ZONE_MODES, ["auto", "two", "four"]);
+  for (const mode of DEFENCE_ZONE_MODES) {
+    assert.ok(["two", "four"].includes(vehicleDefenceZoneMode(craft(FOUR(), 6, mode))), mode);
+  }
+  assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 6, "auto")), "four");
+  assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 2, "auto")), "two");
 });
 
 test("a small craft overridden to four defends in all four zones", () => {

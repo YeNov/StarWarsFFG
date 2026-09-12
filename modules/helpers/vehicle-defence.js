@@ -37,6 +37,17 @@ export const TWO_ZONE_SILHOUETTE_MAX = 4;
 export const TWO_ZONE_KEYS = ["fore", "aft"];
 
 /**
+ * The per-vehicle override, in the order the sheets offer it. `auto` defers to
+ * the silhouette; the other two settle the question outright.
+ *
+ * Both vehicle sheets build their picker from this list, so it lives beside the
+ * resolver that honours it. The schema deliberately does NOT constrain the stored
+ * string to these values: a stray write from a macro or a module should fall
+ * through to `auto` here, not fail validation and reject the whole update.
+ */
+export const DEFENCE_ZONE_MODES = ["auto", "two", "four"];
+
+/**
  * A vehicle's defence zones, ordered for display and narrowed by the silhouette rule.
  * @param {object} actor a prepared vehicle Actor (or any object with `system.stats.shields`).
  * @returns {Array<{key: string, value: number}>} empty for missing or malformed data.
