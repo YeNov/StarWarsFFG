@@ -3936,8 +3936,10 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   box-shadow: 0 0 0 1px #fff;
 }
 body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/success.png"],
-body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/advantage.png"] {
-  /* Success and Advantage are black glyphs (invisible on dark): recolour them to
+body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/advantage.png"],
+body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/failure.png"],
+body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/threat.png"] {
+  /* Success, Advantage, Failure and Threat are black glyphs (invisible on dark): recolour them to
      solid white in the DARK scheme only (body.theme-dark = the Applications scheme
      that governs the HUD). In the light scheme they keep their original black via
      the true-colour rule above. */
