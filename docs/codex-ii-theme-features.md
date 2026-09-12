@@ -238,7 +238,7 @@ The Codex vehicle sheet includes:
 - Speed uses a ratio chip with a white-to-red-orange background based on speed/max.
 - Hull Trauma and System Strain panels with steppers and live pips/bar tracks.
 - Systems panel with hyperdrive, backup hyperdrive, sensor range, consumables, navicomputer, crew count, passenger capacity, customization hardpoints, and space-vehicle flag.
-- Four-zone defense panel with a top-view silhouette image and fore/aft/port/starboard shield ratio chips.
+- Defence panel with a top-view silhouette image and a shield ratio chip per zone the craft has: four for silhouette 5 and up, fore and aft only for silhouette 4 and below. The panel head counts them, and carries a Zones override (Auto/Two/Four) in Edit Mode.
 - Shield chips use the reusable ratio-chip component without a max.
 - Weapon Systems tab for ship weapons.
 - Attachments tab for ship attachments with hardpoint usage summary.
