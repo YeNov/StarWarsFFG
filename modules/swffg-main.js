@@ -945,6 +945,8 @@ Hooks.once("init", async function () {
       upgradeDifficulty: [],
       difficulty: [],
       advantage: [],
+      failure: [],
+      threat: [],
     };
     for (const skill of Object.keys(CONFIG.FFG.skills)) {
       allSkillChanges['boost'].push({
@@ -982,11 +984,23 @@ Hooks.once("init", async function () {
         mode: AE_MODES.ADD,
         value: "1",
       });
+      allSkillChanges['failure'].push({
+        key: `system.skills.${skill}.failure`,
+        mode: AE_MODES.ADD,
+        value: "1",
+      });
+      allSkillChanges['threat'].push({
+        key: `system.skills.${skill}.threat`,
+        mode: AE_MODES.ADD,
+        value: "1",
+      });
     }
 
     // set up our own statuses
     CONFIG.statusEffects = [];
 
+    // Palette order is the token HUD's display order: dice added for the next check,
+    // then dice for this combat, then fixed results (next check, then this combat).
     // dice statuses — next check
     CONFIG.statusEffects.push({
       id: "starwarsffg-boost-once",
@@ -1032,32 +1046,6 @@ Hooks.once("init", async function () {
       img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/red.png`,
       name: "SWFFG.Status.UpgradeDifficulty.Next",
       changes: allSkillChanges['upgradeDifficulty'],
-      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
-      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
-      flags: {
-        starwarsffg: {
-          duration: "once",
-        },
-      }
-    });
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-success-once",
-      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/success.png`,
-      name: "SWFFG.Status.Success.Next",
-      changes: allSkillChanges['success'],
-      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
-      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
-      flags: {
-        starwarsffg: {
-          duration: "once",
-        },
-      }
-    });
-    CONFIG.statusEffects.push({
-      id: "starwarsffg-advantage-once",
-      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/advantage.png`,
-      name: "SWFFG.Status.Advantage.Next",
-      changes: allSkillChanges['advantage'],
       // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
       // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
       flags: {
@@ -1129,6 +1117,71 @@ Hooks.once("init", async function () {
       }
     });
     CONFIG.statusEffects.push({
+      id: "starwarsffg-difficulty-combat",
+      img: `systems/starwarsffg/images/status/purple.png`,
+      name: "SWFFG.Status.Difficulty.Combat",
+      changes: allSkillChanges['difficulty'],
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
+      }
+    });
+    // result statuses — next check, then this combat
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-success-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/success.png`,
+      name: "SWFFG.Status.Success.Next",
+      changes: allSkillChanges['success'],
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-advantage-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/advantage.png`,
+      name: "SWFFG.Status.Advantage.Next",
+      changes: allSkillChanges['advantage'],
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-failure-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/failure.png`,
+      name: "SWFFG.Status.Failure.Next",
+      changes: allSkillChanges['failure'],
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-threat-once",
+      img: `systems/starwarsffg/images/dice/${CONFIG.FFG.theme}/threat.png`,
+      name: "SWFFG.Status.Threat.Next",
+      changes: allSkillChanges['threat'],
+      // V14's strict ActiveEffectTypeDataModel strips unknown `system` keys, so the
+      // per-roll/per-combat duration marker lives in flags (free-form) to survive creation.
+      flags: {
+        starwarsffg: {
+          duration: "once",
+        },
+      }
+    });
+    CONFIG.statusEffects.push({
       id: "starwarsffg-success-combat",
       img: `systems/starwarsffg/images/status/success.png`,
       name: "SWFFG.Status.Success.Combat",
@@ -1153,10 +1206,22 @@ Hooks.once("init", async function () {
       }
     });
     CONFIG.statusEffects.push({
-      id: "starwarsffg-difficulty-combat",
-      img: `systems/starwarsffg/images/status/purple.png`,
-      name: "SWFFG.Status.Difficulty.Combat",
-      changes: allSkillChanges['difficulty'],
+      id: "starwarsffg-failure-combat",
+      img: `systems/starwarsffg/images/status/failure.png`,
+      name: "SWFFG.Status.Failure.Combat",
+      changes: allSkillChanges['failure'],
+      // duration marker in flags (free-form) so V14's strict system model can't strip it
+      flags: {
+        starwarsffg: {
+          duration: "combat",
+        },
+      }
+    });
+    CONFIG.statusEffects.push({
+      id: "starwarsffg-threat-combat",
+      img: `systems/starwarsffg/images/status/threat.png`,
+      name: "SWFFG.Status.Threat.Combat",
+      changes: allSkillChanges['threat'],
       // duration marker in flags (free-form) so V14's strict system model can't strip it
       flags: {
         starwarsffg: {
