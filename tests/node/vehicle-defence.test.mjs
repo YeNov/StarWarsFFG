@@ -7,7 +7,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { ZONE_ORDER, resolveDefenceTarget, vehicleDefenceZones, zoneReticleSvg } from "../../modules/helpers/vehicle-defence.js";
+import {
+  DEFENCE_ZONE_MODES,
+  defenceZoneModeChoices,
+  ZONE_ORDER,
+  resolveDefenceTarget,
+  vehicleDefenceZoneMode,
+  vehicleDefenceZones,
+  zoneReticleSvg,
+} from "../../modules/helpers/vehicle-defence.js";
 
 /** Actor stand-in carrying a prepared `stats.shields` block. */
 const vehicle = (shields) => ({ type: "vehicle", system: { stats: { shields } } });
@@ -76,6 +84,115 @@ test("ZONE_ORDER is arrangement only and never decides which zones exist", () =>
   assert.deepEqual(ZONE_ORDER, ["fore", "starboard", "aft", "port"]);
 });
 
+/* ------------------------------------------------------------------ *
+ * The silhouette rule
+ *
+ * A craft of silhouette 4 or below defends in two zones, fore and aft.
+ * Silhouette 5 and up defends in four. Every stock vehicle carries all four
+ * ratings in its schema regardless, so the rule NARROWS the discovered set --
+ * it never adds a zone the data does not have.
+ * ------------------------------------------------------------------ */
+
+/** Actor stand-in with a silhouette and, optionally, the per-vehicle override. */
+const craft = (shields, silhouette, defenceZones) => ({
+  type: "vehicle",
+  system: { stats: { shields, silhouette: { value: silhouette }, defenceZones } },
+});
+
+/** A stock four-zone shield block. A factory, so no test can pollute another. */
+const FOUR = () => ({ fore: 2, port: 1, starboard: 1, aft: 3 });
+
+test("a silhouette 4 craft defends in fore and aft only", () => {
+  assert.deepEqual(vehicleDefenceZones(craft(FOUR(), 4)), [
+    { key: "fore", value: 2 },
+    { key: "aft", value: 3 },
+  ]);
+});
+
+test("a silhouette 5 craft still defends in all four zones", () => {
+  // The other side of the boundary: `<= 4`, not `< 4` and not `<= 5`.
+  assert.deepEqual(vehicleDefenceZones(craft(FOUR(), 5)).map((z) => z.key), [
+    "fore", "starboard", "aft", "port",
+  ]);
+});
+
+test("a craft with no readable silhouette is not treated as small", () => {
+  // Narrowing hides stored ratings, so unreadable data errs towards showing them.
+  // `silhouette` is nullable, and Number(null) === Number("") === 0 would read an
+  // unset silhouette as the smallest craft there is.
+  for (const silhouette of [undefined, null, "", "big", NaN]) {
+    assert.equal(vehicleDefenceZoneMode(craft(FOUR(), silhouette)), "four", `silhouette ${silhouette}`);
+  }
+});
+
+test("a literal silhouette 0 is readable and does narrow", () => {
+  assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 0)), "two");
+});
+
+test("every mode the vehicle schema offers is one the resolver understands", () => {
+  // Both vehicle sheets build their picker from this list, so a mode offered
+  // there but unknown to the resolver would be selectable and silently do nothing.
+  assert.deepEqual(DEFENCE_ZONE_MODES, ["auto", "two", "four"]);
+  for (const mode of DEFENCE_ZONE_MODES) {
+    assert.ok(["two", "four"].includes(vehicleDefenceZoneMode(craft(FOUR(), 6, mode))), mode);
+  }
+  assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 6, "auto")), "four");
+  assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 2, "auto")), "two");
+});
+
+test("the override picker offers every mode, keyed for the caller to localise", () => {
+  // Both sheets feed this straight to Handlebars `selectOptions ... localize=true`,
+  // so the values are localisation KEYS -- this module never touches `game`.
+  assert.deepEqual(defenceZoneModeChoices(), {
+    auto: "SWFFG.VehicleDefenseZone.ModeAuto",
+    two: "SWFFG.VehicleDefenseZone.ModeTwo",
+    four: "SWFFG.VehicleDefenseZone.ModeFour",
+  });
+  assert.deepEqual(Object.keys(defenceZoneModeChoices()), DEFENCE_ZONE_MODES);
+});
+
+test("a small craft overridden to four defends in all four zones", () => {
+  assert.deepEqual(vehicleDefenceZones(craft(FOUR(), 2, "four")).map((z) => z.key), [
+    "fore", "starboard", "aft", "port",
+  ]);
+});
+
+test("a capital ship overridden to two defends in fore and aft only", () => {
+  assert.deepEqual(vehicleDefenceZones(craft(FOUR(), 8, "two")).map((z) => z.key), ["fore", "aft"]);
+});
+
+test("an unset or unrecognised override defers to the silhouette", () => {
+  for (const override of [undefined, null, "auto", "", "TWO", "half"]) {
+    assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 3, override)), "two", `override ${override}`);
+    assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 6, override)), "four", `override ${override}`);
+  }
+});
+
+test("a hidden zone keeps its rating and comes back when the override says four", () => {
+  // The narrowing reads; it never writes. Port and starboard stay in the data so
+  // flipping the override restores them exactly as they were.
+  const actor = craft(FOUR(), 2);
+  assert.deepEqual(vehicleDefenceZones(actor).map((z) => z.key), ["fore", "aft"]);
+  assert.equal(actor.system.stats.shields.port, 1);
+  assert.equal(actor.system.stats.shields.starboard, 1);
+
+  actor.system.stats.defenceZones = "four";
+  assert.deepEqual(vehicleDefenceZones(actor), [
+    { key: "fore", value: 2 },
+    { key: "starboard", value: 1 },
+    { key: "aft", value: 3 },
+    { key: "port", value: 1 },
+  ]);
+});
+
+test("narrowing never strands a craft that has neither a fore nor an aft zone", () => {
+  // Filtering an exotic schema down to fore/aft would leave nothing to shoot at,
+  // and a reticle with no wedges is a dead control. Keep what the craft has.
+  assert.deepEqual(vehicleDefenceZones(craft({ dorsal: 2, ventral: 1 }, 3)).map((z) => z.key), [
+    "dorsal", "ventral",
+  ]);
+});
+
 /** Token stand-ins. `game.user.targets` is a Set of Tokens, so tests pass Sets. */
 const shipToken = (shields) => ({ actor: { type: "vehicle", system: { stats: { shields } } } });
 const troopToken = () => ({ actor: { type: "character", system: { stats: { defence: { ranged: 1, melee: 0 } } } } });
@@ -97,6 +214,14 @@ test("exactly one vehicle resolves to single, carrying its zones", () => {
   assert.equal(result.status, "single");
   assert.equal(result.actor, token.actor);
   assert.deepEqual(result.zones.map((z) => z.key), ["fore", "starboard", "aft", "port"]);
+});
+
+test("a targeted small craft resolves to its two zones, not four", () => {
+  // The roll dialog's whole path. resolveDefenceTarget delegates the zone set
+  // rather than deriving one of its own, so the silhouette rule reaches the reticle.
+  const result = resolveDefenceTarget(new Set([{ actor: craft(FOUR(), 3) }]));
+  assert.equal(result.status, "single");
+  assert.deepEqual(result.zones.map((z) => z.key), ["fore", "aft"]);
 });
 
 test("a non-vehicle alongside one vehicle is still single", () => {

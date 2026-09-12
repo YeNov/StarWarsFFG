@@ -28,6 +28,15 @@ export class VehicleDataModel extends mix(
         hullTrauma: new f.SchemaField({ value: num(0), min: num(0), max: num(10), label: str("Hull Trauma") }),
         systemStrain: new f.SchemaField({ value: num(0), min: num(0), max: num(10), label: str("System Strain") }),
         shields: new f.SchemaField({ fore: num(0), port: num(0), starboard: num(0), aft: num(0), label: str("Shields") }),
+        // Which of those four zones the craft actually defends in: "auto" reads it
+        // off the silhouette (4 and below is fore/aft only), "two" and "four" are
+        // the GM's per-vehicle override. Only the DISPLAYED and attackable set
+        // changes -- all four ratings above are stored either way, so a zone that
+        // is out of play keeps its value and gets it back when the craft is
+        // four-zone again. Left unconstrained on purpose: an unrecognised value
+        // falls through to "auto" in vehicle-defence.js rather than failing
+        // validation and rejecting the update.
+        defenceZones: str("auto"),
         armour: new f.SchemaField({ value: num(0), type: str("Number"), label: str("Armour"), adjusted: num(0) }),
         sensorRange: new f.SchemaField({ value: str("Short"), type: str("String") }),
         crew: new f.ObjectField(),

@@ -1031,6 +1031,17 @@
 .cdx .cdx-bio-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:10px; margin-bottom:10px; }
 .cdx .cdx-panel { background:var(--cdx-paper2); border:1px solid var(--cdx-line); clip-path:var(--cdx-clip); overflow:hidden; margin-bottom:10px; }
 .cdx .cdx-panel-head { background:var(--cdx-brown); color:#fff; font-family:"Orbitron"; font-weight:700; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; padding:5px 10px; }
+/* The defence panel head carries the zone-count override beside its title, so the
+   head becomes a row. Every other panel head has a single text child and is
+   unaffected by the flex. The select inherits the head bar rather than the form
+   default, which would be white-on-brown-on-white. */
+.cdx .cdx-veh-defence .cdx-panel-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.cdx .cdx-veh-defence .cdx-veh-zone-mode {
+  width:auto; max-width:120px; height:18px; padding:0 4px; flex:none;
+  background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.35);
+  font-family:inherit; font-size:9px; letter-spacing:.5px; text-transform:none;
+}
+.cdx .cdx-veh-defence .cdx-veh-zone-mode option { color:#222; background:#fff; }
 .cdx .cdx-bio-editor { padding:8px 10px; min-height:120px; font-size:13px; line-height:1.5; flex:1 0 auto; }
 /* In edit mode the global `.editor{height:100%}` / `.tox-tinymce{height:100%}`
    rules resolve against this block, which has only a min-height (no definite

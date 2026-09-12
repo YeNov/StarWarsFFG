@@ -28,7 +28,45 @@
 export const ZONE_ORDER = ["fore", "starboard", "aft", "port"];
 
 /**
- * A vehicle's defence zones, ordered for display.
+ * The largest silhouette that defends in two zones. Craft this size and smaller
+ * have a fore and an aft arc and nothing else; silhouette 5 and up have four.
+ */
+export const TWO_ZONE_SILHOUETTE_MAX = 4;
+
+/** The zones a two-zone craft defends in. */
+export const TWO_ZONE_KEYS = ["fore", "aft"];
+
+/**
+ * The per-vehicle override, in the order the sheets offer it. `auto` defers to
+ * the silhouette; the other two settle the question outright.
+ *
+ * Both vehicle sheets build their picker from this list, so it lives beside the
+ * resolver that honours it. The schema deliberately does NOT constrain the stored
+ * string to these values: a stray write from a macro or a module should fall
+ * through to `auto` here, not fail validation and reject the whole update.
+ */
+export const DEFENCE_ZONE_MODES = ["auto", "two", "four"];
+
+/**
+ * The override picker's options, as `{mode: localisation key}`.
+ *
+ * Both vehicle sheets hand this straight to Handlebars `selectOptions ...
+ * localize=true`, so the values are KEYS: this module must not touch `game`.
+ * Building it here rather than in each sheet is what stops the two drifting.
+ *
+ * @returns {Record<string, string>}
+ */
+export function defenceZoneModeChoices() {
+  return Object.fromEntries(
+    DEFENCE_ZONE_MODES.map((mode) => [
+      mode,
+      `SWFFG.VehicleDefenseZone.Mode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
+    ]),
+  );
+}
+
+/**
+ * A vehicle's defence zones, ordered for display and narrowed by the silhouette rule.
  * @param {object} actor a prepared vehicle Actor (or any object with `system.stats.shields`).
  * @returns {Array<{key: string, value: number}>} empty for missing or malformed data.
  */
@@ -51,10 +89,45 @@ export function vehicleDefenceZones(actor) {
   };
   // The index tiebreak keeps unknown keys in stored order rather than relying on
   // sort stability.
-  return zones
+  const ordered = zones
     .map((zone, index) => ({ zone, index }))
     .sort((a, b) => rank(a.zone.key) - rank(b.zone.key) || a.index - b.index)
     .map((entry) => entry.zone);
+
+  if (vehicleDefenceZoneMode(actor) === "four") return ordered;
+
+  // Narrowing subtracts; it must never leave a craft with nothing to shoot at. A
+  // schema with no fore or aft at all keeps every zone it has rather than emptying
+  // out into a reticle with no wedges.
+  const narrowed = ordered.filter((zone) => TWO_ZONE_KEYS.includes(zone.key));
+  return narrowed.length > 0 ? narrowed : ordered;
+}
+
+/**
+ * Whether this craft defends in two zones or four.
+ *
+ * `system.stats.defenceZones` is the GM's per-vehicle override: `two` and `four`
+ * settle it outright, and anything else -- `auto`, unset, a stale value -- defers
+ * to the silhouette.
+ *
+ * @param {object} actor a prepared vehicle Actor.
+ * @returns {"two"|"four"}
+ */
+export function vehicleDefenceZoneMode(actor) {
+  const override = actor?.system?.stats?.defenceZones;
+  if (override === "four" || override === "two") return override;
+
+  // A silhouette that is missing or unreadable is NOT treated as small. Narrowing
+  // hides ratings the craft still stores, so malformed data errs towards showing
+  // everything rather than towards quietly dropping a zone.
+  //
+  // Type, not coercion -- the same trap the zone filter above avoids. `silhouette`
+  // is a NumberField, but a nullable one, and Number(null) and Number("") are both
+  // 0, which would read an unset silhouette as the smallest craft there is and
+  // narrow it. A literal 0 IS a readable silhouette and does narrow.
+  const silhouette = actor?.system?.stats?.silhouette?.value;
+  const readable = typeof silhouette === "number" && Number.isFinite(silhouette);
+  return readable && silhouette <= TWO_ZONE_SILHOUETTE_MAX ? "two" : "four";
 }
 
 /**
