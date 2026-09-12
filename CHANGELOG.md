@@ -1,6 +1,6 @@
 `Unreleased`
 
-* Fixed — **Codex speed, shield and committed Force-dice buttons now preserve rapid clicks from multiple players.** Changes appear immediately on your sheet while one elected client saves each adjustment; acknowledgments reconcile the display without saving stale form values over newer changes.
+* Fixed — **Codex speed, shield and committed Force-dice buttons now preserve rapid clicks from multiple players** ([#84](https://github.com/YeNov/StarWarsFFG/pull/84)). Changes appear immediately on your sheet while one elected client saves each adjustment; acknowledgments reconcile the display without saving stale form values over newer changes.
   * Reload Foundry on every connected client so all players use the new button protocol.
 
 * Added — **Failure and Threat status effects** ([#83](https://github.com/YeNov/StarWarsFFG/pull/83)), for the next check or for the rest of the combat, alongside the existing Boost, Setback, Success and Advantage ones in the token HUD. Each adds one Failure or Threat to every check the character makes; the next-check version is removed once they roll, and the combat version once they leave the combat or it ends.
