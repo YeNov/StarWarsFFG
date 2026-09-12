@@ -386,14 +386,13 @@ export class ActorSheetFFG extends FFGActorSheet {
       case "vehicle":
         data.data.enrichedBio = await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.actor.system.biography);
         // Which defence zones this craft actually has. Silhouette 4 and below
-        // defend fore and aft only, unless system.stats.defenceZones overrides it.
+        // defend fore and aft only, unless the Sheet Options override says otherwise.
         // A zone that is out of play is simply not rendered: its rating stays in
         // the data untouched, and an absent input is absent from the submitted
         // form, so nothing overwrites it.
         data.defenceZoneShown = Object.fromEntries(
           vehicleDefenceZones(this.actor).map((zone) => [zone.key, true]),
         );
-        data.defenceZoneChoices = defenceZoneModeChoices();
         // add the crew to the items of the vehicle
         data.crew = [];
         // look up the flag data
@@ -733,6 +732,19 @@ export class ActorSheetFFG extends FFGActorSheet {
         hint: game.i18n.localize("SWFFG.EnableSensorsHint"),
         type: "Boolean",
         default: true,
+      });
+      // Lives in system data, not a sheet flag: the roll dialog reads it off the
+      // targeted vehicle. Saving through Sheet Options re-renders the sheet, which
+      // the sheet's own render:false submit would not, so the zones redraw at once.
+      this.sheetoptions.register("defenceZones", {
+        name: game.i18n.localize("SWFFG.VehicleDefenseZone.ModeLabel"),
+        hint: game.i18n.localize("SWFFG.VehicleDefenseZone.ModeHint"),
+        type: "Array",
+        default: "auto",
+        path: "system.stats.defenceZones",
+        options: Object.fromEntries(
+          Object.entries(defenceZoneModeChoices()).map(([mode, key]) => [mode, game.i18n.localize(key)]),
+        ),
       });
     }
 

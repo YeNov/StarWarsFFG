@@ -32,7 +32,7 @@ import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
 import { vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings } from "../helpers/vehicle-hardpoints.js";
-import { defenceZoneModeChoices, vehicleDefenceZones } from "../helpers/vehicle-defence.js";
+import { vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 import ActorHelpers from "../helpers/actor-helpers.js";
 import { adjustCodexStat, bindStatStepPrediction, predictedCodexStat } from "../helpers/stat-step-bridge.js";
@@ -1500,7 +1500,6 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           ctx.cdxVehShields[zone] = { cur, max: rating };
         }
         ctx.cdxVehZoneCount = Object.keys(ctx.cdxVehShields).length;
-        ctx.cdxVehZoneChoices = defenceZoneModeChoices();
       } catch (e) {
         // Malformed legacy data aborted the richer vehicle context. Every RATING in this
         // fallback must come from stored source data, never a fabricated zero: the hull and
@@ -1526,7 +1525,6 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           ctx.cdxVehShields[zone] = { cur, max: shieldRatings[zone] };
         }
         ctx.cdxVehZoneCount = 4;
-        ctx.cdxVehZoneChoices = defenceZoneModeChoices();
       }
     }
     return ctx;
