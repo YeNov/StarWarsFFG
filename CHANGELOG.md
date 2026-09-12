@@ -1,4 +1,5 @@
-`Unreleased`
+`2.1.3`
+Vehicle defence zones, Obligation, Duty and Morality that add up, a reworked Group Manager, and fixes for simultaneous damage and Destiny actions.
 
 * Fixed — **Codex speed, shield and committed Force-dice buttons now preserve rapid clicks from multiple players** ([#84](https://github.com/YeNov/StarWarsFFG/pull/84)). Changes appear immediately on your sheet while one elected client saves each adjustment; acknowledgments reconcile the display without saving stale form values over newer changes.
   * Reload Foundry on every connected client so all players use the new button protocol.
