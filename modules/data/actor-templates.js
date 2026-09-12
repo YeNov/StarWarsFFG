@@ -193,8 +193,8 @@ export const CharacteristicsTemplate = (Base) =>
  * skills via `CONFIG.FFG` — so it stays a `TypedObjectField`, not named fields.
  * Each skill value stays a freeform `ObjectField`: template.json declares only
  * rank/characteristic/groupskill/careerskill/type/max, but the dice-modifier
- * status effects write seven more per-skill keys (boost/setback/upgrades/
- * success/upgradeDifficulty/difficulty/advantage — see swffg-main.js
+ * status effects write nine more per-skill keys (boost/setback/upgrades/
+ * success/upgradeDifficulty/difficulty/advantage/failure/threat — see swffg-main.js
  * `allSkillChanges`), and a strict inner schema would strip them. The default
  * dictionary is the stock starwars skill list.
  */
