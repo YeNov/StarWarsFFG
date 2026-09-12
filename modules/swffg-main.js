@@ -48,6 +48,7 @@ import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { ReplaceDie } from "./helpers/replace-die.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
+import { registerStatStepBridge } from "./helpers/stat-step-bridge.js";
 import { shouldApplySkillTheme } from "./helpers/skill-theme.js";
 import DataImporter from "./importer/data-importer.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -1785,6 +1786,7 @@ Hooks.once("ready", async () => {
 
   // Forward Apply Damage / Apply Crit writes from non-owning players to the GM.
   registerGMBridge();
+  registerStatStepBridge();
 
   // Log adversary-roll diagnostics forwarded from players on the GM machine.
   RollBuilderFFG.registerRollLogBridge();
