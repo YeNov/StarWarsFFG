@@ -135,8 +135,11 @@ export default class ActorOptions {
                 value = control.value;
               }
 
-              updateObject[`flags.starwarsffg.${control.name}`] = value;
-              this.options[control.id].value = value;
+              // An option registered with a `path` is document data other code reads
+              // (e.g. a vehicle's defence-zone override); everything else is a sheet flag.
+              const option = this.options[control.id];
+              updateObject[option.path ?? `flags.starwarsffg.${control.name}`] = value;
+              option.value = value;
             }
 
             // read the most recent version, not the registered flag version
@@ -184,6 +187,11 @@ export default class ActorOptions {
   async register(optionName, options) {
     if (!this.options[optionName]) {
       this.options[optionName] = { ...options };
+    }
+    if (options.path) {
+      const stored = foundry.utils.getProperty(this.data.object, options.path);
+      this.options[optionName].value = stored ?? options.default;
+      return;
     }
     if (typeof this.data.object.flags?.starwarsffg?.config == "undefined") {
       await this.data.object.setFlag("starwarsffg", "config", {});

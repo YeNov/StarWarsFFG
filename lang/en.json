@@ -211,7 +211,7 @@
   "SWFFG.VehicleDefenseZone.ZoneAria": "{zone}, {dice} setback",
   "SWFFG.VehicleDefenseZone.CardLine": "{zone} zone · +{dice} setback",
   "SWFFG.VehicleDefenseZone.CardNone": "No defence zone chosen",
-  "SWFFG.VehicleDefenseZone.ModeLabel": "Zones",
+  "SWFFG.VehicleDefenseZone.ModeLabel": "Defence zones",
   "SWFFG.VehicleDefenseZone.ModeHint": "How many defence zones this craft has. Auto follows the rules: silhouette 4 and below defend fore and aft only. Zones that are out of play keep their ratings.",
   "SWFFG.VehicleDefenseZone.ModeAuto": "Auto (silhouette)",
   "SWFFG.VehicleDefenseZone.ModeTwo": "Two (fore/aft)",

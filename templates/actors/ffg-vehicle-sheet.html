@@ -19,12 +19,6 @@
                 {{!-- Only the zones this craft actually defends in are rendered. A zone
                       that is out of play keeps its rating in the data: an input that is
                       not on the sheet is not in the submitted form, so nothing clears it. --}}
-                <div class="defense-mode" title="{{localize "SWFFG.VehicleDefenseZone.ModeHint"}}">
-                  <span>{{localize "SWFFG.VehicleDefenseZone.ModeLabel"}}</span>
-                  <select name="data.stats.defenceZones" {{#if disabled }}disabled{{/if}}>
-                    {{selectOptions defenceZoneChoices selected=data.stats.defenceZones localize=true}}
-                  </select>
-                </div>
                 {{#if defenceZoneShown.fore}}
                 <div class="defense-value fore">
                   <input type="text" name="data.stats.shields.fore" value="{{data.stats.shields.fore}}" data-dtype="Number" {{#if disabled }} disabled{{/if}} />

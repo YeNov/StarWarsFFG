@@ -71,18 +71,13 @@
 
     {{!-- Defence: a shield chip per zone the craft actually has, around a top-view
           image. Silhouette 4 and below defend fore and aft only, so only those two
-          chips are built for them; the override picker in the head forces either
-          count. A chip that is not rendered submits nothing, so the rating of a
-          zone that is out of play is left exactly as it was. --}}
+          chips are built for them; the Sheet Options override forces either count.
+          A chip that is not rendered submits nothing, so the rating of a zone that
+          is out of play is left exactly as it was. --}}
     <div class="cdx-float-soft-wrap">
     <div class="cdx-panel cdx-veh-defence">
       <div class="cdx-panel-head">
         <span>Defence · {{cdxVehZoneCount}}-Zone</span>
-        {{#unless disabled}}
-        <select class="cdx-veh-zone-mode" name="data.stats.defenceZones" title="{{localize "SWFFG.VehicleDefenseZone.ModeHint"}}">
-          {{selectOptions cdxVehZoneChoices selected=data.stats.defenceZones localize=true}}
-        </select>
-        {{/unless}}
       </div>
       <div class="cdx-veh-zones">
         <div class="cdx-veh-radar"><img class="cdx-veh-radar-img" src="{{data.silhouetteImage}}" data-edit="system.silhouetteImage" title="Top view" /></div>
