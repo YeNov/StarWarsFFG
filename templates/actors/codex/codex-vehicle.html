@@ -220,6 +220,15 @@
       <span class="cdx-vr-k">Cost</span>{{#if disabled}}<span class="cdx-vr-v">{{cdxVehCost}}</span>{{else}}<input class="cdx-vr-in" type="text" name="data.stats.cost.value" value="{{data.stats.cost.value}}" data-dtype="Number" />{{/if}}
     </div>
     </div>
+    {{!-- Talents: only Adversary can be added to a vehicle. Greyed out at rank 0, where it upgrades nothing. --}}
+    {{#each vehicleTalents as |item|}}
+    <div class="cdx-float-soft-wrap">
+    <div class="cdx-veh-rarity cdx-veh-talent item{{#unless (gt item.system.ranks.current 0)}} off{{/unless}}" data-item-id="{{item.id}}">
+      <span class="cdx-vr-k">{{item.name}}</span><span class="cdx-vr-v">{{item.system.ranks.current}}</span>
+      <span class="cdx-veh-talent-ctl item-controls"><a class="item-control item-edit" title="{{localize "SWFFG.Edit"}}" aria-label="{{localize "SWFFG.Edit"}}"><i class="fas fa-edit"></i></a><a class="item-control item-delete" title="{{localize "SWFFG.Delete"}}" aria-label="{{localize "SWFFG.Delete"}}"><i class="fas fa-trash"></i></a></span>
+    </div>
+    </div>
+    {{/each}}
     <div class="cdx-float-soft-wrap"><div class="cdx-panel"><div class="cdx-panel-head">{{localize "SWFFG.VehicleTabDescription"}}</div><div class="cdx-bio-editor">{{editor data.enrichedBio target="system.biography" button=true editable=editable engine="prosemirror"}}</div></div></div>
   </section>
 

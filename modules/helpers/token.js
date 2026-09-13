@@ -128,7 +128,13 @@ export function drawMinionCount(token) {
   }
 }
 
+/** Actor types whose tokens show the Adversary badge. Vehicles can carry the talent too. */
+const ADVERSARY_BADGE_ACTOR_TYPES = ["character", "nemesis", "rival", "vehicle"];
+
 export function drawAdversaryCount(token) {
+  if (!ADVERSARY_BADGE_ACTOR_TYPES.includes(token?.actor?.type)) {
+    return;
+  }
   if (!game.settings.get("starwarsffg", "showAdversaryCount")) {
     return;
   }
@@ -170,5 +176,9 @@ export function drawAdversaryCount(token) {
       adversaryLevel = 6;
     }
     token.adversaryLevel.addChild(sprite);
+  } else {
+    // Editing or deleting the talent only refreshes the token, it does not redraw it, so a
+    // badge drawn for an earlier rank is still attached and has to be taken down here.
+    token.children.find(i => i.name === "adversaryLevel")?.removeChildren().forEach(i => i.destroy());
   }
 }

@@ -393,6 +393,10 @@ export class ActorSheetFFG extends FFGActorSheet {
         data.defenceZoneShown = Object.fromEntries(
           vehicleDefenceZones(this.actor).map((zone) => [zone.key, true]),
         );
+        // Talents listed on the Bio tab. A vehicle only accepts the Adversary talent,
+        // but every talent it holds is listed, so one left behind by a renamed
+        // Adversary setting can still be seen and deleted.
+        data.vehicleTalents = this.actor.items.filter((item) => item.type === "talent");
         // add the crew to the items of the vehicle
         data.crew = [];
         // look up the flag data

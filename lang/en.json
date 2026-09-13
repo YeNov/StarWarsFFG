@@ -144,6 +144,7 @@
   "SWFFG.TalentsCurrentTier": "Current Tier",
   "SWFFG.TalentStackingNotRanked": "{name} is not a ranked talent, and {actor} already has it. Nothing was added.",
   "SWFFG.TalentStackingMerged": "{name} is now rank {rank} on {actor}.",
+  "SWFFG.VehicleTalentNotAdversary": "{name} was not added to {actor}: {adversary} is the only talent a vehicle can hold.",
   "SWFFG.DescriptionXP": "XP",
   "SWFFG.DescriptionXPAvailable": "Available",
   "SWFFG.DescriptionXPTotal": "Total",

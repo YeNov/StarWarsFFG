@@ -9,6 +9,10 @@
  *
  * These tests pin the badge to the token's footprint: same look as always on a 1x1
  * token on a 100px grid, proportionally the same everywhere else.
+ *
+ * They also pin when the badge comes down. Editing or deleting an item on the actor only
+ * REFRESHES its tokens -- `refreshToken` fires, the token is not redrawn -- so a badge
+ * drawn for an earlier rank stays attached unless `drawAdversaryCount` removes it.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -69,8 +73,8 @@ globalThis.PIXI = {
 setSetting("starwarsffg", "showAdversaryCount", true);
 setSetting("starwarsffg", "adversaryItemName", "Adversary");
 
-/** A token of the given on-canvas size carrying an adversary item of `ranks` ranks. */
-function drawOn(size, { height = size, ranks = 1 } = {}) {
+/** A token of the given on-canvas size for a `type` actor carrying an adversary item of `ranks` ranks. */
+function drawOn(size, { height = size, ranks = 1, type = "rival" } = {}) {
   const token = {
     w: size,
     h: height,
@@ -80,6 +84,7 @@ function drawOn(size, { height = size, ranks = 1 } = {}) {
       return child;
     },
     actor: {
+      type,
       items: [{ name: "Adversary", system: { ranks: { current: ranks } } }],
     },
   };
@@ -156,4 +161,40 @@ test("the badge stays inside the token footprint at every size", () => {
 test("a token that is taller than it is wide does not stretch the badge", () => {
   const box = badgeBox(drawOn(100, { height: 200 }));
   assert.equal(box.scale.x, box.scale.y, "the badge must scale uniformly, not stretch");
+});
+
+/** The sprites attached to the token's badge container, or none when it has no container. */
+const badgeSprites = (token) => token.children.find((child) => child.name === "adversaryLevel")?.children ?? [];
+
+test("the badge comes down when the Adversary rank is lowered to 0", () => {
+  const token = drawOn(100, { ranks: 2 });
+  token.actor.items[0].system.ranks.current = 0;
+  drawAdversaryCount(token);
+  assert.equal(badgeSprites(token).length, 0, "the rank-2 badge was left on the token");
+});
+
+test("the badge comes down when the Adversary talent is deleted", () => {
+  const token = drawOn(100, { ranks: 1 });
+  token.actor.items = [];
+  drawAdversaryCount(token);
+  assert.equal(badgeSprites(token).length, 0, "the rank-1 badge was left on the token");
+});
+
+test("a token that never had Adversary is refreshed without a badge", () => {
+  const token = drawOn(100, { ranks: 0 });
+  drawAdversaryCount(token);
+  assert.equal(badgeSprites(token).length, 0);
+});
+
+test("a vehicle token with the Adversary talent shows the badge for its rank", () => {
+  const token = drawOn(100, { type: "vehicle", ranks: 2 });
+  assert.deepEqual(badgeSprites(token).map((sprite) => sprite.source), [
+    "systems/starwarsffg/images/adversary/adversary-2.png",
+  ]);
+});
+
+test("a minion token gets no Adversary badge", () => {
+  // A minion token draws its group count along the same bottom edge.
+  const token = drawOn(100, { type: "minion", ranks: 1 });
+  assert.equal(badgeSprites(token).length, 0);
 });

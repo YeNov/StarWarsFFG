@@ -641,6 +641,10 @@
 .cdx .cdx-vr-k:not(:first-child) { margin-left:14px; }
 .cdx .cdx-vr-v { font-family:"Orbitron"; font-weight:900; font-size:18px; }
 .cdx .cdx-vr-in { width:4em; background:rgba(255,255,255,.35); border:1px solid rgba(0,0,0,.25); border-radius:3px; font-family:"Orbitron"; font-weight:900; font-size:15px; color:#1a1205; padding:1px 4px; }
+/* Adversary talent — its own panel under rarity/cost, greyed out at rank 0 where it upgrades nothing. */
+.cdx .cdx-veh-talent-ctl { display:flex; gap:8px; margin-left:auto; align-self:center; }
+.cdx .cdx-veh-talent-ctl .item-control { color:inherit; }
+.cdx .cdx-veh-talent.off { opacity:.5; filter:grayscale(1); }
 
 /* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
 .cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }
