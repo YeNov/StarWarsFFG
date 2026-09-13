@@ -1,6 +1,6 @@
 `Unreleased`
 
-* Fixed — **the combat tracker's right-click menu on Foundry V14 ran Foundry's own Update and Remove instead of the system's**. Update did nothing on an unclaimed slot; the menu now offers Update Initiative again and Remove uses the system's slot-aware removal, as on V13.
+* Fixed — **the combat tracker's right-click menu on Foundry V14 ran Foundry's own Update and Remove instead of the system's** ([#87](https://github.com/YeNov/StarWarsFFG/pull/87)). Update did nothing on an unclaimed slot; the menu now offers Update Initiative again and Remove uses the system's slot-aware removal, as on V13.
 
 `2.1.3`
 Vehicle defence zones, Obligation, Duty and Morality that add up, a reworked Group Manager, and fixes for simultaneous damage and Destiny actions.
