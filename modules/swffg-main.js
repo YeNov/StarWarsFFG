@@ -67,6 +67,7 @@ import {registerSystemDataModels, reportDataModelConformance} from "./data/index
 import { computeCritAvailability } from "./helpers/crit-availability.js";
 import { refreshSheetsForRemoteUpdate } from "./helpers/sheet-sync.js";
 import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
+import { vehicleItemRefusal } from "./helpers/vehicle-items.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -112,10 +113,19 @@ function registerActorItemValidationHooks() {
       return false;
     }
 
-    // Prevent adding character data type items to vehicles.
-    if (["career", "forcepower", "talent", "signatureability", "specialization", "species", "ability"].includes(item.type.toString()) && actor.type === "vehicle") {
-      ui.notifications.warn(`Item type '${item.type}' cannot be added to 'vehicle' actor types.`);
-      return false;
+    // Prevent adding character data type items to vehicles, except the Adversary talent,
+    // which upgrades attacks against a vehicle the way it does against an NPC.
+    if (actor.type === "vehicle") {
+      const adversaryItemName = game.settings.get("starwarsffg", "adversaryItemName");
+      const refusal = vehicleItemRefusal(item, adversaryItemName);
+      if (refusal === "notAdversary") {
+        ui.notifications.warn(game.i18n.format("SWFFG.VehicleTalentNotAdversary", { name: item.name, actor: actor.name, adversary: adversaryItemName }));
+        return false;
+      }
+      if (refusal === "characterOnly") {
+        ui.notifications.warn(`Item type '${item.type}' cannot be added to 'vehicle' actor types.`);
+        return false;
+      }
     }
 
     // Crit-Trauma counter: stamp the day a character crit was received so Resilience
@@ -2258,9 +2268,7 @@ Hooks.once("ready", async () => {
     if (token?.actor?.type === "minion") {
       drawMinionCount(token);
     }
-    if (["character", "nemesis", "rival"].includes(token?.actor?.type)) {
-      drawAdversaryCount(token);
-    }
+    drawAdversaryCount(token);
     return token;
   });
   // set up support for Status Icon Counters
