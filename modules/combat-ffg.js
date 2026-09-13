@@ -1241,21 +1241,30 @@ export class CombatTrackerFFG extends foundry.applications.sidebar.tabs.CombatTr
   /** @override */
   _getEntryContextOptions() {
     const baseEntries = super._getEntryContextOptions();
-    // replace the default remove combatant entry with our custom one, which allows us to detect and remove extra slots
-    const updateCombatantEntry = baseEntries.find(i => i.name === "COMBAT.CombatantUpdate");
+    // V14 re-keyed the core entries (name -> label, COMBAT.Combatant* -> COMBATANT.ACTIONS.*) and its ContextMenu
+    // calls onClick(event, el) ahead of the legacy callback(el). Match either generation and replace whichever
+    // handler core supplied, otherwise the overrides below are silently skipped on V14.
+    const findCoreEntry = (v13Name, v14Label) => baseEntries.find(i => i.label === v14Label || i.name === v13Name);
+    const overrideCoreEntry = (entry, handler) => {
+      if ("onClick" in entry) {
+        entry.onClick = async (event, el) => await handler(el);
+      } else {
+        entry.callback = async el => await handler(el);
+      }
+    };
+
+    // replace the default update combatant entry with our custom one, which edits the initiative of the slot
+    const updateCombatantEntry = findCoreEntry("COMBAT.CombatantUpdate", "COMBATANT.ACTIONS.Update");
     if (updateCombatantEntry) {
-      updateCombatantEntry.name = "SWFFG.Notifications.Combat.Initiative.Update";
-      updateCombatantEntry.callback = async el => {
-        await this.viewed.updateCombatant(el);
-      };
+      updateCombatantEntry["label" in updateCombatantEntry ? "label" : "name"] = "SWFFG.Notifications.Combat.Initiative.Update";
+      overrideCoreEntry(updateCombatantEntry, el => this.viewed.updateCombatant(el));
       baseEntries[0] = updateCombatantEntry;
     }
 
-    const removeCombatantEntry = baseEntries.find(i => i.name === "COMBAT.CombatantRemove");
+    // replace the default remove combatant entry with our custom one, which allows us to detect and remove extra slots
+    const removeCombatantEntry = findCoreEntry("COMBAT.CombatantRemove", "COMBATANT.ACTIONS.Remove");
     if (removeCombatantEntry) {
-      removeCombatantEntry.callback = async el => {
-        await this.viewed.removeCombatant(el);
-      };
+      overrideCoreEntry(removeCombatantEntry, el => this.viewed.removeCombatant(el));
       baseEntries[4] = removeCombatantEntry;
     }
 
