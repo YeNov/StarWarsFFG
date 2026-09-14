@@ -21,11 +21,13 @@
             margin: 10px;
           }
 
-          // Minion vehicle group row, under the four stat boxes: spaced off them like the boxes'
-          // own row, with each block centred in its third (the blocks are narrower than a column
-          // and would otherwise sit at its left edge).
+          // Minion vehicle group row, under the four stat boxes. A block's layout box is only
+          // 40px tall (.resource) while its Threshold/Current label strip is positioned down to
+          // 66px, so the row above hangs ~26px into this one: the top margin clears that plus a
+          // 10px gap (it collapses with the upper row's 10px, it does not add to it). Each block
+          // is centred in its third; they are narrower than a column and would sit at its left.
           &.minion-vehicle-stats {
-            margin: 10px;
+            margin: 36px 10px 10px;
             justify-items: center;
           }
         }
