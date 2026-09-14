@@ -464,9 +464,11 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   background-color: #ffae5e !important;
 }
 
+/* Use core's Font Awesome family (6 Pro on V13, 7 Pro on V14). V14 ships no
+   "Font Awesome 6 Pro" face, so naming it drew a missing-glyph box, not the tick. */
 .starwarsffg.application.dialog .sheet-options-dialog input[type=checkbox]:checked::after {
   content: "\f00c";
-  font-family: "Font Awesome 6 Pro";
+  font-family: var(--font-awesome);
   font-weight: 900;
   font-size: 13px;
   color: #1b0e02;
