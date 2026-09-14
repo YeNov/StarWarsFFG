@@ -630,6 +630,11 @@
 .cdx .cdx-member-group { display:flex; gap:2px; flex:0 0 auto; padding:2px; border:1px solid var(--cdx-line); border-radius:3px; }
 .cdx .cdx-wound-seg { flex:0 0 auto; width:14px; height:11px; border-radius:2px; background:var(--cdx-track); }
 .cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
+/* Minion vehicle group: the vehicle's left column already spaces its children with a gap. */
+.cdx .cdx-veh-left > .cdx-wp { margin-top:0; }
+/* A per-vehicle hull of 20 or more is one bar per vehicle rather than a row of pips. */
+.cdx .cdx-wound-seg.cdx-hull-bar { width:84px; position:relative; overflow:hidden; }
+.cdx .cdx-hull-bar-fill { position:absolute; top:0; bottom:0; left:0; background:var(--cdx-ink); }
 
 /* ============================ Vehicle sheet ============================ */
 /* The vehicle header uses the shared, scheme-driven .cdx-header style (background

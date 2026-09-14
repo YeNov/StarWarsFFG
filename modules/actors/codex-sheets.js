@@ -24,6 +24,7 @@ import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
 import { CdxPillStack } from "./cdx-pill-stack.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import { killMinionGroup } from "../helpers/minions.js";
+import { groupTrack, hullPoolSegments, stepUnits } from "../helpers/minion-group.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { getFatedSigilMask } from "./codex-fated-sigil.js";
 import { buildTalentTierMap, groupTalentsByTier } from "./codex-talent-tiers.js";
@@ -819,42 +820,26 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         catch (error) { ui.notifications.warn(error.message); }
       });
     });
-    // Minion Group-Strength steppers (members alive ±1). Alive count is DERIVED
-    // from wounds (system prepareData):
-    //   alive = qmax - floor((wounds - 1) / unit)
-    // The wound track is 1-indexed -- the first point of damage is wound 1, so a
-    // member only drops at unit+1 wounds, NOT unit. A flat ±unit step is therefore
-    // off by one: from a clean group, −unit (e.g. 0 → 3 at unit 3) leaves the
-    // count unchanged because wound 3 still hasn't crossed the kill boundary.
-    // Instead, decompose the current wounds into dead members + partial damage on
-    // the leading (still-alive) member, move the dead count by one, and re-attach
-    // the SAME partial. This costs unit+1 from a clean group (kills a member) and
-    // unit mid-damage, while preserving the carried partial damage.
+    // Group-Strength steppers (units left ±1), on a minion's sheet and on a minion vehicle
+    // group's. Units left are DERIVED from the group's damage track in prepared data, and the
+    // track is 1-indexed -- a unit only drops one point PAST its threshold -- so a flat ±threshold
+    // step is off by one. stepUnits (minion-group.js) splits the damage into lost units plus the
+    // partial damage on the next one, moves the lost count by one and keeps that partial:
     //   e.g. 3/member, 2 applied, − → 5 wounds = 1 dead + the 2 carried over.
-    // Clamped to [0, qmax·unit + 1] (the latter = whole group dead, matching
-    // killMinionGroup; one past wounds.max because the alive formula needs the
-    // extra point to drop the final member).
+    // groupTrack picks the track: wounds by unit_wounds for a minion, hull trauma by the
+    // per-vehicle threshold for a minion vehicle group.
     root.querySelectorAll(".cdx-gs-step").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();
-        const dir = Number(ev.currentTarget.dataset.dir) || 0; // −1 kill, +1 revive
-        const sys = this.actor?.system;
-        if (!sys) return;
-        const unit = Math.max(1, Math.trunc(Number(sys.unit_wounds?.value) || 1));
-        const qmax = Math.max(0, Math.trunc(Number(sys.quantity?.max) || 0));
-        const cur = Math.max(0, Math.trunc(Number(sys.stats?.wounds?.value) || 0));
-        const ceiling = qmax * unit + 1;
-        const deaths = cur >= 1 ? Math.floor((cur - 1) / unit) : 0;
-        const partial = cur >= 1 ? (cur - 1) - deaths * unit : 0;
-        const targetDeaths = Math.max(0, Math.min(qmax, deaths - dir));
-        const next = (targetDeaths === 0 && partial === 0)
-          ? 0
-          : Math.max(0, Math.min(ceiling, targetDeaths * unit + partial + 1));
-        if (next === cur) return;
-        await this.actor.update({ "system.stats.wounds.value": next });
+        const dir = Number(ev.currentTarget.dataset.dir) || 0; // −1 destroy, +1 revive
+        const track = groupTrack(this.actor);
+        if (!track) return;
+        const next = stepUnits(track.damage, track.perUnit, track.size, dir);
+        if (next === track.damage) return;
+        await this.actor.update({ [track.path]: next });
       });
     });
-    // Wipe Out — eliminate the whole group (wounds → max+1 ⇒ alive 0).
+    // Wipe Out — eliminate the whole group (damage → group threshold + 1 ⇒ none left).
     root.querySelectorAll(".cdx-wipeout").forEach((btn) => {
       btn.addEventListener("click", async (ev) => {
         ev.preventDefault();
@@ -1542,6 +1527,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           hull: this._cdxTrack(Number(s.hullTrauma?.value) || 0, Number(s.hullTrauma?.max) || 0),
           strain: this._cdxTrack(Number(s.systemStrain?.value) || 0, Number(s.systemStrain?.max) || 0),
         };
+        // A minion vehicle group's Combined Hull Pool: one segment group per vehicle, filled left
+        // to right like the minion wound pool (a bar per vehicle once its hull is too big for pips).
+        if (ctx.isMinionVehicle) {
+          const perVehicle = ctx.minionVehicle?.perVehicle ?? 0;
+          ctx.cdxVehHullGroups = hullPoolSegments(s.hullTrauma?.value, perVehicle, this.actor.system?.quantity?.max);
+          ctx.cdxVehHullHint = game.i18n.format("SWFFG.Codex.HullSuffered", { n: perVehicle });
+        }
         let crew = 0, crit = 0;
         for (const it of (this.actor.items ?? [])) {
           if (it.type === "shipcrew") crew += 1;
@@ -1599,6 +1591,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         // form on change AND on close, so a zero here is written straight over the stored value.
         CONFIG.logger?.warn?.("Codex: falling back to source vehicle stats", e);
         ctx.cdxVehTracks = { hull: {}, strain: {} };
+        ctx.cdxVehHullGroups = [];
+        ctx.cdxVehHullHint = "";
         ctx.cdxVehHpUsed = 0;
         ctx.cdxVehHpMax = vehicleHardpointSourceRating(this.actor);
         ctx.cdxVehCrewCount = 0;
