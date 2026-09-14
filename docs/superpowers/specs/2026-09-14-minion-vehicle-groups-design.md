@@ -65,7 +65,7 @@ Registered with the other vehicle options in `ActorSheetFFG.activateListeners`
 `enableHyperdrive` / `enableSensors`):
 
 ```js
-this.sheetOptions.register("minionVehicle", {
+this.sheetoptions.register("minionVehicle", {
   name: game.i18n.localize("SWFFG.MinionVehicle"),
   hint: game.i18n.localize("SWFFG.MinionVehicleHint"),
   type: "Boolean",
@@ -228,10 +228,10 @@ Handler changes in `CodexActorSheet`:
 
 `lang/en.json`: `SWFFG.MinionVehicle`, `SWFFG.MinionVehicleHint`, `SWFFG.MinionVehiclePerVehicle`,
 `SWFFG.MinionVehicleCount`, `SWFFG.MinionVehicleLeft`, `SWFFG.MinionVehicleGroupThreshold`,
-`SWFFG.MinionVehicleDestroy`, `SWFFG.MinionVehicleWipeOut`, plus the updated
+`SWFFG.MinionVehicleLosses`, `SWFFG.MinionVehicleDestroy`, `SWFFG.MinionVehicleWipeOut`, plus the updated
 `showMinionCount` hint.
 `lang/codex/en.json`: `SWFFG.Codex.CombinedHullPool`, `SWFFG.Codex.PerVehicle`,
-`SWFFG.Codex.VehiclesInGroup`.
+`SWFFG.Codex.VehiclesInGroup`, `SWFFG.Codex.HullSuffered`.
 Other languages fall back to English.
 
 ## Error handling
