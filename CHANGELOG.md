@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Fixed — **large quantities overflowed their Codex inventory card**. A three- or four-digit count ran over the − and + buttons and into the ENC column; the QTY column now widens to fit the number.
 * Added — **vehicles can carry the Adversary talent** ([#88](https://github.com/YeNov/StarWarsFFG/pull/88)). Attacks targeting the vehicle then get the roll dialog's Adversary pool, upgraded once per rank as against an NPC, and its token shows the Adversary badge. The talent is listed on the Bio tab (Description on the classic sheet), greyed out at rank 0; vehicles still refuse every other talent.
 * Fixed — **an Adversary badge stayed on the token after the talent was deleted or lowered to rank 0** ([#88](https://github.com/YeNov/StarWarsFFG/pull/88)), until the scene was reloaded. It now comes off straight away.
 * Fixed — **the combat tracker's right-click menu on Foundry V14 ran Foundry's own Update and Remove instead of the system's** ([#87](https://github.com/YeNov/StarWarsFFG/pull/87)). Update did nothing on an unclaimed slot; the menu now offers Update Initiative again and Remove uses the system's slot-aware removal, as on V13.
