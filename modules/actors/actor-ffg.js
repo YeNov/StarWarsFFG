@@ -3,6 +3,7 @@ import ActorHelpers from "../helpers/actor-helpers.js";
 import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate-talents.js";
 import { applyCharacterDefenceCap } from "../helpers/defence-helpers.js";
 import { buildSkillDefaults } from "../helpers/skill-defaults.js";
+import { isMinionVehicle, prepareMinionVehicleHull, prototypeLinkUpdate } from "../helpers/minion-group.js";
 
 /**
  * Extend the base Actor entity.
@@ -173,6 +174,13 @@ export class ActorFFG extends Actor {
         }
       }
     }
+    // Turning Minion Vehicle on unlinks the prototype token, as a minion's is, so each token
+    // placed is its own group; turning it off links it again. Tokens already on a scene keep
+    // whatever link they have.
+    const linkUpdate = prototypeLinkUpdate(this, changes);
+    if (linkUpdate) {
+      changes.prototypeToken = foundry.utils.mergeObject(changes.prototypeToken ?? {}, linkUpdate);
+    }
     await super._preUpdate(changes, options, user);
   }
 
@@ -252,6 +260,9 @@ export class ActorFFG extends Actor {
     } else if (["rival", "minion"].includes(actor.type)) {
       data.stats.woundsOverThreshold = data.stats.wounds.value - data.stats.wounds.max;
     } else if (["vehicle"].includes(actor.type)) {
+      // A minion vehicle group pools its hull FIRST, so this over-threshold figure, the token bar
+      // and both sheets all read the whole group's threshold.
+      if (isMinionVehicle(actor)) prepareMinionVehicleHull(data);
       data.stats.hullOverThreshold = data.stats.hullTrauma.value - data.stats.hullTrauma.max;
       data.stats.systemStrainOverThreshold = data.stats.systemStrain.value - data.stats.systemStrain.max;
     }

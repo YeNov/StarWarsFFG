@@ -630,6 +630,11 @@
 .cdx .cdx-member-group { display:flex; gap:2px; flex:0 0 auto; padding:2px; border:1px solid var(--cdx-line); border-radius:3px; }
 .cdx .cdx-wound-seg { flex:0 0 auto; width:14px; height:11px; border-radius:2px; background:var(--cdx-track); }
 .cdx .cdx-wound-seg.filled { background:var(--cdx-ink); }
+/* Minion vehicle group: the vehicle's left column already spaces its children with a gap. */
+.cdx .cdx-veh-left > .cdx-wp { margin-top:0; }
+/* A per-vehicle hull of 20 or more is one bar per vehicle rather than a row of pips. */
+.cdx .cdx-wound-seg.cdx-hull-bar { width:84px; position:relative; overflow:hidden; }
+.cdx .cdx-hull-bar-fill { position:absolute; top:0; bottom:0; left:0; background:var(--cdx-ink); }
 
 /* ============================ Vehicle sheet ============================ */
 /* The vehicle header uses the shared, scheme-driven .cdx-header style (background
@@ -647,6 +652,9 @@
 .cdx .cdx-veh-talent.off { opacity:.5; filter:grayscale(1); }
 
 /* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
+/* Silhouette · Speed · Handling · Armour span the sheet above both columns. As a direct
+   child of the column-flex form it must not shrink when the sheet is short. */
+.cdx .cdx-veh-chiprow { flex:none; }
 .cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }
 .cdx .cdx-veh-left { flex:2; min-width:0; display:flex; flex-direction:column; gap:9px; }
 .cdx .cdx-veh-main .cdx-derived { flex:none; }

@@ -20,6 +20,15 @@
           &.grid-4col {
             margin: 10px;
           }
+
+          // Minion vehicle group row, under the four stat boxes, spaced like them. Each block is
+          // centred in its third; they are narrower than a column and would sit at its left.
+          // This is the retired Default theme only: the Mandar themes, which are the default
+          // setting, space the row in styles/mandar.css.
+          &.minion-vehicle-stats {
+            margin: 10px;
+            justify-items: center;
+          }
         }
 
         .block-background {

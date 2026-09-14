@@ -3487,6 +3487,14 @@ img {
   margin-bottom: 0.25rem;
 }
 
+/* Minion vehicle group row, under the four stat boxes. A block's Threshold/Current strip hangs
+   0.95rem below the block (.block-background-shadow), while header rows are only 0.25rem apart,
+   so without this the strip ran into the group row. Each block is centred in its third. */
+.starwarsffg.sheet.actor .vehicle .header-fields .grid.minion-vehicle-stats {
+  margin-top: 0.85rem;
+  justify-items: center;
+}
+
 .starwarsffg.sheet.actor .vehicle .header-fields .block-background {
   position: relative;
 }

@@ -2497,6 +2497,10 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg.sheet.actor .vehicle .header-fields .grid.grid-4col {
   margin: 10px;
 }
+.starwarsffg.sheet.actor .vehicle .header-fields .grid.minion-vehicle-stats {
+  margin: 10px;
+  justify-items: center;
+}
 .starwarsffg.sheet.actor .vehicle .header-fields .block-background {
   position: relative;
 }

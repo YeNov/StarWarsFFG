@@ -1,6 +1,16 @@
 import {get_dice_pool} from "./dice-helpers.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
+import { crewRollOptions } from "./minion-group.js";
+
+/**
+ * The vehicle a crew roll is for. An id resolves to the WORLD actor, which is wrong for an unlinked
+ * token -- a minion vehicle squadron's own hull and vehicles left live on the token actor -- so
+ * sheets pass the actor itself. Ids are still accepted for macros.
+ */
+function resolveVehicle(vehicle) {
+  return typeof vehicle === "string" ? game.actors.get(vehicle) : vehicle;
+}
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -147,7 +157,7 @@ export async function updateRoles(vehicle_actor, crew_member_id, new_crew_roles)
 
 /**
  * Create a string representation of a skill check for a crew member in a particular role on a vehicle
- * @param vehicle actor object for the vehicle the crew is on
+ * @param vehicle the vehicle actor the crew is on (or its actor ID)
  * @param crew_id actor ID of the crew member
  * @param crew_role role of the actor (used to determine which skill to use)
  * @returns {string|boolean} a string representation of HTML for the dice in the roll
@@ -155,7 +165,7 @@ export async function updateRoles(vehicle_actor, crew_member_id, new_crew_roles)
 export function build_crew_roll(vehicle, crew_id, crew_role) {
   // look up the sheet for passing to the roller
   const crew_member = game.actors.get(crew_id);
-  const vehicle_actor = game.actors.get(vehicle);
+  const vehicle_actor = resolveVehicle(vehicle);
   if (crew_member === undefined) {
     ui.notifications.warn(game.i18n.localize("SWFFG.Crew.Actor.Removed"));
     deregister_crew(vehicle_actor, crew_id, crew_role);
@@ -191,20 +201,20 @@ export function build_crew_roll(vehicle, crew_id, crew_role) {
     }
   }
   let pool = new DicePoolFFG(starting_pool);
-  pool = get_dice_pool(crew_id, role_info[0].role_skill, pool);
+  pool = get_dice_pool(crew_id, role_info[0].role_skill, pool, crewRollOptions(vehicle_actor));
   return pool.renderPreview().innerHTML;
 }
 
 /**
  * Build the dice pool for the built-in piloting check, which automatically resolves the correct piloting skill
- * @param vehicle_id - the vehicle actor object
+ * @param vehicleOrId - the vehicle actor (or its actor ID)
  * @param pilot_id - the actor ID of the pilot
  * @param difficulty - the difficulty of the check (omit to default to "average")
  * @returns {Promise<Window.DicePoolFFG>}
  */
-export async function buildPilotRoll(vehicle_id, pilot_id, difficulty = 2) {
+export async function buildPilotRoll(vehicleOrId, pilot_id, difficulty = 2) {
   const starting_pool = {'difficulty': difficulty};
-  const vehicle = game.actors.get(vehicle_id);
+  const vehicle = resolveVehicle(vehicleOrId);
   const skillTheme = game.settings.get("starwarsffg", "skilltheme");
 
   // add modifiers from the vehicle handling
@@ -235,7 +245,7 @@ export async function buildPilotRoll(vehicle_id, pilot_id, difficulty = 2) {
   }
 
   // update the pool with actor information
-  return get_dice_pool(pilot_id, skill, pool);
+  return get_dice_pool(pilot_id, skill, pool, crewRollOptions(vehicle));
 }
 
 /**
@@ -246,7 +256,7 @@ export async function buildPilotRoll(vehicle_id, pilot_id, difficulty = 2) {
  */
 export async function handlePilotCheck(vehicle, pilot_id) {
   const crewSheet = game.actors.get(pilot_id)?.sheet;
-  const pool = await buildPilotRoll(vehicle.id, pilot_id);
+  const pool = await buildPilotRoll(vehicle, pilot_id);
 
   // create chat card data
   const card_data = {

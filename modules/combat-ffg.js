@@ -1,5 +1,6 @@
 import {DicePoolFFG, RollFFG} from "./dice-pool-ffg.js";
 import PopoutEditor from "./popout-editor.js";
+import { crewRollOptions, withGroupSkillRanks } from "./helpers/minion-group.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -1083,7 +1084,9 @@ function _findActorForInitiative(c) {
         CONFIG.logger.debug("Found initiative crew role, swapping data to crew member");
         const realActor = game.actors.get(initiativeCrew.actor_id);
         if (realActor?.system) {
-          data = realActor.system;
+          // A minion vehicle group's pilot rolls Cool/Vigilance at the group's strength, read from
+          // this combatant's own vehicle (the token actor on an unlinked squadron).
+          data = withGroupSkillRanks(realActor.system, crewRollOptions(c.actor));
         }
       }
     } else {

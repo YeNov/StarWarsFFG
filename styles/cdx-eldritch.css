@@ -717,6 +717,7 @@
 }
 .cdx form.scheme-eldritch .cdx-wound-seg { background:#302e29; border-radius:0; }
 .cdx form.scheme-eldritch .cdx-wound-seg.filled { background:#aaa18e; }
+.cdx form.scheme-eldritch .cdx-hull-bar-fill { background:#aaa18e; }
 
 /* --- Vehicle sheet ------------------------------------------------------- */
 .cdx form.scheme-eldritch .cdx-veh-rarity {
