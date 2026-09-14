@@ -1004,6 +1004,16 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       await this._onSubmit(ev, { render: true });
     });
 
+    // Cross-field reactivity: an Obligation entry's Type decides whether the sheet
+    // offers Magnitude (Obligation, Duty) or Subtype (Morality), and the Codex
+    // header pill names the type. Under render:false the type saved but the sheet
+    // kept the old fields and label, so a new entry looked stuck as an Obligation.
+    if (this.object.type === "obligation") {
+      html.find('select[name="data.type"]').on("change", async (ev) => {
+        await this._onSubmit(ev, { render: true });
+      });
+    }
+
     // Cross-field reactivity: toggling a talent/upgrade "islearned" checkbox
     // changes which nodes are purchasable (the .ffg-purchase buy buttons) for
     // this node AND its tree neighbours, via the canPurchase pass in getData.
