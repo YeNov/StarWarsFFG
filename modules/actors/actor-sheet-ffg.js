@@ -737,6 +737,14 @@ export class ActorSheetFFG extends FFGActorSheet {
         type: "Boolean",
         default: true,
       });
+      // A squadron of identical minion-crewed craft run with the minion rules. Accept re-renders
+      // the sheet, so the group controls appear or go at once.
+      this.sheetoptions.register("minionVehicle", {
+        name: game.i18n.localize("SWFFG.MinionVehicle"),
+        hint: game.i18n.localize("SWFFG.MinionVehicleHint"),
+        type: "Boolean",
+        default: false,
+      });
       // Lives in system data, not a sheet flag: the roll dialog reads it off the
       // targeted vehicle. Saving through Sheet Options re-renders the sheet, which
       // the sheet's own render:false submit would not, so the zones redraw at once.

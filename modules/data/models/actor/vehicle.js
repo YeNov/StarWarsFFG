@@ -57,6 +57,11 @@ export class VehicleDataModel extends mix(
         consumables: new f.SchemaField({ value: num(1), duration: str("months"), type: str("Number"), label: str("SWFFG.Consumables") }),
         navicomputer: new f.SchemaField({ value: new f.BooleanField({ initial: false }), type: str("Boolean"), label: str("SWFFG.VehicleNavicomputer") }),
       }),
+      // A minion vehicle group's size (Sheet Options -> Minion Vehicle). `max` is stored; `value`,
+      // the vehicles left, is derived from hull trauma in ActorFFG#prepareDerivedData while the
+      // option is on and unused while it is off. The same shape as a minion's `quantity`, so the
+      // token tally reads either.
+      quantity: new f.SchemaField({ value: num(1), max: num(1) }),
       spaceShip: new f.BooleanField({ initial: false }),
       silhouetteImage: new f.StringField({ initial: "systems/starwarsffg/images/shipdefence.png" }),
     };
