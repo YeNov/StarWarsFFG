@@ -7,6 +7,7 @@
  * See docs/superpowers/specs/2026-05-24-apply-crit-chat-button-design.md
  */
 import { applyToTargetActor } from "./gm-bridge.js";
+import { isMinionVehicle } from "./minion-group.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -84,7 +85,9 @@ export class ApplyCrit {
     const isLinked = target.document.actorLink === true;
     const realActor = isLinked ? game.actors.get(a.id) : a;
 
-    if (type === "minion") {
+    // A crit on a minion group takes out one member instead of rolling on a table: one minion,
+    // or one vehicle of a minion vehicle group.
+    if (type === "minion" || isMinionVehicle(realActor)) {
       try {
         const ok = await applyToTargetActor(realActor, { type: "kill-minion" });
         if (!ok) return;

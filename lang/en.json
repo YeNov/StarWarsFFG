@@ -856,7 +856,7 @@
   "SWFFG.Settings.maxSkill.Name": "Max skill ranks",
   "SWFFG.Settings.maxSkill.Hint": "A skill rank above this value will be reduced to it",
   "SWFFG.Settings.showMinionCount.Name": "Show Minion Count",
-  "SWFFG.Settings.showMinionCount.Hint": "Shows alive/total minions in group on tokens",
+  "SWFFG.Settings.showMinionCount.Hint": "Shows alive/total minions in group on tokens, and vehicles left/total on minion vehicle groups",
   "SWFFG.Settings.showAdversaryCount.Name": "Show Adversary Count",
   "SWFFG.Settings.showAdversaryCount.Hint": "Shows the ranks of the Adversary talent on tokens",
   "SWFFG.Settings.AdversaryItemName.Name": "Adversary Item Name",

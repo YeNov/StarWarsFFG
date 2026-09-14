@@ -21,6 +21,7 @@ import { createKeyedSerializer } from "../../modules/helpers/keyed-serializer.js
 import {
   narrowApplyRequest,
   isApplyRequestAuthorized,
+  prepareForwardedApply,
   DAMAGE_PATHS,
   CRIT_ITEM_TYPES,
 } from "../../modules/helpers/gm-bridge.js";
@@ -143,6 +144,33 @@ test("only a minion may be killed by a forwarded request", () => {
   for (const actorType of ["character", "nemesis", "rival", "vehicle", undefined]) {
     assert.equal(narrowApplyRequest({ type: "kill-minion" }, actorType).reason, "not-a-minion");
   }
+});
+
+test("a minion vehicle group may lose a vehicle to a forwarded request; a plain vehicle may not", () => {
+  assert.deepEqual(
+    narrowApplyRequest({ type: "kill-minion" }, "vehicle", { minionGroup: true }),
+    { ok: true, op: { type: "kill-minion" } },
+  );
+  assert.equal(narrowApplyRequest({ type: "kill-minion" }, "vehicle", { minionGroup: false }).reason, "not-a-minion");
+  assert.equal(narrowApplyRequest({ type: "kill-minion" }, "character", { minionGroup: true }).reason, "not-a-minion");
+});
+
+test("the minion vehicle check is made on the resolved target, not the payload", () => {
+  const requestor = { id: "p1", active: true, isGM: false };
+  const squadron = {
+    type: "vehicle",
+    flags: { starwarsffg: { config: { minionVehicle: true } } },
+    testUserPermission: () => false,
+  };
+  assert.deepEqual(
+    prepareForwardedApply(squadron, { type: "kill-minion", minionGroup: true, path: "x" }, requestor, true),
+    { type: "kill-minion" },
+  );
+  const plain = { ...squadron, flags: {} };
+  assert.throws(
+    () => prepareForwardedApply(plain, { type: "kill-minion", minionGroup: true }, requestor, true),
+    /not-a-minion/,
+  );
 });
 
 test("an unknown operation is refused outright", () => {

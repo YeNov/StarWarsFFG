@@ -57,6 +57,7 @@ import RollBuilderFFG from "./dice/roll-builder.js";
 import CrewSettings from "./settings/crew-settings.js";
 import {register_dice_enricher, register_oggdude_tag_enricher, register_roll_tag_enricher} from "./helpers/journal.js";
 import {drawAdversaryCount, drawMinionCount, registerTokenControls} from "./helpers/token.js";
+import { isMinionVehicle } from "./helpers/minion-group.js";
 import {handleUpdate} from "./swffg-migration.js";
 import SWAImporter from "./importer/swa-importer.js";
 import HyperdriveImporter from "./importer/hyperdrive/importer-app.js";
@@ -2267,7 +2268,7 @@ Hooks.once("ready", async () => {
     /*
     Used to render minion count
     */
-    if (token?.actor?.type === "minion") {
+    if (token?.actor?.type === "minion" || isMinionVehicle(token?.actor)) {
       drawMinionCount(token);
     }
     drawAdversaryCount(token);

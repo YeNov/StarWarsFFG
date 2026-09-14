@@ -15,6 +15,7 @@
  */
 
 import { killMinion } from "./minions.js";
+import { isMinionVehicle } from "./minion-group.js";
 import { availFor } from "./crit-availability.js";
 import { createActorApplyCoordinator, APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT } from "./actor-apply-coordinator.js";
 
@@ -52,9 +53,11 @@ function isPlainObject(value) {
  *
  * @param {object} data       The raw socket payload.
  * @param {string} actorType  The resolved target actor's `type`.
+ * @param {object} [target]   Facts about the resolved target, never taken from the payload.
+ * @param {boolean} [target.minionGroup]  The target is a vehicle with Minion Vehicle on.
  * @returns {{ok: true, op: object}|{ok: false, reason: string}}
  */
-export function narrowApplyRequest(data, actorType) {
+export function narrowApplyRequest(data, actorType, { minionGroup = false } = {}) {
   switch (data?.type) {
     case "damage": {
       if (!DAMAGE_PATHS.includes(data.path)) return { ok: false, reason: "path" };
@@ -72,7 +75,9 @@ export function narrowApplyRequest(data, actorType) {
       return { ok: true, op: { type: "crit", items } };
     }
     case "kill-minion": {
-      if (actorType !== "minion") return { ok: false, reason: "not-a-minion" };
+      // A crit on a minion vehicle group destroys one vehicle, as one on a minion group kills one minion.
+      const isGroup = actorType === "minion" || (actorType === "vehicle" && minionGroup === true);
+      if (!isGroup) return { ok: false, reason: "not-a-minion" };
       return { ok: true, op: { type: "kill-minion" } };
     }
     default:
@@ -137,7 +142,7 @@ export function prepareForwardedApply(actor, data, requestor, hasGM) {
   // writes through another client must not remove any of those capabilities.
   if (actor.testUserPermission(requestor, "OWNER")) return data;
   if (!hasGM) throw new Error("A GM must be connected to apply to an unowned target.");
-  const narrowed = narrowApplyRequest(data, actor.type);
+  const narrowed = narrowApplyRequest(data, actor.type, { minionGroup: isMinionVehicle(actor) });
   if (!narrowed.ok) throw new Error(`Invalid apply request: ${narrowed.reason}.`);
   return narrowed.op;
 }
