@@ -26,7 +26,7 @@ import {
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
-import { crewRollOptions } from "../helpers/minion-group.js";
+import { crewRollOptions, isMinionVehicle } from "../helpers/minion-group.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
 import { sheetTracks } from "../helpers/obligation-tracks.js";
@@ -398,6 +398,14 @@ export class ActorSheetFFG extends FFGActorSheet {
         // but every talent it holds is listed, so one left behind by a renamed
         // Adversary setting can still be seen and deleted.
         data.vehicleTalents = this.actor.items.filter((item) => item.type === "talent");
+        // A minion vehicle group's sheet edits the per-vehicle hull threshold, which prepared data
+        // keeps as `hullTrauma.unit`. That key is not in the schema, so the serialized `data.data`
+        // copy above drops it; `data.data.stats.hullTrauma.max` there is the whole group's.
+        data.isMinionVehicle = isMinionVehicle(this.actor);
+        if (data.isMinionVehicle) {
+          const hull = this.actor.system.stats.hullTrauma;
+          data.minionVehicle = { perVehicle: hull.unit ?? hull.max };
+        }
         // add the crew to the items of the vehicle
         data.crew = [];
         // look up the flag data
@@ -581,12 +589,20 @@ export class ActorSheetFFG extends FFGActorSheet {
     // and reopened. Force render: true on change for these specific
     // numeric/select inputs (text-typing inputs aren't in this list, so
     // mid-typing DOM swaps remain prevented).
-    if (this.actor.type === "minion") {
-      const minionDerivedInputs = [
-        'input[name="data.unit_wounds.value"]',
-        'input[name="data.quantity.max"]',
-        'input[name="data.stats.wounds.value"]',
-      ].join(", ");
+    // A minion vehicle group derives the same way from its hull: per-vehicle threshold and group
+    // size -> group threshold, hull trauma -> vehicles left -> the crew's dice previews.
+    if (this.actor.type === "minion" || isMinionVehicle(this.actor)) {
+      const minionDerivedInputs = (this.actor.type === "minion"
+        ? [
+          'input[name="data.unit_wounds.value"]',
+          'input[name="data.quantity.max"]',
+          'input[name="data.stats.wounds.value"]',
+        ]
+        : [
+          'input[name="data.stats.hullTrauma.max"]',
+          'input[name="data.quantity.max"]',
+          'input[name="data.stats.hullTrauma.value"]',
+        ]).join(", ");
       html.find(minionDerivedInputs).on("change", async (event) => {
         event.stopPropagation();
         await this._onSubmit(event, { render: true });

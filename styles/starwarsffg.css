@@ -253,18 +253,10 @@ img {
 
 .starwarsffg.application.sheet > form.window-content {
   overflow: visible !important;
-  /* Trap sheet content in its own stacking context so it cannot paint over the
-     window chrome. Core puts the header and the ⋮ controls-dropdown at z-index:1
-     inside .application and expects content to stay below them — but
-     .talent-background carries z-index:10 and nothing between it and .application
-     establishes a stacking context, so the talent cards were compared directly
-     against the dropdown's 1, won, and occluded the open menu. Isolating fixes
-     that WITHOUT touching the card's z-index, which is load-bearing:
-     .talent-connections is a sibling at z-index:5 and would paint over the cards
-     if the 10 were simply dropped. Also pre-empts the same clash from
-     .item-controls / .tooltip at z-index:500 elsewhere. Stacking only — this
-     changes no layout or appearance. */
-  isolation: isolate;
+}
+
+.starwarsffg.application.group-manager > form.window-content {
+  overflow-y: auto;
 }
 
 .starwarsffg.application.sheet nav.sheet-tabs {
@@ -307,15 +299,6 @@ body.game .starwarsffg.application.sheet.actor > form.window-content.vehicle > .
   min-height: 0 !important;
 }
 
-/* The talent header height is variable: it depends on the image, the
-   ranked/force/conflict block row, AND third-party injections (the
-   enhancements module appends an "Associated Skills" block via renderItemSheet).
-   A hardcoded `calc(100% - 22rem)` body guessed that header height -- once the
-   real header exceeded 22rem, header + body overflowed form.window-content
-   (which is `overflow: visible`) and the modifier list spilled out the bottom
-   of the window instead of scrolling. Flex the body to fill whatever the
-   natural-height header leaves and scroll its own overflow (same as the generic
-   item-body rule below). */
 body.game .starwarsffg.application.sheet.item > form.window-content.item-sheet-talent > .sheet-body.talent {
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -386,13 +369,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   pointer-events: none;
 }
 
-/* Cap the dialog width so a long hint/notes line wraps onto multiple rows
-   instead of stretching the auto-sized window horizontally. The 1fr label/notes
-   grid column then wraps within this bound; short hints keep the dialog compact. */
-.starwarsffg.application.dialog .sheet-options-dialog {
-  max-width: 600px !important;
-}
-
 .starwarsffg.application.dialog .sheet-options-dialog .form-group {
   display: grid !important;
   grid-template-columns: 1fr auto !important;
@@ -440,8 +416,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   font-size: 0.95em !important;
   line-height: 1.25 !important;
   opacity: 0.85 !important;
-  white-space: normal !important;
-  overflow-wrap: break-word !important;
 }
 
 .starwarsffg.application.dialog .sheet-options-dialog input[type=checkbox] {
@@ -477,8 +451,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   justify-content: center;
 }
 
-/* An option that exists but cannot apply right now (e.g. Enable Ammo while the world drives
-   ammo from the Limited Ammo quality): shown greyed out, with its note saying why. */
 .starwarsffg.application.dialog .sheet-options-dialog .form-group.disabled > label,
 .starwarsffg.application.dialog .sheet-options-dialog .form-group.disabled > .form-fields {
   opacity: 0.45 !important;
@@ -537,6 +509,12 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   z-index: -1;
   --notchSize: 9px;
   clip-path: polygon(0% var(--notchSize), var(--notchSize) 0%, calc(100% - var(--notchSize)) 0%, 100% var(--notchSize), 100% calc(100% - var(--notchSize)), calc(100% - var(--notchSize)) 100%, var(--notchSize) 100%, 0% calc(100% - var(--notchSize)));
+}
+.starwarsffg .xp-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 0;
 }
 .starwarsffg.sheet.actor.adversary .character .sheet-body .skillsTablesGrid {
   height: calc(100% - 32.1875rem);
@@ -1335,222 +1313,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   border-radius: 4px;
   background-color: rgba(255, 255, 255, 0.5);
 }
-.starwarsffg .dice-pool-dialog .adversary-pool-toggle {
-  display: flex;
-  gap: 4px;
-  margin-top: 10px;
-  padding: 4px;
-  border-radius: 6px;
-  background-color: rgba(0, 0, 0, 0.45);
-}
-.starwarsffg .dice-pool-dialog .adversary-mode-btn {
-  flex: 1 1 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: 0;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 600;
-  line-height: 1.2;
-  cursor: pointer;
-  box-shadow: none;
-}
-
-/* Vehicle defence zone picker. The dialog's form is a flex row; the existing
-   column keeps its width and the panel sits beside it. */
-.starwarsffg .dice-pool-dialog {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-/* The zone card hangs off the OUTSIDE of the roll window's left edge.
-
-   Both `.application` and `.window-content` set `overflow: hidden`, so the card is
-   clipped away wherever it sits inside the window. _relocateDefencePanel lifts it
-   to be a direct child of `.application`, and this one dialog relaxes that clip so
-   it can overhang. `.window-content` keeps its own clip, so nothing else escapes.
-   !important because system styles are layered and lose to core on specificity. */
-.starwarsffg.roll-builder-dialog {
-  overflow: visible !important;
-}
-.starwarsffg .ffg-defence-panel {
-  position: absolute;
-  right: 100%;
-  top: 48px;
-  margin-right: -2px;
-  display: flex;
-  align-items: flex-start;
-  /* Height comes from the content: this is a small card, not a full-height column. */
-  max-width: 180px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(8px);
-  transition: opacity 140ms ease, transform 180ms ease;
-}
-.starwarsffg .ffg-defence-panel.ffg-defence-open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(0);
-}
-/* Minimising hides .window-content, but the card is a sibling of it. */
-.starwarsffg.roll-builder-dialog.minimized .ffg-defence-panel,
-.starwarsffg.roll-builder-dialog.minimizing .ffg-defence-panel {
-  display: none;
-}
-.starwarsffg .ffg-defence-inner {
-  width: 158px;
-  box-sizing: border-box;
-  padding: 8px 6px;
-  text-align: center;
-  overflow: hidden;
-  background: var(--background, rgba(20, 20, 24, 0.95));
-  /* Left edge belongs to the tab, right edge butts against the window. */
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
-  border-left: none;
-  border-right: none;
-  box-shadow: -3px 0 8px rgba(0, 0, 0, 0.45);
-  transition: width 180ms ease, padding 180ms ease, opacity 140ms ease;
-}
-.starwarsffg .ffg-defence-panel.ffg-defence-collapsed .ffg-defence-inner {
-  width: 0;
-  padding-left: 0;
-  padding-right: 0;
-  opacity: 0;
-  border-width: 1px 0;
-}
-/* The grab tab, kept against the window edge so it stays reachable when collapsed. */
-.starwarsffg .ffg-defence-toggle {
-  flex: 0 0 auto;
-  width: 14px;
-  height: 34px;
-  margin: 6px 0 0 0;
-  padding: 0;
-  line-height: 1;
-  cursor: pointer;
-  background: var(--background, rgba(20, 20, 24, 0.95));
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
-  border-right: none;
-  border-radius: 6px 0 0 6px;
-  box-shadow: -3px 0 8px rgba(0, 0, 0, 0.45);
-  color: inherit;
-}
-.starwarsffg .ffg-defence-toggle::before {
-  content: "❯";
-  font-size: 10px;
-}
-.starwarsffg .ffg-defence-panel.ffg-defence-collapsed .ffg-defence-toggle::before {
-  content: "❮";
-}
-@media (prefers-reduced-motion: reduce) {
-  .starwarsffg .ffg-defence-panel,
-  .starwarsffg .ffg-defence-inner {
-    transition: none;
-  }
-}
-.starwarsffg .ffg-defence-heading {
-  font-size: 8.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  opacity: 0.7;
-}
-.starwarsffg .ffg-defence-ship {
-  font-size: 10px;
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.starwarsffg .ffg-defence-selected {
-  font-size: 11px;
-  font-weight: 600;
-  color: #a8791f;
-}
-.starwarsffg .ffg-defence-selected.ffg-defence-none {
-  font-weight: 500;
-  color: #a3521f;
-}
-.starwarsffg .ffg-defence-warning {
-  font-size: 9.5px;
-  line-height: 1.4;
-  color: #a3521f;
-}
-.starwarsffg .ffg-zone-reticle {
-  width: 140px;
-  height: 140px;
-}
-.starwarsffg .ffg-zone-wedge {
-  fill: rgba(0, 0, 0, 0.12);
-  stroke: rgba(0, 0, 0, 0.4);
-  stroke-width: 1.4;
-}
-.starwarsffg .ffg-zone {
-  cursor: pointer;
-}
-.starwarsffg .ffg-zone:hover .ffg-zone-wedge {
-  fill: rgba(168, 121, 31, 0.25);
-}
-.starwarsffg .ffg-zone-selected .ffg-zone-wedge {
-  fill: rgba(168, 121, 31, 0.45);
-  stroke: #a8791f;
-  stroke-width: 1.6;
-}
-.starwarsffg .ffg-zone:focus-visible {
-  outline: none;
-}
-.starwarsffg .ffg-zone:focus-visible .ffg-zone-wedge {
-  stroke: #2f6fa3;
-  stroke-width: 2.2;
-}
-.starwarsffg .ffg-zone-name {
-  font-size: 9px;
-  text-anchor: middle;
-  fill: currentColor;
-}
-.starwarsffg .ffg-zone-value {
-  font-size: 12px;
-  text-anchor: middle;
-  fill: currentColor;
-}
-.starwarsffg .ffg-zone-empty .ffg-zone-name,
-.starwarsffg .ffg-zone-empty .ffg-zone-value {
-  opacity: 0.55;
-}
-.starwarsffg .ffg-zone-hub {
-  fill: rgba(0, 0, 0, 0.25);
-  stroke: rgba(0, 0, 0, 0.4);
-  stroke-width: 1.4;
-}
-.starwarsffg .ffg-zone-unpicked .ffg-zone-wedge {
-  fill: rgba(163, 82, 31, 0.14);
-  stroke: #a3521f;
-  stroke-dasharray: 4 3;
-}
-.starwarsffg .ffg-zone-unpicked .ffg-zone-hub {
-  stroke: #a3521f;
-}
-.starwarsffg .dice-pool-dialog .adversary-mode-btn::before {
-  content: "";
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.3);
-}
-.starwarsffg .dice-pool-dialog .adversary-mode-btn:hover {
-  color: #fff;
-  box-shadow: none;
-}
-.starwarsffg .dice-pool-dialog .adversary-mode-btn.active {
-  background-color: rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
-.starwarsffg .dice-pool-dialog .adversary-mode-btn.active::before {
-  background-color: #f5a623;
-}
 .starwarsffg .dice-pool-dialog .pool-value {
   border: 1px solid black;
   background-color: #ddd;
@@ -1637,18 +1399,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg.dice-roll .dice-result .dice-tooltip.expanded .dice-rolls .roll.isFFG {
   width: 24px;
   float: left;
-}
-.ffg-die {
-  cursor: context-menu;
-}
-.ffg-modified-badge {
-  display: inline-block;
-  font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 8px;
-  background: rgba(255, 100, 0, 0.15);
-  border: 1px solid rgba(255, 100, 0, 0.4);
-  cursor: default;
 }
 .starwarsffg .dice-result .roll-success {
   color: darkgreen;
@@ -1856,14 +1606,13 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg .tox.tox-tinymce {
   height: 100% !important;
 }
-.starwarsffg.flat_editor .modifier-description,
-.starwarsffg.sheet .modifier-description {
+.starwarsffg.flat_editor .modifier-description, .starwarsffg.sheet .modifier-description {
   flex: 1 1 auto;
   min-height: 8em;
   width: 100%;
   resize: vertical;
 }
-.starwarsffg.flat_editor .form-group:has(> input[type="checkbox"]) {
+.starwarsffg.flat_editor .form-group:has(> input[type=checkbox]) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2418,11 +2167,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg .item-sheet-talent .attribute .block-title {
   background-color: rgb(130, 21, 23);
 }
-/* The talent body height is governed by the flexible rule near the top of this
-   file (`form.window-content.item-sheet-talent > .sheet-body.talent`). The old
-   fixed `calc(100% - Nrem)` rules that lived here were stale dead overrides --
-   a guessed header height spills the modifier list once the real header (image
-   + block row + injected "Associated Skills") exceeds the guess. */
 .starwarsffg .minion {
   flex: auto;
 }
@@ -2496,6 +2240,9 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 }
 .starwarsffg.sheet.actor .vehicle .header-fields .grid.grid-4col {
   margin: 10px;
+}
+.starwarsffg.sheet.actor .vehicle .header-fields .grid.minion-vehicle-stats {
+  margin: 0 10px 10px;
 }
 .starwarsffg.sheet.actor .vehicle .header-fields .block-background {
   position: relative;
@@ -2783,14 +2530,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   width: auto;
   text-align: center;
 }
-/* The group-manager template's <form> wrapper is dropped by the root PART, so
-   its content mounts directly inside form.window-content (core sets that to
-   overflow:hidden). Scroll the content vertically so a scrollbar appears
-   automatically only when the PC / obligation / duty lists overflow the
-   window; overflow-x stays hidden (the PC table scrolls on its own). */
-.starwarsffg.application.group-manager > form.window-content {
-  overflow-y: auto;
-}
 .starwarsffg .group-manager .PC-list {
   margin: 20px 0;
   overflow-x: auto;
@@ -2903,8 +2642,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   position: relative;
 }
 .starwarsffg .item-sheet-criticalinjury .crit-label {
-  /* Push Severity down so the d100 Roll's absolutely-positioned LOW/HIGH
-     shadow panel has room to be read instead of being overlapped by this block. */
   padding-top: 1.5rem;
 }
 .starwarsffg .item-sheet-criticalinjury .sheet-body {
@@ -3079,10 +2816,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg.data-import .import-file-selector div {
   display: inline-block;
 }
-.starwarsffg.data-import .hyperdrive-importer-content {
-  min-height: 0;
-  overflow-y: auto;
-}
 .starwarsffg.data-import .import-invalid {
   display: none;
 }
@@ -3155,7 +2888,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   width: 2rem;
   height: 2rem;
   -o-object-fit: cover;
-     object-fit: cover;
+  object-fit: cover;
   border: 0;
 }
 .starwarsffg.data-import .hyperdrive-resolution-drop span {
@@ -3272,93 +3005,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg.sheet.item.v2 .item-sheet-species .sheet-body {
   height: calc(100% - 21.1125rem);
 }
-.starwarsffg .item-sheet-species .species-creation {
-  padding: 0.5rem;
-}
-.starwarsffg .item-sheet-species .species-creation-grid,
-.starwarsffg .item-sheet-species .species-skill-choice-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.5rem;
-  align-items: end;
-}
-.starwarsffg .item-sheet-species .species-creation label span,
-.starwarsffg .item-sheet-species .species-skill-choice-fields label span {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 0.15rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 0.75rem 0 0.5rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-header h3 {
-  margin: 0;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-row {
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: 3px;
-  margin: 0 0 0.5rem;
-  padding: 0.5rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-row legend {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
-  font-weight: bold;
-  padding: 0 0.35rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-actions {
-  display: inline-flex;
-  gap: 0.25rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin: 0 0 0.5rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-summary span {
-  padding: 0.1rem 0.4rem;
-  border: 1px solid rgba(0, 0, 0, 0.22);
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.55);
-  font-size: 0.75rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-advanced {
-  margin-top: 0.5rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-advanced summary {
-  cursor: pointer;
-  font-weight: bold;
-  opacity: 0.78;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-advanced[open] summary {
-  margin-bottom: 0.5rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-skills {
-  grid-column: span 2;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-skills.is-hidden {
-  display: none;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-unique {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-unique span {
-  margin: 0;
-}
-.starwarsffg .item-sheet-species .species-skill-choice-empty {
-  margin: 0.5rem 0 0;
-  opacity: 0.75;
-}
 .starwarsffg .item-sheet-career .sheet-body {
   height: calc(100% - 11.75rem);
 }
@@ -3419,12 +3065,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg .attributes .attribute-value.checkbox {
   text-align: center;
 }
-/* Modifier list (shared ffg-modifiers partial + the mod-edit dialogs): the
-   modtype/mod <select>s are flex children whose default `min-width: auto`
-   refuses to shrink below their longest option text, pushing the row past the
-   sheet's right edge on narrow item sheets (e.g. talent). Let every cell
-   shrink, and pin the value column to a compact fixed width so the two
-   dropdowns share the remaining room and stay column-aligned with the header. */
 .starwarsffg .attributes .attributes-header > *,
 .starwarsffg .attributes .attributes-list .attribute.flexrow > * {
   min-width: 0;
@@ -3432,21 +3072,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .starwarsffg .attributes .attributes-header .attribute-value,
 .starwarsffg .attributes .attributes-list .attribute.flexrow > .modvalue {
   flex: 0 0 3.5rem;
-}
-.starwarsffg .attributes .attributes-header .attribute-enabled,
-.starwarsffg .attributes .attributes-list .attribute-effect-cell {
-  flex: 0 0 3.75rem;
-  text-align: center;
-  white-space: nowrap;
-}
-.starwarsffg .attributes .attributes-list .attribute-effect-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.starwarsffg .attributes .attributes-list .attribute-effect-toggle {
-  flex: 0 0 auto;
-  margin: 0;
 }
 .starwarsffg.sheet.item .item-sheet-signatureability .popout-editor {
   height: 100%;
@@ -3663,6 +3288,7 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 }
 #destiny-tracker .window-content {
   background: transparent;
+  -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   padding: 10px !important;
   margin: 0 !important;
@@ -3749,23 +3375,17 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   pointer-events: none;
   text-align: center;
   min-width: 84px;
-  width: fit-content;
+  width: 100%;
   display: flex;
-  flex-direction: column;   /* orbs row, then the Day row beneath — panel shrink-wraps to the orbs row */
-  align-items: center;
   z-index: 70;
-}
-/* The orbs (+ GM menu) sit in a horizontal row; the panel width follows this row. */
-.swffg-destiny .swffg-destiny-main {
-  display: flex;
-  align-items: center;
 }
 .swffg-destiny.swffg-groupmanager {
   min-width: 125px;
+  flex: 1;
   position: relative;
   padding: 0 0 5px 0;
   pointer-events: auto;
-  min-height: 55px;
+  height: 55px;
 }
 .swffg-destiny .group-manager {
   padding: 5px 0px 0px 5px;
@@ -3793,52 +3413,6 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 }
 .swffg-destiny #context-menu {
   font-size: 0.875rem;
-}
-
-/* Crit-Trauma campaign-day readout — a compact inline chip beside the destiny
-   points; the GM-only [+] advances the world day. */
-#ffg-campaign-day {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: 0 0 auto;   /* own row below the orbs (column parent); centred, doesn't widen the panel */
-  padding: 2px 8px 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: auto;
-}
-#ffg-campaign-day .ffg-campaign-day-value {
-  font-family: "Signika", "Palatino Linotype", serif;
-}
-#ffg-campaign-day .ffg-campaign-day-advance {
-  cursor: pointer;
-  font-weight: bold;
-}
-/* Right-click "Edit" context menu for the Day readout (appended to <body>). */
-.ffg-campaign-day-menu {
-  position: fixed;
-  z-index: 1000;
-  min-width: 88px;
-  background: #1b1b1b url(../../../ui/denim075.png) repeat;
-  border: 1px solid #000;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  padding: 3px;
-}
-.ffg-campaign-day-edit {
-  display: block;
-  padding: 4px 10px;
-  color: #eee;
-  font-size: 13px;
-  font-family: "Signika", "Palatino Linotype", serif;
-  cursor: pointer;
-  white-space: nowrap;
-  border-radius: 3px;
-}
-.ffg-campaign-day-edit:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
 }
 
 .ffg-destiny-roll {
@@ -3895,1077 +3469,4 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 .ffg-apply-crit[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.starwarsffg .xp-controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 0;
-}
-
-/* =========================================================================
-   Token-HUD status-effect icons (SWFFG) — UI colour-scheme handling
-   -------------------------------------------------------------------------
-   Foundry applies `filter: var(--control-icon-filter)` to every status icon
-   in the token HUD; that variable is `invert(1)` in the LIGHT colour scheme,
-   which mangles our full-colour dice PNGs (boost -> red, upgrade -> blue, ...).
-   Core's rule lives in `@layer applications`, so these UNLAYERED rules win over
-   it without `!important`. NOTE: the token HUD renders OUTSIDE #interface (it is
-   a sibling <template id="hud"> under <body>), so its colour scheme follows the
-   *Applications* setting via `body.theme-<scheme>`, NOT the Interface setting.
-   ========================================================================= */
-#token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src$=".png"] {
-  /* Render our colour dice PNGs in their true colours in every UI scheme
-     (cancel the light-scheme invert). The monochrome condition SVGs
-     (defeated/disoriented/immobilised/staggered) are intentionally NOT matched,
-     so core's invert still flips them to stay visible on light backgrounds. */
-  filter: none;
-}
-#token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/black.png"] {
-  /* Setback is a near-black square that vanishes on the dark HUD: add a thin
-     1px white outline so it reads in every scheme. */
-  box-shadow: 0 0 0 1px #fff;
-}
-body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/success.png"],
-body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/advantage.png"],
-body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/failure.png"],
-body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwarsffg"][src*="/threat.png"] {
-  /* Success, Advantage, Failure and Threat are black glyphs (invisible on dark): recolour them to
-     solid white in the DARK scheme only (body.theme-dark = the Applications scheme
-     that governs the HUD). In the light scheme they keep their original black via
-     the true-colour rule above. */
-  filter: brightness(0) invert(1);
-}
-/* V14 sizes the status palette's rows to fill the token-HUD column height, so its
-   grid-template-rows resolves to ~51px per row while our icons are 24px — leaving a
-   big vertical gap in every row (looks like empty rows). Pack the rows to icon height
-   and top-align so the grid hugs the icons. Unlayered, so it beats core's @layer rule
-   without !important (same approach as the colour rules above). */
-#token-hud .status-effects.palette {
-  grid-template-rows: none;
-  grid-auto-rows: 24px;
-  align-content: start;
-  height: max-content;
-}
-
-/* PC Wizard — Background accordion. */
-.charCreator section.tab > p,
-.charCreator .empty-hint,
-.charCreator .pcw-tt-empty,
-.charCreator .xp-summary,
-.charCreator .gear-summary,
-.charCreator .starting-bonus > label,
-.charCreator .inv-filters > label,
-.charCreator .specialization-group > h4,
-.charCreator .bonus-block > h4,
-.charCreator .species-bonus-choice > h5,
-.charCreator .inv-title,
-.charCreator .inv-empty,
-.charCreator .sources-panel > h3,
-.charCreator .sources-panel > p {
-  color: #191813;
-  text-decoration: none;
-}
-.charCreator .starting-bonus > label,
-.charCreator .inv-filters > label {
-  border: 0;
-  background: transparent;
-}
-
-.charCreator .pcw-load-progress {
-  margin: 6px 8px 0;
-  padding: 6px 8px;
-  border: 1px solid rgba(0, 0, 0, 0.28);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.55);
-  color: #191813;
-  font-size: 0.86em;
-}
-.charCreator .pcw-load-progress-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.charCreator .pcw-load-progress-track {
-  height: 7px;
-  margin: 4px 0;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
-}
-.charCreator .pcw-load-progress-bar {
-  height: 100%;
-  border-radius: inherit;
-  background: #3a7d3a;
-  transition: width 160ms ease-out;
-}
-.charCreator .pcw-load-progress-detail {
-  color: #4f3b31;
-  font-size: 0.9em;
-}
-
-.charCreator .background-accordion {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.charCreator .background-group {
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  background: rgba(255, 255, 255, 0.45);
-}
-.charCreator .background-group h4 {
-  display: flex;
-  align-items: stretch;
-  margin: 0;
-}
-.charCreator .background-toggle {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  width: auto;
-  margin: 0;
-  padding: 8px 10px;
-  border: 0 none;
-  border-radius: 0;
-  background: #415064;
-  color: #fff;
-  text-align: left;
-  text-transform: uppercase;
-}
-.charCreator .background-toggle:hover {
-  background: rgba(73, 12, 11, 0.85);
-}
-.charCreator .background-group.is-active .background-toggle {
-  background: rgba(73, 12, 11, 0.85);
-}
-.charCreator .background-random {
-  flex: 0 0 36px;
-  width: 36px;
-  min-width: 36px;
-  margin: 0;
-  padding: 0;
-  border: 0 none;
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 0;
-  background: #415064;
-  color: #fff;
-}
-.charCreator .background-random:hover {
-  background: rgba(73, 12, 11, 0.85);
-}
-.charCreator .background-random:disabled {
-  color: rgba(255, 255, 255, 0.45);
-  cursor: default;
-}
-.charCreator .background-title {
-  min-width: 0;
-  overflow: hidden;
-  font-weight: bold;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.charCreator .background-body {
-  padding: 6px;
-}
-.charCreator .pickable-row.is-selected {
-  background: rgba(60, 140, 60, 0.18);
-}
-.charCreator .pickable-row.is-selected td {
-  background: rgba(60, 140, 60, 0.18);
-}
-.charCreator .item-pill-img[data-action="open-item"] {
-  cursor: pointer;
-}
-.charCreator .list-filters {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.charCreator .list-filters input[type="search"] {
-  flex: 0 1 220px;
-}
-.charCreator .list-random {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  min-width: 30px;
-  height: 30px;
-  margin: 0;
-  padding: 0;
-}
-.charCreator .list-selected {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.charCreator .list-selected li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 220px;
-  padding: 3px 7px;
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  background: rgba(60, 140, 60, 0.18);
-  color: #191813;
-}
-.charCreator .list-selected li i {
-  flex: 0 0 auto;
-  cursor: pointer;
-}
-.charCreator .list-accordion {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.charCreator .list-group {
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  background: rgba(255, 255, 255, 0.45);
-}
-.charCreator .list-group h4 {
-  display: flex;
-  align-items: stretch;
-  margin: 0;
-}
-.charCreator .list-toggle {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  min-width: 0;
-  width: auto;
-  margin: 0;
-  padding: 8px 10px;
-  border: 0 none;
-  border-radius: 0;
-  background: #415064;
-  color: #fff;
-  text-align: left;
-  text-transform: uppercase;
-}
-.charCreator .list-toggle:hover,
-.charCreator .list-group.is-active .list-toggle {
-  background: rgba(73, 12, 11, 0.85);
-}
-.charCreator .list-title {
-  min-width: 0;
-  overflow: hidden;
-  font-weight: bold;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.charCreator .list-body {
-  padding: 6px;
-}
-
-/* PC Wizard — Content sources panel. */
-.application.starwarsffg.wizard.charCreator .window-content {
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-}
-.charCreator .pc-wizard-header {
-  min-height: 0;
-}
-.charCreator .sources-panel {
-  position: relative;
-  z-index: 10;
-  max-height: min(52vh, 430px);
-  margin: 8px;
-  padding: 10px;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  background: rgba(245, 241, 232, 0.94);
-  color: #1f2933;
-}
-.charCreator .sources-panel h3 {
-  margin: 0 0 4px;
-  font-size: 1rem;
-}
-.charCreator .sources-panel p {
-  margin: 0 0 8px;
-}
-.charCreator .source-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 4px 12px;
-  margin: 8px 0;
-  padding: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-}
-.charCreator .source-group legend {
-  padding: 0 4px;
-  font-weight: bold;
-}
-.charCreator label.source-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  border: 0 none;
-  color: inherit;
-  font-size: 0.8rem;
-  font-weight: normal;
-  letter-spacing: normal;
-  text-transform: none;
-}
-.charCreator .source-missing {
-  color: #8b1e1e;
-  font-weight: bold;
-}
-.charCreator .source-toggle input {
-  flex: 0 0 auto;
-  width: auto;
-  margin: 0;
-}
-
-/* PC Wizard — Force Powers: mentor-discount checkbox (rows use the shared pickable-table). */
-.charCreator .pickable-mentor .fp-discount {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  border: 0 none;
-  white-space: nowrap;
-  font-size: 0.85em;
-  font-weight: normal;
-  letter-spacing: normal;
-  text-transform: none;
-  color: inherit;
-  cursor: pointer;
-}
-.charCreator .fp-discount input {
-  flex: 0 0 auto;
-  width: auto;
-  margin: 0;
-}
-/* A spacer cell after the cost absorbs the slack, so name/mentor/cost stay packed on the left
-   and the cost column grows rightward (toggling the discount changes its width) into the spacer
-   without shifting the checkbox, the cost's left edge, or the Buy button. */
-.charCreator .pickable-spacer {
-  width: 100%;
-}
-.charCreator .pickable-cost {
-  white-space: nowrap;
-}
-.charCreator .pickable-stats {
-  min-width: 0;
-}
-.charCreator .inv-stat {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 3px;
-  margin: 1px 6px 1px 0;
-  white-space: nowrap;
-}
-.charCreator .inv-stat-label {
-  font-size: 0.78em;
-  text-transform: uppercase;
-  opacity: 0.72;
-}
-.charCreator .inv-stat b {
-  font-weight: bold;
-}
-/* Right-align the Buy/Refund button so its right edge is fixed (the column is sized to the wider
-   "Refund", so a "Buy" would otherwise stop short and appear to jump). The buttons are block-level
-   (display:flex) in this theme, so text-align can't move them — margin-left:auto does. */
-.charCreator .pickable-action {
-  text-align: right;
-}
-.charCreator .pickable-action button {
-  margin-left: auto;
-}
-.charCreator .general-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
-  gap: 24px;
-  color: #191813;
-}
-.charCreator section.tab[data-tab="general"],
-.charCreator section.tab[data-tab="startingBonus"] {
-  padding-top: 1rem;
-}
-.charCreator .general-images-column {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-}
-.charCreator .general-image-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 0;
-}
-.charCreator .general-image-field label {
-  color: #415064;
-  font-weight: bold;
-}
-.charCreator .general-image-field input[type="url"] {
-  box-sizing: border-box;
-  width: 100%;
-  height: var(--input-height);
-  line-height: var(--input-height);
-  padding: 0 0.5rem;
-  border: 1px solid var(--input-border-color);
-  border-radius: 4px;
-}
-.charCreator .general-image-preview {
-  display: flex;
-  flex: 0 0 auto;
-  align-self: center;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 160px);
-  aspect-ratio: 3 / 4;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  background: rgba(255, 255, 255, 0.4);
-  color: #415064;
-}
-.charCreator .general-image-preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  object-fit: contain;
-}
-.charCreator .general-image-preview span {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  opacity: 0.72;
-}
-.charCreator .general-image-preview .image-preview-error {
-  color: #8b1e1e;
-  font-weight: bold;
-  opacity: 1;
-}
-.charCreator .general-image-preview .image-preview-status {
-  font-weight: bold;
-}
-.charCreator .general-image-preview i {
-  font-size: 3rem;
-}
-.charCreator .general-image-preview.is-token {
-  aspect-ratio: 1 / 1;
-}
-.charCreator .general-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-}
-.charCreator .general-fields label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-weight: bold;
-}
-.charCreator .general-layout label {
-  border-bottom: 0;
-}
-.charCreator .general-fields input {
-  width: 100%;
-}
-.charCreator .general-fields .general-checkbox {
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-}
-.charCreator .general-fields .general-checkbox input {
-  flex: 0 0 auto;
-  width: auto;
-  margin: 0;
-}
-/* xp_spend skills table: lay the -/+ buttons inline instead of stacked (theme buttons are
-   block-level, so they stack in the cell by default). */
-.charCreator .xp-col-buttons {
-  white-space: nowrap;
-}
-.charCreator .xp-skill-btn {
-  display: inline-flex;
-  width: auto;
-  min-width: 0;
-  margin: 0 2px;
-  padding: 2px 8px;
-}
-.charCreator .xp-characteristics {
-  gap: 10px;
-}
-.charCreator .xp-characteristic-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  min-width: 0;
-  margin: 0 2px 4px;
-  padding: 2px 6px;
-  line-height: 1.2;
-}
-.charCreator .xp-characteristic-cost {
-  margin-top: 4px;
-  font-size: 0.8em;
-  font-weight: bold;
-  opacity: 0.82;
-}
-/* xp_spend "Bonus skills" sub-view: two stacked career/spec bonus-skill tables. */
-.charCreator .bonus-block {
-  margin-bottom: 16px;
-}
-.charCreator .bonus-block h4 {
-  margin: 0 0 6px;
-}
-.charCreator .bonus-skills tr.is-picked {
-  background: rgba(60, 140, 60, 0.18);
-}
-.charCreator .skill-info-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  margin: 0 6px 0 0;
-  padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  color: #1a1a1a;
-  font: bold 10px/1 sans-serif;
-  vertical-align: middle;
-  cursor: pointer;
-}
-/* Skill-description modal (a top-level DialogV2, outside .charCreator): cap height with a
-   scrollbar, and force the SW FFG dice/result glyphs white so they show on the dark dialog. */
-.ffg-skill-info {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-/* Dark-dialog dice glyphs — mirror the Codex dark scheme (cdx-dark.css): whiten the black result
-   symbols, keep setback + the dark-side Force pip black with a white outline, and leave the
-   coloured dice (difficulty, boost, ability, challenge, proficiency) untouched. */
-.ffg-skill-info span.dietype.setback,
-.ffg-skill-info span.dietype.dark {
-  color: #000;
-  -webkit-text-stroke: 1px #fff;
-  paint-order: stroke fill;
-}
-.ffg-skill-info span.dietype:is(.advantage, .despair, .forcepoint, .failure, .force, .light, .success, .threat, .triumph) {
-  color: #fff;
-}
-/* Review tab status checklist. */
-.charCreator .review-steps {
-  color: #191813;
-}
-.charCreator .review-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 8px 0 12px;
-  padding-left: 18px;
-}
-.charCreator .review-step {
-  line-height: 1.35;
-}
-.charCreator .review-status {
-  display: inline-flex;
-  min-width: 96px;
-  margin-right: 6px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: rgba(65, 80, 100, 0.18);
-  color: #191813;
-  font-size: 0.82em;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-.charCreator .review-step.is-complete .review-status {
-  background: rgba(42, 110, 42, 0.22);
-}
-.charCreator .review-step.is-incomplete .review-status {
-  background: rgba(176, 42, 42, 0.18);
-  color: #8b1e1e;
-}
-.charCreator .review-step.is-warning .review-status {
-  background: rgba(210, 160, 35, 0.28);
-  color: #5b3b00;
-}
-
-/* ------------------------------------------------------------------ *
- * PC Wizard — xp_spend view switcher + specialization talent tree     *
- * ------------------------------------------------------------------ */
-.charCreator .xp-switcher {
-  display: flex;
-  gap: 6px;
-  margin: 6px 0 10px;
-}
-.charCreator .xp-switch {
-  flex: 0 0 auto;
-  width: auto;
-  padding: 4px 12px;
-  opacity: 0.65;
-}
-.charCreator .xp-switch.is-active {
-  opacity: 1;
-  font-weight: bold;
-  box-shadow: inset 0 -2px 0 currentColor;
-}
-.charCreator .pcw-tt-title {
-  font-weight: bold;
-  margin-bottom: 6px;
-  color: #191813;
-}
-.charCreator .pcw-tt-empty {
-  opacity: 0.8;
-  font-style: italic;
-  color: #191813;
-}
-.charCreator .pcw-tt-row {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.charCreator .pcw-tt-tier {
-  flex: 0 0 68px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: 0.78em;
-  color: #191813;
-}
-.charCreator .pcw-tt-tiercost {
-  font-weight: bold;
-  color: #4f251f;
-}
-.charCreator .pcw-tt-cells {
-  flex: 1 1 auto;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-}
-.charCreator .pcw-tt-cell {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 5px;
-  border: 1px solid rgba(45, 36, 31, 0.35);
-  border-radius: 3px;
-  min-height: 62px;
-  background: rgba(118, 99, 82, 0.16);
-  color: #191813;
-}
-.charCreator .pcw-tt-cell.is-open {
-  border-color: rgba(84, 105, 78, 0.65);
-  background: rgba(116, 137, 100, 0.34);
-}
-.charCreator .pcw-tt-cell.is-learned {
-  border-color: #315f34;
-  background: rgba(75, 120, 71, 0.52);
-}
-.charCreator .pcw-tt-cell.is-locked {
-  border-color: rgba(65, 80, 100, 0.28);
-  background: rgba(65, 80, 100, 0.18);
-}
-.charCreator .pcw-tt-name {
-  font-weight: bold;
-  font-size: 0.84em;
-  padding-right: 16px; /* clear the corner "?" help button */
-  color: #191813;
-}
-.charCreator .pcw-tt-activation {
-  font-size: 0.72em;
-  color: #4f3b31;
-}
-.charCreator .pcw-tt-cost {
-  font-size: 0.75em;
-  margin-top: auto;
-  color: #5b4a40;
-}
-.charCreator .pcw-tt-btn {
-  flex: 0 0 auto;
-  width: auto;
-  margin-top: auto;
-  padding: 2px 6px;
-  font-size: 0.78em;
-}
-/* Tree connectors — drawn in the grid gaps on the lower/left node (has-top joins upward,
-   has-right joins to the next column); solid green when both endpoints are learned. */
-.charCreator .pcw-dedication-choice {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 2px;
-  font-size: 0.72em;
-}
-.charCreator .pcw-dedication-choice select {
-  width: 100%;
-  min-width: 0;
-  height: 24px;
-}
-.charCreator .pcw-tt-cell.has-top::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: -7px;
-  width: 2px;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.35);
-  pointer-events: none;
-}
-.charCreator .pcw-tt-cell.top-active::before {
-  background: #3a7d3a;
-}
-.charCreator .pcw-tt-cell.has-right::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: -6px;
-  width: 8px;
-  height: 2px;
-  background: rgba(0, 0, 0, 0.35);
-  pointer-events: none;
-}
-.charCreator .pcw-tt-cell.right-active::after {
-  background: #3a7d3a;
-}
-.charCreator .pcw-tt-cell .pcw-tt-help {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  color: #1a1a1a;
-  font: bold 12px/1 sans-serif;
-  cursor: help;
-  user-select: none;
-}
-.charCreator .pcw-tt-cell button.pcw-tt-help {
-  cursor: pointer;
-}
-
-/* ------------------------------------------------------------------ *
- * PC Wizard — Inventory tab: Weapons/Armor/Gear switcher + owned/shop  *
- * ------------------------------------------------------------------ */
-.charCreator .inv-switcher {
-  display: flex;
-  gap: 6px;
-  margin: 6px 0 10px;
-}
-.charCreator .inv-switch {
-  flex: 0 0 auto;
-  width: auto;
-  padding: 4px 12px;
-  opacity: 0.65;
-}
-.charCreator .inv-switch.is-active {
-  opacity: 1;
-  font-weight: bold;
-  box-shadow: inset 0 -2px 0 currentColor;
-}
-.charCreator .inv-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.charCreator .inv-filters input[type="search"] {
-  flex: 0 1 180px;
-}
-.charCreator .inv-filters input[type="number"] {
-  width: 68px;
-}
-.charCreator .inv-price {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-.charCreator .inv-columns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr));
-  gap: 10px;
-  align-items: flex-start;
-}
-.charCreator .inv-owned,
-.charCreator .inv-shop {
-  min-width: 0;
-  margin-bottom: 12px;
-  padding: 6px 8px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.charCreator .inv-columns .pickable-table {
-  width: 100%;
-  table-layout: fixed;
-}
-.charCreator .inv-columns .pickable-pill {
-  width: 42px;
-}
-.charCreator .inv-columns .pickable-name {
-  width: 28%;
-  overflow-wrap: anywhere;
-}
-.charCreator .inv-restricted-mark {
-  color: rgb(255, 0, 0);
-}
-.charCreator .inv-columns .pickable-stats {
-  width: 30%;
-  white-space: normal;
-}
-.charCreator .inv-columns .pickable-cost {
-  width: 70px;
-  text-align: right;
-}
-.charCreator .inv-columns .pickable-action {
-  width: 110px;
-}
-.charCreator .inv-columns .pickable-action button {
-  min-width: 0;
-  width: auto;
-  padding-right: 8px;
-  padding-left: 8px;
-}
-.charCreator .inv-actions {
-  white-space: nowrap;
-}
-.charCreator .inv-actions button {
-  display: inline-flex;
-  vertical-align: middle;
-}
-.charCreator .inv-icon-btn {
-  justify-content: center;
-  width: 28px !important;
-  min-width: 28px !important;
-  margin-right: 4px;
-  padding-right: 0 !important;
-  padding-left: 0 !important;
-}
-.charCreator .inv-icon-btn.is-active {
-  background: rgba(73, 12, 11, 0.85);
-  color: #fff;
-}
-.charCreator .inv-attached-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-.charCreator .inv-attached-row td {
-  padding-top: 0;
-}
-.charCreator .inv-attached {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 4px;
-  padding: 2px 5px;
-  border-radius: 3px;
-  background: rgba(18, 24, 36, 0.35);
-  font-size: 0.82em;
-  overflow-wrap: anywhere;
-}
-.charCreator .inv-attached-label {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.charCreator .inv-attached i {
-  cursor: pointer;
-}
-.charCreator .inv-attached-edit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-}
-.charCreator .inv-attached i[data-action="open-item"],
-.charCreator .inv-attachment-name i {
-  margin-right: 2px;
-  cursor: pointer;
-  opacity: 0.85;
-}
-.charCreator .inv-attached-edit:hover,
-.charCreator .inv-attached i[data-action="open-item"]:hover,
-.charCreator .inv-attachment-name i:hover {
-  opacity: 1;
-}
-.charCreator .inv-attachment-panel-row td {
-  padding-top: 0;
-}
-.charCreator .inv-attachment-panel {
-  margin: 0 0 6px 42px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(0, 0, 0, 0.14);
-}
-.charCreator .inv-attachment-head,
-.charCreator .inv-attachment-choice {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  gap: 8px;
-  align-items: center;
-}
-.charCreator .inv-attachment-head {
-  margin-bottom: 6px;
-  font-size: 0.9em;
-}
-.charCreator .inv-attachment-toggle {
-  justify-self: end;
-  font-size: 0.9em;
-}
-.charCreator .inv-attachment-toggle.is-active {
-  background: rgba(73, 12, 11, 0.85);
-  color: #fff;
-}
-.charCreator .inv-attachment-shop {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.charCreator .inv-attachment-choice {
-  padding: 4px 6px;
-  background: rgba(255, 255, 255, 0.08);
-}
-.charCreator .inv-attachment-choice.is-unavailable {
-  opacity: 0.64;
-}
-.charCreator .inv-attachment-choice button {
-  width: auto;
-  min-width: 92px;
-}
-.charCreator .inv-attachment-name {
-  overflow-wrap: anywhere;
-}
-.charCreator .inv-title {
-  margin-bottom: 4px;
-  font-weight: bold;
-  font-size: 0.78em;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
-.charCreator .inv-btn {
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 40px;
-  padding: 2px 8px;
-}
-.charCreator .inv-empty {
-  font-style: italic;
-  font-size: 0.9em;
-  opacity: 0.7;
-}
-.charCreator .inv-encumbrance {
-  margin-left: 16px;
-}
-.charCreator .inv-encumbrance.is-over b {
-  color: #b02a2a;
-}
-.charCreator .item-pill-img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-  border: none;
-  border-radius: 3px;
-  vertical-align: middle;
-}
-
-/* -------------------------------------------- */
-/*  Crew Roles settings dialog                  */
-/* -------------------------------------------- */
-/* The content element is the app's form (contentTag). Lay it out as a column so the
-   role list is the only thing that scrolls and the initiative field plus the footer
-   buttons stay reachable no matter how far the window is resized down. */
-.crew-settings-window {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
-}
-
-.crew-settings-window #config-tabs {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.crew-settings-window .crew-initiative,
-.crew-settings-window .sheet-footer {
-  flex: 0 0 auto;
-}
-
-.crew-settings-window .crew-initiative {
-  border-top: 1px solid var(--color-border-light-tertiary, #7a7971);
-  padding-top: 8px;
-}
-
-/* The header labels and every role row share one grid, so the handling/weapons icons
-   sit directly above the checkboxes they label. */
-.crew-settings-window .crew-role-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 28px 28px 24px;
-  align-items: center;
-  column-gap: 4px;
-}
-
-.crew-settings-window .crew-role-header label {
-  font-weight: bold;
-  text-align: center;
-}
-
-.crew-settings-window .crew-role-header label:nth-child(1),
-.crew-settings-window .crew-role-header label:nth-child(2) {
-  text-align: left;
-}
-
-.crew-settings-window .crew-role-row + .crew-role-row {
-  margin-top: 4px;
-}
-
-.crew-settings-window .crew-role-row input[type="checkbox"],
-.crew-settings-window .remove_role {
-  justify-self: center;
-  margin: 0;
-}
-
-.crew-settings-window .remove_role {
-  cursor: pointer;
-}
-
-.crew-settings-window .add_row {
-  width: auto;
-  margin-top: 6px;
 }

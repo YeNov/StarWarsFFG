@@ -20,6 +20,11 @@
           &.grid-4col {
             margin: 10px;
           }
+
+          // Minion vehicle group row, directly under the four stat boxes.
+          &.minion-vehicle-stats {
+            margin: 0 10px 10px;
+          }
         }
 
         .block-background {
