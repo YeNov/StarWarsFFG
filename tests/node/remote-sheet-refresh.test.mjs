@@ -95,3 +95,34 @@ test("the refresh is wired to the updateItem hook", () => {
   assert.match(source, /Hooks\.on\(\s*["']updateItem["']/, "must listen for item updates");
   assert.match(source, /refreshSheetsForRemoteUpdate/, "must use the shared predicate");
 });
+
+test("another client's ammo step is painted in place, keeping scroll and open cards", () => {
+  const item = doc({ open: true, actorOpen: true });
+  const painted = [];
+  item.sheet._ffgPaintAmmo = (d) => { painted.push(["item", d]); return true; };
+  item.actor.sheet._ffgPaintAmmo = (d) => { painted.push(["actor", d]); return true; };
+
+  const refreshed = refreshSheetsForRemoteUpdate(item, { render: false, ffgAmmoStep: true }, OTHER, ME);
+
+  assert.deepEqual(refreshed, ["item-ammo", "actor-ammo"]);
+  assert.deepEqual(painted, [["item", item], ["actor", item]]);
+  assert.deepEqual(item.sheet.calls, []);
+  assert.deepEqual(item.actor.sheet.calls, []);
+});
+
+test("an ammo step still re-renders a sheet that cannot show the count in place", () => {
+  const item = doc({ open: true, actorOpen: true });
+  item.actor.sheet._ffgPaintAmmo = () => false;
+
+  const refreshed = refreshSheetsForRemoteUpdate(item, { render: false, ffgAmmoStep: true }, OTHER, ME);
+
+  assert.deepEqual(refreshed, ["item", "actor"]);
+  assert.deepEqual(item.actor.sheet.calls, [false]);
+});
+
+test("only an ammo step is painted in place; other edits still re-render", () => {
+  const item = doc({ open: true, actorOpen: true });
+  item.actor.sheet._ffgPaintAmmo = () => { throw new Error("must not paint"); };
+
+  assert.deepEqual(refreshSheetsForRemoteUpdate(item, { render: false }, OTHER, ME), ["item", "actor"]);
+});

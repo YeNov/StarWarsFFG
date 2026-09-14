@@ -399,12 +399,53 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     super._applyLegacyRootClasses(form, context);
   }
 
-  /** Preserve the decoded portrait node across non-image sheet renders. */
+  /** Preserve the decoded portrait node and the expanded cards across sheet renders. */
   async _preRender(context, options) {
     const portrait = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
     this._cdxPreviousPortrait = portrait;
     this._cdxPreviousPortraitSrc = portrait?.getAttribute("src") ?? null;
+    this._cdxExpandedCards = this._cdxCaptureExpandedCards();
     await super._preRender(context, options);
+  }
+
+  /**
+   * Which cards (weapons, armour, gear, talents, Force powers…) are open. A card's
+   * expansion lives only in the DOM, so every render closed them all -- and the sheet
+   * re-renders for plenty the user did not do here: a status effect toggled from the
+   * token HUD changes the dice pools, another player edits an item. The open panel
+   * itself is kept so it can go straight back in without replaying the slide.
+   * @returns {{id: string, index: number, details: HTMLElement|null}[]}
+   */
+  _cdxCaptureExpandedCards() {
+    const form = this.form;
+    if (!form?.querySelectorAll) return [];
+    return Array.from(form.querySelectorAll("[data-item-id].expanded"), (card) => {
+      const id = card.dataset.itemId;
+      // An item can be listed more than once (e.g. its card and a tab summary).
+      const index = Array.from(form.querySelectorAll(`[data-item-id="${CSS.escape(id)}"]`)).indexOf(card);
+      return { id, index, details: card.querySelector(":scope > .item-details") };
+    });
+  }
+
+  /** Reopen the cards captured before the render, on the freshly rendered markup. */
+  _cdxRestoreExpandedCards(root) {
+    const cards = this._cdxExpandedCards ?? [];
+    this._cdxExpandedCards = null;
+    for (const { id, index, details } of cards) {
+      const card = root?.querySelectorAll?.(`[data-item-id="${CSS.escape(id)}"]`)[index];
+      if (!card || card.classList.contains("expanded")) continue;
+      card.classList.add("expanded");
+      if (!details) continue;
+      card.append(details);
+      // An item's description or tags may be what just changed, so rebuild its panel
+      // in the background. Prepared talents and Force-power text come from the render
+      // data the old panel was built from.
+      const item = this.actor?.items?.get(id);
+      if (!item || typeof this._itemDetailsElement !== "function") continue;
+      this._itemDetailsElement(item).then((fresh) => {
+        if (details.parentElement === card && card.classList.contains("expanded")) details.replaceWith(fresh[0]);
+      }).catch(() => { /* keep the panel that was open */ });
+    }
   }
 
   /**
@@ -431,6 +472,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
 
   /** @override — add the Codex-only listeners on top of the stock ones. */
   activateListeners(html) {
+    // Before the base listeners and the scroll restore that follows them, so the sheet
+    // is back to its full height when its scroll position is put back.
+    this._cdxRestoreExpandedCards(html?.[0] ?? this.form);
     super.activateListeners(html);
     this._cdxRegisterSheetOptions();
     this._cdxActivate(html);
@@ -968,10 +1012,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   /**
    * Ammo chip on expanded weapon cards: the −/+ steppers adjust the weapon's
    * system.ammo magazine. Writes use {render:false} + an optimistic DOM update
-   * so a +/- doesn't collapse the expanded card; the persisted value is correct
-   * even if a render still occurs.
+   * so a +/- doesn't collapse the expanded card.
+   *
+   * Each click steps from the last count this sheet queued, not from the document,
+   * and the writes for one weapon run one after another. Reading the document made
+   * a quick second click step from the count the first click had not saved yet, so
+   * three clicks could land as one. `ffgAmmoStep` lets other clients patch the
+   * count in place instead of re-rendering (see helpers/sheet-sync.js).
    */
   _cdxWireAmmo(root) {
+    this._cdxAmmoTargets ??= new Map();
+    this._cdxAmmoWrites ??= new Map();
     // Swallow clicks inside the chip so they don't toggle the card's expand state.
     root.querySelectorAll(".cdx-ammo").forEach((chip) => {
       chip.addEventListener("click", (ev) => ev.stopPropagation());
@@ -983,12 +1034,53 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const w = this.actor?.items?.get(chip.dataset.weaponId); if (!w) return;
         const dir = Number(ev.currentTarget.dataset.dir) || 0;
         const mx = getAmmoMax(w);
-        let cur = getAmmoValue(w) + dir;
+        let cur = (this._cdxAmmoTargets.get(w.id) ?? getAmmoValue(w)) + dir;
         cur = Math.max(0, mx ? Math.min(mx, cur) : cur);
-        try { await w.update({ "system.ammo.value": cur }, { render: false }); } catch (e) { return; }
-        const cEl = chip.querySelector(".cdx-ammo-count"); if (cEl) cEl.textContent = `${cur}/${mx}`;
+        this._cdxAmmoTargets.set(w.id, cur);
+        this._cdxPaintAmmoCount(w.id, cur, mx);
+
+        const previous = this._cdxAmmoWrites.get(w.id)?.catch(() => undefined) ?? Promise.resolve();
+        const write = previous.then(() => w.update({ "system.ammo.value": cur }, { render: false, ffgAmmoStep: true }));
+        this._cdxAmmoWrites.set(w.id, write);
+        try {
+          await write;
+        } catch (e) {
+          // The document still holds the last count that did save; show that, and
+          // let the next click start from it.
+          if (this._cdxAmmoWrites.get(w.id) === write) {
+            this._cdxAmmoTargets.delete(w.id);
+            this._cdxAmmoWrites.delete(w.id);
+            this._cdxPaintAmmoCount(w.id, getAmmoValue(w), getAmmoMax(w));
+          }
+          return;
+        }
+        if (this._cdxAmmoWrites.get(w.id) === write) {
+          this._cdxAmmoTargets.delete(w.id);
+          this._cdxAmmoWrites.delete(w.id);
+        }
       });
     });
+  }
+
+  _cdxPaintAmmoCount(weaponId, current, max) {
+    const chip = this.form?.querySelector?.(`.cdx-ammo[data-weapon-id="${weaponId}"]`);
+    const count = chip?.querySelector(".cdx-ammo-count");
+    if (!count) return false;
+    count.textContent = `${current}/${max}`;
+    return true;
+  }
+
+  /**
+   * Show another client's ammo step without re-rendering, so this user's scroll
+   * position and expanded cards survive a player spending a shot. Returns false
+   * when the weapon has no chip on this sheet, so the caller re-renders instead.
+   * @param {Item} item
+   * @returns {boolean}
+   */
+  _ffgPaintAmmo(item) {
+    // This sheet's own queued clicks already show where the count is going.
+    if (this._cdxAmmoTargets?.has(item.id)) return true;
+    return this._cdxPaintAmmoCount(item.id, getAmmoValue(item), getAmmoMax(item));
   }
 
   /**

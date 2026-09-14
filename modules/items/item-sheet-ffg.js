@@ -1004,6 +1004,16 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       await this._onSubmit(ev, { render: true });
     });
 
+    // Cross-field reactivity: an Obligation entry's Type decides whether the sheet
+    // offers Magnitude (Obligation, Duty) or Subtype (Morality), and the Codex
+    // header pill names the type. Under render:false the type saved but the sheet
+    // kept the old fields and label, so a new entry looked stuck as an Obligation.
+    if (this.object.type === "obligation") {
+      html.find('select[name="data.type"]').on("change", async (ev) => {
+        await this._onSubmit(ev, { render: true });
+      });
+    }
+
     // Cross-field reactivity: toggling a talent/upgrade "islearned" checkbox
     // changes which nodes are purchasable (the .ffg-purchase buy buttons) for
     // this node AND its tree neighbours, via the canPurchase pass in getData.
@@ -1050,14 +1060,17 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           },
         });
       }
-      // Quality-driven ammo ignores the per-item enableAmmo flag entirely, so
-      // do not offer a sheet option that cannot affect tracking in that mode.
-      if ((this.object.type === "weapon" || this.object.type === "shipweapon") && !isQualityAmmoMode()) {
+      // Quality-driven ammo ignores the per-item enableAmmo flag entirely. Hiding the
+      // option left users hunting for it, so show it disabled with a note saying where
+      // ammo comes from instead.
+      if (this.object.type === "weapon" || this.object.type === "shipweapon") {
+        const qualityMode = isQualityAmmoMode();
         this.sheetoptions.register("enableAmmo", {
           name: game.i18n.localize("SWFFG.SheetOptions2.enableAmmo.Name"),
-          hint: game.i18n.localize("SWFFG.SheetOptions2.enableAmmo.Hint"),
+          hint: game.i18n.localize(qualityMode ? "SWFFG.SheetOptions2.enableAmmo.QualityModeHint" : "SWFFG.SheetOptions2.enableAmmo.Hint"),
           type: "Boolean",
           default: false,
+          disabled: qualityMode,
         });
       }
     }

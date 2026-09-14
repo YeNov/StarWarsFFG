@@ -21,6 +21,7 @@ import ItemHelpers from "./helpers/item-helpers.js";
 import { ItemSheetFFG } from "./items/item-sheet-ffg.js";
 import { ItemSheetFFGV2 } from "./items/item-sheet-ffg-v2.js";
 import { CodexItemSheet } from "./items/codex-item-sheet.js";
+import { codexQuantityLabel } from "./actors/codex-quantity.js";
 import { ActorSheetFFG } from "./actors/actor-sheet-ffg.js";
 import { ActorSheetFFGV2 } from "./actors/actor-sheet-ffg-v2.js";
 import { AdversarySheetFFG } from "./actors/adversary-sheet-ffg.js";
@@ -1374,6 +1375,7 @@ Hooks.once("init", async function () {
 
   // Register Handlebars utilities
   Handlebars.registerHelper("json", JSON.stringify);
+  Handlebars.registerHelper("codexQuantity", codexQuantityLabel);
 
   // Allows {if X = Y} type syntax in html using handlebars
   Handlebars.registerHelper("iff", function (a, operator, b, opts) {
