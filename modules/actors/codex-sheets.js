@@ -399,12 +399,53 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     super._applyLegacyRootClasses(form, context);
   }
 
-  /** Preserve the decoded portrait node across non-image sheet renders. */
+  /** Preserve the decoded portrait node and the expanded cards across sheet renders. */
   async _preRender(context, options) {
     const portrait = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
     this._cdxPreviousPortrait = portrait;
     this._cdxPreviousPortraitSrc = portrait?.getAttribute("src") ?? null;
+    this._cdxExpandedCards = this._cdxCaptureExpandedCards();
     await super._preRender(context, options);
+  }
+
+  /**
+   * Which cards (weapons, armour, gear, talents, Force powers…) are open. A card's
+   * expansion lives only in the DOM, so every render closed them all -- and the sheet
+   * re-renders for plenty the user did not do here: a status effect toggled from the
+   * token HUD changes the dice pools, another player edits an item. The open panel
+   * itself is kept so it can go straight back in without replaying the slide.
+   * @returns {{id: string, index: number, details: HTMLElement|null}[]}
+   */
+  _cdxCaptureExpandedCards() {
+    const form = this.form;
+    if (!form?.querySelectorAll) return [];
+    return Array.from(form.querySelectorAll("[data-item-id].expanded"), (card) => {
+      const id = card.dataset.itemId;
+      // An item can be listed more than once (e.g. its card and a tab summary).
+      const index = Array.from(form.querySelectorAll(`[data-item-id="${CSS.escape(id)}"]`)).indexOf(card);
+      return { id, index, details: card.querySelector(":scope > .item-details") };
+    });
+  }
+
+  /** Reopen the cards captured before the render, on the freshly rendered markup. */
+  _cdxRestoreExpandedCards(root) {
+    const cards = this._cdxExpandedCards ?? [];
+    this._cdxExpandedCards = null;
+    for (const { id, index, details } of cards) {
+      const card = root?.querySelectorAll?.(`[data-item-id="${CSS.escape(id)}"]`)[index];
+      if (!card || card.classList.contains("expanded")) continue;
+      card.classList.add("expanded");
+      if (!details) continue;
+      card.append(details);
+      // An item's description or tags may be what just changed, so rebuild its panel
+      // in the background. Prepared talents and Force-power text come from the render
+      // data the old panel was built from.
+      const item = this.actor?.items?.get(id);
+      if (!item || typeof this._itemDetailsElement !== "function") continue;
+      this._itemDetailsElement(item).then((fresh) => {
+        if (details.parentElement === card && card.classList.contains("expanded")) details.replaceWith(fresh[0]);
+      }).catch(() => { /* keep the panel that was open */ });
+    }
   }
 
   /**
@@ -431,6 +472,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
 
   /** @override — add the Codex-only listeners on top of the stock ones. */
   activateListeners(html) {
+    // Before the base listeners and the scroll restore that follows them, so the sheet
+    // is back to its full height when its scroll position is put back.
+    this._cdxRestoreExpandedCards(html?.[0] ?? this.form);
     super.activateListeners(html);
     this._cdxRegisterSheetOptions();
     this._cdxActivate(html);

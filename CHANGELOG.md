@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Fixed — **the Codex character sheet closed every expanded card whenever it refreshed**, for example when a status effect was toggled from the token HUD or another player edited an item. Weapon, armour, gear, talent and Force power cards you had open now stay open while the dice pools and other values update around them.
 * Fixed — **quick clicks on a Codex weapon's Ammo − and + buttons got lost**. Clicking + three times fast could add only one round, because each click counted from a number the previous click had not saved yet. Every click now counts, in order. Another player spending a shot also no longer scrolls your open character sheet back to the top and collapses its expanded weapon cards; the count just changes in place.
 * Fixed — **an Obligation, Duty or Morality entry's card stayed stuck on its old type when you changed it**. The new type was saved, but the card kept its old heading and kept offering Magnitude where Morality needs a Subtype (and the reverse) until it was closed and reopened. It now redraws as soon as you pick the type, on both the Codex and classic sheets.
 * Fixed — **large quantities overflowed their Codex inventory card**. A three- or four-digit count ran over the − and + buttons and into the ENC column; the QTY column now widens to fit the number.

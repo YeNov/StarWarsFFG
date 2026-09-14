@@ -1814,25 +1814,36 @@ export class ActorSheetFFG extends FFGActorSheet {
   async _itemDisplayDetails(item, event) {
     event.preventDefault();
     let li = $(event.currentTarget);
-    const itemDetails = await item.getItemDetails();
 
     // Toggle summary
     if (li.hasClass("expanded")) {
       let details = li.children(".item-details");
       details.slideUp(200, () => details.remove());
     } else {
-      let div = $(`<div class="item-details">${await PopoutEditor.renderDiceImages(itemDetails.description, this.actor)}</div>`);
-      let props = $(`<div class="item-properties"></div>`);
-      itemDetails.properties.forEach((p) => props.append(`<span class="tag">${p}</span>`));
-      div.append(props);
+      const div = await this._itemDetailsElement(item);
       li.append(div.hide());
       div.slideDown(200);
-      // item card tooltips
-      li.find(".hover-tooltip").on("mouseover", (event) => {
-        itemPillHover(event);
-      });
     }
     li.toggleClass("expanded");
+  }
+
+  /**
+   * Build the expanded details panel of an item card: its description and property tags.
+   * @param {Item} item
+   * @returns {Promise<jQuery>} the detached `.item-details` element
+   * @protected
+   */
+  async _itemDetailsElement(item) {
+    const itemDetails = await item.getItemDetails();
+    const div = $(`<div class="item-details">${await PopoutEditor.renderDiceImages(itemDetails.description, this.actor)}</div>`);
+    const props = $(`<div class="item-properties"></div>`);
+    itemDetails.properties.forEach((p) => props.append(`<span class="tag">${p}</span>`));
+    div.append(props);
+    // item card tooltips
+    div.find(".hover-tooltip").on("mouseover", (event) => {
+      itemPillHover(event);
+    });
+    return div;
   }
 
   /**
