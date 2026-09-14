@@ -968,10 +968,17 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   /**
    * Ammo chip on expanded weapon cards: the −/+ steppers adjust the weapon's
    * system.ammo magazine. Writes use {render:false} + an optimistic DOM update
-   * so a +/- doesn't collapse the expanded card; the persisted value is correct
-   * even if a render still occurs.
+   * so a +/- doesn't collapse the expanded card.
+   *
+   * Each click steps from the last count this sheet queued, not from the document,
+   * and the writes for one weapon run one after another. Reading the document made
+   * a quick second click step from the count the first click had not saved yet, so
+   * three clicks could land as one. `ffgAmmoStep` lets other clients patch the
+   * count in place instead of re-rendering (see helpers/sheet-sync.js).
    */
   _cdxWireAmmo(root) {
+    this._cdxAmmoTargets ??= new Map();
+    this._cdxAmmoWrites ??= new Map();
     // Swallow clicks inside the chip so they don't toggle the card's expand state.
     root.querySelectorAll(".cdx-ammo").forEach((chip) => {
       chip.addEventListener("click", (ev) => ev.stopPropagation());
@@ -983,12 +990,53 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         const w = this.actor?.items?.get(chip.dataset.weaponId); if (!w) return;
         const dir = Number(ev.currentTarget.dataset.dir) || 0;
         const mx = getAmmoMax(w);
-        let cur = getAmmoValue(w) + dir;
+        let cur = (this._cdxAmmoTargets.get(w.id) ?? getAmmoValue(w)) + dir;
         cur = Math.max(0, mx ? Math.min(mx, cur) : cur);
-        try { await w.update({ "system.ammo.value": cur }, { render: false }); } catch (e) { return; }
-        const cEl = chip.querySelector(".cdx-ammo-count"); if (cEl) cEl.textContent = `${cur}/${mx}`;
+        this._cdxAmmoTargets.set(w.id, cur);
+        this._cdxPaintAmmoCount(w.id, cur, mx);
+
+        const previous = this._cdxAmmoWrites.get(w.id)?.catch(() => undefined) ?? Promise.resolve();
+        const write = previous.then(() => w.update({ "system.ammo.value": cur }, { render: false, ffgAmmoStep: true }));
+        this._cdxAmmoWrites.set(w.id, write);
+        try {
+          await write;
+        } catch (e) {
+          // The document still holds the last count that did save; show that, and
+          // let the next click start from it.
+          if (this._cdxAmmoWrites.get(w.id) === write) {
+            this._cdxAmmoTargets.delete(w.id);
+            this._cdxAmmoWrites.delete(w.id);
+            this._cdxPaintAmmoCount(w.id, getAmmoValue(w), getAmmoMax(w));
+          }
+          return;
+        }
+        if (this._cdxAmmoWrites.get(w.id) === write) {
+          this._cdxAmmoTargets.delete(w.id);
+          this._cdxAmmoWrites.delete(w.id);
+        }
       });
     });
+  }
+
+  _cdxPaintAmmoCount(weaponId, current, max) {
+    const chip = this.form?.querySelector?.(`.cdx-ammo[data-weapon-id="${weaponId}"]`);
+    const count = chip?.querySelector(".cdx-ammo-count");
+    if (!count) return false;
+    count.textContent = `${current}/${max}`;
+    return true;
+  }
+
+  /**
+   * Show another client's ammo step without re-rendering, so this user's scroll
+   * position and expanded cards survive a player spending a shot. Returns false
+   * when the weapon has no chip on this sheet, so the caller re-renders instead.
+   * @param {Item} item
+   * @returns {boolean}
+   */
+  _ffgPaintAmmo(item) {
+    // This sheet's own queued clicks already show where the count is going.
+    if (this._cdxAmmoTargets?.has(item.id)) return true;
+    return this._cdxPaintAmmoCount(item.id, getAmmoValue(item), getAmmoMax(item));
   }
 
   /**

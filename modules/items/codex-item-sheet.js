@@ -237,12 +237,15 @@ export class CodexItemSheet extends ItemSheetFFG {
         // writes the same value as the first click, making the control feel like it
         // requires a double-click.
         const previousWrite = this._cdxAmmoUpdate?.catch(() => undefined) ?? Promise.resolve();
-        this._cdxAmmoUpdate = previousWrite.then(() => this.item.update({ "system.ammo.value": current }, { render: false }));
+        const write = previousWrite.then(() => this.item.update({ "system.ammo.value": current }, { render: false, ffgAmmoStep: true }));
+        this._cdxAmmoUpdate = write;
         try {
-          await this._cdxAmmoUpdate;
+          await write;
         } catch (e) {
           if (value?.textContent === String(current)) value.textContent = String(getAmmoValue(this.item));
           return;
+        } finally {
+          if (this._cdxAmmoUpdate === write) this._cdxAmmoUpdate = null;
         }
       });
     });
@@ -314,6 +317,21 @@ export class CodexItemSheet extends ItemSheetFFG {
     // the item-sheet diamond blocks (item header, pills, stat boxes, checks,
     // force-power rows, vehicle rarity). See cdxBuildNotchOutlines.
     if (root) cdxBuildNotchOutlines(this, root);
+  }
+
+  /**
+   * Show another client's ammo step without re-rendering, so the open tab and any
+   * half-typed field survive. Returns false when this sheet shows no ammo counter.
+   * @param {Item} item
+   * @returns {boolean}
+   */
+  _ffgPaintAmmo(item) {
+    const value = this.form?.querySelector?.(".cdx-item-ammo-cur");
+    if (!value) return false;
+    // Clicks still queued here step from the count on screen; leave it be.
+    if (this._cdxAmmoUpdate) return true;
+    value.textContent = String(getAmmoValue(item));
+    return true;
   }
 
   /** @override — drop the notch-outline ResizeObserver when the sheet closes. */

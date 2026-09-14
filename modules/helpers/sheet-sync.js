@@ -33,17 +33,27 @@ export function refreshSheetsForRemoteUpdate(doc, options, userId, currentUserId
   if (options?.render !== false) return [];
 
   const refreshed = [];
+  // An ammo +/- changes one number. A full render would reset this user's scroll and collapse
+  // the weapon cards they had open, every time anyone at the table spent a shot, so a sheet
+  // that can show the new count in place does that instead.
+  const paintAmmo = (sheet) => options?.ffgAmmoStep === true && sheet._ffgPaintAmmo?.(doc) === true;
   // `render(false)` re-renders in place without bringing the window to the front or stealing
   // focus -- this is a background refresh of someone else's edit, not an action they took.
   if (doc?.sheet?.rendered) {
-    doc.sheet.render(false);
-    refreshed.push("item");
+    if (paintAmmo(doc.sheet)) refreshed.push("item-ammo");
+    else {
+      doc.sheet.render(false);
+      refreshed.push("item");
+    }
   }
   // The owning actor's sheet shows the item's derived data (weapon rows, talent panels), so it
   // goes stale for exactly the same reason.
   if (doc?.actor?.sheet?.rendered) {
-    doc.actor.sheet.render(false);
-    refreshed.push("actor");
+    if (paintAmmo(doc.actor.sheet)) refreshed.push("actor-ammo");
+    else {
+      doc.actor.sheet.render(false);
+      refreshed.push("actor");
+    }
   }
   return refreshed;
 }

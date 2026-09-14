@@ -24,7 +24,8 @@ test("Codex item ammo steppers clamp and persist the current magazine", () => {
   assert.match(itemSheetSource, /const max = getAmmoMax\(this\.item\)/);
   assert.match(itemSheetSource, /Number\.isFinite\(displayed\) \? displayed : getAmmoValue\(this\.item\)/);
   assert.match(itemSheetSource, /if \(value\) value\.textContent = String\(current\)/);
-  assert.match(itemSheetSource, /this\._cdxAmmoUpdate = previousWrite\.then/);
+  assert.match(itemSheetSource, /const write = previousWrite\.then/);
+  assert.match(itemSheetSource, /this\._cdxAmmoUpdate = write/);
   assert.match(itemSheetSource, /"system\.ammo\.value": current/);
 });
 
@@ -48,3 +49,15 @@ for (const [name, template] of [["weapon", weaponTemplate], ["vehicle weapon", s
     assert.doesNotMatch(template, /localize "SWFFG\.(Current|Threshold)"/);
   });
 }
+
+test("Codex actor ammo steppers queue each click from the last queued count", () => {
+  assert.match(actorSheetSource, /let cur = \(this\._cdxAmmoTargets\.get\(w\.id\) \?\? getAmmoValue\(w\)\) \+ dir/);
+  assert.match(actorSheetSource, /const previous = this\._cdxAmmoWrites\.get\(w\.id\)\?\.catch\(\(\) => undefined\) \?\? Promise\.resolve\(\)/);
+  assert.match(actorSheetSource, /w\.update\(\{ "system\.ammo\.value": cur \}, \{ render: false, ffgAmmoStep: true \}\)/);
+  assert.match(itemSheetSource, /this\.item\.update\(\{ "system\.ammo\.value": current \}, \{ render: false, ffgAmmoStep: true \}\)/);
+});
+
+test("Codex sheets can show another client's ammo step without re-rendering", () => {
+  assert.match(actorSheetSource, /_ffgPaintAmmo\(item\) \{/);
+  assert.match(itemSheetSource, /_ffgPaintAmmo\(item\) \{/);
+});
