@@ -1008,9 +1008,9 @@
 .cdx .cdx-card-icon img { width:100%; height:100%; object-fit:cover; border-radius:6px; }
 .cdx .cdx-card.gear .cdx-statcol { width:84px; }
 /* The QTY column holds a − value + stepper, so a fixed 84px left room for barely two
-   digits: a three- or four-digit count ran over the buttons and
-   into ENC. Keep 84px as the floor so ordinary counts line up card to card, and let
-   the column grow (the card grid gives it an auto track) once the number needs more. */
+   digits. Keep 84px as the floor so ordinary counts line up card to card, and let the
+   column grow for up to four digits; anything longer is cut to "123.." by the
+   codexQuantity helper, so the column never pushes into the card title. */
 .cdx .cdx-card.gear .cdx-statcol:has(> .cdx-qty) { width:auto; min-width:84px; }
 .cdx .cdx-card.gear .cdx-qty { display:flex; align-items:center; justify-content:center; gap:6px; }
 /* position:static neutralises the stock .quantity rule (position:absolute +
