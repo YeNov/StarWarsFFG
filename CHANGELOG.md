@@ -1,4 +1,5 @@
-`Unreleased`
+`2.1.4`
+Minion vehicle groups, the Adversary talent on vehicles, Codex sheet fixes, and V14 fixes for the combat tracker menu and Sheet Options ticks.
 
 * Fixed — **ticked options in the Sheet Options window showed a small blank rectangle instead of a tick on Foundry V14** ([#91](https://github.com/YeNov/StarWarsFFG/pull/91)). Enable hyperdrive, Minion Vehicle and the other on/off options on actor and item sheets show their tick again, as on V13.
 * Added — **minion vehicle groups** for squadrons of identical craft ([#90](https://github.com/YeNov/StarWarsFFG/pull/90)). Tick *Minion Vehicle* in a vehicle's Sheet Options and its Hull Trauma Threshold becomes per vehicle: the group pools hull trauma, loses a vehicle each time the damage passes another vehicle's threshold, and a critical hit destroys one vehicle. Crew group skills (a TIE Pilot minion's Gunnery, say) roll at vehicles left − 1, and both vehicle sheets and the token tally show how many are left; System Strain stays one track for the group.
