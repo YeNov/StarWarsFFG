@@ -652,6 +652,9 @@
 .cdx .cdx-veh-talent.off { opacity:.5; filter:grayscale(1); }
 
 /* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
+/* Silhouette · Speed · Handling · Armour span the sheet above both columns. As a direct
+   child of the column-flex form it must not shrink when the sheet is short. */
+.cdx .cdx-veh-chiprow { flex:none; }
 .cdx .cdx-veh-main { display:flex; gap:9px; align-items:stretch; }
 .cdx .cdx-veh-left { flex:2; min-width:0; display:flex; flex-direction:column; gap:9px; }
 .cdx .cdx-veh-main .cdx-derived { flex:none; }

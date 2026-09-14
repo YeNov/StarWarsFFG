@@ -214,7 +214,9 @@ In `codex-vehicle.html`, group mode replaces the Hull Trauma card with:
   for pips versus a bar), otherwise one mini bar per vehicle filled by that vehicle's share of the
   damage.
 
-The System Strain card is unchanged.
+The System Strain card is hidden in group mode, as a minion sheet has no strain box; the track itself is untouched, so Group Strength spans that row alone.
+
+On every Codex vehicle, group or not, the Silhouette / Speed / Handling / Armour chip row sits above the two columns (`cdx-veh-chiprow`, full width) instead of at the top of the left column.
 
 Handler changes in `CodexActorSheet`:
 
