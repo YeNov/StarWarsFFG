@@ -1,11 +1,11 @@
 <div class="dialog-content sheet-options-dialog">
   <form class="flexcol" autocomplete="off">
     {{#each content.options as |option id|}}
-    <div class="form-group">
+    <div class="form-group{{#if option.disabled}} disabled{{/if}}">
       <label>{{option.name}}</label>
       <div class="form-fields">
         {{#if (eq option.type "Boolean")}}
-        <input type="checkbox" name="config.{{id}}" id="{{id}}" data-dtype="Boolean" {{checked option.value}} />
+        <input type="checkbox" name="config.{{id}}" id="{{id}}" data-dtype="Boolean" {{checked option.value}} {{#if option.disabled}}disabled{{/if}} />
         {{/if}} {{#if (eq option.type "String")}}
         <input type="text" name="config.{{id}}" id="{{id}}" data-dtype="String" value="{{localize option.value}}" />
         {{/if}} {{#if (eq option.type "Array")}}

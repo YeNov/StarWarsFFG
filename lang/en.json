@@ -450,6 +450,7 @@
   "SWFFG.SheetOptions2.enableRarity.Hint":  "Shows rarity on item sheets",
   "SWFFG.SheetOptions2.enableAmmo.Name":  "Enable Ammo",
   "SWFFG.SheetOptions2.enableAmmo.Hint":  "Shows ammo on item sheets",
+  "SWFFG.SheetOptions2.enableAmmo.QualityModeHint":  "Ammo comes from the Limited Ammo quality (world setting Use Limited Ammo Quality), so this tick has no effect.",
   "SWFFG.SheetOptions2.isMedical.Name":  "Medical Item Type",
   "SWFFG.SheetOptions2.isMedical.Hint":  "Selects the type of medical item usage from inventory",
   "SWFFG.MedicalItemType.No":  "No",

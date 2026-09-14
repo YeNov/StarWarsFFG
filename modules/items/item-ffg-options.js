@@ -125,6 +125,8 @@ export default class ItemOptions {
 
             for (let i = 0; i < controls.length; i += 1) {
               const control = controls[i];
+              // A disabled option cannot apply in the current mode; leave its flag as it is.
+              if (control.disabled) continue;
               let value;
               if (control.dataset["dtype"] === "Boolean") {
                 value = control.checked;

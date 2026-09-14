@@ -477,6 +477,17 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   justify-content: center;
 }
 
+/* An option that exists but cannot apply right now (e.g. Enable Ammo while the world drives
+   ammo from the Limited Ammo quality): shown greyed out, with its note saying why. */
+.starwarsffg.application.dialog .sheet-options-dialog .form-group.disabled > label,
+.starwarsffg.application.dialog .sheet-options-dialog .form-group.disabled > .form-fields {
+  opacity: 0.45 !important;
+}
+
+.starwarsffg.application.dialog .sheet-options-dialog input[type=checkbox]:disabled {
+  cursor: not-allowed !important;
+}
+
 .starwarsffg .item-form {
   font-family: "Roboto", sans-serif;
 }
