@@ -21,9 +21,12 @@
             margin: 10px;
           }
 
-          // Minion vehicle group row, directly under the four stat boxes.
+          // Minion vehicle group row, under the four stat boxes: spaced off them like the boxes'
+          // own row, with each block centred in its third (the blocks are narrower than a column
+          // and would otherwise sit at its left edge).
           &.minion-vehicle-stats {
-            margin: 0 10px 10px;
+            margin: 10px;
+            justify-items: center;
           }
         }
 
