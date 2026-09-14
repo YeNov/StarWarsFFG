@@ -21,13 +21,12 @@
             margin: 10px;
           }
 
-          // Minion vehicle group row, under the four stat boxes. A block's layout box is only
-          // 40px tall (.resource) while its Threshold/Current label strip is positioned down to
-          // 66px, so the row above hangs ~26px into this one: the top margin clears that plus a
-          // 10px gap (it collapses with the upper row's 10px, it does not add to it). Each block
-          // is centred in its third; they are narrower than a column and would sit at its left.
+          // Minion vehicle group row, under the four stat boxes, spaced like them. Each block is
+          // centred in its third; they are narrower than a column and would sit at its left.
+          // This is the retired Default theme only: the Mandar themes, which are the default
+          // setting, space the row in styles/mandar.css.
           &.minion-vehicle-stats {
-            margin: 36px 10px 10px;
+            margin: 10px;
             justify-items: center;
           }
         }
