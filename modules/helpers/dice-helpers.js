@@ -5,6 +5,7 @@ import ImportHelpers from "../importer/import-helpers.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { isAmmoTracked, hasAmmoToFire } from "./ammo-helpers.js";
 import { characterDefenceDice } from "./defence-helpers.js";
+import { effectiveSkillRank } from "./minion-group.js";
 
 export default class DiceHelpers {
   static async rollSkill(obj, event, type, flavorText, sound) {
@@ -373,9 +374,11 @@ export default class DiceHelpers {
  * @param actor_id ID of the actor making the check
  * @param skill_name name of the string of the skill
  * @param incoming_roll existing dice, e.g. difficulty dice
+ * @param options.groupSkillRank the rank the actor's GROUP skills roll at, when a crew member rolls
+ *   for a minion vehicle group (see crewRollOptions in minion-group.js); other skills keep theirs
  * @returns {DicePoolFFG}
  */
-export function get_dice_pool(actor_id, skill_name, incoming_roll) {
+export function get_dice_pool(actor_id, skill_name, incoming_roll, options = {}) {
   const incomingPool = incoming_roll instanceof DicePoolFFG ? incoming_roll : new DicePoolFFG(incoming_roll ?? {});
   const actor = resolveDicePoolActor(actor_id, skill_name);
   const { skill } = resolveSkill(actor, skill_name);
@@ -387,7 +390,7 @@ export function get_dice_pool(actor_id, skill_name, incoming_roll) {
   }
 
   const characteristicValue = Number(characteristic.value) || 0;
-  const skillRank = Number(skill.rank) || 0;
+  const skillRank = effectiveSkillRank(skill, options);
 
   const dicePool = new DicePoolFFG({
     ability: Math.max(characteristicValue, skillRank) + incomingPool.ability - (Math.min(characteristicValue, skillRank) + incomingPool.proficiency),

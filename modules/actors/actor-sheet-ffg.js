@@ -26,6 +26,7 @@ import {
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
+import { crewRollOptions } from "../helpers/minion-group.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
 import { sheetTracks } from "../helpers/obligation-tracks.js";
@@ -413,9 +414,9 @@ export class ActorSheetFFG extends FFGActorSheet {
               let roll;
               if (actor) {
                 if (crew[i].role !== "Pilot") {
-                  roll = build_crew_roll(this.actor.id, crew[i].actor_id, crew[i].role);
+                  roll = build_crew_roll(this.actor, crew[i].actor_id, crew[i].role);
                 } else {
-                  roll = (await buildPilotRoll(this.actor.id, crew[i].actor_id, 0)).renderPreview().innerHTML;
+                  roll = (await buildPilotRoll(this.actor, crew[i].actor_id, 0)).renderPreview().innerHTML;
                 }
               } else {
                 deregister_crew(this.actor, crew[i].actor_id, crew[i].role);
@@ -1402,7 +1403,7 @@ export class ActorSheetFFG extends FFGActorSheet {
             callback: async (html) => {
               const skill = raw_weapons[i].system.skill.value;
               let pool = new DicePoolFFG({'difficulty': 2});
-              pool = get_dice_pool(crew_id, skill, pool);
+              pool = get_dice_pool(crew_id, skill, pool, crewRollOptions(ship));
               pool = await DiceHelpers.getModifiers(pool, raw_weapons[i]);
               await DiceHelpers.displayRollDialog(
                 crewSheet,
@@ -1433,7 +1434,7 @@ export class ActorSheetFFG extends FFGActorSheet {
         });
       } else {
         // update the pool with actor information
-        pool = get_dice_pool(crew_id, role_info[0].role_skill, pool);
+        pool = get_dice_pool(crew_id, role_info[0].role_skill, pool, crewRollOptions(ship));
         // open the roll dialog (skill name is already localized)
         await DiceHelpers.displayRollDialog(
           crewSheet,
@@ -1803,7 +1804,7 @@ export class ActorSheetFFG extends FFGActorSheet {
     // create the starting pool
     let pool = new DicePoolFFG(starting_pool);
     // update the pool with actor data
-    pool = get_dice_pool(selectedGunner.actor_id, weaponSkill, pool);
+    pool = get_dice_pool(selectedGunner.actor_id, weaponSkill, pool, crewRollOptions(ship));
     pool = await DiceHelpers.getModifiers(pool, weapon);
     // display the roll dialog
     await DiceHelpers.displayRollDialog(
