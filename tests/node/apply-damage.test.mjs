@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const translations = JSON.parse(readFileSync(new URL("../../lang/en.json", import.meta.url), "utf8"));
 
 let dialogOptions;
 globalThis.foundry = {
@@ -17,6 +20,7 @@ const armor = (mods = [], { equipped = true, attachments = [], type = "armour" }
 async function applyHit({ items = [], type = "character", pierce = 0, breach = 0, pool = "wounds", damage = 12 } = {}) {
   const updates = [];
   const chats = [];
+  const formatted = [];
   const actor = {
     uuid: "Actor.target", name: "Target", type, items,
     system: { stats: { soak: { value: 6 }, armour: { value: 6 }, wounds: { value: 0 }, strain: { value: 0 }, hullTrauma: { value: 0 } } },
@@ -27,7 +31,13 @@ async function applyHit({ items = [], type = "character", pierce = 0, breach = 0
   users.activeGM = gm;
   globalThis.game = {
     user: { ...gm, targets: new Set([{ actor, document: {} }]) }, users,
-    i18n: { localize: (key) => key, format: (key, data) => JSON.stringify({ key, ...data }) },
+    i18n: {
+      localize: (key) => translations[key] ?? key,
+      format: (key, data) => {
+        formatted.push({ key, ...data });
+        return (translations[key] ?? key).replace(/\{(\w+)\}/g, (_, field) => data[field]);
+      },
+    },
   };
   globalThis.fromUuid = async () => actor;
   globalThis.ChatMessage = { getSpeaker: () => ({}), create: async (chat) => { chats.push(chat); } };
@@ -44,7 +54,7 @@ async function applyHit({ items = [], type = "character", pierce = 0, breach = 0
     querySelector: (selector) => ({ value: selector.includes("pool") ? pool : input(selector.includes("damage") ? "damage" : "pierce") }),
   } });
   assert.equal(updates.length, 1);
-  return { update: updates[0], details: JSON.parse(chats.find((chat) => chat.whisper).content.slice(3, -4)) };
+  return { update: updates[0], details: formatted.find((call) => call.key === "SWFFG.ApplyDamage.GMDetails"), chats };
 }
 
 for (const name of ["Beskar", "Cortosis Quality"]) {
@@ -54,6 +64,11 @@ for (const name of ["Beskar", "Cortosis Quality"]) {
       assert.deepEqual(result.update, { "system.stats.wounds.value": 6 });
       assert.equal(result.details.effectiveSoak, 6);
       assert.equal(result.details.pierce, 0);
+      const whisper = result.chats.find((chat) => chat.whisper);
+      assert.deepEqual(whisper.whisper, ["gm"]);
+      assert.ok(whisper.content.includes(`<strong>${name.split(" ")[0]}</strong>`));
+      assert.ok(whisper.content.includes("Pierce and Breach cannot bypass this target's soak."));
+      assert.doesNotMatch(result.chats.find((chat) => !chat.whisper).content, /Beskar|Cortosis/);
     });
   }
 }
@@ -89,4 +104,28 @@ test("protection applies to strain and to all personal actor types, with damage 
 
 test("personal armor does not grant vehicle armor protection", async () => {
   assert.deepEqual((await applyHit({ items: [armor([quality("Beskar")])], type: "vehicle", breach: 1 })).update, { "system.stats.hullTrauma.value": 12 });
+});
+
+test("the GM whisper lists both protective qualities once, including attachment and renamed qualities", async () => {
+  const items = [armor([quality("Cortosis"), quality("Beskar Quality")], {
+    attachments: [{ system: { itemmodifier: [quality("Renamed", { active: true }, { starwarsffg: { ffgimportid: "BESKAR" } })] } }],
+  })];
+  // Protection is reported even when the attack has no Pierce or Breach.
+  const { chats } = await applyHit({ items });
+  const whisper = chats.find((chat) => chat.whisper).content;
+  assert.ok(whisper.includes("Worn armor: <strong>Beskar, Cortosis</strong>"));
+  assert.equal(whisper.match(/Beskar/g).length, 1);
+  assert.equal(whisper.match(/Cortosis/g).length, 1);
+});
+
+test("the whisper omits protection for absent, unworn, inactive, or broken qualities", async () => {
+  for (const items of [
+    [],
+    [armor([quality("Beskar")], { equipped: false })],
+    [armor([], { attachments: [{ system: { itemmodifier: [quality("Cortosis", { active: false })] } }] })],
+    [armor([], { attachments: [{ system: { itemmodifier: [quality("Cortosis", { active: true, broken: true })] } }] })],
+  ]) {
+    const { chats } = await applyHit({ items, breach: 1 });
+    assert.doesNotMatch(chats.find((chat) => chat.whisper).content, /Worn armor|Beskar|Cortosis|cannot bypass/);
+  }
 });

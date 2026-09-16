@@ -48,6 +48,7 @@
   "SWFFG.ApplyDamage.TargetGone": "The target is no longer available.",
   "SWFFG.ApplyDamage.PublicMessage": "<strong>{actorName}</strong> takes <strong>{damage}</strong> {poolLabel} from <em>{weaponName}</em>.",
   "SWFFG.ApplyDamage.GMDetails": "<strong>{actorName}</strong> takes <strong>{applied}</strong> {poolLabel} ({damage} dmg − {effectiveSoak} effective {soakWord}; pierce {pierce} vs {soakWord} {soak}).",
+  "SWFFG.ApplyDamage.SoakProtection": "Worn armor: <strong>{qualities}</strong>. Pierce and Breach cannot bypass this target's soak.",
   "SWFFG.ApplyCrit.Button": "Apply Crit",
   "SWFFG.ApplyCrit.DialogTitle": "Critical Roll — {name}",
   "SWFFG.ApplyCrit.Modifier": "Modifier",

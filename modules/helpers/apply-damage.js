@@ -10,24 +10,27 @@ import { applyToTargetActor } from "./gm-bridge.js";
 const { DialogV2 } = foundry.applications.api;
 
 /** Worn Beskar/Cortosis protects the wearer's full soak from Pierce and Breach. */
-function hasSoakProtection(actor) {
-  if (actor.type === "vehicle") return false;
-  const protectsSoak = (quality) => {
+function getSoakProtectionQualities(actor) {
+  if (actor.type === "vehicle") return [];
+  const protection = new Set();
+  const collectQuality = (quality) => {
     const importId = quality?.flags?.starwarsffg?.ffgimportid;
-    return /^(BESKAR|CORTOSIS)$/i.test(importId ?? "")
-      || /^(beskar|cortosis)\b/i.test(String(quality?.name ?? "").trim());
+    const match = /^(BESKAR|CORTOSIS)$/i.exec(importId ?? "")
+      ?? /^(beskar|cortosis)\b/i.exec(String(quality?.name ?? "").trim());
+    if (match) protection.add(match[1].toLowerCase() === "beskar" ? "Beskar" : "Cortosis");
   };
-  return (actor.items ?? []).some((item) => {
-    if (item.type !== "armour" || !item.system?.equippable?.equipped) return false;
+  for (const item of actor.items ?? []) {
+    if (item.type !== "armour" || !item.system?.equippable?.equipped) continue;
     // Read source qualities, not sheet-only summaries. Attachment mods follow
     // the same active/unbroken gate as the item's adjusted stats.
-    if (item.system.itemmodifier?.some(protectsSoak)) return true;
-    return item.system.itemattachment?.some((attachment) =>
-      attachment.system?.itemmodifier?.some((quality) =>
-        quality.system?.active && !quality.system?.broken && protectsSoak(quality)
-      )
-    ) ?? false;
-  });
+    for (const quality of item.system.itemmodifier ?? []) collectQuality(quality);
+    for (const attachment of item.system.itemattachment ?? []) {
+      for (const quality of attachment.system?.itemmodifier ?? []) {
+        if (quality.system?.active && !quality.system?.broken) collectQuality(quality);
+      }
+    }
+  }
+  return [...protection].sort();
 }
 
 export class ApplyDamage {
@@ -169,7 +172,8 @@ export class ApplyDamage {
           callback: async (event, button, dialog) => {
             const root = dialog.element;
             const damage = Math.max(0, parseInt(root.querySelector('input[name="damage"]')?.value, 10) || 0);
-            const pierce = hasSoakProtection(a) ? 0
+            const soakProtection = getSoakProtectionQualities(a);
+            const pierce = soakProtection.length ? 0
               : Math.max(0, parseInt(root.querySelector('input[name="pierce"]')?.value, 10) || 0);
             const pool = showRadio ? root.querySelector('input[name="pool"]:checked')?.value : "wounds";
             const path = pool === "strain" ? strainPath : woundPath;
@@ -190,6 +194,9 @@ export class ApplyDamage {
             // the attacking (non-owning) player posted this, they would see the
             // target's soak/pierce math. The GM writer posts it; without a GM
             // connected, only the public announcement below is posted.
+            const protectionNote = soakProtection.length
+              ? `<p>${game.i18n.format("SWFFG.ApplyDamage.SoakProtection", { qualities: soakProtection.join(", ") })}</p>`
+              : "";
             const gmChat = {
               speaker,
               whisper: gmIds,
@@ -202,7 +209,7 @@ export class ApplyDamage {
                 soakWord,
                 pierce,
                 soak: soakValue,
-              })}</p>`,
+              })}</p>${protectionNote}`,
             };
 
             let result;
