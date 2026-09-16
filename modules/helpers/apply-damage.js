@@ -9,6 +9,27 @@ import { applyToTargetActor } from "./gm-bridge.js";
 
 const { DialogV2 } = foundry.applications.api;
 
+/** Worn Beskar/Cortosis protects the wearer's full soak from Pierce and Breach. */
+function hasSoakProtection(actor) {
+  if (actor.type === "vehicle") return false;
+  const protectsSoak = (quality) => {
+    const importId = quality?.flags?.starwarsffg?.ffgimportid;
+    return /^(BESKAR|CORTOSIS)$/i.test(importId ?? "")
+      || /^(beskar|cortosis)\b/i.test(String(quality?.name ?? "").trim());
+  };
+  return (actor.items ?? []).some((item) => {
+    if (item.type !== "armour" || !item.system?.equippable?.equipped) return false;
+    // Read source qualities, not sheet-only summaries. Attachment mods follow
+    // the same active/unbroken gate as the item's adjusted stats.
+    if (item.system.itemmodifier?.some(protectsSoak)) return true;
+    return item.system.itemattachment?.some((attachment) =>
+      attachment.system?.itemmodifier?.some((quality) =>
+        quality.system?.active && !quality.system?.broken && protectsSoak(quality)
+      )
+    ) ?? false;
+  });
+}
+
 export class ApplyDamage {
   /**
    * Called from the renderChatMessageHTML hook. Enforces visibility (button is
@@ -148,7 +169,8 @@ export class ApplyDamage {
           callback: async (event, button, dialog) => {
             const root = dialog.element;
             const damage = Math.max(0, parseInt(root.querySelector('input[name="damage"]')?.value, 10) || 0);
-            const pierce = Math.max(0, parseInt(root.querySelector('input[name="pierce"]')?.value, 10) || 0);
+            const pierce = hasSoakProtection(a) ? 0
+              : Math.max(0, parseInt(root.querySelector('input[name="pierce"]')?.value, 10) || 0);
             const pool = showRadio ? root.querySelector('input[name="pool"]:checked')?.value : "wounds";
             const path = pool === "strain" ? strainPath : woundPath;
             const poolLabel = pool === "strain" ? strainLabel : woundLabel;
