@@ -1,3 +1,7 @@
+`Unreleased`
+
+* Fixed — **Apply Damage now respects Beskar and Cortosis on worn armor**, including active, unbroken attachment mods. Pierce and Breach no longer bypass the wearer's soak; the GM whisper names any of these protective qualities present.
+
 `2.1.4`
 Minion vehicle groups, the Adversary talent on vehicles, Codex sheet fixes, and V14 fixes for the combat tracker menu and Sheet Options ticks.
 
