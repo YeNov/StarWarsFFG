@@ -29,7 +29,7 @@ packs the **OggDude Dataset Importer** creates, so for most tables setup is:
    | Skill hover hints | Skill Description Compendiums | `world.oggdudeskilldescriptions` |
 
    Only change these to add homebrew packs. Talent Compendiums is not used by the wizard, because
-   talents come from each specialization's tree. It *is* used by the Hyperdrive importer, so add
+   talents come from each specialization's tree. It *is* used by the Hyperdrive importer instead, so add
    `world.oggdudetalents` there if you use Hyperdrive.
 3. **Set the gear gates and starting values** in the same menu:
    - **Max Rarity** (default 6) and **Allow Restricted Items** (default off) filter the Gear tab.
@@ -48,7 +48,7 @@ packs the **OggDude Dataset Importer** creates, so for most tables setup is:
 - A **career** must list its specializations. In-career specializations are matched by name
   against that list.
 - Items in the **Items sidebar** (world items) are **not** offered by default. Each user has to
-  turn on **World items** for that pool in the Content sources panel (below). To make homebrew
+  turn on **World items** for that pool in the Content sources panel (below). To make world items
   available to everyone without that step, put it in a compendium and add the compendium to the
   setting.
 
@@ -121,7 +121,7 @@ instead.
 The wizard whispers the GMs a **start** notice when a player opens it, and a **finish** record with
 a clickable link when a character is created. Both are informational.
 
-### When something looks wrong
+### When something looks wrong | Troubleshooting
 
 - **"A player started but I never saw a finish record."** The submission didn't complete (often:
   no GM was online). Ask the player to press **Create character** again. The draft is intact, and a
