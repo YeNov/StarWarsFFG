@@ -1,6 +1,8 @@
 `Unreleased`
 
 * Fixed — **Apply Damage now respects Beskar and Cortosis on worn armor**, including active, unbroken attachment mods. Pierce and Breach no longer bypass the wearer's soak; the GM whisper names any of these protective qualities present.
+* Fixed — **Override in the Hyperdrive importer took the character away from its player**. Replacing an existing character now keeps who owns it and which folder it is in, so a GM can re-import a player's updated build without re-granting access.
+* Fixed — **re-importing an OggDude dataset with Delete Existing Compendiums left the old Obligations pack in place**, so obligations dropped from the newer dataset stayed in it. That pack is now cleared like the others.
 
 `2.1.4`
 Minion vehicle groups, the Adversary talent on vehicles, Codex sheet fixes, and V14 fixes for the combat tracker menu and Sheet Options ticks.
