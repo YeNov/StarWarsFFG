@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Fixed — **the version update message linked to the upstream repository**. Its changelog and wiki links now point at this fork, which is the version you are actually running.
 * Fixed — **Apply Damage now respects Beskar and Cortosis on worn armor**, including active, unbroken attachment mods. Pierce and Breach no longer bypass the wearer's soak; the GM whisper names any of these protective qualities present.
 * Fixed — **Override in the Hyperdrive importer took the character away from its player**. Replacing an existing character now keeps who owns it and which folder it is in, so a GM can re-import a player's updated build without re-granting access.
 * Fixed — **re-importing an OggDude dataset with Delete Existing Compendiums left the old Obligations pack in place**, so obligations dropped from the newer dataset stayed in it. That pack is now cleared like the others.
