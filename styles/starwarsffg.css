@@ -1667,6 +1667,27 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   padding: 0.5rem;
   border: 1px solid #782e22;
   background: rgba(255, 255, 255, 0.75);
+  /* The card is drawn on a light parchment background, so its text, disabled
+     inputs and buttons must not inherit Foundry's dark Applications theme --
+     that combination leaves the damage/crit values and the Apply buttons
+     unreadable. Pin the colours the card is designed for. */
+  color: #191813;
+}
+
+.item-display h2,
+.item-display h3,
+.item-display h4,
+.item-display h5 {
+  color: inherit;
+}
+
+.item-display input,
+.item-display input[disabled] {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #7a7971;
+  color: #191813;
+  -webkit-text-fill-color: #191813;
+  opacity: 1;
 }
 .starwarsffg .item-display img {
   height: 50px;
@@ -3892,6 +3913,10 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   font-size: 0.85em;
   padding: 2px 8px;
   cursor: pointer;
+  /* Readable on the card's light background under either Foundry theme. */
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #7a7971;
+  color: #191813;
 }
 .ffg-apply-crit i.fas,
 .ffg-apply-damage i.fas {

@@ -1,6 +1,10 @@
 `Unreleased`
 
+* Fixed — **weapon chat cards were unreadable for anyone using Foundry's dark Applications theme**. The card is drawn on light parchment, but its damage and critical values, qualities and the Apply Damage / Apply Crit buttons took their colours from the dark theme, leaving black-on-black boxes and invisible text. The card now keeps the colours it is designed for under either theme.
+* Fixed — **the OggDude importer listed motivations as `SWFFG.ItemsMotivations`** instead of "Motivations".
 * Fixed — **the version update message linked to the upstream repository**. Its changelog and wiki links now point at this fork, which is the version you are actually running.
+* Added — **a [new-user tutorial](https://github.com/YeNov/StarWarsFFG/blob/main/docs/tutorial/README.md)** covering GM setup (content for the PC Wizard and Hyperdrive importer, crit tables, Group Manager, Obligation/Duty/Morality rolls) and play at the table (Edit Mode, adversary and vehicle rolls, Apply Damage and Apply Crit, healing, status effects).
+* Fixed — **the Edit Mode tour said reloading the page turns Edit Mode off**. It stays on after a reload, and the tour now says to turn it off in Sheet Options.
 * Fixed — **Apply Damage now respects Beskar and Cortosis on worn armor**, including active, unbroken attachment mods. Pierce and Breach no longer bypass the wearer's soak; the GM whisper names any of these protective qualities present.
 * Fixed — **Override in the Hyperdrive importer took the character away from its player**. Replacing an existing character now keeps who owns it and which folder it is in, so a GM can re-import a player's updated build without re-granting access.
 * Fixed — **re-importing an OggDude dataset with Delete Existing Compendiums left the old Obligations pack in place**, so obligations dropped from the newer dataset stayed in it. That pack is now cleared like the others.
