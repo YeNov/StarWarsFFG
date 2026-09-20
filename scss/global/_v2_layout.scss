@@ -162,6 +162,15 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
   pointer-events: none;
 }
 
+/* The system's dialogs render on the light skin, but Foundry's dialog footer
+   keeps the dark theme's background, which left the buttons' dark text on a
+   near-black bar. Let the footer take the dialog's own background so the
+   labels stay readable under either Applications theme. */
+.starwarsffg.application.dialog .form-footer,
+.starwarsffg.application.dialog footer.form-footer {
+  background: transparent;
+}
+
 .starwarsffg.application.dialog .sheet-options-dialog .form-group {
   display: grid !important;
   grid-template-columns: 1fr auto !important;

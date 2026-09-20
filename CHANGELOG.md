@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Fixed — **the Accept / Cancel buttons in system dialogs were unreadable**, dark text on the dark bar Foundry draws behind a dialog's footer. The footer now takes the dialog's own background.
 * Fixed — **weapon chat cards were unreadable for anyone using Foundry's dark Applications theme**. The card is drawn on light parchment, but its damage and critical values, qualities and the Apply Damage / Apply Crit buttons took their colours from the dark theme, leaving black-on-black boxes and invisible text. The card now keeps the colours it is designed for under either theme.
 * Fixed — **the OggDude importer listed motivations as `SWFFG.ItemsMotivations`** instead of "Motivations".
 * Fixed — **the version update message linked to the upstream repository**. Its changelog and wiki links now point at this fork, which is the version you are actually running.

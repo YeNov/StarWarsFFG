@@ -389,6 +389,15 @@ body.game .starwarsffg.application.sheet.item > form.window-content > .sheet-bod
 /* Cap the dialog width so a long hint/notes line wraps onto multiple rows
    instead of stretching the auto-sized window horizontally. The 1fr label/notes
    grid column then wraps within this bound; short hints keep the dialog compact. */
+/* The system's dialogs render on the light skin, but Foundry's dialog footer
+   keeps the dark theme's background, which left the buttons' dark text on a
+   near-black bar. Let the footer take the dialog's own background so the
+   labels stay readable under either Applications theme. */
+.starwarsffg.application.dialog .form-footer,
+.starwarsffg.application.dialog footer.form-footer {
+  background: transparent;
+}
+
 .starwarsffg.application.dialog .sheet-options-dialog {
   max-width: 600px !important;
 }
