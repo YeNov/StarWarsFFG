@@ -5009,3 +5009,11 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   width: auto;
   margin-top: 6px;
 }
+
+/* The dice pickers (Add a die / Add a result / Reroll) and the roll builder are
+   drawn on the light dice panel via `.cdx-dice`, but Foundry's dialog footer
+   keeps the dark theme's background, hiding the Confirm / Cancel labels. */
+.cdx-dice .form-footer,
+.cdx-dice footer.form-footer {
+  background: transparent;
+}
