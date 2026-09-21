@@ -35,6 +35,26 @@ test("override creates a fresh actor and deletes the previous document", async (
   assert.deepEqual(calls, ["delete-existing", "create"]);
 });
 
+test("override keeps the previous actor's ownership and folder", async () => {
+  const ownership = { default: 0, gm: 3, "player-1": 3 };
+  const existing = {
+    id: "existing-actor",
+    toObject: () => ({ _id: "existing-actor", name: "Old Vesh", ownership, folder: "party-folder" }),
+    delete: async () => {},
+  };
+  let created;
+
+  await replaceActor(existing, { name: "Vesh Qal", folder: null }, async (source) => {
+    created = source;
+    return { id: source._id };
+  });
+
+  assert.deepEqual(created.ownership, ownership);
+  assert.notEqual(created.ownership, ownership);
+  assert.equal(created.folder, "party-folder");
+  assert.equal(created.name, "Vesh Qal");
+});
+
 test("override does not create anything when deleting the existing actor fails", async () => {
   const failure = new Error("delete failed");
   let createCalls = 0;

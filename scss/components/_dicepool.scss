@@ -147,6 +147,27 @@
   padding: 0.5rem;
   border: 1px solid #782e22;
   background: rgba(255, 255, 255, 0.75);
+  /* The card is drawn on a light parchment background, so its text, disabled
+     inputs and buttons must not inherit Foundry's dark Applications theme --
+     that combination leaves the damage/crit values and the Apply buttons
+     unreadable. Pin the colours the card is designed for. */
+  color: #191813;
+
+  h2,
+  h3,
+  h4,
+  h5 {
+    color: inherit;
+  }
+
+  input,
+  input[disabled] {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid #7a7971;
+    color: #191813;
+    -webkit-text-fill-color: #191813;
+    opacity: 1;
+  }
   img {
     height: 50px;
     width: auto;

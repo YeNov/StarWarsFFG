@@ -1989,6 +1989,27 @@ img {
   padding: 0.5rem;
   border: 1px solid #782e22;
   background: rgba(255, 255, 255, 0.75);
+  /* The card is drawn on a light parchment background, so its text, disabled
+     inputs and buttons must not inherit Foundry's dark Applications theme --
+     that combination leaves the damage/crit values and the Apply buttons
+     unreadable. Pin the colours the card is designed for. */
+  color: #191813;
+}
+
+.starwarsffg .item-display h2,
+.starwarsffg .item-display h3,
+.starwarsffg .item-display h4,
+.starwarsffg .item-display h5 {
+  color: inherit;
+}
+
+.starwarsffg .item-display input,
+.starwarsffg .item-display input[disabled] {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #7a7971;
+  color: #191813;
+  -webkit-text-fill-color: #191813;
+  opacity: 1;
 }
 
 .starwarsffg .item-display img {
@@ -5352,6 +5373,10 @@ img {
   font-size: 0.85em;
   padding: 2px 8px;
   cursor: pointer;
+  /* Readable on the card's light background under either Foundry theme. */
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #7a7971;
+  color: #191813;
 }
 
 .ffg-apply-crit i.fas,
@@ -7040,4 +7065,21 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .crew-settings-window .add_row {
   width: auto;
   margin-top: 6px;
+}
+
+/* The system's dialogs render on the light skin, but Foundry's dialog footer
+   keeps the dark theme's background, which left the buttons' dark text on a
+   near-black bar. Let the footer take the dialog's own background so the
+   labels stay readable under either Applications theme. */
+.starwarsffg.application.dialog .form-footer,
+.starwarsffg.application.dialog footer.form-footer {
+  background: transparent;
+}
+
+/* The dice pickers (Add a die / Add a result / Reroll) and the roll builder are
+   drawn on the light dice panel via `.cdx-dice`, but Foundry's dialog footer
+   keeps the dark theme's background, hiding the Confirm / Cancel labels. */
+.cdx-dice .form-footer,
+.cdx-dice footer.form-footer {
+  background: transparent;
 }

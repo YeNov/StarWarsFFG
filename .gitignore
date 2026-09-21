@@ -13,3 +13,9 @@ state.json
 
 # Superpowers brainstorming mockups
 .superpowers/
+
+# The tutorial lives in the GitHub wiki, which is its own repo. Only the
+# screenshot masters stay here, and they are local: the wiki's
+# annotate-tutorial-shots.py redraws the published WebP from them.
+docs/tutorial-shots/
+docs/tutorial/
