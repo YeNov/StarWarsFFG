@@ -63,15 +63,21 @@ sources are skipped. It's usually a sign that the OggDude import hasn't been run
 The wizard opens on **General** and has twelve tabs:
 
 1. **General** — name, portrait and token image URLs, **Extra XP** / **Extra credits**, and
-   "Allow starting skills above rank 2 (maximum rank 5)".
+   "Allow starting skills above rank 2 (maximum rank 5)". The token image only survives when a GM
+   presses Create: a player's request is stripped to name, portrait, system data and items, so the
+   prototype token keeps the portrait and has to be set afterwards.
 2. **Background** — culture, hook, and (Force and Destiny only) Force attitude.
 3. **Starting Bonus** — the **Ruleset** (Force and Destiny / Age of Rebellion / Edge of the
    Empire, default Force and Destiny) and the per-ruleset starting-bonus choice.
 4. **Obligation** — obligation / duty / morality entries for the ruleset.
 5. **Species**.
-6. **Career** — plus the free career skill ranks.
+6. **Career**.
 7. **Specialization**.
-8. **XP Spend** — characteristics, skill ranks, talents, extra specializations.
+8. **XP Spend** — four views: **Characteristics**, **Bonus skills**, **Buy skills** and
+   **Talents**. **Bonus skills** is where the free career and specialization ranks are claimed;
+   they are not on the Career tab, and a player who skips it can spend XP on ranks they would have
+   had for free. The starting specialization is chosen on the Specialization tab; the wizard has no
+   extra-specialization purchase.
 9. **Force Power** — hidden unless the character has a Force rating.
 10. **Inventory** — credit purchases, with filters (below).
 11. **Motivation**.
@@ -83,19 +89,23 @@ no actor exists in the world until you press **Create character**.
 
 ## Content sources panel
 
-**Content sources** (header) opens a list of every compendium, plus **World items**, that can feed
-each pool. Compendia are **on** by default; **World items is off** by default. Turning a
-compendium off is stored per user as an exclusion, so a pack the GM adds later starts out on.
+**Content sources** (header) lists, for each pool, the compendia configured in the settings above,
+plus **World items**. It is a filter, not a way to add content: a pack the GM hasn't put in the
+matching setting can't be switched on here. Compendia are **on** by default; **World items is off**
+by default. Turning a compendium off is stored per user as an exclusion, so a pack the GM adds to
+the settings later starts out on.
 
 If you disable the source of something you had already selected, the selection stays in your draft
 with a note; it is not silently dropped.
 
 ## Inventory filters
 
-Text search, min/max price, "max rarity up to N" (capped by the GM's **Max Rarity**), a
-restricted-item toggle (shown only when the GM allows restricted items), five category chips
-(weapon / armour / gear / attachment / modification), and clear-filters. The GM's rarity and
-restricted limits are applied when the pool loads; players can't reveal hidden items.
+**Weapons** / **Armor** / **Gear** buttons, a name search, **Min** and **Max** price, and
+**Reset**. Attachments aren't a category: buy the item first, then use the wrench on it, which
+lists the attachments that fit (with a **Show only available** toggle).
+
+The GM's **Max Rarity** and **Allow Restricted Items** limits are applied when the pool loads, so
+gear the GM has ruled out never appears and there is no player-facing toggle for it.
 
 ## Drafts — resume and discard
 
@@ -104,6 +114,17 @@ wizard offers **Resume draft** or **Discard draft**. On resume, each selection i
 source where possible; anything that can no longer be found is kept as-is with a warning. Drafts
 from a newer version, or ones that can't be read, are never resumed; you're offered a discard
 instead.
+
+**Two exceptions.**
+
+- A draft that would exceed the size budget is compacted: items that can be found again in a
+  compendium are stored as a reference only, and re-read on resume. If such a pack is deleted or
+  rebuilt in between — an OggDude re-import with **Delete Existing Compendiums** does exactly that
+  — those selections come back empty, and creating from them can fail. Tell players to finish a
+  draft before you rebuild the compendia.
+- Edits made to a purchased item inside the wizard are not part of the draft. A resumed draft
+  re-reads gear from its compendium, so an attachment's activated modifications come back inactive,
+  with no warning. Re-apply them after resuming, or finish the build in one sitting.
 
 ## What happens on Create
 
@@ -131,8 +152,9 @@ a clickable link when a character is created. Both are informational.
 - **Telling duplicates apart.** Every wizard-created actor has a `flags.starwarsffg.pcWizardCommit`
   stamp (`{commitId, userId, xp, date}`). Two actors with the **same** `commitId` are duplicates of
   one submission: keep one, delete the other. Different `commitId`s are separate attempts.
-- **Multiple GMs online.** The start notice and finish record can be posted more than once, once
-  per GM. The `pcWizardCommit` stamp tells you whether there is really more than one actor.
+- **Multiple GMs online.** Only the **active GM** handles a player's request, and both notices are
+  de-duplicated, so one submission is one notice and one actor. If you do see a duplicate actor,
+  compare the `pcWizardCommit` stamps.
 
 ## Known limitations
 
