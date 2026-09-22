@@ -8,6 +8,7 @@
 * Fixed — **the OggDude importer listed motivations as `SWFFG.ItemsMotivations`** instead of "Motivations".
 * Fixed — **the Edit Mode tour said reloading the page turns Edit Mode off**. It stays on after a reload, and the tour now says to turn it off in Sheet Options.
 * Fixed — **the version update message linked to the upstream repository**. Its changelog and wiki links now point at this fork, which is the version you are actually running.
+* Fixed — **players had no dice-pool button under the chat box on Foundry V14**, only the GM did. Players can build and roll an arbitrary pool from chat again, as on V13.
 * Fixed — **Apply Damage now respects Beskar and Cortosis on worn armor**, including active, unbroken attachment mods. Pierce and Breach no longer bypass the wearer's soak; the GM whisper names any of these protective qualities present.
 
 `2.1.4`
