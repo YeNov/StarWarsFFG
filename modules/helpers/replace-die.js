@@ -1,12 +1,15 @@
 /**
- * Replace-Die chat interactions. Two context menus drive four operations on a
+ * Replace-Die chat interactions. Two context menus drive five operations on a
  * posted FFG roll:
- *   - Right-click a die glyph  -> die menu:  Reroll die / Add a die / Remove die.
+ *   - Right-click a die glyph  -> die menu:  Reroll die / Turn to adjacent face /
+ *                                            Add a die / Add result / Remove die.
  *   - Right-click the message  -> core menu gains:  Add result / Add a die.
- * Reroll and Add-a-die open the die window (pick one of the 7 FFG dice); Add
- * result opens the result window (pick a symbol + quantity); Remove die confirms
- * first. Every edit recomputes the roll, records an audit entry, and persists the
- * ChatMessage for all clients (Dice So Nice animates a freshly-rolled die).
+ * Reroll and Add-a-die open the die window (pick one of the 7 FFG dice); Turn opens
+ * the face window (the rolled face and every face sharing an edge with it, for the
+ * Unmatched Fortune signature ability); Add result opens the result window (pick a
+ * symbol + quantity); Remove die confirms first. Every edit recomputes the roll,
+ * records an audit entry, and persists the ChatMessage for all clients (Dice So
+ * Nice animates a freshly-rolled die).
  *
  * See docs/superpowers/specs/2026-07-18-dice-replacement-design.md.
  */
@@ -15,11 +18,15 @@ import {
   zeroTally,
   TOKEN,
   DIE_NAME,
+  RESULTS_BY_DENOM,
   cloneEvaluatedTerm,
   spliceReplacement,
   recomputeTermFFG,
   recomputeRollFFG,
   localizeFaceLabel,
+  canTurnToAdjacent,
+  adjacentFaces,
+  turnTermFace,
 } from "../dice/replace-die.js";
 import { forwardMessageUpdateToGM } from "./gm-bridge.js";
 
@@ -67,6 +74,28 @@ function diceButtonsHtml() {
         <span style="${LABEL_STYLE}">${game.i18n.localize(DIE_NAME[d])}</span>
       </button>`
   ).join("");
+}
+
+// Face tiles grow to fit a two-symbol label ("1 success, 1 advantage").
+const FACE_BTN_STYLE = "display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; padding:6px 4px; width:88px; min-height:88px; box-sizing:border-box; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
+const CURRENT_STYLE = "font-size:10px; font-style:italic; line-height:1.1; opacity:0.8;";
+
+// Turn window tiles: the rolled face first (tagged data-current, captioned), then every
+// face sharing an edge with it. Lookalike faces each get a tile: they have different
+// neighbours, which matters if the die is turned again.
+function faceButtonsHtml(denom, rolled, neighbours) {
+  const table = CONFIG.FFG[RESULTS_BY_DENOM[denom]];
+  return [rolled, ...neighbours]
+    .map((face, i) => {
+      const current = i === 0;
+      return `
+      <button type="button" class="rd-face-btn" data-face="${face}"${current ? " data-current" : ""} style="${FACE_BTN_STYLE}">
+        <span style="height:40px; display:flex; align-items:center; justify-content:center;"><img src="${table[face].image}" alt="" style="height:40px; width:auto; border:none;" /></span>
+        <span style="${LABEL_STYLE}">${game.i18n.localize(table[face].label)}</span>
+        ${current ? `<span style="${CURRENT_STYLE}">${game.i18n.localize("SWFFG.ReplaceDie.TurnCurrent")}</span>` : ""}
+      </button>`;
+    })
+    .join("");
 }
 
 function resultButtonsHtml() {
@@ -139,12 +168,14 @@ export class ReplaceDie {
 
   /**
    * Called from renderChatMessageHTML. Gate to GM-or-author on an FFG roll, then
-   * attach the per-die context menu (Reroll / Add a die / Remove die). Foundry's
-   * ContextMenu calls `stopImmediatePropagation` when its selector matches, and
-   * this menu's listener sits inside the message (ahead of core's on the chat-log
-   * root), so right-clicking a die opens THIS menu and suppresses the core message
-   * menu; right-clicking elsewhere on the message falls through to core (whose menu
-   * gains the message-level options — see addMessageContextOptions).
+   * attach the per-die context menu (Reroll / Turn / Add a die / Add result /
+   * Remove die). Foundry's ContextMenu calls `stopImmediatePropagation` when its
+   * selector matches, and this menu's listener sits inside the message (ahead of
+   * core's on the chat-log root), so right-clicking a die opens THIS menu and
+   * suppresses the core message menu; right-clicking elsewhere on the message falls
+   * through to core (whose menu gains the message-level options — see
+   * addMessageContextOptions). That is why the die menu repeats Add a die and Add
+   * result: the core menu never opens over a die.
    * @param {ChatMessage} message
    * @param {jQuery|HTMLElement} html
    */
@@ -166,9 +197,24 @@ export class ReplaceDie {
           callback: (li) => ReplaceDie.showDieWindow(message, { mode: "reroll", coords: ReplaceDie._coords(li) }),
         },
         {
+          name: game.i18n.localize("SWFFG.ReplaceDie.Menu.TurnFace"),
+          icon: '<i class="fas fa-arrows-turn-right"></i>',
+          // Unmatched Fortune can never turn a Force die. V14 reads `visible` (and deprecates
+          // `condition`); V13 only knows `condition`.
+          visible: (li) => canTurnToAdjacent(li.dataset.denom),
+          condition: (li) => canTurnToAdjacent(li.dataset.denom),
+          callback: (li) => ReplaceDie.showTurnWindow(message, ReplaceDie._coords(li)),
+        },
+        {
           name: game.i18n.localize("SWFFG.ReplaceDie.Menu.AddDie"),
           icon: '<i class="fas fa-plus"></i>',
           callback: () => ReplaceDie.showDieWindow(message, { mode: "add" }),
+        },
+        {
+          // Same window as the message menu's Add result: the symbols go on the roll, not this die.
+          name: game.i18n.localize("SWFFG.ReplaceDie.Menu.AddResult"),
+          icon: '<i class="fas fa-plus-circle"></i>',
+          callback: () => ReplaceDie.showResultWindow(message),
         },
         {
           name: game.i18n.localize("SWFFG.ReplaceDie.Menu.RemoveDie"),
@@ -292,6 +338,53 @@ export class ReplaceDie {
   }
 
   /**
+   * Turn window (Unmatched Fortune): the rolled face, pre-selected, plus every face that
+   * shares an edge with it. Confirming another face turns the die to it; confirming the
+   * rolled face, or cancelling, changes nothing.
+   * @param {ChatMessage} message
+   * @param {object} coords
+   */
+  static async showTurnWindow(message, coords) {
+    if (!ReplaceDie._canModify(message) || !ReplaceDie._validCoords(message, coords)) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
+      return;
+    }
+    const { dieIndex, resultIndex, sourceDenom } = coords;
+    const rolled = message.rolls[0].dice[dieIndex].results[resultIndex].result;
+    const content = `
+      <div class="rd-face-panel dice-pool" style="display:flex; flex-wrap:wrap; gap:8px; padding:4px 8px;">
+        ${faceButtonsHtml(sourceDenom, rolled, adjacentFaces(sourceDenom, rolled))}
+      </div>`;
+
+    DialogV2.wait({
+      window: { title: game.i18n.format("SWFFG.ReplaceDie.TurnTitle", { die: game.i18n.localize(DIE_NAME[sourceDenom]) }) },
+      content,
+      buttons: [
+        {
+          action: "confirm",
+          icon: "fas fa-check",
+          label: game.i18n.localize("SWFFG.ReplaceDie.Confirm"),
+          default: true,
+          callback: (event, button, dialog) => {
+            const picked = dialog.element.querySelector(".rd-face-btn.selected");
+            if (!picked || picked.hasAttribute("data-current")) return; // still the rolled face
+            ReplaceDie.applyTurn(message, { ...coords, rolled }, Number(picked.dataset.face)).catch((err) =>
+              CONFIG.logger?.warn?.("ReplaceDie: apply failed", err)
+            );
+          },
+        },
+        { action: "cancel", icon: "fas fa-times", label: game.i18n.localize("SWFFG.ReplaceDie.Cancel") },
+      ],
+      render: (event, dialog) => {
+        dialog.element.classList.add("cdx-dice");
+        wireSelection(dialog.element, ".rd-face-btn");
+        dialog.element.querySelector(".rd-face-btn[data-current]")?.click();
+      },
+      rejectClose: false,
+    });
+  }
+
+  /**
    * Result picker window (pick a symbol + quantity, then confirm) → Add result.
    * @param {ChatMessage} message
    */
@@ -382,6 +475,35 @@ export class ReplaceDie {
       ...ReplaceDie._meta("reroll"),
       original,
       replacement: { kind: "die", denom, label: game.i18n.localize(DIE_NAME[denom]) },
+    });
+  }
+
+  /**
+   * Turn: change the clicked die, in place, to a face sharing an edge with the one it
+   * rolled. `coords.rolled` is the face the window was opened for; if the die shows
+   * anything else by now, another edit got there first.
+   */
+  static async applyTurn(message, coords, face) {
+    const rolls = message.rolls;
+    const roll = rolls?.[0];
+    const term = roll?.dice?.[coords?.dieIndex];
+    if (!ReplaceDie._validCoords(message, coords) || term.results[coords.resultIndex].result !== coords.rolled) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
+      return;
+    }
+    if (roll.terms.indexOf(term) === -1) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.NoSelection"));
+      return;
+    }
+    const original = ReplaceDie._original(term, term.results[coords.resultIndex], coords.sourceDenom);
+    if (!turnTermFace(term, coords.resultIndex, face)) {
+      ui.notifications.warn(game.i18n.localize("SWFFG.ReplaceDie.Stale"));
+      return;
+    }
+    await ReplaceDie._finalize(message, rolls, roll, {
+      ...ReplaceDie._meta("turn"),
+      original,
+      replacement: { kind: "face", denom: coords.sourceDenom, face, label: localizeFaceLabel(term, term.results[coords.resultIndex]) },
     });
   }
 
