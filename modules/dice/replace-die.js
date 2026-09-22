@@ -176,3 +176,63 @@ export function localizeFaceLabel(term, r) {
   const raw = r?.ffg?.label ?? table?.[r?.result]?.label ?? "";
   return raw ? game.i18n.localize(raw) : game.i18n.localize(DIE_NAME[denom] ?? "");
 }
+
+/**
+ * The faces sharing an EDGE with each face of the physical FFG dice: the "adjacent" faces the
+ * Unmatched Fortune signature ability may turn a die to. Keyed by the system's face numbers
+ * (CONFIG.FFG.*_RESULTS). Where a die repeats a face, the copies map to the physical faces in
+ * the order both lists give them; they roll with equal odds, so the mapping changes no chances.
+ *
+ * Source: the community chart "Dice Adjacencies for Unmatched Fortune"
+ * (https://i.imgur.com/VszFxNK.jpg). Deliberately not Dice So Nice's 3D models, which print the
+ * symbols onto a generic numbered die (and rearranged their d8/d12 between versions). No Force
+ * die: the ability can never turn one.
+ */
+const ADJACENT_FACES = {
+  b: { 1: [3, 4, 5, 6], 2: [3, 4, 5, 6], 3: [1, 2, 4, 5], 4: [1, 2, 3, 6], 5: [1, 2, 3, 6], 6: [1, 2, 4, 5] },
+  a: { 1: [2, 6, 8], 2: [1, 4, 5], 3: [6, 7, 8], 4: [2, 6, 7], 5: [2, 7, 8], 6: [1, 3, 4], 7: [3, 4, 5], 8: [1, 3, 5] },
+  p: {
+    1: [3, 5, 7, 8, 10], 2: [4, 7, 10, 11, 12], 3: [1, 6, 8, 10, 12], 4: [2, 5, 7, 9, 11],
+    5: [1, 4, 7, 8, 9], 6: [3, 8, 9, 11, 12], 7: [1, 2, 4, 5, 10], 8: [1, 3, 5, 6, 9],
+    9: [4, 5, 6, 8, 11], 10: [1, 2, 3, 7, 12], 11: [2, 4, 6, 9, 12], 12: [2, 3, 6, 10, 11],
+  },
+  s: { 1: [2, 3, 5, 6], 2: [1, 3, 4, 5], 3: [1, 2, 4, 6], 4: [2, 3, 5, 6], 5: [1, 2, 4, 6], 6: [1, 3, 4, 5] },
+  i: { 1: [2, 3, 4], 2: [1, 6, 7], 3: [1, 5, 6], 4: [1, 5, 7], 5: [3, 4, 8], 6: [2, 3, 8], 7: [2, 4, 8], 8: [5, 6, 7] },
+  c: {
+    1: [3, 4, 8, 9, 10], 2: [4, 5, 8, 11, 12], 3: [1, 6, 7, 9, 10], 4: [1, 2, 8, 9, 12],
+    5: [2, 7, 8, 10, 11], 6: [3, 7, 9, 11, 12], 7: [3, 5, 6, 10, 11], 8: [1, 2, 4, 5, 10],
+    9: [1, 3, 4, 6, 12], 10: [1, 3, 5, 7, 8], 11: [2, 5, 6, 7, 12], 12: [2, 4, 6, 9, 11],
+  },
+};
+
+/** True when a die of `denom` can be turned to an adjacent face (every FFG die but Force). */
+export function canTurnToAdjacent(denom) {
+  return Object.hasOwn(ADJACENT_FACES, denom);
+}
+
+/**
+ * The faces sharing an edge with `face` on a die of `denom`, lowest first. Every touching face
+ * is listed, including faces that look alike: they lead to different neighbours next time.
+ * @returns {number[]} [] for a Force die, an unknown die, or an unknown face.
+ */
+export function adjacentFaces(denom, face) {
+  return (canTurnToAdjacent(denom) && ADJACENT_FACES[denom][face]?.slice()) || [];
+}
+
+/**
+ * Turn one rolled face of `term` to an adjacent face, in place. The result keeps its other
+ * fields; its face number and symbols change, and the term's tally is recomputed.
+ * @param {object} term — a DiceTerm (or stand-in with `constructor.DENOMINATION` and `results`).
+ * @param {number} resultIndex
+ * @param {number} face — the face number to turn to.
+ * @returns {boolean} false, changing nothing, unless `face` shares an edge with the rolled face.
+ */
+export function turnTermFace(term, resultIndex, face) {
+  const denom = term?.constructor?.DENOMINATION;
+  const rolled = term?.results?.[resultIndex];
+  const table = CONFIG.FFG?.[RESULTS_BY_DENOM[denom]];
+  if (!rolled || !table?.[face] || !adjacentFaces(denom, rolled.result).includes(face)) return false;
+  term.results[resultIndex] = { ...rolled, result: face, ffg: table[face] };
+  recomputeTermFFG(term);
+  return true;
+}
