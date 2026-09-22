@@ -534,7 +534,7 @@
   "SWFFG.DiceResult.OneFailure": "1 fracasso",
   "SWFFG.DiceResult.TwoFailure": "2 fracassos",
   "SWFFG.DiceResult.OneThreat": "1 ameaça",
-  "SWFFG.DiceResult.TwoThreat": "1 ameaças",
+  "SWFFG.DiceResult.TwoThreat": "2 ameaças",
   "SWFFG.DiceResult.OneFailureOneThreat": "1 fracasso, 1 ameaça",
   "SWFFG.DiceResult.OneDespair": "1 desespero",
   "SWFFG.OldWorld.CompatLabel": "Enable Old World Compatability",

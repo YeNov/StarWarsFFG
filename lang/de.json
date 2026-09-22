@@ -534,7 +534,7 @@
   "SWFFG.DiceResult.OneFailure": "1 Fehlschlag",
   "SWFFG.DiceResult.TwoFailure": "2 Fehlschläge",
   "SWFFG.DiceResult.OneThreat": "1 Bedrohung",
-  "SWFFG.DiceResult.TwoThreat": "1 Bedrohungen",
+  "SWFFG.DiceResult.TwoThreat": "2 Bedrohungen",
   "SWFFG.DiceResult.OneFailureOneThreat": "1 Fehlschlag, 1 Bedrohung",
   "SWFFG.DiceResult.OneDespair": "1 Verzweiflung",
   "SWFFG.OldWorld.CompatLabel": "Aktiviere Kompatibilität mit Welten älterer Versionen.",

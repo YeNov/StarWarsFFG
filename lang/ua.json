@@ -672,7 +672,7 @@
   "SWFFG.DiceResult.OneFailure": "1 провал",
   "SWFFG.DiceResult.TwoFailure": "2 проваи",
   "SWFFG.DiceResult.OneThreat": "1 загроза",
-  "SWFFG.DiceResult.TwoThreat": "1 загрози",
+  "SWFFG.DiceResult.TwoThreat": "2 загрози",
   "SWFFG.DiceResult.OneFailureOneThreat": "1 провал, 1 загрози",
   "SWFFG.DiceResult.OneDespair": "1 розпач",
   "SWFFG.OldWorld.CompatLabel": "Дозволити зворотню сумісність із старими світами",
