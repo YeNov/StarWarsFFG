@@ -1575,19 +1575,21 @@ Hooks.on("renderChatInput", (app, html, data) => {
       rollButton.type = "button";
       rollButton.classList.add("ui-control", "icon", "fa-light", "fa-dice-d20");
 
-      // V14 renamed/relocated the chat roll-mode controls (formerly "#roll-privacy"),
-      // so the old global querySelector returned null and appendChild threw -- which
-      // aborted the renderChatInput hook and dropped the button. Scope the lookup to
-      // the chat-input element the hook hands us and fall back gracefully so a further
-      // DOM change can never throw here again.
-      const root = html instanceof HTMLElement ? html : (html?.[0] ?? document);
-      const anchor =
-        root.querySelector("#roll-privacy") ||
-        document.querySelector("#roll-privacy") ||
-        root.querySelector(".control-buttons") ||
-        root.querySelector(".chat-controls") ||
-        root;
-      anchor.appendChild(rollButton);
+      // V14 hands this hook a map of selector -> element rather than an element, and only
+      // renders the ".control-buttons" group (export/clear) for GMs. Anchoring to that group
+      // left players without the button, so join it when it exists and otherwise give the
+      // button a group of its own inside #chat-controls.
+      const chatControls =
+        (html instanceof HTMLElement ? html : html?.["#chat-controls"]) ||
+        document.querySelector("#chat-controls");
+      if (!chatControls) return;
+      let group = chatControls.querySelector(".control-buttons");
+      if (!group) {
+        group = document.createElement("div");
+        group.classList.add("control-buttons");
+        chatControls.appendChild(group);
+      }
+      group.appendChild(rollButton);
 
       rollButton.onclick = async function () {
         const dicePool = new DicePoolFFG();
