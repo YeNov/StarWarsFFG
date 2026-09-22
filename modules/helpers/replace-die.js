@@ -2,7 +2,7 @@
  * Replace-Die chat interactions. Two context menus drive five operations on a
  * posted FFG roll:
  *   - Right-click a die glyph  -> die menu:  Reroll die / Turn to adjacent face /
- *                                            Add a die / Remove die.
+ *                                            Add a die / Add result / Remove die.
  *   - Right-click the message  -> core menu gains:  Add result / Add a die.
  * Reroll and Add-a-die open the die window (pick one of the 7 FFG dice); Turn opens
  * the face window (the rolled face and every face sharing an edge with it, for the
@@ -168,12 +168,14 @@ export class ReplaceDie {
 
   /**
    * Called from renderChatMessageHTML. Gate to GM-or-author on an FFG roll, then
-   * attach the per-die context menu (Reroll / Add a die / Remove die). Foundry's
-   * ContextMenu calls `stopImmediatePropagation` when its selector matches, and
-   * this menu's listener sits inside the message (ahead of core's on the chat-log
-   * root), so right-clicking a die opens THIS menu and suppresses the core message
-   * menu; right-clicking elsewhere on the message falls through to core (whose menu
-   * gains the message-level options — see addMessageContextOptions).
+   * attach the per-die context menu (Reroll / Turn / Add a die / Add result /
+   * Remove die). Foundry's ContextMenu calls `stopImmediatePropagation` when its
+   * selector matches, and this menu's listener sits inside the message (ahead of
+   * core's on the chat-log root), so right-clicking a die opens THIS menu and
+   * suppresses the core message menu; right-clicking elsewhere on the message falls
+   * through to core (whose menu gains the message-level options — see
+   * addMessageContextOptions). That is why the die menu repeats Add a die and Add
+   * result: the core menu never opens over a die.
    * @param {ChatMessage} message
    * @param {jQuery|HTMLElement} html
    */
@@ -207,6 +209,12 @@ export class ReplaceDie {
           name: game.i18n.localize("SWFFG.ReplaceDie.Menu.AddDie"),
           icon: '<i class="fas fa-plus"></i>',
           callback: () => ReplaceDie.showDieWindow(message, { mode: "add" }),
+        },
+        {
+          // Same window as the message menu's Add result: the symbols go on the roll, not this die.
+          name: game.i18n.localize("SWFFG.ReplaceDie.Menu.AddResult"),
+          icon: '<i class="fas fa-plus-circle"></i>',
+          callback: () => ReplaceDie.showResultWindow(message),
         },
         {
           name: game.i18n.localize("SWFFG.ReplaceDie.Menu.RemoveDie"),
