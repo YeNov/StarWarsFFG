@@ -60,7 +60,35 @@ on:
         types: [published]
 
 jobs:
+    # Gate the release on the test suite. Publishing used to build the archive
+    # unconditionally, so a release could -- and did -- ship from a commit whose
+    # tests were failing.
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Set Up Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
+
+            - name: Install Dependencies
+              # `--ignore-scripts` skips cypress's and playwright's postinstall
+              # browser downloads, which none of these checks need. The install
+              # itself IS needed: the import gate resolves tests/ffg-tests.js's
+              # imports of mocha and chai against node_modules on disk.
+              run: npm ci --ignore-scripts
+
+            - name: Run Tests
+              run: npm test
+
+            - name: Check Import Rules
+              run: npm run check:imports
+
     build:
+        needs: test
         runs-on: ubuntu-latest
         steps:
             - name: Checkout Repository

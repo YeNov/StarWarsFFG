@@ -1,0 +1,52 @@
+# Runs the Node test tier on every push and pull request.
+#
+# This exists because "Create Release" only runs when a release is published and
+# only ever built the archive -- it never ran the tests. A red suite therefore
+# went unnoticed from the commit that broke it until someone happened to run
+# `npm test` locally, which in one case was several releases later.
+#
+# The checks need node_modules on disk even though they import nothing from it:
+# the import gate (check-imports-pins) resolves every relative import in the
+# tree, and tests/ffg-tests.js -- the in-Foundry mocha harness -- imports
+# ../node_modules/mocha/mocha.js and ../node_modules/chai/chai.js. Those two were
+# not declared dependencies at all until this workflow caught it on a clean
+# checkout; they are now in devDependencies.
+name: Tests
+
+on:
+    push:
+        branches: ["**"]
+    pull_request:
+
+# A second push to the same branch makes the first run's result irrelevant.
+concurrency:
+    group: tests-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Set Up Node
+              uses: actions/setup-node@v4
+              with:
+                  # Matches the version the tests are developed against; the Node
+                  # tier's stub boundary asserts against a bare modern Node's own
+                  # global surface, so the major matters.
+                  node-version: "24"
+
+            - name: Install Dependencies
+              # `--ignore-scripts` skips cypress's and playwright's postinstall
+              # browser downloads, which none of these checks need. The install
+              # itself IS needed: the import gate resolves tests/ffg-tests.js's
+              # imports of mocha and chai against node_modules on disk.
+              run: npm ci --ignore-scripts
+
+            - name: Run Tests
+              run: npm test
+
+            - name: Check Import Rules
+              run: npm run check:imports

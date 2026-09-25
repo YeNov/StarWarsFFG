@@ -6,32 +6,13 @@
  * See docs/superpowers/specs/2026-05-24-apply-damage-chat-button-design.md
  */
 import { applyToTargetActor } from "./gm-bridge.js";
+import {
+  planDamageApplication,
+  planDamageSeed,
+  planDamageTarget,
+} from "./apply-damage-plan.js";
 
 const { DialogV2 } = foundry.applications.api;
-
-/** Worn Beskar/Cortosis protects the wearer's full soak from Pierce and Breach. */
-function getSoakProtectionQualities(actor) {
-  if (actor.type === "vehicle") return [];
-  const protection = new Set();
-  const collectQuality = (quality) => {
-    const importId = quality?.flags?.starwarsffg?.ffgimportid;
-    const match = /^(BESKAR|CORTOSIS)$/i.exec(importId ?? "")
-      ?? /^(beskar|cortosis)\b/i.exec(String(quality?.name ?? "").trim());
-    if (match) protection.add(match[1].toLowerCase() === "beskar" ? "Beskar" : "Cortosis");
-  };
-  for (const item of actor.items ?? []) {
-    if (item.type !== "armour" || !item.system?.equippable?.equipped) continue;
-    // Read source qualities, not sheet-only summaries. Attachment mods follow
-    // the same active/unbroken gate as the item's adjusted stats.
-    for (const quality of item.system.itemmodifier ?? []) collectQuality(quality);
-    for (const attachment of item.system.itemattachment ?? []) {
-      for (const quality of attachment.system?.itemmodifier ?? []) {
-        if (quality.system?.active && !quality.system?.broken) collectQuality(quality);
-      }
-    }
-  }
-  return [...protection].sort();
-}
 
 export class ApplyDamage {
   /**
@@ -82,59 +63,18 @@ export class ApplyDamage {
     }
     const target = targets[0];
     const a = target.actor;
-    const type = a?.type;
 
-    let woundLabel, strainLabel, soakValue, soakWord, woundPath, strainPath, showRadio;
-    if (type === "vehicle") {
-      showRadio = true;
-      woundLabel = game.i18n.localize("SWFFG.VehicleHullTrauma");
-      strainLabel = game.i18n.localize("SWFFG.VehicleHullStrain");
-      soakWord = "armour";
-      soakValue = Number(a.system.stats?.armour?.value) || 0;
-      woundPath = "system.stats.hullTrauma.value";
-      strainPath = "system.stats.systemStrain.value";
-    } else if (type === "minion" || type === "rival") {
-      showRadio = false;
-      woundLabel = game.i18n.localize("SWFFG.Wounds");
-      strainLabel = null;
-      soakWord = "soak";
-      soakValue = Number(a.system.stats?.soak?.value) || 0;
-      woundPath = "system.stats.wounds.value";
-      strainPath = null;
-    } else if (type === "character" || type === "nemesis") {
-      showRadio = true;
-      woundLabel = game.i18n.localize("SWFFG.Wounds");
-      strainLabel = game.i18n.localize("SWFFG.Strain");
-      soakWord = "soak";
-      soakValue = Number(a.system.stats?.soak?.value) || 0;
-      woundPath = "system.stats.wounds.value";
-      strainPath = "system.stats.strain.value";
-    } else {
+    const plan = planDamageTarget(a);
+    if (!plan) {
       ui.notifications.warn(game.i18n.localize("SWFFG.ApplyDamage.UnsupportedActor"));
       return;
     }
+    const { showRadio, soakWord, soakValue } = plan;
+    const woundLabel = game.i18n.localize(plan.woundLabelKey);
+    const strainLabel = plan.strainLabelKey ? game.i18n.localize(plan.strainLabelKey) : null;
 
     // Damage and qualities are read straight from the chat-embedded item data.
-    const itemSystem = itemData.system || {};
-    const adjusted = Number(itemSystem.damage?.adjusted) || 0;
-    const baseValue = Number(itemSystem.damage?.value) || 0;
-    const baseDamage = adjusted !== 0 ? adjusted : baseValue;
-    const successes = Number(message.rolls?.[0]?.ffg?.success) || 0;
-    const autoDamage = baseDamage + successes;
-
-    // The rendered qualities live at system.doNotSubmit.qualities with computed
-    // totalRanks (including attachment stacking). Names may carry a suffix like
-    // " Quality" (e.g. "Pierce Quality"); substring match handles both forms.
-    const qualities = itemSystem.doNotSubmit?.qualities || [];
-    let pierceRanks = 0;
-    let breachRanks = 0;
-    for (const q of qualities) {
-      const name = (q?.name || "").toLowerCase();
-      const ranks = Number(q?.totalRanks ?? 0) || 0;
-      if (name.includes("pierce")) pierceRanks += ranks;
-      else if (name.includes("breach")) breachRanks += ranks;
-    }
-    const autoPierce = pierceRanks + 10 * breachRanks;
+    const { autoDamage, autoPierce, weaponName } = planDamageSeed(itemData, message.rolls?.[0]?.ffg?.success);
 
     const damageLabel = game.i18n.localize("SWFFG.ApplyDamage.Damage");
     const pierceLabel = game.i18n.localize("SWFFG.Pierce");
@@ -157,7 +97,6 @@ export class ApplyDamage {
       </div>
     `;
 
-    const weaponName = itemData.name || itemSystem.name || "weapon";
     const title = game.i18n.format("SWFFG.ApplyDamage.DialogTitle", { name: a.name });
 
     DialogV2.wait({
@@ -171,20 +110,17 @@ export class ApplyDamage {
           default: true,
           callback: async (event, button, dialog) => {
             const root = dialog.element;
-            const damage = Math.max(0, parseInt(root.querySelector('input[name="damage"]')?.value, 10) || 0);
-            const soakProtection = getSoakProtectionQualities(a);
-            const pierce = soakProtection.length ? 0
-              : Math.max(0, parseInt(root.querySelector('input[name="pierce"]')?.value, 10) || 0);
-            const pool = showRadio ? root.querySelector('input[name="pool"]:checked')?.value : "wounds";
-            const path = pool === "strain" ? strainPath : woundPath;
-            const poolLabel = pool === "strain" ? strainLabel : woundLabel;
-            if (!path) {
+            const hit = planDamageApplication(a, plan, {
+              damage: root.querySelector('input[name="damage"]')?.value,
+              pierce: root.querySelector('input[name="pierce"]')?.value,
+              pool: root.querySelector('input[name="pool"]:checked')?.value,
+            });
+            if (!hit) {
               ui.notifications.warn(game.i18n.localize("SWFFG.ApplyDamage.UnsupportedActor"));
               return;
             }
-
-            const effectiveSoak = Math.max(0, soakValue - pierce);
-            const applied = Math.max(0, damage - effectiveSoak);
+            const { path, damage, pierce, effectiveSoak, applied, soakProtection } = hit;
+            const poolLabel = game.i18n.localize(hit.poolLabelKey);
 
             const speaker = ChatMessage.getSpeaker({ token: target.document });
             const gmIds = game.users.filter((u) => u.isGM).map((u) => u.id);
