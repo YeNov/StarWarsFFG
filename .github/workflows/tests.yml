@@ -1,0 +1,44 @@
+# Runs the Node test tier on every push and pull request.
+#
+# This exists because "Create Release" only runs when a release is published and
+# only ever built the archive -- it never ran the tests. A red suite therefore
+# went unnoticed from the commit that broke it until someone happened to run
+# `npm test` locally, which in one case was several releases later.
+#
+# `npm test` and `npm run check:imports` use nothing but Node's own standard
+# library, so there is deliberately no `npm ci` step: installing the devDeps
+# (cypress, playwright, the gulp/sass toolchain) would add minutes and a large
+# failure surface for tooling none of these checks touch. Add one here if a
+# check ever grows a real dependency.
+name: Tests
+
+on:
+    push:
+        branches: ["**"]
+    pull_request:
+
+# A second push to the same branch makes the first run's result irrelevant.
+concurrency:
+    group: tests-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Set Up Node
+              uses: actions/setup-node@v4
+              with:
+                  # Matches the version the tests are developed against; the Node
+                  # tier's stub boundary asserts against a bare modern Node's own
+                  # global surface, so the major matters.
+                  node-version: "24"
+
+            - name: Run Tests
+              run: npm test
+
+            - name: Check Import Rules
+              run: npm run check:imports
