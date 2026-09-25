@@ -5,11 +5,12 @@
 # went unnoticed from the commit that broke it until someone happened to run
 # `npm test` locally, which in one case was several releases later.
 #
-# `npm test` and `npm run check:imports` use nothing but Node's own standard
-# library, so there is deliberately no `npm ci` step: installing the devDeps
-# (cypress, playwright, the gulp/sass toolchain) would add minutes and a large
-# failure surface for tooling none of these checks touch. Add one here if a
-# check ever grows a real dependency.
+# The checks need node_modules on disk even though they import nothing from it:
+# the import gate (check-imports-pins) resolves every relative import in the
+# tree, and tests/ffg-tests.js -- the in-Foundry mocha harness -- imports
+# ../node_modules/mocha/mocha.js and ../node_modules/chai/chai.js. Those two were
+# not declared dependencies at all until this workflow caught it on a clean
+# checkout; they are now in devDependencies.
 name: Tests
 
 on:
@@ -36,6 +37,13 @@ jobs:
                   # tier's stub boundary asserts against a bare modern Node's own
                   # global surface, so the major matters.
                   node-version: "24"
+
+            - name: Install Dependencies
+              # `--ignore-scripts` skips cypress's and playwright's postinstall
+              # browser downloads, which none of these checks need. The install
+              # itself IS needed: the import gate resolves tests/ffg-tests.js's
+              # imports of mocha and chai against node_modules on disk.
+              run: npm ci --ignore-scripts
 
             - name: Run Tests
               run: npm test
