@@ -1,3 +1,7 @@
+`Unreleased`
+
+* Fixed — **the "what's new" link in the version update message went to the wiki's front page**, the same place as the System Wiki link two lines below it. It pointed at a per-version wiki page this fork does not keep, and GitHub quietly redirects a missing wiki page to the front page. It now opens that version's release notes, which are written for every release.
+
 `2.1.5`
 A sixteen-chapter new-user tutorial on the wiki, turning a die to an adjacent face for Unmatched Fortune, dark-theme readability fixes, and armor qualities respected when damage is applied.
 
