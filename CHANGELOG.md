@@ -1,4 +1,5 @@
-`Unreleased`
+`2.1.5`
+A sixteen-chapter new-user tutorial on the wiki, turning a die to an adjacent face for Unmatched Fortune, dark-theme readability fixes, and armor qualities respected when damage is applied.
 
 * Added — **a [new-user tutorial](https://github.com/YeNov/StarWarsFFG/wiki/Tutorial) on the wiki**, sixteen illustrated chapters covering GM setup (content for the PC Wizard and Hyperdrive importer, crit tables, the Group Manager, Obligation/Duty/Morality rolls) and play at the table (Edit Mode, spending XP, adversary and vehicle rolls, initiative, damage and crits, healing, status effects and NPCs).
 * Added — **Turn to adjacent face, for the Unmatched Fortune signature ability**, so nobody has to rotate a 3D die to find its neighbours. Right-click a die in a posted roll to see the face it rolled and every face sharing an edge with it; pick one and the die turns to it, the roll's result updates for everyone, and the card is marked Modified. Neighbours follow the real FFG dice, so they can differ from the Dice So Nice 3D die, and Force dice can't be turned.
