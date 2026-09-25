@@ -68,6 +68,7 @@ import {register_system_tours} from "./helpers/tours.js";
 import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
 import { computeCritAvailability } from "./helpers/crit-availability.js";
 import { refreshSheetsForRemoteUpdate } from "./helpers/sheet-sync.js";
+import { planStatusCounterSync } from "./helpers/status-counter-sync.js";
 import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
 import { vehicleItemRefusal } from "./helpers/vehicle-items.js";
 
@@ -2279,14 +2280,9 @@ Hooks.once("ready", async () => {
   // set up support for Status Icon Counters
   const counterApi = game.modules.get("statuscounter")?.active;
   if (counterApi) {
-    Hooks.on("updateActiveEffect", function(effect, changes) {
-        const counterValue = foundry.utils.getProperty(changes, "flags.statuscounter.counter.value");
-        if (counterValue) {
-          for (const change of effect.changes) {
-            change['value'] = counterValue;
-          }
-        }
-        effect.update({changes: effect.changes});
+    Hooks.on("updateActiveEffect", async function(effect, changes, options, userId) {
+        const planned = planStatusCounterSync(effect, changes, userId, game.user?.id);
+        if (planned) await effect.update({system: {changes: planned}});
     });
   }
 
