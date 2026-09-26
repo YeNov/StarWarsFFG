@@ -7,7 +7,7 @@
  *
  * Usage: node audit.js <dbPath> [<dbPath> ...]
  */
-const { ClassicLevel } = require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level");
+const { ClassicLevel } = require(`${process.env.FVTT_APP}/node_modules/classic-level`);
 
 const has = (obj, path) => {
   let cur = obj;

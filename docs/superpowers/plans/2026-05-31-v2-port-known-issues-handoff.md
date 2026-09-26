@@ -6,7 +6,7 @@ Plan executed: [`2026-05-31-v2-port-known-issues.md`](2026-05-31-v2-port-known-i
 Design spec: [`../specs/2026-05-31-v2-port-known-issues-design.md`](../specs/2026-05-31-v2-port-known-issues-design.md)
 
 All ten user-reported issues addressed and live-verified on the running world
-(`http://192.168.1.7:30000/`, Foundry 13.351 / system 2.0.3, Gamemaster).
+(`http://<foundry-host>:30000/`, Foundry 13.351 / system 2.0.3, Gamemaster).
 
 ## What landed (commits, oldest → newest)
 

@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Branch: `talent-rank-merging`, off `main`. Do not push or open a PR without a `CHANGELOG.md` entry (repo `CLAUDE.md` treats a missing entry as unfinished work).
-- GitHub write actions only in the `YeNov/StarWarsFFG` fork, as the `YeNov` gh account (`gh auth switch --user YeNov` before pushing). Never switch this checkout to `yehornovakov`; that identity is forbidden in this repository.
+- GitHub write actions only in the `YeNov/StarWarsFFG` fork, as the `YeNov` gh account (`gh auth switch --user YeNov` before pushing). Never switch this checkout to another account; only the `YeNov` identity may write here.
 - Never run `gulp css` / `npm run compile`. `styles/*.css` are hand-maintained; this plan touches no CSS.
 - Tests: `npm test` runs `node --test "tests/node/**/*.test.mjs"`. Baseline before this plan: **567 pass / 0 fail**. Every task must leave that suite green.
 - `npm run check:imports` must stay PASS. New modules must be importable under node — no Foundry globals at module scope in `modules/helpers/talent-stacking.js`.

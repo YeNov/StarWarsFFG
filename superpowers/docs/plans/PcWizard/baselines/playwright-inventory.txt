@@ -1,4 +1,4 @@
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg>npx playwright test --list
+<repo>>npx playwright test --list
 Listing tests:
   [chromium] › activeEffects.spec.js:17:5 › armor applies correctly
   [chromium] › activeEffects.spec.js:54:5 › career applies correctly

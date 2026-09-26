@@ -1,7 +1,7 @@
 # V2 Port Sheet Comparison Against Main
 
 Date: 2026-05-30
-URL: `http://192.168.1.7:30000/`
+URL: `http://<foundry-host>:30000/`
 
 ## Capture Scope
 

@@ -16,7 +16,7 @@
 > "What changed in rev. 6" and the evidence appendix.
 >
 > **For agentic workers:** checkbox (`- [ ]`) tracking. Land on `V14-migration`;
-> push convention `gh auth switch --user YeNov` then back to `yehornovakov`
+> push convention `gh auth switch --user YeNov` then back to the default account
 > (memory `push-as-yenov-account`). The audit here runs **offline** — no Foundry
 > boot required (see Tooling).
 
@@ -102,7 +102,7 @@ disposable environments so the reporter could see raw source. **None of that is
 needed.** The database can be read directly, with no Foundry process:
 
 - **Raw DB read**: Foundry ships its own driver —
-  `require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level")`
+  `require("<fvtt-app>/node_modules/classic-level")`
   under system node (v24). Keys are `!items!<id>`; values are the true DB record.
   Always work on **copies** (opening LevelDB can trigger recovery writes).
 - **Real model probe**: import `common/primitives/_module.mjs` **first**
@@ -620,6 +620,6 @@ and unrecoverable reports; twin audit/smoke environments; the `?ffgRawBoot=1`
 flag and migration suppression (superseded by offline reads).
 
 Kept anyway as cheap insurance: the forensic snapshot at
-`D:\SW FFG\_forensic-snapshot-2026-07-14` (read-only; world DBs for both
+`<forensic-snapshot>` (read-only; world DBs for both
 instances + the 22 OggDude packs). Not needed on current evidence — but it cost
 minutes and it is the reason the 1655-document comparison could be run at all.

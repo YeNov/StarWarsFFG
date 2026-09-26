@@ -8,7 +8,7 @@ V2-port branch (`V2-port`), grouped into five clusters per the design at
 
 **Architecture:** Extend the existing V2 compatibility shim. No rewrites; each
 fix is localized and independently revertable. Verification is **live** at
-`http://192.168.1.7:30000/` (Gamemaster login, no password) since the only
+`http://<foundry-host>:30000/` (Gamemaster login, no password) since the only
 existing test surface (`tests/talent-tree.test.js`) covers pure helper logic
 and not sheet behaviour.
 
@@ -39,7 +39,7 @@ commit `df43c163` (second-pass revision) or later.
 
 - [ ] **Step 2: Open the running server**
 
-In Chrome, navigate to `http://192.168.1.7:30000/`, log in as Gamemaster (no
+In Chrome, navigate to `http://<foundry-host>:30000/`, log in as Gamemaster (no
 password). Open the World Items directory.
 
 - [ ] **Step 3: Screenshot pre-state of each broken surface**
@@ -207,7 +207,7 @@ The full updated `_onRender` ends with:
 
 - [ ] **Step 4: Live-verify on character sheet biography**
 
-Open `http://192.168.1.7:30000/` → open a character → Biography tab → click
+Open `http://<foundry-host>:30000/` → open a character → Biography tab → click
 the pencil/edit button on the biography editor. Expected:
 
 - ProseMirror editor mounts inline.
@@ -309,7 +309,7 @@ header makes it black but does not collapse.
 
 - [ ] **Step 1: Attach diagnostic console listener on the running server**
 
-In Chrome at `http://192.168.1.7:30000/`, open any sheet. Open DevTools
+In Chrome at `http://<foundry-host>:30000/`, open any sheet. Open DevTools
 console and run:
 
 ```js
@@ -504,7 +504,7 @@ line 121):
 
 - [ ] **Step 4: Live-verify spec sheet clamp**
 
-Open `http://192.168.1.7:30000/` → open a specialization item. Drag the
+Open `http://<foundry-host>:30000/` → open a specialization item. Drag the
 bottom-right resize handle as far inward as possible. Expected: window stops
 shrinking at 700×600. Check `ui.activeWindow.position` in DevTools console:
 `width: 700, height: 600`.
@@ -1576,7 +1576,7 @@ no changes" so the audit decision is logged for future maintainers.
 
 - [ ] **Step 1: Re-confirm the symptom post-Cluster-A/B/C/D**
 
-Open `http://192.168.1.7:30000/` → open a talent item from the world or a
+Open `http://<foundry-host>:30000/` → open a talent item from the world or a
 compendium. With A1 (editors), A2 (dblclick), B1 (min-size), C1/C2 (CSS),
 and D1 (render-race) all landed, the talent sheet's pre-existing breakage
 may already be fully or partially resolved. Capture a fresh full-window

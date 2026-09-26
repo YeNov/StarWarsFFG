@@ -1,6 +1,6 @@
 // Do documents CREATED after the cutover still carry undeclared fields?
 // (Tests whether create/import payloads survive client-side cleaning.)
-const { ClassicLevel } = require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level");
+const { ClassicLevel } = require(`${process.env.FVTT_APP}/node_modules/classic-level`);
 const CUTOVER = Date.parse("2026-07-08T00:00:00Z");
 const has = (o, p) => { let c = o; for (const k of p.split(".")) { if (c === null || typeof c !== "object" || !(k in c)) return false; c = c[k]; } return true; };
 const PROBE = { gear: "rarity.isrestricted", weapon: "rarity.isrestricted", armour: "rarity.isrestricted", shipweapon: "rarity.isrestricted" };

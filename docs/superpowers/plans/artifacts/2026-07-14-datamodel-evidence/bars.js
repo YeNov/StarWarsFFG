@@ -1,4 +1,4 @@
-const { ClassicLevel } = require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level");
+const { ClassicLevel } = require(`${process.env.FVTT_APP}/node_modules/classic-level`);
 (async () => {
   const m = new Map();
   for (const p of process.argv.slice(2)) {

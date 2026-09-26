@@ -3,7 +3,7 @@
  * Finds any leaf path present in the backup but ABSENT in the live record.
  * This is the definitive data-loss test (offline, raw, no Foundry).
  */
-const { ClassicLevel } = require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level");
+const { ClassicLevel } = require(`${process.env.FVTT_APP}/node_modules/classic-level`);
 
 function leaves(obj, prefix = "", out = new Map()) {
   if (obj === null || typeof obj !== "object" || Array.isArray(obj)) { out.set(prefix, obj); return out; }

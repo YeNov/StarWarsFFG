@@ -7,8 +7,10 @@
  * Offline: reads LevelDB directly, never boots Foundry, never writes.
  * Usage: node generic-audit.mjs <label>=<dbPath> [...]
  */
-const APP = "D:/SW FFG/Portable FVTT 14/App/resources/app";
-const SYS = "D:/SW FFG/Portable FVTT/Data/systems/starwarsffg";
+// Foundry install's `resources/app`; set FVTT_APP (see README).
+const APP = process.env.FVTT_APP;
+// This system's checkout; set FVTT_SYS (see README).
+const SYS = process.env.FVTT_SYS;
 
 await import(`file:///${APP}/common/primitives/_module.mjs`);
 const fields = await import(`file:///${APP}/common/data/fields.mjs`);

@@ -12,7 +12,7 @@
 
 Every code claim in this document was verified **first-hand** during design rounds 1–6 against:
 
-- **The system fork** `D:\SW FFG\Portable FVTT\Data\systems\starwarsffg` (v2.0.3): the whole of
+- **The system fork** `<repo>` (v2.0.3): the whole of
   `modules/helpers/character-creator.js` (1846 lines, incl. the minimized-close guard in
   `close()` `:199-202`); `modules/swffg-main.js` (old-class import `:58`, entry button
   `:1438-1465` constructing it at `:1458-1461`, GM socket bridge `:2052-2126`, compendium
@@ -51,7 +51,7 @@ Every code claim in this document was verified **first-hand** during design roun
   **Exactly two files import the old class path** `modules/helpers/character-creator.js`:
   `modules\swffg-main.js:58` and `tests\v2-migration\minimized-close.test.js:12` (grep-verified;
   all other hits are markdown docs).
-- **Foundry v13 core** `D:\SW FFG\Portable FVTT\App\resources\app`:
+- **Foundry v13 core** `<fvtt-app>`:
   `client/documents/abstract/client-document.mjs:57-64` (construction runs `_safePrepareData`
   once `game._documentsReady`); `client/documents/actor.mjs:206-229` (`applyActiveEffects`
   sorts changes by `priority ?? mode*10`); `common/documents/actor.mjs:93-97`

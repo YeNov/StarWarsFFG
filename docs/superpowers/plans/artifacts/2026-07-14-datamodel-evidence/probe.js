@@ -1,6 +1,6 @@
 // Offline LevelDB probe: reads Foundry world/pack databases WITHOUT booting Foundry.
 // Read-only in intent; run against working COPIES only, never live data or the snapshot.
-const CL = require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level");
+const CL = require(`${process.env.FVTT_APP}/node_modules/classic-level`);
 const { ClassicLevel } = CL;
 
 const dbPath = process.argv[2];

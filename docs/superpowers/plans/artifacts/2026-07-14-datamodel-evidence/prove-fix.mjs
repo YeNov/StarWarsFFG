@@ -3,8 +3,10 @@
  * the prepared view (what sheets and code actually read) now show the values
  * that were sitting in the database all along?
  */
-const APP = "D:/SW FFG/Portable FVTT 14/App/resources/app";
-const SYS = "D:/SW FFG/Portable FVTT/Data/systems/starwarsffg";
+// Foundry install's `resources/app`; set FVTT_APP (see README).
+const APP = process.env.FVTT_APP;
+// This system's checkout; set FVTT_SYS (see README).
+const SYS = process.env.FVTT_SYS;
 await import(`file:///${APP}/common/primitives/_module.mjs`);
 const fields = await import(`file:///${APP}/common/data/fields.mjs`);
 const dataMod = await import(`file:///${APP}/common/abstract/data.mjs`);
@@ -15,7 +17,8 @@ globalThis.CONST = {};
 const { modelFor } = await import(`file:///${SYS}/modules/data/models-registry.js`);
 const { ClassicLevel } = (await import("module")).createRequire(import.meta.url)(`${APP}/node_modules/classic-level`);
 
-const SP = "C:/Users/novak/AppData/Local/Temp/claude/D--SW-FFG-Portable-FVTT-Data-systems-starwarsffg/b2b0c6fa-2fc8-4ccf-a427-ca1170a66f54/scratchpad/dbwork";
+// Scratch COPY of the world DB to operate on; set DBWORK (see README).
+const SP = process.env.DBWORK;
 const get = (o, p) => p.split(".").reduce((c, k) => (c == null ? c : c[k]), o);
 
 // [docName, dbPath, type, path, human label]

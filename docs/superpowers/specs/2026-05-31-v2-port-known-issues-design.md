@@ -2,7 +2,7 @@
 
 Date: 2026-05-31
 Branch: `V2-port`
-Source list: `C:\Users\novak\Desktop\v1-v2-known-issues.txt`
+Source list: `<desktop>\v1-v2-known-issues.txt`
 
 ## Context
 
@@ -647,7 +647,7 @@ Each is classified:
 5. Reproduce #2, #4, #5, #8 before AND after. Document.
 
 **Verification.** Reproduce each of #2, #4, #5, #8 on the running world at
-`http://192.168.1.7:30000/` before AND after the change. Document the
+`http://<foundry-host>:30000/` before AND after the change. Document the
 before-screenshot and the after-screenshot per issue in the commit body.
 
 ## Detailed design — Cluster E: Talent sheet investigation
@@ -657,7 +657,7 @@ before-screenshot and the after-screenshot per issue in the commit body.
 **Approach.** Live repro on the running world is required before designing a
 fix. Steps:
 
-1. Open Chrome to `http://192.168.1.7:30000/` and log in as Gamemaster.
+1. Open Chrome to `http://<foundry-host>:30000/` and log in as Gamemaster.
 2. Open a talent item from the world or a compendium.
 3. Capture: full sheet screenshot, browser console (errors + warnings), and
    the DevTools "Elements" view of the sheet root.
@@ -692,7 +692,7 @@ This task delivers a sub-design document inline in the implementation plan
   independently revertable. Match the existing branch's commit-message style:
   imperative subject ≤72 chars, body explains the **why**.
 - **Verification:** every behavioural change is reproduced live in Chrome at
-  `http://192.168.1.7:30000/` before committing. Per-fix DOM-probe console
+  `http://<foundry-host>:30000/` before committing. Per-fix DOM-probe console
   output (matching the prior handoff's integration smoke pass) is captured
   in the commit body where the change affects layout or render flow.
 - **Test files:** `tests/talent-tree.test.js` covers the pure helper logic

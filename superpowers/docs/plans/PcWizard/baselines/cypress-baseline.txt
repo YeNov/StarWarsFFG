@@ -1,8 +1,8 @@
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg>npx cypress run --env baseUrl=http://localhost:30000,expectBaseUrl=http://localhost:30000
+<repo>>npx cypress run --env baseUrl=http://localhost:30000,expectBaseUrl=http://localhost:30000
 It looks like this is your first time using Cypress: 13.14.2
 
-√  Verified Cypress! C:\Users\novak\AppData\Local\Cypress\Cache\13.14.2\Cypress
+√  Verified Cypress! <cypress-cache>\13.14.2\Cypress
 
 Opening Cypress...
 
@@ -17,7 +17,7 @@ Couldn't find tsconfig.json. tsconfig-paths will be skipped
   ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
   │ Cypress:        13.14.2                                                                        │
   │ Browser:        Electron 118 (headless)                                                        │
-  │ Node Version:   v24.15.0 (D:\Program Files\nodejs\node.exe)                                    │
+  │ Node Version:   v24.15.0 (<node>)                                    │
   │ Specs:          3 found (00_init.cy.js, 01_create_entities.cy.js, 02_test_items.cy.js)         │
   │ Searched:       cypress/e2e/**/*.cy.{js,jsx,ts,tsx}                                            │
   └────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -71,7 +71,7 @@ Because this error occurred during a `before all` hook we are skipping the remai
 
   (Screenshots)
 
-  -  D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\cypress\screenshots\00_init.cy.     (1280x720)
+  -  <repo>\cypress\screenshots\00_init.cy.     (1280x720)
      js\ffg-star-wars init -- initializes the world -- before all hook (failed).png
 
 
@@ -116,7 +116,7 @@ Because this error occurred during a `before each` hook we are skipping the rema
 
   (Screenshots)
 
-  -  D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\cypress\screenshots\01_create_e     (1280x720)
+  -  <repo>\cypress\screenshots\01_create_e     (1280x720)
      ntities.cy.js\ffg-star-wars create entities -- creates actors -- before each hoo
      k (failed).png
 
@@ -161,7 +161,7 @@ Because this error occurred during a `before each` hook we are skipping the rema
 
   (Screenshots)
 
-  -  D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\cypress\screenshots\02_test_ite     (1280x720)
+  -  <repo>\cypress\screenshots\02_test_ite     (1280x720)
      ms.cy.js\ffg-star-wars create items -- sets up the folder -- before each hook (f
      ailed).png
 

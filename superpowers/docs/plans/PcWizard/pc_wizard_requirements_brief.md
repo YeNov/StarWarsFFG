@@ -20,7 +20,7 @@ complexity and makes several helpers direct calls instead of "pure wrapper" API 
 ## 2. Repo & VCS
 
 **Implementation repo (the only one that changes):**
-`D:\SW FFG\Portable FVTT\Data\systems\starwarsffg` — git `main`, remote `YeNov/StarWarsFFG` (the product
+`<repo>` — git `main`, remote `YeNov/StarWarsFFG` (the product
 owner's fork; upstream push disabled). **Git, not Perforce** — no `p4`. Do not commit or push unless
 instructed; during implementation, commit per-stage, never push.
 
@@ -46,16 +46,16 @@ Key files:
 
 **Planning docs** (this brief, the design doc, all reviews, and the forthcoming implementation plan)
 live **inside this same fork** as of 2026-07-20:
-`D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\superpowers\docs\plans\PcWizard\`
+`<repo>\superpowers\docs\plans\PcWizard\`
 The source spec sits one level up at
-`D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\superpowers\docs\pc-wizard-implementation-audit.md`.
+`<repo>\superpowers\docs\pc-wizard-implementation-audit.md`.
 Read them there — they were moved out of the old module repo when the architecture pivoted, so ignore
 any older reference to a `modules\kelborns-swffg-pc-creator\...` docs path. These files are currently
 **untracked** in this repo (not committed). The now-codeless `kelborns-swffg-pc-creator` repo still
 holds a stale duplicate of the audit; its disposition (archive/repurpose) is the owner's call and is
 NOT part of this work.
 
-**Foundry v13 core source (read-only reference):** `D:\SW FFG\Portable FVTT\App\resources\app`
+**Foundry v13 core source (read-only reference):** `<fvtt-app>`
 
 ## 3. Architectural context (post-pivot)
 

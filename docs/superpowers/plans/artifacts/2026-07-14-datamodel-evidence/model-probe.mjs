@@ -3,7 +3,8 @@
  * REAL stored data, outside Foundry. Answers exactly what a registered model
  * does to a stored document's system data.
  */
-const APP = "D:/SW FFG/Portable FVTT 14/App/resources/app";
+// Foundry install's `resources/app`; set FVTT_APP (see README).
+const APP = process.env.FVTT_APP;
 
 await import(`file:///${APP}/common/primitives/_module.mjs`); // Foundry's built-in extensions
 const fields = await import(`file:///${APP}/common/data/fields.mjs`);
@@ -20,7 +21,8 @@ globalThis.foundry = {
 globalThis.CONST = {};
 for (const [k, v] of Object.entries(helpers)) if (!(k in globalThis)) globalThis[k] = v;
 
-const SYS = "D:/SW FFG/Portable FVTT/Data/systems/starwarsffg";
+// This system's checkout; set FVTT_SYS (see README).
+const SYS = process.env.FVTT_SYS;
 const { WeaponDataModel } = await import(`file:///${SYS}/modules/data/models/item/weapon.js`);
 
 // A real stored weapon shape (the parts that matter), as found in the live DB.

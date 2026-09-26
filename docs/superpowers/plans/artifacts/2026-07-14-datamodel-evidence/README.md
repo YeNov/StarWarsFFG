@@ -20,6 +20,19 @@ classes; both are loaded straight out of the install:
 **Always run against COPIES.** Opening a LevelDB can trigger recovery writes.
 Stop Foundry before copying.
 
+The scripts read their locations from the environment, so nothing here is tied
+to one machine:
+
+| variable | meaning |
+|---|---|
+| `FVTT_APP` | the Foundry install's `resources/app` — the `<app>` above |
+| `FVTT_SYS` | this system's checkout (the directory holding `modules/`) |
+| `DBWORK` | `prove-fix.mjs` only: the scratch **copy** of the world DB to read |
+
+```sh
+FVTT_APP=/path/to/FoundryVTT/resources/app FVTT_SYS=/path/to/Data/systems/starwarsffg   node generic-audit.mjs live=/path/to/copy-of/worlds/<world>/data
+```
+
 ## Scripts
 
 | script | what it answers |

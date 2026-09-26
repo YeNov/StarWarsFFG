@@ -5,14 +5,14 @@
 | **Status** | **FINAL** — this is the authoritative implementation plan. Produced by a 10-round write/review bounce (the round-8 review's last Blocker: Path B ran Cypress three times before its mandatory `/setup` pre-flight), promoted from bounce v10, then amended post-approval: **DEV-17** (GATE-IMPORTS pinned baseline-delta) and the Stage 1H measured-baseline reconciliation. The bounce drafts and reviews were removed in Phase 4 cleanup — their outcomes are captured in the DEV-* entries and per-stage notes below. |
 | **Date** | 2026-07-20 (amended 2026-07-21) |
 | **Authorities** | [Requirements brief v2](pc_wizard_requirements_brief.md) (BINDING) · [Design doc v7](pc_wizard_design_doc.md) (APPROVED; R7-1, R7-2 folded into this plan as DEV-2/DEV-3 — the design text does not reflect them) |
-| **Repo** | `D:\SW FFG\Portable FVTT\Data\systems\starwarsffg` — git, branch **`pc-wizard-rewrite`** (off `main` at `a1621c00`; planning docs committed as `ce76311e`). Remote `YeNov/StarWarsFFG`. `upstream` is read-only. **Never** target `StarWarsFoundryVTT/StarWarsFFG`. |
-| **Reference** | Foundry v13 core, read-only: `D:\SW FFG\Portable FVTT\App\resources\app` |
+| **Repo** | `<repo>` — git, branch **`pc-wizard-rewrite`** (off `main` at `a1621c00`; planning docs committed as `ce76311e`). Remote `YeNov/StarWarsFFG`. `upstream` is read-only. **Never** target `StarWarsFoundryVTT/StarWarsFFG`. |
+| **Reference** | Foundry v13 core, read-only: `<fvtt-app>` |
 
 ---
 
 ## 0. How to use this plan
 
-- All paths are **repo-relative** to `D:\SW FFG\Portable FVTT\Data\systems\starwarsffg` unless
+- All paths are **repo-relative** to `<repo>` unless
   written absolute.
 - Stages are ordered so **the system boots and the currently-live wizard keeps working at every
   stage boundary**. The single cutover is **Stage 18**.

@@ -5,7 +5,7 @@
  * If yes -> the pruning/data-loss premise is WRONG.
  * If no  -> pruning is real and those docs are damaged.
  */
-const { ClassicLevel } = require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level");
+const { ClassicLevel } = require(`${process.env.FVTT_APP}/node_modules/classic-level`);
 
 const CUTOVER = Date.parse("2026-07-08T00:00:00Z"); // generous: DataModel commits ~07-09
 const has = (o, p) => { let c = o; for (const k of p.split(".")) { if (c === null || typeof c !== "object" || !(k in c)) return false; c = c[k]; } return true; };

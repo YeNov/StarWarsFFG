@@ -3,7 +3,7 @@
  * enough identity to actually find them: LevelDB key, item id, parent actor,
  * and a resolvable UUID.
  */
-const { ClassicLevel } = require("D:/SW FFG/Portable FVTT 14/App/resources/app/node_modules/classic-level");
+const { ClassicLevel } = require(`${process.env.FVTT_APP}/node_modules/classic-level`);
 const PACK = process.argv[2];
 const PACK_ID = process.argv[3] || "yehors-sw-ffg-shared-data.v12-export-actors";
 

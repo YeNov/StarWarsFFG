@@ -6,7 +6,7 @@ Recorded from a real observed run. Not carried forward from any earlier document
 Environment
 -----------
 Date            2026-07-20
-Repo            D:\SW FFG\Portable FVTT\Data\systems\starwarsffg
+Repo            <repo>
 Branch          pc-wizard-rewrite
 HEAD at capture 5f669ebe  docs(pc-wizard): DEV-17 — GATE-IMPORTS uses a pinned baseline-delta
                 (re-recorded after DEV-17 added tests/node/check-imports-pins.test.mjs;

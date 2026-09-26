@@ -1,5 +1,5 @@
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\actor-ffg.js
+<repo>\modules\actors\actor-ffg.js
     1:8   warning  'PopoutEditor' is defined but never used                              no-unused-vars
    25:14  warning  'e' is defined but never used                                         no-unused-vars
   242:11  warning  'flags' is assigned a value but never used                            no-unused-vars
@@ -9,14 +9,14 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\actor-ffg.js
   707:3   warning  Expected 'this' to be used by class method '_capitalize'              class-methods-use-this
   713:3   warning  Expected 'this' to be used by class method '_sortTalents'             class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\actor-sheet-ffg-v2.js
+<repo>\modules\actors\actor-sheet-ffg-v2.js
   1:1  warning  Dependency cycle via ../swffg-main.js:28  import-x/no-cycle
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\actor-sheet-ffg.js
-     9:25  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
+<repo>\modules\actors\actor-sheet-ffg.js
+     9:25  warning  '<repo>\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
     14:8   warning  'ItemHelpers' is defined but never used                                                                     no-unused-vars
     19:3   warning  'change_role' is defined but never used                                                                     no-unused-vars
-    27:29  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
+    27:29  warning  '<repo>\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
     28:1   warning  Dependency cycle detected                                                                                   import-x/no-cycle
    308:11  warning  Unexpected 'TODO' comment: 'TODO: is this actually needed?'                                                 no-warning-comments
    331:9   error    Unexpected lexical declaration in case block                                                                no-case-declarations
@@ -37,21 +37,21 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\actor-sheet-ffg.
   2324:3   warning  Expected 'this' to be used by class method '_createSkillColumns'                                            class-methods-use-this
   2681:11  warning  'characteristicWithoutAEs' is assigned a value but never used                                               no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\adversary-sheet-ffg-v2.js
+<repo>\modules\actors\adversary-sheet-ffg-v2.js
   1:1  warning  Dependency cycle via ./actor-sheet-ffg.js:1=>../swffg-main.js:28  import-x/no-cycle
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\adversary-sheet-ffg.js
+<repo>\modules\actors\adversary-sheet-ffg.js
    1:1  warning  Dependency cycle via ../swffg-main.js:28               import-x/no-cycle
    2:8  warning  'ActorOptions' is defined but never used               no-unused-vars
   10:3  warning  Expected 'this' to be used by class getter 'template'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\cdx-pill-stack.js
+<repo>\modules\actors\cdx-pill-stack.js
   84:3  warning  Expected 'this' to be used by class method '_consume'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\codex-fated-sigil.js
+<repo>\modules\actors\codex-fated-sigil.js
   39:14  warning  Assignment to function parameter 'a'  no-param-reassign
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\codex-sheets.js
+<repo>\modules\actors\codex-sheets.js
     22:1    warning  Dependency cycle via ../swffg-main.js:28                          import-x/no-cycle
    101:5    warning  Assignment to function parameter 'w'                              no-param-reassign
    101:18   warning  Assignment to function parameter 'h'                              no-param-reassign
@@ -81,7 +81,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\actors\codex-sheets.js
   1321:3    warning  Expected 'this' to be used by class method '_cdxTrack'            class-methods-use-this
   1586:3    warning  Expected 'this' to be used by class getter 'template'             class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\apps\ffg-actor-sheet.js
+<repo>\modules\apps\ffg-actor-sheet.js
    68:3   warning  Expected 'this' to be used by class getter '_popoutEditorMinHeight'  class-methods-use-this
   141:17  warning  '_selector' is defined but never used                                no-unused-vars
   145:16  warning  '_selector' is defined but never used                                no-unused-vars
@@ -91,7 +91,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\apps\ffg-actor-sheet.js
   226:37  warning  '_event' is defined but never used                                   no-unused-vars
   227:5   warning  Assignment to function parameter 'itemData'                          no-param-reassign
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\apps\ffg-document-sheet.js
+<repo>\modules\apps\ffg-document-sheet.js
   163:11  warning  '_options' is assigned a value but never used                             no-unused-vars
   178:25  warning  'options' is defined but never used                                       no-unused-vars
   401:3   warning  Expected 'this' to be used by class method '_getLegacyHeaderActionLabel'  class-methods-use-this
@@ -110,7 +110,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\apps\ffg-document-sheet
   940:3   warning  Expected 'this' to be used by class async method '_onDrop'                class-methods-use-this
   940:17  warning  '_event' is defined but never used                                        no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\apps\ffg-form-application.js
+<repo>\modules\apps\ffg-form-application.js
    99:36  warning  '_form' is defined but never used                                 no-unused-vars
    99:43  warning  '_formData' is defined but never used                             no-unused-vars
   157:34  warning  Assignment to function parameter 'updateData'                     no-param-reassign
@@ -118,7 +118,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\apps\ffg-form-applicati
   170:23  warning  '_event' is defined but never used                                no-unused-vars
   170:31  warning  '_formData' is defined but never used                             no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\combat-ffg.js
+<repo>\modules\combat-ffg.js
      2:8   warning  'PopoutEditor' is defined but never used                                                no-unused-vars
    143:3   warning  Expected 'this' to be used by class async method '_getInitiativeRoll'                   class-methods-use-this
    151:7   warning  Assignment to function parameter 'formula'                                              no-param-reassign
@@ -147,28 +147,28 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\combat-ffg.js
   1237:3   warning  Expected 'this' to be used by class method '_getDispositionSlotCount'                   class-methods-use-this
   1395:3   warning  Expected 'this' to be used by class method '_getTokenHidden'                            class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\dietype\AbilityDie.js
+<repo>\modules\dice\dietype\AbilityDie.js
   60:3  warning  Expected 'this' to be used by class method 'getResultLabel'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\dietype\BoostDie.js
+<repo>\modules\dice\dietype\BoostDie.js
   60:3  warning  Expected 'this' to be used by class method 'getResultLabel'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\dietype\ChallengeDie.js
+<repo>\modules\dice\dietype\ChallengeDie.js
   60:3  warning  Expected 'this' to be used by class method 'getResultLabel'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\dietype\DifficultyDie.js
+<repo>\modules\dice\dietype\DifficultyDie.js
   60:3  warning  Expected 'this' to be used by class method 'getResultLabel'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\dietype\ForceDie.js
+<repo>\modules\dice\dietype\ForceDie.js
   60:3  warning  Expected 'this' to be used by class method 'getResultLabel'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\dietype\ProficiencyDie.js
+<repo>\modules\dice\dietype\ProficiencyDie.js
   60:3  warning  Expected 'this' to be used by class method 'getResultLabel'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\dietype\SetbackDie.js
+<repo>\modules\dice\dietype\SetbackDie.js
   60:3  warning  Expected 'this' to be used by class method 'getResultLabel'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\pool.js
+<repo>\modules\dice\pool.js
     7:7  warning  Assignment to function parameter 'obj'                  no-param-reassign
    10:7  warning  Assignment to function parameter 'obj'                  no-param-reassign
   214:7  warning  Assignment to function parameter 'times'                no-param-reassign
@@ -178,7 +178,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\pool.js
   303:7  warning  Assignment to function parameter 'container'            no-param-reassign
   393:3  warning  Expected 'this' to be used by class method '_addIcons'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\roll-builder.js
+<repo>\modules\dice\roll-builder.js
   120:25  warning  '_options' is defined but never used                                       no-unused-vars
   136:9   warning  'canUserAddFlavor' is assigned a value but never used                      no-unused-vars
   220:14  warning  'e' is defined but never used                                              no-unused-vars
@@ -190,7 +190,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\roll-builder.js
   637:14  warning  'e' is defined but never used                                              no-unused-vars
   637:17  error    Empty block statement                                                      no-empty
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\roll.js
+<repo>\modules\dice\roll.js
     1:8   warning  'PopoutEditor' is defined but never used                                   no-unused-vars
     4:9   warning  'ItemFFG' is defined but never used                                        no-unused-vars
   247:5   warning  Assignment to function parameter 'chatOptions'                             no-param-reassign
@@ -200,7 +200,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice\roll.js
   366:5   warning  Assignment to function parameter 'messageData'                             no-param-reassign
   428:3   warning  Expected 'this' to be used by class method 'parseShortHand'                class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\ffg-destiny-tracker.js
+<repo>\modules\ffg-destiny-tracker.js
     1:10  warning  'GroupManager' is defined but never used                              no-unused-vars
    51:15  warning  '_options' is assigned a value but never used                         no-unused-vars
    56:25  warning  '_options' is defined but never used                                  no-unused-vars
@@ -214,9 +214,9 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\ffg-destiny-tracker.js
   516:3   warning  Expected 'this' to be used by class async method '_rollDestiny'       class-methods-use-this
   517:22  error    'DicePoolFFG' is not defined                                          no-undef
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\groupmanager-ffg.js
-    1:25  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\actor-helpers.js' imported multiple times  import-x/no-duplicates
-    2:26  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\actor-helpers.js' imported multiple times  import-x/no-duplicates
+<repo>\modules\groupmanager-ffg.js
+    1:25  warning  '<repo>\modules\helpers\actor-helpers.js' imported multiple times  import-x/no-duplicates
+    2:26  warning  '<repo>\modules\helpers\actor-helpers.js' imported multiple times  import-x/no-duplicates
    45:3   warning  Expected 'this' to be used by class getter 'isEditable'                                                      class-methods-use-this
    56:3   warning  Expected 'this' to be used by class method '_minDimensions'                                                  class-methods-use-this
    66:25  warning  '_options' is defined but never used                                                                         no-unused-vars
@@ -245,14 +245,14 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\groupmanager-ffg.js
   450:44  warning  'options' is defined but never used                                                                          no-unused-vars
   450:53  warning  'id' is defined but never used                                                                               no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\actor-helpers.js
+<repo>\modules\helpers\actor-helpers.js
    1:8   warning  'ModifierHelpers' is defined but never used                                no-unused-vars
    6:5   warning  Assignment to function parameter 'formData'                                no-param-reassign
    7:11  warning  'ownedItems' is assigned a value but never used                            no-unused-vars
   67:27  error    Do not access Object.prototype method 'hasOwnProperty' from target object  no-prototype-builtins
   79:5   warning  Assignment to function parameter 'formData'                                no-param-reassign
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\character-creator.js
+<repo>\modules\helpers\character-creator.js
      2:8   warning  'ActorHelpers' is defined but never used                                no-unused-vars
      4:1   warning  Dependency cycle via ../swffg-main.js:28                                import-x/no-cycle
    213:33  error    'SlimSelect' is not defined                                             no-undef
@@ -285,17 +285,17 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\character-creat
   1280:38  warning  'event' is defined but never used                                       no-unused-vars
   1334:34  warning  'event' is defined but never used                                       no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\common.js
+<repo>\modules\helpers\common.js
   57:50  warning  'err' is defined but never used                                                                                                                                        no-unused-vars
   68:52  warning  'options' is defined but never used                                                                                                                                    no-unused-vars
   90:5   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\crew.js
-   1:29  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
-   3:25  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
+<repo>\modules\helpers\crew.js
+   1:29  warning  '<repo>\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
+   3:25  warning  '<repo>\modules\helpers\dice-helpers.js' imported multiple times  import-x/no-duplicates
   31:17  error    Do not access Object.prototype method 'hasOwnProperty' from target object                                   no-prototype-builtins
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\dice-helpers.js
+<repo>\modules\helpers\dice-helpers.js
     1:8   warning  'PopoutEditor' is defined but never used                                                                                                                               no-unused-vars
    87:5   warning  Unexpected 'TODO' comment: 'TODO: Get weapon specific modifiers from...'                                                                                               no-warning-comments
   330:7   warning  Assignment to function parameter 'dicePool'                                                                                                                            no-param-reassign
@@ -305,12 +305,12 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\dice-helpers.js
   520:3   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
   527:3   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\effects.js
+<repo>\modules\helpers\effects.js
   11:43  warning  '_iterator' is defined but never used  no-unused-vars
   11:54  warning  '_effects' is defined but never used   no-unused-vars
   69:37  warning  'index' is defined but never used      no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\embeddeditem-helpers.js
+<repo>\modules\helpers\embeddeditem-helpers.js
    27:9   warning  Unexpected 'TODO' comment: 'TODO: We think this code path is dead,...'                                                                                                 no-warning-comments
    44:5   warning  Unexpected 'TODO' comment: 'TODO: we do not currently resolve items...'                                                                                                no-warning-comments
    60:5   warning  Unexpected 'TODO' comment: 'TODO: drop parents once the refactor is...'                                                                                                no-warning-comments
@@ -321,12 +321,12 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\embeddeditem-he
   333:5   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
   334:15  error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                              no-prototype-builtins
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\flag-migration-helpers.js
+<repo>\modules\helpers\flag-migration-helpers.js
   24:7   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
   33:7   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
   70:13  warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\item-helpers.js
+<repo>\modules\helpers\item-helpers.js
     6:5   warning  Assignment to function parameter 'formData'                                                                                                                            no-param-reassign
    25:25  error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                              no-prototype-builtins
    38:9   warning  'updated_id' is assigned a value but never used                                                                                                                        no-unused-vars
@@ -334,7 +334,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\item-helpers.js
   184:5   warning  Assignment to function parameter 'formData'                                                                                                                            no-param-reassign
   187:5   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\journal.js
+<repo>\modules\helpers\journal.js
     9:22  warning  'match' is defined but never used    no-unused-vars
     9:29  warning  'options' is defined but never used  no-unused-vars
    21:22  warning  'match' is defined but never used    no-unused-vars
@@ -403,7 +403,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\journal.js
   396:29  error    Unnecessary escape character: \[     no-useless-escape
   397:29  warning  'options' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\macros.js
+<repo>\modules\helpers\macros.js
   24:37  error  Unnecessary escape character: \"  no-useless-escape
   24:51  error  Unnecessary escape character: \"  no-useless-escape
   24:55  error  Unnecessary escape character: \"  no-useless-escape
@@ -413,7 +413,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\macros.js
   58:52  error  Unnecessary escape character: \"  no-useless-escape
   58:69  error  Unnecessary escape character: \"  no-useless-escape
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\modifiers.js
+<repo>\modules\helpers\modifiers.js
     2:1   warning  Dependency cycle detected                                                  import-x/no-cycle
    11:5   warning  Unexpected 'TODO' comment: 'TODO: we are returning 0 from this; it...'     no-warning-comments
   178:3   warning  Unexpected 'TODO' comment: 'TODO: this should probably be either...'       no-warning-comments
@@ -425,17 +425,17 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\modifiers.js
   647:5   warning  Assignment to function parameter 'formData'                                no-param-reassign
   768:25  error    Do not access Object.prototype method 'hasOwnProperty' from target object  no-prototype-builtins
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\token.js
+<repo>\modules\helpers\token.js
    9:16  warning  'rule' is defined but never used  no-unused-vars
   18:16  warning  'rule' is defined but never used  no-unused-vars
   27:16  warning  'rule' is defined but never used  no-unused-vars
   36:16  warning  'rule' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\tours.js
+<repo>\modules\helpers\tours.js
   155:3   warning  Expected 'this' to be used by class async method 'enableEditMode'  class-methods-use-this
   192:21  error    Promise executor functions should not be async                     no-async-promise-executor
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\data-importer.js
+<repo>\modules\importer\data-importer.js
    81:13  warning  'context' is defined but never used                              no-unused-vars
    81:22  warning  'options' is defined but never used                              no-unused-vars
   109:27  warning  'event' is defined but never used                                no-unused-vars
@@ -446,7 +446,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\data-importer.
   172:42  warning  'formData' is defined but never used                             no-unused-vars
   302:3   warning  Expected 'this' to be used by class async method 'asyncForEach'  class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\import-helpers.js
+<repo>\modules\importer\import-helpers.js
      4:1   warning  Dependency cycle detected                                                                                                                                              import-x/no-cycle
      4:9   warning  'ItemFFG' is defined but never used                                                                                                                                    no-unused-vars
     30:14  warning  'err' is defined but never used                                                                                                                                        no-unused-vars
@@ -480,65 +480,65 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\import-helpers
   2406:46  error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                              no-prototype-builtins
   3314:21  error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                              no-prototype-builtins
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\armor.js
+<repo>\modules\importer\oggdude\importers\armor.js
   89:22  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\careers.js
+<repo>\modules\importer\oggdude\importers\careers.js
   122:22  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\forcepowers.js
+<repo>\modules\importer\oggdude\importers\forcepowers.js
    69:22  warning  'err' is defined but never used  no-unused-vars
   177:22  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\gear.js
+<repo>\modules\importer\oggdude\importers\gear.js
   78:22  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\item-attachments.js
+<repo>\modules\importer\oggdude\importers\item-attachments.js
   103:20  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\item-descriptors.js
+<repo>\modules\importer\oggdude\importers\item-descriptors.js
   77:18  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\motivations.js
+<repo>\modules\importer\oggdude\importers\motivations.js
   77:7  warning  'delay' is assigned a value but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\obligation.js
+<repo>\modules\importer\oggdude\importers\obligation.js
   74:20  warning  'e' is defined but never used  no-unused-vars
   74:23  error    Empty block statement          no-empty
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\signature-abilities.js
+<repo>\modules\importer\oggdude\importers\signature-abilities.js
    71:26  warning  'err' is defined but never used  no-unused-vars
   137:22  warning  'err' is defined but never used  no-unused-vars
   151:20  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\specializations.js
+<repo>\modules\importer\oggdude\importers\specializations.js
   139:22  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\species.js
+<repo>\modules\importer\oggdude\importers\species.js
   166:22  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\talents.js
+<repo>\modules\importer\oggdude\importers\talents.js
   99:22  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\vehicles.js
+<repo>\modules\importer\oggdude\importers\vehicles.js
   130:25  warning  'count' is assigned a value but never used  no-unused-vars
   159:22  warning  'err' is defined but never used             no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\importers\weapons.js
+<repo>\modules\importer\oggdude\importers\weapons.js
   119:22  warning  'err' is defined but never used  no-unused-vars
   126:24  warning  'err' is defined but never used  no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\oggdude\oggdude.js
+<repo>\modules\importer\oggdude\oggdude.js
   41:5  warning  Unexpected 'TODO' comment: 'TODO: figure out how this works - uses...'  no-warning-comments
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\skills-list-importer.js
+<repo>\modules\importer\skills-list-importer.js
    1:8   warning  'Helpers' is defined but never used                                 no-unused-vars
   35:3   warning  Expected 'this' to be used by class async method '_prepareContext'  class-methods-use-this
   35:25  warning  '_options' is defined but never used                                no-unused-vars
   87:7   error    'saveDataToFile' is not defined                                     no-undef
   97:28  error    'readTextFromFile' is not defined                                   no-undef
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\swa-importer.js
+<repo>\modules\importer\swa-importer.js
     1:8   warning  'ItemBaseFFG' is defined but never used                             no-unused-vars
    32:3   warning  Expected 'this' to be used by class async method '_prepareContext'  class-methods-use-this
    32:25  warning  '_options' is defined but never used                                no-unused-vars
@@ -547,7 +547,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\importer\swa-importer.j
   182:46  error    Unexpected control character(s) in regular expression: \x00, \x19   no-control-regex
   481:52  error    Unnecessary escape character: \(                                    no-useless-escape
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\codex-item-sheet.js
+<repo>\modules\items\codex-item-sheet.js
    19:1    warning  Dependency cycle via ./item-editor.js:12=>../actors/codex-sheets.js:5=>./actor-sheet-ffg.js:22=>../swffg-main.js:28  import-x/no-cycle
    49:25   warning  '_context' is assigned a value but never used                                                                        no-unused-vars
    76:92   warning  'e' is defined but never used                                                                                        no-unused-vars
@@ -559,7 +559,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\codex-item-sheet.
   218:67   warning  'e' is defined but never used                                                                                        no-unused-vars
   218:70   error    Empty block statement                                                                                                no-empty
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\item-editor.js
+<repo>\modules\items\item-editor.js
      5:1   warning  Dependency cycle via ./actor-sheet-ffg.js:22=>../swffg-main.js:28=>./items/item-sheet-ffg.js:20  import-x/no-cycle
     40:14  warning  'e' is defined but never used                                                                    no-unused-vars
     71:25  warning  '_options' is defined but never used                                                             no-unused-vars
@@ -585,7 +585,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\item-editor.js
   1055:5   warning  Assignment to function parameter 'formData'                                                      no-param-reassign
   1131:5   warning  Assignment to function parameter 'formData'                                                      no-param-reassign
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\item-ffg.js
+<repo>\modules\items\item-ffg.js
     4:8   warning  'ActorOptions' is defined but never used                                                                                                                               no-unused-vars
     5:1   warning  Dependency cycle detected                                                                                                                                              import-x/no-cycle
     5:8   warning  'ImportHelpers' is defined but never used                                                                                                                              no-unused-vars
@@ -612,15 +612,15 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\item-ffg.js
   900:14  error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                              no-prototype-builtins
   903:14  error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                              no-prototype-builtins
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\item-sheet-ffg-v2.js
+<repo>\modules\items\item-sheet-ffg-v2.js
   1:1  warning  Dependency cycle via ./item-editor.js:12=>../actors/codex-sheets.js:5=>./actor-sheet-ffg.js:22=>../swffg-main.js:28  import-x/no-cycle
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\item-sheet-ffg.js
+<repo>\modules\items\item-sheet-ffg.js
      3:8   warning  'Helpers' is defined but never used                                                                                                                                    no-unused-vars
      6:8   warning  'ImportHelpers' is defined but never used                                                                                                                              no-unused-vars
      8:8   warning  'item' is defined but never used                                                                                                                                       no-unused-vars
-     8:18  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\embeddeditem-helpers.js' imported multiple times                                                     import-x/no-duplicates
-     9:33  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\helpers\embeddeditem-helpers.js' imported multiple times                                                     import-x/no-duplicates
+     8:18  warning  '<repo>\modules\helpers\embeddeditem-helpers.js' imported multiple times                                                     import-x/no-duplicates
+     9:33  warning  '<repo>\modules\helpers\embeddeditem-helpers.js' imported multiple times                                                     import-x/no-duplicates
     12:1   warning  Dependency cycle via ../actors/codex-sheets.js:5=>./actor-sheet-ffg.js:22=>../swffg-main.js:28                                                                         import-x/no-cycle
    437:9   error    Unexpected lexical declaration in case block                                                                                                                           no-case-declarations
    441:9   error    Unexpected lexical declaration in case block                                                                                                                           no-case-declarations
@@ -654,7 +654,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\items\item-sheet-ffg.js
   2359:26  warning  'event' is defined but never used                                                                                                                                      no-unused-vars
   2450:3   warning  Expected 'this' to be used by class async method '_itemDisplayDesc'                                                                                                    class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\popout-editor.js
+<repo>\modules\popout-editor.js
    61:3   warning  Expected 'this' to be used by class method '_minDimensions'  class-methods-use-this
   100:25  warning  '_options' is defined but never used                         no-unused-vars
   394:30  error    Unnecessary escape character: \[                             no-useless-escape
@@ -668,7 +668,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\popout-editor.js
   441:36  error    Unnecessary escape character: \[                             no-useless-escape
   443:7   warning  Assignment to function parameter 'content'                   no-param-reassign
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\popout-modifiers.js
+<repo>\modules\popout-modifiers.js
     1:1   warning  Dependency cycle detected                                                  import-x/no-cycle
    37:25  warning  '_options' is defined but never used                                       no-unused-vars
    91:5   warning  Assignment to function parameter 'formData'                                no-param-reassign
@@ -677,18 +677,18 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\popout-modifiers.js
   120:27  error    Do not access Object.prototype method 'hasOwnProperty' from target object  no-prototype-builtins
   144:27  error    Do not access Object.prototype method 'hasOwnProperty' from target object  no-prototype-builtins
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\settings\crew-settings.js
+<repo>\modules\settings\crew-settings.js
   26:3   warning  Expected 'this' to be used by class async method '_prepareContext'  class-methods-use-this
   26:25  warning  '_options' is defined but never used                                no-unused-vars
   90:3   warning  Expected 'this' to be used by class async method '_updateObject'    class-methods-use-this
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\settings\settings-helpers.js
+<repo>\modules\settings\settings-helpers.js
    11:1   warning  Dependency cycle via ./actor-sheet-ffg.js:22=>../swffg-main.js:28  import-x/no-cycle
   194:18  warning  'rule' is defined but never used                                   no-unused-vars
   209:18  warning  'rule' is defined but never used                                   no-unused-vars
   225:18  warning  'rule' is defined but never used                                   no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\settings\ui-settings.js
+<repo>\modules\settings\ui-settings.js
    48:3   warning  Expected 'this' to be used by class method '_buildSettingsContext'  class-methods-use-this
    99:3   warning  Expected 'this' to be used by class async method '_updateObject'    class-methods-use-this
   121:25  warning  '_options' is defined but never used                                no-unused-vars
@@ -700,10 +700,10 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\settings\ui-settings.js
   285:25  warning  '_options' is defined but never used                                no-unused-vars
   306:25  warning  '_options' is defined but never used                                no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\swffg-main.js
+<repo>\modules\swffg-main.js
     20:1    warning  Dependency cycle via ./item-editor.js:12=>../actors/codex-sheets.js:5=>./actor-sheet-ffg.js:22       import-x/no-cycle
-    28:38   warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice-pool-ffg.js' imported multiple times  import-x/no-duplicates
-    43:105  warning  'D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\dice-pool-ffg.js' imported multiple times  import-x/no-duplicates
+    28:38   warning  '<repo>\modules\dice-pool-ffg.js' imported multiple times  import-x/no-duplicates
+    43:105  warning  '<repo>\modules\dice-pool-ffg.js' imported multiple times  import-x/no-duplicates
     45:8    warning  'EmbeddedItemHelpers' is defined but never used                                                      no-unused-vars
     71:12   warning  'e' is defined but never used                                                                        no-unused-vars
    145:14   warning  'e' is defined but never used                                                                        no-unused-vars
@@ -735,7 +735,7 @@ D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\swffg-main.js
   2351:72   warning  '_options' is defined but never used                                                                 no-unused-vars
   2451:16   warning  'compendiumsEmpty' is defined but never used                                                         no-unused-vars
 
-D:\SW FFG\Portable FVTT\Data\systems\starwarsffg\modules\swffg-migration.js
+<repo>\modules\swffg-migration.js
    37:44  warning  'newVersion' is defined but never used                                                                                                                                 no-unused-vars
   204:9   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
   239:9   warning  for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array  no-restricted-syntax
