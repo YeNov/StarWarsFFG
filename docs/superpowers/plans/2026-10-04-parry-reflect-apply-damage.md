@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Rulesets: `vanilla` (default) and `respecialized`, world setting `defensiveTalentRuleset`. The reSpecialized target is **v.56**. Task 0 checked Block, Deflect and Unarmed Block against their talent text; its sources are listed there.
+- Rulesets: `vanilla` (default) and `respecialized`, world setting `defensiveTalentRuleset`. The reSpecialized target is **v.56**. Task 0 checked Block and Unarmed Block against their v.56 talent text, and Deflect against its text in the v.58 Arbiter document (no v.56 Deflect text could be read; it is assumed unchanged). Its sources are listed there.
 - Name-list settings and defaults, verbatim: `meleeDefenceTalents` = `Parry, Block`; `rangedDefenceTalents` = `Reflect, Deflect`; `meleeSupremeTalents` = `Parry (Supreme), Supreme Parry`; `rangedSupremeTalents` = `Reflect (Supreme), Supreme Reflect`; `unarmedParryTalents` = `Unarmed Parry, Unarmed Block`.
 - Every new setting is `scope: "world"`, `config: false`, and shown only in the new `defensiveTalentSettings` menu, registered with `restricted: true`.
 - Names are comma-separated, trimmed, and matched whole and case-insensitively. An empty list turns that row off.
@@ -67,7 +67,9 @@ Baseline before Task 1: `npm test` passes 916 tests with 0 failures, and `npm ru
 - [x] Reconcile the design, `DEFENSIVE_TALENT_LISTS`, name-default tests, cost/formula tests, settings text and wiki draft with those sources. Add `Unarmed Block` to the unarmed defaults only if its verified effect matches the cost modifier; otherwise give it the correct behavior rather than treating the rename as proof of identical mechanics. Add a v.56-named actor fixture that exercises each supported modifier.
 - [x] If the PDFs cannot be read or the mechanics differ from the provisional examples, resolve that before implementing or advertising reSpecialized support. Do not present the unchecked flat-4, 3-strain and modifier assumptions as verified rules.
 
-**Sources (read 2026-10-04).** The supported revision is **v.56**, "reSpecialized Project v.56 - The Force Update - Final Part", posted 2026-07-06. The latest release at the time of reading was v.58 (2026-08-12); nothing in v.58 changes Block, Deflect or Unarmed Block.
+**Sources (read 2026-10-04).** The supported revision is **v.56**, "reSpecialized Project v.56 - The Force Update - Final Part", posted 2026-07-06. The latest release at the time of reading was v.58 (2026-08-12). Block and Unarmed Block were read in v.56 trees, and v.58's changelog does not touch them (Martial Artist 1.51 fixes only Martial Grace).
+
+**Assumption: Deflect's text was read only in v.58.** No v.56 tree adds Deflect, and the v.56 Force & Destiny Primer could not be read (see **Not read** below), so there is no v.56 text to compare. The Arbiter document (Arbiter 1.0, released in v.58) is the earliest released tree that carries Deflect. This plan assumes Deflect is unchanged since v.56 named it, and the settings hint, the wiki draft and manual check 14 rest on that assumption.
 
 | Source | Revision | What it settles |
 |---|---|---|
@@ -79,7 +81,7 @@ Baseline before Task 1: `npm test` passes 916 tests with 0 failures, and `npm ru
 **Verified from the talent text:**
 
 - **Block** (active incidental, no ranks): when a melee hit lands, after damage is calculated and before soak, the character suffers 3 strain and reduces that hit's damage by 4. Once per hit, while wielding a lightsaber, a Melee weapon or another suitable item, at the GM's discretion.
-- **Deflect** (active incidental, no ranks): the same for a ranged hit, 3 strain for 4 off. A lightsaber counts only if the character is Force-sensitive.
+- **Deflect** (active incidental, no ranks; text read in the v.58 Arbiter document, assumed unchanged since v.56): the same for a ranged hit, 3 strain for 4 off. A lightsaber counts only if the character is Force-sensitive.
 - **Unarmed Block** (passive): the character may Block while unarmed, and doing so costs 1 strain less, to a minimum of 1. This matches the unarmed cost modifier, so `Unarmed Block` joins `unarmedParryTalents`.
 - **Improved Unarmed Block** (passive) disarms an engaged attacker whose combat check generates three threat or a despair. It changes neither the reduction nor the cost and is in no list.
 - No Supreme Block, Supreme Deflect or unarmed Deflect appears in any source. The Supreme lists keep the vanilla names only.

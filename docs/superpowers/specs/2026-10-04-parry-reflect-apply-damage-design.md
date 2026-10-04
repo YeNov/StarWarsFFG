@@ -44,7 +44,18 @@ Part", 2026-07-06). Its [release
 notes](https://forum.swrpgcommunity.com/t/respecialized-project-v-56-the-force-update-final-part/1628)
 name Block and Deflect as the replacements for Parry and Reflect. The rules below were checked
 against the talent text itself, in the reSpecialized design documents for the trees that carry
-them. The implementation plan's Task 0 lists every source and what each one settled.
+them (all read 2026-10-04):
+
+- [Martial Artist design doc](https://docs.google.com/document/d/1LQ2P_v-eGXuk6WennBKSoyKr82HgwMvASB8EAeBlHSo/edit):
+  Martial Artist 1.5 (v.56), read at 1.51, which changes only Martial Grace. Block, Unarmed
+  Block, Improved Unarmed Block.
+- [Pit Fighter design doc](https://docs.google.com/document/d/105d704JSxnH17YEqRB-2F3MEbggM_otoNzZ_ezapFkc/edit):
+  Pit Fighter 1.11 (v.56). The same three talents.
+- [Arbiter design doc](https://docs.google.com/document/d/1yZDiDEPbT-sij4UsWK7p6VVnU5XSwEIBEb2-X3LXvUU/edit):
+  Arbiter 1.0, released in [v.58](https://forum.swrpgcommunity.com/t/respecialized-project-v-58-the-consular-career-update/1642).
+  Deflect, and Block again.
+
+The implementation plan's Task 0 says what each source settled and what could not be read.
 
 > **Block:** When hit by a melee attack, suffer 3 strain to reduce damage by 4.
 > **Deflect:** When hit by a ranged attack, suffer 3 strain to reduce damage by 4.
@@ -72,9 +83,10 @@ works as Deflect**. Those aliases are this system's convention, not a reSpeciali
 Supreme Parry, Supreme Reflect and Unarmed Parry keep their vanilla cost effects in both modes.
 
 Block's text is the same in the v.56 Martial Artist and Pit Fighter documents and in the later
-Arbiter document. No v.56 tree adds Deflect, so its text was checked in the Arbiter design
-document (Arbiter 1.0, released in v.58), the earliest released tree that carries it. The
-Force & Destiny Primer that the v.56 notes link could not be read; see Task 0.
+Arbiter document. **Deflect's text was read only in v.58.** No v.56 tree adds Deflect, the
+Force & Destiny Primer that the v.56 notes link could not be read, and the Arbiter design
+document (Arbiter 1.0, released in v.58) is the earliest released tree that carries it. This
+design assumes Deflect is unchanged since v.56 named it; see Task 0.
 
 ## Settings
 
