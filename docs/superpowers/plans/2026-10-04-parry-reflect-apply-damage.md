@@ -2241,6 +2241,11 @@ function defenceHtml(plan) {
     </div>`;
 }
 
+/** Freeze the talent controls once Apply is under way; the dialog closes when the callback ends. */
+function lockDefenceControls(root) {
+  for (const control of root.querySelectorAll(".ffg-defence-toggle, .ffg-defence-option")) control.disabled = true;
+}
+
 /** The warning for a failed apply. The refusals this dialog knows get their own localized text. */
 function applyFailureMessage(err, actor) {
   if (err?.code === DEFENCE_UNAFFORDABLE) return game.i18n.format("SWFFG.ApplyDamage.Defence.Unaffordable", { actorName: actor.name });
@@ -2320,6 +2325,10 @@ export class ApplyDamage {
     });
     const liveActor = () => target.actor ?? a;
     const selection = { on: false, supreme: false, unarmed: false };
+    // DialogV2 greys out its own footer buttons while Apply runs, but not the controls in the
+    // content. Once true, refresh() keeps Apply disabled and the callback refuses to run again, so
+    // no click on a talent control can unlock a second submit of the same hit.
+    let submitting = false;
     const defenceControls = () => planDefenceControls(defencePlan, readCostPool(liveActor()), selection);
 
     const damageLabel = game.i18n.localize("SWFFG.ApplyDamage.Damage");
@@ -2356,10 +2365,13 @@ export class ApplyDamage {
           label: applyLabel,
           default: true,
           callback: async (event, button, dialog) => {
+            if (submitting) return;
+            submitting = true;
             const root = dialog.element;
-            // Check the pool once more: Enter can submit past a greyed-out Apply, and strain may
-            // have moved since the dialog opened. A talent that was chosen and can no longer be
-            // paid stops the whole application rather than letting the hit land without it.
+            lockDefenceControls(root);
+            // Check the pool once more at submit time: the target's pool may have changed since the
+            // last refresh (another client's write, a sheet edit). A talent that was chosen and can
+            // no longer be paid stops the whole application rather than landing the hit without it.
             const controls = defencePlan ? defenceControls() : null;
             if (selection.on && (!controls?.on || controls.applyDisabled)) {
               ui.notifications.warn(game.i18n.format("SWFFG.ApplyDamage.Defence.Unaffordable", { actorName: a.name }));
@@ -2491,7 +2503,7 @@ export class ApplyDamage {
             cost: controls.cost,
             unit: unitLabel(defencePlan, controls.cost),
           });
-          if (applyButton) applyButton.disabled = controls.applyDisabled;
+          if (applyButton) applyButton.disabled = submitting || controls.applyDisabled;
         };
 
         toggle.addEventListener("click", (ev) => {
@@ -2650,7 +2662,7 @@ strain and take a flat 4 off the hit, whatever the ranks, and the toggle reads *
 are treated the same way.
 ```
 
-Capture `docs/tutorial-shots/12-06-apply-parry.png`: the Apply Damage dialog for the Parry 2 character from Step 1, with the toggle on and Supreme visible. Record its numbered marks in `docs/tutorial-shots/12-06-apply-parry.boxes.json`, the same format as `12-02-apply-damage.boxes.json`. Then run `python tools/annotate-tutorial-shots.py <wiki-clone>` to write `images/12-06-apply-parry.webp`. Add it under the new section:
+Capture `docs/tutorial-shots/12-06-apply-parry.png`: the Apply Damage dialog for the Parry 2 character from Step 1, with the toggle on and Supreme visible. Record its numbered marks in `docs/tutorial-shots/12-06-apply-parry.boxes.json`, the same format as `12-02-apply-damage.boxes.json`. Both tutorial scripts live in the wiki repo's root, not in this repo. `annotate-tutorial-shots.py` only draws the shots listed in its `SPECS` table, so first add a `12-06-apply-parry` entry there, modelled on the `12-02-apply-damage` one. Then run `TUTORIAL_SHOTS=<repo>/docs/tutorial-shots python <wiki-clone>/annotate-tutorial-shots.py <wiki-clone> 12-06-apply-parry` to write `images/12-06-apply-parry.webp`. Add it under the new section:
 
 ```markdown
 ![Apply Parry in the Apply Damage dialog](https://raw.githubusercontent.com/wiki/YeNov/StarWarsFFG/images/12-06-apply-parry.webp)
@@ -2665,7 +2677,7 @@ In `Tutorial-16-More-worth-knowing.md`, add to the settings list:
   Reflect in Apply Damage, and which talent names count as them (see [chapter 12](Tutorial-12-Apply-Damage-and-Apply-Crit)).
 ```
 
-Run `python tools/build-tutorial-preview.py <wiki-clone>` and read chapters 12 and 16 in the preview. Commit in the wiki clone. **Push the wiki only when the user approves pushing the branch.**
+Run `python <wiki-clone>/build-tutorial-preview.py <wiki-clone>` and read chapters 12 and 16 in the preview. Commit in the wiki clone. **Push the wiki only when the user approves pushing the branch.**
 
 - [ ] **Step 5: Final verification**
 
