@@ -131,6 +131,18 @@ Only the cost counts, not the hit itself.
   out until the selection is cheap enough or the toggle is turned off. The dialog never selects
   Supreme by itself, because only the table knows whether the target made a combat check last turn.
 
+The dialog re-reads the target's cost pool and threshold on each toggle change and immediately
+before submitting. These checks guide the UI; the authoritative check runs inside the elected
+writer's per-actor queue, immediately before the update, using that writer's live actor values.
+It checks the selected talent cost alone, even when the cost and hit are merged into one delta.
+For example, two dialogs opened at 7/10 strain may both offer a 3-strain Parry: the first queued
+application reaches 10/10, and the second must be refused.
+
+If the cost is no longer affordable, reject the entire application with an `ApplyRequestError`.
+Write neither damage nor cost, post neither chat message, and show a localized warning that the
+target can no longer pay the selected cost. The user can reopen Apply Damage and choose again;
+the system never substitutes a cheaper modifier or applies the hit without the selected talent.
+
 ### Dialog
 
 Below Damage and Pierce, only when a talent applies:
@@ -164,8 +176,9 @@ Pierce:  [  2 ]
   carries no cost and no numbers.
 - **GM whisper:** unchanged, with its damage and soak figures computed on the reduced damage,
   plus one line naming the matched talent, the reduction and how it was reached, and the cost.
-  For example: "Parry: −4 damage (2 + 2 ranks); 3 strain, Supreme." In reSpecialized the
-  explanation reads "flat 4".
+  For example: "Parry: −4 damage (2 + 2 ranks); 1 strain, Supreme." Modifier names describe
+  Supreme and Unarmed actually selected for this application, not talents merely possessed.
+  In reSpecialized the explanation reads "flat 4".
 
 ### Write
 
@@ -176,19 +189,45 @@ its cost being paid, and the cost is never paid without the hit landing.
 The `damage` request gains an optional `changes` form:
 
 ```js
-{ type: "damage", changes: [{ path, delta }, { path, delta }], gmChat }
+{
+  type: "damage",
+  changes: [{ path, delta }, { path, delta }],
+  defenceCost: { path: costPath, delta: cost },
+  gmChat,
+}
 ```
 
 - One or two entries. Each `path` must be in `DAMAGE_PATHS` and each `delta` a finite number,
   under the same rules the single form already enforces. Duplicate paths are refused.
 - When the damage pool and the cost pool are the same path (strain damage on a character, or
   any hit on a rival or minion), the planner merges them into one entry before sending.
+- A talent application also carries `defenceCost`, preserving the cost separately from a
+  merged hit. Its path must be the target type's cost pool, its delta an integer from 1 to 3,
+  and the corresponding `changes` entry must include at least that delta. The writer derives
+  the threshold from the live actor; no current value or threshold is trusted from the sender.
+  Validate the new form and its cost metadata on every execution path, including local and
+  forwarded owner requests, which currently bypass `narrowApplyRequest`.
 - The legacy `{ path, delta }` form is still accepted. **Apply Damage keeps sending it whenever
   no talent is used**, so a GM still on the old code can apply ordinary damage without trouble.
-  A Parry application reaching a GM on the old code is refused with the bridge's existing error.
+
+Before sending a talent application, require a positive `defensive-damage-v1` capability
+response from the currently elected writer (the active GM, or the elected owner without a GM).
+This capability means support for both the `changes` form and queued affordability validation.
+A separate read-only socket probe carries a request id and the selected writer id; accept its
+reply only from that writer's authenticated socket sender and for that request. A local writer
+checks its own capability directly. An old writer ignores the probe; after 5 seconds without a
+positive reply, refuse locally with a localized reload warning and send no mutation or chat.
+
+Capability responses are tied to the writer's current session and are not cached across
+applications. If the elected writer changes before dispatch, discard the response and probe
+the replacement; the coordinator must never reroute a talent application to an unverified
+writer. This gate applies to owned and unowned targets alike: an old GM validates unowned
+requests, but forwarded owner requests bypass that validation, so the existing error is not a
+safe compatibility check.
 
 `performApply` normalizes both forms to a list and reads every current value before writing
-them all in a single update.
+them all in a single update. For a talent application, it validates `defenceCost` and checks
+affordability against the live actor inside the same queued operation, before any write.
 
 ## Module shape
 
@@ -213,12 +252,17 @@ and the actor and passes them in. Labels come back as i18n keys.
 - **`apply-damage-plan.js`:** `planDamageApplication(actor, target, input)` accepts an optional
   `input.defence = { reduction, cost, costPath }`. It returns the existing fields, with
   `applied` computed on the reduced damage, plus `reduced`, `reduction` and a `changes` array with
-  same-path entries merged. Without `defence`, it returns exactly what it does today.
+  same-path entries merged and `defenceCost: { path: costPath, delta: cost }` preserving the
+  separate cost. Without `defence`, it returns exactly what it does today.
 - **`apply-damage.js`:** reads the six settings, calls the planner, draws the toggle row, and
-  keeps the toggle's and Apply's disabled state current as the toggles change. On Apply it
-  sends the single form or the `changes` form and writes both chat lines.
-- **`gm-bridge.js`:** `narrowApplyRequest` accepts the `changes` form, and `performApply` writes
-  either form in a single update.
+  re-reads affordability as the toggles change and on Apply. It sends the single form or the
+  guarded `changes` form, handling capability and affordability refusals before posting chat.
+- **`gm-bridge.js`:** handles the capability probe; `narrowApplyRequest` accepts and preserves
+  the new form and its `defenceCost`. `performApply` validates the new form for all callers,
+  checks live affordability inside the queue, and writes both pools in a single update.
+- **`actor-apply-coordinator.js`:** verifies the elected writer's capability before dispatching
+  a talent application and rechecks if the election changes. A rejected application never
+  reaches the GM-whisper step.
 - **`modules/swffg-main.js`:** registers the six settings beside `useDefense`.
 - **`modules/settings/ui-settings.js`:** a new `defensiveTalentSettings` class, built like
   `combatSettings`.
@@ -243,10 +287,19 @@ and the actor and passes them in. Labels come back as i18n keys.
   - the cheapest cost, which decides whether the toggle is greyed out
 - `tests/node/apply-damage.test.mjs`: the reduction applied before soak, a reduction larger
   than the damage, merged `changes` on the same path, separate `changes` on different paths,
-  and identical output when there is no `defence`.
+  the separate cost metadata retained after merging, and identical output when there is no
+  `defence`.
 - `tests/node/gm-bridge-apply.test.mjs`: the `changes` form accepted, and refused when it is
   empty, has more than two entries, names a path outside `DAMAGE_PATHS`, has a non-finite delta
-  or repeats a path. The legacy form still works.
+  or repeats a path. Cost metadata is preserved and rejects an invalid cost pool, a cost outside
+  1–3 or a cost missing from the changes. The legacy form still works.
+- Writer execution and `tests/node/actor-apply-coordinator.test.mjs`: one actor update writes
+  both pools; merged-path affordability checks only the cost. Two queued applications opened
+  at 7/10 strain with a 3-strain cost apply only the first, with no write or chat for the second.
+  Exercise live threshold changes and rejection on local, forwarded owner and unowned paths.
+  Capability tests cover an updated writer, an old writer's probe timeout, and a writer change
+  between probe and dispatch. An old writer receives no talent mutation for either owned or
+  unowned targets; ordinary legacy damage still works.
 
 **Manual, in Foundry:**
 
@@ -260,11 +313,19 @@ and the actor and passes them in. Labels come back as i18n keys.
 6. Strain damage (the Strain radio) plus a Parry: one write to strain covering both.
 7. A player applying to an NPC they don't own goes through the bridge, and the GM whisper is still posted.
 8. Edited name lists: a custom talent name is recognized, and clearing a list removes the toggle.
+9. Open two dialogs for a character at 7/10 strain and select a 3-strain Parry in both. Apply
+   the first, then the second: only the first writes damage and cost or posts chat; the second
+   warns that the selected cost is no longer affordable.
+10. Keep the elected GM on old code while the applying client runs the new code. A talent
+    application to either an owned or unowned target sends no mutation and shows the reload
+    warning after the capability probe times out. Ordinary damage still applies. Repeat with
+    an old elected owner and no GM, then confirm talent applications work after all reload.
 
 ## Rollout
 
 - **CHANGELOG:** one entry under `Unreleased`, plus a sub-bullet: reload Foundry on every
-  connected client, because a GM on the old code refuses a Parry application.
+  connected client so the elected GM or owner supports talent applications. The capability
+  check blocks sending them to an old writer; ordinary damage remains available.
 - **Wiki:** add the toggle to the damage-and-crits chapter of the tutorial and re-capture its
   Apply Damage screenshot if the dialog appears in it. The new settings menu gets a line in
   the GM setup chapter.
