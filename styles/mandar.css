@@ -5389,6 +5389,32 @@ img {
   cursor: not-allowed;
 }
 
+/* Parry & Reflect in the Apply Damage dialog. Pressed reads as a ring rather than a colour, so it
+   works on the dialog under either Foundry theme; disabled is greyed out with no explanation. */
+.ffg-defence {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ffg-defence-options {
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 16px;
+}
+
+.ffg-defence-toggle[aria-pressed="true"],
+.ffg-defence-option[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--color-border-highlight, #ff6400);
+  font-weight: bold;
+}
+
+.ffg-defence-toggle[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .starwarsffg .resetMedical {
   height: 20px;
   display: flex;

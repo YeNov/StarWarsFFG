@@ -1,5 +1,7 @@
 `Unreleased`
 
+* Added — **Apply Damage offers Parry and Reflect** ([#101](https://github.com/YeNov/StarWarsFFG/pull/101)). When the target has one that fits the attack, a toggle reduces the hit before soak and charges its cost (strain, or wounds for a rival) in the same update, without showing the target's ranks; it is greyed out when paying would incapacitate them. A GM-only **Parry & Reflect** settings menu edits which talents count and switches to the reSpecialized Block and Deflect rules.
+  * Reload Foundry on every connected client. Parry and Reflect can only be applied once the GM (or, with no GM, the owners of the target) runs this version; ordinary damage keeps working meanwhile.
 * Fixed — **the "what's new" link in the version update message went to the wiki's front page**, the same place as the System Wiki link two lines below it. It pointed at a per-version wiki page this fork does not keep, and GitHub quietly redirects a missing wiki page to the front page. It now opens that version's release notes, which are written for every release.
 
 `2.1.5`

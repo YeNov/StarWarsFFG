@@ -48,6 +48,7 @@ import EmbeddedItemHelpers from "./helpers/embeddeditem-helpers.js";
 import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { ReplaceDie } from "./helpers/replace-die.js";
+import { DEFENSIVE_TALENT_LISTS, RULESET_RESPECIALIZED, RULESET_VANILLA } from "./helpers/defensive-talents.js";
 import { registerGMBridge } from "./helpers/gm-bridge.js";
 import { registerStatStepBridge } from "./helpers/stat-step-bridge.js";
 import { shouldApplySkillTheme } from "./helpers/skill-theme.js";
@@ -740,6 +741,32 @@ Hooks.once("init", async function () {
     default: true,
     type: Boolean,
   });
+  // Parry & Reflect in Apply Damage: which rules shrink a hit, and which talent names count.
+  // World-scoped and shown only in their own GM menu (settings-helpers.js), since they decide how
+  // damage is resolved for the whole table. A name list is comma-separated and matched whole,
+  // ignoring case; see helpers/defensive-talents.js.
+  game.settings.register("starwarsffg", "defensiveTalentRuleset", {
+    name: game.i18n.localize("SWFFG.Settings.DefensiveTalents.Ruleset.Name"),
+    hint: game.i18n.localize("SWFFG.Settings.DefensiveTalents.Ruleset.Hint"),
+    scope: "world",
+    config: false,
+    default: RULESET_VANILLA,
+    type: String,
+    choices: {
+      [RULESET_VANILLA]: "SWFFG.Settings.DefensiveTalents.Ruleset.Vanilla",
+      [RULESET_RESPECIALIZED]: "SWFFG.Settings.DefensiveTalents.Ruleset.Respecialized",
+    },
+  });
+  for (const list of DEFENSIVE_TALENT_LISTS) {
+    game.settings.register("starwarsffg", list.setting, {
+      name: game.i18n.localize(`SWFFG.Settings.DefensiveTalents.${list.label}.Name`),
+      hint: game.i18n.localize(`SWFFG.Settings.DefensiveTalents.${list.label}.Hint`),
+      scope: "world",
+      config: false,
+      default: list.default,
+      type: String,
+    });
+  }
    /**
    * Register roll simulation mode
    */

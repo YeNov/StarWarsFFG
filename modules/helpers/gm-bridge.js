@@ -17,10 +17,18 @@
 import { killMinion } from "./minions.js";
 import { isMinionVehicle } from "./minion-group.js";
 import { availFor } from "./crit-availability.js";
-import { createActorApplyCoordinator, APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT } from "./actor-apply-coordinator.js";
+import {
+  createActorApplyCoordinator, ApplyRequestError,
+  APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT, CAPABILITY_EVENT, CAPABILITY_RESULT_EVENT,
+} from "./actor-apply-coordinator.js";
+
+export { DEFENSIVE_DAMAGE_CAPABILITY, WRITER_OUTDATED } from "./actor-apply-coordinator.js";
+import { BASE_DEFENCE_COST, MIN_DEFENCE_COST, defenceCostPool, readCostPool, wouldIncapacitate } from "./defensive-talents.js";
 
 const FFG_SOCKET = "system.starwarsffg";
 const MESSAGE_EVENT = "ffgUpdateMessage";
+/** Socket events the apply coordinator answers on every client. */
+const COORDINATOR_EVENTS = new Set([APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT, CAPABILITY_EVENT, CAPABILITY_RESULT_EVENT]);
 
 /**
  * The numeric pools an "Apply Damage" may bump. Taken from apply-damage.js, which
@@ -39,9 +47,55 @@ export const DAMAGE_PATHS = Object.freeze([
 /** The item types "Apply Critical" may embed (apply-crit.js draws them from a crit table). */
 export const CRIT_ITEM_TYPES = Object.freeze(["criticalinjury", "criticaldamage"]);
 
+/** The most entries one damage request may carry: the hit, and the cost of the talent that shrank it. */
+const MAX_DAMAGE_CHANGES = 2;
+
+/** ApplyRequestError code: the target can no longer pay the selected Parry/Reflect cost. */
+export const DEFENCE_UNAFFORDABLE = "defence-unaffordable";
+
 /** True for a value that is an object literal (not null, not an array). */
 function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Narrow the two-pool damage form: a hit and, for Parry, Reflect or an equivalent, the talent's
+ * cost, written together in one update. See
+ * docs/superpowers/specs/2026-10-04-parry-reflect-apply-damage-design.md.
+ *
+ * `defenceCost` restates the cost apart from a merged hit so the writer can check the cost alone.
+ * It must name the target type's own cost pool, be an integer from 1 to 3, and be covered by the
+ * `changes` entry for that pool. Nothing about the target's current value or threshold is taken
+ * from the payload. Pure, so the rules are testable in Node.
+ *
+ * @param {object} data       the request
+ * @param {string} actorType  the resolved target's `type`
+ * @returns {{ok: true, op: object}|{ok: false, reason: string}}
+ */
+export function narrowDamageChanges(data, actorType) {
+  if (data?.path !== undefined || data?.delta !== undefined || !Array.isArray(data?.changes)) {
+    return { ok: false, reason: "shape" };
+  }
+  if (data.changes.length === 0 || data.changes.length > MAX_DAMAGE_CHANGES) return { ok: false, reason: "changes" };
+  const changes = [];
+  for (const change of data.changes) {
+    if (!isPlainObject(change)) return { ok: false, reason: "changes" };
+    if (!DAMAGE_PATHS.includes(change.path)) return { ok: false, reason: "path" };
+    if (typeof change.delta !== "number" || !Number.isFinite(change.delta)) return { ok: false, reason: "delta" };
+    if (changes.some((kept) => kept.path === change.path)) return { ok: false, reason: "duplicate" };
+    changes.push({ path: change.path, delta: change.delta });
+  }
+  const op = { type: "damage", changes };
+  if (data.defenceCost !== undefined) {
+    const cost = data.defenceCost;
+    const pool = defenceCostPool(actorType);
+    const valid = isPlainObject(cost) && pool && cost.path === pool.path
+      && Number.isInteger(cost.delta) && cost.delta >= MIN_DEFENCE_COST && cost.delta <= BASE_DEFENCE_COST;
+    const covering = valid ? changes.find((change) => change.path === cost.path) : null;
+    if (!covering || covering.delta < cost.delta) return { ok: false, reason: "defence-cost" };
+    op.defenceCost = { path: cost.path, delta: cost.delta };
+  }
+  return { ok: true, op };
 }
 
 /**
@@ -60,6 +114,7 @@ function isPlainObject(value) {
 export function narrowApplyRequest(data, actorType, { minionGroup = false } = {}) {
   switch (data?.type) {
     case "damage": {
+      if (data.changes !== undefined || data.defenceCost !== undefined) return narrowDamageChanges(data, actorType);
       if (!DAMAGE_PATHS.includes(data.path)) return { ok: false, reason: "path" };
       // A real, finite number -- not a coercible one. `Number(null)` is 0 and
       // `Number("5")` is 5, and neither is anything apply-damage.js sends.
@@ -86,6 +141,35 @@ export function narrowApplyRequest(data, actorType, { minionGroup = false } = {}
 }
 
 /**
+ * The `actor.update` payload for a damage operation, computed from the live actor inside the
+ * writer's queue.
+ *
+ * The single `{path, delta}` form is unchanged and unvalidated here: owners keep the direct
+ * writes they always had, and unowned requests were already narrowed. The two-pool form is
+ * validated on every path, because local and forwarded-owner requests never pass through
+ * narrowApplyRequest. A talent's cost is checked against the pool as it stands before this write,
+ * so of two applications opened at the same strain, the second is refused, hit and all.
+ *
+ * @param {object} actor  the resolved target
+ * @param {object} op     a "damage" operation
+ * @returns {Record<string, number>}
+ * @throws {ApplyRequestError} a malformed request, or code DEFENCE_UNAFFORDABLE
+ */
+export function planDamageWrite(actor, op) {
+  const read = (path) => Number(foundry.utils.getProperty(actor, path)) || 0;
+  if (op.changes === undefined && op.defenceCost === undefined) {
+    return { [op.path]: read(op.path) + op.delta };
+  }
+  const narrowed = narrowDamageChanges(op, actor?.type);
+  if (!narrowed.ok) throw new ApplyRequestError(`Invalid apply request: ${narrowed.reason}.`);
+  const { changes, defenceCost } = narrowed.op;
+  if (defenceCost && wouldIncapacitate(readCostPool(actor), defenceCost.delta)) {
+    throw new ApplyRequestError("The target can no longer pay the selected cost.", DEFENCE_UNAFFORDABLE);
+  }
+  return Object.fromEntries(changes.map(({ path, delta }) => [path, read(path) + delta]));
+}
+
+/**
  * Perform the actual privileged operation against an actor the current client
  * is allowed to modify. Always reached through the apply coordinator, never
  * called directly, so the read-modify-write below cannot interleave.
@@ -94,13 +178,14 @@ export function narrowApplyRequest(data, actorType, { minionGroup = false } = {}
  * @param {"damage"|"crit"|"kill-minion"} op.type
  * @param {string} [op.path]    For "damage": the numeric system path to bump.
  * @param {number} [op.delta]   For "damage": the amount to add to the current value.
+ * @param {Array<{path: string, delta: number}>} [op.changes]  For "damage": the two-pool form.
+ * @param {{path: string, delta: number}} [op.defenceCost]      For "damage": the talent cost within `changes`.
  * @param {object[]} [op.items] For "crit": item data objects to embed.
  * @returns {Promise<void>}
  */
 async function performApply(actor, op) {
   if (op.type === "damage") {
-    const current = Number(foundry.utils.getProperty(actor, op.path)) || 0;
-    await actor.update({ [op.path]: current + op.delta });
+    await actor.update(planDamageWrite(actor, op));
   } else if (op.type === "crit") {
     await actor.createEmbeddedDocuments("Item", op.items);
   } else if (op.type === "kill-minion") {
@@ -175,14 +260,16 @@ const applyCoordinator = createActorApplyCoordinator({
  *
  * @param {Actor} actor  The resolved target actor (synthetic token actor is fine).
  * @param {object} op     See {@link performApply}; may also carry `gmChat`.
+ * @param {{capability?: string}} [options]  Require the elected writer to support a capability
+ *   (DEFENSIVE_DAMAGE_CAPABILITY for Parry/Reflect); refusal rejects with code WRITER_OUTDATED.
  * @returns {Promise<"local"|"forwarded"|false>} "local" if applied on this
  *   client, "forwarded" after the elected writer confirms completion, false
  *   if there is no permitted writer. Confirmed remote failures reject; overdue
  *   calls remain pending. The GM posts `gmChat` on the appropriate local or
  *   forwarded path; owner-only fallback omits it.
  */
-export async function applyToTargetActor(actor, op) {
-  const result = await applyCoordinator.apply(actor, op);
+export async function applyToTargetActor(actor, op, options) {
+  const result = await applyCoordinator.apply(actor, op, options);
   if (!result) {
     ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM"));
   }
@@ -240,7 +327,7 @@ export function registerGMBridge() {
   // the requestor) — so it is trusted and not spoofable by the emitting client.
   game.socket.on(FFG_SOCKET, async (data, requestorId) => {
     try {
-      if (data?.event === APPLY_EVENT || data?.event === APPLY_RESULT_EVENT || data?.event === APPLY_STATUS_EVENT) {
+      if (COORDINATOR_EVENTS.has(data?.event)) {
         await applyCoordinator.receive(data, requestorId);
         return;
       }
