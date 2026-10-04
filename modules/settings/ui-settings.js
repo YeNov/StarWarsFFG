@@ -1,4 +1,5 @@
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
+import { DEFENSIVE_TALENT_LISTS } from "../helpers/defensive-talents.js";
 
 class ffgSettings extends FFGFormApplication {
   static DEFAULT_OPTIONS = {
@@ -179,6 +180,26 @@ export class combatSettings extends ffgSettings {
       "starwarsffg.additionalStatuses",
     ];
     return this._buildSettingsContext(includeSettingsNames);
+  }
+}
+
+/** Parry & Reflect in Apply Damage: the ruleset and the talent name lists (GM only, world-scoped). */
+export class defensiveTalentSettings extends ffgSettings {
+  static DEFAULT_OPTIONS = {
+    id: "defensive-talent-settings",
+    classes: ["starwarsffg", "defensive-talent-settings"],
+    window: { title: "SWFFG.Settings.DefensiveTalents.Title" },
+  };
+
+  static PARTS = {
+    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
+  };
+
+  async _prepareContext(_options) {
+    return this._buildSettingsContext([
+      "starwarsffg.defensiveTalentRuleset",
+      ...DEFENSIVE_TALENT_LISTS.map((list) => `starwarsffg.${list.setting}`),
+    ]);
   }
 }
 

@@ -2,6 +2,7 @@ import {
   rulesetSettings,
   uiSettings,
   combatSettings,
+  defensiveTalentSettings,
   actorSettings,
   xpSpendingSettings,
   localizationSettings,
@@ -47,6 +48,15 @@ export default class SettingsHelpers {
       label: game.i18n.localize("SWFFG.Settings.combat.Label"),
       icon: "fa-solid fa-swords",
       type: combatSettings,
+      restricted: true,
+    });
+
+    game.settings.registerMenu("starwarsffg", "defensiveTalentSettings", {
+      name: game.i18n.localize("SWFFG.Settings.DefensiveTalents.Name"),
+      hint: game.i18n.localize("SWFFG.Settings.DefensiveTalents.Hint"),
+      label: game.i18n.localize("SWFFG.Settings.DefensiveTalents.Label"),
+      icon: "fas fa-shield-halved",
+      type: defensiveTalentSettings,
       restricted: true,
     });
 
