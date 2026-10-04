@@ -5,11 +5,17 @@ export const APPLY_RESULT_EVENT = "ffgApplyToTargetResult";
 export const APPLY_STATUS_EVENT = "ffgApplyToTargetStatus";
 const LOCAL_REQUEST = Symbol("local apply");
 
-/** An actionable failure which apply dialogs should show instead of "target gone". */
+/**
+ * An actionable failure which apply dialogs should show instead of "target gone".
+ *
+ * `code`, when present, is a stable identifier the requesting client turns into its own
+ * localized warning, since the message may come from another client in another language.
+ */
 export class ApplyRequestError extends Error {
-  constructor(message) {
+  constructor(message, code) {
     super(message);
     this.name = "ApplyRequestError";
+    if (code) this.code = code;
   }
 }
 
@@ -122,7 +128,7 @@ export function createActorApplyCoordinator(io) {
       clearTimeout(request.timer);
       pending.delete(data.requestId);
       if (data.ok) request.resolve();
-      else request.reject(new ApplyRequestError(data.error || "The apply request failed."));
+      else request.reject(new ApplyRequestError(data.error || "The apply request failed.", typeof data.code === "string" ? data.code : undefined));
       return;
     }
     if (data?.event !== APPLY_EVENT && data?.event !== APPLY_STATUS_EVENT) return;
@@ -176,6 +182,7 @@ export function createActorApplyCoordinator(io) {
   async function execute(data, senderId) {
     let ok = false;
     let error;
+    let code;
     try {
       const actor = await io.resolveActor(data.actorUuid);
       if (!actor) {
@@ -201,8 +208,9 @@ export function createActorApplyCoordinator(io) {
       }
     } catch (err) {
       error = err.message;
+      if (typeof err.code === "string") code = err.code;
     }
-    return { ok, error };
+    return code ? { ok, error, code } : { ok, error };
   }
 
   return { apply, receive };

@@ -20,10 +20,13 @@ import "./_stub/foundry-stub.mjs";
 import { createKeyedSerializer } from "../../modules/helpers/keyed-serializer.js";
 import {
   narrowApplyRequest,
+  narrowDamageChanges,
   isApplyRequestAuthorized,
   prepareForwardedApply,
+  planDamageWrite,
   DAMAGE_PATHS,
   CRIT_ITEM_TYPES,
+  DEFENCE_UNAFFORDABLE,
 } from "../../modules/helpers/gm-bridge.js";
 
 /* -------------------------------------------------------------------------- */
@@ -195,4 +198,116 @@ test("any connected user may forward, with or without a chat card behind it", ()
   // forwarded request may DO is still narrowed, above.
   assert.deepEqual(isApplyRequestAuthorized({ id: "p1", active: true, isGM: false }), { ok: true });
   assert.deepEqual(isApplyRequestAuthorized({ id: "gm", active: true, isGM: true }), { ok: true });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Parry and Reflect: the two-pool form                                      */
+/* -------------------------------------------------------------------------- */
+
+const STRAIN = "system.stats.strain.value";
+const WOUNDS = "system.stats.wounds.value";
+
+/** A 3-strain Parry on a character: 2 wounds after soak, 3 strain paid. */
+const talentRequest = (overrides = {}) => ({
+  type: "damage",
+  changes: [{ path: WOUNDS, delta: 2 }, { path: STRAIN, delta: 3 }],
+  defenceCost: { path: STRAIN, delta: 3 },
+  ...overrides,
+});
+const refuse = (data, reason, actorType = "character") =>
+  assert.deepEqual(narrowApplyRequest(data, actorType), { ok: false, reason });
+
+test("a two-pool damage request and its cost are accepted and copied clean", () => {
+  const result = narrowApplyRequest({ ...talentRequest(), event: "x", gmChat: { content: "x" }, ownership: { default: 3 } }, "character");
+  assert.deepEqual(result, {
+    ok: true,
+    op: { type: "damage", changes: [{ path: WOUNDS, delta: 2 }, { path: STRAIN, delta: 3 }], defenceCost: { path: STRAIN, delta: 3 } },
+  });
+});
+
+test("the two-pool form needs no talent cost", () => {
+  assert.deepEqual(narrowDamageChanges({ type: "damage", changes: [{ path: WOUNDS, delta: 4 }] }, "nemesis"),
+    { ok: true, op: { type: "damage", changes: [{ path: WOUNDS, delta: 4 }] } });
+});
+
+test("a malformed two-pool request is refused", () => {
+  refuse({ type: "damage", changes: [] }, "changes");
+  refuse({ type: "damage", changes: [{ path: WOUNDS, delta: 1 }, { path: STRAIN, delta: 1 }, { path: DAMAGE_PATHS[2], delta: 1 }] }, "changes");
+  refuse({ type: "damage", changes: [null] }, "changes");
+  refuse({ type: "damage", changes: "lots" }, "shape");
+  refuse({ type: "damage", changes: [{ path: "system.custom.pool", delta: 1 }] }, "path");
+  for (const delta of ["1", null, undefined, NaN, Infinity]) {
+    refuse({ type: "damage", changes: [{ path: WOUNDS, delta }] }, "delta");
+  }
+  refuse({ type: "damage", changes: [{ path: WOUNDS, delta: 1 }, { path: WOUNDS, delta: 2 }] }, "duplicate");
+  // The two forms never mix.
+  refuse({ ...talentRequest(), path: WOUNDS, delta: 1 }, "shape");
+  refuse({ type: "damage", path: WOUNDS, delta: 1, defenceCost: { path: STRAIN, delta: 3 } }, "shape");
+});
+
+test("a talent cost must be the target's own pool, 1 to 3, and covered by the changes", () => {
+  refuse(talentRequest({ defenceCost: { path: WOUNDS, delta: 3 } }), "defence-cost"); // a character pays strain
+  refuse(talentRequest(), "defence-cost", "rival"); // a rival pays wounds
+  refuse(talentRequest(), "defence-cost", "vehicle"); // a vehicle pays nothing
+  for (const delta of [0, 4, 1.5, "3", null]) {
+    refuse(talentRequest({ defenceCost: { path: STRAIN, delta } }), "defence-cost");
+  }
+  refuse(talentRequest({ defenceCost: [STRAIN, 3] }), "defence-cost");
+  refuse(talentRequest({ changes: [{ path: WOUNDS, delta: 2 }] }), "defence-cost"); // not paid at all
+  refuse(talentRequest({ changes: [{ path: WOUNDS, delta: 2 }, { path: STRAIN, delta: 2 }] }), "defence-cost"); // short
+
+  // A rival's hit and cost share the wounds entry.
+  const merged = { type: "damage", changes: [{ path: WOUNDS, delta: 7 }], defenceCost: { path: WOUNDS, delta: 3 } };
+  assert.equal(narrowApplyRequest(merged, "rival").ok, true);
+  assert.deepEqual(narrowApplyRequest(merged, "minion"), { ok: false, reason: "defence-cost" });
+});
+
+test("a non-owner's talent request reaches the writer narrowed, with its cost intact", () => {
+  const requestor = { id: "p1", active: true, isGM: false };
+  const actor = { type: "character", testUserPermission: () => false };
+  assert.deepEqual(prepareForwardedApply(actor, { ...talentRequest(), event: "x" }, requestor, true), {
+    type: "damage", changes: talentRequest().changes, defenceCost: talentRequest().defenceCost,
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  The write, computed inside the writer's queue                             */
+/* -------------------------------------------------------------------------- */
+
+const liveActor = ({ type = "character", strain = [7, 10], wounds = [0, 12] } = {}) => ({
+  type,
+  system: { stats: { strain: { value: strain[0], max: strain[1] }, wounds: { value: wounds[0], max: wounds[1] } } },
+});
+
+test("the single form still adds its delta to the live value, unvalidated as before", () => {
+  assert.deepEqual(planDamageWrite(liveActor(), { type: "damage", path: WOUNDS, delta: 5 }), { [WOUNDS]: 5 });
+  // Owners keep the direct writes they always had.
+  assert.deepEqual(planDamageWrite(liveActor(), { type: "damage", path: "system.custom.pool", delta: -3 }), { "system.custom.pool": -3 });
+});
+
+test("a talent application writes both pools in one update", () => {
+  assert.deepEqual(planDamageWrite(liveActor(), talentRequest()), { [WOUNDS]: 2, [STRAIN]: 10 });
+});
+
+test("a cost the target can no longer pay refuses the hit as well", () => {
+  assert.throws(() => planDamageWrite(liveActor({ strain: [8, 10] }), talentRequest()),
+    { name: "ApplyRequestError", code: DEFENCE_UNAFFORDABLE });
+});
+
+test("a merged hit is checked on its cost alone", () => {
+  const op = { type: "damage", changes: [{ path: WOUNDS, delta: 7 }], defenceCost: { path: WOUNDS, delta: 3 } };
+  // 5 + 3 = 8 is within 10, so the hit may still carry the rival past it.
+  assert.deepEqual(planDamageWrite(liveActor({ type: "rival", wounds: [5, 10] }), op), { [WOUNDS]: 12 });
+  assert.throws(() => planDamageWrite(liveActor({ type: "rival", wounds: [8, 10] }), op), { code: DEFENCE_UNAFFORDABLE });
+});
+
+test("an unknown threshold never refuses", () => {
+  assert.deepEqual(planDamageWrite(liveActor({ strain: [9, 0] }), talentRequest()), { [WOUNDS]: 2, [STRAIN]: 12 });
+});
+
+test("the writer validates the two-pool form itself, for owners who skip narrowing", () => {
+  assert.throws(() => planDamageWrite(liveActor(), talentRequest({ defenceCost: { path: STRAIN, delta: 5 } })),
+    { name: "ApplyRequestError", message: "Invalid apply request: defence-cost." });
+  assert.throws(() => planDamageWrite(liveActor(), talentRequest({ changes: [{ path: "system.custom.pool", delta: 1 }] })),
+    { name: "ApplyRequestError", message: "Invalid apply request: path." });
 });

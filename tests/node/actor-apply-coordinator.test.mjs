@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import {
   APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT,
-  createActorApplyCoordinator, selectApplyExecutor,
+  ApplyRequestError, createActorApplyCoordinator, selectApplyExecutor,
 } from "../../modules/helpers/actor-apply-coordinator.js";
 import { prepareForwardedApply, DAMAGE_PATHS } from "../../modules/helpers/gm-bridge.js";
 
@@ -40,6 +40,7 @@ function clients({ users = [user("gm", true), user("owner"), user("player")], ow
         writes.push({ writer: u.id, uuid: a.uuid, type: op.type });
         await beforeWrite?.(a, op);
         await tick(); // Real overlap between reading the snapshot and saving it.
+        if (op.failCode) throw new ApplyRequestError("coded failure", op.failCode);
         if (op.fail) throw new Error("write failed");
         values.set(a.uuid, a.value + (op.delta ?? 1));
       },
@@ -351,4 +352,22 @@ test("forwarded owners retain direct-write capabilities; nonowners retain existi
   assert.deepEqual(prepareForwardedApply(actor, damage(5), other, true), damage(5));
   assert.throws(() => prepareForwardedApply(actor, damage(5), other, false), /GM must be connected/);
   assert.throws(() => prepareForwardedApply(actor, custom, { ...owner, active: false }, true), /no longer connected/);
+});
+
+test("a coded remote failure reaches its caller with the code intact", async () => {
+  const c = clients();
+  await assert.rejects(c.apply("owner", { ...damage(5), failCode: "some-code" }),
+    { name: "ApplyRequestError", message: "coded failure", code: "some-code" });
+  assert.equal(c.values.has("Actor.target"), false);
+  assert.equal(c.chats.length, 0);
+});
+
+test("a coded local failure reaches its caller unchanged", async () => {
+  const c = clients();
+  await assert.rejects(c.apply("gm", { ...damage(5), failCode: "some-code" }), { name: "ApplyRequestError", code: "some-code" });
+});
+
+test("an uncoded failure carries no code", async () => {
+  const c = clients();
+  await assert.rejects(c.apply("owner", { ...damage(5), fail: true }), (err) => err.code === undefined);
 });
