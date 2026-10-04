@@ -121,20 +121,21 @@ export function createActorApplyCoordinator(io) {
    * @returns {Promise<string|null>} null when no writer is left
    */
   async function verifiedExecutor(actor, capability, executorId) {
+    let candidate = executorId;
     for (let attempt = 0; attempt < MAX_CAPABILITY_ATTEMPTS; attempt++) {
-      const supported = executorId === io.getUserId()
+      const supported = candidate === io.getUserId()
         ? capabilities.includes(capability)
-        : await probeCapability(executorId, capability);
+        : await probeCapability(candidate, capability);
       const current = selectApplyExecutor(actor, io.getUsers());
       if (!current) return null;
-      if (current !== executorId) {
-        executorId = current;
+      if (current !== candidate) {
+        candidate = current;
         continue;
       }
       if (!supported) {
         throw new ApplyRequestError("The client applying this runs an older version of the system. Reload every client and try again.", WRITER_OUTDATED);
       }
-      return executorId;
+      return candidate;
     }
     throw new ApplyRequestError("The apply executor changed. Check the target and try again.");
   }
@@ -142,10 +143,11 @@ export function createActorApplyCoordinator(io) {
   /**
    * @param {object} actor
    * @param {object} op
-   * @param {{capability?: string}} [options] Require the elected writer to support `capability`
+   * @param {{capability?: string}|null} [options] Require the elected writer to support `capability`
    *   before anything is sent; it is asked afresh for every application.
    */
-  async function apply(actor, op, { capability } = {}) {
+  async function apply(actor, op, options) {
+    const capability = options?.capability;
     const users = io.getUsers();
     // Without a GM, owners retain their existing ability to apply locally; a
     // non-owner does not gain new permission merely because an owner is online.

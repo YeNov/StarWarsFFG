@@ -196,9 +196,9 @@ export class ApplyDamage {
             submitting = true;
             const root = dialog.element;
             lockDefenceControls(root);
-            // Check the pool once more: Enter can submit past a greyed-out Apply, and strain may
-            // have moved since the dialog opened. A talent that was chosen and can no longer be
-            // paid stops the whole application rather than letting the hit land without it.
+            // Check the pool once more at submit time: the target's pool may have changed since the
+            // last refresh (another client's write, a sheet edit). A talent that was chosen and can
+            // no longer be paid stops the whole application rather than landing the hit without it.
             const controls = defencePlan ? defenceControls() : null;
             if (selection.on && (!controls?.on || controls.applyDisabled)) {
               ui.notifications.warn(game.i18n.format("SWFFG.ApplyDamage.Defence.Unaffordable", { actorName: a.name }));

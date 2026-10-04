@@ -18,7 +18,19 @@ const talentHit = () => ({
 });
 const gated = { capability: DEFENSIVE_DAMAGE_CAPABILITY };
 const tick = () => new Promise((resolve) => setImmediate(resolve));
-const user = (id, isGM = false) => ({ id, isGM, active: true });
+/** Fail unless `promise` settles within `ms`; the race timer is always cleared. */
+async function within(promise, ms, what) {
+  let timer;
+  const late = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} did not settle within ${ms} ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+const user =(id, isGM = false) => ({ id, isGM, active: true });
 
 /** Inject transport and persistence, without installing any Foundry globals. */
 function clients({ users = [user("gm", true), user("owner"), user("player")], owners = ["owner"], beforeWrite, chatFails = false, timeoutMs = 1000, onPending, dropFirstReply = false, oldWriters = [], capabilityTimeoutMs = 1000 } = {}) {
@@ -397,6 +409,13 @@ test("a talent application asks the remote writer first, then goes to it", async
   assert.equal(c.values.get("Actor.target"), 1);
 });
 
+test("null options behave like omitted options, for a macro that passes none", async () => {
+  const c = clients();
+  assert.equal(await c.apply("owner", damage(5), undefined, null), "forwarded");
+  assert.equal(c.values.get("Actor.target"), 5);
+  assert.equal(c.sent.some((d) => d.event === CAPABILITY_EVENT), false);
+});
+
 test("the elected writer checks itself, without a probe", async () => {
   const c = clients();
   assert.equal(await c.apply("gm", talentHit(), undefined, gated), "local");
@@ -432,7 +451,8 @@ test("a negative reply refuses at once", async () => {
   const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, talentHit(), gated);
   await tick();
   await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: "probe", recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: false }, "gm");
-  await assert.rejects(applying, { code: WRITER_OUTDATED });
+  // The probe's own timeout is a minute, so only the reply can refuse within this window.
+  await within(assert.rejects(applying, { code: WRITER_OUTDATED }), 200, "the refusal");
   assert.equal(sent.some((d) => d.event === APPLY_EVENT), false);
 });
 
@@ -519,7 +539,9 @@ for (const result of ["timeout", "refusal"]) {
     let sequence = 0;
     const coordinator = createActorApplyCoordinator({
       getUserId: () => "owner", getUsers: () => users, makeRequestId: () => `r${++sequence}`,
-      capabilityTimeoutMs: 10, timeoutMs: 1000,
+      // A refusal has to be what moves the election along, so its probe is given far longer than
+      // the test waits; only the timeout variant relies on the probe running out.
+      capabilityTimeoutMs: result === "timeout" ? 10 : 60000, timeoutMs: 1000,
       send(data) {
         sent.push(data);
         if (data.event === CAPABILITY_EVENT && data.executorId === "gm2") {
@@ -538,7 +560,7 @@ for (const result of ["timeout", "refusal"]) {
       await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: first.requestId,
         recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: false }, "gm");
     } // In the timeout case, the first writer never answers.
-    assert.equal(await applying, "forwarded");
+    assert.equal(await within(applying, 500, "the application"), "forwarded");
     assert.deepEqual(sent.filter((data) => data.event === CAPABILITY_EVENT).map((data) => data.executorId), ["gm", "gm2"]);
     assert.deepEqual(sent.filter((data) => data.event === APPLY_EVENT).map((data) => data.executorId), ["gm2"]);
   });
