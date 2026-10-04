@@ -17,11 +17,18 @@
 import { killMinion } from "./minions.js";
 import { isMinionVehicle } from "./minion-group.js";
 import { availFor } from "./crit-availability.js";
-import { createActorApplyCoordinator, ApplyRequestError, APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT } from "./actor-apply-coordinator.js";
+import {
+  createActorApplyCoordinator, ApplyRequestError,
+  APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT, CAPABILITY_EVENT, CAPABILITY_RESULT_EVENT,
+} from "./actor-apply-coordinator.js";
+
+export { DEFENSIVE_DAMAGE_CAPABILITY, WRITER_OUTDATED } from "./actor-apply-coordinator.js";
 import { BASE_DEFENCE_COST, MIN_DEFENCE_COST, defenceCostPool, readCostPool, wouldIncapacitate } from "./defensive-talents.js";
 
 const FFG_SOCKET = "system.starwarsffg";
 const MESSAGE_EVENT = "ffgUpdateMessage";
+/** Socket events the apply coordinator answers on every client. */
+const COORDINATOR_EVENTS = new Set([APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT, CAPABILITY_EVENT, CAPABILITY_RESULT_EVENT]);
 
 /**
  * The numeric pools an "Apply Damage" may bump. Taken from apply-damage.js, which
@@ -253,14 +260,16 @@ const applyCoordinator = createActorApplyCoordinator({
  *
  * @param {Actor} actor  The resolved target actor (synthetic token actor is fine).
  * @param {object} op     See {@link performApply}; may also carry `gmChat`.
+ * @param {{capability?: string}} [options]  Require the elected writer to support a capability
+ *   (DEFENSIVE_DAMAGE_CAPABILITY for Parry/Reflect); refusal rejects with code WRITER_OUTDATED.
  * @returns {Promise<"local"|"forwarded"|false>} "local" if applied on this
  *   client, "forwarded" after the elected writer confirms completion, false
  *   if there is no permitted writer. Confirmed remote failures reject; overdue
  *   calls remain pending. The GM posts `gmChat` on the appropriate local or
  *   forwarded path; owner-only fallback omits it.
  */
-export async function applyToTargetActor(actor, op) {
-  const result = await applyCoordinator.apply(actor, op);
+export async function applyToTargetActor(actor, op, options) {
+  const result = await applyCoordinator.apply(actor, op, options);
   if (!result) {
     ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM"));
   }
@@ -318,7 +327,7 @@ export function registerGMBridge() {
   // the requestor) — so it is trusted and not spoofable by the emitting client.
   game.socket.on(FFG_SOCKET, async (data, requestorId) => {
     try {
-      if (data?.event === APPLY_EVENT || data?.event === APPLY_RESULT_EVENT || data?.event === APPLY_STATUS_EVENT) {
+      if (COORDINATOR_EVENTS.has(data?.event)) {
         await applyCoordinator.receive(data, requestorId);
         return;
       }

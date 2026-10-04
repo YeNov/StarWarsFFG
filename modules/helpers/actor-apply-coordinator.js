@@ -3,6 +3,21 @@ import { createKeyedSerializer } from "./keyed-serializer.js";
 export const APPLY_EVENT = "ffgApplyToTarget";
 export const APPLY_RESULT_EVENT = "ffgApplyToTargetResult";
 export const APPLY_STATUS_EVENT = "ffgApplyToTargetStatus";
+export const CAPABILITY_EVENT = "ffgApplyCapability";
+export const CAPABILITY_RESULT_EVENT = "ffgApplyCapabilityResult";
+
+/**
+ * The writer understands the two-pool damage form and checks a Parry/Reflect cost inside its
+ * queue. A writer on older code would apply an owner's forwarded talent request unchecked, or
+ * refuse an unowned one, so a talent application goes only to a writer that has said yes.
+ */
+export const DEFENSIVE_DAMAGE_CAPABILITY = "defensive-damage-v1";
+/** What this build can do on behalf of other clients. */
+const SUPPORTED_CAPABILITIES = Object.freeze([DEFENSIVE_DAMAGE_CAPABILITY]);
+/** ApplyRequestError code: the elected writer did not confirm a capability the request needs. */
+export const WRITER_OUTDATED = "writer-outdated";
+/** Elections a capability check follows before giving up on a seat that keeps moving. */
+const MAX_CAPABILITY_ATTEMPTS = 3;
 const LOCAL_REQUEST = Symbol("local apply");
 
 /**
@@ -50,11 +65,15 @@ export function selectApplyExecutor(actor, users) {
  * @param {function(object): void} [io.onPending] Warn once while confirmation is overdue.
  * @param {number} [io.timeoutMs=15000]
  * @param {number} [io.receivedLimit=200] Completed requests kept for duplicate suppression.
+ * @param {number} [io.capabilityTimeoutMs=5000] How long a writer has to confirm a capability.
+ * @param {string[]} [io.capabilities] What this client supports; this build's list by default.
  */
 export function createActorApplyCoordinator(io) {
   const queue = createKeyedSerializer();
   const pending = new Map();
   const received = new Map();
+  const probes = new Map();
+  const capabilities = io.capabilities ?? SUPPORTED_CAPABILITIES;
 
   function run(actorUuid, op, requestorId) {
     return queue.run(actorUuid, async () => {
@@ -70,13 +89,73 @@ export function createActorApplyCoordinator(io) {
     });
   }
 
-  async function apply(actor, op) {
+  /** Ask `executorId` whether it supports `capability`. Silence, refusal or a send failure is a no. */
+  function probeCapability(executorId, capability) {
+    const requestId = io.makeRequestId();
+    return new Promise((resolve) => {
+      const probe = { executorId, capability, timer: null, settle: null };
+      probe.settle = (supported) => {
+        if (probes.get(requestId) !== probe) return;
+        clearTimeout(probe.timer);
+        probes.delete(requestId);
+        resolve(supported);
+      };
+      probe.timer = setTimeout(() => probe.settle(false), io.capabilityTimeoutMs ?? 5000);
+      probes.set(requestId, probe);
+      try {
+        io.send({ event: CAPABILITY_EVENT, requestId, executorId, capability });
+      } catch {
+        probe.settle(false);
+      }
+    });
+  }
+
+  /**
+   * The writer a capability-gated apply may go to, verified for this application only.
+   *
+   * A reply vouches for the client that sent it and nothing else, so the seat is re-elected after
+   * every probe, including silence or refusal. If it moved while the writer was answering (or
+   * not answering), the replacement is asked too. The request is never handed to an unverified
+   * writer; an unchanged writer that does not confirm support gets the reload warning.
+   *
+   * @returns {Promise<string|null>} null when no writer is left
+   */
+  async function verifiedExecutor(actor, capability, executorId) {
+    for (let attempt = 0; attempt < MAX_CAPABILITY_ATTEMPTS; attempt++) {
+      const supported = executorId === io.getUserId()
+        ? capabilities.includes(capability)
+        : await probeCapability(executorId, capability);
+      const current = selectApplyExecutor(actor, io.getUsers());
+      if (!current) return null;
+      if (current !== executorId) {
+        executorId = current;
+        continue;
+      }
+      if (!supported) {
+        throw new ApplyRequestError("The client applying this runs an older version of the system. Reload every client and try again.", WRITER_OUTDATED);
+      }
+      return executorId;
+    }
+    throw new ApplyRequestError("The apply executor changed. Check the target and try again.");
+  }
+
+  /**
+   * @param {object} actor
+   * @param {object} op
+   * @param {{capability?: string}} [options] Require the elected writer to support `capability`
+   *   before anything is sent; it is asked afresh for every application.
+   */
+  async function apply(actor, op, { capability } = {}) {
     const users = io.getUsers();
     // Without a GM, owners retain their existing ability to apply locally; a
     // non-owner does not gain new permission merely because an owner is online.
     if (!actor || (!users.activeGM && !actor.isOwner)) return false;
-    const executorId = selectApplyExecutor(actor, users);
+    let executorId = selectApplyExecutor(actor, users);
     if (!executorId) return false;
+    if (capability) {
+      executorId = await verifiedExecutor(actor, capability, executorId);
+      if (!executorId) return false;
+    }
     if (executorId === io.getUserId()) {
       await run(actor.uuid, op, LOCAL_REQUEST);
       return "local";
@@ -122,6 +201,24 @@ export function createActorApplyCoordinator(io) {
   }
 
   async function receive(data, senderId) {
+    if (data?.event === CAPABILITY_RESULT_EVENT) {
+      const probe = probes.get(data.requestId);
+      if (!probe || data.recipientId !== io.getUserId() || probe.executorId !== senderId || probe.capability !== data.capability) return;
+      probe.settle(data.ok === true);
+      return;
+    }
+    if (data?.event === CAPABILITY_EVENT) {
+      // Read-only: says what this client supports. It never touches an actor or the queue.
+      if (data.executorId !== io.getUserId() || typeof senderId !== "string" || !senderId || !data.requestId) return;
+      io.send({
+        event: CAPABILITY_RESULT_EVENT,
+        requestId: data.requestId,
+        recipientId: senderId,
+        capability: data.capability,
+        ok: capabilities.includes(data.capability),
+      });
+      return;
+    }
     if (data?.event === APPLY_RESULT_EVENT) {
       const request = pending.get(data.requestId);
       if (data.recipientId !== io.getUserId() || !request || request.executorId !== senderId) return;

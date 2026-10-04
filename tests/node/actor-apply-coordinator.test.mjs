@@ -2,17 +2,26 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import {
-  APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT,
+  APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT, CAPABILITY_EVENT, CAPABILITY_RESULT_EVENT,
+  DEFENSIVE_DAMAGE_CAPABILITY, WRITER_OUTDATED,
   ApplyRequestError, createActorApplyCoordinator, selectApplyExecutor,
 } from "../../modules/helpers/actor-apply-coordinator.js";
 import { prepareForwardedApply, DAMAGE_PATHS } from "../../modules/helpers/gm-bridge.js";
 
 const damage = (delta) => ({ type: "damage", path: DAMAGE_PATHS[0], delta });
+
+/** A talent application in the two-pool form; the harness's fake writer only counts it. */
+const talentHit = () => ({
+  type: "damage",
+  changes: [{ path: DAMAGE_PATHS[0], delta: 2 }, { path: DAMAGE_PATHS[1], delta: 3 }],
+  defenceCost: { path: DAMAGE_PATHS[1], delta: 3 },
+});
+const gated = { capability: DEFENSIVE_DAMAGE_CAPABILITY };
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const user = (id, isGM = false) => ({ id, isGM, active: true });
 
 /** Inject transport and persistence, without installing any Foundry globals. */
-function clients({ users = [user("gm", true), user("owner"), user("player")], owners = ["owner"], beforeWrite, chatFails = false, timeoutMs = 1000, onPending, dropFirstReply = false } = {}) {
+function clients({ users = [user("gm", true), user("owner"), user("player")], owners = ["owner"], beforeWrite, chatFails = false, timeoutMs = 1000, onPending, dropFirstReply = false, oldWriters = [], capabilityTimeoutMs = 1000 } = {}) {
   users.activeGM = users.find((u) => u.isGM && u.active);
   const coordinators = new Map();
   const values = new Map();
@@ -48,9 +57,9 @@ function clients({ users = [user("gm", true), user("owner"), user("player")], ow
         sent.push({ sender: u.id, ...data });
         if (data.event === APPLY_RESULT_EVENT && shouldDropReply) { shouldDropReply = false; return; }
         for (const [id, coordinator] of coordinators) {
-          if (id !== u.id) {
-            void coordinator.receive(structuredClone(data), u.id).catch((error) => transportErrors.push(error));
-          }
+          // A writer on older code has no handler for capability probes, so it stays silent.
+          if (id === u.id || (oldWriters.includes(id) && data.event === CAPABILITY_EVENT)) continue;
+          void coordinator.receive(structuredClone(data), u.id).catch((error) => transportErrors.push(error));
         }
       },
       async postChat(data) {
@@ -60,12 +69,13 @@ function clients({ users = [user("gm", true), user("owner"), user("player")], ow
       onChatError: (error) => chatErrors.push(error),
       makeRequestId: () => `${u.id}-${++sequence}`,
       timeoutMs,
+      capabilityTimeoutMs,
       onPending,
     }));
   }
   return { users, actor, values, writes, sent, chats, chatErrors, transportErrors,
     receive: (id, data, sender) => coordinators.get(id).receive(data, sender),
-    apply: (id, op, uuid) => coordinators.get(id).apply(actor(id, uuid), op) };
+    apply: (id, op, uuid, options) => coordinators.get(id).apply(actor(id, uuid), op, options) };
 }
 
 test("owners, nonowners and two GMs apply through the same GM queue", async () => {
@@ -370,4 +380,190 @@ test("a coded local failure reaches its caller unchanged", async () => {
 test("an uncoded failure carries no code", async () => {
   const c = clients();
   await assert.rejects(c.apply("owner", { ...damage(5), fail: true }), (err) => err.code === undefined);
+});
+
+/* -------------------------------------------------------------------------- */
+/*  The defensive-damage capability                                           */
+/* -------------------------------------------------------------------------- */
+
+test("a talent application asks the remote writer first, then goes to it", async () => {
+  const c = clients();
+  assert.equal(await c.apply("player", talentHit(), undefined, gated), "forwarded");
+  const probe = c.sent.findIndex((d) => d.event === CAPABILITY_EVENT);
+  const sentApply = c.sent.findIndex((d) => d.event === APPLY_EVENT);
+  assert.ok(probe >= 0 && probe < sentApply);
+  assert.equal(c.sent[probe].executorId, "gm");
+  assert.equal(c.sent[probe].capability, DEFENSIVE_DAMAGE_CAPABILITY);
+  assert.equal(c.values.get("Actor.target"), 1);
+});
+
+test("the elected writer checks itself, without a probe", async () => {
+  const c = clients();
+  assert.equal(await c.apply("gm", talentHit(), undefined, gated), "local");
+  assert.equal(c.sent.some((d) => d.event === CAPABILITY_EVENT), false);
+});
+
+for (const applier of ["owner", "player"]) {
+  test(`an old GM gets no talent application from ${applier === "owner" ? "an owner" : "a non-owner"}, but still applies ordinary damage`, async () => {
+    const c = clients({ oldWriters: ["gm"], capabilityTimeoutMs: 5 });
+    await assert.rejects(c.apply(applier, talentHit(), undefined, gated), { name: "ApplyRequestError", code: WRITER_OUTDATED });
+    assert.equal(c.sent.some((d) => d.event === APPLY_EVENT), false);
+    assert.equal(c.writes.length, 0);
+
+    assert.equal(await c.apply(applier, damage(5)), "forwarded");
+    assert.equal(c.values.get("Actor.target"), 5);
+  });
+}
+
+test("an old elected owner without a GM is refused the same way", async () => {
+  const c = clients({ users: [user("a"), user("z")], owners: ["a", "z"], oldWriters: ["a"], capabilityTimeoutMs: 5 });
+  await assert.rejects(c.apply("z", talentHit(), undefined, gated), { code: WRITER_OUTDATED });
+  assert.equal(c.writes.length, 0);
+});
+
+test("a negative reply refuses at once", async () => {
+  const users = [user("gm", true), user("owner")];
+  users.activeGM = users[0];
+  const sent = [];
+  const coordinator = createActorApplyCoordinator({
+    getUserId: () => "owner", getUsers: () => users, makeRequestId: () => "probe",
+    send: (data) => sent.push(data), capabilityTimeoutMs: 60000,
+  });
+  const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, talentHit(), gated);
+  await tick();
+  await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: "probe", recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: false }, "gm");
+  await assert.rejects(applying, { code: WRITER_OUTDATED });
+  assert.equal(sent.some((d) => d.event === APPLY_EVENT), false);
+});
+
+test("only the addressed writer's reply to that probe, for that capability, counts", async () => {
+  const users = [user("gm", true), user("owner")];
+  users.activeGM = users[0];
+  const sent = [];
+  let sequence = 0;
+  const coordinator = createActorApplyCoordinator({
+    getUserId: () => "owner", getUsers: () => users, makeRequestId: () => `r${++sequence}`,
+    send: (data) => sent.push(data), timeoutMs: 1000, capabilityTimeoutMs: 1000,
+  });
+  const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, talentHit(), gated);
+  await tick();
+  const reply = { event: CAPABILITY_RESULT_EVENT, requestId: "r1", recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: true };
+  await coordinator.receive(reply, "someone-else");
+  await coordinator.receive({ ...reply, recipientId: "someone-else" }, "gm");
+  await coordinator.receive({ ...reply, requestId: "wrong" }, "gm");
+  await coordinator.receive({ ...reply, capability: "something-else" }, "gm");
+  await tick();
+  assert.equal(sent.some((d) => d.event === APPLY_EVENT), false);
+
+  await coordinator.receive(reply, "gm");
+  await tick();
+  const dispatched = sent.find((d) => d.event === APPLY_EVENT);
+  assert.equal(dispatched.executorId, "gm");
+  await coordinator.receive({ event: APPLY_RESULT_EVENT, requestId: dispatched.requestId, recipientId: "owner", ok: true }, "gm");
+  assert.equal(await applying, "forwarded");
+});
+
+test("a writer change after the probe is verified again before anything is sent", async () => {
+  const users = [user("gm", true), user("gm2", true), user("owner")];
+  users.activeGM = users[0];
+  const sent = [];
+  let sequence = 0;
+  const coordinator = createActorApplyCoordinator({
+    getUserId: () => "owner", getUsers: () => users, makeRequestId: () => `r${++sequence}`,
+    send: (data) => sent.push(data), timeoutMs: 1000, capabilityTimeoutMs: 1000,
+  });
+  const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, talentHit(), gated);
+  await tick();
+  const first = sent.find((d) => d.event === CAPABILITY_EVENT);
+  assert.equal(first.executorId, "gm");
+
+  users.activeGM = users[1]; // the seat moves while gm is answering
+  await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: first.requestId, recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: true }, "gm");
+  await tick();
+  const second = sent.filter((d) => d.event === CAPABILITY_EVENT)[1];
+  assert.equal(second.executorId, "gm2");
+  assert.equal(sent.some((d) => d.event === APPLY_EVENT), false);
+
+  await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: second.requestId, recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: true }, "gm2");
+  await tick();
+  const dispatched = sent.find((d) => d.event === APPLY_EVENT);
+  assert.equal(dispatched.executorId, "gm2");
+  await coordinator.receive({ event: APPLY_RESULT_EVENT, requestId: dispatched.requestId, recipientId: "owner", ok: true }, "gm2");
+  assert.equal(await applying, "forwarded");
+});
+
+test("an unverified replacement writer never receives the talent application", async () => {
+  const users = [user("gm", true), user("gm2", true), user("owner")];
+  users.activeGM = users[0];
+  const sent = [];
+  let sequence = 0;
+  const coordinator = createActorApplyCoordinator({
+    getUserId: () => "owner", getUsers: () => users, makeRequestId: () => `r${++sequence}`,
+    // Long enough for gm's reply below to beat its own probe's timeout; gm2's then runs out.
+    send: (data) => sent.push(data), timeoutMs: 1000, capabilityTimeoutMs: 50,
+  });
+  const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, talentHit(), gated);
+  await tick();
+  users.activeGM = users[1];
+  await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: "r1", recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: true }, "gm");
+  // gm2 never answers.
+  await assert.rejects(applying, { code: WRITER_OUTDATED });
+  assert.equal(sent.some((d) => d.event === APPLY_EVENT), false);
+});
+
+for (const result of ["timeout", "refusal"]) {
+  test(`a writer change during a probe ${result} verifies the replacement`, async () => {
+    const users = [user("gm", true), user("gm2", true), user("owner")];
+    users.activeGM = users[0];
+    const sent = [];
+    let sequence = 0;
+    const coordinator = createActorApplyCoordinator({
+      getUserId: () => "owner", getUsers: () => users, makeRequestId: () => `r${++sequence}`,
+      capabilityTimeoutMs: 10, timeoutMs: 1000,
+      send(data) {
+        sent.push(data);
+        if (data.event === CAPABILITY_EVENT && data.executorId === "gm2") {
+          queueMicrotask(() => coordinator.receive({ event: CAPABILITY_RESULT_EVENT,
+            requestId: data.requestId, recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: true }, "gm2"));
+        } else if (data.event === APPLY_EVENT) {
+          queueMicrotask(() => coordinator.receive({ event: APPLY_RESULT_EVENT,
+            requestId: data.requestId, recipientId: "owner", ok: true }, "gm2"));
+        }
+      },
+    });
+    const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, talentHit(), gated);
+    users.activeGM = users[1];
+    if (result === "refusal") {
+      const first = sent.find((data) => data.event === CAPABILITY_EVENT);
+      await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: first.requestId,
+        recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: false }, "gm");
+    } // In the timeout case, the first writer never answers.
+    assert.equal(await applying, "forwarded");
+    assert.deepEqual(sent.filter((data) => data.event === CAPABILITY_EVENT).map((data) => data.executorId), ["gm", "gm2"]);
+    assert.deepEqual(sent.filter((data) => data.event === APPLY_EVENT).map((data) => data.executorId), ["gm2"]);
+  });
+}
+
+test("a writer answers a probe read-only, and only one addressed to it from a known sender", async () => {
+  const c = clients();
+  const probe = { event: CAPABILITY_EVENT, requestId: "p", executorId: "gm", capability: DEFENSIVE_DAMAGE_CAPABILITY };
+  await c.receive("gm", probe, "owner");
+  assert.deepEqual(c.sent.filter((d) => d.event === CAPABILITY_RESULT_EVENT), [
+    { sender: "gm", event: CAPABILITY_RESULT_EVENT, requestId: "p", recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: true },
+  ]);
+
+  await c.receive("gm", { ...probe, requestId: "q", capability: "teleport-v9" }, "owner");
+  assert.equal(c.sent.find((d) => d.requestId === "q").ok, false);
+
+  for (const [data, sender] of [[{ ...probe, requestId: "x1", executorId: "gm2" }, "owner"], [{ ...probe, requestId: "x2" }, undefined], [{ ...probe, requestId: undefined }, "owner"]]) {
+    await c.receive("gm", data, sender);
+  }
+  assert.equal(c.sent.filter((d) => d.event === CAPABILITY_RESULT_EVENT).length, 2);
+  assert.equal(c.writes.length, 0);
+});
+
+test("an unknown capability fails even on the local writer", async () => {
+  const c = clients();
+  await assert.rejects(c.apply("gm", talentHit(), undefined, { capability: "teleport-v9" }), { code: WRITER_OUTDATED });
+  assert.equal(c.writes.length, 0);
 });
