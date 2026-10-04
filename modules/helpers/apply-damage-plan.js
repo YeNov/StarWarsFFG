@@ -6,6 +6,8 @@
  * from (tests/node/stub-boundary.test.mjs). Everything that is actually a DECISION lives here
  * instead: which pool a hit is written to, how much of the target's soak Pierce and Breach get
  * through, and whether worn Beskar or Cortosis stops them outright.
+ * And, when the dialog has switched one on, how far Parry, Reflect or an equivalent shrinks the
+ * hit before soak (see defensive-talents.js for which talent and what it costs).
  *
  * Pure of Foundry globals. Labels come back as i18n KEYS rather than localized strings, so this
  * module never touches `game.i18n`; `show()` localizes them for the dialog and the chat cards.
@@ -128,12 +130,19 @@ export function planDamageSeed(itemData, successes) {
 /**
  * Resolve one hit: where it is written and how much of it lands.
  *
+ * With `defence` (a Parry, Reflect or equivalent the dialog switched on) the reduction comes off
+ * the damage before soak, and the hit and the talent's cost come back together as `changes`, one
+ * entry per pool, for the bridge to write in a single update. `defenceCost` keeps the cost on its
+ * own even when it shares a pool with the hit, because the writer checks the cost alone against
+ * the target's threshold.
+ *
  * @param {object} actor - the target, for its worn protective qualities
  * @param {object} target - the result of planDamageTarget for that actor
- * @param {{damage: number, pierce: number, pool: string}} input - what the dialog came back with
+ * @param {{damage: number, pierce: number, pool: string,
+ *          defence?: {reduction: number, cost: number, costPath: string}}} input - what the dialog came back with
  * @returns {object|null} null when there is nothing to write to
  */
-export function planDamageApplication(actor, target, { damage, pierce, pool } = {}) {
+export function planDamageApplication(actor, target, { damage, pierce, pool, defence } = {}) {
   if (!target) return null;
 
   const soakProtection = getSoakProtectionQualities(actor);
@@ -150,7 +159,7 @@ export function planDamageApplication(actor, target, { damage, pierce, pool } = 
 
   const effectiveSoak = Math.max(0, target.soakValue - appliedPierce);
 
-  return {
+  const hit = {
     path,
     poolLabelKey: wantsStrain ? target.strainLabelKey : target.woundLabelKey,
     damage: appliedDamage,
@@ -160,5 +169,21 @@ export function planDamageApplication(actor, target, { damage, pierce, pool } = 
     effectiveSoak,
     applied: Math.max(0, appliedDamage - effectiveSoak),
     soakProtection,
+  };
+  if (!defence) return hit;
+
+  const reduction = Math.max(0, parseInt(defence.reduction, 10) || 0);
+  const reduced = Math.max(0, appliedDamage - reduction);
+  const applied = Math.max(0, reduced - effectiveSoak);
+  const changes = defence.costPath === path
+    ? [{ path, delta: applied + defence.cost }]
+    : [{ path, delta: applied }, { path: defence.costPath, delta: defence.cost }];
+  return {
+    ...hit,
+    applied,
+    reduced,
+    reduction,
+    changes,
+    defenceCost: { path: defence.costPath, delta: defence.cost },
   };
 }

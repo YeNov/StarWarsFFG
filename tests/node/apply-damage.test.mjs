@@ -201,3 +201,67 @@ test("damage and pierce entered by hand are floored at zero", () => {
   assert.equal(result.pierce, 0);
   assert.equal(result.applied, 0);
 });
+
+// ---------------------------------------------------------------------------
+// Parry and Reflect
+// ---------------------------------------------------------------------------
+
+const STRAIN = "system.stats.strain.value";
+const WOUNDS = "system.stats.wounds.value";
+
+/** One hit on a soak-6 target with a defensive talent switched on. */
+const defend = (input, type = "character") => {
+  const actor = actorWith([], type);
+  return planDamageApplication(actor, planDamageTarget(actor), input);
+};
+
+test("a defensive talent reduces the hit before soak and returns the hit and its cost together", () => {
+  const hit = defend({ damage: 12, pierce: 0, pool: "wounds", defence: { reduction: 4, cost: 3, costPath: STRAIN } });
+
+  assert.equal(hit.damage, 12); // the public line still shows the damage as dealt
+  assert.equal(hit.reduction, 4);
+  assert.equal(hit.reduced, 8);
+  assert.equal(hit.applied, 2);
+  assert.deepEqual(hit.changes, [{ path: WOUNDS, delta: 2 }, { path: STRAIN, delta: 3 }]);
+  assert.deepEqual(hit.defenceCost, { path: STRAIN, delta: 3 });
+});
+
+test("a reduction larger than the damage leaves only the cost to pay", () => {
+  const hit = defend({ damage: 3, pierce: 0, pool: "wounds", defence: { reduction: 5, cost: 3, costPath: STRAIN } });
+
+  assert.equal(hit.reduced, 0);
+  assert.equal(hit.applied, 0);
+  assert.deepEqual(hit.changes, [{ path: WOUNDS, delta: 0 }, { path: STRAIN, delta: 3 }]);
+});
+
+test("Pierce works on the reduced damage", () => {
+  const hit = defend({ damage: 12, pierce: 4, pool: "wounds", defence: { reduction: 4, cost: 3, costPath: STRAIN } });
+
+  assert.equal(hit.effectiveSoak, 2);
+  assert.equal(hit.applied, 6);
+});
+
+test("strain damage and a strain cost merge into one change, and the cost is kept on its own", () => {
+  const hit = defend({ damage: 12, pierce: 0, pool: "strain", defence: { reduction: 4, cost: 1, costPath: STRAIN } });
+
+  assert.deepEqual(hit.changes, [{ path: STRAIN, delta: 3 }]); // 2 from the hit, 1 from the cost
+  assert.deepEqual(hit.defenceCost, { path: STRAIN, delta: 1 });
+});
+
+test("a rival pays in wounds, merged with the hit", () => {
+  for (const type of ["rival"]) {
+    const hit = defend({ damage: 12, pierce: 0, pool: "wounds", defence: { reduction: 4, cost: 3, costPath: WOUNDS } }, type);
+
+    assert.deepEqual(hit.changes, [{ path: WOUNDS, delta: 5 }]);
+    assert.deepEqual(hit.defenceCost, { path: WOUNDS, delta: 3 });
+  }
+});
+
+test("without a defensive talent the result is exactly what it always was", () => {
+  const actor = actorWith();
+  const hit = planDamageApplication(actor, planDamageTarget(actor), { damage: 12, pierce: 2, pool: "wounds" });
+
+  assert.deepEqual(Object.keys(hit).sort(),
+    ["applied", "damage", "effectiveSoak", "path", "pierce", "poolLabelKey", "soak", "soakProtection", "soakWord"]);
+  assert.equal(hit.applied, 8);
+});
