@@ -12,13 +12,13 @@
 
 ## Global Constraints
 
-- Rulesets: `vanilla` (default) and `respecialized`, world setting `defensiveTalentRuleset`. The reSpecialized target is **v.56**; Task 0 must verify its talent text before implementing that mode. Its numeric examples below are provisional until that check passes.
-- Name-list settings and defaults, verbatim: `meleeDefenceTalents` = `Parry, Block`; `rangedDefenceTalents` = `Reflect, Deflect`; `meleeSupremeTalents` = `Parry (Supreme), Supreme Parry`; `rangedSupremeTalents` = `Reflect (Supreme), Supreme Reflect`; `unarmedParryTalents` = `Unarmed Parry`.
+- Rulesets: `vanilla` (default) and `respecialized`, world setting `defensiveTalentRuleset`. The reSpecialized target is **v.56**. Task 0 checked Block, Deflect and Unarmed Block against their talent text; its sources are listed there.
+- Name-list settings and defaults, verbatim: `meleeDefenceTalents` = `Parry, Block`; `rangedDefenceTalents` = `Reflect, Deflect`; `meleeSupremeTalents` = `Parry (Supreme), Supreme Parry`; `rangedSupremeTalents` = `Reflect (Supreme), Supreme Reflect`; `unarmedParryTalents` = `Unarmed Parry, Unarmed Block`.
 - Every new setting is `scope: "world"`, `config: false`, and shown only in the new `defensiveTalentSettings` menu, registered with `restricted: true`.
 - Names are comma-separated, trimmed, and matched whole and case-insensitively. An empty list turns that row off.
 - Melee = `MELEE_DEFENCE_SKILLS` (Melee, Brawl, Lightsaber); ranged = `RANGED_DEFENCE_SKILLS` (Ranged: Light, Ranged: Heavy, Gunnery); any other skill gets no toggle. Vehicles never get one.
-- Reduction: vanilla `2 + ranks`, with ranks summed over matching `talentList` entries and an unranked entry counting as 1; reSpecialized a flat `4`. `reduced = max(0, damage - reduction)`, `applied = max(0, reduced - effectiveSoak)`.
-- Cost: 3; Supreme → 1; Unarmed (melee only) → `max(1, cost - 1)`, applied after Supreme. Characters and nemeses pay strain; rivals pay wounds. Minions cannot voluntarily suffer strain and get no talent toggle in either mode; ordinary damage to minions is unchanged.
+- Reduction: vanilla `2 + ranks`, with ranks summed over matching `talentList` entries and an unranked entry counting as 1; reSpecialized a flat `4` (unranked Block and Deflect, with Parry and Reflect as compatibility aliases). `reduced = max(0, damage - reduction)`, `applied = max(0, reduced - effectiveSoak)`.
+- Cost: 3; Supreme → 1; Unarmed (melee only) → `max(1, cost - 1)`, applied after Supreme. The same in both rulesets: Block and Deflect cost 3 strain, Unarmed Block is Unarmed Parry's −1, and reSpecialized has no Supreme variant. Characters and nemeses pay strain; rivals pay wounds. Minions cannot voluntarily suffer strain and get no talent toggle in either mode; ordinary damage to minions is unchanged.
 - Incapacitation: `current + cost > threshold`. Exactly at the threshold is allowed. A threshold that is not a positive number never disables anything. Only the cost is counted, never the hit.
 - The talent toggle is greyed out (`disabled`, **no tooltip**) when the cheapest available cost would incapacitate. With the toggle on and the selected cost unaffordable, **Apply** is greyed out, with no explanation line.
 - An unaffordable talent already selected stays selected. Its main toggle remains enabled so the user can turn it off explicitly; refresh never clears the selection or silently falls back to ordinary damage.
@@ -62,10 +62,31 @@ Baseline before Task 1: `npm test` passes 916 tests with 0 failures, and `npm ru
 
 ### Task 0: Verify and record the supported reSpecialized revision
 
-- [ ] Read the [author's v.56 release notes](https://forum.swrpgcommunity.com/t/respecialized-project-v-56-the-force-update-final-part/1628) and the linked v.56 talent text / specialization PDFs. Record the exact source links and revision in this plan and the design. Release notes establish names, not every mechanical effect.
-- [ ] Confirm Block and Deflect's reduction, cost and timing, and the effects and exact names of any Supreme and Unarmed variants. v.56 replaces Parry in Martial Artist and Pit Fighter and renames Unarmed Parry to **Unarmed Block**. Older Parry/Reflect names remain compatibility aliases, not a claim about current trees.
-- [ ] Reconcile the design, `DEFENSIVE_TALENT_LISTS`, name-default tests, cost/formula tests, settings text and wiki draft with those sources. Add `Unarmed Block` to the unarmed defaults only if its verified effect matches the cost modifier; otherwise give it the correct behavior rather than treating the rename as proof of identical mechanics. Add a v.56-named actor fixture that exercises each supported modifier.
-- [ ] If the PDFs cannot be read or the mechanics differ from the provisional examples, resolve that before implementing or advertising reSpecialized support. Do not present the unchecked flat-4, 3-strain and modifier assumptions as verified rules.
+- [x] Read the [author's v.56 release notes](https://forum.swrpgcommunity.com/t/respecialized-project-v-56-the-force-update-final-part/1628) and the linked v.56 talent text / specialization PDFs. Record the exact source links and revision in this plan and the design. Release notes establish names, not every mechanical effect.
+- [x] Confirm Block and Deflect's reduction, cost and timing, and the effects and exact names of any Supreme and Unarmed variants. v.56 replaces Parry in Martial Artist and Pit Fighter and renames Unarmed Parry to **Unarmed Block**. Older Parry/Reflect names remain compatibility aliases, not a claim about current trees.
+- [x] Reconcile the design, `DEFENSIVE_TALENT_LISTS`, name-default tests, cost/formula tests, settings text and wiki draft with those sources. Add `Unarmed Block` to the unarmed defaults only if its verified effect matches the cost modifier; otherwise give it the correct behavior rather than treating the rename as proof of identical mechanics. Add a v.56-named actor fixture that exercises each supported modifier.
+- [x] If the PDFs cannot be read or the mechanics differ from the provisional examples, resolve that before implementing or advertising reSpecialized support. Do not present the unchecked flat-4, 3-strain and modifier assumptions as verified rules.
+
+**Sources (read 2026-10-04).** The supported revision is **v.56**, "reSpecialized Project v.56 - The Force Update - Final Part", posted 2026-07-06. The latest release at the time of reading was v.58 (2026-08-12); nothing in v.58 changes Block, Deflect or Unarmed Block.
+
+| Source | Revision | What it settles |
+|---|---|---|
+| [v.56 release notes](https://forum.swrpgcommunity.com/t/respecialized-project-v-56-the-force-update-final-part/1628) | v.56 | Names, not mechanics. Block and Deflect replace Parry and Reflect, and the author calls the new reduction unranked (the talent text bears that out). Martial Artist 1.5 swaps both ranks of Parry for Block and Unyielding, Unarmed Parry for Unarmed Block, and Improved Unarmed Parry for Improved Unarmed Block. Pit Fighter 1.11 drops Parry (D5, C15) and Unarmed Parry (D10), and adds Block (C5), Unarmed Block (C15) and Improved Unarmed Block (D15). No v.56 tree adds Deflect. |
+| [Martial Artist design doc](https://docs.google.com/document/d/1LQ2P_v-eGXuk6WennBKSoyKr82HgwMvASB8EAeBlHSo/edit) | Martial Artist 1.5 (v.56); read at 1.51, whose only later change fixes Martial Grace | Block's and Unarmed Block's text. Improved Unarmed Block's text. |
+| [Pit Fighter design doc](https://docs.google.com/document/d/105d704JSxnH17YEqRB-2F3MEbggM_otoNzZ_ezapFkc/edit) | Pit Fighter 1.11 in the v.56 notes (the document's own changelog numbers the same change 1.2) | The same Block, Unarmed Block and Improved Unarmed Block text. |
+| [Arbiter design doc](https://docs.google.com/document/d/1yZDiDEPbT-sij4UsWK7p6VVnU5XSwEIBEb2-X3LXvUU/edit) | Arbiter 1.0, released in [v.58](https://forum.swrpgcommunity.com/t/respecialized-project-v-58-the-consular-career-update/1642) | Deflect's text, the earliest released tree that carries it. Block's text again. Parry and Reflect listed as removed, replaced by Block and Deflect. |
+
+**Verified from the talent text:**
+
+- **Block** (active incidental, no ranks): when a melee hit lands, after damage is calculated and before soak, the character suffers 3 strain and reduces that hit's damage by 4. Once per hit, while wielding a lightsaber, a Melee weapon or another suitable item, at the GM's discretion.
+- **Deflect** (active incidental, no ranks): the same for a ranged hit, 3 strain for 4 off. A lightsaber counts only if the character is Force-sensitive.
+- **Unarmed Block** (passive): the character may Block while unarmed, and doing so costs 1 strain less, to a minimum of 1. This matches the unarmed cost modifier, so `Unarmed Block` joins `unarmedParryTalents`.
+- **Improved Unarmed Block** (passive) disarms an engaged attacker whose combat check generates three threat or a despair. It changes neither the reduction nor the cost and is in no list.
+- No Supreme Block, Supreme Deflect or unarmed Deflect appears in any source. The Supreme lists keep the vanilla names only.
+- reSpecialized removes Parry and Reflect rather than redefining them, so in a reSpecialized world they are this system's compatibility aliases for Block and Deflect. Supreme Parry, Supreme Reflect and Unarmed Parry keep their vanilla effects there.
+- Wording differs but the rules do not: the Martial Artist and Pit Fighter long texts say "melee combat check" where Arbiter says "melee attack", and Pit Fighter's long text calls the incidental "Guard".
+
+**Not read.** The v.56 press release (two PNG images), the folios (PDF and JPG) and the Force & Destiny Primer are images or binary files that could not be read as text. The Primer folder linked from the v.56 notes now holds only the later Primer 3.0 PDF (v.58), which is over the reader's size limit. Deflect's text therefore comes from the v.58 Arbiter document, not from a v.56 document.
 
 Vanilla's minion exclusion follows [Under a Black Sun, page 11](https://images-cdn.fantasyflightgames.com/filer_public/18/ff/18ff8afe-bf19-47a3-97e5-a313ded3d6b3/under_a_black_sun_lores.pdf#page=11): inflicted strain converts to wounds, but minions cannot voluntarily suffer strain. This feature adds no minion house-rule override.
 
@@ -150,13 +171,14 @@ test("a name list is split on commas, trimmed, lowercased and deduplicated", () 
   assert.deepEqual(parseTalentNames(undefined), []);
 });
 
-test("the world defaults cover both the book and the OggDude names", () => {
+test("the world defaults cover the book, the OggDude and the reSpecialized v.56 names", () => {
+  // reSpecialized v.56 adds Block, Deflect and Unarmed Block, and has no Supreme variant.
   assert.deepEqual(DEFAULT_NAMES, {
     melee: ["parry", "block"],
     ranged: ["reflect", "deflect"],
     meleeSupreme: ["parry (supreme)", "supreme parry"],
     rangedSupreme: ["reflect (supreme)", "supreme reflect"],
-    unarmed: ["unarmed parry"],
+    unarmed: ["unarmed parry", "unarmed block"],
   });
 });
 
@@ -214,11 +236,71 @@ test("an unranked entry counts as one rank", () => {
 });
 
 test("reSpecialized reduces by a flat 4 for every listed name, whatever the ranks", () => {
+  // v.56 Block and Deflect: 3 strain, 4 off the hit before soak, no ranks (see Task 0's sources).
   const respec = { ruleset: RULESET_RESPECIALIZED };
   assert.equal(plan(target({ talents: [talent("Parry", 3)] }), respec).reduction, 4);
   assert.equal(plan(target({ talents: [talent("Block", "N/A")] }), respec).reduction, 4);
+  assert.equal(plan(target({ talents: [talent("Block", "N/A"), talent("Parry", 2)] }), respec).reduction, 4);
   assert.equal(plan(target({ talents: [talent("Reflect", 2)] }), { ...respec, attack: "ranged" }).reduction, 4);
   assert.equal(plan(target({ talents: [talent("Deflect", "N/A")] }), { ...respec, attack: "ranged" }).reduction, 4);
+});
+
+test("a reSpecialized v.56 character: Block and Deflect take 4 off, Unarmed Block cuts melee only", () => {
+  // The names the v.56 Martial Artist and Pit Fighter trees and the Arbiter tree print.
+  // Improved Unarmed Block disarms an attacker; it is neither Block nor Unarmed Block.
+  const actor = target({
+    talents: [talent("Block", "N/A"), talent("Unarmed Block", "N/A"), talent("Improved Unarmed Block", "N/A"), talent("Deflect", "N/A")],
+  });
+  const respec = { ruleset: RULESET_RESPECIALIZED };
+  const pool = readCostPool(actor);
+
+  const block = plan(actor, respec);
+  assert.deepEqual(block.talentNames, ["Block"]);
+  assert.equal(block.reduction, 4);
+  assert.equal(block.formula.key, "SWFFG.ApplyDamage.Defence.FormulaRespec");
+  assert.equal(block.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyBlock");
+  assert.equal(block.hasUnarmed, true);
+  assert.equal(block.hasSupreme, false); // reSpecialized has no Supreme Block
+  assert.equal(cheapestCost(block), 2);
+  assert.equal(planDefenceControls(block, pool, { on: true }).cost, 3);
+  assert.equal(planDefenceControls(block, pool, { on: true, unarmed: true }).cost, 2);
+
+  const deflect = plan(actor, { ...respec, attack: "ranged" });
+  assert.deepEqual(deflect.talentNames, ["Deflect"]);
+  assert.equal(deflect.reduction, 4);
+  assert.equal(deflect.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyDeflect");
+  assert.equal(deflect.hasUnarmed, false);
+  assert.equal(deflect.hasSupreme, false);
+  assert.equal(cheapestCost(deflect), 3);
+  assert.equal(planDefenceControls(deflect, pool, { on: true, unarmed: true }).cost, 3);
+
+  assert.equal(plan(target({ talents: [talent("Improved Unarmed Block", "N/A")] }), respec), null);
+});
+
+test("in a reSpecialized world Parry and Reflect, and their modifiers, stand in for Block and Deflect", () => {
+  const actor = target({
+    talents: [talent("Parry", 2), talent("Supreme Parry"), talent("Unarmed Parry"), talent("Reflect", 3), talent("Reflect (Supreme)")],
+  });
+  const respec = { ruleset: RULESET_RESPECIALIZED };
+
+  const parry = plan(actor, respec);
+  assert.equal(parry.reduction, 4);
+  assert.equal(parry.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyBlock");
+  assert.equal(parry.hasSupreme, true);
+  assert.equal(parry.hasUnarmed, true);
+  assert.equal(cheapestCost(parry), 1);
+
+  const reflect = plan(actor, { ...respec, attack: "ranged" });
+  assert.equal(reflect.reduction, 4);
+  assert.equal(reflect.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyDeflect");
+  assert.equal(reflect.hasSupreme, true);
+  assert.equal(reflect.hasUnarmed, false);
+  assert.equal(cheapestCost(reflect), 1);
+
+  // Unarmed Block is Unarmed Parry's effect under a new name, so it lowers an old Parry too.
+  const mixed = plan(target({ talents: [talent("Parry", 1), talent("Unarmed Block", "N/A")] }), respec);
+  assert.equal(mixed.hasUnarmed, true);
+  assert.equal(cheapestCost(mixed), 2);
 });
 
 test("labels follow the ruleset and the attack", () => {
@@ -412,21 +494,25 @@ export const RULESET_RESPECIALIZED = "respecialized";
 export const BASE_DEFENCE_COST = 3;
 export const MIN_DEFENCE_COST = 1;
 
-/** Vanilla reduces by 2 plus ranks; reSpecialized (Block, Deflect) by a flat 4. */
+/**
+ * Vanilla reduces by 2 plus ranks. reSpecialized v.56's Block and Deflect have no ranks and
+ * take a flat 4 off the hit for the same 3 strain; Parry and Reflect stand in for them there.
+ */
 const VANILLA_BASE_REDUCTION = 2;
 const RESPECIALIZED_REDUCTION = 4;
 
 /**
  * The GM-editable name lists: the world setting each lives in, the field planDefensiveTalent
  * reads it from, its segment under `SWFFG.Settings.DefensiveTalents`, and its default. The
- * defaults carry both the book names and the OggDude import names.
+ * defaults carry the book names, the OggDude import names and the reSpecialized v.56 names.
+ * Unarmed Block has Unarmed Parry's effect; reSpecialized has no Supreme variant.
  */
 export const DEFENSIVE_TALENT_LISTS = Object.freeze([
   Object.freeze({ setting: "meleeDefenceTalents", field: "melee", label: "MeleeTalents", default: "Parry, Block" }),
   Object.freeze({ setting: "rangedDefenceTalents", field: "ranged", label: "RangedTalents", default: "Reflect, Deflect" }),
   Object.freeze({ setting: "meleeSupremeTalents", field: "meleeSupreme", label: "MeleeSupreme", default: "Parry (Supreme), Supreme Parry" }),
   Object.freeze({ setting: "rangedSupremeTalents", field: "rangedSupreme", label: "RangedSupreme", default: "Reflect (Supreme), Supreme Reflect" }),
-  Object.freeze({ setting: "unarmedParryTalents", field: "unarmed", label: "Unarmed", default: "Unarmed Parry" }),
+  Object.freeze({ setting: "unarmedParryTalents", field: "unarmed", label: "Unarmed", default: "Unarmed Parry, Unarmed Block" }),
 ]);
 
 const STRAIN_POOL = Object.freeze({ path: "system.stats.strain.value", thresholdPath: "system.stats.strain.max", unit: "strain" });
@@ -1950,7 +2036,7 @@ Directly after the `"SWFFG.Settings.combat.Label": "Configure Combat",` line, in
   "SWFFG.Settings.DefensiveTalents.Hint": "Which talents Apply Damage offers to reduce a hit, and by which rules.",
   "SWFFG.Settings.DefensiveTalents.Label": "Configure Parry & Reflect",
   "SWFFG.Settings.DefensiveTalents.Ruleset.Name": "Rules",
-  "SWFFG.Settings.DefensiveTalents.Ruleset.Hint": "Vanilla: the talent costs 3 strain and reduces the hit by 2 plus its ranks. reSpecialized: Block and Deflect, and Parry and Reflect with them, cost 3 strain and reduce the hit by 4.",
+  "SWFFG.Settings.DefensiveTalents.Ruleset.Hint": "Vanilla: the talent costs 3 strain and reduces the hit by 2 plus its ranks. reSpecialized (v.56): Block and Deflect, and Parry and Reflect with them, cost 3 strain and reduce the hit by 4, whatever the ranks.",
   "SWFFG.Settings.DefensiveTalents.Ruleset.Vanilla": "Vanilla",
   "SWFFG.Settings.DefensiveTalents.Ruleset.Respecialized": "reSpecialized",
   "SWFFG.Settings.DefensiveTalents.MeleeTalents.Name": "Melee talents",
@@ -1962,7 +2048,7 @@ Directly after the `"SWFFG.Settings.combat.Label": "Configure Combat",` line, in
   "SWFFG.Settings.DefensiveTalents.RangedSupreme.Name": "Ranged talents that cost 1 strain",
   "SWFFG.Settings.DefensiveTalents.RangedSupreme.Hint": "Talents such as Supreme Reflect that let the ranged reduction cost 1 strain.",
   "SWFFG.Settings.DefensiveTalents.Unarmed.Name": "Talents that cost 1 less strain",
-  "SWFFG.Settings.DefensiveTalents.Unarmed.Hint": "Talents such as Unarmed Parry that cut the melee reduction's cost by 1, to a minimum of 1.",
+  "SWFFG.Settings.DefensiveTalents.Unarmed.Hint": "Talents such as Unarmed Parry or Unarmed Block that cut the melee reduction's cost by 1, to a minimum of 1.",
 ```
 
 - [ ] **Step 4: Run the test to verify it passes**
@@ -2508,7 +2594,7 @@ Launch the world with this branch checked out (use the `run` skill, or start Fou
 11. Give a character Parry, Supreme Parry and Unarmed Parry. At 7/10 strain, select Parry and Supreme. Change its strain to 10 on the sheet, then click the visible Unarmed option. Parry stays selected, Apply is disabled, and pressing Enter writes nothing and shows the affordability warning. Explicitly turn Parry off: ordinary damage can now be applied.
 12. A minion with Parry or Reflect gets no talent toggle in either ruleset. Ordinary damage still works. The writer tests must also refuse forced talent requests to minions on every route.
 13. During a capability probe to an old writer, switch the elected writer to an updated client. After the old probe times out or refuses, the replacement is probed and receives the application only after confirming support. Also verify that an unverified replacement gets no mutation.
-14. Use v.56-named talents and modifiers from Task 0 in reSpecialized mode; check the verified costs and reductions, then check the older Parry/Reflect compatibility names. Record the exact revision tested.
+14. In reSpecialized mode, give a character the v.56 talents Block, Deflect, Unarmed Block and Improved Unarmed Block (Task 0's sources). A melee hit offers **Apply Block**: 4 off the hit for 3 strain, or 2 strain with Unarmed selected. A ranged hit offers **Apply Deflect**: 4 off for 3 strain, with no Unarmed or Supreme option. Then replace them with Parry, Reflect, Supreme Parry and Unarmed Parry and check they behave as Block and Deflect, with Supreme at 1 strain. Note the revision tested (v.56) with the results.
 
 If any item fails, stop and fix it in the task that owns that code (re-run that task's tests), then repeat the checks.
 
@@ -2532,7 +2618,7 @@ git commit -m "Describe Parry and Reflect in the changelog" -m "Co-Authored-By: 
 
 Clone the wiki outside this repo, at `<wiki-clone>`, with `git clone https://github.com/YeNov/StarWarsFFG.wiki.git <wiki-clone>`. Set the YeNov `user.name` and `user.email` in that clone before committing.
 
-In `Tutorial-12-Apply-Damage-and-Apply-Crit.md`, after the "Things to know" bullets of the **Apply Damage** section (before `## Apply Crit`), add the following draft after reconciling its reSpecialized text with Task 0's verified sources:
+In `Tutorial-12-Apply-Damage-and-Apply-Crit.md`, after the "Things to know" bullets of the **Apply Damage** section (before `## Apply Crit`), add the following. Its reSpecialized text matches Task 0's sources:
 
 ```markdown
 ### Parry and Reflect
@@ -2546,17 +2632,20 @@ voluntarily pay this cost and get no talent toggle.
 - The dialog never shows the target's ranks or how much is taken off; the GM's breakdown does.
   Everyone else just sees "… parries." or "… deflects." under the damage line.
 - **Supreme Parry / Supreme Reflect** add a **Supreme: 1 strain** option, for a target that made
-  no combat check last turn. **Unarmed Parry** adds **Unarmed: −1 strain**. Pick them yourself;
-  the system can't tell which applies.
+  no combat check last turn. **Unarmed Parry** (or reSpecialized's **Unarmed Block**) adds
+  **Unarmed: −1 strain** against melee hits. Pick them yourself; the system can't tell which
+  applies.
 - The button is greyed out when paying the strain would incapacitate the target, and **Apply** is
   greyed out while the cost you picked would. A talent already selected stays selected if strain
   changes; turn it off yourself if you want to apply the hit without it.
 - If Foundry says the client that applies damage runs an older version, ask everyone to reload.
 
 The GM chooses the rules under **Configure Settings → Star Wars FFG → Parry & Reflect → Configure
-Parry & Reflect**: **Vanilla** (2 + ranks) or **reSpecialized** (Block and Deflect, a flat 4,
-with Parry and Reflect treated the same), and which talent names count for each. The
-reSpecialized option uses v.56.
+Parry & Reflect**: **Vanilla** (2 + ranks) or **reSpecialized**, and which talent names count
+for each. The reSpecialized option follows the fan ruleset's v.56: Block and Deflect cost 3
+strain and take a flat 4 off the hit, whatever the ranks, and the toggle reads **Apply Block** or
+**Apply Deflect**. Parry and Reflect, from characters built before reSpecialized replaced them,
+are treated the same way.
 ```
 
 Capture `docs/tutorial-shots/12-06-apply-parry.png`: the Apply Damage dialog for the Parry 2 character from Step 1, with the toggle on and Supreme visible. Record its numbered marks in `docs/tutorial-shots/12-06-apply-parry.boxes.json`, the same format as `12-02-apply-damage.boxes.json`. Then run `python tools/annotate-tutorial-shots.py <wiki-clone>` to write `images/12-06-apply-parry.webp`. Add it under the new section:

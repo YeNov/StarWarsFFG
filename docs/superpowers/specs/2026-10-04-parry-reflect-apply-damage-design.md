@@ -39,23 +39,42 @@ The reduction applies after damage is calculated and before soak, once per hit.
 
 ### reSpecialized
 
-The supported revision is **v.56**, as described in the [author's release
-notes](https://forum.swrpgcommunity.com/t/respecialized-project-v-56-the-force-update-final-part/1628).
-Those notes verify the renamed talents; before implementation, read the linked v.56 talent
-text and confirm the reduction, cost, timing and modifier effects below. The implementation
-plan's Task 0 records those sources and reconciles every affected default, example and test.
-The following numeric rules are provisional until that verification is complete.
+The supported revision is **v.56** ("reSpecialized Project v.56 - The Force Update - Final
+Part", 2026-07-06). Its [release
+notes](https://forum.swrpgcommunity.com/t/respecialized-project-v-56-the-force-update-final-part/1628)
+name Block and Deflect as the replacements for Parry and Reflect. The rules below were checked
+against the talent text itself, in the reSpecialized design documents for the trees that carry
+them. The implementation plan's Task 0 lists every source and what each one settled.
 
 > **Block:** When hit by a melee attack, suffer 3 strain to reduce damage by 4.
 > **Deflect:** When hit by a ranged attack, suffer 3 strain to reduce damage by 4.
 
-Both are unranked and apply after damage is calculated and before soak, once per hit.
+Both are active incidentals with no ranks. Each applies after damage is calculated and before
+soak, once per hit, while the character wields a suitable weapon or item at the GM's discretion
+(for Deflect, a lightsaber counts only if the character is Force-sensitive). As in vanilla, the
+system does not check the weapon.
 
-In a reSpecialized world, **Parry works as Block and Reflect works as Deflect**. The
-v.56 Martial Artist and Pit Fighter trees replace Parry with Block, and Unarmed Parry is renamed
-Unarmed Block. Older Parry and Reflect names are retained as compatibility aliases. Verify
-the exact Supreme and Unarmed effects and names in v.56 before applying the vanilla cost
-modifiers to them; a rename alone does not establish identical mechanics.
+- **Unarmed Block** (Martial Artist, Pit Fighter): the character may Block while unarmed, and
+  the strain cost while unarmed drops by 1, to a minimum of 1. That is Unarmed Parry's effect
+  under Block's name, so both names share the unarmed cost modifier.
+- **Improved Unarmed Block** lets the character disarm an engaged attacker whose check
+  generates threat or despair. It changes neither the reduction nor the cost, so no list
+  includes it; like Improved Parry, it is out of scope.
+- No source names a Supreme Block, a Supreme Deflect or an unarmed Deflect. The Supreme lists
+  keep only the vanilla names.
+
+reSpecialized removes Parry and Reflect from its trees rather than redefining them: Martial
+Artist 1.5 swaps both ranks of Parry for Block and Unyielding, Pit Fighter 1.11 swaps its
+Parry and Unarmed Parry for Block, Unarmed Block and Improved Unarmed Block, and the Arbiter
+tree lists Parry and Reflect as replaced by Block and Deflect. A character built before the swap
+may still hold the old names, so in a reSpecialized world **Parry works as Block and Reflect
+works as Deflect**. Those aliases are this system's convention, not a reSpecialized rule.
+Supreme Parry, Supreme Reflect and Unarmed Parry keep their vanilla cost effects in both modes.
+
+Block's text is the same in the v.56 Martial Artist and Pit Fighter documents and in the later
+Arbiter document. No v.56 tree adds Deflect, so its text was checked in the Arbiter design
+document (Arbiter 1.0, released in v.58), the earliest released tree that carries it. The
+Force & Destiny Primer that the v.56 notes link could not be read; see Task 0.
 
 ## Settings
 
@@ -70,17 +89,17 @@ Combat settings with `restricted: true`. Every setting in it is `scope: "world"`
 | `rangedDefenceTalents` | string | `Reflect, Deflect` | talents that reduce a ranged hit |
 | `meleeSupremeTalents` | string | `Parry (Supreme), Supreme Parry` | let a melee reduction cost 1 strain |
 | `rangedSupremeTalents` | string | `Reflect (Supreme), Supreme Reflect` | let a ranged reduction cost 1 strain |
-| `unarmedParryTalents` | string | `Unarmed Parry` | cut a melee reduction's cost by 1 |
+| `unarmedParryTalents` | string | `Unarmed Parry, Unarmed Block` | cut a melee reduction's cost by 1 |
 
 A name list is split on commas. Each name is trimmed and compared whole and case-insensitively
-against the target's talent names, so `Parry` never matches `Parry (Improved)`. An empty list
-turns that row off. The defaults cover both the OggDude import names (`Parry (Supreme)`) and the
-book names (`Supreme Parry`).
+against the target's talent names, so `Parry` never matches `Parry (Improved)` and
+`Unarmed Block` never matches `Improved Unarmed Block`. An empty list turns that row off. The
+defaults cover the OggDude import names (`Parry (Supreme)`), the book names (`Supreme Parry`)
+and the reSpecialized v.56 names (`Block`, `Deflect`, `Unarmed Block`).
 
-The listed defaults are the starting point for Task 0's v.56 verification. If Unarmed Block
-has the same cost modifier, add its exact name to `unarmedParryTalents` alongside Unarmed Parry
-and update the matching tests. Otherwise implement its verified effect separately. Reconcile
-any Supreme aliases in the same way before shipping reSpecialized support.
+`Unarmed Block` sits in `unarmedParryTalents` because its verified effect is Unarmed Parry's
+cost modifier. reSpecialized publishes no Supreme variant, so the Supreme lists hold the
+vanilla names only, and `Improved Unarmed Block` is in no list.
 
 ## Behavior
 
@@ -175,7 +194,7 @@ Pierce:  [  2 ]
 
 [ 🛡 Apply Parry ]           toggle (aria-pressed)
     [ Supreme: 1 strain ]    shown when the target has a Supreme talent for this category
-    [ Unarmed: −1 strain ]   melee only, shown when the target has an Unarmed Parry talent
+    [ Unarmed: −1 strain ]   melee only, shown when the target has Unarmed Parry or Unarmed Block
     Costs 3 strain           "wounds" for rivals; follows the toggles
 
         [ Apply ]   [ Cancel ]
@@ -310,7 +329,10 @@ and the actor and passes them in. Labels come back as i18n keys.
   - the cheapest cost, which decides whether the toggle is greyed out
   - a selected talent preserved when strain rises and a visible modifier triggers refresh;
     Apply stays blocked until the user explicitly turns the talent off or the cost is affordable
-  - verified v.56 talent names and modifier effects, alongside older compatibility names
+  - a reSpecialized v.56 character holding Block, Deflect, Unarmed Block and Improved Unarmed
+    Block: a flat 4 against melee and ranged hits, Unarmed Block's −1 on melee only, no Supreme,
+    and Improved Unarmed Block matching nothing; then Parry, Reflect and their Supreme and
+    Unarmed modifiers as compatibility aliases in the same world
 - `tests/node/apply-damage.test.mjs`: the reduction applied before soak, a reduction larger
   than the damage, merged `changes` on the same path, separate `changes` on different paths,
   the separate cost metadata retained after merging, and identical output when there is no
@@ -354,8 +376,12 @@ and the actor and passes them in. Labels come back as i18n keys.
 12. A minion with Parry or Reflect gets no talent toggle in either mode; ordinary damage works.
 13. Replace a silent or refusing writer during a capability probe. The replacement is probed
     before any talent application is sent, within the bounded attempt limit.
-14. Verify the v.56-named talents and modifiers against the exact sources recorded in Task 0,
-    and then verify the older compatibility names.
+14. A reSpecialized world, with a character holding the v.56 talents Block, Deflect, Unarmed
+    Block and Improved Unarmed Block. A melee hit offers **Apply Block**: 4 off the hit for 3
+    strain, or 2 with Unarmed. A ranged hit offers **Apply Deflect**: 4 off for 3 strain, with
+    no Unarmed or Supreme option. Then give Parry, Reflect, Supreme Parry and Unarmed Parry
+    instead and check they behave as Block and Deflect, with Supreme at 1 strain. Record the
+    revision tested (v.56).
 
 ## Rollout
 
@@ -364,7 +390,8 @@ and the actor and passes them in. Labels come back as i18n keys.
   check blocks sending them to an old writer; ordinary damage remains available.
 - **Wiki:** add the toggle to the damage-and-crits chapter of the tutorial and re-capture its
   Apply Damage screenshot if the dialog appears in it. The new settings menu gets a line in
-  the GM setup chapter.
+  the GM setup chapter. The wiki names the supported reSpecialized revision (v.56), the
+  **Apply Block** / **Apply Deflect** labels, and Unarmed Block beside Unarmed Parry.
 
 ## Non-goals
 
