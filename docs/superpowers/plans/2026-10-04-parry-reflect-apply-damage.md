@@ -12,15 +12,16 @@
 
 ## Global Constraints
 
-- Rulesets: `vanilla` (default) and `respecialized`, world setting `defensiveTalentRuleset`.
+- Rulesets: `vanilla` (default) and `respecialized`, world setting `defensiveTalentRuleset`. The reSpecialized target is **v.56**; Task 0 must verify its talent text before implementing that mode. Its numeric examples below are provisional until that check passes.
 - Name-list settings and defaults, verbatim: `meleeDefenceTalents` = `Parry, Block`; `rangedDefenceTalents` = `Reflect, Deflect`; `meleeSupremeTalents` = `Parry (Supreme), Supreme Parry`; `rangedSupremeTalents` = `Reflect (Supreme), Supreme Reflect`; `unarmedParryTalents` = `Unarmed Parry`.
 - Every new setting is `scope: "world"`, `config: false`, and shown only in the new `defensiveTalentSettings` menu, registered with `restricted: true`.
 - Names are comma-separated, trimmed, and matched whole and case-insensitively. An empty list turns that row off.
 - Melee = `MELEE_DEFENCE_SKILLS` (Melee, Brawl, Lightsaber); ranged = `RANGED_DEFENCE_SKILLS` (Ranged: Light, Ranged: Heavy, Gunnery); any other skill gets no toggle. Vehicles never get one.
 - Reduction: vanilla `2 + ranks`, with ranks summed over matching `talentList` entries and an unranked entry counting as 1; reSpecialized a flat `4`. `reduced = max(0, damage - reduction)`, `applied = max(0, reduced - effectiveSoak)`.
-- Cost: 3; Supreme → 1; Unarmed (melee only) → `max(1, cost - 1)`, applied after Supreme. Characters and nemeses pay strain; rivals and minions pay wounds.
+- Cost: 3; Supreme → 1; Unarmed (melee only) → `max(1, cost - 1)`, applied after Supreme. Characters and nemeses pay strain; rivals pay wounds. Minions cannot voluntarily suffer strain and get no talent toggle in either mode; ordinary damage to minions is unchanged.
 - Incapacitation: `current + cost > threshold`. Exactly at the threshold is allowed. A threshold that is not a positive number never disables anything. Only the cost is counted, never the hit.
 - The talent toggle is greyed out (`disabled`, **no tooltip**) when the cheapest available cost would incapacitate. With the toggle on and the selected cost unaffordable, **Apply** is greyed out, with no explanation line.
+- An unaffordable talent already selected stays selected. Its main toggle remains enabled so the user can turn it off explicitly; refresh never clears the selection or silently falls back to ordinary damage.
 - The dialog never shows ranks or the reduction, the GM's dialog included. The public line adds only "{actorName} parries." (melee) or "{actorName} deflects." (ranged), in both rulesets, with no numbers.
 - A talent application is one `actor.update` covering both pools. With no talent, Apply Damage keeps sending the legacy `{ path, delta }` form.
 - Capability `defensive-damage-v1`: probe the elected writer, wait **5 seconds** for a positive reply, never reroute to an unverified writer, and don't cache the answer across applications.
@@ -56,6 +57,17 @@
 | `tests/node/defensive-damage-apply.test.mjs` (new) | End to end: the coordinator plus the real writer check. |
 
 Baseline before Task 1: `npm test` passes 916 tests with 0 failures, and `npm run check:imports` reports PASS.
+
+---
+
+### Task 0: Verify and record the supported reSpecialized revision
+
+- [ ] Read the [author's v.56 release notes](https://forum.swrpgcommunity.com/t/respecialized-project-v-56-the-force-update-final-part/1628) and the linked v.56 talent text / specialization PDFs. Record the exact source links and revision in this plan and the design. Release notes establish names, not every mechanical effect.
+- [ ] Confirm Block and Deflect's reduction, cost and timing, and the effects and exact names of any Supreme and Unarmed variants. v.56 replaces Parry in Martial Artist and Pit Fighter and renames Unarmed Parry to **Unarmed Block**. Older Parry/Reflect names remain compatibility aliases, not a claim about current trees.
+- [ ] Reconcile the design, `DEFENSIVE_TALENT_LISTS`, name-default tests, cost/formula tests, settings text and wiki draft with those sources. Add `Unarmed Block` to the unarmed defaults only if its verified effect matches the cost modifier; otherwise give it the correct behavior rather than treating the rename as proof of identical mechanics. Add a v.56-named actor fixture that exercises each supported modifier.
+- [ ] If the PDFs cannot be read or the mechanics differ from the provisional examples, resolve that before implementing or advertising reSpecialized support. Do not present the unchecked flat-4, 3-strain and modifier assumptions as verified rules.
+
+Vanilla's minion exclusion follows [Under a Black Sun, page 11](https://images-cdn.fantasyflightgames.com/filer_public/18/ff/18ff8afe-bf19-47a3-97e5-a313ded3d6b3/under_a_black_sun_lores.pdf#page=11): inflicted strain converts to wounds, but minions cannot voluntarily suffer strain. This feature adds no minion house-rule override.
 
 ---
 
@@ -264,19 +276,24 @@ test("the cheapest cost is what the target's own modifiers allow", () => {
   assert.equal(cheapestCost({ hasSupreme: true, hasUnarmed: true }), 1);
 });
 
-test("characters and nemeses pay strain; rivals and minions pay wounds; vehicles pay nothing", () => {
+test("characters and nemeses pay strain; rivals pay wounds; minions and vehicles cannot activate", () => {
   for (const type of ["character", "nemesis"]) {
     assert.equal(defenceCostPool(type).path, STRAIN);
     assert.equal(plan(target({ type, talents: [talent("Parry")] })).costPath, STRAIN);
     assert.equal(plan(target({ type, talents: [talent("Parry")] })).unit, "strain");
   }
-  for (const type of ["rival", "minion"]) {
+  for (const type of ["rival"]) {
     assert.equal(defenceCostPool(type).path, WOUNDS);
     assert.equal(plan(target({ type, talents: [talent("Parry")] })).costPath, WOUNDS);
     assert.equal(plan(target({ type, talents: [talent("Parry")] })).unit, "wounds");
   }
-  assert.equal(defenceCostPool("vehicle"), null);
-  assert.equal(readCostPool(target({ type: "vehicle" })), null);
+  for (const type of ["minion", "vehicle"]) {
+    assert.equal(defenceCostPool(type), null);
+    assert.equal(readCostPool(target({ type })), null);
+    for (const ruleset of [RULESET_VANILLA, RULESET_RESPECIALIZED]) {
+      assert.equal(plan(target({ type, talents: [talent("Parry")] }), { ruleset }), null);
+    }
+  }
 });
 
 test("the cost pool is read from the actor as it stands", () => {
@@ -303,7 +320,7 @@ test("an unknown threshold never disables anything", () => {
 
 test("the toggle is greyed out when even the cheapest cost incapacitates", () => {
   const parryOnly = plan(target({ talents: [talent("Parry")], strain: [8, 10] }));
-  const controls = planDefenceControls(parryOnly, readCostPool(target({ strain: [8, 10] })), { on: true });
+  const controls = planDefenceControls(parryOnly, readCostPool(target({ strain: [8, 10] })), { on: false });
   assert.equal(controls.toggleDisabled, true);
   assert.equal(controls.on, false);
   assert.equal(controls.applyDisabled, false);
@@ -331,7 +348,30 @@ test("a modifier the target lacks, or a toggle left off, changes nothing", () =>
 
 test("the controls fall back to the plan's numbers when no live pool is given", () => {
   const parry = plan(target({ talents: [talent("Parry")], strain: [8, 10] }));
-  assert.equal(planDefenceControls(parry, null, { on: true }).toggleDisabled, true);
+  assert.equal(planDefenceControls(parry, null, { on: false }).toggleDisabled, true);
+});
+
+test("a selected defence stays selected after strain rises and a modifier refreshes", () => {
+  const actor = target({ talents: [talent("Parry"), talent("Supreme Parry"), talent("Unarmed Parry")], strain: [7, 10] });
+  const parry = plan(actor);
+  const selection = { on: true, supreme: true, unarmed: false };
+  assert.equal(planDefenceControls(parry, readCostPool(actor), selection).applyDisabled, false);
+
+  actor.system.stats.strain.value = 10;
+  selection.unarmed = true; // a visible modifier click triggers refresh
+  const controls = planDefenceControls(parry, readCostPool(actor), selection);
+  assert.equal(controls.on, true);
+  assert.equal(controls.supreme, true);
+  assert.equal(controls.unarmed, true);
+  assert.equal(controls.applyDisabled, true);
+  assert.equal(controls.toggleDisabled, false); // the user can explicitly turn it off
+  assert.deepEqual(selection, { on: true, supreme: true, unarmed: true });
+
+  selection.on = false;
+  const off = planDefenceControls(parry, readCostPool(actor), selection);
+  assert.equal(off.on, false);
+  assert.equal(off.toggleDisabled, true);
+  assert.equal(off.applyDisabled, false);
 });
 
 test("unit words follow the pool and the count", () => {
@@ -354,7 +394,7 @@ Create `modules/helpers/defensive-talents.js`:
 ```js
 /**
  * Parry, Reflect and the talents a GM lists beside them: the target suffers strain (wounds, for
- * a rival or minion) to shrink a hit before soak.
+ * a rival) to shrink a hit before soak. Minions cannot voluntarily pay this cost.
  *
  * Every rule lives here, free of Foundry globals, so the Apply Damage dialog and the GM bridge's
  * writer share one implementation. The dialog reads the world settings and the target and passes
@@ -392,8 +432,8 @@ export const DEFENSIVE_TALENT_LISTS = Object.freeze([
 const STRAIN_POOL = Object.freeze({ path: "system.stats.strain.value", thresholdPath: "system.stats.strain.max", unit: "strain" });
 const WOUND_POOL = Object.freeze({ path: "system.stats.wounds.value", thresholdPath: "system.stats.wounds.max", unit: "wounds" });
 
-/** Rivals and minions have no strain, so they suffer the cost as wounds. Vehicles have no such talent. */
-const COST_POOLS = Object.freeze({ character: STRAIN_POOL, nemesis: STRAIN_POOL, rival: WOUND_POOL, minion: WOUND_POOL });
+/** Rivals pay wounds; minions cannot voluntarily suffer strain, and vehicles are out of scope. */
+const COST_POOLS = Object.freeze({ character: STRAIN_POOL, nemesis: STRAIN_POOL, rival: WOUND_POOL });
 
 const TOGGLE_LABEL_KEYS = Object.freeze({
   [RULESET_VANILLA]: Object.freeze({ melee: "SWFFG.ApplyDamage.Defence.ApplyParry", ranged: "SWFFG.ApplyDamage.Defence.ApplyReflect" }),
@@ -552,8 +592,9 @@ export function wouldIncapacitate(pool, cost) {
 }
 
 /**
- * The dialog's control state. A selection the target cannot make (a modifier it lacks, or the
- * toggle once it is greyed out) is dropped, so the result is what Apply would send.
+ * The dialog's control state. Unsupported modifiers have no effect, but a selected defence is
+ * preserved when its cost becomes unaffordable. Apply stays blocked and the user may explicitly
+ * turn the main toggle off; a refresh never converts that choice into ordinary damage.
  * @param {object} plan - from planDefensiveTalent
  * @param {{current: number, threshold: number}|null} pool - readCostPool on the live actor
  * @param {{on?: boolean, supreme?: boolean, unarmed?: boolean}} [selection]
@@ -561,8 +602,8 @@ export function wouldIncapacitate(pool, cost) {
  */
 export function planDefenceControls(plan, pool, selection = {}) {
   const live = pool ?? plan;
-  const toggleDisabled = wouldIncapacitate(live, cheapestCost(plan));
-  const on = !!selection.on && !toggleDisabled;
+  const on = !!selection.on;
+  const toggleDisabled = !on && wouldIncapacitate(live, cheapestCost(plan));
   const supreme = on && !!plan.hasSupreme && !!selection.supreme;
   const unarmed = on && !!plan.hasUnarmed && !!selection.unarmed;
   const cost = defenceCost({ supreme, unarmed });
@@ -656,8 +697,8 @@ test("strain damage and a strain cost merge into one change, and the cost is kep
   assert.deepEqual(hit.defenceCost, { path: STRAIN, delta: 1 });
 });
 
-test("a rival or minion pays in wounds, merged with the hit", () => {
-  for (const type of ["rival", "minion"]) {
+test("a rival pays in wounds, merged with the hit", () => {
+  for (const type of ["rival"]) {
     const hit = defend({ damage: 12, pierce: 0, pool: "wounds", defence: { reduction: 4, cost: 3, costPath: WOUNDS } }, type);
 
     assert.deepEqual(hit.changes, [{ path: WOUNDS, delta: 5 }]);
@@ -861,7 +902,7 @@ test("a talent cost must be the target's own pool, 1 to 3, and covered by the ch
   // A rival's hit and cost share the wounds entry.
   const merged = { type: "damage", changes: [{ path: WOUNDS, delta: 7 }], defenceCost: { path: WOUNDS, delta: 3 } };
   assert.equal(narrowApplyRequest(merged, "rival").ok, true);
-  assert.equal(narrowApplyRequest(merged, "minion").ok, true);
+  assert.deepEqual(narrowApplyRequest(merged, "minion"), { ok: false, reason: "defence-cost" });
 });
 
 test("a non-owner's talent request reaches the writer narrowed, with its cost intact", () => {
@@ -1366,6 +1407,39 @@ test("an unverified replacement writer never receives the talent application", a
   assert.equal(sent.some((d) => d.event === APPLY_EVENT), false);
 });
 
+for (const result of ["timeout", "refusal"]) {
+  test(`a writer change during a probe ${result} verifies the replacement`, async () => {
+    const users = [user("gm", true), user("gm2", true), user("owner")];
+    users.activeGM = users[0];
+    const sent = [];
+    let sequence = 0;
+    const coordinator = createActorApplyCoordinator({
+      getUserId: () => "owner", getUsers: () => users, makeRequestId: () => `r${++sequence}`,
+      capabilityTimeoutMs: 10, timeoutMs: 1000,
+      send(data) {
+        sent.push(data);
+        if (data.event === CAPABILITY_EVENT && data.executorId === "gm2") {
+          queueMicrotask(() => coordinator.receive({ event: CAPABILITY_RESULT_EVENT,
+            requestId: data.requestId, recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: true }, "gm2"));
+        } else if (data.event === APPLY_EVENT) {
+          queueMicrotask(() => coordinator.receive({ event: APPLY_RESULT_EVENT,
+            requestId: data.requestId, recipientId: "owner", ok: true }, "gm2"));
+        }
+      },
+    });
+    const applying = coordinator.apply({ uuid: "Actor.a", isOwner: true }, talentHit(), gated);
+    users.activeGM = users[1];
+    if (result === "refusal") {
+      const first = sent.find((data) => data.event === CAPABILITY_EVENT);
+      await coordinator.receive({ event: CAPABILITY_RESULT_EVENT, requestId: first.requestId,
+        recipientId: "owner", capability: DEFENSIVE_DAMAGE_CAPABILITY, ok: false }, "gm");
+    } // In the timeout case, the first writer never answers.
+    assert.equal(await applying, "forwarded");
+    assert.deepEqual(sent.filter((data) => data.event === CAPABILITY_EVENT).map((data) => data.executorId), ["gm", "gm2"]);
+    assert.deepEqual(sent.filter((data) => data.event === APPLY_EVENT).map((data) => data.executorId), ["gm2"]);
+  });
+}
+
 test("a writer answers a probe read-only, and only one addressed to it from a known sender", async () => {
   const c = clients();
   const probe = { event: CAPABILITY_EVENT, requestId: "p", executorId: "gm", capability: DEFENSIVE_DAMAGE_CAPABILITY };
@@ -1460,8 +1534,9 @@ Above `async function apply`, add:
    * The writer a capability-gated apply may go to, verified for this application only.
    *
    * A reply vouches for the client that sent it and nothing else, so the seat is re-elected after
-   * every probe. If it moved while the writer was answering, the replacement is asked too. The
-   * request is never handed to a writer that has not said yes.
+   * every probe, including silence or refusal. If it moved while the writer was answering (or
+   * not answering), the replacement is asked too. The request is never handed to an unverified
+   * writer; an unchanged writer that does not confirm support gets the reload warning.
    *
    * @returns {Promise<string|null>} null when no writer is left
    */
@@ -1470,13 +1545,16 @@ Above `async function apply`, add:
       const supported = executorId === io.getUserId()
         ? capabilities.includes(capability)
         : await probeCapability(executorId, capability);
+      const current = selectApplyExecutor(actor, io.getUsers());
+      if (!current) return null;
+      if (current !== executorId) {
+        executorId = current;
+        continue;
+      }
       if (!supported) {
         throw new ApplyRequestError("The client applying this runs an older version of the system. Reload every client and try again.", WRITER_OUTDATED);
       }
-      const current = selectApplyExecutor(actor, io.getUsers());
-      if (current === executorId) return executorId;
-      if (!current) return null;
-      executorId = current;
+      return executorId;
     }
     throw new ApplyRequestError("The apply executor changed. Check the target and try again.");
   }
@@ -1732,6 +1810,17 @@ test("an owner's malformed talent request is refused by the writer, although own
     { name: "ApplyRequestError", message: "Invalid apply request: defence-cost." });
   assert.deepEqual(t.updates, []);
 });
+
+for (const applier of ["gm", "owner", "player"]) {
+  test(`a minion talent request from ${applier} is refused without a write or chat`, async () => {
+    const t = table({ type: "minion" });
+    const op = { type: "damage", changes: [{ path: WOUNDS, delta: 7 }],
+      defenceCost: { path: WOUNDS, delta: 3 }, gmChat: { content: "details" } };
+    await assert.rejects(t.apply(applier, op), /Invalid apply request: defence-cost/);
+    assert.deepEqual(t.updates, []);
+    assert.deepEqual(t.chats, []);
+  });
+}
 ```
 
 - [ ] **Step 2: Run the tests**
@@ -2302,7 +2391,8 @@ export class ApplyDamage {
         // Greyed out, never explained: the attacker learns no more about the target than that.
         const refresh = () => {
           const controls = defenceControls();
-          Object.assign(selection, { on: controls.on, supreme: controls.supreme, unarmed: controls.unarmed });
+          // Render the user's choice without changing it. If paying becomes impossible,
+          // Apply is blocked; the user must explicitly turn the main toggle off.
           toggle.disabled = controls.toggleDisabled;
           toggle.setAttribute("aria-pressed", String(controls.on));
           options.style.display = controls.on ? "flex" : "none";
@@ -2319,6 +2409,10 @@ export class ApplyDamage {
         toggle.addEventListener("click", (ev) => {
           ev.preventDefault();
           selection.on = !selection.on;
+          if (!selection.on) {
+            selection.supreme = false;
+            selection.unarmed = false;
+          }
           refresh();
         });
         for (const optionButton of optionButtons) {
@@ -2411,6 +2505,10 @@ Launch the world with this branch checked out (use the `run` skill, or start Fou
 8. Add a custom name to Melee talents and it is recognized. Clear the list and the toggle goes away.
 9. Open two dialogs for a character at 7/10 strain and select a 3-strain Parry in both. Apply the first, then the second. Only the first writes damage and cost and posts chat; the second warns that the selected cost is no longer affordable.
 10. Mixed versions. With the GM's browser open on `main` code, check out this branch on disk and reload **only** the player's browser. A talent application to an owned or an unowned target sends nothing and shows the reload warning after about 5 seconds, while ordinary damage still applies. Repeat with no GM, where the elected owner is the stale client. Then reload everyone and confirm talent applications work.
+11. Give a character Parry, Supreme Parry and Unarmed Parry. At 7/10 strain, select Parry and Supreme. Change its strain to 10 on the sheet, then click the visible Unarmed option. Parry stays selected, Apply is disabled, and pressing Enter writes nothing and shows the affordability warning. Explicitly turn Parry off: ordinary damage can now be applied.
+12. A minion with Parry or Reflect gets no talent toggle in either ruleset. Ordinary damage still works. The writer tests must also refuse forced talent requests to minions on every route.
+13. During a capability probe to an old writer, switch the elected writer to an updated client. After the old probe times out or refuses, the replacement is probed and receives the application only after confirming support. Also verify that an unverified replacement gets no mutation.
+14. Use v.56-named talents and modifiers from Task 0 in reSpecialized mode; check the verified costs and reductions, then check the older Parry/Reflect compatibility names. Record the exact revision tested.
 
 If any item fails, stop and fix it in the task that owns that code (re-run that task's tests), then repeat the checks.
 
@@ -2434,7 +2532,7 @@ git commit -m "Describe Parry and Reflect in the changelog" -m "Co-Authored-By: 
 
 Clone the wiki outside this repo, at `<wiki-clone>`, with `git clone https://github.com/YeNov/StarWarsFFG.wiki.git <wiki-clone>`. Set the YeNov `user.name` and `user.email` in that clone before committing.
 
-In `Tutorial-12-Apply-Damage-and-Apply-Crit.md`, after the "Things to know" bullets of the **Apply Damage** section (before `## Apply Crit`), add:
+In `Tutorial-12-Apply-Damage-and-Apply-Crit.md`, after the "Things to know" bullets of the **Apply Damage** section (before `## Apply Crit`), add the following draft after reconciling its reSpecialized text with Task 0's verified sources:
 
 ```markdown
 ### Parry and Reflect
@@ -2442,7 +2540,8 @@ In `Tutorial-12-Apply-Damage-and-Apply-Crit.md`, after the "Things to know" bull
 If the target has **Parry** and the attack was Melee, Brawl or Lightsaber, the dialog shows
 **Apply Parry**. If it has **Reflect** and the attack was Ranged or Gunnery, it shows **Apply
 Reflect**. Click it to have the target use the talent: the hit is reduced before soak, and the
-target suffers 3 strain in the same step (minions and rivals suffer 3 wounds instead).
+target suffers 3 strain in the same step (rivals suffer 3 wounds instead). Minions cannot
+voluntarily pay this cost and get no talent toggle.
 
 - The dialog never shows the target's ranks or how much is taken off; the GM's breakdown does.
   Everyone else just sees "… parries." or "… deflects." under the damage line.
@@ -2450,12 +2549,14 @@ target suffers 3 strain in the same step (minions and rivals suffer 3 wounds ins
   no combat check last turn. **Unarmed Parry** adds **Unarmed: −1 strain**. Pick them yourself;
   the system can't tell which applies.
 - The button is greyed out when paying the strain would incapacitate the target, and **Apply** is
-  greyed out while the cost you picked would.
+  greyed out while the cost you picked would. A talent already selected stays selected if strain
+  changes; turn it off yourself if you want to apply the hit without it.
 - If Foundry says the client that applies damage runs an older version, ask everyone to reload.
 
 The GM chooses the rules under **Configure Settings → Star Wars FFG → Parry & Reflect → Configure
 Parry & Reflect**: **Vanilla** (2 + ranks) or **reSpecialized** (Block and Deflect, a flat 4,
-with Parry and Reflect treated the same), and which talent names count for each.
+with Parry and Reflect treated the same), and which talent names count for each. The
+reSpecialized option uses v.56.
 ```
 
 Capture `docs/tutorial-shots/12-06-apply-parry.png`: the Apply Damage dialog for the Parry 2 character from Step 1, with the toggle on and Supreme visible. Record its numbered marks in `docs/tutorial-shots/12-06-apply-parry.boxes.json`, the same format as `12-02-apply-damage.boxes.json`. Then run `python tools/annotate-tutorial-shots.py <wiki-clone>` to write `images/12-06-apply-parry.webp`. Add it under the new section:
