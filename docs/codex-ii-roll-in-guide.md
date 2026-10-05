@@ -32,12 +32,12 @@ Recommended checks before switching a live group:
 
 ## 3. Enabling Codex II Globally
 
-To make new or unconfigured supported documents open as Codex II:
+To make new or unconfigured supported documents open as Codex II for the whole table:
 
 1. Open Game Settings.
 2. Open Configure Settings.
-3. In the Star Wars FFG section, click **Configure Codex**. This opens a dedicated Codex Settings window — Default Sheet Theme is no longer listed directly in the plain settings list.
-4. Find Default Sheet Theme.
+3. In the Star Wars FFG section, click **Configure Codex**. This opens a dedicated Codex Settings window — the sheet theme settings are no longer listed directly in the plain settings list.
+4. Find **GM's Default Sheet Theme** (only the GM sees it).
 5. Pick one of the Codex II options:
    - Codex II - Republic
    - Codex II - Empire
@@ -46,9 +46,9 @@ To make new or unconfigured supported documents open as Codex II:
    - Codex II - Mercenary
    - Codex II - Eldritch Horror - Scholar
    - Codex II - Eldritch Horror - Fate
-6. Reload if Foundry prompts or if sheets do not immediately change.
+6. Save. Every browser that follows the GM's default reloads with the new theme.
 
-Important: this setting is client-scoped. Each user can have their own Default Sheet Theme setting. The Configure Codex menu itself is open to every user (not GM-restricted), since the theme choice is personal — but the same window also has an **Advantages Heal Strain (House Rule)** toggle that only the GM can see and change, since it affects the whole table (see section 9, Recover Strain).
+Each user also has their own **Default Sheet Theme**, stored in their browser. It starts on **Use the GM's default**, so everyone follows the GM until they pick something else; a user who picks a theme keeps it whatever the GM changes later, and can go back to following the GM by choosing Use the GM's default again. The Configure Codex menu is open to every user (not GM-restricted) for that reason. Players see only their own setting there; the GM's Default Sheet Theme and the **Advantages Heal Strain (House Rule)** toggle are GM-only, since they affect the whole table (see section 9, Recover Strain).
 
 ## 4. Enabling Codex II Per Actor or Item
 
@@ -59,7 +59,7 @@ For a specific actor or item:
 3. Choose Codex II Sheet for supported actors, or Codex II Item Sheet for supported items.
 4. Save the sheet configuration.
 
-Per-document sheet choices override the Default Sheet Theme setting. This is useful when one player wants Codex II and another actor should remain on the stock sheet.
+Per-document sheet choices override both Default Sheet Theme settings. This is useful when one player wants Codex II and another actor should remain on the stock sheet.
 
 ## 5. Supported Actor Types
 
@@ -104,7 +104,7 @@ These keep their stock item sheets:
 
 ## 7. Choosing Color Schemes
 
-The Default Sheet Theme chooses the default Codex color scheme for unconfigured documents.
+The sheet theme also chooses the default Codex color scheme for unconfigured documents: the user's own Default Sheet Theme, or the GM's when they follow it.
 
 You can override the scheme per actor or item:
 
@@ -208,11 +208,11 @@ Click specialization, force power, or signature ability pills/cards to open thei
 For a smooth campaign roll-in:
 
 1. Back up the world.
-2. Set your own Default Sheet Theme to a Codex II scheme (Configure Settings → Star Wars FFG → Configure Codex).
+2. Set the GM's Default Sheet Theme to a Codex II scheme (Configure Settings → Star Wars FFG → Configure Codex). Everyone who hasn't picked their own theme follows it, you included.
 3. Open a test character, minion, and vehicle.
 4. Confirm item cards, rolls, XP purchases, and active effects behave as expected.
 5. Decide whether the **Advantages Heal Strain** house rule (same Configure Codex window, on by default) matches your table.
-6. Pick a house default scheme for the campaign.
+6. Pick a house default scheme for the campaign (the scheme in the GM's Default Sheet Theme).
 7. Decide whether players may choose their own actor schemes.
 8. For each player character, open the sheet and choose a per-actor scheme if desired.
 9. Check force users have Force Pool enabled if they have force powers.
@@ -286,11 +286,11 @@ The vehicle sheet is organized around vehicle play:
 
 ### A player does not see Codex II
 
-Check whether their client Default Sheet Theme is still Default. The setting is per client. Also check whether the actor has an explicit non-Codex sheet class selected.
+Check their own Default Sheet Theme (per browser): it should be **Use the GM's default**, or a Codex II option. If it says Default (system sheets), they picked the stock sheets themselves; the GM's choice no longer applies to them until they switch back to Use the GM's default. Also check whether the actor has an explicit non-Codex sheet class selected.
 
 ### I can't find Default Sheet Theme in Configure Settings
 
-It moved into its own menu. Open Configure Settings → Star Wars FFG → **Configure Codex**, and Default Sheet Theme will be inside that window.
+It moved into its own menu. Open Configure Settings → Star Wars FFG → **Configure Codex**, and Default Sheet Theme (plus, for the GM, GM's Default Sheet Theme) will be inside that window.
 
 ### An actor opens with the wrong Codex color
 

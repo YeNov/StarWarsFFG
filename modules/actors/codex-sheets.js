@@ -37,6 +37,7 @@ import { vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 import ActorHelpers from "../helpers/actor-helpers.js";
 import { adjustCodexStat, bindStatStepPrediction, predictedCodexStat } from "../helpers/stat-step-bridge.js";
+import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -293,12 +294,13 @@ export async function cdxPickScheme(current, subjectName) {
 
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
-/** The default Codex colour scheme, derived from the Default Sheet Theme setting
- *  (value `codex-<scheme>`), used when a document has no per-document scheme flag.
- *  Falls back to republic (also covers the legacy bare "codex" value). */
+/** The default Codex colour scheme, derived from the sheet theme (value
+ *  `codex-<scheme>`: the user's own Default Sheet Theme, or the GM's default it
+ *  follows), used when a document has no per-document scheme flag. Falls back
+ *  to republic (also covers the legacy bare "codex" value). */
 export function cdxDefaultScheme() {
   try {
-    const t = String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "");
+    const t = effectiveSheetTheme();
     const s = t.startsWith("codex-") ? t.slice("codex-".length) : null;
     return cdxNormalizeScheme(s) ?? "republic";
   } catch (e) { return "republic"; }

@@ -11,6 +11,7 @@ import {
 } from "./ui-settings.js";
 import { refreshOpenCodexSheets } from "../actors/codex-sheets.js";
 import { refreshGroupManager } from "../groupmanager-ffg.js";
+import { FOLLOW_GM_SHEET_THEME } from "../helpers/sheet-theme.js";
 
 export default class SettingsHelpers {
   // Initialize System Settings after the Init Hook
@@ -274,28 +275,54 @@ export default class SettingsHelpers {
       },
     });
 
-    // Default sheet theme — client-scoped (per world, local to each user). Picks
-    // which sheet style new/unconfigured documents open with, AND (for the Codex
-    // options) the default colour scheme: the value is `codex-<scheme>`, so one
-    // selector sets both theme + scheme. Documents with an explicit per-document
-    // sheet (the ⚙ Sheet button, flags.core.sheetClass) or scheme flag keep their
-    // own choice. Resolved in ActorFFG/ItemFFG._getSheetClass + cdxDefaultScheme.
-    game.settings.register("starwarsffg", "defaultSheetTheme", {
-      name: "Default Sheet Theme",
-      hint: "Which sheet style (and Codex II colour scheme) to use by default. Stored locally per client. Documents with an explicitly chosen sheet/scheme keep that choice. Reloads on change.",
-      scope: "client",
+    // The sheet themes a user or the GM can pick. The value is `codex-<scheme>`
+    // for Codex, so one selector sets both the sheet style and the default Codex
+    // colour scheme.
+    const sheetThemes = {
+      default: "Default (system sheets)",
+      "codex-republic": "Codex II — Republic",
+      "codex-empire": "Codex II — Empire",
+      "codex-dark": "Codex II — Dark",
+      "codex-light": "Codex II — Light",
+      "codex-mercenary": "Codex II — Mercenary",
+      "codex-eldritch-scholar": "Codex II — Eldritch Horror - Scholar",
+      "codex-eldritch-fate": "Codex II — Eldritch Horror - Fate",
+    };
+
+    // The GM's default sheet theme for the table: what every user gets while
+    // their own Default Sheet Theme (below) is on "Use the GM's default", the
+    // value each browser starts with. Registered first so Configure Codex lists
+    // it first. A change reloads only the browsers that follow it.
+    game.settings.register("starwarsffg", "gmDefaultSheetTheme", {
+      name: "GM's Default Sheet Theme",
+      hint: "The sheet style (and Codex II colour scheme) for everyone whose own Default Sheet Theme is Use the GM's default, which is what every user starts with. A user who picked their own keeps it. Reloads their browsers on change.",
+      scope: "world",
       config: false,
       default: "default",
       type: String,
+      choices: sheetThemes,
+      onChange: () => {
+        if (game.settings.get("starwarsffg", "defaultSheetTheme") === FOLLOW_GM_SHEET_THEME) this.debouncedReload();
+      },
+    });
+
+    // Default sheet theme — client-scoped (per world, local to each user). Picks
+    // which sheet style new/unconfigured documents open with, and the default
+    // Codex colour scheme. Starts on FOLLOW_GM_SHEET_THEME, which defers to the
+    // GM's setting above. Documents with an explicit per-document sheet (the ⚙
+    // Sheet button, flags.core.sheetClass) or scheme flag keep their own choice.
+    // Resolved through effectiveSheetTheme() in ActorFFG/ItemFFG._getSheetClass
+    // and cdxDefaultScheme.
+    game.settings.register("starwarsffg", "defaultSheetTheme", {
+      name: "Default Sheet Theme",
+      hint: "Which sheet style (and Codex II colour scheme) to use by default. Stored locally per client; Use the GM's default follows the GM's choice. Documents with an explicitly chosen sheet/scheme keep that choice. Reloads on change.",
+      scope: "client",
+      config: false,
+      default: FOLLOW_GM_SHEET_THEME,
+      type: String,
       choices: {
-        default: "Default (system sheets)",
-        "codex-republic": "Codex II — Republic",
-        "codex-empire": "Codex II — Empire",
-        "codex-dark": "Codex II — Dark",
-        "codex-light": "Codex II — Light",
-        "codex-mercenary": "Codex II — Mercenary",
-        "codex-eldritch-scholar": "Codex II — Eldritch Horror - Scholar",
-        "codex-eldritch-fate": "Codex II — Eldritch Horror - Fate",
+        [FOLLOW_GM_SHEET_THEME]: "Use the GM's default",
+        ...sheetThemes,
       },
       onChange: this.debouncedReload,
     });
