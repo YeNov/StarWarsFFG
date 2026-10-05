@@ -1629,11 +1629,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
 
   /**
    * Surface the per-actor scheme picker in the window-header controls menu (the
-   * ⋮ dropdown), rather than as an in-sheet button strip.
+   * ⋮ dropdown), rather than as an in-sheet button strip. Omitted on a read-only
+   * sheet, since the pick is saved to the actor.
    * @override
    */
   _getHeaderControls() {
     const controls = super._getHeaderControls();
+    if (!this.isEditable) return controls;
     controls.push({
       action: "cdxScheme",
       icon: "fa-solid fa-palette",

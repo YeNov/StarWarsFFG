@@ -193,15 +193,9 @@ export default class ActorOptions {
       this.options[optionName].value = stored ?? options.default;
       return;
     }
-    if (typeof this.data.object.flags?.starwarsffg?.config == "undefined") {
-      await this.data.object.setFlag("starwarsffg", "config", {});
-    }
-
-    if (typeof this.data.object.flags?.starwarsffg?.config[optionName] !== "undefined") {
-      this.options[optionName].value = this.data.object.flags?.starwarsffg?.config[optionName];
-    } else {
-      this.options[optionName].value = this.options[optionName].default;
-    }
+    // Read only: this runs on every render, so it must not write. Accept
+    // creates the config flag when it saves.
+    this.options[optionName].value = this.data.object.flags?.starwarsffg?.config?.[optionName] ?? this.options[optionName].default;
   }
 
   registerMany(optionsArray) {
