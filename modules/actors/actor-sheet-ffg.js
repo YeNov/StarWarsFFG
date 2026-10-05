@@ -624,6 +624,111 @@ export class ActorSheetFFG extends FFGActorSheet {
       const filters = this._filters.skills;
     });
 
+    // Toggle item details. Viewing only, so bound for Observers too.
+    html.find(".items .item, .header-description-block .item, .injuries .item").click(async (ev) => {
+      if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable")) {
+        const li = $(ev.currentTarget);
+        if (ev?.originalEvent?.target && !$(ev?.originalEvent?.target).hasClass("item-pill")) {
+          let itemId = li.data("itemId");
+          let item = this.actor.items.get(itemId);
+
+          if (!item) {
+            item = game.items.get(itemId);
+          }
+          if (!item) {
+            // Specialization/species talents are prepared local data, not
+            // embedded Items. Resolve them before the compendium fallback:
+            // findCompendiumEntityById probes every Item pack sequentially and
+            // made a simple card expansion wait on client/server requests.
+            const talent = findTalentListEntry(
+              this.actor?.talentList,
+              itemId,
+              li.data("itemName"),
+            );
+            if (talent) {
+              await this._talentDisplayDetails(talent, ev);
+              return;
+            }
+          }
+          if (!item) {
+            item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
+          }
+          if (item?.sheet) {
+            if (item?.type == "species" || item?.type == "career" || item?.type == "specialization" || item?.type == "forcepower" || item?.type == "signatureability") item.sheet.render(true);
+            else this._itemDisplayDetails(item, ev);
+          }
+        }
+        if (ev?.originalEvent?.target && $(ev?.originalEvent?.target).hasClass("item-pill")) {
+          event.preventDefault();
+          event.stopPropagation();
+          const li = $(ev.originalEvent.target);
+          const itemType = li.attr("data-item-embed-type");
+          let itemData = {};
+          const newEmbed = li.attr("data-item-embed");
+
+          if (newEmbed === "true" && itemType === "itemmodifier") {
+            itemData = {
+              img: li.attr('data-item-embed-img'),
+              name: li.attr('data-item-embed-name'),
+              type: li.attr('data-item-embed-type'),
+              system: {
+                description: unescape(li.attr('data-item-embed-description')),
+                attributes: JSON.parse(li.attr('data-item-embed-modifiers')),
+                rank: li.attr('data-item-embed-rank'),
+                rank_current: li.attr('data-item-embed-rank'),
+              },
+              ownership: {
+                default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+              }
+            };
+            const tempItem = await new Item.implementation(itemData, { temporary: true });
+            tempItem.sheet.render(true);
+          } else {
+            CONFIG.logger.debug(`Unknown item type: ${itemType}, or lacking new embed system`);
+            let itemId = li.dataset.itemId;
+            let modifierType = li.dataset.modifierType;
+            let modifierId = li.dataset.modifierId;
+
+            await EmbeddedItemHelpers.displayOwnedItemItemModifiersAsJournal(itemId, modifierType, modifierId, this.actor.id, this.actor.compendium);
+          }
+        };
+      }
+    });
+
+    // Toggle Force Power details
+    html.find(".force-power").click(async (ev) => {
+      ev.stopPropagation();
+      if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable")) {
+        const li = $(ev.currentTarget);
+        const itemId = li.data("itemId");
+        const item = this.actor.items.get(itemId);
+        const desc = li.data("desc");
+
+        if (item?.sheet) {
+          if (item?.type === "forcepower") {
+            await this._forcePowerDisplayDetails(desc, ev);
+          }
+        }
+      }
+    });
+
+    // Toggle Signature Ability details
+    html.find(".signature-ability").click(async (ev) => {
+      ev.stopPropagation();
+      if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable")) {
+        const li = $(ev.currentTarget);
+        const itemId = li.data("itemId");
+        const item = this.actor.items.get(itemId);
+        const desc = li.data("desc");
+
+        if (item?.sheet) {
+          if (item?.type === "signatureability") {
+            await this._forcePowerDisplayDetails(desc, ev);
+          }
+        }
+      }
+    });
+
     // Everything below here is only needed if the sheet is editable
     if (!this.isEditable) return;
 
@@ -891,111 +996,6 @@ export class ActorSheetFFG extends FFGActorSheet {
       const item = this.actor.items.get(li.data("itemId"));
       if (item) {
         item.update({ ["system.equippable.equipped"]: !item.system.equippable.equipped });
-      }
-    });
-
-    // Toggle item details
-    html.find(".items .item, .header-description-block .item, .injuries .item").click(async (ev) => {
-      if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable")) {
-        const li = $(ev.currentTarget);
-        if (ev?.originalEvent?.target && !$(ev?.originalEvent?.target).hasClass("item-pill")) {
-          let itemId = li.data("itemId");
-          let item = this.actor.items.get(itemId);
-
-          if (!item) {
-            item = game.items.get(itemId);
-          }
-          if (!item) {
-            // Specialization/species talents are prepared local data, not
-            // embedded Items. Resolve them before the compendium fallback:
-            // findCompendiumEntityById probes every Item pack sequentially and
-            // made a simple card expansion wait on client/server requests.
-            const talent = findTalentListEntry(
-              this.actor?.talentList,
-              itemId,
-              li.data("itemName"),
-            );
-            if (talent) {
-              await this._talentDisplayDetails(talent, ev);
-              return;
-            }
-          }
-          if (!item) {
-            item = await ImportHelpers.findCompendiumEntityById("Item", itemId);
-          }
-          if (item?.sheet) {
-            if (item?.type == "species" || item?.type == "career" || item?.type == "specialization" || item?.type == "forcepower" || item?.type == "signatureability") item.sheet.render(true);
-            else this._itemDisplayDetails(item, ev);
-          }
-        }
-        if (ev?.originalEvent?.target && $(ev?.originalEvent?.target).hasClass("item-pill")) {
-          event.preventDefault();
-          event.stopPropagation();
-          const li = $(ev.originalEvent.target);
-          const itemType = li.attr("data-item-embed-type");
-          let itemData = {};
-          const newEmbed = li.attr("data-item-embed");
-
-          if (newEmbed === "true" && itemType === "itemmodifier") {
-            itemData = {
-              img: li.attr('data-item-embed-img'),
-              name: li.attr('data-item-embed-name'),
-              type: li.attr('data-item-embed-type'),
-              system: {
-                description: unescape(li.attr('data-item-embed-description')),
-                attributes: JSON.parse(li.attr('data-item-embed-modifiers')),
-                rank: li.attr('data-item-embed-rank'),
-                rank_current: li.attr('data-item-embed-rank'),
-              },
-              ownership: {
-                default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-              }
-            };
-            const tempItem = await new Item.implementation(itemData, { temporary: true });
-            tempItem.sheet.render(true);
-          } else {
-            CONFIG.logger.debug(`Unknown item type: ${itemType}, or lacking new embed system`);
-            let itemId = li.dataset.itemId;
-            let modifierType = li.dataset.modifierType;
-            let modifierId = li.dataset.modifierId;
-
-            await EmbeddedItemHelpers.displayOwnedItemItemModifiersAsJournal(itemId, modifierType, modifierId, this.actor.id, this.actor.compendium);
-          }
-        };
-      }
-    });
-
-    // Toggle Force Power details
-    html.find(".force-power").click(async (ev) => {
-      ev.stopPropagation();
-      if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable")) {
-        const li = $(ev.currentTarget);
-        const itemId = li.data("itemId");
-        const item = this.actor.items.get(itemId);
-        const desc = li.data("desc");
-
-        if (item?.sheet) {
-          if (item?.type === "forcepower") {
-            await this._forcePowerDisplayDetails(desc, ev);
-          }
-        }
-      }
-    });
-
-    // Toggle Signature Ability details
-    html.find(".signature-ability").click(async (ev) => {
-      ev.stopPropagation();
-      if (!$(ev.target).hasClass("fa-trash") && !$(ev.target).hasClass("fas") && !$(ev.target).hasClass("rollable")) {
-        const li = $(ev.currentTarget);
-        const itemId = li.data("itemId");
-        const item = this.actor.items.get(itemId);
-        const desc = li.data("desc");
-
-        if (item?.sheet) {
-          if (item?.type === "signatureability") {
-            await this._forcePowerDisplayDetails(desc, ev);
-          }
-        }
       }
     });
 

@@ -372,6 +372,22 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     classes: ["cdx"],
   };
 
+  // Buttons an Observer still needs (see FFGDocumentSheet.VIEWER_CONTROLS): the
+  // tabs and the header collapse. The crit markers are added in viewerControls.
+  static VIEWER_CONTROLS = ".cdx-tab, .cdx-hcollapse-btn";
+
+  /**
+   * The Medicine/Mechanics failure markers too, when a click on them can be
+   * forwarded to the GM: a non-owner's mark is. An owner whose sheet is read-only
+   * (a locked compendium) would write directly and be refused, and nobody can
+   * save into a locked pack, so for them the markers stay disabled. Resilience
+   * rolls as the character, so it is never a viewer control.
+   */
+  get viewerControls() {
+    const forwardable = !this.actor?.isOwner && !this.actor?.compendium?.locked;
+    return forwardable ? `${super.viewerControls}, .cdx-inj-medfail, .cdx-inj-mechfail` : super.viewerControls;
+  }
+
   /** The per-actor palette, defaulting to republic. */
   _cdxScheme() {
     const s = this.actor?.getFlag?.("starwarsffg", "scheme");
@@ -616,6 +632,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // button). Flip the class live and swap the button label/icon for instant
     // feedback, then persist the per-actor flag WITHOUT a re-render (the class
     // already reflects the new state, so a re-render would only cause a flash).
+    // An Observer cannot save it, so their choice lives on this sheet instead.
     root.querySelector(".cdx-hcollapse-btn")?.addEventListener("click", async (ev) => {
       ev.preventDefault();
       const header = root.querySelector(".cdx-header");
@@ -626,7 +643,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       if (label) label.textContent = collapsed ? "Expand" : "Collapse";
       const icon = btn.querySelector("i");
       if (icon) icon.className = collapsed ? "fas fa-caret-down" : "fas fa-caret-up";
-      await this.actor.update({ "flags.starwarsffg.codexHeaderCollapsed": collapsed }, { render: false });
+      if (this.isEditable) await this.actor.update({ "flags.starwarsffg.codexHeaderCollapsed": collapsed }, { render: false });
+      else this._cdxViewerHeaderCollapsed = collapsed;
     });
 
     // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
@@ -1342,8 +1360,11 @@ export const CodexSchemeMixin = (Base) => class extends Base {
    */
   async getData(options) {
     const ctx = await super.getData(options);
-    // Per-actor collapsed-header preference (characters/rivals/nemeses/minions).
-    ctx.cdxHeaderCollapsed = !!this.actor?.getFlag?.("starwarsffg", "codexHeaderCollapsed");
+    // Per-actor collapsed-header preference (characters/rivals/nemeses/minions),
+    // unless a viewer has toggled it on this read-only sheet. Once the sheet is
+    // editable the saved flag rules again.
+    const viewerCollapsed = this.isEditable ? undefined : this._cdxViewerHeaderCollapsed;
+    ctx.cdxHeaderCollapsed = viewerCollapsed ?? !!this.actor?.getFlag?.("starwarsffg", "codexHeaderCollapsed");
     // Inventory Style (Sheet Option): "combined" merges weapons/armour/gear into
     // one Inventory tab; anything else (default "split") keeps the Combat + Gear
     // tabs. Dotted-key getFlag, same idiom as config.enableEditMode above.
