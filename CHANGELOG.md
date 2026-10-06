@@ -1,4 +1,5 @@
-`Unreleased`
+`2.1.6`
+Parry and Reflect in Apply Damage, a GM-set default sheet theme for the table, and fixes for players browsing compendium items and read-only Codex sheets.
 
 * Added — **Apply Damage offers Parry and Reflect** ([#101](https://github.com/YeNov/StarWarsFFG/pull/101)). When the target has one that fits the attack, a toggle reduces the hit before soak and charges its cost (strain, or wounds for a rival) in the same update, without showing the target's ranks; it is greyed out when paying would incapacitate them. A GM-only **Parry & Reflect** settings menu edits which talents count and switches to the reSpecialized Block and Deflect rules.
   * Reload Foundry on every connected client. Parry and Reflect can only be applied once the GM (or, with no GM, the owners of the target) runs this version; ordinary damage keeps working meanwhile.
