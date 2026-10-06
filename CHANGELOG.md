@@ -1,6 +1,7 @@
 `2.1.6`
-Parry and Reflect in Apply Damage, a GM-set default sheet theme for the table, and fixes for players browsing compendium items and read-only Codex sheets.
+Parry and Reflect in Apply Damage, a GM-set default sheet theme for the table, and fixes for players browsing compendium items and read-only Codex sheets. Codex II moves to a separate module in the next release.
 
+* Changed — **the version update message warns that Codex II will be moved to a separate module with the next release**, so tables using the Codex II sheets know ahead of time.
 * Added — **Apply Damage offers Parry and Reflect** ([#101](https://github.com/YeNov/StarWarsFFG/pull/101)). When the target has one that fits the attack, a toggle reduces the hit before soak and charges its cost (strain, or wounds for a rival) in the same update, without showing the target's ranks; it is greyed out when paying would incapacitate them. A GM-only **Parry & Reflect** settings menu edits which talents count and switches to the reSpecialized Block and Deflect rules.
   * Reload Foundry on every connected client. Parry and Reflect can only be applied once the GM (or, with no GM, the owners of the target) runs this version; ordinary damage keeps working meanwhile.
 * Added — **the GM can set the table's default sheet theme** ([#102](https://github.com/YeNov/StarWarsFFG/pull/102)), for example Codex II in a chosen colour scheme. **GM's Default Sheet Theme** in Configure Codex applies to everyone whose own Default Sheet Theme is on the new **Use the GM's default**, where every user starts; anyone can still pick their own theme.
