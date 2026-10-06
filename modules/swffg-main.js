@@ -1815,13 +1815,14 @@ Hooks.once("ready", async () => {
   // settings dropdown can't render the missing value — so it shows "Default
   // (system sheets)" as selected while sheets still open as Codex II, and
   // re-picking Default in the UI fires no change (the value looks unchanged).
-  // Reset any out-of-choices value back to "default" so the effective sheet and
-  // the dropdown agree. Runs once: after the reset the value is a valid choice.
+  // Reset any out-of-choices value to the setting's default ("Use the GM's
+  // default") so the effective sheet and the dropdown agree. Runs once: after
+  // the reset the value is a valid choice.
   try {
     const cfg = game.settings.settings.get("starwarsffg.defaultSheetTheme");
     const current = game.settings.get("starwarsffg", "defaultSheetTheme");
     if (cfg?.choices && !(current in cfg.choices)) {
-      await game.settings.set("starwarsffg", "defaultSheetTheme", "default");
+      await game.settings.set("starwarsffg", "defaultSheetTheme", cfg.default);
     }
   } catch (err) {
     CONFIG.logger?.warn?.("starwarsffg | defaultSheetTheme normalization skipped", err);

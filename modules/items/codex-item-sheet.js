@@ -49,6 +49,10 @@ export class CodexItemSheet extends ItemSheetFFG {
     classes: ["cdx"],
   };
 
+  // The tabs are <button>s; keep them usable on a read-only sheet (see
+  // FFGDocumentSheet.VIEWER_CONTROLS).
+  static VIEWER_CONTROLS = ".cdx-tab";
+
   /** Keep dense equipment stat grids wide enough to avoid value/badge overlap. */
   _minDimensions() {
     const dimensions = super._minDimensions();
@@ -124,9 +128,11 @@ export class CodexItemSheet extends ItemSheetFFG {
     return ctx;
   }
 
-  /** Add a scheme picker to the window header controls. @override */
+  /** Add a scheme picker to the window header controls, unless the item is
+   *  read-only (e.g. in a compendium): the pick is saved to it. @override */
   _getHeaderControls() {
     const controls = super._getHeaderControls();
+    if (!this.isEditable) return controls;
     controls.push({ action: "cdxScheme", icon: "fa-solid fa-palette", label: "Scheme", onClick: () => this._cdxPickScheme() });
     return controls;
   }

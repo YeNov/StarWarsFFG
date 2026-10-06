@@ -1221,6 +1221,30 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       }
     }
 
+    // Opening what a career or attachment lists is viewing only, so these are
+    // bound for Observers too. (A species lists its talents as .items .item rows,
+    // bound above.)
+    if (this.object.type === "career") {
+      // a specialization or signature ability pill opens that item
+      html.find(".item-pill2").on("click", async (event) => {
+        event.stopPropagation();
+        const itemId = $(event.target).data("specialization-id");
+        const itemType = $(event.target).data("item-type");
+        let item = game.items.get(itemId);
+        if (!item) {
+          // it was removed or came from a compendium, try that instead
+          if (itemType === "specialization") {
+            item = await fromUuid(this.object.system.specializations[itemId].source);
+          } else if (itemType === "signatureability") {
+            item = await fromUuid(this.object.system.signatureabilities[itemId].source);
+          }
+        }
+        new Item.implementation(item).sheet.render(true);
+      });
+    } else if (this.object.type === "itemattachment") {
+      html.find(".innate-talent-card").on("click", this._onOpenInnateTalentCard.bind(this));
+    }
+
     // Everything below here is only needed if the sheet is editable
     if (!this.isEditable) return;
 
@@ -1229,7 +1253,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       html.find(".flat_editor.add-modification").on("click", this._onStandaloneModificationControl.bind(this));
       html.find(".flat_editor.add-mod").on("click", this._onStandaloneModControl.bind(this));
       html.find(".flat_editor.dropdown").on("change", this._onStandaloneDropdownChange.bind(this));
-      html.find(".innate-talent-card").on("click", this._onOpenInnateTalentCard.bind(this));
       const talentDrop = new foundry.applications.ux.DragDrop({
         dragSelector: ".item",
         dropSelector: ".innate-talent-drop",
@@ -1355,22 +1378,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           this.object.update({system: {signatureabilities: updateData}})
         }
       });
-      // handle click events for specialization and signature ability on careers
-      html.find(".item-pill2").on("click", async (event) => {
-        event.stopPropagation();
-        const itemId = $(event.target).data("specialization-id");
-        const itemType = $(event.target).data("item-type");
-        let item = game.items.get(itemId);
-        if (!item) {
-          // it was removed or came from a compendium, try that instead
-          if (itemType === "specialization") {
-            item = await fromUuid(this.object.system.specializations[itemId].source);
-          } else if (itemType === "signatureability") {
-            item = await fromUuid(this.object.system.signatureabilities[itemId].source);
-          }
-        }
-        new Item.implementation(item).sheet.render(true);
-      });
     } else if (this.object.type === "species") {
       try {
         const dragDrop = new foundry.applications.ux.DragDrop({
@@ -1393,14 +1400,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
             updateData[`-=${itemId}`] = null;
             await this.object.update({system: {talents: updateData}})
           }
-        });
-         // handle click events for specialization and signature ability on careers
-        html.find(".item-pill2").on("click", async (event) => {
-          event.stopPropagation();
-          const itemId = $(event.target).data("talent-id");
-          const itemType = $(event.target).data("item-type");
-          let item = await fromUuid(this.object.system.talents[itemId].source);
-          new Item.implementation(item).sheet.render(true);
         });
       } catch (err) {
         CONFIG.logger.debug(err);

@@ -4,6 +4,7 @@ import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate
 import { applyCharacterDefenceCap } from "../helpers/defence-helpers.js";
 import { buildSkillDefaults } from "../helpers/skill-defaults.js";
 import { isMinionVehicle, prepareMinionVehicleHull, prototypeLinkUpdate } from "../helpers/minion-group.js";
+import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
 
 /**
  * Extend the base Actor entity.
@@ -12,10 +13,10 @@ import { isMinionVehicle, prepareMinionVehicleHull, prototypeLinkUpdate } from "
 export class ActorFFG extends Actor {
 
   /**
-   * Route to the Codex II actor sheet when the client `defaultSheetTheme`
-   * setting selects it — unless this actor has an explicit per-document sheet
-   * (the ⚙ Sheet picker writes flags.core.sheetClass, which always wins) or its
-   * type isn't covered by Codex. The Codex class + covered types live on
+   * Route to the Codex II actor sheet when the sheet theme (the client
+   * `defaultSheetTheme`, or the GM's default it follows) selects it — unless
+   * this actor has an explicit per-document sheet (the ⚙ Sheet picker writes
+   * flags.core.sheetClass, which always wins) or its type isn't covered by Codex. The Codex class + covered types live on
    * CONFIG.FFG.codexSheets (set at sheet registration) to avoid a document↔sheet
    * import cycle. @override
    */
@@ -23,7 +24,7 @@ export class ActorFFG extends Actor {
     try {
       const codex = CONFIG.FFG?.codexSheets?.actor;
       if (codex && !this.getFlag("core", "sheetClass") && codex.types.includes(this.type)
-        && String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "").startsWith("codex")) {
+        && effectiveSheetTheme().startsWith("codex")) {
         return codex.cls;
       }
     } catch (e) { /* settings not ready yet, etc. — fall back to the default */ }

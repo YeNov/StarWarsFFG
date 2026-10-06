@@ -15,6 +15,9 @@ export default class ItemOptions {
   }
 
   init(html) {
+    // Every option is saved to the item, so a sheet the user cannot edit (a
+    // locked or player-viewed compendium) has nothing Accept could do.
+    if (this.data.isEditable === false) return;
     const root = this._findSheetRoot(html);
     if (!root) {
       // Diagnostic: silent failure here means the Sheet Options button never
@@ -170,15 +173,9 @@ export default class ItemOptions {
     if (!this.options[optionName]) {
       this.options[optionName] = { ...options };
     }
-    if (typeof this.data.object.flags?.starwarsffg?.config == "undefined") {
-      await this.data.object.setFlag("starwarsffg", "config", {});
-    }
-
-    if (typeof this.data.object.flags?.starwarsffg?.config[optionName] !== "undefined") {
-      this.options[optionName].value = this.data.object.flags?.starwarsffg?.config[optionName];
-    } else {
-      this.options[optionName].value = this.options[optionName].default;
-    }
+    // Read only: this runs on every render, and a player opening a compendium
+    // item cannot write to it. Accept creates the config flag when it saves.
+    this.options[optionName].value = this.data.object.flags?.starwarsffg?.config?.[optionName] ?? this.options[optionName].default;
   }
 
   registerMany(optionsArray) {

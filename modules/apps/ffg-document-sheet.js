@@ -128,13 +128,18 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
    * returns null and the native method throws on `contentEl.querySelectorAll`.
    * Override to fall back to the form itself. Without this, opening any
    * non-editable item/actor sheet crashes during render.
+   *
+   * Elements matching viewerControls are left enabled, so someone who can only
+   * observe the document can still use them.
    * @override
    */
   _toggleDisabled(disabled) {
     const form = this.form;
     if (!form) return;
     const framed = this.options.window.frame;
+    const viewerControls = this.viewerControls;
     for (const element of form.elements) {
+      if (viewerControls && element.matches(viewerControls)) continue;
       if (!framed || element.closest(".window-content")) element.disabled = disabled;
     }
     const contentEl = (framed ? form.querySelector(".window-content") : form) ?? form;
@@ -346,6 +351,19 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
    * inject directly — not via this projection.
    */
   static LEGACY_HEADER_ACTIONS = new Set();
+
+  /**
+   * Form controls a read-only viewer still needs, as a CSS selector. Foundry
+   * disables every element of a sheet the user cannot edit, buttons included;
+   * a button that only changes what the sheet shows (a tab, say) must stay
+   * usable for an Observer. Its handler must work without write access.
+   */
+  static VIEWER_CONTROLS = "";
+
+  /** VIEWER_CONTROLS for this sheet; override when it depends on the document. */
+  get viewerControls() {
+    return this.constructor.VIEWER_CONTROLS;
+  }
 
   /**
    * Lower bound for interactive resize. ApplicationV2's setPosition writes

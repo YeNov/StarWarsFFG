@@ -329,6 +329,7 @@ export class codexSettings extends ffgSettings {
 
   async _prepareContext(_options) {
     const includeSettingsNames = [
+      "starwarsffg.gmDefaultSheetTheme",
       "starwarsffg.defaultSheetTheme",
       "starwarsffg.codexAdvantageHealsStrain",
       "starwarsffg.codexTalentTierSorting",

@@ -37,6 +37,7 @@ import { vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 import ActorHelpers from "../helpers/actor-helpers.js";
 import { adjustCodexStat, bindStatStepPrediction, predictedCodexStat } from "../helpers/stat-step-bridge.js";
+import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -293,12 +294,13 @@ export async function cdxPickScheme(current, subjectName) {
 
 const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
 
-/** The default Codex colour scheme, derived from the Default Sheet Theme setting
- *  (value `codex-<scheme>`), used when a document has no per-document scheme flag.
- *  Falls back to republic (also covers the legacy bare "codex" value). */
+/** The default Codex colour scheme, derived from the sheet theme (value
+ *  `codex-<scheme>`: the user's own Default Sheet Theme, or the GM's default it
+ *  follows), used when a document has no per-document scheme flag. Falls back
+ *  to republic (also covers the legacy bare "codex" value). */
 export function cdxDefaultScheme() {
   try {
-    const t = String(game.settings.get("starwarsffg", "defaultSheetTheme") ?? "");
+    const t = effectiveSheetTheme();
     const s = t.startsWith("codex-") ? t.slice("codex-".length) : null;
     return cdxNormalizeScheme(s) ?? "republic";
   } catch (e) { return "republic"; }
@@ -371,6 +373,22 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   static DEFAULT_OPTIONS = {
     classes: ["cdx"],
   };
+
+  // Buttons an Observer still needs (see FFGDocumentSheet.VIEWER_CONTROLS): the
+  // tabs and the header collapse. The crit markers are added in viewerControls.
+  static VIEWER_CONTROLS = ".cdx-tab, .cdx-hcollapse-btn";
+
+  /**
+   * The Medicine/Mechanics failure markers too, when a click on them can be
+   * forwarded to the GM: a non-owner's mark is. An owner whose sheet is read-only
+   * (a locked compendium) would write directly and be refused, and nobody can
+   * save into a locked pack, so for them the markers stay disabled. Resilience
+   * rolls as the character, so it is never a viewer control.
+   */
+  get viewerControls() {
+    const forwardable = !this.actor?.isOwner && !this.actor?.compendium?.locked;
+    return forwardable ? `${super.viewerControls}, .cdx-inj-medfail, .cdx-inj-mechfail` : super.viewerControls;
+  }
 
   /** The per-actor palette, defaulting to republic. */
   _cdxScheme() {
@@ -616,6 +634,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
     // button). Flip the class live and swap the button label/icon for instant
     // feedback, then persist the per-actor flag WITHOUT a re-render (the class
     // already reflects the new state, so a re-render would only cause a flash).
+    // An Observer cannot save it, so their choice lives on this sheet instead.
     root.querySelector(".cdx-hcollapse-btn")?.addEventListener("click", async (ev) => {
       ev.preventDefault();
       const header = root.querySelector(".cdx-header");
@@ -626,7 +645,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       if (label) label.textContent = collapsed ? "Expand" : "Collapse";
       const icon = btn.querySelector("i");
       if (icon) icon.className = collapsed ? "fas fa-caret-down" : "fas fa-caret-up";
-      await this.actor.update({ "flags.starwarsffg.codexHeaderCollapsed": collapsed }, { render: false });
+      if (this.isEditable) await this.actor.update({ "flags.starwarsffg.codexHeaderCollapsed": collapsed }, { render: false });
+      else this._cdxViewerHeaderCollapsed = collapsed;
     });
 
     // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
@@ -1342,8 +1362,11 @@ export const CodexSchemeMixin = (Base) => class extends Base {
    */
   async getData(options) {
     const ctx = await super.getData(options);
-    // Per-actor collapsed-header preference (characters/rivals/nemeses/minions).
-    ctx.cdxHeaderCollapsed = !!this.actor?.getFlag?.("starwarsffg", "codexHeaderCollapsed");
+    // Per-actor collapsed-header preference (characters/rivals/nemeses/minions),
+    // unless a viewer has toggled it on this read-only sheet. Once the sheet is
+    // editable the saved flag rules again.
+    const viewerCollapsed = this.isEditable ? undefined : this._cdxViewerHeaderCollapsed;
+    ctx.cdxHeaderCollapsed = viewerCollapsed ?? !!this.actor?.getFlag?.("starwarsffg", "codexHeaderCollapsed");
     // Inventory Style (Sheet Option): "combined" merges weapons/armour/gear into
     // one Inventory tab; anything else (default "split") keeps the Combat + Gear
     // tabs. Dotted-key getFlag, same idiom as config.enableEditMode above.
@@ -1629,11 +1652,13 @@ export const CodexSchemeMixin = (Base) => class extends Base {
 
   /**
    * Surface the per-actor scheme picker in the window-header controls menu (the
-   * ⋮ dropdown), rather than as an in-sheet button strip.
+   * ⋮ dropdown), rather than as an in-sheet button strip. Omitted on a read-only
+   * sheet, since the pick is saved to the actor.
    * @override
    */
   _getHeaderControls() {
     const controls = super._getHeaderControls();
+    if (!this.isEditable) return controls;
     controls.push({
       action: "cdxScheme",
       icon: "fa-solid fa-palette",
