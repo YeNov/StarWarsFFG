@@ -1,6 +1,6 @@
 `Unreleased`
 
-* Fixed — **attacks made from Token Action HUD counted the target's defence twice**, so a target with defence 2 added 4 setback dice instead of 2 (since 2.1.3). Attacks from the character sheet were not affected.
+* Fixed — **attacks made from Token Action HUD counted the target's defence twice** ([#104](https://github.com/YeNov/StarWarsFFG/pull/104)), so a target with defence 2 added 4 setback dice instead of 2 (since 2.1.3). Attacks from the character sheet were not affected.
 
 `2.1.6`
 Parry and Reflect in Apply Damage, a GM-set default sheet theme for the table, and fixes for players browsing compendium items and read-only Codex sheets. Codex II moves to a separate module in the next release.
