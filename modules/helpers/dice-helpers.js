@@ -4,7 +4,6 @@ import ModifierHelpers from "../helpers/modifiers.js";
 import ImportHelpers from "../importer/import-helpers.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { isAmmoTracked, hasAmmoToFire } from "./ammo-helpers.js";
-import { characterDefenceDice } from "./defence-helpers.js";
 import { effectiveSkillRank } from "./minion-group.js";
 
 export default class DiceHelpers {
@@ -120,34 +119,24 @@ export default class DiceHelpers {
   }
 
   /**
-   * Setback dice from targeted characters' defence.
+   * Setback dice a caller should add to a weapon pool for the target's defence,
+   * before handing that pool to the roll dialog. Always 0 now.
    *
-   * The `useDefense` client setting and the "is this an attack?" check live here;
-   * the calculation itself is in defence-helpers.js so it can be unit tested.
+   * The roll dialog resolves defence itself, from `_effectivePool()` against live
+   * targets, so re-targeting mid-dialog is reflected in both the preview and the
+   * roll. Anything returned here gets counted a second time. token-action-hud-ffgsw
+   * still adds this to its pool and then calls `displayRollDialog`, so a
+   * defence-2 target showed 4 setback on a HUD attack and 2 from the sheet.
    *
-   * NOTE: this no longer runs while a pool is being BUILT. The roll dialog resolves
-   * defence from `_effectivePool()` against live targets, so re-targeting mid-dialog
-   * is reflected in both the preview and the roll. Vehicles are not handled here at
-   * all -- their per-zone defence is the dialog's zone picker.
+   * Kept rather than removed because that module and world macros written against
+   * the old API still call it. The calculation lives in `characterDefenceDice`
+   * (defence-helpers.js).
    *
-   * Both call shapes are accepted. The old one was `(skill, itemData)` with the
-   * targets read implicitly, and a world macro written against it would otherwise
-   * pass a skill OBJECT where a string is now expected -- matching neither skill
-   * list and silently returning 0 with no error to notice.
-   *
-   * @param {string|object|null} skillValue the attacking skill's `.value`
-   *   ("Ranged: Heavy"), or the whole skill object.
-   * @param {object} item the weapon or ship weapon being rolled.
-   * @param {Iterable<object>} [targets] defaults to `game.user.targets`.
+   * @deprecated the roll dialog applies target defence; do not add it to a pool.
+   * @returns {number} 0
    */
-  static getDefenseDice(skillValue, item, targets) {
-    if (!game.settings.get("starwarsffg", "useDefense")) return 0;
-    const isWeapon = item?.type === "weapon"
-      || item?.type === "shipweapon"
-      || item?.metaData?.tags?.includes("weapon");
-    if (!isWeapon) return 0;
-    const value = typeof skillValue === "string" ? skillValue : (skillValue?.value ?? null);
-    return characterDefenceDice({ skillValue: value, targets: targets ?? game.user?.targets ?? [] });
+  static getDefenseDice() {
+    return 0;
   }
 
   /**
