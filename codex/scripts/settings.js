@@ -114,7 +114,7 @@ export function registerCodexSettings() {
 
   // Codex talents tab: group the talent cards under "Tier N" headings instead of one flat list.
   // On by default. Read by the codex sheet's _prepareContext; open sheets redraw on a change from
-  // the setting hook in codex-integrations.js.
+  // the setting hook in integrations.js.
   game.settings.register("starwarsffg", "codexTalentTierSorting", {
     name: game.i18n.localize("SWFFG.Settings.codex.TalentTierSorting.Name"),
     hint: game.i18n.localize("SWFFG.Settings.codex.TalentTierSorting.Hint"),

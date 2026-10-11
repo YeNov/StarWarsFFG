@@ -402,7 +402,7 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
 
   /**
    * Dialog to OVERRIDE the campaign day with an explicit value (GM only). Sets the
-   * world setting directly; its onChange refreshes the readout + open Codex sheets.
+   * world setting directly; its onChange rewrites the readout in place.
    */
   async _openSetDayDialog() {
     const current = Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);

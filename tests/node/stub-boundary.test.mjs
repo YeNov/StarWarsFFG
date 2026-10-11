@@ -8,8 +8,8 @@
  *
  * It does three things:
  *   1. Declares the EXACT allowlist of globals the stub may install.
- *   2. Statically scans every file under `tests/node/` — including `_stub/` and this file —
- *      for code that installs a forbidden global.
+ *   2. Statically scans every file under `tests/node/` and `codex/tests/node/` — including
+ *      `_stub/` and this file — for code that installs a forbidden global.
  *   3. Re-asserts the live global surface at runtime after importing the stub.
  */
 
@@ -22,6 +22,9 @@ import { fileURLToPath } from "node:url";
 import "./_stub/foundry-stub.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(HERE, "..", "..");
+/** Codex II's Node tests: `npm test` runs them too while Codex ships inside the system. */
+const CODEX_NODE_TESTS = path.join(ROOT, "codex", "tests", "node");
 
 // ---------------------------------------------------------------------------
 // 1. The exact allowlist
@@ -67,7 +70,7 @@ const NATIVE_IN_NODE = new Set(["navigator"]);
 const FORBIDDEN_PATHS = ["game.socket", "game.packs", "foundry.applications"];
 
 // ---------------------------------------------------------------------------
-// 2. Static scan of every file under tests/node/
+// 2. Static scan of every file under tests/node/ and codex/tests/node/
 // ---------------------------------------------------------------------------
 
 /**
@@ -189,11 +192,11 @@ test("the scan still DETECTS a forbidden installation (it did not become a no-op
   // the sibling test passing IS the proof that neither is mistaken for an installation.
 });
 
-test("no file under tests/node/ installs a forbidden global", () => {
-  const files = collectFiles(HERE);
+test("no file under tests/node/ or codex/tests/node/ installs a forbidden global", () => {
+  const files = [...collectFiles(HERE), ...collectFiles(CODEX_NODE_TESTS)];
   assert.ok(files.length > 0, "expected to find files under tests/node/");
   assert.ok(
-    files.some((f) => f.includes(`_stub${path.sep}foundry-stub.mjs`)),
+    files.includes(path.join(HERE, "_stub", "foundry-stub.mjs")),
     "the scan must cover _stub/ — the stub itself is the file most likely to be widened",
   );
 
@@ -205,7 +208,8 @@ test("no file under tests/node/ installs a forbidden global", () => {
       const m = re.exec(src);
       if (m) {
         const line = src.slice(0, m.index).split("\n").length;
-        violations.push(`${path.relative(HERE, file)}:${line} installs forbidden "${name}"`);
+        const where = path.relative(ROOT, file).split(path.sep).join("/");
+        violations.push(`${where}:${line} installs forbidden "${name}"`);
       }
     }
   }
@@ -213,7 +217,7 @@ test("no file under tests/node/ installs a forbidden global", () => {
   assert.deepEqual(
     violations,
     [],
-    `Forbidden globals installed under tests/node/.\n${violations.join("\n")}\n\n` +
+    `Forbidden globals installed under tests/node/ or codex/tests/node/.\n${violations.join("\n")}\n\n` +
     "If a Node test needs one of these, the check does not belong in the Node tier — " +
     "route it to Stage 23 (plan §0.6.6).",
   );

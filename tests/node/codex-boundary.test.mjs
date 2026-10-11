@@ -1,7 +1,7 @@
 /**
  * Until Codex II leaves for its own module it ships inside the system under codex/, and the two
  * sides meet only through the public API (modules/api/public-api.js): no system script imports a
- * Codex script, and Codex scripts import only each other.
+ * Codex script, and Codex scripts import only files under codex/.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -53,5 +53,9 @@ test("Codex scripts import only Codex files", () => {
 
 test("the system loads Codex as its own script, after its own", () => {
   const { esmodules } = JSON.parse(fs.readFileSync(path.join(ROOT, "system.json"), "utf8"));
-  assert.ok(esmodules.indexOf("codex/scripts/codex-main.js") > esmodules.indexOf("modules/swffg-main.js"));
+  const system = esmodules.indexOf("modules/swffg-main.js");
+  const codex = esmodules.indexOf("codex/scripts/codex-main.js");
+  assert.ok(system >= 0, "system.json does not load modules/swffg-main.js");
+  assert.ok(codex >= 0, "system.json does not load codex/scripts/codex-main.js");
+  assert.ok(codex > system, "codex/scripts/codex-main.js must load after modules/swffg-main.js");
 });

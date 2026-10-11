@@ -45,10 +45,22 @@ test("a second copy stands down", () => {
   assert.match(apiProblemMessage(result), /loaded twice/);
 });
 
+/**
+ * The specifier of the first static import declaration in `source`, whatever its form:
+ * `import … from "…"` or a bare `import "…"`, in either quote style. Comments are dropped first,
+ * strings kept; a dynamic `import(…)` and `import.meta` are not declarations.
+ */
+function firstStaticImport(source) {
+  const code = source.replace(
+    /("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|\/\/[^\n]*|\/\*[\s\S]*?\*\//g,
+    (match, literal) => literal ?? "",
+  );
+  return code.match(/(?:^|[;}])\s*import(?![\w$])(?!\s*[(.])\s*(?:[\w$*{][^;"'`]*?\bfrom\s*)?(["'])([^"'\n]+)\1/m)?.[2];
+}
+
 test("the check runs before any other Codex script, and a failure stops them all", () => {
   // codex-main.js imports system-api.js first; system-api.js throws when the check fails, which
   // stops every later import from being evaluated, so nothing gets registered.
-  const firstImport = read("scripts/codex-main.js").match(/^import\s[^;]*?from\s+"([^"]+)";/m)?.[1];
-  assert.equal(firstImport, "./system-api.js");
+  assert.equal(firstStaticImport(read("scripts/codex-main.js")), "./system-api.js");
   assert.match(read("scripts/system-api.js"), /if \(!result\.ok\) \{[\s\S]*throw new Error\(/);
 });
