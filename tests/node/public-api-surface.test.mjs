@@ -1,7 +1,8 @@
 /**
- * Public API v1 also covers what the Codex II sheets inherit from the system's sheet classes and
- * the system partials their templates include. Renaming any of these breaks the module: bump
- * PUBLIC_API_VERSION in modules/api/public-api.js and update the module in the same change.
+ * Public API v1 also covers what the Codex II sheets inherit from the system's sheet classes, the
+ * system partials their templates include and the system images they point at. Renaming any of
+ * these breaks the module: bump PUBLIC_API_VERSION in modules/api/public-api.js and update the
+ * module in the same change.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -65,6 +66,20 @@ test("the system partials Codex templates include exist and are preloaded", () =
 
 test("the templates Codex renders directly exist", () => {
   for (const path of ["templates/dialogs/ffg-ui-settings.html", "templates/dialogs/ffg-confirm-purchase.html"]) {
+    assert.ok(fs.existsSync(new URL(`../../${path}`, import.meta.url)), `${path} is missing`);
+  }
+});
+
+// Codex points at these as systems/starwarsffg/images/...: the purple difficulty die is its
+// critical injury severity pip (vehicle sheet, injuries list, stylesheet), and generic-die.svg is
+// the die its Eldritch scheme masks onto a hovered roll button.
+const SHARED_IMAGES = [
+  "images/dice/starwars/purple.png",
+  "images/generic-die.svg",
+];
+
+test("the system images Codex points at exist", () => {
+  for (const path of SHARED_IMAGES) {
     assert.ok(fs.existsSync(new URL(`../../${path}`, import.meta.url)), `${path} is missing`);
   }
 });

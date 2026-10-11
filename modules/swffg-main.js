@@ -80,6 +80,11 @@ import { vehicleDefenceZones } from "./helpers/vehicle-defence.js";
 
 // The system's public API for optional packages (the Codex II module): see
 // modules/api/public-api.js. Set while this file is evaluated, before any module script runs.
+//
+// This reads imported classes (ActorSheetFFG, ffgSettings, ...) at evaluation time, so this file must
+// be the first module of its import cycles to be entered: no esmodule listed before it in system.json
+// may import it, directly or indirectly, or it would be evaluated mid-cycle with those classes still
+// uninitialised and the system would not load. tests/node/esmodule-load-order.test.mjs checks this.
 globalThis.starwarsffg = buildPublicApi({
   sheets: { ActorSheetFFG, AdversarySheetFFG, ItemSheetFFG },
   apps: { FFGFormApplication, ffgSettings },
@@ -958,6 +963,7 @@ Hooks.once("init", async function () {
     CONFIG.FFG.preCombatDelete = Hooks.on("preDeleteCombatant", registerHandleCombatantRemoval);
   }
 
+  // Keep these registrations above init's first await: Foundry does not await this handler, so module init hooks run once it first awaits (see tests/node/init-order.test.mjs).
   // Register sheet application classes
   foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
   // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve

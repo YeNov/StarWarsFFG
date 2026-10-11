@@ -13,6 +13,10 @@ const start = source.indexOf('Hooks.once("init", async function () {');
 const end = source.indexOf('Hooks.on("canvasInit"', start);
 const init = source.slice(start, end);
 // Statements directly in the init body are indented two spaces; nested functions sit deeper.
+// This is a heuristic: it finds only a statement that begins with `await`. An `await` written as
+// `const x = await ...` or nested in a top-level block (if, try, for) is not seen, so a real first
+// await could come earlier than the one found here. A new early await of either kind needs this
+// search widened, or the checks below stop meaning what they say.
 const firstAwait = init.search(/\n  await /);
 
 test("the init hook was found and still awaits something", () => {
