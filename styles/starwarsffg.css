@@ -5043,3 +5043,39 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 .cdx-dice footer.form-footer {
   background: transparent;
 }
+
+/* Dice windows drawn on the dark dialog. `.cdx-dice` marks them: the Replace Die dialogs
+   (reroll, turn to face, add a die, add a result) always, and the roll builder when the
+   rolling actor uses a Codex II sheet. Drop the white dice-pool background and give the
+   glyphs and result icons the dark-dialog treatment so the pool reads. The adversary
+   preview is also a `.dice-pool`, so it is covered. */
+.cdx-dice .dice-pool { background:transparent !important; }
+/* Size the pool icons to FILL the row width. The JS sizes them in fixed count-tiers
+   (36/24/12px) regardless of dialog width, so they either overflow (many glyphs) or leave
+   dead space (few glyphs / a wide, resizable dialog). flex:1 1 auto lets them grow to fill
+   the row — capped at the 36px normal size — and shrink below the tier size when the pool
+   is too wide to fit; min-width:0 enables the shrink, height:auto keeps them square. */
+.cdx-dice .dice-pool .ffg-die-icon { flex:1 1 auto; min-width:0; max-width:36px; }
+.cdx-dice .dice-pool .ffg-die-icon img { width:100%; height:auto; }
+/* Fixed-Results dietype glyphs: setback/dark = black with a white outline; the rest white. */
+.cdx-dice .dice-pool-dialog span.dietype.setback, .cdx-dice .dice-pool-dialog span.dietype.dark { color:#000; -webkit-text-stroke:1px #fff; paint-order:stroke fill; }
+.cdx-dice .dice-pool-dialog span.dietype:is(.advantage,.despair,.forcepoint,.failure,.force,.light,.success,.threat,.triumph) { color:#fff; }
+/* Fixed Results table: pin it to the dialog width with proportioned columns so the
+   right-hand glyph/count/label group stops clipping. table-layout:fixed makes the six
+   columns share the window (overriding the stock 300px min-width that overflowed); the
+   % widths keep the labels roomy and the glyph/count columns tight — a long label wraps
+   rather than spilling out. */
+.cdx-dice .pool-additional-container { table-layout: fixed; width: 100% !important; min-width: 0 !important; }
+.cdx-dice .pool-additional-container td:nth-child(3n+1) { width: 12%; }
+.cdx-dice .pool-additional-container td:nth-child(3n+2) { width: 14%; }
+.cdx-dice .pool-additional-container td:nth-child(3n) { width: 24%; }
+.cdx-dice .pool-additional-container input[type="button"] { width: 100%; min-width: 0; margin: 0; box-sizing: border-box; }
+/* Pool ICON images: black setback / remove-setback / dark-pip keep a white outline; the
+   dark result icons invert to white. The Light-side pip is a white-filled ring that already
+   reads on both light and dark backgrounds, so it deliberately gets NO rule. Mirrors above. */
+.cdx-dice .dice-pool img[src*="black.png"], .cdx-dice .dice-pool img[src*="black-minus"], .cdx-dice .dice-pool img[src*="darkpip"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
+.cdx-dice .dice-pool img:is([src*="advantage"],[src*="despair"],[src*="failure"],[src*="threat"],[src*="success"],[src*="triumph"]) { filter: brightness(0) invert(1); }
+/* The dice-SELECTION table (.pool-dice-pool) also lists the black setback die — give it
+   the same white outline so it reads on the dark dialog. Only black.png needs it; the
+   other rows (yellow/green/red/purple/blue/whiteHex) are coloured and stay untouched. */
+.cdx-dice .pool-dice-pool img[src*="black.png"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
