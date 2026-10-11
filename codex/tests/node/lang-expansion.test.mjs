@@ -47,12 +47,12 @@ const files = langDirs.flatMap((dir) => {
     .map((name) => ({ label: path.posix.join(dir, name), url: new URL(name, full) }));
 });
 
-test("there is at least one localization file to check", () => {
+test("Codex has at least one localization file to check", () => {
   assert.ok(files.length > 0);
 });
 
 for (const file of files) {
-  test(`${file.label} expands without a key collision`, () => {
+  test(`Codex ${file.label} expands without a key collision`, () => {
     const json = JSON.parse(fs.readFileSync(file.url, "utf8").replace(/^\uFEFF/, ""));
     const expanded = {};
     for (const [key, value] of Object.entries(json)) {

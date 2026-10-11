@@ -59,8 +59,10 @@ Hooks.on("i18nInit", async () => {
     try {
       const json = await foundry.utils.fetchJsonWithTimeout(`${CODEX_ROOT}/lang/${lang}.json`);
       foundry.utils.mergeObject(game.i18n.translations, foundry.utils.expandObject(json));
-    } catch (e) {
-      // No file for this language: English covers it.
+    } catch (err) {
+      // Another language without a usable file of its own falls back to English; English is that
+      // fallback, so a failure to load it is reported.
+      if (lang === "en") console.error("Codex II | strings failed to load", err);
     }
   }
 });

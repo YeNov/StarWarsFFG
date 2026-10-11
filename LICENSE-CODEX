@@ -6,8 +6,10 @@ Copyright (c) 2026 YeNov
 This license applies to the original Codex II UI work authored by YeNov,
 specifically the following files and directories in this repository:
 
-  - codex/ (every file in it, except codex/fonts/Orbitron-VariableFont_wght.woff2,
-    which is the Orbitron font by Matt McInerney under the SIL Open Font License 1.1)
+  - codex/ (every file in it), except:
+      - codex/fonts/Orbitron-VariableFont_wght.woff2, which is the Orbitron font by
+        Matt McInerney under the SIL Open Font License 1.1;
+      - codex/images/sith-emblem.svg, which this license does not cover.
 
 (collectively, the "Codex Work").
 

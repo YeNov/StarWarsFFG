@@ -21,15 +21,11 @@ test("the refund handler is bound to the refund anchor itself", () => {
   assert.doesNotMatch(sheetSource, /html\.find\("\.xp\.(purchase|adjusted)"\)/);
 });
 
-test("both XP-log templates render an anchor the handler can match", () => {
-  for (const [name, template] of [
-    ["shared ffg-block", sharedTemplate],
-  ]) {
-    assert.match(template, /<a class="xp refund"[^>]*data-id="/, name);
-  }
+test("the shared XP log renders a refund anchor the handler can match", () => {
+  assert.match(sharedTemplate, /<a class="xp refund"[^>]*data-id="/);
 });
 
-test("both XP-log templates mark adjustment entries with the `adjusted` class", () => {
+test("the shared XP log marks adjustment entries with the `adjusted` class", () => {
   // How _refundPurchase's mode is derived, so it must survive template edits.
   assert.match(sharedTemplate, /class="xp adjusted"/);
 });

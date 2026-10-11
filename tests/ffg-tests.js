@@ -49,10 +49,17 @@ export default class FFGFunctionalTests extends FormApplication {
     MinimizedCloseTests(suite, suiteInstance, Test, chai);
     CritTraumaCounterTests(suite, suiteInstance, Test, chai);
 
-    // Optional packages (the Codex II module) add their own suites.
+    // Optional packages (the Codex II module) add their own suites. One whose suites fail to load
+    // is reported and skipped, so the system's own suites still run.
     const packageSuites = [];
     Hooks.callAll("starwarsffg.functionalTests", packageSuites);
-    for (const addSuites of packageSuites) await addSuites(suite, suiteInstance, Test, chai);
+    for (const addSuites of packageSuites) {
+      try {
+        await addSuites(suite, suiteInstance, Test, chai);
+      } catch (err) {
+        console.error("Star Wars FFG | a package's functional test suites failed to load", err);
+      }
+    }
 
     // Run Tests
     const mochaRun = () => {
