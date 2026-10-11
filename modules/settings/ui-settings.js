@@ -1,7 +1,7 @@
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
 import { DEFENSIVE_TALENT_LISTS } from "../helpers/defensive-talents.js";
 
-class ffgSettings extends FFGFormApplication {
+export class ffgSettings extends FFGFormApplication {
   static DEFAULT_OPTIONS = {
     form: {
       closeOnSubmit: true,

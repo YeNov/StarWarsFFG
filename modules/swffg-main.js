@@ -49,8 +49,8 @@ import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { ReplaceDie } from "./helpers/replace-die.js";
 import { DEFENSIVE_TALENT_LISTS, RULESET_RESPECIALIZED, RULESET_VANILLA } from "./helpers/defensive-talents.js";
-import { registerGMBridge } from "./helpers/gm-bridge.js";
-import { registerStatStepBridge } from "./helpers/stat-step-bridge.js";
+import { applyCritRecoveryAttempt, registerGMBridge } from "./helpers/gm-bridge.js";
+import { adjustCodexStat, bindStatStepPrediction, predictedCodexStat, registerStatStepBridge } from "./helpers/stat-step-bridge.js";
 import { shouldApplySkillTheme } from "./helpers/skill-theme.js";
 import DataImporter from "./importer/data-importer.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -58,22 +58,45 @@ import RollBuilderFFG from "./dice/roll-builder.js";
 import CrewSettings from "./settings/crew-settings.js";
 import {register_dice_enricher, register_oggdude_tag_enricher, register_roll_tag_enricher} from "./helpers/journal.js";
 import {drawAdversaryCount, drawMinionCount, registerTokenControls} from "./helpers/token.js";
-import { isMinionVehicle } from "./helpers/minion-group.js";
+import { groupTrack, hullPoolSegments, isMinionVehicle, stepUnits } from "./helpers/minion-group.js";
 import {handleUpdate} from "./swffg-migration.js";
 import SWAImporter from "./importer/swa-importer.js";
 import HyperdriveImporter from "./importer/hyperdrive/importer-app.js";
 import {CharacterCreator} from "./helpers/character-creator.js";
 import {registerSocketBridge} from "./char-creator/socket-bridge.js";
-import {xpLogUndo} from "./helpers/actor-helpers.js";
+import ActorHelpers, { xpLogUndo } from "./helpers/actor-helpers.js";
 import {register_system_tours} from "./helpers/tours.js";
 import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
-import { computeCritAvailability } from "./helpers/crit-availability.js";
+import { availFor, computeCritAvailability } from "./helpers/crit-availability.js";
 import { refreshSheetsForRemoteUpdate } from "./helpers/sheet-sync.js";
 import { planStatusCounterSync } from "./helpers/status-counter-sync.js";
 import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
 import { vehicleItemRefusal } from "./helpers/vehicle-items.js";
-import { registerSheetResolver } from "./helpers/sheet-resolvers.js";
+import { hasSheetResolver, registerSheetResolver, resolveSheetClass } from "./helpers/sheet-resolvers.js";
 import { effectiveSheetTheme } from "./helpers/sheet-theme.js";
+import { buildPublicApi } from "./api/public-api.js";
+import { FFGFormApplication } from "./apps/ffg-form-application.js";
+import { ffgSettings } from "./settings/ui-settings.js";
+import { killMinionGroup } from "./helpers/minions.js";
+import { getAmmoMax, getAmmoValue, isAmmoTracked } from "./helpers/ammo-helpers.js";
+import { vehicleHardpointSourceRating, vehicleHardpoints, vehicleShieldSourceRatings } from "./helpers/vehicle-hardpoints.js";
+import { vehicleDefenceZones } from "./helpers/vehicle-defence.js";
+
+// The system's public API for optional packages (the Codex II module): see
+// modules/api/public-api.js. Set while this file is evaluated, before any module script runs.
+globalThis.starwarsffg = buildPublicApi({
+  sheets: { ActorSheetFFG, AdversarySheetFFG, ItemSheetFFG },
+  apps: { FFGFormApplication, ffgSettings },
+  helpers: {
+    DiceHelpers, DicePoolFFG, ActorHelpers,
+    killMinionGroup, groupTrack, hullPoolSegments, stepUnits,
+    availFor, applyCritRecoveryAttempt,
+    isAmmoTracked, getAmmoMax, getAmmoValue,
+    vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings, vehicleDefenceZones,
+    adjustCodexStat, bindStatStepPrediction, predictedCodexStat,
+  },
+  sheetResolvers: { register: registerSheetResolver, has: hasSheetResolver, resolve: resolveSheetClass },
+});
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
