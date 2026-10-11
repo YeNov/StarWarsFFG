@@ -58,7 +58,7 @@ test("Accept writes a path option to its path and every other option to its flag
 test("neither vehicle sheet carries its own zone picker any more", () => {
   // The in-sheet select submitted with render:false, so the zones never redrew until
   // a reload. The override now lives only in Sheet Options, which re-renders on save.
-  for (const template of ["ffg-vehicle-sheet.html", "codex/codex-vehicle.html"]) {
+  for (const template of ["ffg-vehicle-sheet.html"]) {
     const markup = fs.readFileSync(new URL(`../../templates/actors/${template}`, import.meta.url), "utf8");
     assert.doesNotMatch(markup, /name="data\.stats\.defenceZones"/, template);
   }

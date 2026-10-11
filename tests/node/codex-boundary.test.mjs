@@ -59,3 +59,16 @@ test("the system loads Codex as its own script, after its own", () => {
   assert.ok(codex >= 0, "system.json does not load codex/scripts/codex-main.js");
   assert.ok(codex > system, "codex/scripts/codex-main.js must load after modules/swffg-main.js");
 });
+
+test("no system script, template or stylesheet names a Codex file", () => {
+  const files = [
+    ...walk(path.join(ROOT, "modules"), (name) => name.endsWith(".js")),
+    ...walk(path.join(ROOT, "templates"), (name) => name.endsWith(".html")),
+    ...walk(path.join(ROOT, "styles"), (name) => name.endsWith(".css")),
+  ];
+  for (const file of files) {
+    const source = fs.readFileSync(file, "utf8");
+    assert.doesNotMatch(source, /systems\/starwarsffg\/codex\/|templates\/(actors|items|parts)\/codex\/|styles\/cdx[\w-]*\.css|lang\/codex\//, rel(file));
+  }
+  assert.equal(fs.existsSync(path.join(ROOT, "lang", "codex")), false, "lang/codex still exists");
+});

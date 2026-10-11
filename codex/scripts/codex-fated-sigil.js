@@ -20,6 +20,7 @@
  * The output encodes visibility in the ALPHA channel (RGB = white), so it works
  * as a CSS alpha mask (mask-mode:alpha / -webkit-mask-image) over a coloured fill.
  */
+import { CODEX_ROOT } from "./codex-paths.js";
 
 /* ---- deterministic PRNG (xmur3 seed → mulberry32 stream) ------------------- */
 function xmur3(str) {
@@ -213,7 +214,7 @@ function grainFloat(rng, size) {
    grungeHigh−grungeLow span, so it amplifies any codec error by ~5x at the
    default tuning — right on the hole edges. 512 still supersamples the ~340px
    on-screen tile, and grungeSize scales the draw independently of the file. */
-const GRUNGE_URL = "/systems/starwarsffg/images/codex/eldritch/grunge-wear-seamless.webp";
+const GRUNGE_URL = `/${CODEX_ROOT}/images/eldritch/grunge-wear-seamless.webp`;
 let _grungeImg = null;
 const _grungeWear = new Map();          // size → Float32Array (0..1)
 

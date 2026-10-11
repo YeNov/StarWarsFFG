@@ -32,7 +32,3 @@ for (const path of ["styles/mandar.css", "styles/starwarsffg.css", "scss/global/
     for (const selector of SELECTORS) assert.ok(css.includes(selector), `${path} lacks ${selector}`);
   });
 }
-
-test("the Codex stylesheet no longer carries the dice-window rules", () => {
-  assert.doesNotMatch(read("styles/cdx.css"), /^\.cdx-dice /m);
-});

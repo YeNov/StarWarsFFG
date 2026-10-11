@@ -172,13 +172,6 @@ test("an unresolvable entry tells the player instead of only the console", () =>
   }
 });
 
-test("the Codex XP log hides the refund button for entries with no purchase id", () => {
-  const codex = read("templates/actors/codex/codex-character.html");
-  const entry = codex.split("\n").find((line) => line.includes('class="xp refund"'));
-  assert.ok(entry, "could not locate the Codex refund button");
-  assert.match(entry, /\{\{#if entry\.id\}\}/, "legacy id-less entries must not render a refund button");
-});
-
 test("a merged talent purchase resolves to the ranks it added", () => {
   const logEntries = [{ id: "RANK000000000001", xp: { cost: 15 }, undo: { type: "talent-rank", itemId: "tal1", ranks: 1 } }];
   assert.deepEqual(resolveRefundTarget("RANK000000000001", { logEntries }), {

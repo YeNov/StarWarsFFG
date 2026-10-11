@@ -144,6 +144,14 @@ jobs:
                     modules/                             \
                     styles/                              \
                     templates/                           \
+                    codex/fonts/                         \
+                    codex/images/                        \
+                    codex/lang/                          \
+                    codex/package.json                   \
+                    codex/scripts/                       \
+                    codex/styles/                        \
+                    codex/templates/                     \
+                    LICENSE-CODEX                        \
                     CHANGELOG.md                         \
                     CONTRIBUTING.md                      \
                     LICENSE.txt                          \

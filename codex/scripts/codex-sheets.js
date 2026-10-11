@@ -26,6 +26,7 @@ import { buildTalentTierMap, groupTalentsByTier } from "./codex-talent-tiers.js"
 import { placeCodexPopup } from "./codex-popup-position.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 import { effectiveSheetTheme } from "./sheet-theme.js";
+import { CODEX_ROOT } from "./codex-paths.js";
 
 const { ActorSheetFFG, AdversarySheetFFG } = systemApi.sheets;
 const {
@@ -288,7 +289,7 @@ export async function cdxPickScheme(current, subjectName) {
   return choice && CDX_SCHEMES.includes(choice) ? choice : null;
 }
 
-const CDX_TEMPLATES = "systems/starwarsffg/templates/actors/codex";
+const CDX_TEMPLATES = `${CODEX_ROOT}/templates/actors`;
 
 /** The default Codex colour scheme, derived from the sheet theme (value
  *  `codex-<scheme>`: the user's own Default Sheet Theme, or the GM's default it

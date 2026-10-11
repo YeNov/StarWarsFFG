@@ -85,13 +85,8 @@ abilities as cards and pills only.
 
 The Codex II UI — its original templates, styles, assets, and sheet code, specifically:
 
-- `templates/actors/codex/`
-- `templates/parts/codex/`
-- `templates/items/codex/`
-- `styles/cdx.css`
-- `images/codex/eldritch/`
-- `modules/actors/codex-sheets.js`
-- `modules/items/codex-item-sheet.js`
+- `codex/` (every file in it, except `codex/fonts/Orbitron-VariableFont_wght.woff2`,
+  which is the Orbitron font by Matt McInerney under the SIL Open Font License 1.1)
 
 — is authored by **YeNov** and released **free of charge**.
 

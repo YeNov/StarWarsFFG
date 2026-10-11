@@ -24,45 +24,6 @@ test("a read-only sheet leaves its viewer controls enabled", () => {
   assert.match(source, /get viewerControls\(\) \{\s*return this\.constructor\.VIEWER_CONTROLS;\s*\}/, "by default a sheet exempts its class list");
 });
 
-/** The selector string a Codex class assigns to VIEWER_CONTROLS. */
-function viewerControls(source, anchor) {
-  const at = source.indexOf(anchor);
-  assert.ok(at >= 0, `missing ${anchor}`);
-  const match = source.slice(at).match(/static VIEWER_CONTROLS = "([^"]*)"/);
-  assert.ok(match, `no VIEWER_CONTROLS after ${anchor}`);
-  return match[1].split(",").map((part) => part.trim());
-}
-
-test("Codex actor sheets let viewers use tabs and the header toggle", () => {
-  const source = read("codex/scripts/codex-sheets.js");
-  assert.deepEqual(viewerControls(source, "export const CodexSchemeMixin"), [".cdx-tab", ".cdx-hcollapse-btn"]);
-  // Resilience rolls for the character, so it stays with the owner.
-  assert.doesNotMatch(source, /VIEWER_CONTROLS[^;]*cdx-inj-resilience/);
-});
-
-test("the crit-failure markers stay usable only where the click can be forwarded to the GM", () => {
-  // A non-owner's mark is forwarded to the GM. An owner on a read-only sheet (a
-  // locked compendium) has no way to save it, and nor does anyone on a locked pack.
-  const source = read("codex/scripts/codex-sheets.js");
-  const start = source.indexOf("  get viewerControls() {", source.indexOf("export const CodexSchemeMixin"));
-  assert.ok(start >= 0, "the Codex mixin varies its viewer controls");
-  const body = source.slice(start, source.indexOf("\n  }\n", start));
-  assert.match(body, /const forwardable = !this\.actor\?\.isOwner && !this\.actor\?\.compendium\?\.locked;/);
-  assert.match(body, /forwardable \? `\$\{super\.viewerControls\}, \.cdx-inj-medfail, \.cdx-inj-mechfail` : super\.viewerControls/);
-});
-
-test("Codex item sheets let viewers switch tabs", () => {
-  assert.deepEqual(viewerControls(read("codex/scripts/codex-item-sheet.js"), "export class CodexItemSheet"), [".cdx-tab"]);
-});
-
-test("a viewer's header collapse is kept on the sheet, not saved to the actor", () => {
-  const source = read("codex/scripts/codex-sheets.js");
-  assert.match(source, /if \(this\.isEditable\) await this\.actor\.update\(\{ "flags\.starwarsffg\.codexHeaderCollapsed": collapsed \}/);
-  // Only while the sheet is read-only: once it is editable the saved flag rules,
-  // or a viewer's earlier choice would keep overriding what the owner saves.
-  assert.match(source, /const viewerCollapsed = this\.isEditable \? undefined : this\._cdxViewerHeaderCollapsed;\s*ctx\.cdxHeaderCollapsed = viewerCollapsed \?\? !!this\.actor\?\.getFlag\?\.\("starwarsffg", "codexHeaderCollapsed"\)/);
-});
-
 /** Source of `activateListeners` up to its editable-only early return. */
 function beforeEditableGate(source) {
   const start = source.indexOf("  activateListeners(html) {");

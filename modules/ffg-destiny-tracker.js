@@ -203,8 +203,8 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
 
     // Campaign-day advance ([+], GM only): bump the world day by 1 directly, no
     // prompt. The setting's onChange rewrites the .ffg-campaign-day-value span in
-    // place (live-refresh path 2), so this handler never touches the DOM — leaving
-    // the [+] node and its listener intact (no widget re-render).
+    // place, so this handler never touches the DOM — leaving the [+] node and its
+    // listener intact (no widget re-render).
     html.find(".ffg-campaign-day-advance").click(async (event) => {
       event.preventDefault();
       event.stopPropagation();

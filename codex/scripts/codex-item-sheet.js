@@ -19,6 +19,7 @@
 import { systemApi } from "./system-api.js";
 import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "./codex-sheets.js";
 import { codexItemTypeLabelKey } from "./codex-item-labels.js";
+import { CODEX_ROOT } from "./codex-paths.js";
 
 const { ItemSheetFFG } = systemApi.sheets;
 const { getAmmoMax, getAmmoValue } = systemApi.helpers;
@@ -85,7 +86,7 @@ export class CodexItemSheet extends ItemSheetFFG {
 
   /** Bespoke template where the type has one; generic frame otherwise. @override */
   get template() {
-    const base = "systems/starwarsffg/templates/items/codex";
+    const base = `${CODEX_ROOT}/templates/items`;
     const type = this.item?.type;
     // Critical injury + critical damage share one template (same data model).
     if (type === "criticalinjury" || type === "criticaldamage") return `${base}/codex-crit.html`;

@@ -196,25 +196,6 @@ Hooks.on("setup", function (){
   register_system_tours();
 });
 
-// Merge the Codex localization file into the translation table. Codex labels are
-// kept in their own lang/codex/<lang>.json (separate from the base system strings)
-// and loaded here in code rather than via a second manifest language entry, so
-// they resolve on a simple client reload instead of only after a full world
-// relaunch (system.json is re-read only on relaunch). i18nInit fires right after
-// the base table loads. English is merged first as a fallback base, then the
-// active language on top when it differs.
-Hooks.on("i18nInit", async function () {
-  const langs = game.i18n.lang && game.i18n.lang !== "en" ? ["en", game.i18n.lang] : ["en"];
-  for (const lang of langs) {
-    try {
-      const json = await foundry.utils.fetchJsonWithTimeout(`systems/starwarsffg/lang/codex/${lang}.json`);
-      foundry.utils.mergeObject(game.i18n.translations, foundry.utils.expandObject(json));
-    } catch (e) {
-      // No codex file for this language (e.g. only English exists) — skip quietly.
-    }
-  }
-});
-
 // Apply optional label overrides for Credits, Obligation, Morality, Duty, and
 // Conflict. i18nInit fires immediately after the translation table is loaded and
 // is the canonical place to mutate it, so overriding the translation entry here
@@ -441,7 +422,7 @@ Hooks.once("init", async function () {
   // Preload the character templates (dynamic skills lists need them) without holding up init:
   // Foundry runs every module's init hook as soon as this handler first awaits, so an await
   // here left the settings, sheets and theme stylesheet below unregistered for modules.
-  foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html", "systems/starwarsffg/templates/items/codex/codex-crit.html", "systems/starwarsffg/templates/items/codex/codex-shipweapon.html", "systems/starwarsffg/templates/items/codex/codex-itemattachment.html", "systems/starwarsffg/templates/items/codex/codex-shipattachment.html", "systems/starwarsffg/templates/items/codex/codex-forcepower.html", "systems/starwarsffg/templates/items/codex/codex-specialization.html", "systems/starwarsffg/templates/items/codex/codex-signatureability.html"])
+  foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html"])
     .catch((err) => CONFIG.logger.error("template preload failed", err));
 
   SettingsHelpers.initLevelSettings();
@@ -462,25 +443,6 @@ Hooks.once("init", async function () {
     default: {
       $('link[href*="styles/starwarsffg.css"]').prop("disabled", false);
     }
-  }
-
-  // CODEX II stylesheet — appended LAST in <head>, after whichever UI theme link
-  // was added above. Fully self-contained: everything is scoped under `.cdx` and
-  // styles only bespoke `.cdx-*` classes, so it neither depends on nor is
-  // overridden by the active theme. (system.json `styles` is unreliable here —
-  // the default mandar theme disables system styles at init.)
-  // ?v=<timestamp> busts the browser cache so edits to cdx.css load on a plain
-  // reload — the <link> was otherwise cached forever by its fixed URL, which is
-  // why CSS changes "didn't apply". TODO: switch the buster to the system
-  // version (game.system.version) for release so the file caches between bumps.
-  $("head").append(`<link href="systems/starwarsffg/styles/cdx.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
-  // Each Codex scheme's palette (and any scheme-specific rules) lives in its own
-  // file, appended AFTER cdx.css so it layers on top of the base Codex styles.
-  // Republic loads first and doubles as the default palette (its bare `.cdx form`
-  // fallback); every scheme-* rule outranks it by specificity. Same cache-buster
-  // rationale as cdx.css above.
-  for (const scheme of ["republic", "empire", "dark", "light", "mercenary", "eldritch"]) {
-    $("head").append(`<link href="systems/starwarsffg/styles/cdx-${scheme}.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
   }
 
   /**
