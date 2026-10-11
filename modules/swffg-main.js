@@ -20,13 +20,10 @@ import { ItemFFG } from "./items/item-ffg.js";
 import ItemHelpers from "./helpers/item-helpers.js";
 import { ItemSheetFFG } from "./items/item-sheet-ffg.js";
 import { ItemSheetFFGV2 } from "./items/item-sheet-ffg-v2.js";
-import { CodexItemSheet } from "./items/codex-item-sheet.js";
-import { codexQuantityLabel } from "./actors/codex-quantity.js";
 import { ActorSheetFFG } from "./actors/actor-sheet-ffg.js";
 import { ActorSheetFFGV2 } from "./actors/actor-sheet-ffg-v2.js";
 import { AdversarySheetFFG } from "./actors/adversary-sheet-ffg.js";
 import { AdversarySheetFFGV2 } from "./actors/adversary-sheet-ffg-v2.js";
-import { CodexActorSheet, CodexAdversarySheet } from "./actors/codex-sheets.js";
 import { DicePoolFFG, RollFFG } from "./dice-pool-ffg.js";
 import { GroupManager, refreshGroupManager } from "./groupmanager-ffg.js";
 import PopoutEditor from "./popout-editor.js";
@@ -73,9 +70,6 @@ import { planStatusCounterSync } from "./helpers/status-counter-sync.js";
 import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
 import { vehicleItemRefusal } from "./helpers/vehicle-items.js";
 import { hasSheetResolver, registerSheetResolver, resolveSheetClass } from "./helpers/sheet-resolvers.js";
-import { effectiveSheetTheme } from "./actors/codex-sheet-theme.js";
-import { healStaleThemeChoice, registerCodexSettings } from "./actors/codex-settings.js";
-import { registerCodexIntegrations } from "./actors/codex-integrations.js";
 import { buildPublicApi } from "./api/public-api.js";
 import { FFGFormApplication } from "./apps/ffg-form-application.js";
 import { ffgSettings } from "./settings/ui-settings.js";
@@ -451,8 +445,6 @@ Hooks.once("init", async function () {
     .catch((err) => CONFIG.logger.error("template preload failed", err));
 
   SettingsHelpers.initLevelSettings();
-  registerCodexSettings();
-  registerCodexIntegrations();
 
   const uitheme = game.settings.get("starwarsffg", "ui-uitheme");
 
@@ -1016,13 +1008,6 @@ Hooks.once("init", async function () {
   foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
   foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
-  // CODEX II — bespoke, opt-in sheets selected per-actor via the ⚙ Sheet picker.
-  // Stock sheets stay registered as the default; Codex never takes makeDefault.
-  // Register a type only once its codex-<type>.html template exists. Widened as
-  // each type lands (character first).
-  const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
-  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: CODEX_ACTOR_TYPES, label: "Codex II Sheet" });
-  foundry.documents.collections.Actors.registerSheet("ffg", CodexAdversarySheet, { types: ["character"], label: "Codex II Adversary Sheet" });
   foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
   // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
   // to the same native sheet. ItemSheetFFG is the real, default class;
@@ -1031,25 +1016,6 @@ Hooks.once("init", async function () {
   // resolving. Drop the alias entry in the release after V2-full lands.
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
   foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
-  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Per-type
-  // template routing lives in CodexItemSheet#template: most types listed here
-  // have a bespoke codex-<type>.html — including the force power,
-  // specialization and signature ability trees — and the rest fall back to the
-  // generic codex-item.html frame. Types left out of this list keep the stock
-  // sheet: career, itemmodifier and species.
-  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "forcepower", "specialization", "signatureability", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
-  foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
-    types: CODEX_ITEM_TYPES,
-    label: "Codex II Item Sheet",
-  });
-
-  // Per-user default sheet: this user's sheet theme picks the Codex II sheets for the types
-  // they cover.
-  const codexSheetFor = { Actor: [CodexActorSheet, CODEX_ACTOR_TYPES], Item: [CodexItemSheet, CODEX_ITEM_TYPES] };
-  registerSheetResolver("kelborns-swffg-codex-ii", (document) => {
-    const [cls, types] = codexSheetFor[document.documentName] ?? [];
-    return cls && types.includes(document.type) && effectiveSheetTheme().startsWith("codex") ? cls : null;
-  });
 
   await gameSkillsList();
 
@@ -1435,7 +1401,6 @@ Hooks.once("init", async function () {
 
   // Register Handlebars utilities
   Handlebars.registerHelper("json", JSON.stringify);
-  Handlebars.registerHelper("codexQuantity", codexQuantityLabel);
 
   // Allows {if X = Y} type syntax in html using handlebars
   Handlebars.registerHelper("iff", function (a, operator, b, opts) {
@@ -1837,8 +1802,6 @@ Hooks.once("ready", async () => {
     // left in before talents stacked as ranks.
     repairDuplicateTalents: (options) => ItemHelpers.repairDuplicateTalents(options),
   });
-
-  await healStaleThemeChoice();
 
   // Forward Apply Damage / Apply Crit writes from non-owning players to the GM.
   registerGMBridge();

@@ -101,12 +101,12 @@ test("the sheet error fallback preserves the stored hull rating", () => {
   }), 5);
   assert.equal(vehicleHardpointSourceRating({}), 0);
 
-  const sheet = read("modules/actors/codex-sheets.js");
+  const sheet = read("codex/scripts/codex-sheets.js");
   assert.match(sheet, /cdxVehHpMax = vehicleHardpointSourceRating\(this\.actor\)/);
 });
 
 test("the Codex vehicle sheet shows used-of-rating and edits the rating", () => {
-  const sheet = read("modules/actors/codex-sheets.js");
+  const sheet = read("codex/scripts/codex-sheets.js");
   const template = read("templates/actors/codex/codex-vehicle.html");
   assert.match(sheet, /vehicleHardpoints/);
   // The rating -- not the prepared value -- is what the readout and the edit

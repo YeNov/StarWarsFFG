@@ -4,8 +4,10 @@
  * Codex registers them itself, under the system's namespace, so the values stored while Codex was
  * part of the system keep working and the menu stays under Star Wars FFG in Configure Settings.
  */
-import { ffgSettings } from "../settings/ui-settings.js";
-import { FOLLOW_GM_SHEET_THEME } from "./codex-sheet-theme.js";
+import { systemApi } from "./system-api.js";
+import { FOLLOW_GM_SHEET_THEME } from "./sheet-theme.js";
+
+const { ffgSettings } = systemApi.apps;
 
 /** The settings Configure Codex shows, in this order. */
 const CODEX_MENU_SETTINGS = [

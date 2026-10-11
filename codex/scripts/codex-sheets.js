@@ -19,25 +19,21 @@
  *  - The palette is a PER-ACTOR flag (`flags.starwarsffg.scheme`) applied as a
  *    `scheme-*` class on the form; an in-sheet strip writes it.
  */
-import { ActorSheetFFG } from "./actor-sheet-ffg.js";
-import { AdversarySheetFFG } from "./adversary-sheet-ffg.js";
+import { systemApi } from "./system-api.js";
 import { CdxPillStack } from "./cdx-pill-stack.js";
-import DiceHelpers from "../helpers/dice-helpers.js";
-import { killMinionGroup } from "../helpers/minions.js";
-import { groupTrack, hullPoolSegments, stepUnits } from "../helpers/minion-group.js";
-import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { getFatedSigilMask } from "./codex-fated-sigil.js";
 import { buildTalentTierMap, groupTalentsByTier } from "./codex-talent-tiers.js";
-import { availFor } from "../helpers/crit-availability.js";
-import { applyCritRecoveryAttempt } from "../helpers/gm-bridge.js";
-import { isAmmoTracked, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { placeCodexPopup } from "./codex-popup-position.js";
-import { vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings } from "../helpers/vehicle-hardpoints.js";
-import { vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
-import ActorHelpers from "../helpers/actor-helpers.js";
-import { adjustCodexStat, bindStatStepPrediction, predictedCodexStat } from "../helpers/stat-step-bridge.js";
-import { effectiveSheetTheme } from "./codex-sheet-theme.js";
+import { effectiveSheetTheme } from "./sheet-theme.js";
+
+const { ActorSheetFFG, AdversarySheetFFG } = systemApi.sheets;
+const {
+  DiceHelpers, DicePoolFFG, ActorHelpers, killMinionGroup, groupTrack, hullPoolSegments, stepUnits,
+  availFor, applyCritRecoveryAttempt, isAmmoTracked, getAmmoMax, getAmmoValue,
+  vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings, vehicleDefenceZones,
+  adjustCodexStat, bindStatStepPrediction, predictedCodexStat,
+} = systemApi.helpers;
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
@@ -1914,10 +1910,10 @@ export class CodexAdversarySheet extends CodexSchemeMixin(AdversarySheetFFG) {
 }
 
 /**
- * Re-render every open Codex sheet — used by the campaignDay / vehicleCritWeeklyLimit
- * setting onChange handlers (live-refresh path 1) so open crit cards recompute their
- * availability countdowns. Self-contained; imported by settings-helpers.js (cycle-safe
- * direction — settings-helpers is not imported here).
+ * Re-render every open Codex sheet. Its only caller is the setting hooks in integrations.js,
+ * which redraw open Codex sheets when campaignDay, vehicleCritWeeklyLimit or
+ * codexTalentTierSorting changes: crit cards recompute their availability countdowns, and the
+ * talent cards regroup by tier or go back to the flat list.
  */
 export function refreshOpenCodexSheets() {
   for (const app of foundry.applications.instances.values()) {

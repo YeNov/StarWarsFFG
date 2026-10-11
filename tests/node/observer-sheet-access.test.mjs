@@ -34,7 +34,7 @@ function viewerControls(source, anchor) {
 }
 
 test("Codex actor sheets let viewers use tabs and the header toggle", () => {
-  const source = read("modules/actors/codex-sheets.js");
+  const source = read("codex/scripts/codex-sheets.js");
   assert.deepEqual(viewerControls(source, "export const CodexSchemeMixin"), [".cdx-tab", ".cdx-hcollapse-btn"]);
   // Resilience rolls for the character, so it stays with the owner.
   assert.doesNotMatch(source, /VIEWER_CONTROLS[^;]*cdx-inj-resilience/);
@@ -43,7 +43,7 @@ test("Codex actor sheets let viewers use tabs and the header toggle", () => {
 test("the crit-failure markers stay usable only where the click can be forwarded to the GM", () => {
   // A non-owner's mark is forwarded to the GM. An owner on a read-only sheet (a
   // locked compendium) has no way to save it, and nor does anyone on a locked pack.
-  const source = read("modules/actors/codex-sheets.js");
+  const source = read("codex/scripts/codex-sheets.js");
   const start = source.indexOf("  get viewerControls() {", source.indexOf("export const CodexSchemeMixin"));
   assert.ok(start >= 0, "the Codex mixin varies its viewer controls");
   const body = source.slice(start, source.indexOf("\n  }\n", start));
@@ -52,11 +52,11 @@ test("the crit-failure markers stay usable only where the click can be forwarded
 });
 
 test("Codex item sheets let viewers switch tabs", () => {
-  assert.deepEqual(viewerControls(read("modules/items/codex-item-sheet.js"), "export class CodexItemSheet"), [".cdx-tab"]);
+  assert.deepEqual(viewerControls(read("codex/scripts/codex-item-sheet.js"), "export class CodexItemSheet"), [".cdx-tab"]);
 });
 
 test("a viewer's header collapse is kept on the sheet, not saved to the actor", () => {
-  const source = read("modules/actors/codex-sheets.js");
+  const source = read("codex/scripts/codex-sheets.js");
   assert.match(source, /if \(this\.isEditable\) await this\.actor\.update\(\{ "flags\.starwarsffg\.codexHeaderCollapsed": collapsed \}/);
   // Only while the sheet is read-only: once it is editable the saved flag rules,
   // or a viewer's earlier choice would keep overriding what the owner saves.

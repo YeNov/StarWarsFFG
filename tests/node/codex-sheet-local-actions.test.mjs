@@ -4,8 +4,8 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-const actorCodexSource = read("modules/actors/codex-sheets.js");
-const itemCodexSource = read("modules/items/codex-item-sheet.js");
+const actorCodexSource = read("codex/scripts/codex-sheets.js");
+const itemCodexSource = read("codex/scripts/codex-item-sheet.js");
 const itemSheetSource = read("modules/items/item-sheet-ffg.js");
 
 test("Codex-specific actor and item sheets do not fetch compendiums for UI interactions", () => {

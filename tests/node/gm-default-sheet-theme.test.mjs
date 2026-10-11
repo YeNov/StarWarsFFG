@@ -10,10 +10,10 @@ import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const { effectiveSheetTheme, FOLLOW_GM_SHEET_THEME } = await import("../../modules/actors/codex-sheet-theme.js");
+const { effectiveSheetTheme, FOLLOW_GM_SHEET_THEME } = await import("../../codex/scripts/sheet-theme.js");
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
-const SETTINGS = "modules/actors/codex-settings.js";
+const SETTINGS = "codex/scripts/settings.js";
 
 /** Seed this browser's choice and the GM's world default, then resolve. */
 function themeFor(client, world) {
@@ -40,11 +40,11 @@ test("with nothing set anywhere the system sheets are used", () => {
 });
 
 test("every reader of the theme goes through the resolver", () => {
-  const codex = read("modules/actors/codex-sheets.js");
+  const codex = read("codex/scripts/codex-sheets.js");
   assert.match(codex, /effectiveSheetTheme\(\)/);
   assert.doesNotMatch(codex, /game\.settings\.get\("starwarsffg", "defaultSheetTheme"\)/);
-  const main = read("modules/swffg-main.js");
-  const at = main.indexOf('registerSheetResolver("kelborns-swffg-codex-ii"');
+  const main = read("codex/scripts/codex-main.js");
+  const at = main.indexOf("sheetResolvers.register(CODEX_PACKAGE_ID");
   assert.ok(at >= 0, "the Codex sheet resolver is registered");
   assert.match(main.slice(at, main.indexOf("});", at)), /effectiveSheetTheme\(\)\.startsWith\("codex"\)/);
 });

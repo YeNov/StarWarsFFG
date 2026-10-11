@@ -6,7 +6,7 @@
 // CONFIG.FFG.skills, which renders headers with no skill rows.
 
 import { ActorSheetFFG } from "../../modules/actors/actor-sheet-ffg.js";
-import { CodexActorSheet } from "../../modules/actors/codex-sheets.js";
+import { CodexActorSheet } from "../../codex/scripts/codex-sheets.js";
 
 export const SheetSkillDataTests = (suite, suiteInstance, Test, chai) => {
   const _suite = suiteInstance.create(suite, "V2 Migration - Actor Sheet Skill Data");

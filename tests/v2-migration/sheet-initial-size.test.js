@@ -28,7 +28,7 @@
 
 import { ActorSheetFFG } from "../../modules/actors/actor-sheet-ffg.js";
 import { AdversarySheetFFG } from "../../modules/actors/adversary-sheet-ffg.js";
-import { CodexActorSheet, CodexAdversarySheet } from "../../modules/actors/codex-sheets.js";
+import { CodexActorSheet, CodexAdversarySheet } from "../../codex/scripts/codex-sheets.js";
 
 // Every declared Actor type (system.json documentTypes.Actor).
 const ALL_ACTOR_TYPES = ["character", "minion", "vehicle", "homestead", "rival", "nemesis"];

@@ -16,10 +16,12 @@
  * (restyled). The tree templates use a bespoke `.cdx-tabstrip` switched in JS
  * (see activateListeners), the same as the codex actor sheets.
  */
-import { ItemSheetFFG } from "./item-sheet-ffg.js";
-import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "../actors/codex-sheets.js";
+import { systemApi } from "./system-api.js";
+import { cdxDefaultScheme, cdxBuildNotchOutlines, cdxNormalizeScheme, cdxSchemeClasses, CDX_SCHEME_STRIP, cdxPickScheme } from "./codex-sheets.js";
 import { codexItemTypeLabelKey } from "./codex-item-labels.js";
-import { getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
+
+const { ItemSheetFFG } = systemApi.sheets;
+const { getAmmoMax, getAmmoValue } = systemApi.helpers;
 
 /** Types with a bespoke codex template; everything else uses codex-item.html.
  *  Only list a type once its `codex-<type>.html` actually exists — a missing

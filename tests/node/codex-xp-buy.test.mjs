@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { codexXpBuyActive } from "../../modules/actors/codex-xp-buy.js";
+import { codexXpBuyActive } from "../../codex/scripts/codex-xp-buy.js";
 
 test("Codex characters retain their transient XP-buy toggle", () => {
   assert.equal(codexXpBuyActive("character", false, false), false);

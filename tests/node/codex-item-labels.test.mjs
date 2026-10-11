@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { codexItemTypeLabelKey } from "../../modules/items/codex-item-labels.js";
+import { codexItemTypeLabelKey } from "../../codex/scripts/codex-item-labels.js";
 
 test("Codex obligation headers use the item's actual track type", () => {
   assert.equal(codexItemTypeLabelKey("obligation", "obligation"), "SWFFG.DescriptionObligation");

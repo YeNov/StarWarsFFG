@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
-const codexSource = read("modules/actors/codex-sheets.js");
+const codexSource = read("codex/scripts/codex-sheets.js");
 const actorSheetSource = read("modules/actors/actor-sheet-ffg.js");
 
 test("Codex actor renders remember which cards were expanded", () => {

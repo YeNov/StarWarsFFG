@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { placeCodexPopup } from "../../modules/actors/codex-popup-position.js";
+import { placeCodexPopup } from "../../codex/scripts/codex-popup-position.js";
 
 test("Codex popup prefers below its anchor and stays horizontally centered", () => {
   assert.deepEqual(

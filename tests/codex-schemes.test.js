@@ -2,8 +2,8 @@ import {
   CDX_SCHEMES,
   CDX_SCHEME_LABELS,
   CodexActorSheet,
-} from "../modules/actors/codex-sheets.js";
-import { CodexItemSheet } from "../modules/items/codex-item-sheet.js";
+} from "../codex/scripts/codex-sheets.js";
+import { CodexItemSheet } from "../codex/scripts/codex-item-sheet.js";
 
 export const CodexSchemeTests = (suite, suiteInstance, Test, chai) => {
   const _suite = suiteInstance.create(suite, "Codex II — Schemes");

@@ -3,7 +3,7 @@
  * they show changes; the embedded item editor opened from a Codex item sheet takes its scheme; the
  * roll dialog for an actor on a Codex sheet gets the dark dice marker (its styles are the system's).
  */
-import { CodexItemSheet } from "../items/codex-item-sheet.js";
+import { CodexItemSheet } from "./codex-item-sheet.js";
 import { cdxNormalizeScheme, cdxSchemeClasses, refreshOpenCodexSheets } from "./codex-sheets.js";
 
 /**

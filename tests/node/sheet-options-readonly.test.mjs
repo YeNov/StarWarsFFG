@@ -37,7 +37,7 @@ test("a read-only item sheet gets no Sheet Options button", () => {
 });
 
 test("a read-only Codex sheet offers no Scheme picker, which saves to the document", () => {
-  for (const path of ["modules/items/codex-item-sheet.js", "modules/actors/codex-sheets.js"]) {
+  for (const path of ["codex/scripts/codex-item-sheet.js", "codex/scripts/codex-sheets.js"]) {
     const body = method(read(path), "_getHeaderControls()");
     assert.match(body, /if \(!this\.isEditable\) return controls;[\s\S]*action: "cdxScheme"/, path);
   }

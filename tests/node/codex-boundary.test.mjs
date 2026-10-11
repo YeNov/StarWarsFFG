@@ -1,0 +1,57 @@
+/**
+ * Until Codex II leaves for its own module it ships inside the system under codex/, and the two
+ * sides meet only through the public API (modules/api/public-api.js): no system script imports a
+ * Codex script, and Codex scripts import only each other.
+ */
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+const rel = (file) => path.relative(ROOT, file).split(path.sep).join("/");
+
+function walk(dir, keep, out = []) {
+  if (!fs.existsSync(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walk(full, keep, out);
+    else if (keep(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+/** Every import / export-from / dynamic import specifier in a script. */
+function specifiers(source) {
+  const found = [];
+  for (const match of source.matchAll(/(?:^|[;\s])(?:import|export)\s[^'"]*?\sfrom\s*["']([^"']+)["']/g)) found.push(match[1]);
+  for (const match of source.matchAll(/(?:^|[;\s])import\s*["']([^"']+)["']/g)) found.push(match[1]);
+  for (const match of source.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)) found.push(match[1]);
+  return found;
+}
+
+test("no system script imports a Codex script", () => {
+  for (const file of walk(path.join(ROOT, "modules"), (name) => name.endsWith(".js"))) {
+    for (const spec of specifiers(fs.readFileSync(file, "utf8"))) {
+      assert.doesNotMatch(spec, /(^|\/)codex\//, `${rel(file)} imports ${spec}`);
+    }
+  }
+});
+
+test("Codex scripts import only Codex files", () => {
+  const scripts = walk(path.join(ROOT, "codex", "scripts"), (name) => name.endsWith(".js"));
+  assert.ok(scripts.length > 0, "codex/scripts holds no scripts");
+  const codexRoot = path.join(ROOT, "codex") + path.sep;
+  for (const file of scripts) {
+    for (const spec of specifiers(fs.readFileSync(file, "utf8"))) {
+      assert.match(spec, /^\.\.?\//, `${rel(file)} imports ${spec}, which is not a relative path`);
+      assert.ok(path.resolve(path.dirname(file), spec).startsWith(codexRoot), `${rel(file)} imports ${spec}, outside codex/`);
+    }
+  }
+});
+
+test("the system loads Codex as its own script, after its own", () => {
+  const { esmodules } = JSON.parse(fs.readFileSync(path.join(ROOT, "system.json"), "utf8"));
+  assert.ok(esmodules.indexOf("codex/scripts/codex-main.js") > esmodules.indexOf("modules/swffg-main.js"));
+});

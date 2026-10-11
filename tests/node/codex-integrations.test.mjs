@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
-const INTEGRATIONS = "modules/actors/codex-integrations.js";
+const INTEGRATIONS = "codex/scripts/integrations.js";
 
 test("Codex hooks the setting changes, the item editor and the roll dialog", () => {
   const source = read(INTEGRATIONS);

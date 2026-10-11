@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildTalentTierMap, groupTalentsByTier } from "../../modules/actors/codex-talent-tiers.js";
+import { buildTalentTierMap, groupTalentsByTier } from "../../codex/scripts/codex-talent-tiers.js";
 
 /** Minimal stand-ins for the actor items the map is built from. */
 const talentItem = (name, tier, modifiedTime) => ({ type: "talent", name, system: { tier }, _stats: { modifiedTime } });

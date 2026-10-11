@@ -4,8 +4,8 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-const actorSheetSource = read("modules/actors/codex-sheets.js");
-const itemSheetSource = read("modules/items/codex-item-sheet.js");
+const actorSheetSource = read("codex/scripts/codex-sheets.js");
+const itemSheetSource = read("codex/scripts/codex-item-sheet.js");
 const sharedItemSheetSource = read("modules/items/item-sheet-ffg.js");
 const vehicleTemplate = read("templates/actors/codex/codex-vehicle.html");
 const weaponTemplate = read("templates/items/codex/codex-weapon.html");

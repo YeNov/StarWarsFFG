@@ -11,13 +11,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const CODEX_FILE = /^(codex|cdx)-/;
 
 function systemScripts(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) systemScripts(full, out);
-    else if (entry.name.endsWith(".js") && !CODEX_FILE.test(entry.name)) out.push(full);
+    else if (entry.name.endsWith(".js")) out.push(full);
   }
   return out;
 }
