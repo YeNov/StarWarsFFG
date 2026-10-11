@@ -468,7 +468,7 @@ export default class SettingsHelpers {
     // cooldown on crit self-heal / Medicine / Mechanics attempts. Advanced from the
     // Destiny Tracker [+] control; not shown in the config menu.
     game.settings.register("starwarsffg", "campaignDay", {
-      name: "SWFFG.Codex.CritTrauma.Day",
+      name: "SWFFG.CampaignDay.Day",
       scope: "world",
       config: false,
       default: 1,
@@ -476,7 +476,7 @@ export default class SettingsHelpers {
       onChange: () => {
         refreshOpenCodexSheets();                                   // path 1
         const el = document.querySelector("#ffg-campaign-day .ffg-campaign-day-value");   // path 2 (null-guarded)
-        if (el) el.textContent = `${game.i18n.localize("SWFFG.Codex.CritTrauma.Day")} ${Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0)}`;
+        if (el) el.textContent = `${game.i18n.localize("SWFFG.CampaignDay.Day")} ${Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0)}`;
       },
     });
     // House rule: apply the weekly Mechanics cooldown to vehicle criticals (RAW is

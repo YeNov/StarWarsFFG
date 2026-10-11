@@ -365,7 +365,7 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
     menu.style.top = `${y}px`;
     const edit = document.createElement("a");
     edit.className = "ffg-campaign-day-edit";
-    edit.innerHTML = `<i class="fas fa-pen"></i> ${game.i18n.localize("SWFFG.Codex.CritTrauma.EditDay")}`;
+    edit.innerHTML = `<i class="fas fa-pen"></i> ${game.i18n.localize("SWFFG.CampaignDay.Edit")}`;
     menu.appendChild(edit);
     document.body.appendChild(menu);
 
@@ -407,12 +407,12 @@ export default class DestinyTracker extends HandlebarsApplicationMixin(Applicati
   async _openSetDayDialog() {
     const current = Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
     const n = await foundry.applications.api.DialogV2.wait({
-      window: { title: game.i18n.localize("SWFFG.Codex.CritTrauma.EditDayTitle") },
-      content: `<form class="form"><div class="form-group"><label>${game.i18n.localize("SWFFG.Codex.CritTrauma.EditDayLabel")}</label><input type="number" name="day" value="${current}" min="0" step="1" autofocus /></div></form>`,
+      window: { title: game.i18n.localize("SWFFG.CampaignDay.EditTitle") },
+      content: `<form class="form"><div class="form-group"><label>${game.i18n.localize("SWFFG.CampaignDay.EditLabel")}</label><input type="number" name="day" value="${current}" min="0" step="1" autofocus /></div></form>`,
       rejectClose: false,
       buttons: [{
         action: "set",
-        label: game.i18n.localize("SWFFG.Codex.CritTrauma.EditDaySet"),
+        label: game.i18n.localize("SWFFG.CampaignDay.EditSet"),
         default: true,
         callback: (ev, button) => Math.floor(Number(button.form.elements.day.value)),
       }],
