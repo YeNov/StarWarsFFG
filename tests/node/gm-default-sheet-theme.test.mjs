@@ -1,7 +1,7 @@
 /**
- * The GM can set the table's default sheet theme. Each browser's own Default
- * Sheet Theme starts on "Use the GM's default" and follows the world setting;
- * a player who picks a theme of their own keeps it.
+ * The GM can set the table's default sheet theme. Each browser's own Default Sheet Theme starts on
+ * "Use the GM's default" and follows the world setting; a player who picks a theme of their own
+ * keeps it. Codex II owns these settings.
  */
 import { setSetting, resetSettings } from "./_stub/foundry-stub.mjs";
 import test from "node:test";
@@ -10,9 +10,10 @@ import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const { effectiveSheetTheme, FOLLOW_GM_SHEET_THEME } = await import("../../modules/helpers/sheet-theme.js");
+const { effectiveSheetTheme, FOLLOW_GM_SHEET_THEME } = await import("../../modules/actors/codex-sheet-theme.js");
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+const SETTINGS = "modules/actors/codex-settings.js";
 
 /** Seed this browser's choice and the GM's world default, then resolve. */
 function themeFor(client, world) {
@@ -49,10 +50,10 @@ test("every reader of the theme goes through the resolver", () => {
 });
 
 test("each browser starts on Use the GM's default, and the GM's setting is world-wide", () => {
-  const source = read("modules/settings/settings-helpers.js");
+  const source = read(SETTINGS);
   const gm = source.indexOf('game.settings.register("starwarsffg", "gmDefaultSheetTheme"');
   const client = source.indexOf('game.settings.register("starwarsffg", "defaultSheetTheme"');
-  assert.ok(gm >= 0 && client > gm, "the GM's setting is registered first, so Configure Codex lists it first");
+  assert.ok(gm >= 0 && client > gm);
   const gmBlock = source.slice(gm, client);
   assert.match(gmBlock, /scope: "world"/);
   assert.match(gmBlock, /default: "default"/, "nothing changes until the GM picks a theme");
@@ -63,26 +64,29 @@ test("each browser starts on Use the GM's default, and the GM's setting is world
 });
 
 test("a GM change reloads only the browsers that follow it", () => {
-  const source = read("modules/settings/settings-helpers.js");
+  const source = read(SETTINGS);
   const gm = source.indexOf('game.settings.register("starwarsffg", "gmDefaultSheetTheme"');
   const gmBlock = source.slice(gm, source.indexOf('game.settings.register("starwarsffg", "defaultSheetTheme"'));
-  assert.match(gmBlock, /if \(game\.settings\.get\("starwarsffg", "defaultSheetTheme"\) === FOLLOW_GM_SHEET_THEME\) this\.debouncedReload\(\);/);
+  assert.match(gmBlock, /if \(game\.settings\.get\("starwarsffg", "defaultSheetTheme"\) === FOLLOW_GM_SHEET_THEME\) foundry\.utils\.debouncedReload\(\);/);
 });
 
-test("Configure Codex shows the GM's setting", () => {
-  const source = read("modules/settings/ui-settings.js");
-  const start = source.indexOf('"starwarsffg.defaultSheetTheme"');
-  assert.ok(source.lastIndexOf('"starwarsffg.gmDefaultSheetTheme"', start) > source.lastIndexOf("includeSettingsNames", start));
+test("Configure Codex lists the GM's setting first", () => {
+  const source = read(SETTINGS);
+  const start = source.indexOf("const CODEX_MENU_SETTINGS = [");
+  const list = source.slice(start, source.indexOf("];", start));
+  const gm = list.indexOf('"starwarsffg.gmDefaultSheetTheme"');
+  assert.ok(gm >= 0 && gm < list.indexOf('"starwarsffg.defaultSheetTheme"'));
 });
 
 test("a legacy theme value is reset to follow the GM, not to an explicit pick", () => {
   // An explicit "default" would stop that browser following the GM for good.
-  assert.match(read("modules/swffg-main.js"), /game\.settings\.set\("starwarsffg", "defaultSheetTheme", cfg\.default\)/);
+  assert.match(read(SETTINGS), /game\.settings\.set\("starwarsffg", "defaultSheetTheme", cfg\.default\)/);
 });
 
-test("the settings module still parses", () => {
-  // No Node test imports it (it needs Foundry), so a syntax slip there would
-  // only show up as a broken world load.
-  const file = fileURLToPath(new URL("../../modules/settings/settings-helpers.js", import.meta.url));
-  execFileSync(process.execPath, ["--check", file]);
+test("the settings modules still parse", () => {
+  // No Node test imports them (they need Foundry), so a syntax slip would only show up as a
+  // broken world load.
+  for (const path of [SETTINGS, "modules/settings/settings-helpers.js"]) {
+    execFileSync(process.execPath, ["--check", fileURLToPath(new URL(`../../${path}`, import.meta.url))]);
+  }
 });

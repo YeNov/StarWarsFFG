@@ -73,7 +73,9 @@ import { planStatusCounterSync } from "./helpers/status-counter-sync.js";
 import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
 import { vehicleItemRefusal } from "./helpers/vehicle-items.js";
 import { hasSheetResolver, registerSheetResolver, resolveSheetClass } from "./helpers/sheet-resolvers.js";
-import { effectiveSheetTheme } from "./helpers/sheet-theme.js";
+import { effectiveSheetTheme } from "./actors/codex-sheet-theme.js";
+import { healStaleThemeChoice, registerCodexSettings } from "./actors/codex-settings.js";
+import { registerCodexIntegrations } from "./actors/codex-integrations.js";
 import { buildPublicApi } from "./api/public-api.js";
 import { FFGFormApplication } from "./apps/ffg-form-application.js";
 import { ffgSettings } from "./settings/ui-settings.js";
@@ -449,6 +451,8 @@ Hooks.once("init", async function () {
     .catch((err) => CONFIG.logger.error("template preload failed", err));
 
   SettingsHelpers.initLevelSettings();
+  registerCodexSettings();
+  registerCodexIntegrations();
 
   const uitheme = game.settings.get("starwarsffg", "ui-uitheme");
 
@@ -1038,15 +1042,6 @@ Hooks.once("init", async function () {
     types: CODEX_ITEM_TYPES,
     label: "Codex II Item Sheet",
   });
-
-  // Stash the Codex sheet classes + the types they cover so the embedded item
-  // editor can tell when its host item opens on the Codex item sheet, without
-  // importing the sheet class into that module. ActorFFG/ItemFFG no longer read
-  // this: they ask the sheet resolvers registered below.
-  CONFIG.FFG.codexSheets = {
-    actor: { cls: CodexActorSheet, types: CODEX_ACTOR_TYPES },
-    item: { cls: CodexItemSheet, types: CODEX_ITEM_TYPES },
-  };
 
   // Per-user default sheet: this user's sheet theme picks the Codex II sheets for the types
   // they cover.
@@ -1843,26 +1838,7 @@ Hooks.once("ready", async () => {
     repairDuplicateTalents: (options) => ItemHelpers.repairDuplicateTalents(options),
   });
 
-  // Self-heal a stale `defaultSheetTheme` client value. The setting originally
-  // offered a bare "codex" option; the scheme-fold replaced it with per-scheme
-  // keys ("codex-<scheme>") and dropped "codex" from the choices. A client left
-  // on the legacy "codex" (or any value no longer in the choices) still routes
-  // to the Codex sheet via _getSheetClass (startsWith("codex")), yet the
-  // settings dropdown can't render the missing value — so it shows "Default
-  // (system sheets)" as selected while sheets still open as Codex II, and
-  // re-picking Default in the UI fires no change (the value looks unchanged).
-  // Reset any out-of-choices value to the setting's default ("Use the GM's
-  // default") so the effective sheet and the dropdown agree. Runs once: after
-  // the reset the value is a valid choice.
-  try {
-    const cfg = game.settings.settings.get("starwarsffg.defaultSheetTheme");
-    const current = game.settings.get("starwarsffg", "defaultSheetTheme");
-    if (cfg?.choices && !(current in cfg.choices)) {
-      await game.settings.set("starwarsffg", "defaultSheetTheme", cfg.default);
-    }
-  } catch (err) {
-    CONFIG.logger?.warn?.("starwarsffg | defaultSheetTheme normalization skipped", err);
-  }
+  await healStaleThemeChoice();
 
   // Forward Apply Damage / Apply Crit writes from non-owning players to the GM.
   registerGMBridge();

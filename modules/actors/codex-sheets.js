@@ -37,7 +37,7 @@ import { vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import { codexXpBuyActive } from "./codex-xp-buy.js";
 import ActorHelpers from "../helpers/actor-helpers.js";
 import { adjustCodexStat, bindStatStepPrediction, predictedCodexStat } from "../helpers/stat-step-bridge.js";
-import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
+import { effectiveSheetTheme } from "./codex-sheet-theme.js";
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
 
