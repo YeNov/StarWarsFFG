@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Changed — **Configure Codex is now listed below Skill List Import** in Configure Settings, because Codex II now registers its own settings ahead of its move to a separate module.
 * Fixed — **attacks made from Token Action HUD counted the target's defence twice** ([#104](https://github.com/YeNov/StarWarsFFG/pull/104)), so a target with defence 2 added 4 setback dice instead of 2 (since 2.1.3). Attacks from the character sheet were not affected.
 
 `2.1.6`
