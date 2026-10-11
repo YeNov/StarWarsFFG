@@ -417,8 +417,11 @@ Hooks.once("init", async function () {
     bar.position.set(0, posY);
   };
 
-  // Load character templates so that dynamic skills lists work correctly
-  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html", "systems/starwarsffg/templates/items/codex/codex-crit.html", "systems/starwarsffg/templates/items/codex/codex-shipweapon.html", "systems/starwarsffg/templates/items/codex/codex-itemattachment.html", "systems/starwarsffg/templates/items/codex/codex-shipattachment.html", "systems/starwarsffg/templates/items/codex/codex-forcepower.html", "systems/starwarsffg/templates/items/codex/codex-specialization.html", "systems/starwarsffg/templates/items/codex/codex-signatureability.html"]);
+  // Preload the character templates (dynamic skills lists need them) without holding up init:
+  // Foundry runs every module's init hook as soon as this handler first awaits, so an await
+  // here left the settings, sheets and theme stylesheet below unregistered for modules.
+  foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html", "systems/starwarsffg/templates/items/codex/codex-crit.html", "systems/starwarsffg/templates/items/codex/codex-shipweapon.html", "systems/starwarsffg/templates/items/codex/codex-itemattachment.html", "systems/starwarsffg/templates/items/codex/codex-shipattachment.html", "systems/starwarsffg/templates/items/codex/codex-forcepower.html", "systems/starwarsffg/templates/items/codex/codex-specialization.html", "systems/starwarsffg/templates/items/codex/codex-signatureability.html"])
+    .catch((err) => CONFIG.logger.error("template preload failed", err));
 
   SettingsHelpers.initLevelSettings();
 
@@ -972,6 +975,54 @@ Hooks.once("init", async function () {
     CONFIG.FFG.preCombatDelete = Hooks.on("preDeleteCombatant", registerHandleCombatantRemoval);
   }
 
+  // Register sheet application classes
+  foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
+  // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
+  // to the same native sheet. ActorSheetFFG / AdversarySheetFFG are the real
+  // classes (ActorSheetFFG takes makeDefault); the V2 names stay registered
+  // without makeDefault only as deprecated aliases so worlds with
+  // `flags.core.sheetClass === "ffg.ActorSheetFFGV2"` / `"ffg.AdversarySheetFFGV2"`
+  // keep resolving. Drop the alias entries in the release after V2-full lands.
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { makeDefault: true, label: "Actor Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
+  // CODEX II — bespoke, opt-in sheets selected per-actor via the ⚙ Sheet picker.
+  // Stock sheets stay registered as the default; Codex never takes makeDefault.
+  // Register a type only once its codex-<type>.html template exists. Widened as
+  // each type lands (character first).
+  const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
+  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: CODEX_ACTOR_TYPES, label: "Codex II Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", CodexAdversarySheet, { types: ["character"], label: "Codex II Adversary Sheet" });
+  foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
+  // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
+  // to the same native sheet. ItemSheetFFG is the real, default class;
+  // ItemSheetFFGV2 stays registered (no makeDefault) only as a deprecated alias
+  // so worlds with `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
+  // resolving. Drop the alias entry in the release after V2-full lands.
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
+  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Per-type
+  // template routing lives in CodexItemSheet#template: most types listed here
+  // have a bespoke codex-<type>.html — including the force power,
+  // specialization and signature ability trees — and the rest fall back to the
+  // generic codex-item.html frame. Types left out of this list keep the stock
+  // sheet: career, itemmodifier and species.
+  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "forcepower", "specialization", "signatureability", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
+  foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
+    types: CODEX_ITEM_TYPES,
+    label: "Codex II Item Sheet",
+  });
+
+  // Stash the Codex sheet classes + the types they cover so the document
+  // classes' _getSheetClass() (ActorFFG/ItemFFG) can route to them when the
+  // client `defaultSheetTheme` setting selects "codex" — without importing the
+  // sheet classes into the document modules (which would form an import cycle).
+  CONFIG.FFG.codexSheets = {
+    actor: { cls: CodexActorSheet, types: CODEX_ACTOR_TYPES },
+    item: { cls: CodexItemSheet, types: CODEX_ITEM_TYPES },
+  };
+
   await gameSkillsList();
 
   FFG.configureDice();
@@ -1340,54 +1391,6 @@ Hooks.once("init", async function () {
     } catch (e) {
       ui.notifications.warn("Failed to load custom statuses, likely bad JSON");
     }
-
-  // Register sheet application classes
-  foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
-  // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
-  // to the same native sheet. ActorSheetFFG / AdversarySheetFFG are the real
-  // classes (ActorSheetFFG takes makeDefault); the V2 names stay registered
-  // without makeDefault only as deprecated aliases so worlds with
-  // `flags.core.sheetClass === "ffg.ActorSheetFFGV2"` / `"ffg.AdversarySheetFFGV2"`
-  // keep resolving. Drop the alias entries in the release after V2-full lands.
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { makeDefault: true, label: "Actor Sheet" });
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
-  // CODEX II — bespoke, opt-in sheets selected per-actor via the ⚙ Sheet picker.
-  // Stock sheets stay registered as the default; Codex never takes makeDefault.
-  // Register a type only once its codex-<type>.html template exists. Widened as
-  // each type lands (character first).
-  const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
-  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: CODEX_ACTOR_TYPES, label: "Codex II Sheet" });
-  foundry.documents.collections.Actors.registerSheet("ffg", CodexAdversarySheet, { types: ["character"], label: "Codex II Adversary Sheet" });
-  foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
-  // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
-  // to the same native sheet. ItemSheetFFG is the real, default class;
-  // ItemSheetFFGV2 stays registered (no makeDefault) only as a deprecated alias
-  // so worlds with `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
-  // resolving. Drop the alias entry in the release after V2-full lands.
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
-  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Per-type
-  // template routing lives in CodexItemSheet#template: most types listed here
-  // have a bespoke codex-<type>.html — including the force power,
-  // specialization and signature ability trees — and the rest fall back to the
-  // generic codex-item.html frame. Types left out of this list keep the stock
-  // sheet: career, itemmodifier and species.
-  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "forcepower", "specialization", "signatureability", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
-  foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
-    types: CODEX_ITEM_TYPES,
-    label: "Codex II Item Sheet",
-  });
-
-  // Stash the Codex sheet classes + the types they cover so the document
-  // classes' _getSheetClass() (ActorFFG/ItemFFG) can route to them when the
-  // client `defaultSheetTheme` setting selects "codex" — without importing the
-  // sheet classes into the document modules (which would form an import cycle).
-  CONFIG.FFG.codexSheets = {
-    actor: { cls: CodexActorSheet, types: CODEX_ACTOR_TYPES },
-    item: { cls: CodexItemSheet, types: CODEX_ITEM_TYPES },
-  };
 
   // Add utilities to the global scope, this can be useful for macro makers
   window.DicePoolFFG = DicePoolFFG;
