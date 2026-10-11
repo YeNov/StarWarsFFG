@@ -39,11 +39,13 @@ test("with nothing set anywhere the system sheets are used", () => {
 });
 
 test("every reader of the theme goes through the resolver", () => {
-  for (const path of ["modules/actors/actor-ffg.js", "modules/items/item-ffg.js", "modules/actors/codex-sheets.js"]) {
-    const source = read(path);
-    assert.match(source, /effectiveSheetTheme\(\)/, path);
-    assert.doesNotMatch(source, /game\.settings\.get\("starwarsffg", "defaultSheetTheme"\)/, path);
-  }
+  const codex = read("modules/actors/codex-sheets.js");
+  assert.match(codex, /effectiveSheetTheme\(\)/);
+  assert.doesNotMatch(codex, /game\.settings\.get\("starwarsffg", "defaultSheetTheme"\)/);
+  const main = read("modules/swffg-main.js");
+  const at = main.indexOf('registerSheetResolver("kelborns-swffg-codex-ii"');
+  assert.ok(at >= 0, "the Codex sheet resolver is registered");
+  assert.match(main.slice(at, main.indexOf("});", at)), /effectiveSheetTheme\(\)\.startsWith\("codex"\)/);
 });
 
 test("each browser starts on Use the GM's default, and the GM's setting is world-wide", () => {

@@ -72,6 +72,8 @@ import { refreshSheetsForRemoteUpdate } from "./helpers/sheet-sync.js";
 import { planStatusCounterSync } from "./helpers/status-counter-sync.js";
 import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
 import { vehicleItemRefusal } from "./helpers/vehicle-items.js";
+import { registerSheetResolver } from "./helpers/sheet-resolvers.js";
+import { effectiveSheetTheme } from "./helpers/sheet-theme.js";
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -1014,14 +1016,22 @@ Hooks.once("init", async function () {
     label: "Codex II Item Sheet",
   });
 
-  // Stash the Codex sheet classes + the types they cover so the document
-  // classes' _getSheetClass() (ActorFFG/ItemFFG) can route to them when the
-  // client `defaultSheetTheme` setting selects "codex" — without importing the
-  // sheet classes into the document modules (which would form an import cycle).
+  // Stash the Codex sheet classes + the types they cover so the embedded item
+  // editor can tell when its host item opens on the Codex item sheet, without
+  // importing the sheet class into that module. ActorFFG/ItemFFG no longer read
+  // this: they ask the sheet resolvers registered below.
   CONFIG.FFG.codexSheets = {
     actor: { cls: CodexActorSheet, types: CODEX_ACTOR_TYPES },
     item: { cls: CodexItemSheet, types: CODEX_ITEM_TYPES },
   };
+
+  // Per-user default sheet: this user's sheet theme picks the Codex II sheets for the types
+  // they cover.
+  const codexSheetFor = { Actor: [CodexActorSheet, CODEX_ACTOR_TYPES], Item: [CodexItemSheet, CODEX_ITEM_TYPES] };
+  registerSheetResolver("kelborns-swffg-codex-ii", (document) => {
+    const [cls, types] = codexSheetFor[document.documentName] ?? [];
+    return cls && types.includes(document.type) && effectiveSheetTheme().startsWith("codex") ? cls : null;
+  });
 
   await gameSkillsList();
 
