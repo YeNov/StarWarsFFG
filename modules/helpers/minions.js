@@ -1,19 +1,16 @@
 import { groupTrack, isMinionVehicle, stepUnits, wipeOutDamage } from "./minion-group.js";
 
+/**
+ * The update that takes one member out of a group: a minion from a minion group, a vehicle from a
+ * minion vehicle group. The group's damage moves one member along its track (`stepUnits`), so any
+ * partial damage already on the next member is kept. `null` when there is nothing to destroy: not
+ * a group, no per-member threshold, or no member left.
+ */
 export function getKillMinionUpdate(actor) {
-  // A minion vehicle group loses one whole vehicle and keeps any partial hull damage on the next.
-  if (isMinionVehicle(actor)) {
-    const track = groupTrack(actor);
-    if (track.perUnit <= 0) return null;
-    const next = stepUnits(track.damage, track.perUnit, track.size, -1);
-    return next === track.damage ? null : { [track.path]: next };
-  }
-
-  const minionHealth = Number(actor?.system?.unit_wounds?.value) || 0;
-  if (minionHealth <= 0) return null;
-
-  const currentHealth = Number(actor?.system?.stats?.wounds?.value) || 0;
-  return { "system.stats.wounds.value": currentHealth + minionHealth + 1 };
+  const track = groupTrack(actor);
+  if (!track || track.perUnit <= 0) return null;
+  const next = stepUnits(track.damage, track.perUnit, track.size, -1);
+  return next === track.damage ? null : { [track.path]: next };
 }
 
 export function getKillMinionGroupUpdate(actor) {

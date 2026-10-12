@@ -39,8 +39,8 @@ both the classic and Codex vehicle sheets.
 - No change to System Strain. It stays one ordinary track for the whole group, with the threshold
   as entered.
 - No change to Apply Damage.
-- No change to minion behaviour, including the existing kill-helper off-by-one noted under
-  Follow-ups.
+- No change to minion behaviour in this feature. The kill helper's off-by-one is fixed separately,
+  as noted under Follow-ups.
 - No migration. Existing vehicles read the new field's defaults.
 - No changes to tokens already placed on scenes.
 
@@ -107,7 +107,7 @@ can be tested in Node:
 | `unitsLeft(damage, perUnit, size)` | `clamp(size − floor((damage − 1) / perUnit), 0, size)`, the minion formula (a unit drops when damage *exceeds* each per-unit threshold). With `perUnit <= 0`, returns `size` at 0 damage and `0` above it. |
 | `groupSkillRank(left)` | `clamp(left − 1, 0, 5)`. |
 | `effectiveSkillRank(skill, options)` | `options.groupSkillRank` when it is a number and `skill.groupskill` is true, else `skill.rank`. |
-| `stepUnits(damage, perUnit, size, dir)` | The next damage value after destroying (`dir = −1`) or reviving (`dir = +1`) one unit. Splits the damage into destroyed units plus partial damage on the next unit, moves the destroyed count by one (clamped to `[0, size]`) and keeps the same partial damage. Result clamped to `[0, size × perUnit + 1]`; returns the input unchanged at either end. Inputs are truncated to integers, with `perUnit` floored at 1 and `size` and `damage` at 0, as the stepper does today. This is the arithmetic the Codex minion stepper already uses ([codex-sheets.js](../../../modules/actors/codex-sheets.js) `.cdx-gs-step`), extracted. |
+| `stepUnits(damage, perUnit, size, dir)` | The next damage value after destroying (`dir = −1`) or reviving (`dir = +1`) one unit. Splits the damage into destroyed units plus partial damage on the next unit, moves the destroyed count by one (clamped to `[0, size]`) and keeps the same partial damage. Result clamped to `[0, size × perUnit + 1]`, and damage past that is read as the wiped-out group before the unit moves, so one revive from any overshoot leaves exactly one unit up; returns the input unchanged at either end. Inputs are truncated to integers, with `perUnit` floored at 1 and `size` and `damage` at 0, as the stepper does today. This is the arithmetic the Codex minion stepper already uses ([codex-sheets.js](../../../modules/actors/codex-sheets.js) `.cdx-gs-step`), extracted. |
 | `wipeOutDamage(perUnit, size)` | `groupThreshold(perUnit, size) + 1`. |
 | `crewRollOptions(vehicleActor)` | `{ groupSkillRank: groupSkillRank(vehicleActor.system.quantity.value) }` for a minion vehicle, else `{}`. Reads the actor it is given, never a lookup. |
 | `prototypeLinkUpdate(actor, changes)` | Returns `{ actorLink: !enabled }` when `changes` sets `flags.starwarsffg.config.minionVehicle` to a value different from the actor's current flag, the actor is a vehicle, and the actor is not a token actor; otherwise `null`. |
@@ -166,7 +166,9 @@ branch on `isMinionVehicle(actor)`:
 - Destroy one: `system.stats.hullTrauma.value = stepUnits(value, unit, size, −1)`, no update when unchanged.
 - Wipe out: `system.stats.hullTrauma.value = wipeOutDamage(unit, size)`.
 
-The minion branches keep their current code.
+A minion group's Destroy one takes the same step on its wounds: `groupTrack` supplies the wounds
+path, `unit_wounds` and the group size (`quantity.max`), so every kill removes exactly one minion
+and keeps the partial damage on the next. Its wipe-out stays `wounds.max + 1`.
 
 `ApplyCrit.show` ([apply-crit.js](../../../modules/helpers/apply-crit.js)) sends a minion vehicle
 target down the minion branch, `applyToTargetActor(realActor, { type: "kill-minion" })`, before any
@@ -258,8 +260,11 @@ Node tests (`npm test`):
   - `prototypeLinkUpdate` for a changed flag, an unchanged flag, a token actor and a non-vehicle
 - `tests/node/gm-bridge-apply.test.mjs`: `kill-minion` accepted for a minion vehicle, refused for a
   plain vehicle and a character.
-- A regression case asserting `stepUnits` reproduces the Codex minion stepper's current results
-  across a grid of wounds, unit and size values.
+- `tests/node/minion-kill-helpers.test.mjs`: the minion and vehicle kill updates, including a
+  second and later kill and a kill on a group with partial damage.
+- No case compares `stepUnits` with the Codex minion stepper's formula: a test that recomputes the
+  formula cannot fail when the formula is wrong (test-audit finding A06). `minion-group.test.mjs`
+  pins literal boundary tables instead.
 
 Gates: `npm test`, `npm run check:imports`, `npm run lint`, `npm run compile`.
 
@@ -281,7 +286,8 @@ once opened.
 
 ## Follow-ups (separate tasks)
 
-- `getKillMinionUpdate` always adds `unit_wounds + 1`, so every minion kill after the first leaves
-  one extra wound on the next member. The Codex stepper does not have this problem.
+- Done (2026-10-12): `getKillMinionUpdate` used to add `unit_wounds + 1` on every call, so each
+  minion kill after the first left one extra wound on the next member. It now steps through
+  `stepUnits` like the Codex stepper, so each kill removes exactly one minion and keeps partial damage.
 - The Codex vehicle sheet's *Crew* count counts `shipcrew` items, but crew live in
   `flags.starwarsffg.crew`, so it always reads 0.
