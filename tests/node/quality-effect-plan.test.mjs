@@ -153,23 +153,20 @@ test("no planned change is ever non-finite", () => {
 
 // --- the empty-key effects on the Beskar Vamblades ------------------------------------
 
-test("an unrecognised mod produces no change rather than a change with no key", () => {
-  const plan = ItemHelpers.planModifierEffects(weapon({
-    itemmodifier: [quality("Nonsense Quality", {
-      attr1700000000001: { modtype: "Bogus Type", mod: "Nope", value: 1 },
-    })],
-  }));
+test("an attribute that cannot form a key plans no effect and is reported, instead of planning a change with no key", () => {
+  const cannotFormAKey = [
+    ["an unrecognised mod", { modtype: "Bogus Type", mod: "Nope", value: 1 }, "no-key"],
+    ["an attribute missing modtype and mod entirely", { value: 1 }, "incomplete-attribute"],
+  ];
 
-  assert.equal(plan.desired.length, 0, "an effect with no usable key must not be planned");
-  assert.ok(plan.warnings.some((w) => w.code === "no-key"));
-});
+  for (const [what, attribute, code] of cannotFormAKey) {
+    const plan = ItemHelpers.planModifierEffects(weapon({
+      itemmodifier: [quality("Unusable Quality", { attr1700000000001: attribute })],
+    }));
 
-test("an attribute missing modtype/mod entirely is skipped, not exploded", () => {
-  const plan = ItemHelpers.planModifierEffects(weapon({
-    itemmodifier: [quality("Broken Quality", { attr1700000000001: { value: 1 } })],
-  }));
-
-  assert.equal(plan.desired.length, 0);
+    assert.equal(plan.desired.length, 0, `${what} must not plan an effect`);
+    assert.ok(plan.warnings.some((w) => w.code === code), `${what} should warn "${code}"`);
+  }
 });
 
 test("a mod that explodes to several keys keeps every one of them", () => {

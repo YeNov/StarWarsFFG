@@ -45,15 +45,13 @@ test("a blank actor in a stock-theme world is left alone", () => {
 });
 
 test("an SWA adversary is never rewritten, in either kind of world", () => {
-  assert.equal(shouldApplySkillTheme(adversarySkills("starwars"), stock(), stock()), false);
-  assert.equal(shouldApplySkillTheme(adversarySkills("genesys"), genesys(), stock()), false);
-});
-
-test("the SWA dictionary really does differ from the model default", () => {
-  // Guards the test above from passing for the wrong reason: if the importer ever wrote the stock
-  // dictionary unchanged, "left alone" would be trivially true and prove nothing.
+  // Precondition: the SWA dictionary really does differ from the model default. If the importer
+  // ever wrote the stock dictionary unchanged, "left alone" would be trivially true and prove nothing.
   assert.notDeepEqual(adversarySkills("starwars"), stock());
   assert.ok("Cybernetics" in adversarySkills("starwars"), "the custom skill that started issue #62");
+
+  assert.equal(shouldApplySkillTheme(adversarySkills("starwars"), stock(), stock()), false);
+  assert.equal(shouldApplySkillTheme(adversarySkills("genesys"), genesys(), stock()), false);
 });
 
 test("a single authored rank is enough to make an actor off-limits", () => {

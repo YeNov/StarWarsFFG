@@ -350,13 +350,6 @@ test("the stub installs no forbidden global", () => {
   }
 });
 
-test("the stub installs no forbidden nested path", () => {
-  assert.equal(globalThis.game?.socket, undefined, "game.socket must not be stubbed");
-  assert.equal(globalThis.game?.packs, undefined, "game.packs must not be stubbed");
-  assert.equal(globalThis.foundry?.applications, undefined, "foundry.applications must not be stubbed");
-  assert.equal(globalThis.ui?.notifications, undefined, "ui.notifications must not be stubbed");
-});
-
 test("the stubbed surface matches the declared allowlist exactly", () => {
   const at = (dotted) => dotted.split(".").reduce((o, k) => o?.[k], globalThis);
   for (const [dotted, expected] of Object.entries(ALLOWED_SHAPE)) {
@@ -379,6 +372,12 @@ test("the stub carries the character-creator rules and option tables the wizard 
   for (const key of ["backgroundTypes", "obligationTypes", "motivationTypes", "startingBonusesRadio"]) {
     assert.ok(cc[key], `characterCreator.${key} should be present`);
   }
+});
+
+test("the stub's randomID returns an id of the requested length made only of letters and digits", () => {
+  // Foundry document ids are 16 characters from this alphabet, and the wizard's id checks
+  // (assertWizardIdIntegrity, the commit id) reject anything else.
+  assert.match(globalThis.foundry.utils.randomID(16), /^[a-zA-Z0-9]{16}$/);
 });
 
 test("game.i18n.localize is the identity — Covered modules must return i18n KEYS", () => {

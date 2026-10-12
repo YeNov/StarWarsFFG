@@ -78,13 +78,6 @@ test("plans no inherent effect for a type that does not own one", () => {
   assert.equal(ModifierHelpers.planInherentEffect(undefined), null);
 });
 
-test("plans nothing when the item already carries the effect", () => {
-  // A compendium copy, a duplicate, or a re-drop arrives with its effects already attached.
-  const existing = item("gear", {}, [{ name: "(inherent)", changes: [] }]);
-
-  assert.deepEqual(ModifierHelpers.planMissingEffects(existing), []);
-});
-
 test("plans a talent's attribute effects for the item to be created with", () => {
   const talent = item("talent", {
     attributes: { "Piloting:_Space": { mod: "Piloting: Space", modtype: "Skill Remove Setback", value: 1 } },
@@ -97,7 +90,11 @@ test("plans a talent's attribute effects for the item to be created with", () =>
   }]);
 });
 
-test("plans both kinds at once and skips only the kind already present", () => {
+test("plans nothing when the item already carries the effects it would be created with, inherent or from its attributes", () => {
+  // A compendium copy, a duplicate, or a re-drop arrives with its effects already attached.
+  const gear = item("gear", {}, [{ name: "(inherent)", changes: [] }]);
+  assert.deepEqual(ModifierHelpers.planMissingEffects(gear), []);
+
   const species = item("species",
     { attributes: { Brawn: { modtype: "Characteristic", value: 1 } } },
     [{ name: "(inherent)", changes: [] }]);

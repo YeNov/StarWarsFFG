@@ -19,7 +19,7 @@ function seedSettings() {
   setSetting("starwarsffg", "defaultMorality", 50);
 }
 
-test("createInitialData: commitId matches the document-id regex (DEV-5 guard)", () => {
+test("createInitialData mints a 16-character alphanumeric commit id", () => {
   seedSettings();
   assert.match(createInitialData().commitId, /^[a-zA-Z0-9]{16}$/);
 });
@@ -69,7 +69,7 @@ test("toSelectionRef produces {uuid, name, type, img, snapshot} with no live doc
   assert.deepEqual(ref.snapshot, { name: "Blaster", system: { damage: 6 } });
 });
 
-test("wizard-state mutators are pure state transitions (setIdentity/setSelection/addSelection)", () => {
+test("setIdentity, setSelection and addSelection write the identity, one selection and an appended selection onto the draft", () => {
   seedSettings();
   const data = createInitialData();
   setIdentity(data, { name: "Kel", img: "icons/kel.png", tokenImg: "icons/kel-token.png" });
@@ -86,7 +86,7 @@ test("wizard-state mutators are pure state transitions (setIdentity/setSelection
   assert.deepEqual(data.selected.motivations, [motiveRef]);
 });
 
-test("applyStartingBonus BUG-2: aor duty grant lands in bonus.duty, not bonus[undefined]", () => {
+test("an Age of Rebellion starting bonus of 5 XP and 5 Duty is stored under bonus.xp and bonus.duty and creates no \"undefined\" key", () => {
   seedSettings();
   const data = createInitialData();
   data.selected.rules = "aor";
@@ -107,7 +107,7 @@ test("applyStartingBonus: re-selecting zeroes prior fields (no stale morality)",
   assert.equal(data.grants.bonus.xp, 10);
 });
 
-test("applyStartingBonus is a deterministic pure state transition", () => {
+test("applyStartingBonus eote_1k_credits grants 1000 credits and 5 Obligation and nothing else, every time", () => {
   seedSettings();
   const a = createInitialData();
   const b = createInitialData();
@@ -129,7 +129,7 @@ test("applyStartingBonus(null) clears the bonus back to zero", () => {
   assert.deepEqual(data.grants.bonus, { xp: 0, credits: 0, duty: 0, obligation: 0, conflict: 0, morality: 0 });
 });
 
-test("calcObligation agrees with the grants.bonus display via the shared table", () => {
+test("calcObligation adds the same Obligation or Morality adjustment that grants.bonus displays", () => {
   seedSettings();
   // eote: display bonus.obligation and calcObligation adjustment both = +5
   const eote = createInitialData();

@@ -61,12 +61,6 @@ test("two overlapping damage applications against the same actor compose (5 and 
   assert.equal(queue.pending(), 0);
 });
 
-test("without the serializer the same pair loses an update (the bug this fixes)", async () => {
-  const wounds = pool(0);
-  await Promise.all([wounds.add(5), wounds.add(7)]);
-  assert.equal(wounds.state.value, 7);
-});
-
 test("different actors are not made to wait for each other", async () => {
   const queue = createKeyedSerializer();
   const order = [];
@@ -192,7 +186,7 @@ test("a request from an unknown or disconnected user is refused", () => {
   assert.deepEqual(isApplyRequestAuthorized({ id: "p1", active: false, isGM: false }), { ok: false, reason: "requestor" });
 });
 
-test("any connected user may forward, with or without a chat card behind it", () => {
+test("an active player and an active GM both pass forwarding authorization", () => {
   // Deliberate: a table is a trusted room, and requiring a card the player
   // authored would break a macro that applies damage without one. What a
   // forwarded request may DO is still narrowed, above.

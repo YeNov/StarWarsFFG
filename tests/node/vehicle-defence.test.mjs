@@ -129,7 +129,7 @@ test("a literal silhouette 0 is readable and does narrow", () => {
   assert.equal(vehicleDefenceZoneMode(craft(FOUR(), 0)), "two");
 });
 
-test("every mode the vehicle schema offers is one the resolver understands", () => {
+test("the override modes are auto, two and four, each resolves to two or four zones, and auto follows the silhouette", () => {
   // Both vehicle sheets build their picker from this list, so a mode offered
   // there but unknown to the resolver would be selectable and silently do nothing.
   assert.deepEqual(DEFENCE_ZONE_MODES, ["auto", "two", "four"]);

@@ -103,12 +103,6 @@ test("a malformed undo descriptor is not refundable", () => {
   }
 });
 
-test("the builders carry the undo descriptor through untouched", () => {
-  const undo = { type: "item", itemId: "abc" };
-  assert.deepEqual(spend("x", undo).undo, undo);
-  assert.equal(spend("x").undo, undefined);
-});
-
 const sheet = read("modules/actors/actor-sheet-ffg.js");
 const itemSheet = read("modules/items/item-sheet-ffg.js");
 

@@ -83,7 +83,7 @@ test("a legacy theme value is reset to follow the GM, not to an explicit pick", 
   assert.match(read(SETTINGS), /game\.settings\.set\("starwarsffg", "defaultSheetTheme", cfg\.default\)/);
 });
 
-test("the Codex settings module still parses", () => {
+test("codex/scripts/settings.js is valid ES module syntax", () => {
   // No Node test imports it (it needs Foundry), so a syntax slip would only show up as a
   // broken world load.
   execFileSync(process.execPath, ["--check", fileURLToPath(new URL(`../../${SETTINGS}`, import.meta.url))]);

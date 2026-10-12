@@ -112,7 +112,7 @@ test("the materializer is NOT called when there are no learned keys", () => {
   assert.equal(called, false);
 });
 
-test("projection preserves an effect's disabled:true (unlearned node stays disabled)", () => {
+test("toItemData keeps disabled: true on an effect the tree materializer returns", () => {
   const ref = specRef();
   const materializeTree = (source) => ({
     ...source,
@@ -122,7 +122,7 @@ test("projection preserves an effect's disabled:true (unlearned node stays disab
   assert.equal(out.effects[0].disabled, true);
 });
 
-test("issue E: rank grants are deterministic (pcwRank<n>_slug), identical across runs, no Date.now()", () => {
+test("rank grants become one pcwRank<n>_<skill> attribute and one add-rank effect each, the same on every run", () => {
   const ref = () => ({
     uuid: "u", name: "Ace", type: "specialization", img: "i",
     snapshot: { name: "Ace", type: "specialization", system: {}, effects: [] },
@@ -148,7 +148,7 @@ test("rank grants ignore empty and (none) skill slots", () => {
   assert.equal(out.effects.length, 2);
 });
 
-test("N-5 / duplicate purchase: two identical gear refs → two independent items with distinct ids", async () => {
+test("two identical gear purchases become two independent items with distinct ids", async () => {
   const item0 = toItemData(gearRef());
   const item1 = toItemData(gearRef());
   assert.notEqual(item0, item1); // independent objects

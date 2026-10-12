@@ -1,5 +1,5 @@
 /**
- * Node tests for D9 / R7-2 policy (Stage 14). Covers R7-2 cases 1-5, 7, 8; case 6
+ * Node tests for D9 / R7-2 policy (Stage 14). Covers R7-2 cases 1-5, 7 and the de-dup half of 8; case 6
  * (GM connect with no intervening render) is a live Stage-23 check.
  */
 
@@ -26,28 +26,31 @@ function pendingWith(...ids) {
   return map;
 }
 
-test("R7-2 case 4: ACK accepted only when requester + GM sender + pending all hold", () => {
+test("an ACK is accepted when it names this requester, comes from a GM and matches a pending session", () => {
   assert.equal(shouldAcceptAck({ ...base, pending: pendingWith("S1") }), true);
 });
 
-test("R7-2 case 1: ACK rejected for the WRONG requesterId", () => {
+test("an ACK that names a different requester is rejected", () => {
   assert.equal(shouldAcceptAck({ ...base, requesterId: "someoneElse", pending: pendingWith("S1") }), false);
 });
 
-test("R7-2 case 2: ACK rejected when the sender is NOT a GM", () => {
+test("an ACK from a non-GM sender is rejected", () => {
   assert.equal(shouldAcceptAck({ ...base, senderIsGM: false, pending: pendingWith("S1") }), false);
 });
 
-test("R7-2 case 3: ACK rejected for an unknown / non-pending session", () => {
+test("an ACK for an unknown session, or with nothing pending, is rejected", () => {
   assert.equal(shouldAcceptAck({ ...base, pending: pendingWith("OTHER") }), false);
   assert.equal(shouldAcceptAck({ ...base, pending: new Map() }), false);
 });
 
-test("GM-side de-dup: a (sender, session) start is processed once", () => {
+// R7-2 case 8 (lost-ACK failover) rests on this: the key carries the authenticated sender, so a
+// second GM that receives the same session's notice processes it anew and its ACK is accepted
+// (the ACK itself is the first case above). A real failover needs two GM sessions: G09.
+test("a start notice is processed once per sender and session, and another sender's or another session's is processed anew", () => {
   const seen = new Set();
   assert.equal(claimOnce(seen, startDedupKey("p1", "S1")), true);
   assert.equal(claimOnce(seen, startDedupKey("p1", "S1")), false);
-  // a different player or session is a different key
+  // a different sender or session is a different key
   assert.equal(claimOnce(seen, startDedupKey("p2", "S1")), true);
   assert.equal(claimOnce(seen, startDedupKey("p1", "S2")), true);
 });
@@ -59,31 +62,21 @@ test("finish de-dup keys on (sender, commitId)", () => {
   assert.equal(claimOnce(seen, finishDedupKey("p1", "C2")), true);
 });
 
-test("two concurrent players: accepting player A's ACK does not affect player B", () => {
-  const pending = pendingWith("A", "B");
-  clearPending(pending, "A"); // A's ACK accepted
+test("setPending records a session, and clearing it removes only that session and leaves nothing behind", () => {
+  const pending = new Map();
+  setPending(pending, "A", { commitId: "C1" });
+  setPending(pending, "B", { commitId: "C2" });
+  assert.deepEqual(pending.get("A"), { commitId: "C1" });
+
+  clearPending(pending, "A"); // player A's ACK accepted, or A closed the wizard while pending
   assert.equal(pending.has("A"), false);
   assert.equal(pending.has("B"), true);
-});
 
-test("close-while-pending: clearing the entry leaves the map empty (no leak)", () => {
-  const pending = pendingWith("S1");
-  clearPending(pending, "S1");
+  clearPending(pending, "B");
   assert.equal(pending.size, 0);
 });
 
-test("R7-2 case 8 — lost-ACK failover: a second GM can re-process and its ACK is accepted", () => {
-  // GM1 and GM2 each de-dup on their own sender id, so the failover GM processes anew
-  const gm1Seen = new Set();
-  const gm2Seen = new Set();
-  assert.equal(claimOnce(gm1Seen, startDedupKey("gm1", "S1")), true);
-  assert.equal(claimOnce(gm2Seen, startDedupKey("gm2", "S1")), true);
-  // GM1's ACK was lost; the session is still pending, so GM2's ACK is accepted
-  const pending = pendingWith("S1");
-  assert.equal(shouldAcceptAck({ ...base, senderIsGM: true, pending }), true);
-});
-
-test("shouldEmitStart: render triggers", () => {
+test("a render start notice is sent the first time, then only with an active GM once the spacing interval has passed", () => {
   const now = 1_000_000;
   assert.equal(shouldEmitStart({ state: "pending", reason: "render", hasActiveGM: false, lastEmitAt: null, now }), true); // first render always
   assert.equal(shouldEmitStart({ state: "pending", reason: "render", hasActiveGM: true, lastEmitAt: now - START_NOTICE_SPACING_MS, now }), true);
@@ -91,17 +84,11 @@ test("shouldEmitStart: render triggers", () => {
   assert.equal(shouldEmitStart({ state: "pending", reason: "render", hasActiveGM: false, lastEmitAt: now - START_NOTICE_SPACING_MS, now }), false); // no GM
 });
 
-test("shouldEmitStart: gmConnect + preCommit + non-pending", () => {
+test("a GM-connect start notice needs an active GM, a pre-commit one is always sent, and a session that is not pending sends none", () => {
   assert.equal(shouldEmitStart({ state: "pending", reason: "gmConnect", hasActiveGM: true, lastEmitAt: 0, now: 0 }), true);
   assert.equal(shouldEmitStart({ state: "pending", reason: "gmConnect", hasActiveGM: false, lastEmitAt: 0, now: 0 }), false);
   assert.equal(shouldEmitStart({ state: "pending", reason: "preCommit", hasActiveGM: false, lastEmitAt: 0, now: 0 }), true); // unconditional
   assert.equal(shouldEmitStart({ state: "delivered", reason: "preCommit", hasActiveGM: true, lastEmitAt: null, now: 0 }), false); // not pending
-});
-
-test("setPending adds an entry", () => {
-  const pending = new Map();
-  setPending(pending, "S1", { commitId: "C1" });
-  assert.deepEqual(pending.get("S1"), { commitId: "C1" });
 });
 
 test("commit response is accepted only from a GM for this requester and pending commit", () => {

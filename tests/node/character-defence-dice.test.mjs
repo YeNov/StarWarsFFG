@@ -37,14 +37,12 @@ test("the maximum is taken across targets for the chosen stat only", () => {
   assert.equal(characterDefenceDice({ skillValue: "Ranged: Light", targets }), 3);
 });
 
-test("a targeted vehicle contributes nothing here -- the zone picker owns it", () => {
-  assert.equal(characterDefenceDice({ skillValue: "Gunnery", targets: [ship()] }), 0);
-  assert.equal(characterDefenceDice({ skillValue: "Gunnery", targets: [ship(), trooper(2, 0)] }), 2);
-});
-
-test("a vehicle target does not throw despite having no defence stat", () => {
+test("a targeted vehicle has no defence stat, so it contributes nothing and does not throw -- the zone picker owns it", () => {
   // The live bug this replaces: reading .ranged off an undefined `defence`.
-  assert.doesNotThrow(() => characterDefenceDice({ skillValue: "Ranged: Heavy", targets: [ship()] }));
+  for (const skillValue of ["Gunnery", "Ranged: Heavy"]) {
+    assert.equal(characterDefenceDice({ skillValue, targets: [ship()] }), 0);
+    assert.equal(characterDefenceDice({ skillValue, targets: [ship(), trooper(2, 0)] }), 2);
+  }
 });
 
 test("missing, malformed or absent targets yield zero", () => {
@@ -59,6 +57,6 @@ test("a negative or non-numeric defence never produces negative dice", () => {
   assert.equal(characterDefenceDice({ skillValue: "Melee", targets: [trooper(0, "two")] }), 0);
 });
 
-test("a Set of targets works, since game.user.targets is one", () => {
+test("the defence of targets given as a Set, as game.user.targets is, is read like an array of targets", () => {
   assert.equal(characterDefenceDice({ skillValue: "Brawl", targets: new Set([trooper(0, 2)]) }), 2);
 });

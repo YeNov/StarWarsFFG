@@ -11,31 +11,7 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import { buildXpSpendEntry, buildXpEarnEntry } from "../../modules/helpers/xp-entry-builders.js";
 
-test("buildXpSpendEntry: action is always the literal 'purchased'", () => {
-  const entry = buildXpSpendEntry({
-    description: "skill rank Astrogation 1 --> 2",
-    cost: 10,
-    available: 40,
-    total: 100,
-    statusId: "ae123",
-    date: "2026-07-21",
-  });
-  assert.equal(entry.action, "purchased");
-});
-
-test("buildXpSpendEntry: the description lands in .description (not in .action)", () => {
-  const entry = buildXpSpendEntry({
-    description: "bought Grit",
-    cost: 5,
-    available: 20,
-    total: 50,
-    date: "2026-07-21",
-  });
-  assert.equal(entry.description, "bought Grit");
-  assert.notEqual(entry.action, "bought Grit");
-});
-
-test("buildXpSpendEntry: shape — id, xp{cost,available,total}, date", () => {
+test("a spend entry is a 'purchased' record that carries its description, status id, XP cost, available and total, and date", () => {
   const entry = buildXpSpendEntry({
     description: "d",
     cost: 5,
@@ -54,6 +30,11 @@ test("buildXpSpendEntry: shape — id, xp{cost,available,total}, date", () => {
     date: "2026-07-21",
     description: "d",
   });
+
+  // A purchase that has no Active Effect to delete passes its undo descriptor through untouched.
+  const undo = { type: "item", itemId: "abc" };
+  const withUndo = buildXpSpendEntry({ description: "d", cost: 5, available: 20, total: 50, statusId: "ae9", undo, date: "2026-07-21" });
+  assert.deepEqual(withUndo.undo, undo);
 });
 
 test("buildXpSpendEntry: statusId defaults to undefined when omitted", () => {
@@ -106,7 +87,7 @@ test("buildXpEarnEntry: note lands in .description", () => {
   assert.equal(entry.description, "species grant");
 });
 
-test("the builders are referentially pure — same input yields equal output, no shared state", () => {
+test("the builders return fresh, equal objects for equal input and leave their argument unchanged", () => {
   const spendArgs = { description: "d", cost: 5, available: 20, total: 50, statusId: "x", date: "2026-07-21" };
   assert.deepEqual(buildXpSpendEntry(spendArgs), buildXpSpendEntry(spendArgs));
 

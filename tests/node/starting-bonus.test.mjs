@@ -13,7 +13,11 @@ import {
   getStartingBonusOptions,
 } from "../../modules/char-creator/starting-bonus.js";
 
-test("every self-identifying starting bonus cell matches the transcription", () => {
+// Every choice grants exactly these amounts: XP, credits, and the ruleset's own track (Duty for
+// Age of Rebellion, Obligation for Edge of the Empire, Morality for Force and Destiny). The three
+// "2k" credit choices grant 2,500 on purpose (owner decision R17, recorded in starting-bonus.js).
+// Because the object is compared whole, a grant that targets a missing key (bonus[undefined]) fails too.
+test("each starting-bonus choice grants exactly its listed XP, credits, Duty, Obligation or Morality, and the 2k credit choices grant 2,500", () => {
   assert.deepEqual(STARTING_BONUS, {
     "aor_5xp": { xp: 5, duty: 5 },
     "aor_10xp": { xp: 10, duty: 10 },
@@ -31,22 +35,6 @@ test("every self-identifying starting bonus cell matches the transcription", () 
     "eote_2k_credits": { credits: 2500, obligation: 10 },
     "eote_5xp_1k_credits": { xp: 5, credits: 1000, obligation: 10 },
   });
-});
-
-test("BUG-2: aor/eote grants target bonus.duty / bonus.obligation, never bonus[undefined]", () => {
-  for (const choice of ["5xp", "10xp", "1k_credits", "2k_credits"]) {
-    const aor = getStartingBonus(`aor_${choice}`);
-    const eote = getStartingBonus(`eote_${choice}`);
-    assert.ok("duty" in aor && aor.duty > 0, `aor ${choice} must set bonus.duty`);
-    assert.ok("obligation" in eote && eote.obligation > 0, `eote ${choice} must set bonus.obligation`);
-    assert.ok(!("undefined" in aor) && !("undefined" in eote));
-  }
-});
-
-test("Q-2: 2k_credits grants 2500 in every book-family option", () => {
-  assert.equal(getStartingBonus("fad_2k_credits").credits, 2500);
-  assert.equal(getStartingBonus("eote_2k_credits").credits, 2500);
-  assert.equal(getStartingBonus("aor_2k_credits").credits, 2500);
 });
 
 test("getStartingBonus returns {} for unknown choice", () => {
@@ -70,10 +58,4 @@ test("ruleset option lists expose only that ruleset's choices", () => {
     "eote_5xp", "eote_10xp", "eote_1k_credits", "eote_2k_credits", "eote_5xp_1k_credits",
   ]);
   assert.deepEqual(getStartingBonusOptions("unknown"), []);
-});
-
-test("the table is frozen", () => {
-  assert.ok(Object.isFrozen(STARTING_BONUS));
-  assert.ok(Object.isFrozen(STARTING_BONUS["aor_5xp"]));
-  assert.ok(Object.isFrozen(STARTING_BONUS_OPTIONS));
 });

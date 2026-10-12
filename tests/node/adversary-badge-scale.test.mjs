@@ -110,7 +110,7 @@ function badgeBox(token) {
 
 const near = (actual, expected, tolerance) => Math.abs(actual - expected) <= tolerance;
 
-test("a 1x1 token on a 100px grid keeps the badge size and placement it has always had", () => {
+test("a 1x1 token on a 100px grid shows the badge about 42 by 28 px, centred, with its bottom just above the token edge", () => {
   const box = badgeBox(drawOn(100));
 
   assert.ok(near(box.width, 42.3, 2), `badge width was ${box.width}, expected about 42`);

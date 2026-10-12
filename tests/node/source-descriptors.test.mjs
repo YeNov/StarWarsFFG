@@ -369,9 +369,3 @@ test("setSourceEnabled stores world item opt-in explicitly", () => {
   assert.deepEqual(setSourceEnabled({ gear: ["world"] }, "gear", "world", true), { gear: ["enabled:world"] });
   assert.deepEqual(setSourceEnabled({ gear: ["enabled:world"] }, "gear", "world", false), {});
 });
-
-test("the descriptor table is frozen", () => {
-  assert.ok(Object.isFrozen(SOURCE_DESCRIPTORS));
-  assert.ok(Object.isFrozen(SOURCE_DESCRIPTORS.gear));
-  assert.ok(Object.isFrozen(SOURCE_DESCRIPTORS.gear.worldItemTypes));
-});

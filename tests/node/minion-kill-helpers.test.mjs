@@ -39,7 +39,7 @@ const minionGroup = (wounds, { unit = 3, size = 4, standing = size } = {}) => ({
 
 const WOUNDS = "system.stats.wounds.value";
 
-test("destroying a vehicle in a minion vehicle group keeps the partial hull damage", () => {
+test("destroying a vehicle in a minion vehicle group takes hull trauma one past that vehicle's hull, keeps the partial damage already on it, and writes nothing once the group is wiped out", () => {
   assert.deepEqual(getKillMinionUpdate(squadron(0)), { "system.stats.hullTrauma.value": 7 });
   assert.deepEqual(getKillMinionUpdate(squadron(3)), { "system.stats.hullTrauma.value": 9 });
   assert.equal(getKillMinionUpdate(squadron(25)), null);

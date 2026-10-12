@@ -26,14 +26,14 @@ function ref(type, { attachmentType = "all", hp = 0 } = {}) {
   };
 }
 
-test("attachment compatibility follows target type or all", () => {
+test("an attachment fits a target of its own type or of type all, and the armor spelling counts as armour", () => {
   assert.equal(attachmentAppliesTo(ref("weapon"), ref("itemattachment", { attachmentType: "weapon" })), true);
   assert.equal(attachmentAppliesTo(ref("armour"), ref("itemattachment", { attachmentType: "weapon" })), false);
   assert.equal(attachmentAppliesTo(ref("armour"), ref("itemattachment", { attachmentType: "all" })), true);
   assert.equal(attachmentAppliesTo(ref("armour"), ref("itemattachment", { attachmentType: "armor" })), true);
 });
 
-test("hardpoint accounting filters attachments that no longer fit", () => {
+test("hardpoints used by attached items reduce the remainder, and an attachment is allowed only if it fits what remains", () => {
   const target = { id: "weapon-1", ref: ref("weapon", { hp: 3 }) };
   const data = {
     purchases: {

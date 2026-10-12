@@ -277,7 +277,7 @@ test("blank lines and # comments are commentary, not pins", () => {
   );
 });
 
-test("a message containing a | survives the split", () => {
+test("a pin message containing a pipe character is kept whole", () => {
   const { pins, errors } = parseBaseline(`2 | a/b.js:1 | #7 | left | right\n`);
   assert.deepEqual(errors, []);
   assert.equal(pins[0].message, "left | right");

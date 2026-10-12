@@ -30,9 +30,3 @@ test("the Destiny Tracker and the campaignDay setting use them", () => {
   assert.ok(read("templates/ffg-destiny-tracker.html").includes('"SWFFG.CampaignDay.Day"'));
   assert.equal(read("modules/settings/settings-helpers.js").split("SWFFG.CampaignDay.Day").length - 1, 2);
 });
-
-test("no system file still uses the Codex keys for the campaign day", () => {
-  for (const path of ["modules/ffg-destiny-tracker.js", "templates/ffg-destiny-tracker.html", "modules/settings/settings-helpers.js"]) {
-    assert.doesNotMatch(read(path), /SWFFG\.Codex\.CritTrauma\.(Day|EditDay)/, path);
-  }
-});

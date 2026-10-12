@@ -19,19 +19,10 @@ test("recognizes only the client that owns persisted Edit Mode", () => {
   assert.equal(ActorHelpers.isEditModeOwner(undefined), false);
 });
 
-test("an unlinked token does not inherit its base actor's Edit Mode", () => {
+test("an unlinked token does not inherit its base actor's Edit Mode, and checking it never materializes the ActorDelta", () => {
   // BaseActorDelta merges the base actor's flags into every synthetic token actor, so without
   // this guard ticking Edit Mode on one base actor would suspend effects on all of its tokens.
-  const tokenActor = (ownConfig) => Object.assign(actor(), {
-    isToken: true,
-    token: { _source: { delta: { flags: { starwarsffg: ownConfig ? { config: ownConfig } : {} } } } },
-  });
-
-  assert.equal(ActorHelpers.isEditModeOwner(tokenActor(null)), false, "inherited only");
-  assert.equal(ActorHelpers.isEditModeOwner(tokenActor({ enableEditMode: true })), true, "set on the token itself");
-});
-
-test("the token check never materializes the ActorDelta", () => {
+  //
   // Reading `token.delta` CONSTRUCTS the ActorDelta, which constructs the synthetic actor,
   // which prepares data -> applyActiveEffects -> allApplicableEffects -> back here: an
   // infinite recursion that overflowed the stack on world load ("Failed data preparation

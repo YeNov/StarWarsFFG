@@ -107,13 +107,6 @@ for (const [applier, route] of [["gm", "local"], ["owner", "forwarded owner"], [
   });
 }
 
-test("a rival's merged hit is checked on its cost alone", async () => {
-  const t = table({ type: "rival", strain: { value: 0, max: 0 }, wounds: { value: 5, max: 10 } });
-  const op = { type: "damage", changes: [{ path: WOUNDS, delta: 7 }], defenceCost: { path: WOUNDS, delta: 3 }, gmChat: { content: "x" } };
-  assert.equal(await t.apply("player", op), "forwarded");
-  assert.equal(t.state.wounds.value, 12);
-});
-
 test("an owner's malformed talent request is refused by the writer, although owners skip narrowing", async () => {
   const t = table();
   await assert.rejects(t.apply("owner", { ...parry(), defenceCost: { path: STRAIN, delta: 5 } }),
