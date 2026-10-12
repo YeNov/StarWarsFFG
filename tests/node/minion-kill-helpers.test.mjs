@@ -90,8 +90,12 @@ test("every minion kill adds exactly one member's wounds and keeps the partial w
   }
 });
 
-test("a kill with no minion left to destroy writes nothing", () => {
+test("a kill with no minion left to destroy writes nothing, even after a hit that overshot the wipe-out", () => {
   assert.equal(getKillMinionUpdate(minionGroup(13)), null);
+  assert.equal(getKillMinionUpdate(minionGroup(14)), null, "one wound past the wipe-out is not pulled back to 13");
+  assert.equal(getKillMinionUpdate(minionGroup(20)), null);
+  assert.equal(getKillMinionUpdate(squadron(26)), null, "the same for a squadron's hull");
+  assert.equal(getKillMinionUpdate(squadron(100)), null);
 });
 
 test("a minion group with no wounds per member cannot lose a minion", () => {
@@ -105,6 +109,7 @@ test("a minion group with no wounds per member cannot lose a minion", () => {
 test("an empty minion group has nothing to kill, with or without wounds on it", () => {
   assert.equal(getKillMinionUpdate(minionGroup(0, { size: 0 })), null);
   assert.equal(getKillMinionUpdate(minionGroup(1, { size: 0 })), null);
+  assert.equal(getKillMinionUpdate(minionGroup(5, { size: 0 })), null, "wounds on an empty group are not rewritten");
 });
 
 test("a minion kill sizes the group from its maximum, not from the minions still standing", () => {
@@ -143,6 +148,13 @@ test("kill minion removes exactly one minion each time until none is left", asyn
   assert.equal(await killMinion(actor), false, "nothing left to kill");
   assert.equal(actor.updates, 4, "the empty group is not written");
   assert.equal(actor.system.stats.wounds.value, 13);
+});
+
+test("kill minion leaves a group that a hit took past the wipe-out as it is", async () => {
+  const actor = killableMinion(20);
+  assert.equal(await killMinion(actor), false);
+  assert.equal(actor.updates, 0);
+  assert.equal(actor.system.stats.wounds.value, 20);
 });
 
 test("kill minion keeps the partial damage of a hurt group", async () => {

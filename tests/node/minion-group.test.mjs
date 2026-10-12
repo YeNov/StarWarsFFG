@@ -167,6 +167,8 @@ test("a full group cannot gain a unit and loses one at a time; a wiped-out group
   assert.equal(unitsLeft(stepUnits(0, 6, 4, -1), 6, 4), 3, "the first loss from a full group");
   assert.equal(unitsLeft(25, 6, 4), 0);
   assert.equal(stepUnits(25, 6, 4, -1), 25, "nothing to destroy in a wiped-out group");
+  assert.equal(stepUnits(26, 6, 4, -1), 26, "damage past the wipe-out is left as it is, not pulled back to 25");
+  assert.equal(stepUnits(100, 6, 4, -1), 100);
   assert.equal(unitsLeft(stepUnits(25, 6, 4, 1), 6, 4), 1, "the first unit back after a wipe-out");
 });
 
@@ -177,6 +179,8 @@ test("an empty group has no unit to destroy or revive", () => {
   assert.equal(stepUnits(0, 6, 0, 1), 0);
   assert.equal(stepUnits(1, 6, 0, -1), 1, "the one point past a threshold of 0 stays");
   assert.equal(stepUnits(1, 6, 0, 1), 1);
+  assert.equal(stepUnits(5, 6, 0, -1), 5, "an empty group's damage is left as it is");
+  assert.equal(stepUnits(5, 6, 0, 1), 5);
   assert.equal(wipeOutDamage(6, 0), 1, "one past a threshold of 0");
 });
 
@@ -210,11 +214,12 @@ test("one step changes the units left by exactly one where a unit can move, and 
 
 // Spec section 3: a step "returns the input unchanged at either end": nothing to destroy in a
 // wiped-out group, nothing to revive in a group that has lost no unit. That includes damage 1,
-// which loses no unit and leaves no partial damage.
+// which loses no unit and leaves no partial damage, and damage past the wipe-out, which a hit can
+// overshoot and which a destroy must not pull back down to the wipe-out.
 test("a step that cannot move a unit leaves the damage as it is", () => {
   for (const perUnit of THRESHOLDS) {
     for (const size of SIZES) {
-      for (let damage = 0; damage <= lastPoint(perUnit, size); damage++) {
+      for (let damage = 0; damage <= lastPoint(perUnit, size) + 2 * perUnit + 3; damage++) {
         const left = unitsLeft(damage, perUnit, size);
         if (left === 0) {
           assert.equal(stepUnits(damage, perUnit, size, -1), damage, `${size} units of ${perUnit}, ${damage} damage, destroy`);
@@ -235,7 +240,11 @@ test("a step keeps the damage on the track and the units left within the group",
         for (const dir of [-1, 1]) {
           const result = stepUnits(damage, perUnit, size, dir);
           const where = `${size} units of ${perUnit}, ${damage} damage, dir ${dir}`;
-          assert.ok(result >= 0 && result <= lastPoint(perUnit, size), `${where}: ${result} off the track`);
+          const before = unitsLeft(damage, perUnit, size);
+          const canMove = dir === -1 ? before > 0 : before < size;
+          // a step with a unit to move lands on the track; one with none hands the damage back
+          if (canMove) assert.ok(result >= 0 && result <= lastPoint(perUnit, size), `${where}: ${result} off the track`);
+          else assert.equal(result, damage, `${where}: damage changed`);
           const left = unitsLeft(result, perUnit, size);
           assert.ok(left >= 0 && left <= size, `${where}: ${left} units outside 0..${size}`);
         }
