@@ -1,12 +1,11 @@
 // @ts-check
-import { test, expect } from '@playwright/test';
-import {Actors, Items} from "../playwright/fixtures";
-
-test.beforeEach(async ({ page }) => {
-  await page.goto('/game/');
-  await expect(page.getByText('Loading')).toBeVisible();
-  await expect(page.getByText('Loading')).not.toBeVisible();
-});
+/**
+ * Items and their modifiers reach the owning actor. Every document is created through the
+ * `sessions` fixture (playwright/foundry.js), which deletes it by id when the test ends, pass or
+ * fail, and fails the test if it left the world changed.
+ */
+import { test, expect } from "../playwright/foundry.js";
+import { Actors, Items } from "../playwright/fixtures";
 
 // TODO: most of these tests should be extended to confirm that they still work if they're done while the item is on an actor
 // TODO: creating an AE on a mod does not sync properly to "disabled", meaning it's applied right away
@@ -14,49 +13,41 @@ test.beforeEach(async ({ page }) => {
 /**
  * Character tests
  */
-test('armor applies correctly', async ({ page }) => {
+test('armor applies correctly', async ({ sessions }) => {
   // create items
-  const armorActorName = "armorActor";
-  const armorName = "qa armor"
-  const armorActor = new Actors(page, armorActorName, "character");
+  const armorActor = new Actors(sessions, "armorActor", "character");
   await armorActor.create();
-  const armor = new Items(page, armorName, "armour");
+  const armor = new Items(sessions, "qa armor", "armour");
   await armor.create();
 
   // set stats on the armor
   await armor.setStat('encumbrance', '5');
-  await armor.setStat('defense', '1');
+  await armor.setStat('defence', '1');
   await armor.setStat('soak', '2');
   await armor.checkStat('encumbrance', '5');
-  await armor.checkStat('defense', '1');
+  await armor.checkStat('defence', '1');
   await armor.checkStat('soak', '2');
   await armor.closeSheet();
 
   // drag and drop the armor onto the character
   await armorActor.switchTab('gear');
-  await page.getByRole('listitem').filter({ hasText: armorName }).dragTo(page.locator('.tab.items.active'));
+  await armorActor.dropItem(armor, { target: armorActor.sheet.locator('.tab.items.active') });
   await armorActor.checkStat('encumbranceCurrent', '5');
   await armorActor.checkStat('soak', '0');
-  await armorActor.checkStat('defense.ranged', '0');
+  await armorActor.checkStat('defenceRanged', '0');
 
   // equip the armor and validate the stats are what we expect
-  await armorActor.equipItem(armorName);
+  await armorActor.equipItem(armor);
   await armorActor.checkStat('encumbranceCurrent', '2');
-  await armorActor.checkStat('defense.ranged', '1');
-  await armorActor.checkStat('defense.melee', '1');
+  await armorActor.checkStat('defenceRanged', '1');
+  await armorActor.checkStat('defenceMelee', '1');
   await armorActor.checkStat('soak', '2');
-
-  // clean up
-  await armorActor.remove();
-  await armor.remove();
 });
 
-test('career applies correctly', async ({ page }) => {
-  const actorName = "careerActor";
-  const careerName = "qa career";
-  const careerActor = new Actors(page, actorName, "character");
+test('career applies correctly', async ({ sessions }) => {
+  const careerActor = new Actors(sessions, "careerActor", "character");
   await careerActor.create();
-  const career = new Items(page, careerName, "career");
+  const career = new Items(sessions, "qa career", "career");
   await career.create();
 
   // add a mod
@@ -66,21 +57,15 @@ test('career applies correctly', async ({ page }) => {
   // drag and drop the armor onto the character
   // (expect there to not be text, then, after the drop, expect there to be text)
   await careerActor.switchTab('gear');
-  await page.getByRole('listitem').filter({ hasText: careerName }).dragTo(page.locator('.tab.items.active'));
+  await careerActor.dropItem(career, { target: careerActor.sheet.locator('.tab.items.active') });
   await careerActor.switchTab('characteristics');
   await careerActor.checkSkillModifiers('Gunnery', 'Advantage', '1');
-
-  // clean up
-  await careerActor.remove();
-  await career.remove();
 });
 
-test('critical injury applies correctly', async ({ page }) => {
-  const actorName = "qa criticalInjuryActor";
-  const itemName = "qa criticalInjuryItem";
-  const critActor = new Actors(page, actorName, "character");
+test('critical injury applies correctly', async ({ sessions }) => {
+  const critActor = new Actors(sessions, "qa criticalInjuryActor", "character");
   await critActor.create();
-  const crit = new Items(page, itemName, "criticalinjury");
+  const crit = new Items(sessions, "qa criticalInjuryItem", "criticalinjury");
   await crit.create();
 
   // add a mod
@@ -90,21 +75,15 @@ test('critical injury applies correctly', async ({ page }) => {
   // drag and drop the armor onto the character
   // (expect there to not be text, then, after the drop, expect there to be text)
   await critActor.switchTab('gear');
-  await page.getByRole('listitem').filter({ hasText: itemName }).dragTo(page.locator('.tab.items.active'));
+  await critActor.dropItem(crit, { target: critActor.sheet.locator('.tab.items.active') });
   await critActor.switchTab('characteristics');
   await critActor.checkSkillModifiers('Melee', 'Success', '2');
-
-  // clean up
-  await critActor.remove();
-  await crit.remove();
 });
 
-test('force power applies correctly', async ({ page }) => {
-  const actorName = "qa forcePowerActor";
-  const itemName = "qa forcePowerItem";
-  const fpActor = new Actors(page, actorName, "character");
+test('force power applies correctly', async ({ sessions }) => {
+  const fpActor = new Actors(sessions, "qa forcePowerActor", "character");
   await fpActor.create();
-  const fp = new Items(page, itemName, "forcepower");
+  const fp = new Items(sessions, "qa forcePowerItem", "forcepower");
   await fp.create();
 
   // add a mod
@@ -116,21 +95,15 @@ test('force power applies correctly', async ({ page }) => {
   await fp.closeSheet();
 
   // drag and drop onto the character
-  await page.getByRole('listitem').filter({ hasText: itemName }).dragTo(page.locator('.character-details-table'));
+  await fpActor.dropItem(fp, { prompt: 'Grant' });
   await fpActor.switchTab('characteristics');
   await fpActor.checkSkillModifiers('Computers', 'Success', '2');
-
-  // clean up
-  await fpActor.remove();
-  await fp.remove();
 });
 
-test('gear applies correctly', async ({ page }) => {
-  const actorName = "qa gearActor";
-  const gearName = "qa gearItem";
-  const gearActor = new Actors(page, actorName, "character");
+test('gear applies correctly', async ({ sessions }) => {
+  const gearActor = new Actors(sessions, "qa gearActor", "character");
   await gearActor.create();
-  const gear = new Items(page, gearName, "gear");
+  const gear = new Items(sessions, "qa gearItem", "gear");
   await gear.create();
 
   // add a mod
@@ -140,21 +113,15 @@ test('gear applies correctly', async ({ page }) => {
   // drag and drop the armor onto the character
   // (expect there to not be text, then, after the drop, expect there to be text)
   await gearActor.switchTab('gear');
-  await page.getByRole('listitem').filter({ hasText: gearName }).dragTo(page.locator('.tab.items.active'));
+  await gearActor.dropItem(gear, { target: gearActor.sheet.locator('.tab.items.active') });
   await gearActor.switchTab('characteristics');
   await gearActor.checkSkillModifiers('Charm', 'Advantage', '2');
-
-  // clean up
-  await gearActor.remove();
-  await gear.remove();
 });
 
-test('signature ability applies correctly', async ({ page }) => {
-  const actorName = "qa signatureAbilityActor";
-  const itemName = "qa signatureAbilityItem";
-  const saActor = new Actors(page, actorName, "character");
+test('signature ability applies correctly', async ({ sessions }) => {
+  const saActor = new Actors(sessions, "qa signatureAbilityActor", "character");
   await saActor.create();
-  const sa = new Items(page, itemName, "signatureability");
+  const sa = new Items(sessions, "qa signatureAbilityItem", "signatureability");
   await sa.create();
 
   // add a mod
@@ -165,21 +132,15 @@ test('signature ability applies correctly', async ({ page }) => {
   await sa.closeSheet();
 
   // drag and drop onto the character
-  await page.getByRole('listitem').filter({ hasText: itemName }).dragTo(page.locator('.character-details-table'));
+  await saActor.dropItem(sa, { prompt: 'Grant' });
   await saActor.switchTab('characteristics');
   await saActor.checkSkillModifiers('Medicine', 'Success', '1');
-
-  // clean up
-  await saActor.remove();
-  await sa.remove();
 });
 
-test('specialization applies correctly', async ({ page }) => {
-const actorName = "qa specActor";
-  const itemName = "qa specItem";
-  const spActor = new Actors(page, actorName, "character");
+test('specialization applies correctly', async ({ sessions }) => {
+  const spActor = new Actors(sessions, "qa specActor", "character");
   await spActor.create();
-  const sp = new Items(page, itemName, "specialization");
+  const sp = new Items(sessions, "qa specItem", "specialization");
   await sp.create();
 
   // add a mod
@@ -190,68 +151,42 @@ const actorName = "qa specActor";
   await sp.closeSheet();
 
   // drag and drop onto the character
-  await page.getByRole('listitem').filter({ hasText: itemName }).dragTo(page.locator('.character-details-table'));
+  await spActor.dropItem(sp, { prompt: 'Grant' });
   await spActor.switchTab('characteristics');
   await spActor.checkSkillModifiers('Perception', 'boost', '3');
-
-  // clean up
-  await spActor.remove();
-  await sp.remove();
 });
 
-test('embedded tree-item base modifiers apply from the pop-out editor', async ({ page }) => {
+test('embedded tree-item base modifiers apply from the pop-out editor', async ({ sessions }) => {
   test.setTimeout(180_000);
-  const actorName = "qa popoutBaseModifierActor";
   const cases = [
     { type: "specialization", name: "qa popoutSpec", skill: "Perception" },
     { type: "forcepower", name: "qa popoutForcePower", skill: "Computers" },
     { type: "signatureability", name: "qa popoutSignature", skill: "Medicine" },
   ];
-  await page.evaluate(async ({ actorName, itemNames }) => {
-    for (const actor of game.actors.filter(candidate => candidate.name.startsWith(actorName))) {
-      await actor.delete();
-    }
-    for (const item of game.items.filter(candidate => itemNames.some(name => candidate.name.startsWith(name)))) {
-      await item.delete();
-    }
-  }, { actorName, itemNames: cases.map(itemCase => itemCase.name) });
 
-  const actor = new Actors(page, actorName, "character");
+  const actor = new Actors(sessions, "qa popoutBaseModifierActor", "character");
   await actor.create();
-  const items = [];
 
-  try {
-    for (const itemCase of cases) {
-      const item = new Items(page, itemCase.name, itemCase.type);
-      items.push(item);
-      await item.createWorld();
+  for (const itemCase of cases) {
+    const item = new Items(sessions, itemCase.name, itemCase.type);
+    await item.createWorld();
 
-      await actor.embedWorldItem(itemCase.name);
-      await actor.editItem(itemCase.name);
-      await item.addDirectModifier('Skill Add Success', itemCase.skill, '1');
-      await item.closeSheet();
-    }
+    await actor.embedWorldItem(item);
+    await actor.editItem(item);
+    await item.addDirectModifier('Skill Add Success', itemCase.skill, '1');
+    await item.closeSheet();
+  }
 
-    for (const itemCase of cases) {
-      await actor.checkPreparedSkillModifier(itemCase.skill, 'success', 1);
-    }
-  } finally {
-    if (!page.isClosed()) {
-      await actor.remove();
-      for (const item of items) {
-        await item.remove();
-      }
-    }
+  for (const itemCase of cases) {
+    await actor.checkPreparedSkillModifier(itemCase.skill, 'success', 1);
   }
 });
 
-test('species applies correctly', async ({ page }) => {
+test('species applies correctly', async ({ sessions }) => {
   // create items
-  const speciesActorName = "qa speciesActor";
-  const speciesItemName = "qa speciesItem"
-  const speciesActor = new Actors(page, speciesActorName, "character");
+  const speciesActor = new Actors(sessions, "qa speciesActor", "character");
   await speciesActor.create();
-  const speciesItem = new Items(page, speciesItemName, "species");
+  const speciesItem = new Items(sessions, "qa speciesItem", "species");
   await speciesItem.create();
 
   // set stats on the speciesItem
@@ -275,7 +210,7 @@ test('species applies correctly', async ({ page }) => {
 
   // drag and drop the speciesItem onto the character
   await speciesActor.switchTab('characteristics');
-  await page.getByRole('listitem').filter({ hasText: speciesItemName }).dragTo(page.locator('.character-details-table'));
+  await speciesActor.dropItem(speciesItem);
   await speciesActor.checkStat('woundsMax', '11'); // brawn + wounds
   await speciesActor.checkStat('strainMax', '22'); // willpower + strain
   // TODO: this should be passing, but is not. there's a bug where soak is not being increased by Brawn
@@ -286,18 +221,12 @@ test('species applies correctly', async ({ page }) => {
   await speciesActor.checkStat('Cunning', '3');
   await speciesActor.checkStat('Willpower', '2');
   await speciesActor.checkStat('Presence', '1');
-
-  // clean up
-  await speciesActor.remove();
-  await speciesItem.remove();
 });
 
-test('talent applies correctly', async ({ page }) => {
-  const actorName = "qa talentActor";
-  const itemName = "qa talentItem";
-  const talentActor = new Actors(page, actorName, "character");
+test('talent applies correctly', async ({ sessions }) => {
+  const talentActor = new Actors(sessions, "qa talentActor", "character");
   await talentActor.create();
-  const talent = new Items(page, itemName, "talent");
+  const talent = new Items(sessions, "qa talentItem", "talent");
   await talent.create();
 
   // add a mod
@@ -305,20 +234,15 @@ test('talent applies correctly', async ({ page }) => {
   await talent.closeSheet();
 
   // drag and drop the talent onto the character
-  await page.getByRole('listitem').filter({ hasText: itemName }).dragTo(page.locator('.character-details-table'));
-  await talentActor.checkStat('Strain', '3');
-
-  // clean up
-  await talentActor.remove();
-  await talent.remove();
+  await talentActor.dropItem(talent, { prompt: 'Grant' });
+  // `Stat`/`Strain` raises the strain threshold (open-decisions R30)
+  await talentActor.checkStat('strainMax', '3');
 });
 
-test('weapon applies correctly', async ({ page }) => {
-  const actorName = "qa weaponActor";
-  const itemName = "qa weaponItem";
-  const weaponActor = new Actors(page, actorName, "character");
+test('weapon applies correctly', async ({ sessions }) => {
+  const weaponActor = new Actors(sessions, "qa weaponActor", "character");
   await weaponActor.create();
-  const weapon = new Items(page, itemName, "weapon");
+  const weapon = new Items(sessions, "qa weaponItem", "weapon");
   await weapon.create();
 
   // add a mod
@@ -328,89 +252,67 @@ test('weapon applies correctly', async ({ page }) => {
 
   // drag and drop the weapon onto the character
   await weaponActor.switchTab('gear');
-  await page.getByRole('listitem').filter({ hasText: itemName }).dragTo(page.locator('.tab.items.active'));
+  await weaponActor.dropItem(weapon, { target: weaponActor.sheet.locator('.tab.items.active') });
   await weaponActor.checkStat('encumbranceCurrent', '5');
-
-  // clean up
-  await weaponActor.remove();
-  await weapon.remove();
 });
 
-test('embedded armor applies correctly', async ({ page }) => {
-  const actorName = "qa embeddedArmorActor";
-  const baseItemName = "qa armorItem";
-  const attachmentName = "qa embeddedAttachment";
-  const modName = "qa embeddedMod";
-  const embeddedActor = new Actors(page, actorName, "character");
+test('embedded armor applies correctly', async ({ sessions }) => {
+  const embeddedActor = new Actors(sessions, "qa embeddedArmorActor", "character");
   await embeddedActor.create();
-  const armor = new Items(page, baseItemName, "armour");
+  const armor = new Items(sessions, "qa armorItem", "armour");
   await armor.create();
-  const armorAttachment = new Items(page, attachmentName, "itemattachment");
+  const armorAttachment = new Items(sessions, "qa embeddedAttachment", "itemattachment");
   await armorAttachment.create();
 
   await armorAttachment.addDirectModifier('Stat', 'Soak', '1');
   await armorAttachment.closeSheet();
   // drag the attachment to the armor
-  await page.getByRole('listitem').filter({ hasText: attachmentName }).dragTo(page.locator('.attachments.items'));
+  await armor.dropItem(armorAttachment);
   await armor.closeSheet();
   await embeddedActor.switchTab('gear');
   await embeddedActor.checkStat('soak', '0');
-  await page.getByRole('listitem').filter({ hasText: baseItemName }).dragTo(page.locator('.tab.items.active'));
+  await embeddedActor.dropItem(armor, { target: embeddedActor.sheet.locator('.tab.items.active') });
   // TODO: this should probably be 0, because the AE should not apply until equipped
   await embeddedActor.checkStat('soak', '1');
 
   // okay, add the mod
-  const weaponMod = new Items(page, modName, "itemmodifier");
+  const weaponMod = new Items(sessions, "qa embeddedMod", "itemmodifier");
   await weaponMod.create();
   await weaponMod.addDirectModifier('Stat', 'Defence-Melee', '1');
   await weaponMod.setRank('1');
   await weaponMod.closeSheet();
-  await embeddedActor.editItem(baseItemName);
-  await page.getByRole('listitem').filter({ hasText: modName }).dragTo(page.locator('.attachments.items'));
+  await embeddedActor.editItem(armor);
+  await armor.dropItem(weaponMod);
   await armor.closeSheet();
-  await embeddedActor.checkStat('defense.melee', '1');
-  await embeddedActor.checkStat('defence.ranged', '0');
+  await embeddedActor.checkStat('defenceMelee', '1');
+  await embeddedActor.checkStat('defenceRanged', '0');
   await embeddedActor.checkStat('soak', '1');
 
   // okay, now add the mod to the attachment
-  await embeddedActor.editItem(baseItemName);
-  // let the animation play out
-  await new Promise(resolve => setTimeout(resolve, 200));
+  await embeddedActor.editItem(armor);
   //await armor.removeItem(attachmentName);
-  await armor.editItem(attachmentName);
-  // let the animation play out
-  await new Promise(resolve => setTimeout(resolve, 200));
-  const embeddedAttachment = new Items(page, attachmentName, "itemattachment");
-  // this is a bit confusing, but 'armorAttachment' now refers to the embedded instance
-  await page.getByText('Modifications', {exact: true}).click();
-  // let the animation play out
-  await new Promise(resolve => setTimeout(resolve, 200));
-  await page.locator('.directory-item').filter({ hasText: modName }).dragTo(page.locator('.content'));
+  // 'embeddedAttachment' drives the editor of the attachment copy on the actor's armour
+  const embeddedAttachment = new Items(sessions, "qa embeddedAttachment", "itemattachment");
+  await armor.editItem(embeddedAttachment);
+  await embeddedAttachment.sheet.getByText('Modifications', { exact: true }).click();
+  await expect(embeddedAttachment.sheet.locator('.tab[data-tab="modifications"]')).toBeVisible();
+  await weaponMod.dragTo(embeddedAttachment.sheet.locator('.content'));
+  // enableMod waits for the dropped modification's row
   await embeddedAttachment.enableMod('0');
-  await page.getByText('Basics', {exact: true}).click();
+  await embeddedAttachment.sheet.getByText('Basics', { exact: true }).click();
   await embeddedAttachment.closeSheet();
   await armor.closeSheet();
-  await embeddedActor.equipItem(baseItemName);
-  await embeddedActor.checkStat('defense.melee', '2');
-  await embeddedActor.checkStat('defence.ranged', '0');
-
-  // clean up
-  await embeddedActor.remove();
-  await armor.remove();
-  await armorAttachment.remove();
-  await weaponMod.remove();
+  await embeddedActor.equipItem(armor);
+  await embeddedActor.checkStat('defenceMelee', '2');
+  await embeddedActor.checkStat('defenceRanged', '0');
 });
 
-test('embedded weapons applies correctly', async ({ page }) => {
-  const actorName = "qa embeddedWeaponActor";
-  const baseItemName = "qa embeddedWeaponItem";
-  const attachmentName = "qa embeddedAttachment";
-  const modName = "qa embeddedMod";
-  const embeddedActor = new Actors(page, actorName, "character");
+test('embedded weapons applies correctly', async ({ sessions }) => {
+  const embeddedActor = new Actors(sessions, "qa embeddedWeaponActor", "character");
   await embeddedActor.create();
-  const weapon = new Items(page, baseItemName, "weapon");
+  const weapon = new Items(sessions, "qa embeddedWeaponItem", "weapon");
   await weapon.create();
-  const weaponAttachment = new Items(page, attachmentName, "itemattachment");
+  const weaponAttachment = new Items(sessions, "qa embeddedAttachment", "itemattachment");
   await weaponAttachment.create();
 
   // add an attachment-specific modifier
@@ -418,73 +320,60 @@ test('embedded weapons applies correctly', async ({ page }) => {
   await weaponAttachment.closeSheet();
 
   // drag the attachment to the weapon
-  await page.getByRole('listitem').filter({ hasText: attachmentName }).dragTo(page.locator('.attachments.items'));
+  await weapon.dropItem(weaponAttachment);
   await weapon.closeSheet();
 
   // drag the weapon to the actor
   await embeddedActor.switchTab('gear');
   await embeddedActor.checkStat('soak', '0');
-  await page.getByRole('listitem').filter({ hasText: baseItemName }).dragTo(page.locator('.tab.items.active'));
+  await embeddedActor.dropItem(weapon, { target: embeddedActor.sheet.locator('.tab.items.active') });
   // TODO: this should probably be 0, because the AE should not apply until equipped
   await embeddedActor.checkStat('soak', '1');
 
   // create the mod
-  const weaponMod = new Items(page, modName, "itemmodifier");
+  const weaponMod = new Items(sessions, "qa embeddedMod", "itemmodifier");
   await weaponMod.create();
   await weaponMod.addDirectModifier('Stat', 'Defence-Melee', '1');
   await weaponMod.setRank('1');
   await weaponMod.closeSheet();
 
   // open the editor for the weapon
-  await embeddedActor.editItem(baseItemName);
+  await embeddedActor.editItem(weapon);
   // add the mod to the weapon
-  await page.getByRole('listitem').filter({ hasText: modName }).dragTo(page.locator('.attachments.items'));
+  await weapon.dropItem(weaponMod);
   await weapon.closeSheet();
-  await embeddedActor.checkStat('defense.melee', '1');
-  await embeddedActor.checkStat('defence.ranged', '0');
+  await embeddedActor.checkStat('defenceMelee', '1');
+  await embeddedActor.checkStat('defenceRanged', '0');
   await embeddedActor.checkStat('soak', '1');
 
   // okay, now add the mod to the attachment
-  await embeddedActor.editItem(baseItemName);
-  // let the animation play out
-  await new Promise(resolve => setTimeout(resolve, 200));
-  await weapon.editItem(attachmentName);
-  // let the animation play out
-  await new Promise(resolve => setTimeout(resolve, 200));
-  const embeddedAttachment = new Items(page, attachmentName, "itemattachment");
-  // this is a bit confusing, but 'embeddedAttachment' now refers to the embedded instance
-  await page.getByText('Modifications', {exact: true}).click();
-  // let the animation play out
-  await new Promise(resolve => setTimeout(resolve, 200));
+  await embeddedActor.editItem(weapon);
+  // 'embeddedAttachment' drives the editor of the attachment copy on the actor's weapon
+  const embeddedAttachment = new Items(sessions, "qa embeddedAttachment", "itemattachment");
+  await weapon.editItem(embeddedAttachment);
+  await embeddedAttachment.sheet.getByText('Modifications', { exact: true }).click();
+  await expect(embeddedAttachment.sheet.locator('.tab[data-tab="modifications"]')).toBeVisible();
   // actually drag the mod to the attachment
-  await page.locator('.directory-item').filter({ hasText: modName }).dragTo(page.locator('.content'));
+  await weaponMod.dragTo(embeddedAttachment.sheet.locator('.content'));
   // enable the mod, as they default to being disabled
   await embeddedAttachment.enableMod('0');
-  await page.getByText('Basics', {exact: true}).click();
+  await embeddedAttachment.sheet.getByText('Basics', { exact: true }).click();
   await embeddedAttachment.closeSheet();
   await weapon.closeSheet();
-  await embeddedActor.equipItem(baseItemName);
+  await embeddedActor.equipItem(weapon);
   // validate tha the second mod instance is adding to the AE properly
-  await embeddedActor.checkStat('defense.melee', '2');
-  await embeddedActor.checkStat('defence.ranged', '0');
-
-  // clean up
-  await embeddedActor.remove();
-  await weapon.remove();
-  await weaponAttachment.remove();
-  await weaponMod.remove();
+  await embeddedActor.checkStat('defenceMelee', '2');
+  await embeddedActor.checkStat('defenceRanged', '0');
 });
 
 /**
  * Vehicle Tests
  */
-test('critical damage applies correctly', async ({ page }) => {
-    // create items
-  const critActorName = "qa critActor";
-  const critName = "qa critItem"
-  const critActor = new Actors(page, critActorName, "vehicle");
+test('critical damage applies correctly', async ({ sessions }) => {
+  // create items
+  const critActor = new Actors(sessions, "qa critActor", "vehicle");
   await critActor.create();
-  const crit = new Items(page, critName, "criticaldamage");
+  const crit = new Items(sessions, "qa critItem", "criticaldamage");
   await crit.create();
 
   // set stats on the crit
@@ -492,21 +381,15 @@ test('critical damage applies correctly', async ({ page }) => {
   await crit.closeSheet();
 
   // drag and drop the crit onto the character
-  await page.getByRole('listitem').filter({ hasText: critName }).dragTo(page.locator('.tab.components.active'));
-  await critActor.checkStat('armor', '1');
-
-  // clean up
-  await critActor.remove();
-  await crit.remove();
+  await critActor.dropItem(crit, { target: critActor.sheet.locator('.tab.components.active') });
+  await critActor.checkStat('armour', '1');
 });
 
-test('ship attachment applies correctly', async ({ page }) => {
+test('ship attachment applies correctly', async ({ sessions }) => {
   // create items
-  const attachmentActorName = "qa attachmentActor";
-  const attachmentName = "qa shipAttachment"
-  const attachmentActor = new Actors(page, attachmentActorName, "vehicle");
+  const attachmentActor = new Actors(sessions, "qa attachmentActor", "vehicle");
   await attachmentActor.create();
-  const attachment = new Items(page, attachmentName, "shipattachment");
+  const attachment = new Items(sessions, "qa shipAttachment", "shipattachment");
   await attachment.create();
 
   // set stats on the attachment
@@ -515,22 +398,16 @@ test('ship attachment applies correctly', async ({ page }) => {
   await attachment.closeSheet();
 
   // drag and drop the attachment onto the character
-  await page.getByRole('listitem').filter({ hasText: attachmentName }).dragTo(page.locator('.tab.components.active'));
+  await attachmentActor.dropItem(attachment, { target: attachmentActor.sheet.locator('.tab.components.active') });
   await attachmentActor.checkStat('encumbranceCurrent', '5');
   await attachmentActor.switchTab('crew');
   await attachmentActor.checkStat('customizationHardPoints', '-3');
-
-  // clean up
-  await attachmentActor.remove();
-  await attachment.remove();
 });
 
-test('ship weapon applies correctly', async ({ page }) => {
-  const actorName = "qa shipWeaponActor";
-  const itemName = "qa shipWeaponItem";
-  const shipWeaponActor = new Actors(page, actorName, "vehicle");
+test('ship weapon applies correctly', async ({ sessions }) => {
+  const shipWeaponActor = new Actors(sessions, "qa shipWeaponActor", "vehicle");
   await shipWeaponActor.create();
-  const shipWeapon = new Items(page, itemName, "shipweapon");
+  const shipWeapon = new Items(sessions, "qa shipWeaponItem", "shipweapon");
   await shipWeapon.create();
 
   // add a mod
@@ -538,35 +415,24 @@ test('ship weapon applies correctly', async ({ page }) => {
   await shipWeapon.closeSheet();
 
   // drag and drop the shipWeapon onto the character
-  await page.getByRole('listitem').filter({ hasText: itemName }).dragTo(page.locator('.tab.components.active'));
-  await shipWeaponActor.checkStat('armor', '3'); // shipWeapon plus modifier
-
-  // clean up
-  await shipWeaponActor.remove();
-  await shipWeapon.remove();
+  await shipWeaponActor.dropItem(shipWeapon, { target: shipWeaponActor.sheet.locator('.tab.components.active') });
+  await shipWeaponActor.checkStat('armour', '3'); // shipWeapon plus modifier
 });
 
-test('embedded ship weapon applies correctly', async ({ page }) => {
-  const actorName = "qa shipAttActor";
-  const baseItemName = "qa shipAttWpn";
-  const attachmentName = "qa shipAttAtt";
-  const vehicle = new Actors(page, actorName, "vehicle");
+test('embedded ship weapon applies correctly', async ({ sessions }) => {
+  const vehicle = new Actors(sessions, "qa shipAttActor", "vehicle");
   await vehicle.create();
-  const shipweapon = new Items(page, baseItemName, "shipweapon");
+  const shipweapon = new Items(sessions, "qa shipAttWpn", "shipweapon");
   await shipweapon.create();
-  const shipweaponattachment = new Items(page, attachmentName, "itemattachment");
+  const shipweaponattachment = new Items(sessions, "qa shipAttAtt", "itemattachment");
   await shipweaponattachment.create();
   await shipweaponattachment.addDirectModifier('Vehicle Stat', 'Speed', '1');
   await shipweaponattachment.closeSheet();
   // drag the attachment to the shipweapon
-  await page.getByRole('listitem').filter({ hasText: attachmentName }).dragTo(page.locator('.attachments.items'));
+  await shipweapon.dropItem(shipweaponattachment);
   await shipweapon.closeSheet();
-  await vehicle.checkStat('speed', '0');
-  await page.getByRole('listitem').filter({ hasText: baseItemName }).dragTo(page.locator('.tab.components.active'));
-  await vehicle.checkStat('speed', '1');
-
-  // clean up
-  await vehicle.remove();
-  await shipweapon.remove();
-  await shipweaponattachment.remove();
+  // `Vehicle Stat`/`Speed` targets the speed threshold; 0 until the weapon is on the vehicle (open-decisions R30)
+  await vehicle.checkStat('speedMax', '0');
+  await vehicle.dropItem(shipweapon, { target: vehicle.sheet.locator('.tab.components.active') });
+  await vehicle.checkStat('speedMax', '1');
 });

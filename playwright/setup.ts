@@ -10,15 +10,6 @@ async function globalSetup(config: FullConfig) {
   if (baseURL) await assertTestWorld(baseURL);
   const browser = await chromium.launch({ channel });
   const page = await browser.newPage();
-  /*
-  await page.goto(baseURL!);
-  await page.getByLabel('User Name').fill('user');
-  await page.getByLabel('Password').fill('password');
-  await page.getByText('Sign in').click();
-  await page.context().storageState({ path: storageState as string });
-  await browser.close();
-
-  */
   if (!baseURL) throw new Error('Playwright baseURL is not configured');
   await page.goto(new URL('/join', baseURL).href);
   await page.getByRole('combobox').selectOption('Gamemaster');
