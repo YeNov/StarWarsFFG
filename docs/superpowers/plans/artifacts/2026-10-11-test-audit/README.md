@@ -45,3 +45,22 @@ No Foundry stubs are added to make a module import. The Node tier's `tests/node/
 ## Not automated tests
 
 The last section of `cases.md` lists scripts under `tools/`, `tests/` and `docs/superpowers/plans/artifacts/` that print output (`console.*` or `process.stdout/stderr.write`) and are not test suites. The plan treats them separately: a script that imports a module and prints what it finds does not check a feature rule. They have no ids and no cases; only their paths are listed. Test suites (`*.test.js`, `*.test.mjs`), the Foundry harness and the `_stub` and `_fixtures` folders are not scripts.
+
+## Inventory
+
+The classification pass records, for every case and for the test-tool files, the feature rule, the action under test, the expected result, the rule source and a disposition (`keep`, `keep+rename`, `rewrite`, `combine`, `remove`, `move-to-foundry`). Six slice files hold the work; each has a file table, an exception table for cases that differ from their file's default, its open rule decisions and its new findings:
+
+- [inventory-node-a-c.md](inventory-node-a-c.md): `tests/node/[a-c]*.test.mjs`
+- [inventory-node-d-i.md](inventory-node-d-i.md): `tests/node/[d-i]*.test.mjs`
+- [inventory-node-l-r.md](inventory-node-l-r.md): `tests/node/[l-r]*.test.mjs`
+- [inventory-node-s-x.md](inventory-node-s-x.md): `tests/node/[s-x]*.test.mjs`
+- [inventory-codex-node.md](inventory-codex-node.md): `codex/tests/node/*.test.mjs`
+- [inventory-foundry-browser.md](inventory-foundry-browser.md): the Foundry Mocha suites, Playwright, Cypress and the print-only scripts
+
+The slices were written independently, so their local ids collide. The merged results use global ids:
+
+- [open-decisions.md](open-decisions.md): every open rule decision, `R01` onwards, with its category and sources.
+- [findings.md](findings.md): the findings the plan does not name, `NF01` onwards, and the cross-slice duplicates.
+- [worklist.md](worklist.md): for each task T3-T30, the cases it owns whose disposition is not plain `keep`.
+
+`move-to-foundry` means the behavior claim gets a real-action case in the Foundry or Playwright layer named in the plan's Phase 3 table; the source-text case is deleted only after that replacement passes.
