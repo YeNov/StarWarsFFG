@@ -72,11 +72,11 @@ Dispositions that differ from the file default, plus rename-only cases (`keep+re
 | N0805 | ``N-1: career maps to the world type `career`, not `careers` `` | keep+rename | Ticket code in the name. Proposed name: the career pool reads world items of type career. | - | Same case |
 | N0806 | `species / obligation / motivation / background / specialization settings are correct` | keep+rename | "are correct" proves nothing by name. Proposed name: the species, obligation, motivation, background and specialization pools each read their own compendium setting. | - | Same case |
 | N0810 | `isSourceEnabled defaults compendiums on and honours per-pool exclusions (D7)` | keep+rename | Decision code in the name. Proposed name: a compendium source is enabled unless the same pool excludes it. | - | Same case |
-| N0819 | `the descriptor table is frozen` | rewrite | `Object.isFrozen` asserts an implementation detail, not a stated requirement. Assert that mutating a returned descriptor does not change later lookups, or drop. | New finding 4 | Plan Phase 3 bullet "Remove checks that require ... code layout" |
-| N0825 | `every self-identifying starting bonus cell matches the transcription` | keep+rename | Proposed name: each starting-bonus choice grants its XP, credits, duty, obligation or morality. Expected values stay open (OD-1, OD-2). | A04/A06 pattern (snapshot of product table) | Same case, pending OD-1 and OD-2 |
+| N0819 | `the descriptor table is frozen` | remove | R01 ruled (b): immutability is not a stated requirement. The case asserts only `Object.isFrozen`, so it has no other purpose; remove it. Fix round 1: was `rewrite` | R01 | none (remove) |
+| N0825 | `every self-identifying starting bonus cell matches the transcription` | keep+rename | Proposed name: each starting-bonus choice grants its XP, credits, duty, obligation or morality. Expected values stay open (OD-1, OD-2).. R17 and R18 are ruled: 2,500 credits is the decided value (PF2 records the decision), and the tests assert literal values for chosen cells instead of copying the table | A04/A06 pattern (snapshot of product table) | Same case (PF2 for the 2,500 decision record) |
 | N0826 | `BUG-2: aor/eote grants target bonus.duty / bonus.obligation, never bonus[undefined]` | combine | Subsumed by the exact table in N0825 (duty and obligation keys are in the expected object) and by N1024 (`"undefined" in bonus` check). | A05 | N0825, N1024 |
-| N0827 | `Q-2: 2k_credits grants 2500 in every book-family option` | combine | The three cells are already pinned in N0825; two tests would both need editing when Q-2 is decided. | A05; OD-1 | N0825 |
-| N0831 | `the table is frozen` | rewrite | Same as N0819, for `STARTING_BONUS` and its option list. | New finding 4 | Same as N0819 |
+| N0827 | `Q-2: 2k_credits grants 2500 in every book-family option` | combine | The three cells are already pinned in N0825; two tests would both need editing when Q-2 is decided.. R17 ruled 2,500 is correct (PF2 records it): fold the 2k cells into N0825 | A05; OD-1 | N0825 |
+| N0831 | `the table is frozen` | remove | R01 ruled (b): immutability is not a stated requirement. The case asserts only `Object.isFrozen`, so it has no other purpose; remove it. Fix round 1: was `rewrite` | R01 | none (remove) |
 | N0859 | `the scan still DETECTS a forbidden installation (it did not become a no-op)` | rewrite | Detection fixtures must cover direct, nullish (`??=`), logical (`||=`, `&&=`) and object-write forms, and accept comments, strings and allowed utility assignments. | A08 | Phase 1 "Node boundary" |
 | N0860 | `no file under tests/node/ or codex/tests/node/ installs a forbidden global` | rewrite | Regexes miss `foundry.applications ??=` in `tests/node/sheet-options-path.test.mjs`; use a syntax-aware scan or extend the patterns. | A08 | Phase 1 "Node boundary" |
 | N0861 | `the stub installs exactly the allowed globals` | keep+rename | Name says "exactly" but the case only checks that each allowed global exists (N0864 checks exactness). Proposed name: the stub installs foundry, CONFIG, CONST and game. | - | Same case |
@@ -89,13 +89,14 @@ Dispositions that differ from the file default, plus rename-only cases (`keep+re
 | N0893 | `Codex talent edit and send-to-chat paths resolve local data before compendiums` | move-to-foundry | Same pattern; the file reads the system's `actor-sheet-ffg.js`, despite the name. | A03 | Same row |
 | N0925 | `projection preserves an effect's disabled:true (unlearned node stays disabled)` | keep+rename | The test double returns `disabled: true`; the real unlearned-node behavior is not exercised. Proposed name: toItemData keeps disabled:true on an effect the materializer returns. | A09 (learned versus unlearned nodes) | Phase 2 A09 / G03 for the real materializer |
 | N0926 | `issue E: rank grants are deterministic (pcwRank<n>_slug), identical across runs, no Date.now()` | keep+rename | Ticket prefix. Proposed name: rank grants become pcwRank0_Skill attributes with one add-rank effect each, the same on every run. | - | Same case |
-| N0928 | `N-5 / duplicate purchase: two identical gear refs → two independent items with distinct ids` | combine | Same contract and input as `parity.test.mjs` N0673 (`(b) the same gear bought twice gets DISTINCT item ids`); one primary owner. | A05 | N0673 or `build-item-schema.test.mjs` N0201/N0202, per Phase 5 row 4 |
+| N0928 | `N-5 / duplicate purchase: two identical gear refs → two independent items with distinct ids` | keep+rename | Ticket label and arrow in the name. Proposed: `two identical gear purchases become two independent items with distinct ids`. This case is the primary owner of the contract; the copy that goes is `parity.test.mjs` N0673. Fix round 1: the earlier `combine` into N0673 is withdrawn (the two slices disagreed about which side to remove) | A05 | same case; N0673 is removed |
 | N0941 | `every face of a d6 touches all faces but its opposite` | combine | The chart rows in N0929 and N0931 already list four neighbours per face; fold the count into the shape cases N0942/N0943 or drop. | A05 | N0929, N0931, N0942, N0943 |
 | N0959 | `BINDING: every returned label and warning is an i18n KEY (SWFFG. prefix), never localized text` | keep+rename | Only an empty draft is checked, so most warnings are never inspected. Proposed name: the step labels and warnings returned for an incomplete draft are SWFFG. localization keys; widen to the warnings produced by the other cases. | New finding 3 | Same case |
 | N0960 | `totals expose the running XP and credit calculations` | rewrite | `typeof totals.xp.available === "number"` proves nothing; assert exact XP and credit totals from fixed inputs. | New finding 3 | Same file |
 | N0975 | `every mode the vehicle schema offers is one the resolver understands` | keep+rename | The case never reads the vehicle schema (`defenceZones` is a free string in `modules/data/models/actor/vehicle.js`). Proposed name: auto, two and four are the override modes, and each resolves to two or four zones. | New finding 7 | Same case |
 | N1017 | `createInitialData: commitId matches the document-id regex (DEV-5 guard)` | keep+rename | Ticket code. Proposed name: createInitialData mints a 16-character alphanumeric commit id. | - | Same case |
 | N1023 | `wizard-state mutators are pure state transitions (setIdentity/setSelection/addSelection)` | keep+rename | The functions mutate the draft in place and the assertions read the mutated object, so "pure" is wrong. Proposed name: setIdentity, setSelection and addSelection write the identity, one selection and an appended selection onto the draft. | - | Same case |
+| N1024 | `applyStartingBonus BUG-2: aor duty grant lands in bonus.duty, not bonus[undefined]` | keep+rename | Ticket code in the name. Proposed: `an Age of Rebellion duty starting bonus is stored under bonus.duty and creates no "undefined" key` | - | Same case |
 | N1026 | `applyStartingBonus is a deterministic pure state transition` | keep+rename | Same problem; the asserted result is a fixed bonus object. Proposed name: applyStartingBonus eote_1k_credits grants 1000 credits and 5 obligation and nothing else. | - | Same case |
 | N1028 | `calcObligation agrees with the grants.bonus display via the shared table` | keep+rename | Proposed name: calcObligation adds the same obligation or morality adjustment that grants.bonus displays. | - | Same case |
 | N1030 | `buildXpSpendEntry: action is always the literal 'purchased'` | combine | Covered by the exact-shape assertion in N1032. | A05 | N1032 |
@@ -111,6 +112,8 @@ Dispositions that differ from the file default, plus rename-only cases (`keep+re
 | N1084 | `an item purchase distinguishes an explicit merge from refusal or cancellation` | move-to-foundry | `indexOf` ordering and regex over the purchase callback; drive the real purchase (merge, refuse, cancel) and assert XP and item state. | A03 | Same row |
 
 ## Open rule decisions
+
+Fix round 1: these decisions are merged into [open-decisions.md](open-decisions.md) under global ids (see its crosswalk) and ruled there; the local ids below are kept as a record.
 
 | id | case ids | disputed expectation | candidate rules | what source is missing |
 | --- | --- | --- | --- | --- |
@@ -134,12 +137,12 @@ Dispositions that differ from the file default, plus rename-only cases (`keep+re
 
 | default or effective disposition | cases |
 | --- | ---: |
-| keep | 257 |
-| keep+rename | 16 |
-| rewrite | 15 |
-| combine | 10 |
-| remove | 1 |
+| keep | 256 |
+| keep+rename | 18 |
+| rewrite | 13 |
+| combine | 9 |
+| remove | 3 |
 | move-to-foundry | 30 |
 | total | 329 |
 
-Exception rows: 49. Open rule decisions: 4. New findings: 8.
+Exception rows: 50. Open rule decisions: 4 (all ruled; see open-decisions.md). New findings: 8.

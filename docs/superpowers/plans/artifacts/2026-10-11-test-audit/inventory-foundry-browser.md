@@ -18,11 +18,11 @@ Ids written `F0004[character]` are the loop-expanded cases of one listed row (se
 
 | Group | Files | Listed rows | Cases after expansion | Exception rows |
 | --- | ---: | ---: | ---: | ---: |
-| F: test files + harness files | 13 + 2 | 74 | 97 | 28 |
+| F: test files + harness files | 13 + 2 | 74 | 97 | 29 |
 | P: spec + helper/config files | 1 + 3 | 17 | 19 (P0008 generates 3 inputs) | 20 (17 cases + 3 generated inputs of P0008) |
 | C: specs + support/config files | 3 + 4 | 18 | 18 | 18 |
 | Scripts that print output | 20 | n/a | n/a | n/a (table below) |
-| Total | 46 file rows | | | 66 |
+| Total | 46 file rows | | | 67 |
 
 Open rule decisions: 6 (D-01 to D-06). New findings not in the plan: 13 (NF-01 to NF-13).
 
@@ -182,22 +182,23 @@ Format: `case id | case name | disposition | reason | finding/gap id | replaceme
 | F0004[x5] | Codex sheet keeps its size across re-renders — ${type} | rewrite | Writes `position` itself and re-calls `getData`; nothing renders; helper both acts and asserts. Rename: "Codex <type> sheet keeps a user-set size when re-rendered". | Phase 3 | Phase 3 row "codex-item-size, sheet initial size, minimized close" |
 | F0005 | Codex adversary sheet keeps its size across re-renders | rewrite | Same as F0004; copy of F0071. Rename: "Codex adversary sheet keeps a user-set size when re-rendered". | Phase 3, A05 pair F0071 | same |
 | F0006 | Codex actor sheet keeps prepared skill rows | rewrite | `rows.length > 0` passes with one row; no ids, no per-skill count, no stored-data check. Rename: "Codex actor sheet lists one row per defined skill". | A07 | Phase 2 A07 |
-| F0007 | Object Diff Function should return correct diff | keep+rename | Name says nothing. Rename: "diff gives the second object's value for each differing key of the first, undefined when missing". Keep only if D-01 says the helper is supported. | none | none (D-01) |
+| F0007 | Object Diff Function should return correct diff | remove | R27 ruled: remove the case (no caller and no public-API entry names `Helpers.diff`); the helper itself stays, which is out of scope. Fix round 1: was `keep+rename` | none | none |
 | F0013 | mechanics present only when vehicleLimit on | keep+rename | Asserts only the "on" half; the "off gives null" half is in F0012. Rename: "Mechanics cooldown is reported when the vehicle weekly limit is on". | G08 (retain) | none |
 | F0014 | Should calculate value from attributes and items | rewrite | Calls a removed method; uses `data` not `system`. Rename: "learned talent modifiers add to a characteristic total and unlearned ones add nothing". | A02 | Phase 2 A02 |
 | F0015 | Should calculate the base values based only on species | rewrite | Throws on the obsolete fixture. Rename: "species grant alone is a characteristic's base value". | A02 | Phase 2 A02 |
-| F0021 | computeFFGTotals handles negative addedResults (mirrors evaluate()'s symmetric cancellation) | keep (open) | Expectation that removing 2 Advantage nets to 2 Threat has no recorded source: D-05. | G11 | Phase 4 G11 |
+| F0021 | computeFFGTotals handles negative addedResults (mirrors evaluate()'s symmetric cancellation) | keep | R31 ruled (a): net result - removed Advantage beyond what was rolled becomes Threat (they cancel symmetrically). Fix round 1: no longer held for an open decision | G11 | Phase 4 G11 |
 | F0024 | faceTally recovers from CONFIG.FFG.PROFICIENCY_RESULTS when r.ffg is missing | rewrite | Expected value is the table the product reads; only `triumph` is independent. Use a literal tally for face 12 (success plus triumph). | A04 pattern (new instance) | Phase 4 G11 |
 | F0028 | recomputeTermFFG matches the die's own evaluate() aggregation | rewrite | Random roll of one die type; no fixed supplied results; can pass with a zero tally. Use fixed faces for each die type. | G11 | Phase 4 G11 |
 | F0035 | audit capture: deepClone(faceTally(...) ?? zeroTally()) recovers the table tally and never throws | rewrite | Runs a copy of the product expression, not `ReplaceDie._original`; repeats F0024. Call the real capture path. | A04 pattern (new), A05 pair F0024 | Phase 4 G11 |
 | F0036 | audit capture: a malformed face captures zeroTally(), never undefined | rewrite | Same as F0035; repeats F0026. | A04 pattern (new), A05 pair F0026 | Phase 4 G11 |
 | F0039 | Root row unlearned is purchasable | keep | Primary owner for "specialization row 0 is unconditional"; F0066 folds into it as a parameterized case over talent0-talent3. | A05 | Phase 4 G04 |
 | F0049 | Rightmost column does not read off-grid for right edge | rewrite | Cannot fail on its defect: with the guard removed it still returns false because `talent8` is never learned (checked on a scratch copy). Learn `talent8` and expect false. | none (new, NF-04) | Phase 4 G04 |
+| F0054 | Force power up-edge slot 2 looks at correct parent column | keep+rename | "Correct parent column" states no result. Proposed: `a double-wide Force power node linked up from its second slot is purchasable when the node above that slot is learned` | none | same case |
 | F0050 | Force power row 0 needs an up-link to count as rooted | combine | Same rule and branch as F0063 (row 0, no top link, no neighbour) on another index. Fold into one parameterized case over upgrade0-upgrade3 less the linked one. | A05, D-06 | Phase 4 G04 |
 | F0063 | Force power row 0 without any top-link and no side connection is NOT purchasable | keep | Primary owner of the pair above. | A05, D-06 | Phase 4 G04 |
-| F0062 | Force power row 0 with links-top-1 is purchasable | keep (open) | Depends on the row 0 rule in D-06. | D-06 | Phase 4 G04 |
-| F0064 | Force power row 0 without top-link connects via learned left neighbour's links-right | keep (open) | D-06. | D-06 | Phase 4 G04 |
-| F0065 | Force power row 0 multi-col with only links-top-2 set is purchasable | keep (open) | D-06. | D-06 | Phase 4 G04 |
+| F0062 | Force power row 0 with links-top-1 is purchasable | keep | R32 ruled (a): Force-power row 0 needs an up-link or a side/down connection; the spec text is stale. Fix round 1: no longer held for an open decision | R32 | Phase 4 G04 |
+| F0064 | Force power row 0 without top-link connects via learned left neighbour's links-right | keep | R32 ruled (a): Force-power row 0 needs an up-link or a side/down connection; the spec text is stale. Fix round 1: no longer held for an open decision | R32 | Phase 4 G04 |
+| F0065 | Force power row 0 multi-col with only links-top-2 set is purchasable | keep | R32 ruled (a): Force-power row 0 needs an up-link or a side/down connection; the spec text is stale. Fix round 1: no longer held for an open decision | R32 | Phase 4 G04 |
 | F0066 | Specialization row 0 stays unconditional (no implicit parent) | combine | Same rule as F0039 (row 0, no links, no neighbours) on talent2. | A05 | Phase 4 G04 |
 | F0067 | concurrent submits coalesce; last write wins; callers share the flush | rewrite | `calls <= 2` passes with one write; `r2` vs `r1 ?? r2` can compare a value with itself. Hold the first write, queue two, assert exactly two writes (first and latest value) and that all callers get the final result. | A07 | Phase 2 A07 |
 | F0068[x8] | ${label} close instantly when already minimized | keep+rename | Proves the option is passed, not that the window closes at once. Rename: "<label> close() asks Foundry to skip the close animation when minimized". Applies to all 8 classes. | Phase 3 | Phase 3 row "codex-item-size, sheet initial size, minimized close" adds the real minimize-then-close owner |
@@ -247,6 +248,8 @@ Format: `case id | case name | disposition | reason | finding/gap id | replaceme
 | C0018 | creates signature ability [commented-out] | remove | Dead. Unique: header "Base Ability" and upgrade 1 cost 10. | A10, G12 | Phase 5 |
 
 ## Open rule decisions
+
+Fix round 1: these decisions are merged into [open-decisions.md](open-decisions.md) under global ids (see its crosswalk) and ruled there; the local ids below are kept as a record.
 
 | id | case ids | disputed expectation | candidate rules | source missing |
 | --- | --- | --- | --- | --- |

@@ -71,10 +71,12 @@ Cases whose disposition differs from the file default, plus rename-only cases.
 | N0036 | Codex popup clamps against every viewport edge | rewrite | Only the left and top clamps run; removing the right and bottom clamps leaves all three cases passing (checked). Add right-edge and bottom-edge cases. Proposed name: "popup stays inside the viewport on all four sides" | NF3 | this file |
 | N0039 | quality details preserve dice sigil colours in every Codex scheme | move-to-foundry (rename) | Rename: "die-face glyphs in force power details keep their own colour in every scheme"; assert computed colour per scheme | A03; D6 | Phase 3 row `quality-effect-wiring, quality provenance and colors` |
 | N0040 | counts of up to four digits show in full | rewrite | Expected is `String(value)`; use a literal table of `[input, expected]` pairs | - | this file |
+| N0041 | longer counts show their first three digits and .. | rewrite | R24 ruled (c): quantity is a number, so drop the string and leading-zero assertion (a 16-digit string of zeros expecting `000..`); keep the numeric longer-count cases | - | this file |
 | N0042 | Codex gear and cargo cards use the shortened count with the full one as a tooltip | move-to-foundry | Render a gear card with quantity 12345 and read text `123..` and the hover title | A03 | Phase 3 (no named row): inventory-card case |
 | N0052 | duplicate talent items are decided by the one edited most recently | rewrite | In both scenarios the newest edit is also last in the list and has the higher tier, so a "last wins" or "highest tier wins" mutant passes (checked). Use newest edit with the lower tier, listed first | NF2 | this file |
 | N0053 | duplicates with no usable timestamp fall back to the highest tier | rewrite | Higher tier is last in the list, so "last wins" passes (checked). List the higher tier first | NF2 | this file |
-| N0063 | Codex has at least one localization file to check | combine | Subset of N0014 (`lang/en.json` exists) and a guard for N0064's loop; assert `en.json` is among the checked files and drop this case | A05; NF7 | N0014 and N0064 |
+| N0063 | Codex has at least one localization file to check | keep | Fix round 1: kept, to match the system twin N0579. Both are the only check that the per-file loop found any language file (an empty folder would register no cases and pass). The earlier reason (subset of N0014) was wrong: N0014 checks that the English strings exist, not that N0064's loop iterates over a file. The NF20 rewrite of N0064 also asserts `en.json` is among the checked files | A05; NF7 | this file |
+| N0064 | Codex lang/en.json expands without a key collision | rewrite | NF20: the local copy of core `setProperty` detects only a string key listed before its child keys; in the reverse order the string overwrites the subtree and nothing throws. Fail on any key that is a dotted prefix of another, in either order, and assert `en.json` is among the checked files. Same rewrite as the system suite N0580-N0586 | NF6 | this file |
 | N0073 | the Codex sheet classes keep the names worlds have stored | combine | A rename also breaks N0072's class identifier; one stored-id contract suffices. Add a Foundry registry-resolution case as the stronger owner | A05; A11; NF7 | N0072; A11 Foundry case |
 | N0077 | every reader of the theme goes through the resolver | move-to-foundry | Code-layout grep. Result to assert: the sheet chosen for a document follows the effective theme | A11; A03 | Phase 2 A11 Foundry sheet-selection cases |
 | N0078 | each browser starts on Use the GM's default, and the GM's setting is world-wide | move-to-foundry | Read `game.settings.settings` for scope, default, and the follow choice instead of slicing source | A03; G14 | Phase 2 A11 per-user and follow-GM cases |
@@ -84,6 +86,8 @@ Cases whose disposition differs from the file default, plus rename-only cases.
 | N0082 | the Codex settings module still parses | keep+rename | Proposed: "codex/scripts/settings.js is valid ES module syntax" | - | this file |
 
 ## Open rule decisions
+
+Fix round 1: these decisions are merged into [open-decisions.md](open-decisions.md) under global ids (see its crosswalk) and ruled there; the local ids below are kept as a record.
 
 | id | case ids | disputed or unclear expectation | candidate rules | source missing |
 | --- | --- | --- | --- | --- |
