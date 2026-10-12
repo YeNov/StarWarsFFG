@@ -61,6 +61,6 @@ The slices were written independently, so their local ids collide. The merged re
 
 - [open-decisions.md](open-decisions.md): every open rule decision, `R01` onwards, with its category and sources.
 - [findings.md](findings.md): the findings the plan does not name, `NF01` onwards, and the cross-slice duplicates.
-- [worklist.md](worklist.md): for each task T3-T30, the cases it owns whose disposition is not plain `keep`.
+- [worklist.md](worklist.md): for each task T3-T30 and for the product-fix tasks PF1-PF3, the cases it owns whose disposition is not plain `keep`.
 
 `move-to-foundry` means the behavior claim gets a real-action case in the Foundry or Playwright layer named in the plan's Phase 3 table; the source-text case is deleted only after that replacement passes.
