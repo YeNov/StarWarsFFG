@@ -528,6 +528,108 @@ test("shouldUpdateAEStatus updates an effect that no quality on the item owns", 
   assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("(inherent)")), true);
 });
 
+test("shouldUpdateAEStatus updates the effect of an attachment modification with no `active` field", async () => {
+  // A quality dropped into an attachment carries no `active` and counts as installed (R33).
+  const item = weapon({
+    itemattachment: [{
+      name: "Att",
+      system: {
+        attributes: {},
+        itemmodifier: [quality("Dropped", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } })],
+      },
+    }],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), true);
+});
+
+test("shouldUpdateAEStatus reads the modifications of every attachment, not only the first", async () => {
+  const item = weapon({
+    itemattachment: [
+      {
+        name: "First",
+        system: {
+          attributes: {},
+          itemmodifier: [quality("Fitted", { attr1700000000001: { modtype: "Stat", mod: "Soak", value: 1 } }, { active: true })],
+        },
+      },
+      {
+        name: "Second",
+        system: {
+          attributes: {},
+          itemmodifier: [
+            quality("Fitted too", { attr1700000000002: { modtype: "Stat", mod: "Defence-Melee", value: 1 } }, { active: true }),
+            quality("Spare", { attr1700000000003: { modtype: "Stat", mod: "Defence-Ranged", value: 1 } }, { active: false }),
+          ],
+        },
+      },
+    ],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000002")), true);
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000003")), false);
+});
+
+// --- the Enabled box on a modifier row (R34) -----------------------------------------
+// Unticking Enabled stores `active: false` on the row itself, so the planner and the equip
+// toggle can read it back instead of switching the row on again.
+
+test("an own modifier row switched off is planned disabled on an equipped weapon; its neighbour stays on", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    attributes: {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1, active: false },
+      attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+    },
+  }));
+
+  assert.deepEqual(
+    plan.desired.map((effect) => [effect.name, effect.disabled]),
+    [["attr1700000000001", true], ["attr1700000000002", false]],
+  );
+});
+
+test("a row switched off inside a quality or an attachment is planned disabled", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1, active: false },
+      attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+    })],
+    itemattachment: [{
+      name: "Att",
+      system: {
+        attributes: { attr1700000000003: { modtype: "Stat", mod: "Soak", value: 1, active: false } },
+        itemmodifier: [],
+      },
+    }],
+  }));
+
+  assert.deepEqual(
+    plan.desired.map((effect) => [effect.name, effect.disabled]),
+    [["attr1700000000001", true], ["attr1700000000002", false], ["attr1700000000003", true]],
+  );
+});
+
+test("shouldUpdateAEStatus leaves the effect of an own row switched off alone", async () => {
+  const item = weapon({
+    attributes: {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1, active: false },
+      attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+    },
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), false);
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000002")), true);
+});
+
+test("shouldUpdateAEStatus leaves a switched-off gear row alone, so the carried toggle keeps it off", async () => {
+  const gear = {
+    type: "gear",
+    system: { attributes: { attr1700000000001: { modtype: "Stat", mod: "Soak", value: 1, active: false } }, itemmodifier: [] },
+  };
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(gear, effectOf("attr1700000000001")), false);
+});
+
 // --- non-numeric grants --------------------------------------------------------------
 
 test("a checkbox/boolean grant is not multiplied by rank", () => {

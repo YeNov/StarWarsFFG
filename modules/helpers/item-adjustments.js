@@ -17,6 +17,7 @@
  */
 
 import ModifierHelpers from "./modifiers.js";
+import { isAttributeSuspended, switchedOn } from "./modifier-switch.js";
 
 /** Capitalize the first character; "" for anything that is not a string. */
 export function capitalize(s) {
@@ -42,9 +43,12 @@ function shiftRange(rangeSetting, currentValue, steps) {
   return bands[newRange].value;
 }
 
-/** The active, unbroken quality rows carried by an attachment. */
+/**
+ * The installed, unbroken quality rows carried by an attachment. A row with no `active` counts
+ * as installed; only an explicit `active: false` takes it out (modifier-switch.js).
+ */
 function activeAttachmentModifiers(attachment) {
-  return attachment?.system?.itemmodifier?.filter((i) => i?.system?.active && !i?.system?.broken) || [];
+  return switchedOn(attachment?.system?.itemmodifier).filter((i) => !i?.system?.broken);
 }
 
 /**
@@ -154,16 +158,16 @@ export function applyItemAdjustments(data, type, ctx = {}) {
         });
       }
 
-      // Weapon Stat / damage modifiers listed on the weapon itself. Each modifier row is
-      // backed by an Active Effect whose disabled state is driven by the sheet's "enabled"
-      // checkbox, so skip any whose backing effect is disabled -- otherwise an unchecked
+      // Weapon Stat / damage modifiers listed on the weapon itself. The sheet's "enabled"
+      // checkbox stores `active: false` on the row and disables its backing Active Effect, so
+      // skip a row that is switched off or whose effect is disabled -- otherwise an unchecked
       // modifier keeps adding its damage. This runs for standalone items too (not only when
       // embedded) so the adjusted damage is shown before the weapon is owned by an actor.
       if (actorType !== "vehicle") {
         let damageAdd = 0;
         for (const attr of Object.keys(data.attributes ?? {})) {
           if (data.attributes[attr].mod === "damage" && data.attributes[attr].modtype === "Weapon Stat") {
-            if (isEffectDisabled(attr)) continue;
+            if (isAttributeSuspended(data.attributes[attr]) || isEffectDisabled(attr)) continue;
             damageAdd += parseInt(data.attributes[attr].value, 10);
           }
         }
@@ -228,17 +232,17 @@ export function applyItemAdjustments(data, type, ctx = {}) {
         });
       }
 
-      // Armor Stat / Stat modifiers listed on the armour itself. Each modifier row is backed
-      // by an Active Effect whose disabled state is driven by the sheet's "enabled" checkbox,
-      // so skip any whose backing effect is disabled -- otherwise an unchecked modifier keeps
-      // applying. Runs for standalone items too (not only when embedded) so the adjusted
-      // values are shown before the armour is owned by an actor.
+      // Armor Stat / Stat modifiers listed on the armour itself. As on the weapon above, skip a
+      // row switched off with the sheet's "enabled" checkbox or whose backing effect is
+      // disabled -- otherwise an unchecked modifier keeps applying. Runs for standalone items
+      // too (not only when embedded) so the adjusted values are shown before the armour is
+      // owned by an actor.
       if (actorType !== "vehicle") {
         let soakAdd = 0, defenceAdd = 0, encumbranceAdd = 0;
         for (const attr of Object.keys(data.attributes ?? {})) {
           const modtype = data.attributes[attr].modtype;
           if (modtype === "Armor Stat" || modtype === "Stat" || modtype === "Stat All") {
-            if (isEffectDisabled(attr)) continue;
+            if (isAttributeSuspended(data.attributes[attr]) || isEffectDisabled(attr)) continue;
             switch (data.attributes[attr].mod.toLocaleLowerCase()) {
               case "soak":
                 soakAdd += parseInt(data.attributes[attr].value, 10);

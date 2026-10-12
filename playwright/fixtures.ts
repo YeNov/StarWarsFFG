@@ -560,6 +560,39 @@ export class Items {
     }
   }
 
+  /** The key of the one row of the item's own modifier list with this type and choice. */
+  private async modifierRowKey(modifierType: string, modifier: string): Promise<string> {
+    const uuid = await this.sheetDocumentUuid();
+    const keys = await this.page.evaluate(({ uuid, modifierType, modifier }) => {
+      const attributes = fromUuidSync(uuid)?._source.system.attributes ?? {};
+      return Object.keys(attributes).filter((key) => attributes[key]?.modtype === modifierType && attributes[key]?.mod === modifier);
+    }, { uuid, modifierType, modifier });
+    if (keys.length !== 1) throw new Error(`${this.name} has ${keys.length} ${modifierType} ${modifier} rows`);
+    return keys[0];
+  }
+
+  /** The Enabled box of the item's own modifier row with this type and choice. */
+  async modifierEnabledBox(modifierType: string, modifier: string): Promise<Locator> {
+    const key = await this.modifierRowKey(modifierType, modifier);
+    return this.sheet.locator(`li.attribute[data-attribute="${key}"] .attribute-effect-toggle`);
+  }
+
+  /**
+   * Ticks or unticks the Enabled box of the item's own modifier row with this type and choice, and
+   * waits until the row stores it (`active`) and the row's Active Effect follows.
+   */
+  async setModifierEnabled(modifierType: string, modifier: string, enabled: boolean) {
+    const key = await this.modifierRowKey(modifierType, modifier);
+    const box = await this.modifierEnabledBox(modifierType, modifier);
+    await (enabled ? box.check() : box.uncheck());
+    await this.waitForSource(`attributes.${key}.active`, String(enabled), `${modifierType} ${modifier} stores active ${enabled}`);
+    const uuid = await this.sheetDocumentUuid();
+    await expect.poll(
+      () => this.page.evaluate(({ uuid, key }) => fromUuidSync(uuid)?.effects.find((effect) => effect.name === key)?.disabled ?? null, { uuid, key }),
+      { message: `the effect of ${modifierType} ${modifier} follows the Enabled box` },
+    ).toBe(!enabled);
+  }
+
   /** Adds a modifier to talent/upgrade `talentNumber` of a tree item and waits until the item stores it. */
   async addTalentModifier(talentNumber: string, modifierType: string, modifier: string, modifierValue: string) {
     const node = `${this.upgradeName}${talentNumber}`;

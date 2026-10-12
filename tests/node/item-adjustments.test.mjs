@@ -294,6 +294,78 @@ test("armour skips a modifier row whose backing effect is switched off", () => {
   );
 });
 
+// --- switched-off modifiers (open decisions R14, R33, R34) ------------------------------
+// Only an explicit `active: false` switches a quality or a modifier row off. A quality dropped
+// into an attachment has no `active` at all and counts as installed.
+
+test("a quality switched off on the weapon adds no damage and no crit", () => {
+  const data = applyItemAdjustments(weapon({
+    itemmodifier: [{
+      name: "Off",
+      type: "itemmodifier",
+      system: { rank: 1, active: false, attributes: { 0: attr("damage", "Weapon Stat", 2), 1: attr("critical", "Weapon Stat", -1) } },
+    }],
+  }), "weapon", ctx());
+
+  assert.equal(data.damage.adjusted, 6);
+  assert.equal(data.crit.adjusted, 3);
+});
+
+test("a modification with no `active` in an attachment counts as installed", () => {
+  const attachment = {
+    name: "Barrel",
+    type: "itemattachment",
+    system: {
+      rank: null,
+      hardpoints: { value: 0 },
+      attributes: {},
+      itemmodifier: [{ name: "Dropped", type: "itemmodifier", system: { rank: 1, attributes: { 0: attr("damage", "Weapon Stat", 1) } } }],
+    },
+  };
+  const data = applyItemAdjustments(weapon({ itemattachment: [attachment] }), "weapon", ctx());
+
+  assert.equal(data.damage.adjusted, 7);
+  assert.deepEqual(data.adjusteditemmodifier.map((m) => m.name), ["Dropped"]);
+});
+
+test("a modification switched off in an attachment adds nothing and is not listed", () => {
+  const attachment = {
+    name: "Barrel",
+    type: "itemattachment",
+    system: {
+      rank: null,
+      hardpoints: { value: 0 },
+      attributes: {},
+      itemmodifier: [{ name: "Spare", type: "itemmodifier", system: { rank: 1, active: false, attributes: { 0: attr("damage", "Weapon Stat", 1) } } }],
+    },
+  };
+  const data = applyItemAdjustments(weapon({ itemattachment: [attachment] }), "weapon", ctx());
+
+  assert.equal(data.damage.adjusted, 6);
+  assert.deepEqual(data.adjusteditemmodifier.map((m) => m.name), []);
+});
+
+test("a quality switched off on armour adds no soak and no defence", () => {
+  const data = applyItemAdjustments(armour({
+    itemmodifier: [{
+      name: "Off",
+      type: "itemmodifier",
+      system: { rank: 1, active: false, attributes: { 0: attr("soak", "Armor Stat", 1), 1: attr("defence", "Armor Stat", 1) } },
+    }],
+  }), "armour", ctx());
+
+  assert.equal(data.soak.adjusted, 2);
+  assert.equal(data.defence.adjusted, 1);
+});
+
+test("an own row switched off adds nothing, even when no effect backs it", () => {
+  const sharp = weapon({ attributes: { "Sharpened": { ...attr("damage", "Weapon Stat", 2), active: false } } });
+  const padded = armour({ attributes: { "Padding": { ...attr("soak", "Armor Stat", 2), active: false } } });
+
+  assert.equal(applyItemAdjustments(sharp, "weapon", ctx()).damage.adjusted, 6);
+  assert.equal(applyItemAdjustments(padded, "armour", ctx()).soak.adjusted, 2);
+});
+
 test("a talent gets a localization key for its activation, and gear its parsed encumbrance", () => {
   const talent = applyItemAdjustments({ activation: { value: "Active (Incidental)" } }, "talent", ctx());
   assert.equal(talent.activation.label, "SWFFG.TalentActivationsActiveIncidental");

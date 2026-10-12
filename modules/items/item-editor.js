@@ -2,6 +2,7 @@ import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ItemHelpers from "../helpers/item-helpers.js";
 import ModifierHelpers from "../helpers/modifiers.js";
 import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
+import { isAttributeSuspended, isModifierSuspended } from "../helpers/modifier-switch.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
 
 export class itemEditor extends FFGFormApplication {
@@ -600,20 +601,22 @@ export class itemEditor extends FFGFormApplication {
                 });
               }
               if (!changes.length) continue;
+              // the attachment's own row: off while the item is unequipped or the row is switched off
+              const rowDisabled = !equipped || isAttributeSuspended(attachment.system.attributes?.[modKey]);
 
               if (match) {
                 // existing entry
                 CONFIG.logger.debug(`>>>> Staged AE changes for update: ${JSON.stringify(changes)}`);
                 await match.update({
                   changes: changes,
-                  disabled: !equipped,
+                  disabled: rowDisabled,
                 });
               } else {
                 // new entry
                 const effect = {
                   name: modKey,
                   changes: changes,
-                  disabled: !equipped,
+                  disabled: rowDisabled,
                 };
                 CONFIG.logger.debug(`>>>> Staged AE for creation: ${JSON.stringify(effect)}`);
                 await this.data.sourceObject.createEmbeddedDocuments("ActiveEffect", [effect]);
@@ -658,14 +661,9 @@ export class itemEditor extends FFGFormApplication {
                 }
                 if (!changes.length) continue;
 
-                let disabled;
-                if (modifier.system.active === equipped) {
-                  // if they're both enabled or disabled, use the opposite value
-                  disabled = !modifier.system.active;
-                } else {
-                  // if either is not enabled, disable the active effect
-                  disabled = true;
-                }
+                // off while the item is unequipped or the modification is not installed
+                // (`active: false`; no `active` counts as installed -- modifier-switch.js)
+                const disabled = !equipped || isModifierSuspended(modifier);
 
                 if (match) {
                   // existing entry

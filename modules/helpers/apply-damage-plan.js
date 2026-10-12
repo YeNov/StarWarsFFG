@@ -13,6 +13,8 @@
  * module never touches `game.i18n`; `show()` localizes them for the dialog and the chat cards.
  */
 
+import { switchedOn } from "./modifier-switch.js";
+
 /**
  * The protective qualities worn on the target, deduplicated and sorted.
  *
@@ -32,12 +34,13 @@ export function getSoakProtectionQualities(actor) {
   };
   for (const item of actor?.items ?? []) {
     if (item.type !== "armour" || !item.system?.equippable?.equipped) continue;
-    // Read source qualities, not sheet-only summaries. Attachment mods follow
-    // the same active/unbroken gate as the item's adjusted stats.
-    for (const quality of item.system.itemmodifier ?? []) collectQuality(quality);
+    // Read source qualities, not sheet-only summaries. A quality switched off protects
+    // nothing, wherever it sits; attachment mods also follow the unbroken gate of the item's
+    // adjusted stats.
+    for (const quality of switchedOn(item.system.itemmodifier)) collectQuality(quality);
     for (const attachment of item.system.itemattachment ?? []) {
-      for (const quality of attachment.system?.itemmodifier ?? []) {
-        if (quality.system?.active && !quality.system?.broken) collectQuality(quality);
+      for (const quality of switchedOn(attachment.system?.itemmodifier)) {
+        if (!quality.system?.broken) collectQuality(quality);
       }
     }
   }

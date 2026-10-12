@@ -1,3 +1,5 @@
+import { isModifierSuspended } from "./modifier-switch.js";
+
 const INNATE_TALENT_MODTYPE = "Innate Talent";
 const INNATE_TALENT_ATTR = "innateTalent";
 
@@ -74,7 +76,8 @@ function collectAttachmentAttributes(grants, parentItem, attachment, attachmentI
   }
 
   for (const [modifierIndex, modifier] of asArray(attachment?.system?.itemmodifier).entries()) {
-    if (!modifier?.system?.active || modifier?.system?.broken) continue;
+    // a modification with no `active` counts as installed; only `active: false` takes it out
+    if (isModifierSuspended(modifier) || modifier?.system?.broken) continue;
 
     const modifierName = modifier?.name || "";
     const modifierSourceName = modifierName ? `${sourceName} (${modifierName})` : sourceName;

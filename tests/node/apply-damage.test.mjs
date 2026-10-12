@@ -73,18 +73,29 @@ test("import ids identify renamed qualities and unranked qualities still protect
   }
 });
 
-test("only active, unbroken attachment mods grant protection", () => {
+test("attachment mods grant protection unless switched off or broken", () => {
+  // A modification with no `active` counts as installed (open decisions R33).
   for (const [system, expected, reported] of [
     [{ active: true }, 6, ["Cortosis"]],
     [{ active: false }, 12, []],
     [{ active: true, broken: true }, 12, []],
-    [{}, 12, []],
+    [{}, 6, ["Cortosis"]],
   ]) {
     const items = [armor([], { attachments: [{ system: { itemmodifier: [quality("Cortosis", system)] } }] })];
     const result = applyHit({ items, breach: 1 });
 
     assert.equal(result.applied, expected);
     assert.deepEqual(result.soakProtection, reported);
+  }
+});
+
+test("a protective quality switched off on the armour protects nothing", () => {
+  // Turning a quality off suspends it wherever it sits (open decisions R14).
+  for (const name of ["Beskar", "Cortosis"]) {
+    const result = applyHit({ items: [armor([quality(name, { active: false })])], breach: 1 });
+
+    assert.equal(result.applied, 12);
+    assert.deepEqual(result.soakProtection, []);
   }
 });
 

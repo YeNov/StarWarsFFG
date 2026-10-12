@@ -1,5 +1,6 @@
 import { AE_MODES } from "../config/ffg-active-effect-modes.js";
 import ModifierHelpers from "./modifiers.js";
+import { isAttributeSuspended, isModifierSuspended } from "./modifier-switch.js";
 import { groupTalentsByName, planDuplicateRepair } from "./talent-stacking.js";
 
 export default class ItemHelpers {
@@ -191,21 +192,6 @@ export default class ItemHelpers {
   }
 
   /**
-   * True when a quality has been switched off with its enabled toggle (`system.active`).
-   *
-   * One rule for every place a quality can sit -- directly on a weapon or armour, or installed
-   * in an attachment. Only an explicit `false` suspends it. A missing field means enabled:
-   * qualities dropped or imported straight onto an item often carry no `active` field at all,
-   * and reading that absence as "off" would silently suspend every one of them.
-   *
-   * @param {object} modifier - a quality / modification `{name, system}`
-   * @returns {boolean}
-   */
-  static isModifierSuspended(modifier) {
-    return modifier?.system?.active === false;
-  }
-
-  /**
    * Compute the complete set of Active Effects an item *should* have, derived from its own
    * attributes plus every quality on it (directly, or through an attachment).
    *
@@ -309,7 +295,8 @@ export default class ItemHelpers {
         }
         if (!changes.length) continue;
 
-        desired.push({ name, changes, disabled });
+        // a row switched off with its Enabled box stays off, equipped or not
+        desired.push({ name, changes, disabled: disabled || isAttributeSuspended(attr) });
       }
     };
 
@@ -342,7 +329,7 @@ export default class ItemHelpers {
         ranks: ranksOf(modifier, modifier?.name ?? ""),
         path: ["itemmodifier", index],
         // a quality switched off grants nothing, even when the item is equipped
-        disabled: baseDisabled || ItemHelpers.isModifierSuspended(modifier),
+        disabled: baseDisabled || isModifierSuspended(modifier),
         source: modifier?.name ?? "",
       });
     });
@@ -364,7 +351,7 @@ export default class ItemHelpers {
           path: ["itemattachment", attachmentIndex, "itemmodifier", index],
           // a modification sitting in an attachment but not installed grants nothing, even
           // when the parent item is equipped (mirrors shouldUpdateAEStatus)
-          disabled: baseDisabled || ItemHelpers.isModifierSuspended(modification),
+          disabled: baseDisabled || isModifierSuspended(modification),
           source: modification?.name ?? "",
         });
       });
@@ -853,10 +840,48 @@ export default class ItemHelpers {
   }
 
   /**
+   * The modifier row an Active Effect is named after, and whether the quality holding that row
+   * is switched off.
+   *
+   * Looks in roughly the order planModifierEffects claims keys: the item's own rows, its direct
+   * qualities, then each attachment's own rows and its modifications; the first holder of the
+   * name wins. It does not model the `_2` suffix the planner gives a quality whose key collides
+   * with an earlier one, so such an effect finds no row here.
+   *
+   * @param {object} itemData - an ItemFFG or plain `{system}`
+   * @param {string} name - the effect's name
+   * @returns {{attribute: object, qualitySuspended: boolean}|null}
+   */
+  static modifierRowOf(itemData, name) {
+    const system = itemData?.system ?? {};
+    const list = (value) => (Array.isArray(value) ? value : []);
+    const holders = [
+      { attributes: system.attributes, qualitySuspended: false },
+      ...list(system.itemmodifier).map((quality) => ({
+        attributes: quality?.system?.attributes,
+        qualitySuspended: isModifierSuspended(quality),
+      })),
+      ...list(system.itemattachment).flatMap((attachment) => [
+        { attributes: attachment?.system?.attributes, qualitySuspended: false },
+        ...list(attachment?.system?.itemmodifier).map((modification) => ({
+          attributes: modification?.system?.attributes,
+          qualitySuspended: isModifierSuspended(modification),
+        })),
+      ]),
+    ];
+    for (const holder of holders) {
+      const attribute = holder.attributes?.[name];
+      if (attribute && typeof attribute === "object") return { attribute, qualitySuspended: holder.qualitySuspended };
+    }
+    return null;
+  }
+
+  /**
    * Determines if a given Active Effect should have a status updated or not - based on the item it's a part of
    * For example, if a piece of armor has a quality that is switched off, or an attachment with a modification
    *  that's not installed, that quality should not apply any effect to the actor - even if the armor is
-   *  equipped / unequipped. A quality counts as switched off by the same rule everywhere (`isModifierSuspended`).
+   *  equipped / unequipped. The same goes for one of the item's own modifier rows switched off with its
+   *  Enabled box. Both follow the one rule in modifier-switch.js.
    * Similarly, unpurchased talents on specializations should not do anything until they are purchased
    * @param item - the item the active effect is a part of
    * @param activeEffect - the specific active effect to check
@@ -865,25 +890,34 @@ export default class ItemHelpers {
    */
   static async shouldUpdateAEStatus(item, activeEffect) {
     CONFIG.logger.debug(`Checking if ${activeEffect.name} from ${item.name} should be applied`);
-    if (["armour", "weapon", "shipweapon"].includes(item.type)) {
-      // the same walk order planModifierEffects uses: direct qualities, then each attachment's modifications
-      const qualities = [
-        ...(item.system.itemmodifier ?? []),
-        ...(item.system.itemattachment ?? []).flatMap((attachment) => attachment?.system?.itemmodifier ?? []),
-      ];
-      const owner = qualities.find((quality) => quality?.system?.attributes?.[activeEffect.name]);
-      if (owner) {
-        CONFIG.logger.debug(`Located mod ${activeEffect.name}, checking if it's active or not`);
-        if (ItemHelpers.isModifierSuspended(owner)) {
-          CONFIG.logger.debug(`Mod ${activeEffect.name} is not active, not syncing AE status`);
-          return false;
-        }
-        CONFIG.logger.debug(`Mod ${activeEffect.name} is active, syncing AE status`);
-        return true;
-      }
+    const row = ItemHelpers.modifierRowOf(item, activeEffect.name);
+    if (row && (row.qualitySuspended || isAttributeSuspended(row.attribute))) {
+      CONFIG.logger.debug(`Mod ${activeEffect.name} is switched off, not syncing AE status`);
+      return false;
     }
     CONFIG.logger.debug(`No reason to avoid updating status found, syncing AE status`);
     return true;
+  }
+
+  /**
+   * Switch an item's effects on or off with the item itself: on equip / unequip for a weapon,
+   * armour or ship part, on the carried toggle for gear. An effect whose modifier is switched off
+   * (see shouldUpdateAEStatus) is left as it is, so putting the item back in use never brings
+   * it back.
+   *
+   * @param item - the item whose state changed
+   * @param effects - its Active Effects
+   * @param {boolean} inUse - equipped, or carried
+   * @param {object} [options]
+   * @param {boolean} [options.equip=false] - also adjust worn armour's encumbrance
+   * @returns {Promise<void>}
+   */
+  static async followItemState(item, effects, inUse, { equip = false } = {}) {
+    for (const effect of effects) {
+      if (!(await ItemHelpers.shouldUpdateAEStatus(item, effect))) continue;
+      if (equip) await ItemHelpers.updateEncumbranceOnEquip(item, effect, inUse);
+      await effect.update({ disabled: !inUse });
+    }
   }
 
   /**

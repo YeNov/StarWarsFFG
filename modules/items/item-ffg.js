@@ -413,12 +413,7 @@ export class ItemFFG extends ItemBaseFFG {
       const equipped = changed.system.equippable.equipped;
       CONFIG.logger.debug("caught equip / unequip, checking if Active Effect state should be synced");
       await ItemHelpers.syncAEStatus(this, updatedExistingEffects);
-      for (const effect of updatedExistingEffects) {
-        if (await ItemHelpers.shouldUpdateAEStatus(this, effect)) {
-          await ItemHelpers.updateEncumbranceOnEquip(this, effect, equipped);
-          await effect.update({disabled: !equipped});
-        }
-      }
+      await ItemHelpers.followItemState(this, updatedExistingEffects, equipped, { equip: true });
       // Equipping is the one moment a stale quality effect reliably becomes visible, so take
       // it as the cue to rebuild them from the qualities on the item. `applyRenames: false`
       // because we are inside _onUpdate -- settling an attribute-key collision writes to the
@@ -434,11 +429,7 @@ export class ItemFFG extends ItemBaseFFG {
     if (this.type === "gear" && "carried" in (changed?.flags?.starwarsffg ?? {}) && updatedExistingEffects) {
       const carried = changed.flags.starwarsffg.carried !== false;
       CONFIG.logger.debug("caught gear carried toggle, checking if Active Effect state should be synced");
-      for (const effect of updatedExistingEffects) {
-        if (await ItemHelpers.shouldUpdateAEStatus(this, effect)) {
-          await effect.update({disabled: !carried});
-        }
-      }
+      await ItemHelpers.followItemState(this, updatedExistingEffects, carried);
     }
   }
 

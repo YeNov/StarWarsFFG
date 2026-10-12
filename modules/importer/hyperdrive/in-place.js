@@ -14,6 +14,7 @@ import {
 } from "./effect-builders.js";
 import { hyperdriveImage } from "./parse.js";
 import { canonicalHyperdriveSkill, findIndexedSnapshot, normalizeName } from "./resolve.js";
+import { isModifierSuspended } from "../../helpers/modifier-switch.js";
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -219,6 +220,8 @@ function reconcileConfiguredAttachmentModifiers(source, attachment, rawItem, opt
       .map((modifier, index) => ({ modifier, index }))
       .filter(({ index }) => !claimed.has(index));
     let candidate = available.find(({ modifier }) => modifierMatchesRaw(modifier, rawMod, opts));
+    // Not the installed rule (modifier-switch.js): this fallback reads how a compendium lays out
+    // an attachment, where the optional Added Mods often carry no `active` at all.
     candidate ??= available.find(
       ({ modifier }) => Boolean(modifier?.system?.active) === expectedActive,
     );
@@ -473,7 +476,7 @@ function mergeEffects(existing, imported) {
 function buildConfiguredQualityEffects(qualities, namer) {
   const attributes = {};
   for (const quality of qualities ?? []) {
-    if (quality?.system?.active === false || quality?.system?.broken === true) continue;
+    if (isModifierSuspended(quality) || quality?.system?.broken === true) continue;
     const rank = number(quality?.system?.rank, 1);
     for (const attribute of Object.values(quality?.system?.attributes ?? {})) {
       attributes[namer()] = {

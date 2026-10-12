@@ -13,6 +13,7 @@ import {forcePowerEditor, itemEditor, talentEditor} from "./item-editor.js";
 import { canPurchaseNode } from "../helpers/talent-tree.js";
 import { isAmmoTracked, isQualityAmmoMode, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
+import { attributeShowsEnabled, isModifierSuspended } from "../helpers/modifier-switch.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -226,12 +227,14 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       data.item = foundry.utils.mergeObject(data.item, options.data); // some fields are read out of item, some are read out of data
     }
 
-    // Annotate each modifier row with whether its backing Active Effect is enabled. A bulk
-    // suspend (e.g. Sheet Options edit mode, or GM XP granting) disables every effect on every
-    // item so derived stats can be hand-edited without a feedback loop, then is supposed to
-    // restore each one's original state. If that restore is ever interrupted, an item's effect
-    // is left disabled in the database with nothing in the sheet to show or fix it (gear items
-    // in particular have no equip toggle to force a resync). This exposes a direct checkbox.
+    // Annotate each modifier row with its Enabled box: switched on or off by the user (stored
+    // on the row as `active`, so equipping and reconciling keep it), and otherwise whether its
+    // backing Active Effect is enabled. A bulk suspend (e.g. Sheet Options edit mode, or GM XP
+    // granting) disables every effect on every item so derived stats can be hand-edited without
+    // a feedback loop, then is supposed to restore each one's original state. If that restore is
+    // ever interrupted, an item's effect is left disabled in the database with nothing in the
+    // sheet to show or fix it (gear items in particular have no equip toggle to force a resync).
+    // This exposes a direct checkbox.
     if (data.data?.attributes) {
       const existingEffects = this.object.effects;
       for (const key of Object.keys(data.data.attributes)) {
@@ -239,7 +242,7 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         if (!attr || key.startsWith("-=")) continue;
         const matchingEffect = existingEffects.find((e) => e.name === key);
         attr.hasEffect = !!matchingEffect;
-        attr.effectEnabled = matchingEffect ? !matchingEffect.disabled : true;
+        attr.effectEnabled = attributeShowsEnabled(attr, matchingEffect);
       }
     }
 
@@ -788,8 +791,8 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         const source = attachment.name;
         if (Object.keys(attachment.system).includes("itemmodifier")) {
           for (const mod of attachment.system.itemmodifier) {
-            if (!mod.system.active) {
-              // this modifier isn't active, skip processing
+            if (isModifierSuspended(mod)) {
+              // not installed (`active: false`; no `active` counts as installed), skip processing
               continue;
             }
             const modName = mod.name;
@@ -1683,42 +1686,6 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       let tempItem = await new Item.implementation(temp, { temporary: true });
 
       tempItem.sheet.render(true);
-    });
-
-    html.find(".additional .modifier-active").on("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const li = event.currentTarget;
-      const parent = $(li).parent()[0];
-      let itemType = parent.dataset.itemName;
-      let itemIndex = parent.dataset.itemIndex;
-
-      // "item" here is the item which the user toggled the modifier for
-      const item = this.object.system[itemType][itemIndex];
-      item.system.active = !item.system.active;
-
-      if (this.object.flags.starwarsffg.ffgTempId && this.object.flags.starwarsffg.ffgTempId !== this.object._id) {
-        // this is a temporary sheet for an embedded item
-
-        item.flags = {
-          starwarsffg: {
-            ffgTempId: this.object.id,                // here, this represents the ID of the item this is on
-            ffgTempItemType: itemType,                // modified item type
-            ffgTempItemIndex: itemIndex,              // modified item index
-            ffgParent: this.object.flags,             // flags from the parent
-            ffgIsTemp: true,                          // this is a temporary item
-          }
-        };
-
-        await EmbeddedItemHelpers.updateRealObject(item, {system: { active: item.system.active}});
-
-      } else {
-        let formData = {};
-        foundry.utils.setProperty(formData, `data.${itemType}`, this.object.system[itemType]);
-        this.object.update(formData);
-      }
-
-      this.object.sheet.render(true);
     });
 
     html.find(".additional .add-new-item").on("click", async (event) => {

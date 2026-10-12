@@ -94,6 +94,27 @@ test("explodes a modifier that targets more than one path", () => {
   ]);
 });
 
+test("plans the effect of a row switched off with its Enabled box as disabled", () => {
+  // The Enabled box stores `active: false` on the row (open decisions R34), so an effect planned
+  // for it -- at item creation, or by the repair sweep -- must not switch it back on.
+  const effects = ModifierHelpers.planAttributeEffects(talent({
+    attr1788201846321: { mod: "Cool", modtype: "Skill Boost", value: 2, active: false },
+    attr1788201846322: { mod: "Cool", modtype: "Skill Boost", value: 1 },
+  }));
+
+  assert.deepEqual(effects, [
+    {
+      name: "attr1788201846321",
+      changes: [{ key: "system.skills.Cool.boost", mode: AE_MODES.ADD, value: 2 }],
+      disabled: true,
+    },
+    {
+      name: "attr1788201846322",
+      changes: [{ key: "system.skills.Cool.boost", mode: AE_MODES.ADD, value: 1 }],
+    },
+  ]);
+});
+
 test("emits nothing for an attribute that yields no active-effect key", () => {
   // "Remove Setback" (the Roll Modifiers flavour) has no property path -- it is read off a
   // rolled weapon by getDicePoolModifiers. A keyless change would be an effect that applies

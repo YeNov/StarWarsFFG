@@ -355,7 +355,7 @@ test('embedded weapons applies correctly', async ({ sessions }) => {
   await expect(embeddedAttachment.sheet.locator('.tab[data-tab="modifications"]')).toBeVisible();
   // actually drag the mod to the attachment
   await weaponMod.dragTo(embeddedAttachment.sheet.locator('.content'));
-  // enable the mod, as they default to being disabled
+  // a dropped mod already counts as installed (open decisions R33); enableMod waits for its row
   await embeddedAttachment.enableMod('0');
   await embeddedAttachment.sheet.getByText('Basics', { exact: true }).click();
   await embeddedAttachment.closeSheet();
@@ -364,6 +364,85 @@ test('embedded weapons applies correctly', async ({ sessions }) => {
   // validate tha the second mod instance is adding to the AE properly
   await embeddedActor.checkStat('defenceMelee', '2');
   await embeddedActor.checkStat('defenceRanged', '0');
+});
+
+test('a quality dropped into an attachment counts as installed: its box is ticked and the weapon lists it', async ({ sessions }) => {
+  // A modification is off only when its Installed? box is unticked (`active: false`); one with no
+  // `active` at all, as a dropped quality arrives, counts as installed (open decisions R33).
+  const page = sessions.gm;
+  const quality = new Items(sessions, "qa droppedQuality", "itemmodifier");
+  await quality.create();
+  await quality.addDirectModifier('Stat', 'Defence-Melee', '1');
+  await quality.closeSheet();
+
+  // dropped onto an attachment's own sheet
+  const attachment = new Items(sessions, "qa attachmentForDrop", "itemattachment");
+  await attachment.create();
+  await attachment.switchTab('modifiers');
+  await attachment.dropItem(quality);
+  expect(await page.evaluate((uuid) => 'active' in fromUuidSync(uuid)._source.system.itemmodifier[0].system, attachment.uuid)).toBe(false);
+  await attachment.switchTab('modifications');
+  await expect(attachment.sheet.locator('input[name="system.itemmodifier[0].system.active"][type="checkbox"]')).toBeChecked();
+  // a modification added with the button starts uninstalled, and its box says so
+  await attachment.sheet.locator('button.add-modification[data-action="create"]').click();
+  await expect(attachment.sheet.locator('input[name="system.itemmodifier[1].system.active"][type="checkbox"]')).not.toBeChecked();
+  await attachment.closeSheet();
+
+  // dropped into the editor of an attachment fitted to a weapon
+  const fitted = new Items(sessions, "qa fittedForDrop", "itemattachment");
+  await fitted.create();
+  await fitted.closeSheet();
+  const weapon = new Items(sessions, "qa weaponForDrop", "weapon");
+  await weapon.create();
+  await weapon.switchTab('modifiers');
+  await weapon.dropItem(fitted);
+  await weapon.editItem(fitted);
+  await fitted.sheet.getByText('Modifications', { exact: true }).click();
+  await quality.dragTo(fitted.sheet.locator('.content'));
+  const fittedModification = () => page.evaluate((uuid) => {
+    const modification = fromUuidSync(uuid)._source.system.itemattachment[0]?.system?.itemmodifier?.[0];
+    return modification ? { name: modification.name, hasActive: 'active' in modification.system } : null;
+  }, weapon.uuid);
+  await expect.poll(fittedModification, { message: `${quality.name} is dropped into ${fitted.name}` })
+    .toEqual({ name: quality.name, hasActive: false });
+  await expect(fitted.sheet.locator('input[name="system.itemmodifier[0].system.active"][type="checkbox"]')).toBeChecked();
+  // the weapon's quality summary lists it as coming from the attachment
+  await expect(weapon.sheet.locator('.quality-name').filter({ hasText: quality.name })).toHaveCount(1);
+});
+
+test("a weapon's modifier switched off with its Enabled box stays off through unequip and equip", async ({ sessions }) => {
+  // The Enabled box stores its state on the modifier row, so equipping, unequipping and the
+  // reconcile that follows no longer switch the modifier back on (open decisions R34).
+  const actor = new Actors(sessions, "qa enabledToggleActor", "character");
+  await actor.create();
+  const weapon = new Items(sessions, "qa enabledToggleWeapon", "weapon");
+  await weapon.create();
+  await weapon.switchTab('modifiers');
+  await weapon.addDirectModifier('Stat', 'Soak', '1');
+  await weapon.closeSheet();
+
+  await actor.switchTab('gear');
+  await actor.dropItem(weapon, { target: actor.sheet.locator('.tab.items.active') });
+  await actor.equipItem(weapon);
+  await actor.checkStat('soak', '1');
+
+  await actor.editItem(weapon);
+  await weapon.switchTab('modifiers');
+  await weapon.setModifierEnabled('Stat', 'Soak', false);
+  await weapon.closeSheet();
+  await actor.checkStat('soak', '0');
+
+  await actor.equipItem(weapon); // unequip
+  await actor.checkStat('soak', '0');
+  await actor.equipItem(weapon); // equip again
+  await actor.checkStat('soak', '0');
+
+  await actor.editItem(weapon);
+  await weapon.switchTab('modifiers');
+  await expect(await weapon.modifierEnabledBox('Stat', 'Soak')).not.toBeChecked();
+  await weapon.setModifierEnabled('Stat', 'Soak', true);
+  await weapon.closeSheet();
+  await actor.checkStat('soak', '1');
 });
 
 /**

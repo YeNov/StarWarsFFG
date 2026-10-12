@@ -12,7 +12,8 @@
     <div class="form-group">
       <label for="system.itemmodifier[{{number}}].system.active">{{ localize "SWFFG.Items.Popout.Label.Installed" }}</label>
       {{#if mod.system.broken}}<input name="system.itemmodifier[{{number}}].system.active" type="hidden" value="{{ mod.system.active }}">{{/if}}
-      <input name="system.itemmodifier[{{number}}].system.active" type="checkbox" {{ checked mod.system.active }} {{#if mod.system.broken}}disabled{{/if}}>
+      {{!-- installed unless switched off: no `active` at all (a dropped quality) counts as installed --}}
+      <input name="system.itemmodifier[{{number}}].system.active" type="checkbox" {{ checked (ne mod.system.active false) }} {{#if mod.system.broken}}disabled{{/if}}>
     </div>
     <div class="form-group">
       <label for="system.itemmodifier[{{number}}].system.broken">{{ localize "SWFFG.Items.Popout.Label.Broken" }}</label>

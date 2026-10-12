@@ -60,6 +60,17 @@ test("collectInnateTalentGrants skips inactive sources", () => {
   assert.deepEqual(collectInnateTalentGrants([weapon({ broken: true })]).map((grant) => grant.name), ["Quick Draw"]);
 });
 
+test("collectInnateTalentGrants counts a modification with no `active` as installed", () => {
+  // A quality dropped into an attachment carries no `active` (open decisions R33).
+  const dropped = weapon();
+  delete dropped.system.itemattachment[0].system.itemmodifier[0].system.active;
+
+  assert.deepEqual(collectInnateTalentGrants([dropped]).map((grant) => [grant.name, grant.rank]), [
+    ["Quick Draw", 1],
+    ["True Aim", 2],
+  ]);
+});
+
 test("addTalentListEntry stacks ranked innate talent grants", () => {
   const talents = [{ name: "True Aim", isRanked: true, rank: 1, source: [{ type: "talent", id: "talent1" }] }];
 
