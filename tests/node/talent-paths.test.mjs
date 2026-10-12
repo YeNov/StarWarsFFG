@@ -69,7 +69,7 @@ for (const key of ["talent0", "talent1", "talent2", "talent3"]) {
   });
 }
 
-test("canLearn allows a root-row talent even when its neighbours are not learned", () => {
+test("canLearn allows a root-row talent even when its learned neighbours are not connected to it", () => {
   const talents = grid();
 
   const result = canLearn(talents, learned(0, 1), "talent2");
@@ -94,6 +94,16 @@ test("canLearn allows a talent beside a learned talent that links right to it", 
   assert.equal(result, true);
 });
 
+test("canLearn allows a talent whose own right link leads to a learned talent", () => {
+  // talent4 links right to talent5, which is learned (through talent1 above it). talent4's own
+  // up-link leads to talent0, which is not learned, so only the right link opens it.
+  const talents = grid();
+
+  const result = canLearn(talents, learned(1, 5), "talent4");
+
+  assert.equal(result, true);
+});
+
 test("canLearn refuses a talent whose connector leads to an unlearned talent", () => {
   // talent4 is linked up to talent0, but talent0 is not learned.
   const talents = grid();
@@ -114,7 +124,7 @@ test("canLearn refuses a talent that skips a row of the path", () => {
 
 for (const key of ["talent6", "talent8", "talent10"]) {
   test(`canLearn refuses the unconnected talent ${key} even beside learned talents`, () => {
-    // Everything adjacent is learned, but no connector joins ${key} to any of it.
+    // A learned talent sits beside each of these three, but no connector joins it to the talent.
     const talents = grid();
 
     const result = canLearn(talents, learned(0, 4, 5, 9), key);
@@ -147,14 +157,26 @@ test("canLearn refuses a key that is not a talent of the tree", () => {
   assert.equal(result, false);
 });
 
-test("canLearn takes what is learned from the learned set, not from islearned flags stored on the talents", () => {
-  // A snapshot can carry islearned flags (talent0 true here). Learned state lives only in the
-  // wizard's purchases, so the flag must neither block talent0 nor make talent4 buyable.
+test("canLearn does not refuse a talent because the snapshot flags it islearned", () => {
+  // A snapshot can carry islearned flags. Learned state lives only in the wizard's purchases, so
+  // a flag on talent0 must not block buying it.
   const talents = grid();
   talents.talent0.islearned = true;
 
-  assert.equal(canLearn(talents, learned(), "talent0"), true);
-  assert.equal(canLearn(talents, learned(), "talent4"), false);
+  const result = canLearn(talents, learned(), "talent0");
+
+  assert.equal(result, true);
+});
+
+test("canLearn does not open a talent because the snapshot flags its neighbour islearned", () => {
+  // talent0 is flagged learned in the snapshot but is not in the learned set, so talent4 below it
+  // stays closed.
+  const talents = grid();
+  talents.talent0.islearned = true;
+
+  const result = canLearn(talents, learned(), "talent4");
+
+  assert.equal(result, false);
 });
 
 test("canLearn does not write learned state onto the talents it is given", () => {
@@ -192,6 +214,16 @@ test("rootConnectedKeys keeps every talent of a chain that reaches the root row"
   const result = rootConnectedKeys(talents, learned(0, 4, 5, 9));
 
   assert.deepEqual(numbers(result), [0, 4, 5, 9]);
+});
+
+test("rootConnectedKeys returns a Set the wizard can ask about a purchase key", () => {
+  const talents = grid();
+
+  const result = rootConnectedKeys(talents, learned(2));
+
+  assert.ok(result instanceof Set);
+  assert.equal(result.has("talent2"), true);
+  assert.equal(result.has("talent3"), false);
 });
 
 test("rootConnectedKeys drops a purchase with no path to the root row", () => {
@@ -247,6 +279,34 @@ test("rootConnectedKeys drops a branch when its root-row talent is removed and l
   const result = rootConnectedKeys(talents, learned(0, 4, 5, 9, 7, 11));
 
   assert.deepEqual(numbers(result), [0, 4, 5, 9]);
+});
+
+test("rootConnectedKeys keeps a talent through its own right link to a learned talent", () => {
+  // talent4 reaches no learned talent above it (talent0 is not learned); it is kept because it
+  // links right to talent5, which is connected to the root row through talent1.
+  const talents = grid();
+
+  const result = rootConnectedKeys(talents, learned(1, 5, 4));
+
+  assert.deepEqual(numbers(result), [1, 4, 5]);
+});
+
+test("rootConnectedKeys drops a purchase whose talent is not in the tree and keeps the rest", () => {
+  // A resumed draft can hold a purchase for a talent the specialization no longer has. The grid
+  // has talent0 to talent11, so talent12 is stale; it sits between two connected purchases.
+  const talents = grid();
+
+  const result = rootConnectedKeys(talents, new Set(["talent0", "talent12", "talent4"]));
+
+  assert.deepEqual(numbers(result), [0, 4]);
+});
+
+test("rootConnectedKeys is empty when every purchase is for a talent that is not in the tree", () => {
+  const talents = grid();
+
+  const result = rootConnectedKeys(talents, new Set(["talent12", "talent30"]));
+
+  assert.deepEqual(numbers(result), []);
 });
 
 test("rootConnectedKeys gives the same result whatever order the purchases are listed in", () => {

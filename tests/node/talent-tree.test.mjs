@@ -84,7 +84,7 @@ test("a learned specialization root-row talent is not purchasable again", () => 
   assert.equal(result, false);
 });
 
-test("a specialization talent connected on every side is not purchasable while no neighbour is learned", () => {
+test("a specialization talent linked up and right but with no learned neighbour is not purchasable", () => {
   const tree = specialization({ talent5: { "links-top-1": true, "links-right": true } });
 
   const result = canPurchaseNode(tree, "talent5", SPECIALIZATION);
