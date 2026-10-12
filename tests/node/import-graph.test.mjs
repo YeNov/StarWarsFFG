@@ -111,7 +111,7 @@ for (const rel of ACTOR_GLOBAL) {
   });
 }
 
-test("the modules/ ESM boundary is explicit — no MODULE_TYPELESS_PACKAGE_JSON warning (DEV-11)", () => {
+test("importing a module from modules/ under Node prints no MODULE_TYPELESS_PACKAGE_JSON warning", () => {
   // §0.5: modules/package.json exists precisely so Node stops heuristically reparsing these
   // files as ESM. If the warning comes back, that boundary has been lost.
   const { stderr } = importInChild("modules/config/ffg-active-effect-modes.js");
