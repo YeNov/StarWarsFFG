@@ -1,7 +1,8 @@
 // @ts-check
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:30000';
+// The Foundry test tier: tests/README.md. The server is tools/foundry-test-server.mjs (webServer below).
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${process.env.FVTT_PORT ?? 30000}`;
 
 /**
  * Read environment variables from file.
@@ -23,10 +24,18 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Every spec shares one Foundry world, and the functional run checks that world for leaks, so
+     specs must never run at the same time. */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: [['list'], ['html', { open: 'never' }]],
+  /* Starts Foundry on the test world unless the port already serves it. */
+  webServer: {
+    command: 'node tools/foundry-test-server.mjs',
+    url: new URL('/api/status', baseURL).href,
+    reuseExistingServer: true,
+    timeout: 240_000,
+  },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
@@ -41,6 +50,12 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        /* Foundry V14 needs Chromium 146 or newer; PLAYWRIGHT_CHANNEL=chrome uses the installed
+           Google Chrome when Playwright's own Chromium is older (tests/README.md, "Browser"). */
+        channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+        /* The device preset pins the user agent of Playwright's own Chromium; Foundry checks the
+           browser version from it, so let the browser report its real one. */
+        userAgent: undefined,
         viewport: {
           width: 1440,
           height: 900
