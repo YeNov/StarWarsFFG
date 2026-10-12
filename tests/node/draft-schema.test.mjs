@@ -225,18 +225,32 @@ test("saving a draft that was loaded with warnings does not store the warnings",
 });
 
 // Design 5.7: "`available` and all this.ui state are EXCLUDED (derivable / transient)". The wizard
-// state carries `available.specializations` (always an empty list nothing reads) and
-// serializeDraft stores the whole state, so it is saved with every draft. Harmless, but not what
-// the design says; remove the todo flag when the draft stops storing it.
-test("the saved build leaves out the derived available lists", {
-  todo: "serializeDraft stores the whole wizard state, including available.specializations (design 5.7 excludes it)",
-}, () => {
+// state carries `available.specializations` (always an empty list that nothing reads); the saved
+// record leaves it out, and the live wizard state keeps it.
+test("the saved build leaves out the derived available lists", () => {
   const data = buildDraft();
   data.available = { specializations: [] };
 
   const record = serializeDraft({ data, commit: null }, SAVE_META);
 
   assert.equal("available" in record.data, false);
+});
+
+test("saving a draft leaves the live wizard state's available lists in place", () => {
+  const data = buildDraft();
+  data.available = { specializations: [] };
+
+  serializeDraft({ data, commit: null }, SAVE_META);
+
+  assert.deepEqual(data.available, { specializations: [] });
+});
+
+test("a draft saved with available lists by an earlier version is saved again without them", () => {
+  const stored = throughStorage({ schemaVersion: 1, data: { ...buildDraft(), available: { specializations: [] } } });
+
+  const resaved = serializeDraft(deserializeDraft(stored), SAVE_META);
+
+  assert.equal("available" in resaved.data, false);
 });
 
 // ---------------------------------------------------------------------------------------------

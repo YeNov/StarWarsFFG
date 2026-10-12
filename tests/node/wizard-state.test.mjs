@@ -7,7 +7,8 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import { setSetting, resetSettings } from "./_stub/foundry-stub.mjs";
-import { createInitialData, setIdentity, setSelection, addSelection, toSelectionRef } from "../../modules/char-creator/wizard-state.js";
+import { createInitialData, restoreDerivedState, setIdentity, setSelection, addSelection, toSelectionRef } from "../../modules/char-creator/wizard-state.js";
+import { serializeDraft, deserializeDraft } from "../../modules/char-creator/draft-schema.js";
 import { applyStartingBonus } from "../../modules/char-creator/starting-bonus.js";
 import { calcObligation } from "../../modules/char-creator/calculators.js";
 
@@ -152,4 +153,27 @@ test("applyStartingBonus rejects a choice from another ruleset", () => {
   assert.equal(data.selected.startingBonus, null);
   assert.equal(data.grants.bonus.xp, 0);
   assert.equal(data.grants.bonus.duty, 0);
+});
+
+// A saved draft leaves out the derived `available` lists (design 5.7), so the wizard rebuilds them
+// when it resumes one. Without that a resumed wizard would be missing a field a fresh wizard has.
+test("a fresh wizard that is saved and resumed is the same wizard state again", () => {
+  seedSettings();
+  const fresh = createInitialData();
+  const stored = JSON.parse(JSON.stringify(serializeDraft({ data: fresh, commit: null })));
+  assert.equal("available" in stored.data, false, "setup: the saved draft stores no available lists");
+
+  const resumed = restoreDerivedState(deserializeDraft(stored).data);
+
+  assert.deepEqual(resumed, fresh);
+});
+
+test("resuming replaces available lists that an earlier version saved with the draft", () => {
+  seedSettings();
+  const data = createInitialData();
+  data.available = { specializations: [{ name: "Stored by an earlier version" }] };
+
+  restoreDerivedState(data);
+
+  assert.deepEqual(data.available, { specializations: [] });
 });

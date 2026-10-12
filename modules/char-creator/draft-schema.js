@@ -34,7 +34,20 @@ export class CorruptDraftError extends Error {
 export const MIGRATIONS = Object.freeze({});
 
 /**
- * Serialize a draft into the outer storage record.
+ * The build as a draft stores it: the wizard state without its derived `available` lists
+ * (design 5.7: "`available` and all this.ui state are EXCLUDED (derivable / transient)").
+ * Returns a copy; the live wizard state keeps its lists.
+ */
+function withoutDerivedState(data) {
+  if (!data || typeof data !== "object") return data;
+  const stored = { ...data };
+  delete stored.available;
+  return stored;
+}
+
+/**
+ * Serialize a draft into the outer storage record. The build is stored without the derived
+ * `available` lists; the wizard rebuilds them on resume (wizard-state.js restoreDerivedState).
  * @param {{data: object, commit?: (object|null)}} input
  * @param {{systemVersion?: string, savedAt?: string}} [meta]
  * @returns {object} the storage record
@@ -46,7 +59,7 @@ export function serializeDraft({ data, commit = null }, { systemVersion = null, 
     savedAt: savedAt ?? new Date().toISOString(),
     characterName: data?.identity?.name ?? "",
     commit,
-    data,
+    data: withoutDerivedState(data),
   };
 }
 

@@ -26,6 +26,27 @@ export function toSelectionRef(item) {
 }
 
 /**
+ * The derived lists the wizard state carries beside the build. A saved draft does not store them
+ * (design 5.7: `available` is derivable), so a fresh wizard and a resumed one both get them here.
+ * Each call returns new lists.
+ */
+function createAvailable() {
+  return { specializations: [] };
+}
+
+/**
+ * Give a state read back from a saved draft the derived fields a draft leaves out, so a resumed
+ * wizard carries the same shape as a fresh one. Replaces whatever is there (an earlier version
+ * saved `available` with the draft). Mutates and returns `data`.
+ * @param {object} data a build loaded from a draft
+ * @returns {object} data
+ */
+export function restoreDerivedState(data) {
+  data.available = createAvailable();
+  return data;
+}
+
+/**
  * Build the initial draft state. Reads world settings (defaults) through
  * game.settings.get, mints a fresh commitId, and rolls spendingCredits ONCE.
  *
@@ -77,9 +98,7 @@ export function createInitialData() {
       rules: "fad",
       motivations: [],
     },
-    available: {
-      specializations: [],
-    },
+    available: createAvailable(),
     purchases: {
       xp: {
         characteristics: [],
