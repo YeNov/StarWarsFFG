@@ -195,7 +195,8 @@ Naming: `ffg-*` = standard sheets/parts; `codex-*` / `cdx-*` = Codex II sheets.
 - **package.json scripts:** `lint` (`eslint modules`), `compile`/`watch` (gulp
   CSS — **do not run**, CSS is hand-maintained).
 - **Unit tests** (`tests/`): `common.test.js`, `modifiers.test.js`,
-  `talent-tree.test.js`, `ffg-tests.js`, `v2-migration/`.
+  `ffg-tests.js`, `v2-migration/`; the pure talent-path rules are in
+  `tests/node/talent-tree.test.mjs` and `tests/node/talent-paths.test.mjs`.
 - **E2E:** `e2e/` (Playwright specs, e.g. `activeEffects.spec.js`),
   `cypress/e2e/` (init / create-entities / test-items), `playwright/` fixtures.
 

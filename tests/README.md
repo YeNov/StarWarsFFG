@@ -42,7 +42,7 @@ of its own; never point the tests at a campaign world.
 ```sh
 npm run test:foundry                          # every spec
 npm run test:foundry -- functional            # only the in-Foundry suites
-FFG_TEST_GREP="Talent Tree" npm run test:foundry -- functional
+FFG_TEST_GREP="Replace Die" npm run test:foundry -- functional
 ```
 
 The terminal shows each spec's result and a summary of the functional run. The HTML report

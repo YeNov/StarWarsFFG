@@ -5,8 +5,8 @@
  * browser console of a GM session in the test world:
  *
  *   const tests = await import("/systems/starwarsffg/tests/ffg-tests.js");
- *   const result = await tests.runFunctionalTests({ grep: "Talent Tree" });  // the JSON result
- *   new tests.default({ grep: "Talent Tree" }).render(true);                  // or a results window
+ *   const result = await tests.runFunctionalTests({ grep: "Replace Die" });  // the JSON result
+ *   new tests.default({ grep: "Replace Die" }).render(true);                  // or a results window
  *
  * runFunctionalTests(options) -> Promise<FunctionalTestResult>
  *   options.grep           Mocha grep over full test titles: a string (a regular expression source,
@@ -72,7 +72,6 @@ const SYSTEM_SUITES = [
   ["HelpersTests", () => import("./common.test.js")],
   ["ModifiersTests", () => import("./modifiers.test.js")],
   ["ReplaceDieTests", () => import("./replace-die.test.js")],
-  ["TalentTreeTests", () => import("./talent-tree.test.js")],
   ["SheetTabCacheTests", () => import("./v2-migration/sheet-tab-cache.test.js")],
   ["FormSubmitCoalesceTests", () => import("./v2-migration/form-submit-coalesce.test.js")],
   ["SheetInitialSizeTests", () => import("./v2-migration/sheet-initial-size.test.js")],
