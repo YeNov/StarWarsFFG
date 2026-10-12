@@ -251,6 +251,27 @@ test("sourceSettingPackIds normalises comma-separated and array settings", () =>
   assert.deepEqual(sourceSettingPackIds(null), []);
 });
 
+test("a pack named twice in a source setting is listed once, where it was first named", () => {
+  // A *Compendiums setting is a free-text, comma-separated list, so a pack can be typed twice (also
+  // with different spacing). Each pack contributes its items once (ruling R36).
+  const repeatedInString = sourceSettingPackIds("world.gear, world.armour ,world.gear,world.gear");
+  const repeatedInArray = sourceSettingPackIds(["world.armour", "world.gear", " world.armour ", "world.gear"]);
+
+  assert.deepEqual(repeatedInString, ["world.gear", "world.armour"]);
+  assert.deepEqual(repeatedInArray, ["world.armour", "world.gear"]);
+});
+
+test("a pack named twice is counted and reported missing once", () => {
+  const nothingResolves = () => false;
+
+  const missing = missingSourcePackIds("world.gone,world.gone", nothingResolves);
+  const status = sourcePackStatus("world.gone, world.gone", nothingResolves);
+
+  assert.deepEqual(missing, ["world.gone"]);
+  assert.deepEqual(status.packIds, ["world.gone"]);
+  assert.deepEqual(status.missingPackIds, ["world.gone"]);
+});
+
 test("missingSourcePackIds returns configured pack ids that do not resolve", () => {
   const present = new Set(["pack.one", "pack.three"]);
   assert.deepEqual(

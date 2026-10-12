@@ -4,6 +4,7 @@
 * Fixed — **attacks made from Token Action HUD counted the target's defence twice** ([#104](https://github.com/YeNov/StarWarsFFG/pull/104)), so a target with defence 2 added 4 setback dice instead of 2 (since 2.1.3). Attacks from the character sheet were not affected.
 * Fixed — **the Codex + and − buttons on a minion group or minion vehicle group now behave at the ends**. + on a group wiped out by a big hit brings back exactly one member (it left the group wiped out), + on a group that has lost nobody changes nothing (it cleared a single point of damage), and − on a wiped-out group changes nothing (after a big hit it lowered the damage).
 * Fixed — **every minion kill after the first left one extra wound on the next minion**, so the group lost members early (with 3 wounds per minion, a kill at 4 wounds went to 8 instead of 7). The classic sheet's Kill Minion button and a critical hit on a minion group now remove exactly one minion each time and keep any damage already on the next; a kill with no minion left does nothing.
+* Fixed — **a compendium listed twice in a PC Wizard Compendiums setting no longer shows its items twice** in the wizard's lists.
 
 `2.1.6`
 Parry and Reflect in Apply Damage, a GM-set default sheet theme for the table, and fixes for players browsing compendium items and read-only Codex sheets. Codex II moves to a separate module in the next release.

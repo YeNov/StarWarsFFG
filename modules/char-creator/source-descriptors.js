@@ -136,15 +136,17 @@ export function passesSourceAvailabilityGate(
 /**
  * Normalise a source setting into a trimmed list of compendium ids. The legacy
  * settings are comma-separated strings, but accepting arrays keeps the UI ready
- * for a future settings migration.
+ * for a future settings migration. A pack named more than once is listed once,
+ * where it was first named, so it contributes its items once.
  * @param {(string|string[]|null|undefined)} settingValue
  * @returns {string[]}
  */
 export function sourceSettingPackIds(settingValue) {
   const values = typeof settingValue === "string" ? settingValue.split(",") : (settingValue || []);
-  return values
+  const packIds = values
     .map((value) => typeof value === "string" ? value.trim() : value)
     .filter((value) => typeof value === "string" && value.length > 0);
+  return [...new Set(packIds)];
 }
 
 /**
