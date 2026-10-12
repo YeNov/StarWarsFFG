@@ -1,6 +1,6 @@
 
 import {chromium, type FullConfig} from '@playwright/test';
-import {assertTestWorld} from './foundry.js';
+import {assertNoLeaks, assertTestWorld, openGame, worldLeaks, worldSnapshot} from './foundry.js';
 
 async function globalSetup(config: FullConfig) {
   // TODO: this should probably be done before each test instead of globally
@@ -27,8 +27,22 @@ async function globalSetup(config: FullConfig) {
   await page.waitForURL(/\/game$/, { timeout: 60_000 });
   await page.waitForFunction(() => (globalThis as any).game?.ready === true, null, { timeout: 120_000 });
 
+  // The world as the run found it. The returned teardown fails the run if any spec left it changed.
+  const baseline = await worldSnapshot(page);
   await page.context().storageState({ path: storageState as string });
   await browser.close();
+
+  return async () => {
+    const teardownBrowser = await chromium.launch({ channel });
+    try {
+      const context = await teardownBrowser.newContext({ baseURL, storageState: storageState as string, viewport: { width: 1440, height: 900 } });
+      const gm = await context.newPage();
+      await openGame(gm);
+      assertNoLeaks(await worldLeaks(gm, baseline), 'the Playwright run');
+    } finally {
+      await teardownBrowser.close();
+    }
+  };
 }
 
 export default globalSetup;

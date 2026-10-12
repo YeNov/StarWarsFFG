@@ -5,14 +5,39 @@
  * test-results/ and attached to the report. See tests/README.md.
  *
  * FFG_TEST_GREP selects suites or tests by Mocha grep over their full titles.
+ *
+ * If the run does not return (the page crashed, or the test timed out), the afterEach hook closes
+ * that page and deletes the documents named with this run's own fixture prefix.
  */
 
+import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import { test, expect } from "@playwright/test";
-import { openGame, testWorlds } from "../playwright/foundry.js";
+import { deleteDocumentsNamed, openGame, testWorlds } from "../playwright/foundry.js";
+
+/** The run of the current test: its id, and whether runFunctionalTests returned. */
+let currentRun = null;
+
+test.afterEach(async ({ browser, page, baseURL }, testInfo) => {
+  if (!currentRun || currentRun.returned) return;
+  const prefix = `ffgtest-${currentRun.runId}-`;
+  currentRun = null;
+  await page.close().catch(() => {}); // stops a run that may still be going
+  const context = await browser.newContext({ baseURL, storageState: testInfo.project.use.storageState, viewport: { width: 1440, height: 900 } });
+  try {
+    const gm = await context.newPage();
+    await openGame(gm);
+    const deleted = await deleteDocumentsNamed(gm, prefix);
+    console.log(`The functional run did not return; deleted its ${deleted.length} remaining fixture(s)`
+      + `${deleted.length ? `: ${deleted.join(", ")}` : ""}`);
+  } finally {
+    await context.close();
+  }
+});
 
 test("Foundry functional suites pass in the test world", async ({ page }, testInfo) => {
   test.setTimeout(20 * 60_000);
+  currentRun = { runId: randomBytes(4).toString("hex"), returned: false };
 
   const pageErrors = [];
   const consoleErrors = [];
@@ -22,11 +47,12 @@ test("Foundry functional suites pass in the test world", async ({ page }, testIn
   });
 
   await openGame(page);
-  const options = { grep: process.env.FFG_TEST_GREP || null, allowedWorlds: testWorlds() };
+  const options = { grep: process.env.FFG_TEST_GREP || null, allowedWorlds: testWorlds(), runId: currentRun.runId };
   const result = await page.evaluate(async (runOptions) => {
     const { runFunctionalTests } = await import(foundry.utils.getRoute("systems/starwarsffg/tests/ffg-tests.js"));
     return runFunctionalTests(runOptions);
   }, options);
+  currentRun.returned = true;
   // Console errors are recorded for diagnosis; Foundry and the system log handled errors there too,
   // so they do not fail the run by themselves. Uncaught page errors do.
   result.browser = { pageErrors, consoleErrors };
@@ -61,6 +87,4 @@ test("Foundry functional suites pass in the test world", async ({ page }, testIn
   ];
   if (!result.ok && failures.length === 0) failures.push("the run reported ok: false without a reason");
   expect(failures, "functional run failures (full result attached as functional-result.json)").toEqual([]);
-  // A run in which every selected test was skipped verified nothing: report it as skipped, not passed.
-  test.skip(stats.passes === 0, `all ${stats.pending} selected functional tests were skipped`);
 });

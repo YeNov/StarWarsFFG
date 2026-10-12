@@ -18,7 +18,11 @@
  * `sessions.gm` is the test's own `page`, joined as the GM by the global setup. Each player is a
  * new user with a random per-run password, joined in its own browser context. When the test ends,
  * the player contexts are closed and every document and user the test created through `sessions`
- * is deleted, pass or fail. Nothing is written to disk: player sessions live only in memory.
+ * is deleted, pass or fail, and the world must then match a snapshot taken before the test.
+ * Nothing is written to disk: player sessions live only in memory.
+ *
+ * The global setup (playwright/setup.ts) snapshots the world too, and its teardown fails the whole
+ * Playwright run if the world differs afterwards, whichever spec changed it.
  */
 
 import { randomBytes } from "node:crypto";
@@ -97,6 +101,67 @@ export async function joinAs(context, baseURL, { id, password = "" }) {
     data: { action: "join", userid: id, password },
   });
   if (!response.ok()) throw new Error(`joining as user ${id} failed: ${response.status()} ${await response.text()}`);
+}
+
+const WORLD_STATE_MODULE = "systems/starwarsffg/tests/harness/world-state.js";
+
+/**
+ * A serialisable snapshot of the world, taken from `page` (tests/harness/world-state.js
+ * captureWorld: documents with everything embedded in them, world compendium entries, world-stored
+ * settings).
+ * @param {import("@playwright/test").Page} page  A GM session.
+ */
+export function worldSnapshot(page) {
+  return page.evaluate(
+    async (path) => (await import(foundry.utils.getRoute(path))).captureWorld(),
+    WORLD_STATE_MODULE,
+  );
+}
+
+/**
+ * The differences between `before` and the world now, as leaks. Deletions made just before the
+ * call can take a moment to reach this page, so a difference must persist for `settle` ms.
+ * @param {import("@playwright/test").Page} page  A GM session.
+ * @param {object} before                          From worldSnapshot().
+ * @returns {Promise<Array<{kind: string, message: string}>>}
+ */
+export async function worldLeaks(page, before, { settle = 5000 } = {}) {
+  const deadline = Date.now() + settle;
+  for (;;) {
+    const leaks = await page.evaluate(async ({ path, before }) => {
+      const { captureWorld, diffWorld } = await import(foundry.utils.getRoute(path));
+      return diffWorld(before, await captureWorld());
+    }, { path: WORLD_STATE_MODULE, before });
+    if (!leaks.length || Date.now() >= deadline) return leaks;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
+/** Throws, listing every leak, when `leaks` is not empty. */
+export function assertNoLeaks(leaks, what) {
+  if (leaks.length) throw new Error(`${what} left the world changed:\n${leaks.map((leak) => `  ${leak.kind}: ${leak.message}`).join("\n")}`);
+}
+
+/**
+ * Deletes the world documents whose names start with `prefix`: what an aborted run with that
+ * prefix left behind. Only that run's own documents carry its prefix.
+ * @param {import("@playwright/test").Page} page  A GM session.
+ * @param {string} prefix                        A run's fixture prefix, `ffgtest-<runId>-`.
+ * @returns {Promise<string[]>}  "<documentName> <name>" of each document deleted.
+ */
+export function deleteDocumentsNamed(page, prefix) {
+  if (!/^ffgtest-[\w-]+-$/.test(prefix)) throw new Error(`"${prefix}" is not a run's fixture prefix`);
+  return page.evaluate(async (prefix) => {
+    const deleted = [];
+    for (const [documentName, collection] of game.collections.entries()) {
+      if (documentName === "Setting") continue;
+      const docs = collection.filter((doc) => typeof doc.name === "string" && doc.name.startsWith(prefix));
+      if (!docs.length) continue;
+      await getDocumentClass(documentName).deleteDocuments(docs.map((doc) => doc.id));
+      deleted.push(...docs.map((doc) => `${documentName} ${doc.name}`));
+    }
+    return deleted;
+  }, prefix);
 }
 
 /** A player join loads the whole game in a new browser; each one adds this to the test's timeout. */
@@ -190,17 +255,28 @@ export class FoundrySessions {
   }
 }
 
-/** Playwright's `test` with a `sessions` fixture: a FoundrySessions on the GM `page`. */
+/**
+ * Playwright's `test` with a `sessions` fixture: a FoundrySessions on the GM `page`. Around the
+ * test it compares the world with a snapshot taken before, so a document created by the code
+ * under test in any session (a player's chat message, say) fails the test that left it.
+ */
 export const test = base.extend({
   sessions: async ({ browser, page, baseURL, viewport }, use, testInfo) => {
     if (!baseURL) throw new Error("Playwright baseURL is not configured");
     await openGame(page);
+    const before = await worldSnapshot(page);
     const sessions = new FoundrySessions({ browser, gm: page, baseURL, contextOptions: { viewport }, testInfo });
+    let disposeError = null;
     try {
-      await use(sessions);
+      await use(sessions); // resolves when the test ends, whether it passed or failed
     } finally {
-      await sessions.dispose();
+      await sessions.dispose().catch((error) => {
+        disposeError = error;
+      });
     }
+    const leaks = await worldLeaks(page, before);
+    if (disposeError) throw disposeError;
+    assertNoLeaks(leaks, `test "${testInfo.title}"`);
   },
 });
 
