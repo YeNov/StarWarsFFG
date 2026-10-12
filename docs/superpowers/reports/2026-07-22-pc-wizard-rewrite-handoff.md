@@ -7,6 +7,8 @@ decisions and follow-ups for the repo maintainer; they are not user documentatio
 Decisions and follow-ups the owner should be aware of:
 
 1. **Q-2 — `2k_credits` grants 2500** (not 2000), ported verbatim from the legacy table (Stage 7).
+   Resolved: the owner confirmed on 2026-10-12 that 2,500 is correct. The labels already read
+   "+2,500 starting credits"; the internal `2k` keys stay because saved drafts store them.
 2. **Sources-panel placement** — design default: a header-button overlay (not a tab).
 3. **GM-absent flow** — the wizard **opens** without a GM online. The planned "No GM" notice
    (`SWFFG.CharacterCreator.Notify.NoGm`) is **not wired up**; the player only sees the

@@ -522,8 +522,8 @@ the starting-bonus choice).
 **One grant table** (`starting-bonus.js`): `STARTING_BONUS[rules][choice] = {xp, credits,
 morality, dutyDelta, obligationDelta}`, transcribed exactly from `selectStartingBonus`
 (`:865-908`) and the `calcObligation` branches — including the preserved quirk that
-`2k_credits` grants 2500 (`:884,:902` — Q-2, owner decision pending §10). This table is the
-**only** source for both the `grants.bonus` display and the obligation math — fixing BUG-2 and
+`2k_credits` grants 2500 (`:884,:902` — Q-2, owner decision 2026-10-12: correct as is, §10).
+This table is the **only** source for both the `grants.bonus` display and the obligation math — fixing BUG-2 and
 the audited coupling defect (KEEP-4: `calcObligation` currently re-derives the adjustment
 independently of `grants.bonus`).
 
@@ -1154,7 +1154,7 @@ pure in `_prepareContext` over cached refs with a targeted `render({parts: ["gea
 | N-6 | `:1114-1149` vs `:1766-1774` | Credit-purchased gear absent from preview, present in final | embedded in both paths — §5.5.4 |
 | N-7 | wizard `:1434,:1461-1468` vs sheet `item-sheet-ffg.js:1776-1777` | Wizard never syncs tree AEs after `islearned` flips — purchased nodes stat-inert | `materializeTreePurchases` via the shared reconciliation core — §5.5.5/§5.10.1 |
 | Q-1 | `:172,:1775-1779` | d100 `spendingCredits` applied at commit only, never previewed | kept (FFG RAW pocket money); persisted in draft; previewed — §5.2 |
-| Q-2 | `:884,:902` | `2k_credits` grants 2500 | ported verbatim; owner decision pending — §5.4/§10 |
+| Q-2 | `:884,:902` | `2k_credits` grants 2500 | ported verbatim; owner decision 2026-10-12: 2,500 is correct, the `2k` keys keep their names — §5.4/§10 |
 
 ### 6.4 New features
 
@@ -1231,9 +1231,9 @@ never a lost or corrupted build.**
    feedback.
 2. **Multiple named drafts** — one slot per user in v1; the schema's `characterName` supports
    a list in v2 without migration pain.
-3. **Q-2** — `2k_credits` grants 2500 (label/value mismatch, ported verbatim): owner may fix
-   label or value; one line either way, but visibly behavior-changing, so it needs an
-   explicit decision.
+3. **Q-2** — `2k_credits` grants 2500, ported verbatim. **Decided 2026-10-12:** the owner
+   confirmed 2,500 is correct. The labels already read "+2,500 starting credits", so only the
+   internal `2k` keys disagree, and they stay as they are because saved drafts store them.
 4. **Fork release endpoints** — if the fork is ever distributed, `system.json` needs
    fork-owned `url`/`manifest`/`download` and a release archive (today they point upstream).
    Owner decision, outside this feature (§8-6).

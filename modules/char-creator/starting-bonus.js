@@ -15,24 +15,26 @@
  * here — the legacy code routed them to `bonus[undefined]` by reading a nonexistent
  * legacy field. The table makes the target explicit and correct.
  *
- * Q-2 (preserved quirk, flagged at Stage 22): `2k_credits` grants 2500, not 2000.
+ * Q-2 (owner decision, 2026-10-12): the `*_2k_credits` options grant 2,500 credits, and that is
+ * correct. The labels already read "+2,500 starting credits"; only the internal keys say `2k`.
+ * Do not rename the keys: saved drafts store them.
  */
 
 export const STARTING_BONUS = Object.freeze({
   "aor_5xp": Object.freeze({ xp: 5, duty: 5 }),
   "aor_10xp": Object.freeze({ xp: 10, duty: 10 }),
   "aor_1k_credits": Object.freeze({ credits: 1000, duty: 5 }),
-  "aor_2k_credits": Object.freeze({ credits: 2500, duty: 10 }), // Q-2
+  "aor_2k_credits": Object.freeze({ credits: 2500, duty: 10 }), // Q-2 (owner decision)
   "aor_5xp_1k_credits": Object.freeze({ xp: 5, credits: 1000, duty: 10 }),
   "fad_10xp": Object.freeze({ xp: 10 }),
-  "fad_2k_credits": Object.freeze({ credits: 2500 }), // Q-2
+  "fad_2k_credits": Object.freeze({ credits: 2500 }), // Q-2 (owner decision)
   "fad_5xp": Object.freeze({ xp: 5, credits: 1000 }),
   "fad_21_plus_morality": Object.freeze({ morality: 21 }),
   "fad_21_minus_morality": Object.freeze({ morality: -21 }),
   "eote_5xp": Object.freeze({ xp: 5, obligation: 5 }),
   "eote_10xp": Object.freeze({ xp: 10, obligation: 10 }),
   "eote_1k_credits": Object.freeze({ credits: 1000, obligation: 5 }),
-  "eote_2k_credits": Object.freeze({ credits: 2500, obligation: 10 }), // Q-2
+  "eote_2k_credits": Object.freeze({ credits: 2500, obligation: 10 }), // Q-2 (owner decision)
   "eote_5xp_1k_credits": Object.freeze({ xp: 5, credits: 1000, obligation: 10 }),
 });
 
