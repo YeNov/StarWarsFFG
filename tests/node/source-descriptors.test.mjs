@@ -296,7 +296,8 @@ test("each call to importCatalogOptions returns an option set of its own", () =>
 
   const second = importCatalogOptions("gear");
 
-  assert.deepEqual(second.exclusions, { gear: ["enabled:world"] });
+  assert.equal(isSourceEnabled("gear", "world.homebrew-gear", second.exclusions), true);
+  assert.equal(isSourceEnabled("gear", "world", second.exclusions), true);
 });
 
 test("sourceSettingPackIds normalises comma-separated and array settings", () => {

@@ -5,7 +5,9 @@
 // against (collectLiveEntries) holds every source the Gear pool has - all configured compendiums
 // and the world items - whatever the importing player switched off in their own Content sources
 // panel, and it is read fresh for every import, so an item edited between two imports is seen
-// edited. A compendium listed twice in a source setting contributes its items once.
+// edited. A world item that is a copy of a compendium item (it keeps the compendium item's
+// ffgimportid) is left out, so it does not make the import ask the user to choose between the two.
+// A compendium listed twice in a source setting contributes its items once.
 //
 // Each case builds its own empty world Item compendium and deletes it afterwards, and points the
 // Gear pool's setting (itemCompendiums) at it for the duration of the case.
@@ -18,6 +20,7 @@ import { FLAG_SCOPE, FLAGS } from "../modules/char-creator/constants.js";
 import { invalidateSourceCache, loadSource } from "../modules/char-creator/load-source.js";
 import { setSourceEnabled } from "../modules/char-creator/source-descriptors.js";
 import { collectLiveEntries } from "../modules/importer/hyperdrive/importer-app.js";
+import { buildImportIndex } from "../modules/importer/hyperdrive/resolve.js";
 
 /** Reading every pool's packs can take a while in a world with the full OggDude data. */
 const CATALOG_TIMEOUT = 120_000;
@@ -38,8 +41,8 @@ export const HyperdriveImportCatalogTests = (suite, suiteInstance, Test, chai, h
     }
   };
 
-  const createGear = (pack, label) =>
-    Item.implementation.create({ name: harness.fixtures.name(label), type: "gear" }, { pack: pack.collection });
+  const createGear = (pack, label, data = {}) =>
+    Item.implementation.create({ name: harness.fixtures.name(label), type: "gear", ...data }, { pack: pack.collection });
 
   /** Points the Gear pool at exactly these compendiums; the setting is restored after the case. */
   const configureGearPacks = (...packs) =>
@@ -50,6 +53,8 @@ export const HyperdriveImportCatalogTests = (suite, suiteInstance, Test, chai, h
    * ({ gear: [...] }, the shape setSourceEnabled stores).
    */
   const withWizardChoice = async (selection, body) => {
+    // getFlag normally comes from the prototype; put back exactly what was there before.
+    const hadOwnGetFlag = Object.hasOwn(game.user, "getFlag");
     const original = game.user.getFlag;
     game.user.getFlag = function (scope, key) {
       if (scope === FLAG_SCOPE && key === FLAGS.sourceSelection) return foundry.utils.deepClone(selection);
@@ -58,7 +63,8 @@ export const HyperdriveImportCatalogTests = (suite, suiteInstance, Test, chai, h
     try {
       return await body();
     } finally {
-      delete game.user.getFlag;
+      if (hadOwnGetFlag) game.user.getFlag = original;
+      else delete game.user.getFlag;
       invalidateSourceCache("gear");
     }
   };
@@ -149,6 +155,26 @@ export const HyperdriveImportCatalogTests = (suite, suiteInstance, Test, chai, h
         // the same array: the wizard's cache entry was neither replaced nor refilled by the import
         expect(wizardPoolAfter).to.equal(wizardPoolBefore);
       });
+    });
+  }));
+
+  _suite.addTest(new Test("a world copy of a compendium item is left out and does not produce an ambiguity finding", async function () {
+    this.timeout(CATALOG_TIMEOUT);
+    await withGearPack("world-twin", async (pack) => {
+      const importId = `FFGTEST-${harness.runId}`;
+      const gear = await createGear(pack, "twinned-gear", { flags: { starwarsffg: { ffgimportid: importId } } });
+      await configureGearPacks(pack);
+      // a copy dragged out of the compendium: it keeps the import id and records where it came from
+      const worldCopy = await harness.fixtures.create("Item", game.items.fromCompendium(gear));
+      expect(worldCopy.getFlag("starwarsffg", "ffgimportid"), "the copy keeps the import id").to.equal(importId);
+
+      const entries = await collectLiveEntries();
+      const index = buildImportIndex(entries);
+      const match = index.getByKey("gear", importId);
+
+      expect(entries.some((entry) => entry.ref.uuid === worldCopy.uuid), "the world copy is not in the catalog").to.equal(false);
+      expect(match.ref.uuid, "the import matches the compendium item").to.equal(gear.uuid);
+      expect(index.ambiguities.filter((ambiguity) => ambiguity.key === importId), "no ambiguity for the key").to.have.length(0);
     });
   }));
 

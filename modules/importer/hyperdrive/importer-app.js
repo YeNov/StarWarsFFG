@@ -16,6 +16,7 @@ import {
   buildSnapshotIndex,
   buildSkillMetadata,
   collectImportEntries,
+  dropWorldTwins,
   resolveFindingOverride,
 } from "./resolve.js";
 import { buildInPlace } from "./in-place.js";
@@ -97,7 +98,9 @@ async function collectLiveEntries() {
       }
     }
   }
-  return collectImportEntries({ selectionRefs, docLists: documentLists })
+  // The pools now include the world items, so leave out the ones that are copies of a pack
+  // entry (a copy dragged from a pack keeps its ffgimportid): each would be a second match.
+  return dropWorldTwins(collectImportEntries({ selectionRefs, docLists: documentLists }))
     .map((entry) => ({
       ...entry,
       ref: decorateRefSource(entry.ref),

@@ -8,6 +8,7 @@ import {
   buildSnapshotIndex,
   buildSkillMetadata,
   collectImportEntries,
+  dropWorldTwins,
   entriesFromDocs,
   entriesFromSelectionRefs,
   findIndexedSnapshot,
@@ -191,6 +192,82 @@ test("configured PC-creator selection refs become deduplicated import entries", 
   assert.equal(entries.length, 1);
   assert.equal(entries[0].ref.snapshot.name, "Weighted Head");
   assert.equal(entries[0].itemType, "itemattachment");
+});
+
+// ---------------------------------------------------------------------------------------------
+// World items and compendium entries share one catalog (ruling R35). A world item that is a copy
+// of a compendium entry keeps its ffgimportid and name, so left in it would be a second match for
+// the same key, and every ambiguity stops the import at the review step. The compendium entry
+// wins, silently; anything without a twin stays.
+// ---------------------------------------------------------------------------------------------
+
+const packUuid = (name) => `Compendium.world.oggdudegear.Item.${name.replace(/\W/g, "")}`;
+const packEntry = (type, id, name) => entry(type, id, name, packUuid(name));
+const worldEntry = (type, id, name, compendiumSource = undefined) => {
+  const world = entry(type, id, name, `Item.${name.replace(/\W/g, "")}`);
+  if (compendiumSource) world.ref.snapshot._stats = { compendiumSource };
+  return world;
+};
+
+test("a world copy of a compendium item is left out, so the import finds one match and no ambiguity", () => {
+  const blaster = packEntry("weapon", "BLASTER", "Blaster Pistol");
+  const worldCopy = worldEntry("weapon", "BLASTER", "Blaster Pistol");
+  const other = packEntry("gear", "COMLINK", "Comlink");
+  const entries = [blaster, worldCopy, other];
+
+  const kept = dropWorldTwins(entries);
+  const indexWithoutRule = buildImportIndex(entries);
+  const index = buildImportIndex(kept);
+
+  assert.deepEqual(kept, [blaster, other]);
+  assert.equal(entries.length, 3, "the input is not changed");
+  indexWithoutRule.getByKey("weapon", "BLASTER");
+  assert.equal(indexWithoutRule.ambiguities.length, 1, "the copy alone would raise an ambiguity");
+  assert.equal(index.getByKey("weapon", "BLASTER"), blaster);
+  assert.equal(index.getByName("weapon", "Blaster Pistol"), blaster);
+  assert.equal(index.ambiguities.length, 0);
+});
+
+test("a world item that was made from a compendium entry is left out whatever its own key and name", () => {
+  const blaster = packEntry("weapon", "BLASTER", "Blaster Pistol");
+  const renamedCopy = worldEntry("weapon", null, "Old Blaster", packUuid("Blaster Pistol"));
+
+  const kept = dropWorldTwins([blaster, renamedCopy]);
+
+  assert.deepEqual(kept, [blaster]);
+});
+
+test("a world item with no compendium twin stays in the catalog", () => {
+  const blaster = packEntry("weapon", "BLASTER", "Blaster Pistol");
+  const homebrew = worldEntry("weapon", null, "Kitchen Blaster");
+  const homebrewWithKey = worldEntry("weapon", "HOMEBREW", "Garage Blaster");
+  const sameKeyOtherType = worldEntry("gear", "BLASTER", "Blaster Holster");
+  const copyOfUnconfiguredPack = worldEntry("weapon", "ELSEWHERE", "Pack Blaster", "Compendium.world.notconfigured.Item.abc");
+
+  const kept = dropWorldTwins([blaster, homebrew, homebrewWithKey, sameKeyOtherType, copyOfUnconfiguredPack]);
+
+  assert.deepEqual(kept, [blaster, homebrew, homebrewWithKey, sameKeyOtherType, copyOfUnconfiguredPack]);
+});
+
+test("a world item that shares only a name with a compendium entry stays and is a real ambiguity", () => {
+  const blaster = packEntry("weapon", "BLASTER", "Blaster Pistol");
+  const sameNameNoKey = worldEntry("weapon", null, "Blaster Pistol");
+
+  const kept = dropWorldTwins([blaster, sameNameNoKey]);
+  const index = buildImportIndex(kept);
+  index.getByName("weapon", "Blaster Pistol");
+
+  assert.deepEqual(kept, [blaster, sameNameNoKey]);
+  assert.equal(index.ambiguities.length, 1);
+});
+
+test("two compendium entries with the same key both stay, as before world items joined the catalog", () => {
+  const first = packEntry("weapon", "BLASTER", "Blaster Pistol");
+  const second = entry("weapon", "BLASTER", "Blaster Pistol", "Compendium.world.otherpack.Item.copy");
+
+  const kept = dropWorldTwins([first, second]);
+
+  assert.deepEqual(kept, [first, second]);
 });
 
 test("live skill metadata uses import ids and the selected alternate skill theme", () => {

@@ -383,6 +383,41 @@ export function collectImportEntries({
   });
 }
 
+const COMPENDIUM_UUID = /^Compendium\./;
+const WORLD_ITEM_UUID = /^Item\./;
+
+/**
+ * Leave out the world items that are copies of a compendium entry already in the
+ * catalog (ruling R35, the world-twin rule). The importer reads the world items as
+ * well as the packs, and a copy dragged out of a pack keeps its `ffgimportid` and
+ * name, so without this every such copy would be a second match for the same key,
+ * and each ambiguity stops the import at the review step. The compendium entry
+ * wins, silently, as it did before world items joined the catalog.
+ *
+ * A world item is a twin when it has the same item type and `ffgimportid` as a
+ * compendium entry, or when its `_stats.compendiumSource` is the uuid of one. A
+ * homebrew world item, a copy of a pack that is not configured, and an item that
+ * shares only a name with a compendium entry have no twin and stay (the last one
+ * is a real ambiguity).
+ *
+ * @param {Array<object>} entries  Import entries (entriesFromDocs / entriesFromSelectionRefs).
+ *   World entries are recognised by an `Item.` uuid, compendium entries by `Compendium.`.
+ * @returns {Array<object>} The entries without the world twins, order kept.
+ */
+export function dropWorldTwins(entries = []) {
+  const compendiumEntries = entries.filter((entry) => COMPENDIUM_UUID.test(entry?.ref?.uuid ?? ""));
+  const keys = new Set(compendiumEntries
+    .filter((entry) => entry.ffgimportid)
+    .map((entry) => `${entry.itemType} ${entry.ffgimportid}`));
+  const uuids = new Set(compendiumEntries.map((entry) => entry.ref.uuid));
+  return entries.filter((entry) => {
+    if (!WORLD_ITEM_UUID.test(entry?.ref?.uuid ?? "")) return true;
+    if (entry.ffgimportid && keys.has(`${entry.itemType} ${entry.ffgimportid}`)) return false;
+    const source = entry.ref.snapshot?._stats?.compendiumSource;
+    return !(source && uuids.has(source));
+  });
+}
+
 const HYPERDRIVE_SKILL_NAME_PAIRS = [
   ["CORE", "Core Worlds", "Knowledge: Core Worlds"],
   ["EDU", "Education", "Knowledge: Education"],
