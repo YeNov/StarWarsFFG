@@ -121,7 +121,7 @@ const DESTROY_ONE_UNIT = [
   [7, 13, "just above the threshold one unit is already lost, so exactly one threshold more"],
   [12, 18, "partial damage survives the second loss"],
   [13, 19, "no partial damage, exactly one threshold more"],
-  [18, 24, "4 units to 2: the third loss keeps its 5 partial damage"],
+  [18, 24, "2 units up to 1: the third loss keeps its 5 partial damage"],
   [19, 25, "the last unit goes, taking the group to the wiped-out damage"],
   [24, 25, "the last unit goes with partial damage on it, which cannot be kept"],
   [25, 25, "nothing left to destroy"],
@@ -134,9 +134,13 @@ test("destroying a unit keeps the partial damage on the next one", () => {
   assert.equal(unitsLeft(stepUnits(9, 6, 4, -1), 6, 4), 2, "a unit fewer after the step");
 });
 
-// [damage, damage after reviving one unit]; the same 4 units of 6.
+// [damage, damage after reviving one unit]; the same 4 units of 6. Damage past the wipe-out (25)
+// is the same wiped-out group: it is read as 25 before the unit moves, so one revive leaves
+// exactly one unit up and no partial damage, however far the hits overshot.
 const REVIVE_ONE_UNIT = [
   [25, 19, "a wiped-out group gets one unit back, with no partial damage"],
+  [26, 19, "one point past the wipe-out is still a wiped-out group"],
+  [100, 19, "damage far past the wipe-out revives exactly one unit"],
   [19, 13, "one more threshold comes off"],
   [13, 7, "one more threshold comes off"],
   [7, 0, "reviving the last lost unit leaves a clean group"],
@@ -146,6 +150,7 @@ const REVIVE_ONE_UNIT = [
   [9, 3, "2 partial damage is kept when the first lost unit returns"],
   [6, 6, "no unit is lost, so there is nothing to revive and the partial damage stays"],
   [5, 5, "no unit is lost, so there is nothing to revive and the partial damage stays"],
+  [1, 1, "no unit is lost, so there is nothing to revive and a single point of damage stays"],
   [0, 0, "a clean group stays clean"],
 ];
 
@@ -170,6 +175,8 @@ test("an empty group has no unit to destroy or revive", () => {
   assert.equal(unitsLeft(0, 6, 0), 0);
   assert.equal(stepUnits(0, 6, 0, -1), 0);
   assert.equal(stepUnits(0, 6, 0, 1), 0);
+  assert.equal(stepUnits(1, 6, 0, -1), 1, "the one point past a threshold of 0 stays");
+  assert.equal(stepUnits(1, 6, 0, 1), 1);
   assert.equal(wipeOutDamage(6, 0), 1, "one past a threshold of 0");
 });
 
@@ -184,7 +191,8 @@ const partialOn = (damage, perUnit) => (damage >= 1 ? (damage - 1) % perUnit : 0
 test("one step changes the units left by exactly one where a unit can move, and by none at the ends", () => {
   for (const perUnit of THRESHOLDS) {
     for (const size of SIZES) {
-      for (let damage = 0; damage <= lastPoint(perUnit, size); damage++) {
+      // past the last point too: a hit can overshoot the wipe-out, and a revive still brings one unit back
+      for (let damage = 0; damage <= lastPoint(perUnit, size) + 2 * perUnit + 3; damage++) {
         for (const dir of [-1, 1]) {
           const before = unitsLeft(damage, perUnit, size);
           const after = unitsLeft(stepUnits(damage, perUnit, size, dir), perUnit, size);
@@ -200,15 +208,13 @@ test("one step changes the units left by exactly one where a unit can move, and 
   }
 });
 
-// Spec section 3: a step "returns the input unchanged at either end". Damage 1 is left out on
-// purpose and NOT pinned either way: the stepper reads it as a clean group (a single point leaves
-// no partial damage and loses no unit), so a step that cannot move a unit clears it to 0, as the
-// Codex stepper it came from always did. Whether that should stay 1 is an open question.
+// Spec section 3: a step "returns the input unchanged at either end": nothing to destroy in a
+// wiped-out group, nothing to revive in a group that has lost no unit. That includes damage 1,
+// which loses no unit and leaves no partial damage.
 test("a step that cannot move a unit leaves the damage as it is", () => {
   for (const perUnit of THRESHOLDS) {
     for (const size of SIZES) {
       for (let damage = 0; damage <= lastPoint(perUnit, size); damage++) {
-        if (damage === 1) continue;
         const left = unitsLeft(damage, perUnit, size);
         if (left === 0) {
           assert.equal(stepUnits(damage, perUnit, size, -1), damage, `${size} units of ${perUnit}, ${damage} damage, destroy`);
@@ -295,14 +301,21 @@ test("the stepper truncates fractional inputs to whole numbers", () => {
 // code-only: the module and spec do not name non-numeric input, a step direction other than -1 or
 // +1, or fractional/stringy values for the other helpers. These pin what the code does today so a
 // change is deliberate; they are not a documented rule.
-test("non-numeric inputs read as 0 and no direction leaves the damage as it is (code-only)", () => {
+test("the stepper reads non-numeric damage and size as 0 and a numeric string as its number (code-only)", () => {
   assert.equal(stepUnits(undefined, 6, 4, -1), 7, "missing damage is a clean group");
   assert.equal(stepUnits("abc", 6, 4, -1), 7, "text damage is a clean group");
   assert.equal(stepUnits(NaN, 6, 4, -1), 7);
   assert.equal(stepUnits("7", 6, 4, -1), 13, "a numeric string is read as its number");
   assert.equal(stepUnits(0, 6, undefined, -1), 0, "a missing size is an empty group");
-  assert.equal(stepUnits(7, 6, 4, 0), 7, "no direction changes nothing");
+});
+
+test("a step with no direction, or a direction of 0, moves no unit when a unit is already lost (code-only)", () => {
+  assert.equal(stepUnits(7, 6, 4, 0), 7);
+  assert.equal(stepUnits(9, 6, 4, 0), 9, "the partial damage is re-attached as it was");
   assert.equal(stepUnits(7, 6, 4, undefined), 7);
+});
+
+test("the other group helpers truncate fractions and read non-numeric input as 0 (code-only)", () => {
   assert.equal(groupThreshold("6", 4), 24);
   assert.equal(groupThreshold(6.9, 4.9), 24, "whole numbers only");
   assert.equal(groupThreshold(undefined, 4), 0);

@@ -39,18 +39,23 @@ export function groupSkillRank(left) {
  * split into lost units plus partial damage on the next unit; the lost count moves by one and the
  * SAME partial is re-attached, so a hit already sitting on the next unit survives the step. From a
  * clean group that costs per-unit + 1, afterwards exactly per-unit. Clamped to one past the
- * group threshold, which is the whole group lost.
+ * group threshold, which is the whole group lost: damage beyond it is that same wiped-out group
+ * (so one revive from any overshoot leaves exactly one unit up), and a step that has no unit to
+ * move -- destroying in a wiped-out group, reviving in a group that has lost none -- returns the
+ * damage as it was.
  */
 export function stepUnits(damage, perUnit, size, dir) {
   const unit = Math.max(1, toCount(perUnit));
   const units = toCount(size);
-  const current = toCount(damage);
   const ceiling = units * unit + 1;
+  const current = Math.min(toCount(damage), ceiling);
   const lost = current >= 1 ? Math.floor((current - 1) / unit) : 0;
   const partial = current >= 1 ? (current - 1) - lost * unit : 0;
-  const targetLost = Math.max(0, Math.min(units, lost - Math.sign(Number(dir) || 0)));
+  const step = Math.sign(Number(dir) || 0);
+  if ((step > 0 && lost === 0) || (step < 0 && lost === units)) return current;
+  const targetLost = lost - step;
   if (targetLost === 0 && partial === 0) return 0;
-  return Math.max(0, Math.min(ceiling, targetLost * unit + partial + 1));
+  return Math.min(ceiling, targetLost * unit + partial + 1);
 }
 
 /** The damage that leaves no unit standing. */

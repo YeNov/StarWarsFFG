@@ -2,6 +2,7 @@
 
 * Changed — **Configure Codex is now listed below Skill List Import** in Configure Settings, because Codex II now registers its own settings ahead of its move to a separate module.
 * Fixed — **attacks made from Token Action HUD counted the target's defence twice** ([#104](https://github.com/YeNov/StarWarsFFG/pull/104)), so a target with defence 2 added 4 setback dice instead of 2 (since 2.1.3). Attacks from the character sheet were not affected.
+* Fixed — **the Codex + button on a minion group or minion vehicle group misbehaved at both ends**. On a group damaged far past wipe-out (Apply Damage does not cap it) it left the group wiped out; it now brings back exactly one member. On a group that had lost nobody it cleared a single point of damage; it now changes nothing.
 
 `2.1.6`
 Parry and Reflect in Apply Damage, a GM-set default sheet theme for the table, and fixes for players browsing compendium items and read-only Codex sheets. Codex II moves to a separate module in the next release.
