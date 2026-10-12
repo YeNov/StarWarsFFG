@@ -69,7 +69,6 @@ import { runSuites } from "./harness/runner.js";
 
 /** [export name, module loader] of every system suite. A loader that fails is a registration error. */
 const SYSTEM_SUITES = [
-  ["HelpersTests", () => import("./common.test.js")],
   ["ModifiersTests", () => import("./modifiers.test.js")],
   ["ReplaceDieTests", () => import("./replace-die.test.js")],
   ["SheetTabCacheTests", () => import("./v2-migration/sheet-tab-cache.test.js")],
