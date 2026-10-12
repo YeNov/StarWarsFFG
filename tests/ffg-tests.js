@@ -18,8 +18,9 @@
  *   options.timeout        Per-test timeout in milliseconds. Default 60000.
  *
  * FunctionalTestResult, JSON-serialisable:
- *   ok                    True only when at least one test ran, none failed, and there is no
- *                         registration error, leak or problem. Pending tests do not fail a run.
+ *   ok                    True only when at least one test passed, none failed, and there is no
+ *                         registration error, leak or problem. Pending tests alone do not make a
+ *                         run pass: a selection in which every test was skipped is a problem.
  *   meta                  runId, startedAt, finishedAt, durationMs, system {id, version},
  *                         foundry {version, generation, build}, world {id, title}, user {id, name,
  *                         isGM}, browser (user agent), modules [{id, version}] (active ones),
@@ -30,15 +31,23 @@
  *   tests[]               {title, path[], type: "test"|"hook", state: "passed"|"failed"|"pending",
  *                         durationMs, error: {message, stack}|null, pendingReason: string|null}.
  *                         A failing hook is listed as a failed entry of type "hook".
- *   registrationErrors[]  {source: "system:<export>"|"package:<id>", message, stack}: a suite module
- *                         that failed to load, or a register function that threw.
- *   leaks[]               {kind, message, ...}: what the run left behind after fixture cleanup.
- *                         Kinds: document-created, document-deleted, document-modified (a document
- *                         that existed before the run), setting-changed (a world-stored setting),
+ *   registrationErrors[]  {source: "system:<export>"|"package:<id>"|"package:starwarsffg.functionalTests",
+ *                         message, stack}: a suite module that failed to load, a register function
+ *                         that threw or added no test, or a package hook callback that threw.
+ *   leaks[]               {kind, message, ...}: what the run left behind after fixture cleanup
+ *                         (harness/world-state.js). Kinds: document-created, document-deleted,
+ *                         document-modified (one that existed before the run) for world documents,
+ *                         every document embedded in them and world compendium entries;
+ *                         pack-created, pack-deleted; setting-changed (a world-stored setting);
  *                         window-open (windows are closed once reported).
  *   problems[]            {kind, message}: guard (refused: wrong world, not a GM, a run already in
  *                         progress), environment (Foundry reports the browser unsupported),
- *                         selection (no test ran), cleanup (a fixture could not be removed), runner.
+ *                         stale-fixtures (fixture-named documents of an earlier run are in the
+ *                         world), foundry-error (Foundry caught and reported an error through its
+ *                         "error" hook during the run: a throwing hook handler, data preparation, a
+ *                         pre-create or pre-update check, a render; with the test that was running),
+ *                         selection (no test matched, or every selected test was skipped), cleanup
+ *                         (a fixture could not be removed), runner (the runner itself failed).
  *
  * A suite is a register function, listed in SYSTEM_SUITES below or added by a package through the
  * "starwarsffg.functionalTests" hook (push `{id, register}` onto the array it passes), and called as

@@ -8,7 +8,7 @@ import "../../node_modules/mocha/mocha.js";
 import "../../node_modules/chai/chai.js";
 import { FixtureTracker } from "./fixtures.js";
 import { waitFor, waitForHook } from "./wait.js";
-import { captureWorldState, closeWindows, findLeaks, findStaleFixtures } from "./world-state.js";
+import { captureWindows, captureWorld, closeWindows, diffWorld, findStaleFixtures, findWindowLeaks } from "./world-state.js";
 
 /** Packages add their suites by pushing onto the array this hook passes. */
 export const PACKAGE_SUITES_HOOK = "starwarsffg.functionalTests";
@@ -96,12 +96,22 @@ function environmentProblems() {
   }];
 }
 
+/**
+ * Calls one register function and checks that it added at least one test: a suite that registers
+ * nothing would otherwise pass unnoticed.
+ */
+async function register(fn, root, harness) {
+  const before = root.total();
+  await fn(root, Mocha.Suite, Mocha.Test, chai, harness);
+  if (root.total() === before) throw new Error("it registered no tests");
+}
+
 async function registerSystemSuites(systemSuites, root, harness, result) {
   for (const [exportName, load] of systemSuites) {
     try {
-      const register = (await load())[exportName];
-      if (typeof register !== "function") throw new Error(`the suite module does not export ${exportName}`);
-      await register(root, Mocha.Suite, Mocha.Test, chai, harness);
+      const fn = (await load())[exportName];
+      if (typeof fn !== "function") throw new Error(`the suite module does not export ${exportName}`);
+      await register(fn, root, harness);
     } catch (error) {
       result.registrationErrors.push({ source: `system:${exportName}`, ...errorRecord(error) });
     }
@@ -110,30 +120,20 @@ async function registerSystemSuites(systemSuites, root, harness, result) {
 
 /**
  * Collects package suites through the hook. An entry is `{id, register}` or a bare register
- * function. A hook callback that throws, and a register function that throws, are both
- * registration errors.
+ * function. A register function that throws or adds no test is a registration error; so is a
+ * hook callback that throws (the run's error-hook listener records that one).
  */
 async function registerPackageSuites(root, harness, result) {
   const entries = [];
-  const hookErrors = [];
-  const errorHook = Hooks.on("error", (location, error, data) => {
-    if (data?.hook === PACKAGE_SUITES_HOOK) hookErrors.push(error);
-  });
-  try {
-    Hooks.callAll(PACKAGE_SUITES_HOOK, entries);
-  } finally {
-    Hooks.off("error", errorHook);
-  }
-  for (const error of hookErrors) result.registrationErrors.push({ source: `package:${PACKAGE_SUITES_HOOK}`, ...errorRecord(error) });
-
+  Hooks.callAll(PACKAGE_SUITES_HOOK, entries);
   for (const [index, entry] of entries.entries()) {
     const id = (typeof entry === "function" ? null : entry?.id) ?? `package-entry-${index + 1}`;
-    const register = typeof entry === "function" ? entry : entry?.register;
+    const fn = typeof entry === "function" ? entry : entry?.register;
     const record = { id, registered: false };
     result.meta.packageSuites.push(record);
     try {
-      if (typeof register !== "function") throw new Error("the hook entry has no register function");
-      await register(root, Mocha.Suite, Mocha.Test, chai, harness);
+      if (typeof fn !== "function") throw new Error("the hook entry has no register function");
+      await register(fn, root, harness);
       record.registered = true;
     } catch (error) {
       record.error = String(error?.message ?? error);
@@ -142,13 +142,71 @@ async function registerPackageSuites(root, harness, result) {
   }
 }
 
-function runMocha(mocha, tests) {
+/** Runs Mocha, recording each case, and keeps `current.title` on the test or hook running now. */
+function runMocha(mocha, tests, current) {
   return new Promise((resolve) => {
     const runner = mocha.run(() => resolve());
+    // Mocha announces a test before its beforeEach hooks run, and runs its body without an event.
+    let testTitle = null;
+    runner.on("test", (test) => {
+      testTitle = test.fullTitle();
+      current.title = testTitle;
+    });
+    runner.on("test end", () => {
+      testTitle = null;
+      current.title = null;
+    });
+    runner.on("hook", (hook) => {
+      current.title = hook.fullTitle();
+    });
+    runner.on("hook end", () => {
+      current.title = testTitle;
+    });
     runner.on("pass", (test) => tests.push(describeRunnable(test, "passed")));
     runner.on("fail", (runnable, error) => tests.push(describeRunnable(runnable, "failed", error)));
     runner.on("pending", (test) => tests.push(describeRunnable(test, "pending")));
   });
+}
+
+/**
+ * Records every error Foundry catches and reports through its "error" hook while the run is
+ * active: throwing hook handlers, document data preparation, pre-create and pre-update checks,
+ * renders. Foundry only logs these, so a test whose action triggers one would otherwise pass.
+ * @returns {number}  The hook id, for Hooks.off.
+ */
+function listenForFoundryErrors(result, current) {
+  return Hooks.on("error", (location, error, data) => {
+    if (data?.hook === PACKAGE_SUITES_HOOK) {
+      result.registrationErrors.push({ source: `package:${PACKAGE_SUITES_HOOK}`, ...errorRecord(error) });
+      return;
+    }
+    const during = current.title ? ` (during "${current.title}")` : "";
+    result.problems.push({
+      kind: "foundry-error",
+      location,
+      test: current.title,
+      ...errorRecord(error),
+      message: `${location}: ${error?.message ?? error}${during}`,
+    });
+  });
+}
+
+/** Runs one teardown step; a step that throws is a problem, and the later steps still run. */
+async function guarded(result, step, fn) {
+  try {
+    await fn();
+  } catch (error) {
+    result.problems.push({ kind: "runner", ...errorRecord(error), message: `${step} failed: ${error?.message ?? error}` });
+  }
+}
+
+function staleFixtureProblem(stale) {
+  const names = stale.slice(0, 10).map((doc) => `${doc.documentName} "${doc.name}"`).join(", ");
+  return {
+    kind: "stale-fixtures",
+    message: `${stale.length} document(s) named like test fixtures were already in the world, left by an earlier `
+      + `run that did not finish: ${names}${stale.length > 10 ? ", ..." : ""}. Remove them (tests/README.md, "Leftovers").`,
+  };
 }
 
 function finish(result, startedAt) {
@@ -162,7 +220,7 @@ function finish(result, startedAt) {
     leaks: result.leaks.length,
     problems: result.problems.length,
   };
-  result.ok = result.stats.tests > 0 && result.stats.failures === 0 && result.stats.registrationErrors === 0
+  result.ok = result.stats.passes > 0 && result.stats.failures === 0 && result.stats.registrationErrors === 0
     && result.stats.leaks === 0 && result.stats.problems === 0;
   result.meta.finishedAt = new Date().toISOString();
   result.meta.durationMs = Math.round(performance.now() - startedAt);
@@ -197,31 +255,54 @@ export async function runSuites(systemSuites, options = {}) {
   }
 
   running = true;
-  const before = captureWorldState();
+  const current = { title: null };
+  const errorHook = listenForFoundryErrors(result, current);
+  let worldBefore = null;
+  let windowsBefore = null;
   try {
-    result.problems.push(...environmentProblems());
-    const mocha = new Mocha({ reporter: Mocha.reporters.Base, timeout });
-    if (grep) mocha.grep(grep);
-    if (grep && invert) mocha.invert();
-    const root = mocha.suite;
-    root.beforeEach("open the test's fixture scope", () => fixtures.beginTest());
-    root.afterEach("clean up the test's fixtures", () => fixtures.endTest());
-    const harness = Object.freeze({ runId, fixtures, waitFor, waitForHook, skip });
+    try {
+      worldBefore = await captureWorld();
+      windowsBefore = captureWindows();
+      result.problems.push(...environmentProblems());
+      if (result.meta.staleFixtures.length) result.problems.push(staleFixtureProblem(result.meta.staleFixtures));
 
-    await registerSystemSuites(systemSuites, root, harness, result);
-    await registerPackageSuites(root, harness, result);
-    await runMocha(mocha, result.tests);
-    if (!result.tests.length) {
-      result.problems.push({ kind: "selection", message: grep ? `no test matched grep ${grep}` : "no test was registered" });
+      const mocha = new Mocha({ reporter: Mocha.reporters.Base, timeout });
+      if (grep) mocha.grep(grep);
+      if (grep && invert) mocha.invert();
+      const root = mocha.suite;
+      root.beforeEach("open the test's fixture scope", () => fixtures.beginTest());
+      root.afterEach("clean up the test's fixtures", () => fixtures.endTest());
+      const harness = Object.freeze({ runId, fixtures, waitFor, waitForHook, skip });
+
+      await registerSystemSuites(systemSuites, root, harness, result);
+      await registerPackageSuites(root, harness, result);
+      await runMocha(mocha, result.tests, current);
+      const selected = result.tests.length;
+      if (!selected) {
+        result.problems.push({ kind: "selection", message: grep ? `no test matched grep ${grep}` : "no test was registered" });
+      } else if (result.tests.every((test) => test.state === "pending")) {
+        result.problems.push({ kind: "selection", message: `none of the ${selected} selected tests ran: every one was skipped` });
+      }
+    } catch (error) {
+      result.problems.push({ kind: "runner", ...errorRecord(error) });
+    } finally {
+      await guarded(result, "fixture cleanup", () => fixtures.cleanup());
+      for (const error of fixtures.errors) result.problems.push({ kind: "cleanup", ...error });
+      if (worldBefore) {
+        await guarded(result, "the world leak check", async () => {
+          result.leaks.push(...diffWorld(worldBefore, await captureWorld()));
+        });
+      }
+      if (windowsBefore) {
+        await guarded(result, "the window check", async () => {
+          const { leaks, windows } = findWindowLeaks(windowsBefore, fixtures);
+          result.leaks.push(...leaks);
+          await closeWindows(windows);
+        });
+      }
     }
-  } catch (error) {
-    result.problems.push({ kind: "runner", ...errorRecord(error) });
   } finally {
-    await fixtures.cleanup();
-    for (const error of fixtures.errors) result.problems.push({ kind: "cleanup", ...error });
-    const { leaks, windows } = findLeaks(before, fixtures);
-    result.leaks.push(...leaks);
-    await closeWindows(windows);
+    Hooks.off("error", errorHook);
     running = false;
   }
   return finish(result, startedAt);

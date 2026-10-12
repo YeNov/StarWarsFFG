@@ -1,19 +1,21 @@
 /**
- * Run-level leak check for the functional runner: the state a run must leave as it found it.
+ * Leak checks: the state a test run must leave as it found it.
  *
- * Captured before the run and compared after fixture cleanup:
- *   - world documents in every world collection, by id, and each one's modification time;
- *   - the world-stored settings (world scope and user scope), by value;
- *   - the open application windows.
- * Every difference is a leak, and a leak fails the run.
+ * captureWorld() takes a JSON-serialisable snapshot, so the Playwright fixtures can take one
+ * through page.evaluate as well:
+ *   documents  every world document and, recursively, every document embedded in one (items and
+ *              effects on actors, tokens on scenes, pages in journals, ...), keyed by UUID, with
+ *              the modification time of the types that record one; and every entry of every
+ *              world compendium pack;
+ *   packs      the world compendium packs;
+ *   settings   the world-stored settings (world and user scope), by raw value.
+ * diffWorld(before, after) lists every difference as a leak.
+ *
+ * Open windows are state of one page, not of the world: the functional runner checks them with
+ * captureWindows() and findWindowLeaks().
  */
 
 import { FIXTURE_NAME_ROOT } from "./fixtures.js";
-
-/** Every rendered application window (ApplicationV2 and legacy). */
-function openWindows() {
-  return [...foundry.applications.instances.values(), ...Object.values(ui.windows)].filter((app) => app.rendered);
-}
 
 const settingId = (setting) => (setting.user ? `${setting.key} (user ${setting.user})` : setting.key);
 
@@ -33,67 +35,120 @@ function canonicalJSON(raw) {
   }
 }
 
-export function captureWorldState() {
-  const documents = new Map();
+/** @returns {Promise<{documents: object, packs: string[], settings: object}>} */
+export async function captureWorld() {
+  const documents = {};
+  const add = (doc) => {
+    documents[doc.uuid] = { documentName: doc.documentName, name: doc.name ?? null, modifiedTime: doc._stats?.modifiedTime ?? null };
+    for (const collection of Object.values(doc.collections ?? {})) {
+      for (const child of collection) add(child);
+    }
+  };
   for (const [documentName, collection] of game.collections.entries()) {
     if (documentName === "Setting") continue;
-    documents.set(documentName, new Map(collection.contents.map((doc) => [
-      doc.id,
-      { name: doc.name ?? null, modifiedTime: doc._stats?.modifiedTime ?? null },
-    ])));
+    for (const doc of collection) add(doc);
   }
-  const settings = new Map();
-  for (const setting of game.settings.storage.get("world")) settings.set(settingId(setting), setting._source.value);
-  return { documents, settings, windows: new Set(openWindows()) };
+
+  const packs = [];
+  for (const pack of game.packs) {
+    if (pack.metadata.packageType !== "world") continue;
+    packs.push(pack.collection);
+    // Straight from the server, the way getIndex() asks for it: the pack's cached index may be stale.
+    const cls = pack.documentClass;
+    const index = await cls.database.get(cls, {
+      query: {},
+      index: true,
+      indexFields: ["_id", "name", "_stats.modifiedTime"],
+      pack: pack.collection,
+    }, game.user);
+    for (const entry of index) {
+      documents[pack.getUuid(entry._id)] = {
+        documentName: pack.documentName,
+        name: entry.name ?? null,
+        modifiedTime: entry._stats?.modifiedTime ?? null,
+      };
+    }
+  }
+
+  const settings = {};
+  for (const setting of game.settings.storage.get("world")) settings[settingId(setting)] = setting._source.value;
+  return { documents, packs: packs.sort(), settings };
+}
+
+/** `Actor "Hero"`; an embedded or compendium document also shows its UUID. */
+function describeDocument(uuid, { documentName, name }) {
+  const parts = uuid.split(".");
+  const label = `${documentName} "${name ?? parts.at(-1)}"`;
+  return parts.length > 2 ? `${label} (${uuid})` : label;
 }
 
 /**
- * Compares the world with a capture taken before the run.
- * @param {ReturnType<typeof captureWorldState>} before
- * @param {import("./fixtures.js").FixtureTracker} fixtures   Labels windows of the run's own documents.
- * @returns {{leaks: object[], windows: object[]}}  The leaks, and the windows the run left open.
+ * Every difference between two captureWorld() snapshots.
+ * @returns {Array<{kind: string, message: string}>}  Kinds: document-created, document-deleted,
+ *   document-modified, pack-created, pack-deleted, setting-changed.
  */
-export function findLeaks(before, fixtures) {
-  const after = captureWorldState();
+export function diffWorld(before, after) {
   const leaks = [];
-
-  for (const [documentName, previous] of before.documents) {
-    const current = after.documents.get(documentName) ?? new Map();
-    for (const [id, { name, modifiedTime }] of current) {
-      const label = `${documentName} "${name ?? id}"`;
-      const was = previous.get(id);
-      if (!was) {
-        leaks.push({ kind: "document-created", documentName, id, name, message: `${label} was created during the run and is still in the world` });
-      } else if (was.modifiedTime !== modifiedTime) {
-        leaks.push({ kind: "document-modified", documentName, id, name, message: `pre-existing ${label} was modified during the run` });
-      }
+  for (const [uuid, doc] of Object.entries(after.documents)) {
+    const was = before.documents[uuid];
+    const label = describeDocument(uuid, doc);
+    if (!was) {
+      leaks.push({ kind: "document-created", uuid, documentName: doc.documentName, name: doc.name, message: `${label} was created and is still in the world` });
+    } else if (was.modifiedTime !== doc.modifiedTime) {
+      leaks.push({ kind: "document-modified", uuid, documentName: doc.documentName, name: doc.name, message: `pre-existing ${label} was modified` });
     }
-    for (const [id, { name }] of previous) {
-      if (!current.has(id)) {
-        leaks.push({ kind: "document-deleted", documentName, id, name, message: `pre-existing ${documentName} "${name ?? id}" was deleted during the run` });
-      }
+  }
+  for (const [uuid, doc] of Object.entries(before.documents)) {
+    if (!(uuid in after.documents)) {
+      leaks.push({ kind: "document-deleted", uuid, documentName: doc.documentName, name: doc.name, message: `pre-existing ${describeDocument(uuid, doc)} was deleted` });
     }
   }
 
-  for (const key of new Set([...before.settings.keys(), ...after.settings.keys()])) {
-    const was = before.settings.get(key);
-    const is = after.settings.get(key);
+  for (const pack of after.packs) {
+    if (!before.packs.includes(pack)) leaks.push({ kind: "pack-created", pack, message: `world compendium ${pack} was created` });
+  }
+  for (const pack of before.packs) {
+    if (!after.packs.includes(pack)) leaks.push({ kind: "pack-deleted", pack, message: `world compendium ${pack} was deleted` });
+  }
+
+  for (const key of new Set([...Object.keys(before.settings), ...Object.keys(after.settings)])) {
+    const was = before.settings[key];
+    const is = after.settings[key];
     if (was === is || (was !== undefined && is !== undefined && canonicalJSON(was) === canonicalJSON(is))) continue;
-    leaks.push({ kind: "setting-changed", key, before: was ?? null, after: is ?? null, message: `world setting ${key} changed during the run: ${was ?? "(not stored)"} -> ${is ?? "(not stored)"}` });
+    leaks.push({ kind: "setting-changed", key, before: was ?? null, after: is ?? null, message: `world setting ${key} changed: ${was ?? "(not stored)"} -> ${is ?? "(not stored)"}` });
   }
+  return leaks;
+}
 
-  const windows = openWindows().filter((app) => !before.windows.has(app));
-  for (const app of windows) {
+/** Every rendered application window (ApplicationV2 and legacy). */
+function openWindows() {
+  return [...foundry.applications.instances.values(), ...Object.values(ui.windows)].filter((app) => app.rendered);
+}
+
+/** The windows open in this page now. */
+export function captureWindows() {
+  return new Set(openWindows());
+}
+
+/**
+ * The windows opened since `before` and still open.
+ * @param {Set<object>} before                                From captureWindows().
+ * @param {import("./fixtures.js").FixtureTracker} fixtures   Labels windows of the run's own documents.
+ * @returns {{leaks: object[], windows: object[]}}
+ */
+export function findWindowLeaks(before, fixtures) {
+  const windows = openWindows().filter((app) => !before.has(app));
+  const leaks = windows.map((app) => {
     const doc = app.document ?? app.object;
     const owned = doc instanceof foundry.abstract.Document && fixtures.owns(doc);
-    leaks.push({
+    const title = app.title ?? app.constructor.name;
+    return {
       kind: "window-open",
-      title: app.title ?? app.constructor.name,
+      title,
       document: doc?.uuid ?? null,
-      message: `${owned ? "a test fixture's " : ""}window "${app.title ?? app.constructor.name}" (${app.constructor.name}) was left open`,
-    });
-  }
-
+      message: `${owned ? "a test fixture's " : ""}window "${title}" (${app.constructor.name}) was left open`,
+    };
+  });
   return { leaks, windows };
 }
 
