@@ -497,15 +497,22 @@ function readRegistry(registry) {
   const imports = new Map();
   for (const m of scan.code.matchAll(/\bimport\s*\{([^}]*)\}\s*from\s*(?=["'])/g)) {
     const spec = scan.literals.get(m.index + m[0].length)?.value;
-    if (!spec?.startsWith(".")) continue;
+    if (!spec?.startsWith(".") || !spec.endsWith(".test.js")) continue; // suite modules only, not the runner
     const target = rel(path.resolve(path.dirname(abs(registry)), spec));
     for (const name of m[1].split(",").map((s) => s.trim()).filter(Boolean)) imports.set(name, target);
   }
   const called = new Set();
   const registered = [];
-  for (const m of scan.code.matchAll(/(?<![\w$.])([\w$]+)\(\s*suite\s*,\s*suiteInstance\s*,\s*Test\s*,\s*chai\s*\)/g)) {
+  // A registry calls each suite with (suite, suiteInstance, Test, chai), plus the run's harness.
+  for (const m of scan.code.matchAll(/(?<![\w$.])([\w$]+)\(\s*suite\s*,\s*suiteInstance\s*,\s*Test\s*,\s*chai\s*(?:,\s*harness\s*)?\)/g)) {
     called.add(m[1]);
     if (imports.has(m[1])) registered.push({ fn: m[1], file: imports.get(m[1]) });
+  }
+  // tests/ffg-tests.js lists its suites as ["ExportName", () => import("./file.js")] instead.
+  for (const m of scan.code.matchAll(/\[\s*(["'])[ ]*\1\s*,\s*\(\s*\)\s*=>\s*import\s*\(\s*(?=["'])/g)) {
+    const fn = scan.literals.get(m.index + m[0].indexOf(m[1]))?.value;
+    const spec = scan.literals.get(m.index + m[0].length)?.value;
+    if (fn && spec?.startsWith(".")) registered.push({ fn, file: rel(path.resolve(path.dirname(abs(registry)), spec)) });
   }
   const neverCalled = [...imports.keys()].filter((name) => !called.has(name));
   return { registered, neverCalled };

@@ -1,26 +1,39 @@
-<form>
-  <div>
-    PASSES {{pass.length}}
-  </div>
-  <div>
-    FAILURES {{fail.length}}
-  </div>
-  {{#if (gt fail.length 0)}}
-  <div>
-    {{#each suites}}
-    <div>
-      <div>{{this.title}}</div>
-      <div>
-        {{#each this.tests.fail}}
-        <div>
-          <li>{{this.title}}</li>
-          <div>{{this.err.stack}}</div>
-        </div>
+<section class="ffg-functional-test-results">
+  <h2>{{#if result.ok}}Passed{{else}}Failed{{/if}}</h2>
+  <p>
+    {{result.stats.passes}} passed, {{result.stats.failures}} failed, {{result.stats.pending}} pending,
+    {{result.stats.registrationErrors}} registration errors, {{result.stats.leaks}} leaks,
+    {{result.stats.problems}} problems
+  </p>
+  <p>
+    {{result.meta.system.id}} {{result.meta.system.version}} &middot; Foundry {{result.meta.foundry.version}}
+    &middot; world {{result.meta.world.id}} &middot; run {{result.meta.runId}}
+    {{#if result.meta.selection.grep}}&middot; grep {{result.meta.selection.grep}}{{/if}}
+  </p>
 
-        {{/each}}
-      </div>
-    </div>
-    {{/each}}
-  </div>
-  {{/if}}
-</form>
+  {{#each result.problems}}
+  <p><strong>{{this.kind}}:</strong> {{this.message}}</p>
+  {{/each}}
+
+  {{#each result.registrationErrors}}
+  <details>
+    <summary><strong>registration error</strong> {{this.source}}: {{this.message}}</summary>
+    <pre>{{this.stack}}</pre>
+  </details>
+  {{/each}}
+
+  {{#each failed}}
+  <details>
+    <summary><strong>failed</strong> {{this.title}}</summary>
+    <pre>{{this.error.stack}}</pre>
+  </details>
+  {{/each}}
+
+  {{#each result.leaks}}
+  <p><strong>leak ({{this.kind}}):</strong> {{this.message}}</p>
+  {{/each}}
+
+  {{#each pending}}
+  <p><strong>pending</strong> {{this.title}}: {{this.pendingReason}}</p>
+  {{/each}}
+</section>
