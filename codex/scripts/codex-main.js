@@ -67,11 +67,15 @@ Hooks.on("i18nInit", async () => {
   }
 });
 
-// The system's in-Foundry test harness (GM, localhost, test flag) asks packages for their suites.
+// The system's in-Foundry test runner (tests/ffg-tests.js) asks packages for their suites. The
+// last argument is the run's harness: its fixture tracker, waits, and skip-with-reason.
 Hooks.on("starwarsffg.functionalTests", (packageSuites) => {
-  packageSuites.push(async (suite, suiteInstance, Test, chai) => {
-    const { CodexBrowserTests } = await import("../tests/browser/index.js");
-    CodexBrowserTests(suite, suiteInstance, Test, chai);
+  packageSuites.push({
+    id: CODEX_PACKAGE_ID,
+    register: async (suite, suiteInstance, Test, chai, harness) => {
+      const { CodexBrowserTests } = await import("../tests/browser/index.js");
+      CodexBrowserTests(suite, suiteInstance, Test, chai, harness);
+    },
   });
 });
 
