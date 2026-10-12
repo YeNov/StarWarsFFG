@@ -191,6 +191,21 @@ export default class ItemHelpers {
   }
 
   /**
+   * True when a quality has been switched off with its enabled toggle (`system.active`).
+   *
+   * One rule for every place a quality can sit -- directly on a weapon or armour, or installed
+   * in an attachment. Only an explicit `false` suspends it. A missing field means enabled:
+   * qualities dropped or imported straight onto an item often carry no `active` field at all,
+   * and reading that absence as "off" would silently suspend every one of them.
+   *
+   * @param {object} modifier - a quality / modification `{name, system}`
+   * @returns {boolean}
+   */
+  static isModifierSuspended(modifier) {
+    return modifier?.system?.active === false;
+  }
+
+  /**
    * Compute the complete set of Active Effects an item *should* have, derived from its own
    * attributes plus every quality on it (directly, or through an attachment).
    *
@@ -326,7 +341,8 @@ export default class ItemHelpers {
       addAttributes(modifier?.system?.attributes, {
         ranks: ranksOf(modifier, modifier?.name ?? ""),
         path: ["itemmodifier", index],
-        disabled: baseDisabled,
+        // a quality switched off grants nothing, even when the item is equipped
+        disabled: baseDisabled || ItemHelpers.isModifierSuspended(modifier),
         source: modifier?.name ?? "",
       });
     });
@@ -348,7 +364,7 @@ export default class ItemHelpers {
           path: ["itemattachment", attachmentIndex, "itemmodifier", index],
           // a modification sitting in an attachment but not installed grants nothing, even
           // when the parent item is equipped (mirrors shouldUpdateAEStatus)
-          disabled: baseDisabled || modification?.system?.active === false,
+          disabled: baseDisabled || ItemHelpers.isModifierSuspended(modification),
           source: modification?.name ?? "",
         });
       });
@@ -838,8 +854,9 @@ export default class ItemHelpers {
 
   /**
    * Determines if a given Active Effect should have a status updated or not - based on the item it's a part of
-   * For example, if a piece of armor has an attachment with a modification with a mod that's not installed,
-   *  that mod should not apply any effect to the actor - even if the armor is equipped / unequipped
+   * For example, if a piece of armor has a quality that is switched off, or an attachment with a modification
+   *  that's not installed, that quality should not apply any effect to the actor - even if the armor is
+   *  equipped / unequipped. A quality counts as switched off by the same rule everywhere (`isModifierSuspended`).
    * Similarly, unpurchased talents on specializations should not do anything until they are purchased
    * @param item - the item the active effect is a part of
    * @param activeEffect - the specific active effect to check
@@ -849,22 +866,20 @@ export default class ItemHelpers {
   static async shouldUpdateAEStatus(item, activeEffect) {
     CONFIG.logger.debug(`Checking if ${activeEffect.name} from ${item.name} should be applied`);
     if (["armour", "weapon", "shipweapon"].includes(item.type)) {
-      for (const attachment of item.system.itemattachment) {
-        for (const modification of attachment.system.itemmodifier) {
-          try {
-            const foundMod = modification.system.attributes[activeEffect.name];
-            CONFIG.logger.debug(`Located mod ${activeEffect.name}, checking if it's active or not`);
-            if (foundMod && !modification.system.active) {
-              CONFIG.logger.debug(`Mod ${activeEffect.name} is not active, not syncing AE status`);
-              return false;
-            } else {
-              CONFIG.logger.debug(`Mod ${activeEffect.name} is active, syncing AE status`);
-              return true;
-            }
-          } catch {
-            CONFIG.logger.debug(`No mod located, continuing search...`);
-          }
+      // the same walk order planModifierEffects uses: direct qualities, then each attachment's modifications
+      const qualities = [
+        ...(item.system.itemmodifier ?? []),
+        ...(item.system.itemattachment ?? []).flatMap((attachment) => attachment?.system?.itemmodifier ?? []),
+      ];
+      const owner = qualities.find((quality) => quality?.system?.attributes?.[activeEffect.name]);
+      if (owner) {
+        CONFIG.logger.debug(`Located mod ${activeEffect.name}, checking if it's active or not`);
+        if (ItemHelpers.isModifierSuspended(owner)) {
+          CONFIG.logger.debug(`Mod ${activeEffect.name} is not active, not syncing AE status`);
+          return false;
         }
+        CONFIG.logger.debug(`Mod ${activeEffect.name} is active, syncing AE status`);
+        return true;
       }
     }
     CONFIG.logger.debug(`No reason to avoid updating status found, syncing AE status`);
