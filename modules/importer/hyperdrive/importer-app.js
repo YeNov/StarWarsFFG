@@ -3,7 +3,7 @@ import ItemHelpers from "../../helpers/item-helpers.js";
 import { assembleCharacterSource } from "../../char-creator/assemble-character-source.js";
 import { assignWizardIdentity } from "../../char-creator/build-item-schema.js";
 import { makeBuildDependencies } from "../../char-creator/build-deps.js";
-import { loadSource } from "../../char-creator/load-source.js";
+import { loadImportCatalog } from "../../char-creator/load-source.js";
 import {
   SOURCE_DESCRIPTORS,
   sourceSettingPackIds,
@@ -80,7 +80,7 @@ async function collectLiveEntries() {
   const documentLists = [];
   for (const poolKey of Object.keys(SOURCE_DESCRIPTORS)) {
     try {
-      selectionRefs.push(...await loadSource(poolKey, { ignoreAvailabilityGates: true }));
+      selectionRefs.push(...await loadImportCatalog(poolKey));
     } catch (error) {
       CONFIG.logger?.warn?.(`Hyperdrive importer could not read configured '${poolKey}' sources: ${error.message}`);
     }

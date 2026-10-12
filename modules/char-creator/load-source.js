@@ -10,6 +10,7 @@
 import { FLAG_SCOPE, FLAGS } from "./constants.js";
 import {
   getDescriptor,
+  importCatalogOptions,
   isSourceEnabled,
   passesSourceAvailabilityGate,
   sourceIdOf,
@@ -92,10 +93,16 @@ function sourceCacheSignature(
  * items as in the legacy getItems (character-creator.js:663-676). Results carry
  * `toObject()` snapshots and are cached per poolKey.
  *
+ * `fresh` reads the packs and world items again and neither consults nor writes the
+ * cache, so the result is current and the wizard's cached pool stays as it was. The
+ * cache signature does not cover an edit to an item, so only a caller that must see
+ * the latest data asks for it (the import catalog, loadImportCatalog).
+ *
  * @param {string} poolKey
  * @param {{
  *   exclusions?: Object<string, string[]>,
  *   ignoreAvailabilityGates?: boolean,
+ *   fresh?: boolean,
  * }} [options]
  * @returns {Promise<Array<object>>} SelectionRefs
  */
@@ -104,19 +111,20 @@ export async function loadSource(
   {
     exclusions = readExclusions(),
     ignoreAvailabilityGates = false,
+    fresh = false,
   } = {},
 ) {
   const loadStartedAt = nowMs();
   const descriptor = getDescriptor(poolKey);
   const maxRarity = game.settings.get("starwarsffg", "maxRarity");
   const allowRestricted = game.settings.get("starwarsffg", "allowRestricted");
-  const signature = sourceCacheSignature(poolKey, descriptor, {
+  const signature = fresh ? null : sourceCacheSignature(poolKey, descriptor, {
     exclusions,
     maxRarity,
     allowRestricted,
     ignoreAvailabilityGates,
   });
-  const cached = poolCache.get(poolKey);
+  const cached = fresh ? null : poolCache.get(poolKey);
   if (cached?.signature === signature) return cached.refs;
 
   const passesGmGate = (item) => passesSourceAvailabilityGate(item, {
@@ -163,7 +171,21 @@ export async function loadSource(
     }
   }
 
-  poolCache.set(poolKey, { signature, refs });
+  if (!fresh) poolCache.set(poolKey, { signature, refs });
   logSlowSourceLoad(poolKey, loadStartedAt, ` (${refs.length} refs)`);
   return refs;
+}
+
+/**
+ * Load a pool for a character import (Hyperdrive): every configured pack and every
+ * world item of the pool's types, whatever the importing user switched off in their
+ * own Content sources panel, without the Max Rarity / Allow Restricted limits, read
+ * fresh each time. An imported character keeps the gear it owns (rulings R20, R35).
+ * The option set is importCatalogOptions in source-descriptors.js.
+ *
+ * @param {string} poolKey
+ * @returns {Promise<Array<object>>} SelectionRefs
+ */
+export function loadImportCatalog(poolKey) {
+  return loadSource(poolKey, importCatalogOptions(poolKey));
 }

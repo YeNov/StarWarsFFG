@@ -9,6 +9,7 @@ import "./_stub/foundry-stub.mjs";
 import {
   SOURCE_DESCRIPTORS,
   getDescriptor,
+  importCatalogOptions,
   missingSourcePackIds,
   passesSourceAvailabilityGate,
   sourceIdOf,
@@ -243,6 +244,59 @@ test("an import catalog keeps an item above Max Rarity and a restricted item, ea
 
   assert.deepEqual(wizardResults, [false, false]);
   assert.deepEqual(catalogResults, [true, true]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// The sources an import reads (ruling R35, extending R20).
+//
+// An imported character must keep the gear it owns, so the Hyperdrive importer matches against
+// every configured pack of a pool plus the world items, whatever the importing player chose in
+// their own Content sources panel. importCatalogOptions is the option set it hands to the pool
+// loader; the loader itself reads live packs and stays out of Node (load-source.js).
+// ---------------------------------------------------------------------------------------------
+
+test("an import reads a compendium the importing player switched off in their Content sources panel", () => {
+  const switchedOff = setSourceEnabled({}, "gear", "world.homebrew-gear", false);
+
+  const wizardReadsIt = isSourceEnabled("gear", "world.homebrew-gear", switchedOff);
+  const importReadsIt = isSourceEnabled("gear", "world.homebrew-gear", importCatalogOptions("gear").exclusions);
+
+  assert.equal(wizardReadsIt, false);
+  assert.equal(importReadsIt, true);
+});
+
+test("an import reads the world items although the importing player never opted in to them", () => {
+  const wizardReadsWorldItems = isSourceEnabled("gear", "world", {});
+  const importReadsWorldItems = isSourceEnabled("gear", "world", importCatalogOptions("gear").exclusions);
+
+  assert.equal(wizardReadsWorldItems, false);
+  assert.equal(importReadsWorldItems, true);
+});
+
+test("an import reads every source of every pool, not only of the gear pool", () => {
+  for (const poolKey of Object.keys(SOURCE_DESCRIPTORS)) {
+    const { exclusions } = importCatalogOptions(poolKey);
+
+    assert.equal(isSourceEnabled(poolKey, "world", exclusions), true, `${poolKey}: world items`);
+    assert.equal(isSourceEnabled(poolKey, "world.any-pack", exclusions), true, `${poolKey}: a world compendium`);
+    assert.equal(isSourceEnabled(poolKey, "starwarsffg.any-pack", exclusions), true, `${poolKey}: a system compendium`);
+  }
+});
+
+test("an import also ignores the Max Rarity and Allow Restricted limits and never reuses the wizard's pool cache", () => {
+  const options = importCatalogOptions("gear");
+
+  assert.equal(options.ignoreAvailabilityGates, true);
+  assert.equal(options.fresh, true);
+});
+
+test("each call to importCatalogOptions returns an option set of its own", () => {
+  const first = importCatalogOptions("gear");
+  first.exclusions.gear.push("world.homebrew-gear");
+
+  const second = importCatalogOptions("gear");
+
+  assert.deepEqual(second.exclusions, { gear: ["enabled:world"] });
 });
 
 test("sourceSettingPackIds normalises comma-separated and array settings", () => {
