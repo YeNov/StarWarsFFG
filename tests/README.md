@@ -94,23 +94,49 @@ opens a window that runs the suites and shows the result.
 
 The result is JSON:
 
-- `ok`: true only when at least one test ran, none failed, and there was no registration error,
-  leak or problem.
+- `ok`: true only when at least one test passed, none failed, and there was no registration
+  error, leak or problem. A selection in which every test was skipped fails.
 - `meta`: system id and version, Foundry version and build, world, user, browser, active modules,
   the package suites collected through the `starwarsffg.functionalTests` hook (Codex II), the grep
   selection, the run id, timestamps, and any fixture-named documents left by an earlier aborted run.
 - `stats`: counts of tests, passes, failures, pending, registration errors, leaks and problems.
 - `tests[]`: each case with its full title, `state` (`passed`, `failed`, `pending`), duration, error
   message and stack, and the skip reason of a pending case. A failing hook is a failed entry.
-- `registrationErrors[]`: a suite module that failed to load, or a register function that threw.
+- `registrationErrors[]`: a suite module that failed to load, a register function that threw or
+  added no test, or a package hook callback that threw.
 - `leaks[]`: what the run left behind after its fixtures were cleaned up.
-- `problems[]`: `guard`, `environment`, `selection` (no test ran), `cleanup`, `runner`.
+- `problems[]`: `guard`, `environment`, `stale-fixtures`, `foundry-error`, `selection` (no test
+  matched, or every one was skipped), `cleanup`, `runner`.
 
-After the run, the runner compares the world with a snapshot taken before it. A document that
-appeared or disappeared, a document that existed before and was modified, a changed world-stored
-setting, or a window still open is a leak, and a leak fails the run. Windows are closed once they
-are reported; documents and settings are not touched, because only the run's own fixtures are its
-to remove.
+After the run, the runner compares the world with a snapshot taken before it
+(`tests/harness/world-state.js`). The snapshot covers every world document, every document
+embedded in one (items and effects on actors, tokens on scenes, journal pages, ...), every entry of
+every world compendium pack, and every world-stored setting. A document that appeared or
+disappeared, a document that existed before and was modified (for the types that record a
+modification time), a world compendium that appeared or disappeared, a changed setting, or a window
+still open is a leak, and a leak fails the run. Windows are closed once they are reported;
+documents and settings are not touched, because only the run's own fixtures are its to remove.
+
+Foundry catches many errors itself and only logs them: a throwing hook handler, document data
+preparation, a pre-create or pre-update check, a render. During a run, each error Foundry reports
+through its `error` hook is a `foundry-error` problem naming the test that was running, so an
+action that set one off cannot pass.
+
+### Leftovers
+
+If a run does not return (the page crashed, or the Playwright test timed out),
+`e2e/functional.spec.js` closes that page and deletes the documents named with that run's own
+prefix. Documents without a name (chat messages) and settings the run had overridden cannot be
+recovered that way. Any later run that finds documents named `ffgtest-...` reports a
+`stale-fixtures` problem and fails until they are removed. Check what they are first, then, as the
+GM in the test world:
+
+```js
+for (const [name, c] of game.collections.entries()) {
+  const ids = c.filter((d) => d.name?.startsWith("ffgtest-")).map((d) => d.id);
+  if (ids.length) await getDocumentClass(name).deleteDocuments(ids);
+}
+```
 
 ## Writing a functional suite
 
@@ -172,6 +198,13 @@ test("an observer sees the actor but does not own it", async ({ sessions }) => {
 - `sessions.create(documentName, data)` creates a document as the GM and tracks it.
 - When the test ends, the player contexts are closed and everything created through `sessions`,
   users included, is deleted, pass or fail. The fixture fails the test if anything is left.
+- The fixture also snapshots the world before the test and fails the test if the world differs
+  afterwards, so a document the code under test created in any session (a player's chat message,
+  say) is caught. A test must therefore delete, or create through `sessions`, everything it adds.
+
+Every Playwright run is checked as a whole as well: the global setup (`playwright/setup.ts`)
+snapshots the world after joining, and its teardown fails the run when the world differs at the
+end, whichever spec changed it.
 
 Player sessions live only in memory. The GM session is saved to `state.json`, which is ignored by
 git, as are `test-results/` and `playwright-report/`.
