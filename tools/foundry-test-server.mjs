@@ -177,6 +177,8 @@ async function main() {
     { stdio: ["ignore", "pipe", "pipe"], windowsHide: true },
   );
   let lockedByOther = false;
+  // True once our Foundry served the world, which it only does after taking the data lock.
+  let servedWorld = false;
   const relay = (target) => (chunk) => {
     const text = chunk.toString();
     if (/already locked/i.test(text)) lockedByOther = true;
@@ -194,8 +196,10 @@ async function main() {
       child.kill();
       await Promise.race([childExited, sleep(STOP_TIMEOUT_MS)]);
     }
-    // Our Foundry is gone; an empty lock it could not release on the way out is its own.
-    if (isEmptyDirectory(lockPath) && !(await portInUse(port))) fs.rmdirSync(lockPath);
+    // Our Foundry is gone; an empty lock it could not release on the way out is its own. Only
+    // then: a Foundry that never served the world, or found the folder locked, may have exited
+    // while another Foundry holds that lock.
+    if (servedWorld && !lockedByOther && isEmptyDirectory(lockPath) && !(await portInUse(port))) fs.rmdirSync(lockPath);
     process.exit(code);
   };
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) process.on(signal, () => stop(0));
@@ -215,6 +219,7 @@ async function main() {
     if (stopping) return;
     const current = await fetchStatus(port);
     if (current?.active) {
+      if (current.world === world) servedWorld = true;
       if (current.world !== world) {
         log(`Foundry came up with world "${current.world}" instead of "${world}"; stopping it`);
         await stop(1);
