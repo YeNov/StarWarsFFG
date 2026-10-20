@@ -14,6 +14,17 @@ import { canPurchaseNode } from "../helpers/talent-tree.js";
 import { isAmmoTracked, isQualityAmmoMode, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
 import { attributeShowsEnabled, isModifierSuspended } from "../helpers/modifier-switch.js";
+import {
+  BUFF_ITEM_TYPES,
+  addBuff,
+  addBuffRow,
+  buffModifierTypes,
+  cleanBuffs,
+  removeBuff,
+  removeBuffRow,
+  renameBuff,
+  setBuffRow,
+} from "../helpers/optional-buffs.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -739,6 +750,13 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       data.modifierChoices = updatedChoices;
     }
 
+    // Optional buffs (templates/parts/shared/ffg-optional-buffs.html). The modifier choices are
+    // kept on the sheet so a buff row's target list can follow a change of its type.
+    data.showOptionalBuffs = BUFF_ITEM_TYPES.includes(this.object.type);
+    data.optionalBuffs = cleanBuffs(this.object.system?.optionalBuffs);
+    data.buffModifierTypes = buffModifierTypes(data.modifierTypes);
+    this._optionalBuffModChoices = data.modifierChoices;
+
     return data;
   }
 
@@ -1306,6 +1324,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         $(event.currentTarget).parent().find(".flat_editor.dropdown.mod").html(modHtml);
       }
     });
+
+    // Optional buffs; the Codex II item sheets inherit this.
+    this._activateOptionalBuffListeners(html);
 
     if (["signatureability"].includes(this.object.type)) {
       html.find(".talent-action").on("click", this._onClickTalentControl.bind(this));
@@ -2393,6 +2414,66 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     });
   }
 
+  /**
+   * Edit the item's optional buffs (templates/parts/shared/ffg-optional-buffs.html). Every
+   * control builds the next list with the rules in helpers/optional-buffs.js and saves it whole.
+   * Change events stop here, so the sheet's own submit never runs for a buff edit.
+   * @param {jQuery} html
+   */
+  _activateOptionalBuffListeners(html) {
+    const section = html.find(".optional-buffs");
+    if (!section.length) return;
+
+    const buffIdOf = (el) => el.closest(".optional-buff")?.dataset.buffId;
+    const rowIndexOf = (el) => Number(el.closest(".optional-buff-row")?.dataset.rowIndex);
+
+    section.on("click", ".optional-buff-control", async (event) => {
+      event.preventDefault();
+      const control = event.currentTarget;
+      const current = this.object.system?.optionalBuffs;
+      let next;
+      switch (control.dataset.action) {
+        case "create": next = addBuff(current); break;
+        case "delete": next = removeBuff(current, buffIdOf(control)); break;
+        case "add-row": next = addBuffRow(current, buffIdOf(control)); break;
+        case "delete-row": next = removeBuffRow(current, buffIdOf(control), rowIndexOf(control)); break;
+        default: return;
+      }
+      await this._saveOptionalBuffs(next);
+    });
+
+    section.on("change", "input, select", async (event) => {
+      event.stopPropagation();
+      const field = event.currentTarget;
+      const buffId = buffIdOf(field);
+      const current = this.object.system?.optionalBuffs;
+      let next;
+      if (field.classList.contains("optional-buff-name")) {
+        next = renameBuff(current, buffId, field.value);
+      } else if (field.classList.contains("optional-buff-modtype")) {
+        // A new type gets the first target of that type, as the Modifiers list does.
+        const firstTarget = Object.values(this._optionalBuffModChoices?.[field.value] ?? {})[0]?.value ?? "";
+        next = setBuffRow(current, buffId, rowIndexOf(field), { modtype: field.value, mod: firstTarget });
+      } else if (field.classList.contains("optional-buff-mod")) {
+        next = setBuffRow(current, buffId, rowIndexOf(field), { mod: field.value });
+      } else if (field.classList.contains("optional-buff-value")) {
+        next = setBuffRow(current, buffId, rowIndexOf(field), { value: field.value });
+      } else {
+        return;
+      }
+      await this._saveOptionalBuffs(next);
+    });
+  }
+
+  /**
+   * Save a whole optional buffs list, unless the owning actor is in Edit Mode.
+   * @param {Array<object>} next
+   */
+  async _saveOptionalBuffs(next) {
+    if (this.actor && !this.actor.verifyEditModeIsNotEnabled()) return;
+    await this.object.update({ "system.optionalBuffs": next });
+  }
+
   async _onDropTalentToSpecialization(event) {
     let data;
     const specialization = this.object;
@@ -2483,6 +2564,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
               // these are cloned to avoid local-only clobbers to the dropped object
               description: foundry.utils.deepClone(itemObject.system.description),
               attributes: foundry.utils.deepClone(itemObject.system.attributes),
+              // The talent's optional buffs travel into the tree like its modifiers do. An array,
+              // so a later drop onto this slot replaces them instead of merging.
+              optionalBuffs: cleanBuffs(itemObject.system.optionalBuffs),
               isRanked: itemObject.system.ranks.ranked,
               isForceTalent: itemObject.system.isForceTalent,
               isConflictTalent: itemObject.system.isConflictTalent,

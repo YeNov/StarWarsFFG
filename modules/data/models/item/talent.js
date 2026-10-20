@@ -1,5 +1,5 @@
 import { mix, BaseItemDataModel } from "../../mix.js";
-import { CoreTemplate } from "../../item-templates.js";
+import { CoreTemplate, OptionalBuffsTemplate } from "../../item-templates.js";
 
 /**
  * `talent` — template.json `templates: ["core"]` + own fields. `trees` is an
@@ -8,7 +8,7 @@ import { CoreTemplate } from "../../item-templates.js";
  * (`HTMLField`). Read by the specialization / signature-ability tree UI and the
  * Codex force-tree widget — shape must stay identical.
  */
-export class TalentDataModel extends mix(BaseItemDataModel, CoreTemplate) {
+export class TalentDataModel extends mix(BaseItemDataModel, CoreTemplate, OptionalBuffsTemplate) {
   static defineSchema() {
     const f = foundry.data.fields;
     return {

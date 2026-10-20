@@ -5,6 +5,7 @@ import {
   HardpointsTemplate,
   QualitiesTemplate,
   ItemAttachmentsTemplate,
+  OptionalBuffsTemplate,
 } from "../../item-templates.js";
 
 /**
@@ -19,6 +20,7 @@ export class ItemAttachmentDataModel extends mix(
   HardpointsTemplate,
   QualitiesTemplate,
   ItemAttachmentsTemplate,
+  OptionalBuffsTemplate,
 ) {
   static defineSchema() {
     const f = foundry.data.fields;

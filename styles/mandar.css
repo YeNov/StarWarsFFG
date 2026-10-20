@@ -4041,6 +4041,54 @@ img {
   margin: 0;
 }
 
+/* Optional buffs (shared ffg-optional-buffs partial), below the Modifiers list on the classic
+   item sheets. Laid out like the Modifiers list: a header bar, then each buff's name and its rows. */
+.starwarsffg .optional-buffs {
+  margin: 10px 0 0 0;
+}
+
+.starwarsffg .optional-buffs .optional-buffs-header {
+  padding: 5px;
+  margin: 0 0 5px 0;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #aaa;
+  border-radius: 2px;
+  font-weight: bold;
+  align-items: center;
+}
+
+.starwarsffg .optional-buffs .optional-buff {
+  margin: 0 0 6px 0;
+  padding: 0 0 4px 0;
+  border-bottom: 1px solid #aaa;
+}
+
+.starwarsffg .optional-buffs .optional-buff-head,
+.starwarsffg .optional-buffs .optional-buff-row {
+  align-items: center;
+  gap: 4px;
+}
+
+.starwarsffg .optional-buffs .optional-buff-head > *,
+.starwarsffg .optional-buffs .optional-buff-row > * {
+  min-width: 0;
+}
+
+.starwarsffg .optional-buffs .optional-buff-control {
+  flex: 0 0 20px;
+  text-align: center;
+}
+
+.starwarsffg .optional-buffs .optional-buff-rows {
+  list-style: none;
+  margin: 4px 0 0 12px;
+  padding: 0;
+}
+
+.starwarsffg .optional-buffs .optional-buff-value {
+  flex: 0 0 3.5rem;
+}
+
 .starwarsffg .item-sheet-criticalinjury .sheet-header {
   overflow: visible;
 }

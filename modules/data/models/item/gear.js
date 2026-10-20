@@ -4,6 +4,7 @@ import {
   BasicTemplate,
   ItemAttachmentsTemplate,
   QualitiesTemplate,
+  OptionalBuffsTemplate,
 } from "../../item-templates.js";
 
 /**
@@ -16,4 +17,5 @@ export class GearDataModel extends mix(
   BasicTemplate,
   ItemAttachmentsTemplate,
   QualitiesTemplate,
+  OptionalBuffsTemplate,
 ) {}

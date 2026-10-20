@@ -6,6 +6,7 @@ import {
   EquippableTemplate,
   ItemAttachmentsTemplate,
   QualitiesTemplate,
+  OptionalBuffsTemplate,
 } from "../../item-templates.js";
 import { statusField } from "./_combat-fields.js";
 
@@ -22,6 +23,7 @@ export class ArmourDataModel extends mix(
   EquippableTemplate,
   ItemAttachmentsTemplate,
   QualitiesTemplate,
+  OptionalBuffsTemplate,
 ) {
   static defineSchema() {
     const f = foundry.data.fields;
