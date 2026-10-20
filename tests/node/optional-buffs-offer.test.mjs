@@ -105,6 +105,15 @@ test("a ranked talent's rows count by its ranks, an unranked talent's once", () 
     [["talent:grit:b1", "Grit", 2], ["talent:hunter:b2", "Hunter", 1]]);
 });
 
+test("a ranked talent whose rank was cleared counts as rank 1, as the system's own rules do", () => {
+  const items = [
+    item("talent", { id: "t1", name: "Grit", ranks: { ranked: true, current: null }, buffs: [buff("b1", [row("Skill Boost", "Charm")])] }),
+    item("talent", { id: "t2", name: "Hunter", ranks: { ranked: true, current: 0 }, buffs: [buff("b2", [row("Skill Boost", "Charm")])] }),
+  ];
+
+  assert.deepEqual(offer(items, { skillKey: "Charm" }).map((b) => b.rows[0].value), [1, 1]);
+});
+
 test("a talent learned twice in trees is one buff counted twice", () => {
   const node = { name: "Grit", islearned: true, isRanked: true, optionalBuffs: [buff("b1", [row("Skill Boost", "Charm")])] };
   const items = [item("specialization", { id: "s1", talents: { talent0: node, talent4: { ...node } } })];

@@ -123,7 +123,9 @@ export function collectOfferedBuffs({ items, skillKey = null, weaponId = null, i
       }
       case "talent": {
         const ranked = system.ranks?.ranked === true;
-        addTalentBuffs(item.name, system.optionalBuffs, ranked, ranked ? Number(system.ranks?.current) || 0 : 1);
+        // A cleared rank persists as null; like ModifierHelpers.rankMultiplier, count it as 1.
+        const rank = Number(system.ranks?.current);
+        addTalentBuffs(item.name, system.optionalBuffs, ranked, ranked && Number.isFinite(rank) && rank >= 1 ? rank : 1);
         break;
       }
       case "specialization": {
