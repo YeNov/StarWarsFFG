@@ -27,7 +27,11 @@ Confirmed when played back to the user:
 - It is edited in a new **Optional buffs** block on the item sheet: each buff has a name field and
   rows with the same type / target / value pickers as the Modifiers list. Types that change no
   dice (Stat, Characteristic, Weapon / Armor / Vehicle Stat) are not offered.
-- Only items whose ordinary modifiers apply offer their buffs: **equipped** weapons and armour.
+- Which items offer their buffs: **armour only when equipped**; **weapons and gear whenever the
+  actor has them**. (Decided after review. The first version said equipped weapons and armour,
+  but new weapons start unequipped and most attacks are made with unequipped weapons.)
+- A buff **counts the number of items**: its rows are multiplied by the item's quantity.
+- **Force power rolls get no buffs.**
 - When a buff shows up in the roll dialog depends on each row's type:
   - **Skill rows** (Skill Boost: Charm, and the rest): only on rolls of that skill. A buff with
     Charm, Negotiation and Deception rows shows on all three.
@@ -93,11 +97,9 @@ rows shaped like the item's ordinary modifier rows in `system.attributes` (`modt
 
 The rolling actor's items:
 
-- weapons and armour that are **equipped** (`system.equippable.equipped`);
-- gear, which has no equipped state, unless it is marked **not carried**
-  (`flags.starwarsffg.carried === false`). This is the same rule gear's own effects follow
-  (`modules/items/item-ffg.js`). *(Builder's call recorded here: the user said "equipped" and gear
-  cannot be equipped.)*
+- **armour** only while it is **equipped** (`system.equippable.equipped`);
+- **weapons** and **gear** whenever the actor has them, equipped or not. Gear's Codex "carried"
+  flag does not matter here: an item in the inventory counts.
 
 ### Which buffs a roll offers
 
@@ -115,7 +117,7 @@ label), the **characteristic value** and the **rank**, and the weapon when there
 opened without an actor offers nothing.
 
 A **Force power** roll (the Force-dice-only pool opened from a power on the sheet) offers no
-buffs: boost, setback and difficulty have no place in it. *(Builder's call.)*
+buffs.
 
 ### What a ticked row does to the pool
 
@@ -137,9 +139,13 @@ The reference semantics are `ModifierHelpers.getDicePoolModifiers` (`modules/hel
 for Roll / Dice / Result rows, and `DiceHelpers.rollSkill` (`modules/helpers/dice-helpers.js`) for
 how a skill's rank, characteristic and stored skill dice become the pool.
 
-One exception: a buff counts **once, whatever the item's quantity**. Ordinary gear modifiers are
-multiplied by `system.quantity.value`, but a buff describes a situation, not a bonus per copy: a
-"Skill Boost: Stealth 1" buff on three cloaks still adds one boost. *(Builder's call.)*
+A buff **counts the number of items**: each row's value is multiplied by the item's quantity
+(`system.quantity.value`), as ordinary gear modifiers are. A "Skill Boost: Stealth 1" buff on a
+stack of three cloaks adds three boost.
+
+One exception: a weapon's own Roll, Dice and Result rows on an attack **with that weapon** count
+once, since one weapon makes the attack. Two blasters in one stack do not double a blaster's
+attack buff. *(Builder's call.)*
 
 ### Roll dialog
 
@@ -181,9 +187,11 @@ limited to the row types above. Editable only where the sheet is editable.
 Node tests for the parts free of Foundry:
 
 - which rows of which items a roll offers (skill match, the weapon being used, armour and gear
-  always, unequipped and not-carried items left out);
+  Roll / Dice / Result rows always, unequipped armour left out, unequipped weapons and gear
+  included, nothing on a Force power roll);
 - each row type's change to the pool, including Skill Rank against characteristic both above and
   below the rank;
+- quantity multiplying each row, except a weapon's own attack rows on its own attack;
 - tick, untick and re-tick around manual edits leaving the base pool untouched.
 
 In Foundry, by hand: build a buff on a weapon, an armour and a gear item; check the dialog offers
