@@ -200,7 +200,8 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
 
 ### The option format
 
-Each option is an object with these keys. Every key except `label` is optional.
+Each option is an object with these keys. Every key is optional; `{}` is a valid option that is
+offered on every roll, costs nothing and changes nothing but the chat line.
 
 ```jsonc
 {
