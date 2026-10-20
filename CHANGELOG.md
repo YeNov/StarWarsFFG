@@ -11,6 +11,8 @@
   * Attachments imported from OggDude data list their optional modifications without an installed state, so these now count as installed as well. Untick Installed? on each one the character has not fitted.
 * Fixed — **a modifier switched off with its Enabled box came back on the next time the item was equipped or unequipped**. The box now keeps the choice on the modifier itself, so it stays off until you tick it again.
   * A modifier switched off before this version still comes back on at the next equip or unequip; untick it once more and it stays off.
+* Fixed — **a weapon with special ammo loaded stopped firing once its own Limited Ammo ran out**, saying "Not enough ammo!" with magazines still in the inventory. With the FFG Star Wars Enhancements module's special ammo, the loaded ammo is now the weapon's magazine: each shot is checked against it and spends from it, and the weapon's own counter is left alone while it is loaded.
+  * Needs the next FFG Star Wars Enhancements release as well; with an older module the weapon keeps spending its own counter.
 
 `2.1.6`
 Parry and Reflect in Apply Damage, a GM-set default sheet theme for the table, and fixes for players browsing compendium items and read-only Codex sheets. Codex II moves to a separate module in the next release.
