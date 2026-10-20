@@ -22,8 +22,9 @@ one, and editing one macro changes every item that uses it.
 
 ## What the user decided
 
-1. **Option code lives in Foundry macros, as JSON.** A macro (the hotbar kind, type script) whose
-   text is JSON describes one or more options. The system reads that text and never runs it.
+1. **Option code lives in Foundry macros, as JSON.** A macro (the hotbar kind) whose text is JSON
+   describes one or more options. The system reads that text and never runs it. **Any macro an
+   item links to counts**, whoever wrote it: control lies in who may set the link.
 2. **Items link to the macro by uuid; they do not copy it.** The GM drops a macro onto a talent,
    quality, weapon, armour, gear or attachment. Editing the macro changes the behaviour of every
    item linked to it. Copies the system makes of an item (a talent dropped into a specialization
@@ -35,7 +36,8 @@ one, and editing one macro changes every item that uses it.
 5. **The system ships a library** of ready-made code for the common talents and qualities, and a
    **GM macro run** creates the library's macros and links them into matching items: on actors
    generally, in the world's items and in compendiums.
-6. **Players cannot edit the code.** Only the GM edits the macros and the links.
+6. **Players cannot edit the code.** Only the GM can change an item's links, on any item type and
+   in any copy. The library's macros are the GM's, so only the GM edits their text.
 7. **Link lists are on the item sheets and in the popups** that edit copies inside other items: the
    qualities and attachments inside a weapon or armour, and specialization tree nodes.
 8. **The link list is on the classic and the Codex II item sheets.**
@@ -70,7 +72,6 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
 - Ticking updates the dice preview at once, and the player's manual edits survive any ticking.
 - Validation on save names the problem; the GM's text is not lost; an invalid macro is skipped at
   roll time.
-- Only macros created by a GM count.
 - The library run creates its macros once, never overwrites one already there, links only items
   with no live link, and ends with a report.
 - Talent options appear on crew rolls (a crew member's ship-weapon or piloting check) when their
@@ -161,7 +162,7 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
 ### Words used below
 
 - **Option**: one entry in a macro's JSON; one row on the side card.
-- **Option macro**: a script macro, created by a GM, whose text is option JSON.
+- **Option macro**: a macro whose text is option JSON.
 - **Link**: an option macro's uuid stored on an item.
 - **Library**: the system's built-in option JSON for known talent and quality names.
 - **Payer pool**: what an option's strain cost is paid from: strain for characters and nemeses,
@@ -172,12 +173,14 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
 - Talent, weapon, armour, gear, itemattachment and itemmodifier (quality) items gain a list of
   links: macro uuids. *(Builder's call: the field name, e.g. `system.rollOptions`, an array of
   strings.)*
-- An option macro is an ordinary Foundry `Macro` of type `script`, created by a GM (its `author`
-  is a GM user, which the server sets), whose `command` is JSON: one option object, or an array of
-  them. *(Builder's call: a flag marking it as an option macro, set by the library run and when a
-  GM first links it, so the save check knows to run.)*
-- A link that does not resolve (the macro was deleted), a macro not authored by a GM, or a macro
-  whose JSON is invalid contributes nothing, with a console warning at roll time.
+- An option macro is an ordinary Foundry `Macro`, of either type and by any author, whose
+  `command` is JSON: one option object, or an array of them. The library run creates its macros as
+  the GM, type `script`. *(Builder's call: a flag marking it as an option macro, set by the library
+  run and when a GM first links it, so the save check knows to run.)*
+- A link that does not resolve (the macro was deleted) or a macro whose JSON is invalid contributes
+  nothing, with a console warning at roll time.
+- A macro's text can be edited by whoever owns it; Foundry's server enforces that. A GM who links
+  a macro a player owns lets that player change what it does. That is the GM's choice.
 - The dialog must read the macros of every link before it renders. World macros resolve
   synchronously; a macro in a compendium needs loading first. *(Builder's check: a player's client
   can read a GM macro the player has no permission on. If it cannot, the library run gives option
@@ -349,18 +352,22 @@ armour, gear and attachment:
   Foundry's macro editor) and a remove control, and a drop zone for a macro dragged from the macro
   directory or the hotbar;
 - **shown only to a GM**;
-- a dropped macro is refused if it is not a script macro created by a GM, or if its JSON is invalid
-  (with the errors).
+- a dropped macro is refused if its JSON is invalid (with the errors).
 
 *(Builder's call: placed next to the Optional buffs block on the Modifiers tab, and the matching
 place in the popups and on Codex sheets.)*
 
-**Players cannot change code or links:** option macros are owned by the GM, and Foundry's server
-refuses a player's edit to them. Links are guarded by a `preUpdateItem` check that refuses a
-non-GM update changing an item's link list. Copies that arrive by dropping an item (a talent into a
-tree, a quality onto a weapon) are not edits and still work for players. The link guard runs on
-the player's own client, which is as far as Foundry lets a system enforce it; together with "only
-GM-authored macros count", a player can at most link a macro the GM wrote.
+**Only the GM can change links:** a `preUpdateItem` check refuses a non-GM update that changes the
+link list of the item itself or of any copy it holds (specialization tree nodes, qualities,
+attachments and their qualities). Creating an item is copying, not editing: an item a player
+drops, duplicates or takes from a compendium keeps the links it came with. Inside an update, a
+copy that arrives by dropping an existing item (a talent into a tree, a quality onto a weapon)
+carries the dropped item's links unchanged and still works for players. *(Builder's call how the
+check tells such a copy from an edit, e.g. by comparing the new links against the dropped
+source's.)* The check runs on the player's own
+client, which is as far as Foundry lets a system enforce it: it stops every sheet path, not a
+determined player at the console. The library's macros belong to the GM, and Foundry's server
+refuses a player's edit to their text.
 
 ### The library
 
@@ -431,7 +438,8 @@ Node tests for the parts free of Foundry:
 - validation: parsing, one option or a list, every key and value type, unknown keys, `"amount"`
   without `amount`, bad skill types, error messages naming the option and key; every library entry
   passes;
-- which macros count: unresolved links, non-GM authors, non-script macros, invalid JSON;
+- which links count: unresolved links and invalid JSON skipped; any author and either macro type
+  accepted;
 - offering: skills, skill types, attack-only, weapon-borne options only with that weapon, carried /
   equipped rules, talents from items and trees with combined ranks, the same macro on two items
   shown once, crew rolls offering for the crew member, Force power rolls, no actor;
