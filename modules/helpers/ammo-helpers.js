@@ -12,6 +12,10 @@
  *     quality. Any weapon/shipweapon that carries the quality is tracked
  *     automatically (the per-item toggle is ignored); `max` is the quality's
  *     rank. Weapons without the quality have unlimited ammo (no gate).
+ *
+ * Either mode can be overridden per shot by an optional package through the
+ * `ffgAmmoSource` hook (see getSuppliedAmmo), e.g. ffg-star-wars-enhancements
+ * when a special ammo is loaded into the weapon.
  */
 
 /** Item types that can track ammo. */
@@ -109,11 +113,39 @@ export function getAmmoValue(item) {
   return Number.isFinite(value) ? value : 0;
 }
 
+/** Hook an optional package answers to supply a weapon's ammo itself. */
+export const AMMO_SOURCE_HOOK = "ffgAmmoSource";
+
 /**
- * Whether the item can currently fire: either it does not track ammo, or it
- * still has at least one round.
+ * Ask optional packages whether they supply this item's ammo in place of its
+ * own counter. Handlers receive `(item, source)`; one that takes over sets
+ * `source.provided = true` and `source.canFire` to whether a round is ready.
+ * The package then spends its own rounds, and the system neither gates on nor
+ * spends the item's `system.ammo`. Returns the source when one was provided,
+ * otherwise null.
  */
-export function hasAmmoToFire(item) {
+export function getSuppliedAmmo(item) {
+  if (!AMMO_TYPES.has(item?.type) || typeof Hooks === "undefined") return null;
+  const source = { provided: false, canFire: true };
+  Hooks.callAll(AMMO_SOURCE_HOOK, item, source);
+  return source.provided ? source : null;
+}
+
+/**
+ * Whether the item can currently fire: a supplied magazine has a round ready,
+ * or the item does not track ammo, or its own counter still has a round.
+ * `supplied` defaults to asking the hook (getSuppliedAmmo).
+ */
+export function hasAmmoToFire(item, supplied = getSuppliedAmmo(item)) {
+  if (supplied) return !!supplied.canFire;
   if (!isAmmoTracked(item)) return true;
   return getAmmoValue(item) > 0;
+}
+
+/**
+ * Whether firing the item should spend a round from its own `system.ammo`.
+ * `supplied` defaults to asking the hook (getSuppliedAmmo).
+ */
+export function spendsOwnAmmo(item, supplied = getSuppliedAmmo(item)) {
+  return isAmmoTracked(item) && !supplied;
 }
