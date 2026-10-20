@@ -27,7 +27,7 @@ import {
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool} from "../helpers/dice-helpers.js";
 import { crewRollOptions, isMinionVehicle } from "../helpers/minion-group.js";
-import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
+import { hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
 import { sourceSettingPackIds } from "../char-creator/source-descriptors.js";
 import { sheetTracks } from "../helpers/obligation-tracks.js";
@@ -1803,7 +1803,7 @@ export class ActorSheetFFG extends FFGActorSheet {
    * @returns {Promise<void>}
    */
   async vehicleCrewGunneryRoll(weapon, weaponSkill, selectedGunner) {
-    if (isAmmoTracked(weapon) && !hasAmmoToFire(weapon)) {
+    if (!hasAmmoToFire(weapon)) {
       return ui.notifications.warn(game.i18n.localize("SWFFG.AmmoNotEnough"));
     }
     const starting_pool = {'difficulty': 2};

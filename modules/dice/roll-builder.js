@@ -1,6 +1,6 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
 import { DicePoolFFG } from "./pool.js";
-import { isAmmoTracked, getAmmoValue } from "../helpers/ammo-helpers.js";
+import { spendsOwnAmmo, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { onceEffectIds, postThenPay } from "./roll-costs.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
@@ -729,7 +729,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     if (item && (item.type === "weapon" || item.type === "shipweapon")) {
       costs.push(async () => {
         const weapon = await foundry.utils.fromUuid(item.uuid);
-        if (weapon && isAmmoTracked(weapon)) {
+        if (weapon && spendsOwnAmmo(weapon)) {
           await weapon.update({ "system.ammo.value": Math.max(0, getAmmoValue(weapon) - 1) });
         }
       });
