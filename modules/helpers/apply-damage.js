@@ -140,7 +140,7 @@ export class ApplyDamage {
     const strainLabel = plan.strainLabelKey ? game.i18n.localize(plan.strainLabelKey) : null;
 
     // Damage and qualities are read straight from the chat-embedded item data.
-    const { autoDamage, autoPierce, weaponName } = planDamageSeed(itemData, message.rolls?.[0]?.ffg?.success);
+    const { autoDamage, autoPierce, weaponName } = planDamageSeed(itemData, message.rolls?.[0]?.ffg?.success, plan);
 
     // Parry, Reflect or an equivalent the target can use against this attack. Which talent, and
     // how far it reduces the hit, is fixed when the dialog opens; the cost pool is read from the
