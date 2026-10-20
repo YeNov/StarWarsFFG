@@ -7,11 +7,8 @@ import {
   xpSpendingSettings,
   localizationSettings,
   groupManagerSettings,
-  codexSettings,
 } from "./ui-settings.js";
-import { refreshOpenCodexSheets } from "../actors/codex-sheets.js";
 import { refreshGroupManager } from "../groupmanager-ffg.js";
-import { FOLLOW_GM_SHEET_THEME } from "../helpers/sheet-theme.js";
 
 export default class SettingsHelpers {
   // Initialize System Settings after the Init Hook
@@ -95,19 +92,6 @@ export default class SettingsHelpers {
       icon: "fa-solid fa-user-group",
       type: groupManagerSettings,
       restricted: true,
-    });
-
-    // Not GM-restricted: the menu holds the per-client Default Sheet Theme, which
-    // every user sets for themselves. World-scoped (GM-only) settings inside it —
-    // e.g. the strain house rule — are filtered out for non-GMs in
-    // _buildSettingsContext, so players see only what they can change.
-    game.settings.registerMenu("starwarsffg", "codexSettings", {
-      name: game.i18n.localize("SWFFG.Settings.codex.Name"),
-      hint: game.i18n.localize("SWFFG.Settings.codex.Hint"),
-      label: game.i18n.localize("SWFFG.Settings.codex.Label"),
-      icon: "fa-solid fa-book-sparkles",
-      type: codexSettings,
-      restricted: false,
     });
 
     // Register dice theme setting
@@ -275,58 +259,6 @@ export default class SettingsHelpers {
       },
     });
 
-    // The sheet themes a user or the GM can pick. The value is `codex-<scheme>`
-    // for Codex, so one selector sets both the sheet style and the default Codex
-    // colour scheme.
-    const sheetThemes = {
-      default: "Default (system sheets)",
-      "codex-republic": "Codex II — Republic",
-      "codex-empire": "Codex II — Empire",
-      "codex-dark": "Codex II — Dark",
-      "codex-light": "Codex II — Light",
-      "codex-mercenary": "Codex II — Mercenary",
-      "codex-eldritch-scholar": "Codex II — Eldritch Horror - Scholar",
-      "codex-eldritch-fate": "Codex II — Eldritch Horror - Fate",
-    };
-
-    // The GM's default sheet theme for the table: what every user gets while
-    // their own Default Sheet Theme (below) is on "Use the GM's default", the
-    // value each browser starts with. Registered first so Configure Codex lists
-    // it first. A change reloads only the browsers that follow it.
-    game.settings.register("starwarsffg", "gmDefaultSheetTheme", {
-      name: "GM's Default Sheet Theme",
-      hint: "The sheet style (and Codex II colour scheme) for everyone whose own Default Sheet Theme is Use the GM's default, which is what every user starts with. A user who picked their own keeps it. Reloads their browsers on change.",
-      scope: "world",
-      config: false,
-      default: "default",
-      type: String,
-      choices: sheetThemes,
-      onChange: () => {
-        if (game.settings.get("starwarsffg", "defaultSheetTheme") === FOLLOW_GM_SHEET_THEME) this.debouncedReload();
-      },
-    });
-
-    // Default sheet theme — client-scoped (per world, local to each user). Picks
-    // which sheet style new/unconfigured documents open with, and the default
-    // Codex colour scheme. Starts on FOLLOW_GM_SHEET_THEME, which defers to the
-    // GM's setting above. Documents with an explicit per-document sheet (the ⚙
-    // Sheet button, flags.core.sheetClass) or scheme flag keep their own choice.
-    // Resolved through effectiveSheetTheme() in ActorFFG/ItemFFG._getSheetClass
-    // and cdxDefaultScheme.
-    game.settings.register("starwarsffg", "defaultSheetTheme", {
-      name: "Default Sheet Theme",
-      hint: "Which sheet style (and Codex II colour scheme) to use by default. Stored locally per client; Use the GM's default follows the GM's choice. Documents with an explicitly chosen sheet/scheme keep that choice. Reloads on change.",
-      scope: "client",
-      config: false,
-      default: FOLLOW_GM_SHEET_THEME,
-      type: String,
-      choices: {
-        [FOLLOW_GM_SHEET_THEME]: "Use the GM's default",
-        ...sheetThemes,
-      },
-      onChange: this.debouncedReload,
-    });
-
     // Register setting for token healthy
     game.settings.register("starwarsffg", "ui-token-healthy", {
       name: game.i18n.localize("SWFFG.Settings.Tokens.Bar.Healthy.Name"),
@@ -440,43 +372,20 @@ export default class SettingsHelpers {
       },
     });
 
-    // Codex house rule: whether advantages recover strain during Post-Encounter
-    // strain recovery (every 2 advantages = 1 strain). On by default. Read by the
-    // codex sheet's _cdxApplyStrainRecovery.
-    game.settings.register("starwarsffg", "codexAdvantageHealsStrain", {
-      name: game.i18n.localize("SWFFG.Settings.codex.AdvantageHealsStrain.Name"),
-      hint: game.i18n.localize("SWFFG.Settings.codex.AdvantageHealsStrain.Hint"),
-      scope: "world",
-      config: false,
-      default: true,
-      type: Boolean,
-    });
-
-    // Codex talents tab: group the talent cards under "Tier N" headings instead of
-    // showing one flat list. On by default. Read by the codex sheet's _prepareContext.
-    game.settings.register("starwarsffg", "codexTalentTierSorting", {
-      name: game.i18n.localize("SWFFG.Settings.codex.TalentTierSorting.Name"),
-      hint: game.i18n.localize("SWFFG.Settings.codex.TalentTierSorting.Hint"),
-      scope: "world",
-      config: false,
-      default: true,
-      type: Boolean,
-      onChange: () => refreshOpenCodexSheets(),
-    });
-
     // Crit-Trauma weekly recovery counter: the campaign day drives the once-per-week
     // cooldown on crit self-heal / Medicine / Mechanics attempts. Advanced from the
     // Destiny Tracker [+] control; not shown in the config menu.
     game.settings.register("starwarsffg", "campaignDay", {
-      name: "SWFFG.Codex.CritTrauma.Day",
+      name: "SWFFG.CampaignDay.Day",
       scope: "world",
       config: false,
       default: 1,
       type: Number,
+      // Rewrite the Destiny Tracker's readout in place (null-guarded). Open Codex II sheets
+      // redraw from Codex's own setting hook.
       onChange: () => {
-        refreshOpenCodexSheets();                                   // path 1
-        const el = document.querySelector("#ffg-campaign-day .ffg-campaign-day-value");   // path 2 (null-guarded)
-        if (el) el.textContent = `${game.i18n.localize("SWFFG.Codex.CritTrauma.Day")} ${Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0)}`;
+        const el = document.querySelector("#ffg-campaign-day .ffg-campaign-day-value");
+        if (el) el.textContent = `${game.i18n.localize("SWFFG.CampaignDay.Day")} ${Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0)}`;
       },
     });
     // House rule: apply the weekly Mechanics cooldown to vehicle criticals (RAW is
@@ -488,7 +397,6 @@ export default class SettingsHelpers {
       config: false,
       default: false,
       type: Boolean,
-      onChange: () => refreshOpenCodexSheets(),
     });
 
     // Increase compatibility with old versions (likely to make new games kinda weird as it updates items from chat data)

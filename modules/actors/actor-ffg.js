@@ -4,7 +4,7 @@ import { addTalentListEntry, collectInnateTalentGrants } from "../helpers/innate
 import { applyCharacterDefenceCap } from "../helpers/defence-helpers.js";
 import { buildSkillDefaults } from "../helpers/skill-defaults.js";
 import { isMinionVehicle, prepareMinionVehicleHull, prototypeLinkUpdate } from "../helpers/minion-group.js";
-import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
+import { resolveSheetClass } from "../helpers/sheet-resolvers.js";
 
 /**
  * Extend the base Actor entity.
@@ -13,21 +13,15 @@ import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
 export class ActorFFG extends Actor {
 
   /**
-   * Route to the Codex II actor sheet when the sheet theme (the client
-   * `defaultSheetTheme`, or the GM's default it follows) selects it — unless
-   * this actor has an explicit per-document sheet (the ⚙ Sheet picker writes
-   * flags.core.sheetClass, which always wins) or its type isn't covered by Codex. The Codex class + covered types live on
-   * CONFIG.FFG.codexSheets (set at sheet registration) to avoid a document↔sheet
-   * import cycle. @override
+   * Ask the optional sheet packages (e.g. the Codex II module) for this user's default sheet,
+   * unless this actor has an explicit per-document sheet: the ⚙ Sheet picker writes
+   * flags.core.sheetClass, which always wins. @override
    */
   _getSheetClass() {
-    try {
-      const codex = CONFIG.FFG?.codexSheets?.actor;
-      if (codex && !this.getFlag("core", "sheetClass") && codex.types.includes(this.type)
-        && effectiveSheetTheme().startsWith("codex")) {
-        return codex.cls;
-      }
-    } catch (e) { /* settings not ready yet, etc. — fall back to the default */ }
+    if (!this.getFlag("core", "sheetClass")) {
+      const cls = resolveSheetClass(this);
+      if (cls) return cls;
+    }
     return super._getSheetClass();
   }
 

@@ -20,13 +20,10 @@ import { ItemFFG } from "./items/item-ffg.js";
 import ItemHelpers from "./helpers/item-helpers.js";
 import { ItemSheetFFG } from "./items/item-sheet-ffg.js";
 import { ItemSheetFFGV2 } from "./items/item-sheet-ffg-v2.js";
-import { CodexItemSheet } from "./items/codex-item-sheet.js";
-import { codexQuantityLabel } from "./actors/codex-quantity.js";
 import { ActorSheetFFG } from "./actors/actor-sheet-ffg.js";
 import { ActorSheetFFGV2 } from "./actors/actor-sheet-ffg-v2.js";
 import { AdversarySheetFFG } from "./actors/adversary-sheet-ffg.js";
 import { AdversarySheetFFGV2 } from "./actors/adversary-sheet-ffg-v2.js";
-import { CodexActorSheet, CodexAdversarySheet } from "./actors/codex-sheets.js";
 import { DicePoolFFG, RollFFG } from "./dice-pool-ffg.js";
 import { GroupManager, refreshGroupManager } from "./groupmanager-ffg.js";
 import PopoutEditor from "./popout-editor.js";
@@ -49,8 +46,8 @@ import { ApplyDamage } from "./helpers/apply-damage.js";
 import { ApplyCrit } from "./helpers/apply-crit.js";
 import { ReplaceDie } from "./helpers/replace-die.js";
 import { DEFENSIVE_TALENT_LISTS, RULESET_RESPECIALIZED, RULESET_VANILLA } from "./helpers/defensive-talents.js";
-import { registerGMBridge } from "./helpers/gm-bridge.js";
-import { registerStatStepBridge } from "./helpers/stat-step-bridge.js";
+import { applyCritRecoveryAttempt, registerGMBridge } from "./helpers/gm-bridge.js";
+import { adjustCodexStat, bindStatStepPrediction, predictedCodexStat, registerStatStepBridge } from "./helpers/stat-step-bridge.js";
 import { shouldApplySkillTheme } from "./helpers/skill-theme.js";
 import DataImporter from "./importer/data-importer.js";
 import FlagMigrationHelpers from "./helpers/flag-migration-helpers.js";
@@ -58,20 +55,49 @@ import RollBuilderFFG from "./dice/roll-builder.js";
 import CrewSettings from "./settings/crew-settings.js";
 import {register_dice_enricher, register_oggdude_tag_enricher, register_roll_tag_enricher} from "./helpers/journal.js";
 import {drawAdversaryCount, drawMinionCount, registerTokenControls} from "./helpers/token.js";
-import { isMinionVehicle } from "./helpers/minion-group.js";
+import { groupTrack, hullPoolSegments, isMinionVehicle, stepUnits } from "./helpers/minion-group.js";
 import {handleUpdate} from "./swffg-migration.js";
 import SWAImporter from "./importer/swa-importer.js";
 import HyperdriveImporter from "./importer/hyperdrive/importer-app.js";
 import {CharacterCreator} from "./helpers/character-creator.js";
 import {registerSocketBridge} from "./char-creator/socket-bridge.js";
-import {xpLogUndo} from "./helpers/actor-helpers.js";
+import ActorHelpers, { xpLogUndo } from "./helpers/actor-helpers.js";
 import {register_system_tours} from "./helpers/tours.js";
 import {registerSystemDataModels, reportDataModelConformance} from "./data/index.js";
-import { computeCritAvailability } from "./helpers/crit-availability.js";
+import { availFor, computeCritAvailability } from "./helpers/crit-availability.js";
 import { refreshSheetsForRemoteUpdate } from "./helpers/sheet-sync.js";
 import { planStatusCounterSync } from "./helpers/status-counter-sync.js";
 import { planTalentRevoke, talentRanks } from "./helpers/talent-stacking.js";
 import { vehicleItemRefusal } from "./helpers/vehicle-items.js";
+import { hasSheetResolver, registerSheetResolver, resolveSheetClass } from "./helpers/sheet-resolvers.js";
+import { buildPublicApi } from "./api/public-api.js";
+import { FFGFormApplication } from "./apps/ffg-form-application.js";
+import { ffgSettings } from "./settings/ui-settings.js";
+import { killMinionGroup } from "./helpers/minions.js";
+import { getAmmoMax, getAmmoValue, isAmmoTracked } from "./helpers/ammo-helpers.js";
+import { vehicleHardpointSourceRating, vehicleHardpoints, vehicleShieldSourceRatings } from "./helpers/vehicle-hardpoints.js";
+import { vehicleDefenceZones } from "./helpers/vehicle-defence.js";
+
+// The system's public API for optional packages (the Codex II module): see
+// modules/api/public-api.js. Set while this file is evaluated, before any module script runs.
+//
+// This reads imported classes (ActorSheetFFG, ffgSettings, ...) at evaluation time, so this file must
+// be the first module of its import cycles to be entered: no esmodule listed before it in system.json
+// may import it, directly or indirectly, or it would be evaluated mid-cycle with those classes still
+// uninitialised and the system would not load. tests/node/esmodule-load-order.test.mjs checks this.
+globalThis.starwarsffg = buildPublicApi({
+  sheets: { ActorSheetFFG, AdversarySheetFFG, ItemSheetFFG },
+  apps: { FFGFormApplication, ffgSettings },
+  helpers: {
+    DiceHelpers, DicePoolFFG, ActorHelpers,
+    killMinionGroup, groupTrack, hullPoolSegments, stepUnits,
+    availFor, applyCritRecoveryAttempt,
+    isAmmoTracked, getAmmoMax, getAmmoValue,
+    vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings, vehicleDefenceZones,
+    adjustCodexStat, bindStatStepPrediction, predictedCodexStat,
+  },
+  sheetResolvers: { register: registerSheetResolver, has: hasSheetResolver, resolve: resolveSheetClass },
+});
 
 /* -------------------------------------------- */
 /*  Foundry VTT Initialization                  */
@@ -173,25 +199,6 @@ Hooks.on("setup", function (){
   register_oggdude_tag_enricher();
   register_dice_enricher();
   register_system_tours();
-});
-
-// Merge the Codex localization file into the translation table. Codex labels are
-// kept in their own lang/codex/<lang>.json (separate from the base system strings)
-// and loaded here in code rather than via a second manifest language entry, so
-// they resolve on a simple client reload instead of only after a full world
-// relaunch (system.json is re-read only on relaunch). i18nInit fires right after
-// the base table loads. English is merged first as a fallback base, then the
-// active language on top when it differs.
-Hooks.on("i18nInit", async function () {
-  const langs = game.i18n.lang && game.i18n.lang !== "en" ? ["en", game.i18n.lang] : ["en"];
-  for (const lang of langs) {
-    try {
-      const json = await foundry.utils.fetchJsonWithTimeout(`systems/starwarsffg/lang/codex/${lang}.json`);
-      foundry.utils.mergeObject(game.i18n.translations, foundry.utils.expandObject(json));
-    } catch (e) {
-      // No codex file for this language (e.g. only English exists) — skip quietly.
-    }
-  }
 });
 
 // Apply optional label overrides for Credits, Obligation, Morality, Duty, and
@@ -417,8 +424,11 @@ Hooks.once("init", async function () {
     bar.position.set(0, posY);
   };
 
-  // Load character templates so that dynamic skills lists work correctly
-  await foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html", "systems/starwarsffg/templates/actors/codex/codex-character.html", "systems/starwarsffg/templates/actors/codex/codex-minion.html", "systems/starwarsffg/templates/actors/codex/codex-vehicle.html", "systems/starwarsffg/templates/items/codex/codex-item.html", "systems/starwarsffg/templates/items/codex/codex-gear.html", "systems/starwarsffg/templates/items/codex/codex-weapon.html", "systems/starwarsffg/templates/items/codex/codex-armour.html", "systems/starwarsffg/templates/items/codex/codex-talent.html", "systems/starwarsffg/templates/items/codex/codex-crit.html", "systems/starwarsffg/templates/items/codex/codex-shipweapon.html", "systems/starwarsffg/templates/items/codex/codex-itemattachment.html", "systems/starwarsffg/templates/items/codex/codex-shipattachment.html", "systems/starwarsffg/templates/items/codex/codex-forcepower.html", "systems/starwarsffg/templates/items/codex/codex-specialization.html", "systems/starwarsffg/templates/items/codex/codex-signatureability.html"]);
+  // Preload the character templates (dynamic skills lists need them) without holding up init:
+  // Foundry runs every module's init hook as soon as this handler first awaits, so an await
+  // here left the settings, sheets and theme stylesheet below unregistered for modules.
+  foundry.applications.handlebars.loadTemplates(["systems/starwarsffg/templates/actors/ffg-character-sheet.html", "systems/starwarsffg/templates/actors/ffg-minion-sheet.html"])
+    .catch((err) => CONFIG.logger.error("template preload failed", err));
 
   SettingsHelpers.initLevelSettings();
 
@@ -438,25 +448,6 @@ Hooks.once("init", async function () {
     default: {
       $('link[href*="styles/starwarsffg.css"]').prop("disabled", false);
     }
-  }
-
-  // CODEX II stylesheet — appended LAST in <head>, after whichever UI theme link
-  // was added above. Fully self-contained: everything is scoped under `.cdx` and
-  // styles only bespoke `.cdx-*` classes, so it neither depends on nor is
-  // overridden by the active theme. (system.json `styles` is unreliable here —
-  // the default mandar theme disables system styles at init.)
-  // ?v=<timestamp> busts the browser cache so edits to cdx.css load on a plain
-  // reload — the <link> was otherwise cached forever by its fixed URL, which is
-  // why CSS changes "didn't apply". TODO: switch the buster to the system
-  // version (game.system.version) for release so the file caches between bumps.
-  $("head").append(`<link href="systems/starwarsffg/styles/cdx.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
-  // Each Codex scheme's palette (and any scheme-specific rules) lives in its own
-  // file, appended AFTER cdx.css so it layers on top of the base Codex styles.
-  // Republic loads first and doubles as the default palette (its bare `.cdx form`
-  // fallback); every scheme-* rule outranks it by specificity. Same cache-buster
-  // rationale as cdx.css above.
-  for (const scheme of ["republic", "empire", "dark", "light", "mercenary", "eldritch"]) {
-    $("head").append(`<link href="systems/starwarsffg/styles/cdx-${scheme}.css?v=${Date.now()}" rel="stylesheet" type="text/css" media="all">`);
   }
 
   /**
@@ -972,6 +963,28 @@ Hooks.once("init", async function () {
     CONFIG.FFG.preCombatDelete = Hooks.on("preDeleteCombatant", registerHandleCombatantRemoval);
   }
 
+  // Keep these registrations above init's first await: Foundry does not await this handler, so module init hooks run once it first awaits (see tests/node/init-order.test.mjs).
+  // Register sheet application classes
+  foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
+  // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
+  // to the same native sheet. ActorSheetFFG / AdversarySheetFFG are the real
+  // classes (ActorSheetFFG takes makeDefault); the V2 names stay registered
+  // without makeDefault only as deprecated aliases so worlds with
+  // `flags.core.sheetClass === "ffg.ActorSheetFFGV2"` / `"ffg.AdversarySheetFFGV2"`
+  // keep resolving. Drop the alias entries in the release after V2-full lands.
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { makeDefault: true, label: "Actor Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
+  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
+  foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
+  // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
+  // to the same native sheet. ItemSheetFFG is the real, default class;
+  // ItemSheetFFGV2 stays registered (no makeDefault) only as a deprecated alias
+  // so worlds with `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
+  // resolving. Drop the alias entry in the release after V2-full lands.
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
+  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
+
   await gameSkillsList();
 
   FFG.configureDice();
@@ -1341,54 +1354,6 @@ Hooks.once("init", async function () {
       ui.notifications.warn("Failed to load custom statuses, likely bad JSON");
     }
 
-  // Register sheet application classes
-  foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
-  // V2-full migration (Stage 4.8): the V1/V2 actor + adversary sheets now resolve
-  // to the same native sheet. ActorSheetFFG / AdversarySheetFFG are the real
-  // classes (ActorSheetFFG takes makeDefault); the V2 names stay registered
-  // without makeDefault only as deprecated aliases so worlds with
-  // `flags.core.sheetClass === "ffg.ActorSheetFFGV2"` / `"ffg.AdversarySheetFFGV2"`
-  // keep resolving. Drop the alias entries in the release after V2-full lands.
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFG, { makeDefault: true, label: "Actor Sheet" });
-  foundry.documents.collections.Actors.registerSheet("ffg", ActorSheetFFGV2, { label: "Actor Sheet v2 (deprecated, use Actor Sheet)" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFG, { types: ["character"], label: "Adversary Sheet" });
-  foundry.documents.collections.Actors.registerSheet("ffg", AdversarySheetFFGV2, { types: ["character"], label: "Adversary Sheet v2 (deprecated, use Adversary Sheet)" });
-  // CODEX II — bespoke, opt-in sheets selected per-actor via the ⚙ Sheet picker.
-  // Stock sheets stay registered as the default; Codex never takes makeDefault.
-  // Register a type only once its codex-<type>.html template exists. Widened as
-  // each type lands (character first).
-  const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
-  foundry.documents.collections.Actors.registerSheet("ffg", CodexActorSheet, { types: CODEX_ACTOR_TYPES, label: "Codex II Sheet" });
-  foundry.documents.collections.Actors.registerSheet("ffg", CodexAdversarySheet, { types: ["character"], label: "Codex II Adversary Sheet" });
-  foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
-  // V2-full migration (Stage 3.7): ItemSheetFFG and ItemSheetFFGV2 now resolve
-  // to the same native sheet. ItemSheetFFG is the real, default class;
-  // ItemSheetFFGV2 stays registered (no makeDefault) only as a deprecated alias
-  // so worlds with `flags.core.sheetClass === "ffg.ItemSheetFFGV2"` keep
-  // resolving. Drop the alias entry in the release after V2-full lands.
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFG, { makeDefault: true, label: "Item Sheet" });
-  foundry.documents.collections.Items.registerSheet("ffg", ItemSheetFFGV2, { label: "Item Sheet v2 (deprecated, use Item Sheet)" });
-  // Codex II item sheet — opt-in, per item, via the ⚙ Sheet config. Per-type
-  // template routing lives in CodexItemSheet#template: most types listed here
-  // have a bespoke codex-<type>.html — including the force power,
-  // specialization and signature ability trees — and the rest fall back to the
-  // generic codex-item.html frame. Types left out of this list keep the stock
-  // sheet: career, itemmodifier and species.
-  const CODEX_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "forcepower", "specialization", "signatureability", "shipweapon", "itemattachment", "ability", "criticalinjury", "criticaldamage", "obligation", "motivation", "background", "shipattachment", "homesteadupgrade"];
-  foundry.documents.collections.Items.registerSheet("ffg", CodexItemSheet, {
-    types: CODEX_ITEM_TYPES,
-    label: "Codex II Item Sheet",
-  });
-
-  // Stash the Codex sheet classes + the types they cover so the document
-  // classes' _getSheetClass() (ActorFFG/ItemFFG) can route to them when the
-  // client `defaultSheetTheme` setting selects "codex" — without importing the
-  // sheet classes into the document modules (which would form an import cycle).
-  CONFIG.FFG.codexSheets = {
-    actor: { cls: CodexActorSheet, types: CODEX_ACTOR_TYPES },
-    item: { cls: CodexItemSheet, types: CODEX_ITEM_TYPES },
-  };
-
   // Add utilities to the global scope, this can be useful for macro makers
   window.DicePoolFFG = DicePoolFFG;
 
@@ -1404,7 +1369,6 @@ Hooks.once("init", async function () {
 
   // Register Handlebars utilities
   Handlebars.registerHelper("json", JSON.stringify);
-  Handlebars.registerHelper("codexQuantity", codexQuantityLabel);
 
   // Allows {if X = Y} type syntax in html using handlebars
   Handlebars.registerHelper("iff", function (a, operator, b, opts) {
@@ -1806,27 +1770,6 @@ Hooks.once("ready", async () => {
     // left in before talents stacked as ranks.
     repairDuplicateTalents: (options) => ItemHelpers.repairDuplicateTalents(options),
   });
-
-  // Self-heal a stale `defaultSheetTheme` client value. The setting originally
-  // offered a bare "codex" option; the scheme-fold replaced it with per-scheme
-  // keys ("codex-<scheme>") and dropped "codex" from the choices. A client left
-  // on the legacy "codex" (or any value no longer in the choices) still routes
-  // to the Codex sheet via _getSheetClass (startsWith("codex")), yet the
-  // settings dropdown can't render the missing value — so it shows "Default
-  // (system sheets)" as selected while sheets still open as Codex II, and
-  // re-picking Default in the UI fires no change (the value looks unchanged).
-  // Reset any out-of-choices value to the setting's default ("Use the GM's
-  // default") so the effective sheet and the dropdown agree. Runs once: after
-  // the reset the value is a valid choice.
-  try {
-    const cfg = game.settings.settings.get("starwarsffg.defaultSheetTheme");
-    const current = game.settings.get("starwarsffg", "defaultSheetTheme");
-    if (cfg?.choices && !(current in cfg.choices)) {
-      await game.settings.set("starwarsffg", "defaultSheetTheme", cfg.default);
-    }
-  } catch (err) {
-    CONFIG.logger?.warn?.("starwarsffg | defaultSheetTheme normalization skipped", err);
-  }
 
   // Forward Apply Damage / Apply Crit writes from non-owning players to the GM.
   registerGMBridge();

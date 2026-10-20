@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "compile": "gulp css",
-    "lint": "npx eslint modules",
-    "test": "node --test \"tests/node/**/*.test.mjs\"",
+    "lint": "npx eslint modules codex/scripts",
+    "test": "node --test \"tests/node/**/*.test.mjs\" \"codex/tests/node/**/*.test.mjs\"",
     "check:imports": "node tools/check-imports.mjs",
     "watch": "gulp"
   },

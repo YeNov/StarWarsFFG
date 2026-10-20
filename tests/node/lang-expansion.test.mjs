@@ -38,7 +38,7 @@ function setProperty(object, key, value) {
 }
 
 const root = new URL("../../", import.meta.url);
-const langDirs = ["lang", "lang/codex"];
+const langDirs = ["lang"];
 const files = langDirs.flatMap((dir) => {
   const full = new URL(`${dir}/`, root);
   return fs.readdirSync(full)

@@ -9,7 +9,7 @@ import ItemHelpers from "../helpers/item-helpers.js";
 import { applyItemAdjustments } from "../helpers/item-adjustments.js";
 import { isAmmoTracked, getAmmoMax, getAmmoValue, getInitialLimitedAmmoValue } from "../helpers/ammo-helpers.js";
 import { collapseTalentBatch, planTalentGrant, talentName } from "../helpers/talent-stacking.js";
-import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
+import { resolveSheetClass } from "../helpers/sheet-resolvers.js";
 
 /**
  * Extend the basic Item with some very simple modifications.
@@ -17,21 +17,15 @@ import { effectiveSheetTheme } from "../helpers/sheet-theme.js";
  */
 export class ItemFFG extends ItemBaseFFG {
   /**
-   * Route to the Codex II item sheet when the sheet theme (the client
-   * `defaultSheetTheme`, or the GM's default it follows) selects it — unless
-   * this item has an explicit per-document sheet (flags.core.sheetClass, set via
-   * the ⚙ Sheet picker, always wins) or its type isn't covered by Codex (complex tree/config types keep the stock sheet). The
-   * Codex class + covered types live on CONFIG.FFG.codexSheets to avoid a
-   * document↔sheet import cycle. @override
+   * Ask the optional sheet packages (e.g. the Codex II module) for this user's default sheet,
+   * unless this item has an explicit per-document sheet: the ⚙ Sheet picker writes
+   * flags.core.sheetClass, which always wins. @override
    */
   _getSheetClass() {
-    try {
-      const codex = CONFIG.FFG?.codexSheets?.item;
-      if (codex && !this.getFlag("core", "sheetClass") && codex.types.includes(this.type)
-        && effectiveSheetTheme().startsWith("codex")) {
-        return codex.cls;
-      }
-    } catch (e) { /* settings not ready yet, etc. — fall back to the default */ }
+    if (!this.getFlag("core", "sheetClass")) {
+      const cls = resolveSheetClass(this);
+      if (cls) return cls;
+    }
     return super._getSheetClass();
   }
 

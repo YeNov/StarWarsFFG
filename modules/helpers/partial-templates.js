@@ -1,12 +1,6 @@
 export default class TemplateHelpers {
   static async preload() {
     const templatePaths = [
-      "systems/starwarsffg/templates/parts/codex/cdx-skills.html",
-      "systems/starwarsffg/templates/parts/codex/cdx-combat.html",
-      "systems/starwarsffg/templates/parts/codex/cdx-gear.html",
-      "systems/starwarsffg/templates/parts/codex/cdx-talents.html",
-      "systems/starwarsffg/templates/parts/codex/cdx-injuries.html",
-      "systems/starwarsffg/templates/parts/codex/cdx-ratio-chip.html",
       "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html",
       "systems/starwarsffg/templates/parts/shared/ffg-sources.html",
       "systems/starwarsffg/templates/parts/shared/ffg-tags.html",

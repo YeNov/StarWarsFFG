@@ -5,7 +5,6 @@ import { HelpersTests } from "./common.test.js";
 import { ModifiersTests } from "./modifiers.test.js";
 import { ReplaceDieTests } from "./replace-die.test.js";
 import { TalentTreeTests } from "./talent-tree.test.js";
-import { CodexSchemeTests } from "./codex-schemes.test.js";
 import { SheetTabCacheTests } from "./v2-migration/sheet-tab-cache.test.js";
 import { FormSubmitCoalesceTests } from "./v2-migration/form-submit-coalesce.test.js";
 import { SheetInitialSizeTests } from "./v2-migration/sheet-initial-size.test.js";
@@ -43,13 +42,24 @@ export default class FFGFunctionalTests extends FormApplication {
     ModifiersTests(suite, suiteInstance, Test, chai);
     ReplaceDieTests(suite, suiteInstance, Test, chai);
     TalentTreeTests(suite, suiteInstance, Test, chai);
-    CodexSchemeTests(suite, suiteInstance, Test, chai);
     SheetTabCacheTests(suite, suiteInstance, Test, chai);
     FormSubmitCoalesceTests(suite, suiteInstance, Test, chai);
     SheetInitialSizeTests(suite, suiteInstance, Test, chai);
     SheetSkillDataTests(suite, suiteInstance, Test, chai);
     MinimizedCloseTests(suite, suiteInstance, Test, chai);
     CritTraumaCounterTests(suite, suiteInstance, Test, chai);
+
+    // Optional packages (the Codex II module) add their own suites. One whose suites fail to load
+    // is reported and skipped, so the system's own suites still run.
+    const packageSuites = [];
+    Hooks.callAll("starwarsffg.functionalTests", packageSuites);
+    for (const addSuites of packageSuites) {
+      try {
+        await addSuites(suite, suiteInstance, Test, chai);
+      } catch (err) {
+        console.error("Star Wars FFG | a package's functional test suites failed to load", err);
+      }
+    }
 
     // Run Tests
     const mochaRun = () => {

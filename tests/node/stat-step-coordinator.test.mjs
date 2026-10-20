@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
   createStatStepCoordinator, statStepSnapshot, statStepState,
   STEP_EVENT, STEP_RESULT, STEP_FLAG,
@@ -277,12 +276,4 @@ test("synthetic actor UUID is preserved and each write resolves a fresh source",
   assert.equal(c.source.system.stats.speed.value, 2);
   assert.ok(c.writes.every((w) => w.uuid === uuid));
   assert.equal(c.writes[1].changes[STEP_FLAG].revision, 2);
-});
-
-test("predicted current inputs cannot leak into whole-form submissions", () => {
-  const template = readFileSync(new URL("../../templates/parts/codex/cdx-ratio-chip.html", import.meta.url), "utf8");
-  const input = template.match(/<input class="cdx-ratio-c"[^>]*>/)?.[0];
-  assert.ok(input);
-  assert.doesNotMatch(input, /\bname=/);
-  assert.match(input, /data-cdx-edit-path=/);
 });

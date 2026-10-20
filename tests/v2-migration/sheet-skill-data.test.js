@@ -6,7 +6,6 @@
 // CONFIG.FFG.skills, which renders headers with no skill rows.
 
 import { ActorSheetFFG } from "../../modules/actors/actor-sheet-ffg.js";
-import { CodexActorSheet } from "../../modules/actors/codex-sheets.js";
 
 export const SheetSkillDataTests = (suite, suiteInstance, Test, chai) => {
   const _suite = suiteInstance.create(suite, "V2 Migration - Actor Sheet Skill Data");
@@ -35,9 +34,5 @@ export const SheetSkillDataTests = (suite, suiteInstance, Test, chai) => {
 
   _suite.addTest(new Test("legacy actor sheet keeps prepared skill rows", async function () {
     await assertSkillRows(ActorSheetFFG, "ActorSheetFFG");
-  }));
-
-  _suite.addTest(new Test("Codex actor sheet keeps prepared skill rows", async function () {
-    await assertSkillRows(CodexActorSheet, "CodexActorSheet");
   }));
 };

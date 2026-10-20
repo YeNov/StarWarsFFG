@@ -1,0 +1,85 @@
+// Codex II — actor sheet initial-size contract (Star Wars FFG issue #14).
+//
+// Behavior under test: `getData()` applies the per-type default size on the FIRST
+// call only. Re-applying it on every render is what snapped a resized sheet back
+// to default, and it did so invisibly: `position` is a Proxy whose set trap runs
+// _updatePosition but never #applyPosition, and _updatePosition only writes
+// el.style for dimensions that are "auto" — which actor sheets are not (both are
+// pinned numerically in DEFAULT_OPTIONS). So the write moved internal state while
+// the DOM kept the user's size, and nothing looked wrong until the next
+// setPosition replayed the stale clone. Dragging the header is exactly that:
+// #onWindowDragMove replays width and height, not just top/left. Hence the
+// two-step repro — edit, THEN move.
+//
+// The full resize/edit/drag UI assertion stays in the manual checklist; what is
+// pinned here is the contract every actor sheet class must honour: a size present
+// after the first getData survives every later getData.
+//
+// The Codex sheets inherit BOTH sizing paths from the system sheets they extend,
+// and the two are distinct:
+//   CodexActorSheet      sizes in ActorSheetFFG's getData (guarded by _sizeInitialized)
+//   CodexAdversarySheet  sizes AGAIN in AdversarySheetFFG's override, which runs after
+//                        super.getData(), so it needs its own latch
+//                        (_advSizeInitialized) — hence the dedicated case below.
+//
+// Sheets are constructed but never rendered. That is deliberate and safe:
+// ApplicationV2#_updatePosition early-returns when there is no element, so the
+// position writes land unclamped and no DOM is required.
+
+import { CodexActorSheet, CodexAdversarySheet } from "../../scripts/codex-sheets.js";
+import { CODEX_ACTOR_TYPES } from "../../scripts/codex-main.js";
+
+export const CodexSheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
+  const _suite = suiteInstance.create(suite, "Codex II — Actor Sheet Initial Size");
+
+  // `loaded` short-circuits the specialization refresh inside getData: it is
+  // irrelevant to sizing and slow.
+  const makeActor = (type) =>
+    Actor.create({ name: `_v2mig_size_${type}`, type, flags: { starwarsffg: { loaded: true } } });
+
+  /**
+   * The contract: whatever size the sheet holds after its first getData, a
+   * subsequent getData (i.e. any re-render) must leave it alone.
+   */
+  const assertSizeSurvives = async (sheet, label) => {
+    await sheet.getData({});                       // first call — latches and sizes
+    const w = sheet.position.width;
+    const h = sheet.position.height;
+    chai.expect(w, `${label}: first getData establishes a numeric width`).to.be.a("number");
+    chai.expect(h, `${label}: first getData establishes a numeric height`).to.be.a("number");
+
+    // Stand in for a user resize. Read the values back rather than trusting the
+    // ones we set, so the assertion holds even if a clamp ever applies here.
+    sheet.position.width = w - 50;
+    sheet.position.height = h - 40;
+    const resizedW = sheet.position.width;
+    const resizedH = sheet.position.height;
+    chai.expect(resizedW, `${label}: the simulated resize actually took`).to.not.equal(w);
+
+    await sheet.getData({});                       // stands in for a re-render
+    chai.expect(sheet.position.width, `${label}: width survives a re-render`).to.equal(resizedW);
+    chai.expect(sheet.position.height, `${label}: height survives a re-render`).to.equal(resizedH);
+  };
+
+  for (const type of CODEX_ACTOR_TYPES) {
+    _suite.addTest(new Test(`Codex sheet keeps its size across re-renders — ${type}`, async function () {
+      const actor = await makeActor(type);
+      try {
+        await assertSizeSurvives(new CodexActorSheet({ document: actor }), `CodexActorSheet/${type}`);
+      } finally {
+        await actor.delete();
+      }
+    }));
+  }
+
+  // Adversary sheets are registered for `character` only, and size a second time
+  // in their own getData override — the path the first #14 commit missed.
+  _suite.addTest(new Test("Codex adversary sheet keeps its size across re-renders", async function () {
+    const actor = await makeActor("character");
+    try {
+      await assertSizeSurvives(new CodexAdversarySheet({ document: actor }), "CodexAdversarySheet");
+    } finally {
+      await actor.delete();
+    }
+  }));
+};

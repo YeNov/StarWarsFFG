@@ -1,7 +1,7 @@
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
 import { DEFENSIVE_TALENT_LISTS } from "../helpers/defensive-talents.js";
 
-class ffgSettings extends FFGFormApplication {
+export class ffgSettings extends FFGFormApplication {
   static DEFAULT_OPTIONS = {
     form: {
       closeOnSubmit: true,
@@ -311,29 +311,6 @@ export class groupManagerSettings extends ffgSettings {
       "starwarsffg.pcListMode",
       "starwarsffg.privateTriggers",
       "starwarsffg.GMCharactersInGroupManager"
-    ];
-    return this._buildSettingsContext(includeSettingsNames);
-  }
-}
-
-export class codexSettings extends ffgSettings {
-  static DEFAULT_OPTIONS = {
-    id: "codex-settings",
-    classes: ["starwarsffg", "codex-settings"],
-    window: { title: "SWFFG.Settings.codex.Title" },
-  };
-
-  static PARTS = {
-    content: { root: true, template: "systems/starwarsffg/templates/dialogs/ffg-ui-settings.html" },
-  };
-
-  async _prepareContext(_options) {
-    const includeSettingsNames = [
-      "starwarsffg.gmDefaultSheetTheme",
-      "starwarsffg.defaultSheetTheme",
-      "starwarsffg.codexAdvantageHealsStrain",
-      "starwarsffg.codexTalentTierSorting",
-      "starwarsffg.vehicleCritWeeklyLimit",
     ];
     return this._buildSettingsContext(includeSettingsNames);
   }

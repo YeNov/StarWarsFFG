@@ -1,0 +1,1923 @@
+/**
+ * CODEX II — ground-up bespoke sheets.
+ *
+ * These sheets KEEP all behaviour from the stock sheet classes (equip, quantity,
+ * rest/heal, XP purchase, dice pools, drag-drop — everything in ActorSheetFFG /
+ * AdversarySheetFFG) and only swap the VIEW: bespoke `.cdx-*` markup + a
+ * self-contained styles/cdx.css that never reuses a mandar-styled class. The
+ * three contracts the new templates must honour are the input `name=` paths,
+ * the listener-hook classes/`data-` attributes, and the render guards.
+ *
+ * Insulation from the active theme (mandar.css), learned the hard way:
+ *  - We DROP the actor-type legacy class (`character`/`minion`/…) from the
+ *    content <form>, so mandar's `form.window-content.character …` structural
+ *    rules (fixed sheet-body height, etc.) simply do not match us. Our own
+ *    container layout lives under `.cdx` in cdx.css.
+ *  - Tabs are ours (`.cdx-tab` / `.cdx-pane`, toggled in JS below) instead of
+ *    `nav.sheet-tabs`, so mandar's absolute side-pinned tab-strip rule never
+ *    applies.
+ *  - The palette is a PER-ACTOR flag (`flags.starwarsffg.scheme`) applied as a
+ *    `scheme-*` class on the form; an in-sheet strip writes it.
+ */
+import { systemApi } from "./system-api.js";
+import { CdxPillStack } from "./cdx-pill-stack.js";
+import { getFatedSigilMask } from "./codex-fated-sigil.js";
+import { buildTalentTierMap, groupTalentsByTier } from "./codex-talent-tiers.js";
+import { placeCodexPopup } from "./codex-popup-position.js";
+import { codexXpBuyActive } from "./codex-xp-buy.js";
+import { effectiveSheetTheme } from "./sheet-theme.js";
+import { CODEX_ROOT } from "./codex-paths.js";
+
+const { ActorSheetFFG, AdversarySheetFFG } = systemApi.sheets;
+const {
+  DiceHelpers, DicePoolFFG, ActorHelpers, killMinionGroup, groupTrack, hullPoolSegments, stepUnits,
+  availFor, applyCritRecoveryAttempt, isAmmoTracked, getAmmoMax, getAmmoValue,
+  vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings, vehicleDefenceZones,
+  adjustCodexStat, bindStatStepPrediction, predictedCodexStat,
+} = systemApi.helpers;
+
+export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
+
+// The two Eldritch Horror variants share ALL the `.scheme-eldritch` styling and
+// the content-anchored bleeding-texture feature; they differ only in surface
+// texture — Scholar uses the paper grain, Fate uses the marble. Both carry the
+// base `scheme-eldritch` class (see cdxSchemeClasses) so the shared CSS + the
+// JS gate (which keys on `.scheme-eldritch`) apply to both.
+const CDX_ELDRITCH_VARIANTS = ["eldritch-scholar", "eldritch-fate"];
+
+/** Normalise a stored scheme value: map the legacy single "eldritch" onto the
+ *  paper "Scholar" variant (its previous look), and drop anything unknown. */
+export function cdxNormalizeScheme(s) {
+  if (s === "eldritch") return "eldritch-scholar";   // legacy → the paper variant
+  return CDX_SCHEMES.includes(s) ? s : null;
+}
+
+/** Root class(es) for a scheme. Eldritch variants also get the base
+ *  `scheme-eldritch` class so the shared Eldritch CSS matches them. */
+export function cdxSchemeClasses(scheme) {
+  const cls = [`scheme-${scheme}`];
+  if (CDX_ELDRITCH_VARIANTS.includes(scheme)) cls.push("scheme-eldritch");
+  return cls;
+}
+
+/** Every scheme class we might have set, for stripping before re-applying. */
+export const CDX_SCHEME_STRIP = [...CDX_SCHEMES.map((s) => `scheme-${s}`), "scheme-eldritch"];
+
+/**
+ * Blocks that get an SVG notch outline (see _cdxNotchOutlines). These are the
+ * --cdx-clip octagon blocks whose diagonal corners a CSS border can't follow.
+ * Excludes the editor containers and the overlapping chip-label tabs.
+ */
+const CDX_NOTCH_SEL = [
+  ".cdx-stat", ".cdx-card", ".cdx-injury", ".cdx-talent", ".cdx-panel",
+  ".cdx-istat", ".cdx-icheck2", ".item.force-power", ".cdx-forcepool",
+  ".cdx-header", ".cdx-pill", ".cdx-square", ".cdx-veh-rarity",
+  ".cdx-ihead", ".cdx-ipill", ".cdx-ihead .cdx-status", ".cdx-ft-card",
+].join(",");
+
+/**
+ * Blocks that paint the marble (Eldritch scheme) as their own background — must
+ * match the "Shared framed surfaces" selector list in styles/cdx-eldritch.css.
+ * cdxPositionMarble offsets each one's marble to a single content origin.
+ */
+const CDX_MARBLE_SEL = [
+  ".cdx-stat", ".cdx-panel", ".cdx-card", ".cdx-injury", ".cdx-forcepool",
+  ".cdx-talent", ".cdx-pane.effects", ".cdx-pane.attributes", ".cdx-sub",
+  ".cdx-istat", ".cdx-idesc", ".cdx-icheck2", ".cdx-item-body .item.force-power",
+  ".cdx-ft-card", ".cdx-sk-row",
+].join(",");
+
+const CDX_NOTCH = 9;   // notch size in px — must match --cdx-notch in the CSS
+
+/**
+ * Redraw one block's SVG notch outline at a KNOWN border-box size (px). The
+ * <path> traces the SAME octagon as the block's clip-path fill (fixed CDX_NOTCH
+ * corner, inset slightly so the stroke sits inside the clip), so fill and outline
+ * stay aligned at any size — including short pills (~18–20px), which must still
+ * get their diagonals. The notch is clamped to half the smaller side only so the
+ * path can't self-cross on a pathologically tiny block (real blocks are ≥18px, so
+ * this never fires and the outline matches the fixed-9px clip exactly). Callers
+ * pass w/h from the ResizeObserver entry so this never reads the DOM; if omitted
+ * it measures (forces a layout — the slow path, kept only as a fallback).
+ */
+export function cdxDrawNotch(el, w, h) {
+  const svg = el.querySelector(":scope > svg.cdx-notch");
+  if (!svg) return;
+  if (w == null || h == null) {             // fallback: measure (border box) — forces layout
+    const r = el.getBoundingClientRect();
+    w = r.width; h = r.height;
+  }
+  if (w < 2 || h < 2) return;               // hidden / unlaid-out — observer redraws later
+  const i = 0.75;                           // i: inset so the stroke stays inside the clip
+  const n = Math.min(CDX_NOTCH, w / 2, h / 2);
+  const d =
+    `M${i},${n} L${n},${i} L${w - n},${i} L${w - i},${n}` +
+    ` L${w - i},${h - n} L${w - n},${h - i} L${n},${h - i} L${i},${h - n} Z`;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.firstChild.setAttribute("d", d);
+}
+
+/**
+ * Give every notched block (CDX_NOTCH_SEL) inside `root` an <svg.cdx-notch>
+ * overlay whose stroked <path> outlines the same octagon as its clip-path fill,
+ * so the two can never drift. The path is built from the block's live px size, so
+ * notches stay a fixed 9px and the stroke a uniform 1px at any size / DPR. A
+ * single ResizeObserver (stored on `host`, rebuilt each call, torn down in the
+ * sheet's close) redraws blocks on resize — tab switch, window resize, header
+ * collapse, talent expand.
+ *
+ * Perf: the observer reads the size straight off each entry (borderBoxSize), so
+ * it never calls getBoundingClientRect, and its initial per-element fire does the
+ * FIRST draw — so the build loop only creates nodes. No forced layout on either
+ * path (avoids read-after-write layout thrashing across N blocks).
+ */
+export function cdxBuildNotchOutlines(host, root) {
+  if (!root) return;
+  host._cdxNotchRO?.disconnect();
+  host._cdxNotchRO = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      const box = e.borderBoxSize && e.borderBoxSize[0];
+      if (box) cdxDrawNotch(e.target, box.inlineSize, box.blockSize);
+      else cdxDrawNotch(e.target);          // legacy fallback: measures
+    }
+  });
+  for (const el of root.querySelectorAll(CDX_NOTCH_SEL)) {
+    if (!el.querySelector(":scope > svg.cdx-notch")) {
+      const NS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("class", "cdx-notch");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("preserveAspectRatio", "none");
+      svg.appendChild(document.createElementNS(NS, "path"));
+      // Append (not prepend): an absolutely-positioned last child keeps the
+      // block's `:first-child` rules intact (e.g. .cdx-vr-k:not(:first-child)),
+      // and there are no `:last-child` rules to disturb. pointer-events:none
+      // keeps the on-top overlay click-through.
+      el.append(svg);
+    }
+    // observe() delivers an initial size on the next frame -> first draw. No
+    // explicit cdxDrawNotch here, so this loop performs zero layout reads.
+    host._cdxNotchRO.observe(el);
+  }
+}
+
+/**
+ * Texture origin (Eldritch scheme). Each framed block reveals the texture through
+ * a luminance mask on its ::before; on its own that mask re-tiles per block (every
+ * block starts the tile at its own corner). To read as ONE continuous slab glued
+ * to the sheet, we set each block's --cdx-marble-x/y (its CSS mask-position) to
+ * MINUS the block's offset within the scroll content. That aligns every block's
+ * tile to a single origin at the content's top-left, so:
+ *   - adjacent blocks' veins line up (shared origin), and
+ *   - because the offset is measured in the content frame (scroll-independent),
+ *     the whole slab moves with the blocks as the sheet scrolls — no scroll
+ *     listener needed.
+ * Offsets only change on reflow (resize, tab switch, expand/collapse, add/remove),
+ * so a ResizeObserver on the container + blocks recomputes all of them (rAF-
+ * debounced). Non-Eldritch schemes don't paint the marble, so this tears down and
+ * returns. The observer is owned by `host` and disconnected in the sheet's close.
+ */
+export function cdxPositionMarble(host, root) {
+  host._cdxMarbleRO?.disconnect();
+  host._cdxMarbleRO = null;
+  if (host._cdxMarbleRAF) { cancelAnimationFrame(host._cdxMarbleRAF); host._cdxMarbleRAF = null; }
+  if (!root) return;
+
+  // The scroll container is the content <form> (made overflow:auto in _cdxActivate).
+  const container = host.form
+    ?? (root.matches?.("form.window-content") ? root : root.querySelector?.("form.window-content"));
+  if (!container?.classList?.contains("scheme-eldritch")) return;   // both Eldritch variants (Scholar/Fate) carry this base class
+
+  const recompute = () => {
+    const cRect = container.getBoundingClientRect();
+    const sx = container.scrollLeft, sy = container.scrollTop;
+    const blocks = container.querySelectorAll(CDX_MARBLE_SEL);
+    const rects = [];
+    for (const b of blocks) rects.push(b.getBoundingClientRect());  // batch reads (no interleaved writes)
+    let i = 0;
+    for (const b of blocks) {
+      const r = rects[i++];
+      if (r.width < 2 && r.height < 2) continue;                    // hidden (inactive tab) — repositioned when shown
+      const x = Math.round(r.left - cRect.left + sx);
+      const y = Math.round(r.top - cRect.top + sy);
+      b.style.setProperty("--cdx-marble-x", `${-x}px`);
+      b.style.setProperty("--cdx-marble-y", `${-y}px`);
+    }
+  };
+
+  host._cdxMarbleRO = new ResizeObserver(() => {
+    if (host._cdxMarbleRAF) cancelAnimationFrame(host._cdxMarbleRAF);
+    host._cdxMarbleRAF = requestAnimationFrame(recompute);          // coalesce resize storms to one pass/frame
+  });
+  host._cdxMarbleRO.observe(container);
+  for (const b of container.querySelectorAll(CDX_MARBLE_SEL)) host._cdxMarbleRO.observe(b);
+  recompute();                                                       // initial pass
+}
+
+/** Run `fn` off the first-paint path: requestIdleCallback (fires after paint, when
+ *  idle) if available, else a macrotask. Returns a canceller. */
+function cdxDeferIdle(fn) {
+  if (typeof requestIdleCallback === "function") {
+    const id = requestIdleCallback(fn, { timeout: 800 });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 0);
+  return () => clearTimeout(id);
+}
+
+export const CDX_SCHEME_LABELS = {
+  republic: "Republic",
+  empire: "Empire",
+  dark: "Dark",
+  light: "Light",
+  mercenary: "Mercenary",
+  "eldritch-scholar": "Eldritch Horror - Scholar",
+  "eldritch-fate": "Eldritch Horror - Fate",
+};
+
+/** Scheme picker grouped into two categories — "Modern" and "Eldritch Horror"
+ *  (the two Eldritch buttons shown as just "Scholar" / "Fate"). Opens a DialogV2
+ *  and resolves the chosen scheme id, or null if cancelled. Shared by the actor
+ *  and item sheets. */
+export async function cdxPickScheme(current, subjectName) {
+  const GROUPS = [
+    ["Modern", ["republic", "empire", "dark", "light", "mercenary"]],
+    ["Eldritch Horror", ["eldritch-scholar", "eldritch-fate"]],
+  ];
+  const SHORT = { "eldritch-scholar": "Scholar", "eldritch-fate": "Fate" };
+  // Scheme choices are Foundry-styled <button>s (same look as before), grouped into
+  // labelled category panels. Clicking one applies immediately. All styling is
+  // INLINE — DialogV2 drops <style> blocks from content, so a stylesheet wouldn't
+  // take (that's what left the buttons stacked vertically).
+  const btn = (s) =>
+    `<button type="button" data-cdx-scheme="${s}" style="flex:0 0 auto;width:auto;margin:0` +
+    `${s === current ? ";box-shadow:0 0 0 2px var(--color-warm-2,#c9593f)" : ""}">` +
+    `${SHORT[s] ?? CDX_SCHEME_LABELS[s]}</button>`;
+  const group = ([title, list]) =>
+    `<fieldset style="border:1px solid rgba(127,127,127,.35);border-radius:6px;margin:.5rem 0;padding:.3rem .6rem .6rem">` +
+    `<legend style="padding:0 .4rem;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7">${title}</legend>` +
+    `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.2rem">${list.map(btn).join("")}</div>` +
+    `</fieldset>`;
+  const content =
+    `<div class="cdx-scheme-picker">` +
+    `<p style="margin:.2rem 0 .5rem">Colour scheme for <b>${subjectName ?? ""}</b>:</p>` +
+    GROUPS.map(group).join("") +
+    `</div>`;
+
+  // The scheme buttons live in the content, so wire their clicks via the render
+  // hook (scoped to our dialog by the .cdx-scheme-picker marker): set the choice
+  // and close, which resolves DialogV2.wait (rejectClose:false → no throw).
+  let choice = null;
+  const hookId = Hooks.on("renderDialogV2", (app, element) => {
+    const root = element instanceof HTMLElement ? element : element?.[0];
+    if (!root?.querySelector?.(".cdx-scheme-picker")) return;
+    for (const b of root.querySelectorAll("[data-cdx-scheme]")) {
+      b.addEventListener("click", () => { choice = b.dataset.cdxScheme; app.close(); });
+    }
+  });
+  try {
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: "Codex II — Scheme" },
+      position: { width: 640 },   // ~3x the default so both category rows fit comfortably
+      content,
+      buttons: [{ action: "cancel", icon: "fa-solid fa-times", label: "Cancel" }],
+      rejectClose: false,
+    });
+  } catch (e) { /* dismissed */ } finally {
+    Hooks.off("renderDialogV2", hookId);
+  }
+  return choice && CDX_SCHEMES.includes(choice) ? choice : null;
+}
+
+const CDX_TEMPLATES = `${CODEX_ROOT}/templates/actors`;
+
+/** The default Codex colour scheme, derived from the sheet theme (value
+ *  `codex-<scheme>`: the user's own Default Sheet Theme, or the GM's default it
+ *  follows), used when a document has no per-document scheme flag. Falls back
+ *  to republic (also covers the legacy bare "codex" value). */
+export function cdxDefaultScheme() {
+  try {
+    const t = effectiveSheetTheme();
+    const s = t.startsWith("codex-") ? t.slice("codex-".length) : null;
+    return cdxNormalizeScheme(s) ?? "republic";
+  } catch (e) { return "republic"; }
+}
+
+/**
+ * Codex alignment — drives the Force chip's background colour (neutral=white,
+ * good=blue, evil=red). A per-actor flag `flags.starwarsffg.codexAlignment` ∈
+ * {neutral, good, evil} is the manually-set baseline; the *effective* alignment
+ * applies Morality with hysteresis:
+ *   - neutral: stays neutral while Morality ∈ [30,70]; ≥71 → good, ≤29 → evil
+ *   - good:    stays good until Morality drops to ≤29 → evil
+ *   - evil:    stays evil until Morality reaches ≥71 → good
+ * Morality of 0 / unset is treated as "not tracked" (template default is 0), so
+ * the baseline is returned unchanged — a Force user who doesn't use the Morality
+ * system isn't painted evil. A genuinely evil 0-Morality actor can be set
+ * "evil" by hand.
+ */
+export const CDX_ALIGNMENTS = ["neutral", "good", "evil"];
+export function cdxEffectiveAlignment(stored, moralityRaw) {
+  const s = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
+  if (moralityRaw === null || moralityRaw === undefined || moralityRaw === "") return s;
+  const m = Number(moralityRaw) || 0;
+  if (m <= 0) return s; // 0 / untracked → keep the baseline
+  if (s === "good") return m <= 29 ? "evil" : "good";
+  if (s === "evil") return m >= 71 ? "good" : "evil";
+  return m >= 71 ? "good" : (m <= 29 ? "evil" : "neutral");
+}
+
+// Persist alignment transitions: when an actor's Morality crosses a boundary,
+// commit the new alignment to the flag so the state is sticky (true hysteresis)
+// instead of being recomputed from the baseline every time. Only the user who
+// made the change writes (no multi-client races); only actors that already carry
+// the flag (i.e. configured via a Codex sheet) are touched; the follow-up
+// setFlag carries no Morality delta so it can't re-trigger this.
+Hooks.on("updateActor", async (actor, changed, options, userId) => {
+  try {
+    if (userId !== game.user?.id) return;
+    if (!foundry.utils.hasProperty(changed, "system.morality.value")) return;
+    const current = actor.getFlag("starwarsffg", "codexAlignment");
+    if (current === undefined) return;
+    const next = cdxEffectiveAlignment(current, actor.system?.morality?.value);
+    if (next !== current) await actor.setFlag("starwarsffg", "codexAlignment", next);
+  } catch (e) { /* never let a hook break actor updates */ }
+});
+
+/**
+ * Manual inventory order (Codex weapon/armour/gear cards, reorderable by their drag
+ * grips). Items are ordered by Foundry's `sort` field ascending; an item that has
+ * never been sorted (sort 0) falls to the BOTTOM in name order. So a fresh actor lists
+ * each category alphabetically; once a player drags a card the category keeps the chosen
+ * order; a newly added item lands at the end. Shared by getData (the render order) and
+ * the drag handler (to reconstruct the current order before re-numbering). `_cdxReorderItem`
+ * writes sort values as multiples of CDX_SORT_BASE so the order stays well-spaced.
+ */
+const CDX_SORT_BASE = 100000;
+function cdxInventoryOrder(a, b) {
+  const ea = (Number(a.sort) || 0) || Number.MAX_SAFE_INTEGER;
+  const eb = (Number(b.sort) || 0) || Number.MAX_SAFE_INTEGER;
+  return (ea - eb) || String(a.name ?? "").localeCompare(String(b.name ?? ""));
+}
+
+/**
+ * Shared Codex behaviour, mixed onto whichever stock sheet base a given actor
+ * type uses. Applied to ActorSheetFFG and AdversarySheetFFG below.
+ */
+export const CodexSchemeMixin = (Base) => class extends Base {
+  // Concatenated onto the base's classes by ApplicationV2 → the OUTER window
+  // <div> ends up `…actor v2 cdx`. `cdx` is our CSS scope.
+  static DEFAULT_OPTIONS = {
+    classes: ["cdx"],
+  };
+
+  // Buttons an Observer still needs (see FFGDocumentSheet.VIEWER_CONTROLS): the
+  // tabs and the header collapse. The crit markers are added in viewerControls.
+  static VIEWER_CONTROLS = ".cdx-tab, .cdx-hcollapse-btn";
+
+  /**
+   * The Medicine/Mechanics failure markers too, when a click on them can be
+   * forwarded to the GM: a non-owner's mark is. An owner whose sheet is read-only
+   * (a locked compendium) would write directly and be refused, and nobody can
+   * save into a locked pack, so for them the markers stay disabled. Resilience
+   * rolls as the character, so it is never a viewer control.
+   */
+  get viewerControls() {
+    const forwardable = !this.actor?.isOwner && !this.actor?.compendium?.locked;
+    return forwardable ? `${super.viewerControls}, .cdx-inj-medfail, .cdx-inj-mechfail` : super.viewerControls;
+  }
+
+  /** The per-actor palette, defaulting to republic. */
+  _cdxScheme() {
+    const s = this.actor?.getFlag?.("starwarsffg", "scheme");
+    return cdxNormalizeScheme(s) ?? cdxDefaultScheme();
+  }
+
+  /**
+   * Replace (not extend) the legacy root classes: return ONLY the palette
+   * class. Deliberately does NOT call super — that would re-add the actor-type
+   * class (`character`/…) and let mandar's structural form rules match us. The
+   * editable/locked classes are still applied by the base _applyLegacyRootClasses.
+   * @override
+   */
+  _getLegacyRootClasses(_context = {}) {
+    return cdxSchemeClasses(this._cdxScheme());
+  }
+
+  /**
+   * Strip stale `scheme-*` (incl. the shared `scheme-eldritch` base) before super
+   * re-adds the current one(s) (the base only ever ADDS classes), so switching
+   * palettes doesn't accumulate them.
+   * @override
+   */
+  _applyLegacyRootClasses(form, context = {}) {
+    for (const c of CDX_SCHEME_STRIP) form.classList.remove(c);
+    super._applyLegacyRootClasses(form, context);
+  }
+
+  /** Preserve the decoded portrait node and the expanded cards across sheet renders. */
+  async _preRender(context, options) {
+    const portrait = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
+    this._cdxPreviousPortrait = portrait;
+    this._cdxPreviousPortraitSrc = portrait?.getAttribute("src") ?? null;
+    this._cdxExpandedCards = this._cdxCaptureExpandedCards();
+    await super._preRender(context, options);
+  }
+
+  /**
+   * Which cards (weapons, armour, gear, talents, Force powers…) are open. A card's
+   * expansion lives only in the DOM, so every render closed them all -- and the sheet
+   * re-renders for plenty the user did not do here: a status effect toggled from the
+   * token HUD changes the dice pools, another player edits an item. The open panel
+   * itself is kept so it can go straight back in without replaying the slide.
+   * @returns {{id: string, index: number, details: HTMLElement|null}[]}
+   */
+  _cdxCaptureExpandedCards() {
+    const form = this.form;
+    if (!form?.querySelectorAll) return [];
+    return Array.from(form.querySelectorAll("[data-item-id].expanded"), (card) => {
+      const id = card.dataset.itemId;
+      // An item can be listed more than once (e.g. its card and a tab summary).
+      const index = Array.from(form.querySelectorAll(`[data-item-id="${CSS.escape(id)}"]`)).indexOf(card);
+      return { id, index, details: card.querySelector(":scope > .item-details") };
+    });
+  }
+
+  /** Reopen the cards captured before the render, on the freshly rendered markup. */
+  _cdxRestoreExpandedCards(root) {
+    const cards = this._cdxExpandedCards ?? [];
+    this._cdxExpandedCards = null;
+    for (const { id, index, details } of cards) {
+      const card = root?.querySelectorAll?.(`[data-item-id="${CSS.escape(id)}"]`)[index];
+      if (!card || card.classList.contains("expanded")) continue;
+      card.classList.add("expanded");
+      if (!details) continue;
+      card.append(details);
+      // An item's description or tags may be what just changed, so rebuild its panel
+      // in the background. Prepared talents and Force-power text come from the render
+      // data the old panel was built from.
+      const item = this.actor?.items?.get(id);
+      if (!item || typeof this._itemDetailsElement !== "function") continue;
+      this._itemDetailsElement(item).then((fresh) => {
+        if (details.parentElement === card && card.classList.contains("expanded")) details.replaceWith(fresh[0]);
+      }).catch(() => { /* keep the panel that was open */ });
+    }
+  }
+
+  /**
+   * ApplicationV2 replaces the form contents on every render. Replacing an
+   * unchanged <img> briefly exposes an undecoded element, which makes the actor
+   * portrait flash whenever an item is equipped or any field updates. Put the
+   * already-decoded node back when its source is unchanged; a real actor-image
+   * change keeps the freshly rendered node and therefore updates normally.
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const previous = this._cdxPreviousPortrait;
+    const current = this.form?.querySelector?.(".cdx-portrait > img.profile-img") ?? null;
+    const currentSrc = current?.getAttribute("src") ?? null;
+    if (previous && current && this._cdxPreviousPortraitSrc === currentSrc) {
+      previous.className = current.className;
+      previous.title = current.title;
+      previous.alt = current.alt;
+      current.replaceWith(previous);
+    }
+    this._cdxPreviousPortrait = null;
+    this._cdxPreviousPortraitSrc = null;
+  }
+
+  /** @override — add the Codex-only listeners on top of the stock ones. */
+  activateListeners(html) {
+    // Before the base listeners and the scroll restore that follows them, so the sheet
+    // is back to its full height when its scroll position is put back.
+    this._cdxRestoreExpandedCards(html?.[0] ?? this.form);
+    super.activateListeners(html);
+    this._cdxRegisterSheetOptions();
+    this._cdxActivate(html);
+  }
+
+  /**
+   * Codex-only Sheet Options, added on top of the stock per-type ones. Registered
+   * here (not in the base actor-sheet-ffg per-type blocks) so the option appears
+   * ONLY when a Codex sheet is the active sheet — i.e. "the Codex theme is
+   * selected" is exactly "this sheet class is in use". `this.sheetoptions` is
+   * created by the base activateListeners (run via super above) for every actor
+   * type the Codex sheet supports.
+   *
+   *  - Inventory Style: "split" (default) keeps the separate Combat + Gear tabs;
+   *    "combined" merges weapons/armour/gear under one Inventory tab. Only the
+   *    actor types with those tabs get it (vehicles have a different tab set).
+   *    Stored as a semantic string (NOT an index) because the dialog's Array
+   *    type renders an object's keys as the <option value>s; see getData/the
+   *    templates which branch on the "combined" value.
+   */
+  _cdxRegisterSheetOptions() {
+    if (!this.sheetoptions) return;
+    if (!["character", "rival", "nemesis", "minion"].includes(this.actor?.type)) return;
+    this.sheetoptions.register("codexInventoryStyle", {
+      name: game.i18n.localize("SWFFG.Codex.InventoryStyle"),
+      hint: game.i18n.localize("SWFFG.Codex.InventoryStyleHint"),
+      type: "Array",
+      default: "split",
+      options: {
+        split: game.i18n.localize("SWFFG.Codex.InventoryStyleSplit"),
+        combined: game.i18n.localize("SWFFG.Codex.InventoryStyleCombined"),
+      },
+    });
+  }
+
+  /** @override — drop the pill-stack's document listener when the sheet closes. */
+  async close(options = {}) {
+    this._cdxUnbindStatPrediction?.();
+    this._cdxClearPoolHints();
+    this._cdxPillStack?.destroy();
+    this._cdxPillStack = null;
+    if (this._cdxTalentCardRoot && this._onCdxTalentCardClickBound) {
+      this._cdxTalentCardRoot.removeEventListener("click", this._onCdxTalentCardClickBound, true);
+    }
+    this._cdxTalentCardRoot = null;
+    this._cdxNotchRO?.disconnect();
+    this._cdxNotchRO = null;
+    this._cdxMarbleRO?.disconnect();
+    this._cdxMarbleRO = null;
+    if (this._cdxMarbleRAF) { cancelAnimationFrame(this._cdxMarbleRAF); this._cdxMarbleRAF = null; }
+    this._cdxSigilCancel?.();
+    this._cdxSigilCancel = null;
+    this._cdxXpBuy = false; // never persist XP-buy mode across reopenings
+    return super.close(options);
+  }
+
+  /**
+   * @override — fix skill-rank purchase for the Codex markup. The stock _buyCore
+   * resolves the skill row by walking a FIXED three parents up from the clicked
+   * icon (event.target.parentElement ×3); our bespoke skills grid nests the icon
+   * one level shallower, so that walk overshoots the row (lands on the column)
+   * and _buySkillRank gets no data-ability — the buy silently fails. Resolve the
+   * row by data-ability instead, which is nesting-independent. Every other buy
+   * action is untouched and defers to super.
+   */
+  async _buyCore(event) {
+    if (event?.target?.dataset?.buyAction === "skill") {
+      if (this.actor?.verifyEditModeIsNotEnabled?.() === false) return;
+      const row = event.target.closest?.("[data-ability]");
+      if (row) await this._buySkillRank(row);
+      return;
+    }
+    return super._buyCore(event);
+  }
+
+  /**
+   * @override — Codex sheets confirm every destructive delete with a DialogV2
+   * prompt. One policy for all Codex delete controls: item cards and the
+   * species/career pills (via the stock `.item-delete` handler), the spec/
+   * force/sig pill stacks (via `onDelete`), crew, and the motivation table.
+   * DialogV2 is referenced inline (not destructured at module load) to avoid
+   * poisoning Node imports of this module.
+   * @param {object} [options]
+   * @param {string} [options.name]  Display name of the thing being deleted.
+   * @returns {Promise<boolean>} true only when the user chooses Delete.
+   */
+  async _ffgConfirmDelete({ name = "" } = {}) {
+    const content = name
+      ? game.i18n.format("SWFFG.ConfirmDelete.Content", { name })
+      : game.i18n.localize("SWFFG.ConfirmDelete.ContentGeneric");
+    const confirmed = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Delete") },
+      classes: ["dialog", "starwarsffg"],
+      content: `<p>${content}</p>`,
+      buttons: [
+        { action: "delete", icon: "fas fa-trash", label: game.i18n.localize("SWFFG.Delete") },
+        { action: "cancel", icon: "fas fa-times", label: game.i18n.localize("SWFFG.Cancel"), default: true },
+      ],
+      rejectClose: false,
+    });
+    return confirmed === "delete";
+  }
+
+  _cdxActivate(html) {
+    const root = html?.[0] ?? this.form ?? this.element;
+    if (!root) return;
+    this._cdxClearPoolHints();
+
+    // mandar forces `overflow: visible !important` on the content <form> (it
+    // scrolls its own .sheet-body, which our bespoke layout doesn't have). A
+    // CSS override can't reliably win that !important battle, so set it inline
+    // (inline !important beats any stylesheet rule) — this makes the form the
+    // scroll container so the body stops overflowing the window.
+    const form = this.form;
+    if (form) {
+      form.style.setProperty("overflow-y", "auto", "important");
+      form.style.setProperty("overflow-x", "hidden", "important");
+    }
+
+    // Reflect FFG edit mode as a class so view-only chrome can hide itself when
+    // editing is off — e.g. the career-skill ("CS") column, which is redundant
+    // with the left career highlight. Mirrors data.disabled in the base getData.
+    // One predicate, shared with the base getData and with ActorFFG#allApplicableEffects — see
+    // ActorHelpers.isEditModeOwner for why field editability and effect suppression must agree.
+    const editOn = ActorHelpers.isEditModeOwner(this.actor);
+    (form ?? root).classList.toggle("cdx-editmode", editOn);
+    // Deliberately NOT the ownership predicate: the purchase/delete handlers reject while the
+    // mode is on for anybody (ActorFFG#verifyEditModeIsNotEnabled tests the bare flag), so the
+    // XP-buy gate below has to test the same bare flag or it would offer a purchase that fails.
+    const editEnabled = !!this.actor?.getFlag?.("starwarsffg", "config.enableEditMode");
+
+    // Reflect GM status as a class so GM-only chrome can hide itself for players —
+    // currently the per-pill delete cross (species/career/spec/force/sig). CSS
+    // hides `.cdx-pill .item-delete` when this class is absent.
+    (form ?? root).classList.toggle("cdx-gm", !!game.user?.isGM);
+
+    // Collapsible header toggle (characters/rivals/nemeses/minions; vehicles have no
+    // button). Flip the class live and swap the button label/icon for instant
+    // feedback, then persist the per-actor flag WITHOUT a re-render (the class
+    // already reflects the new state, so a re-render would only cause a flash).
+    // An Observer cannot save it, so their choice lives on this sheet instead.
+    root.querySelector(".cdx-hcollapse-btn")?.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      const header = root.querySelector(".cdx-header");
+      if (!header) return;
+      const collapsed = header.classList.toggle("cdx-hcollapsed");
+      const btn = ev.currentTarget;
+      const label = btn.querySelector(".cdx-hcollapse-label");
+      if (label) label.textContent = collapsed ? "Expand" : "Collapse";
+      const icon = btn.querySelector("i");
+      if (icon) icon.className = collapsed ? "fas fa-caret-down" : "fas fa-caret-up";
+      if (this.isEditable) await this.actor.update({ "flags.starwarsffg.codexHeaderCollapsed": collapsed }, { render: false });
+      else this._cdxViewerHeaderCollapsed = collapsed;
+    });
+
+    // Bespoke tab switching — no Foundry Tabs controller, no .sheet-tabs.
+    root.querySelectorAll(".cdx-tab").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        const tab = ev.currentTarget.dataset.tab;
+        if (!tab) return;
+        root.querySelectorAll(".cdx-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+        root.querySelectorAll(".cdx-pane").forEach((p) => p.classList.toggle("active", p.dataset.tab === tab));
+        // remember the active tab across re-renders (e.g. on a scheme change)
+        this._cdxTab = tab;
+      });
+    });
+    // Restore the remembered tab after a re-render.
+    if (this._cdxTab) {
+      const has = root.querySelector(`.cdx-tab[data-tab="${this._cdxTab}"]`);
+      if (has) {
+        root.querySelectorAll(".cdx-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === this._cdxTab));
+        root.querySelectorAll(".cdx-pane").forEach((p) => p.classList.toggle("active", p.dataset.tab === this._cdxTab));
+      }
+    }
+
+    // Collapsible pill stacks (specializations, force powers, signature
+    // abilities, …): a reusable widget owns the click handling — first click
+    // expands, a click on a pill opens that item's tree, a click anywhere else
+    // collapses — and consumes every click so none leaks to the sheet beneath.
+    this._cdxPillStack?.destroy();
+    this._cdxPillStack = new CdxPillStack(root, {
+      onActivate: (id) => { this.actor?.items?.get(id)?.sheet?.render(true); },
+      onDelete: async (id) => {
+        if (this.actor?.verifyEditModeIsNotEnabled?.() === false) return;
+        const item = this.actor?.items?.get(id);
+        if (!(await this._ffgConfirmDelete({ name: item?.name }))) return;
+        item?.delete();
+      },
+    });
+
+    // Species/career pills are single `.cdx-pill.item[data-item-id]` spans in
+    // `.cdx-pills` — NOT inside a `.cdx-stack`, so CdxPillStack (which only scans
+    // `.cdx-stack`) ignores them, and NOT inside `.items`/`.header-description-
+    // block`/`.injuries`, so the stock opener in actor-sheet-ffg.js never matches
+    // them either. That left the pill body a dead click. Open the item sheet
+    // directly; the delete-X keeps flowing to the stock `.item-delete` handler
+    // (the pill span is itself `.item`, which that handler resolves via
+    // `.parents(".item")`), so it stays edit-mode-gated.
+    root.querySelectorAll(".cdx-pill.species[data-item-id], .cdx-pill.career[data-item-id]").forEach((pill) => {
+      pill.addEventListener("click", (ev) => {
+        if (ev.target.closest(".item-delete")) return; // delete-X → stock handler
+        ev.preventDefault();
+        ev.stopPropagation();
+        this.actor?.items?.get(pill.dataset.itemId)?.sheet?.render(true);
+      });
+    });
+
+    // XP-buy mode reveals purchase and pill-management affordances. Characters
+    // toggle a transient mode with their XP chip. Rivals, nemeses, minions, and
+    // vehicles have no XP chip, so the mode stays active automatically.
+    // Edit mode still forces it off because the underlying handlers reject
+    // purchases/deletes while editing.
+    this._cdxXpBuy = codexXpBuyActive(this.actor?.type, editEnabled, this._cdxXpBuy);
+    const xpBuyPermanent = this.actor?.type !== "character";
+    (form ?? root).classList.toggle("cdx-xpbuy", this._cdxXpBuy);
+    root.querySelectorAll(".cdx-xp").forEach((chip) => {
+      chip.classList.toggle("active", this._cdxXpBuy);
+      if (editEnabled || xpBuyPermanent) return;
+      chip.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        this._cdxXpBuy = !this._cdxXpBuy;
+        (form ?? root).classList.toggle("cdx-xpbuy", this._cdxXpBuy);
+        chip.classList.toggle("active", this._cdxXpBuy);
+      });
+    });
+
+    // Weapon-card dice pools (skill roll preview) — render for viewers too.
+    this._cdxWeaponPools(root);
+
+    // Equip toggle: consume clicks on the whole button so they never leak to the
+    // card's expand handler. (Clicking the button box outside the glyph used to
+    // also expand the card, since the stock handler only skips icon/rollable targets.)
+    root.querySelectorAll(".cdx-equip").forEach((el) => {
+      el.addEventListener("click", (ev) => ev.stopPropagation());
+    });
+
+    // Carried toggle (Codex inventory, weapon/armour/gear): flip flags.starwarsffg.carried.
+    // Un-pressed = left on a ship/base → the item's encumbrance*qty is excluded from the
+    // actor's encumbrance (ActorFFG._calculateDerivedValues honours the flag; default =
+    // carried). stopPropagation so the click doesn't expand/roll the card.
+    root.querySelectorAll(".toggle-carried").forEach((el) => {
+      el.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (!this.options.editable) return;
+        if (this.actor?.verifyEditModeIsNotEnabled && !this.actor.verifyEditModeIsNotEnabled()) return;
+        const item = this.actor?.items?.get(ev.currentTarget.dataset.itemId);
+        if (!item) return;
+        const carried = item.getFlag("starwarsffg", "carried") !== false;
+        await item.setFlag("starwarsffg", "carried", !carried);
+      });
+    });
+
+    // Force powers / signature abilities (Talents tab): clicking the card should
+    // expand inline details, NOT open the item's tree. The stock `.items .item`
+    // handler opens the sheet for these types; intercept in the capture phase so
+    // we beat that bubble handler. Control clicks (edit/delete/roll) pass through;
+    // clicks inside an already-open detail block don't toggle it shut.
+    this._bindCdxTalentCardHandler(root);
+
+    // Crit-Trauma weekly recovery controls (Resilience self-heal / Medicine /
+    // Mechanics markers). Bound for viewers too so a permitted ally (≥OBSERVER,
+    // non-owner) can mark the Medicine failure, which is forwarded to the GM.
+    this._cdxWireCritRecovery(root);
+
+    if (!this.options.editable) return;
+    this._cdxWireReorder(root);
+    this._cdxWireCredits(root);
+    // Alignment selector (bio) → write the Codex alignment flag; the chip recolours
+    // on the resulting re-render.
+    root.querySelector(".cdx-align-select")?.addEventListener("change", (ev) => {
+      const v = ev.currentTarget.value;
+      if (CDX_ALIGNMENTS.includes(v)) this.actor?.setFlag("starwarsffg", "codexAlignment", v);
+    });
+    this._cdxWireAmmo(root);
+    // Strain recovery — self-contained post-encounter strain recovery dialog.
+    root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
+      btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
+    });
+    // Wounds / strain steppers (−/+). Floored at 0 but NOT capped at the
+    // threshold — current wounds/strain may exceed the threshold (that's the
+    // incapacitated/overburdened state), so the only bound is the lower one.
+    root.querySelectorAll(".cdx-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const stat = ev.currentTarget.dataset.stat;
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const s = this.actor?.system?.stats?.[stat];
+        if (!s) return;
+        const val = Math.max(0, (Number(s.value) || 0) + dir);
+        await this.actor.update({ [`system.stats.${stat}.value`]: val });
+      });
+    });
+    // Threshold value & max edited directly (typing, not the ± buttons) -- wounds &
+    // strain on actors, hull trauma & system strain on vehicles -- drive the DERIVED
+    // progress track (cdxTracks/cdxVehTracks → bar width / pips), which getData only
+    // recomputes on render. The generic form pipeline submits with render:false, so
+    // the bar/pips stayed stale until the next full re-render. Persist via the
+    // explicit system path and let actor.update re-render (default) so the track
+    // updates live; change fires on blur (not mid-typing) so the value survives, and
+    // stopPropagation keeps the generic submit from also firing and racing us.
+    root.querySelectorAll([
+      'input[name="data.stats.wounds.value"]', 'input[name="data.stats.wounds.max"]',
+      'input[name="data.stats.strain.value"]', 'input[name="data.stats.strain.max"]',
+      'input[name="data.stats.hullTrauma.value"]', 'input[name="data.stats.hullTrauma.max"]',
+      'input[name="data.stats.systemStrain.value"]', 'input[name="data.stats.systemStrain.max"]',
+    ].join(", ")).forEach((input) => {
+      input.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        const raw = parseInt(String(ev.currentTarget.value).replace(/[^\d-]/g, ""), 10);
+        const val = Math.max(0, Number.isFinite(raw) ? raw : 0);
+        const path = ev.currentTarget.name.replace(/^data\./, "system.");
+        await this.actor.update({ [path]: val });
+      });
+    });
+    // Requests carry deltas to one writer; prediction survives sheet re-renders.
+    // Current inputs are deliberately unnamed, so submit-on-close and unrelated
+    // whole-form saves cannot persist a prediction or an old speed value.
+    this._cdxUnbindStatPrediction?.();
+    this._cdxUnbindStatPrediction = bindStatStepPrediction(this);
+    root.querySelectorAll(".cdx-ratio-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const path = ev.currentTarget.dataset.cdxPath;
+        if (!path) return;
+        try { await adjustCodexStat(this.actor, path, dir); }
+        catch (error) { ui.notifications.warn(error.message); }
+      });
+    });
+    root.querySelectorAll("input[data-cdx-edit-path]").forEach((input) => {
+      input.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        const path = input.dataset.cdxEditPath;
+        const target = Math.max(0, Number(input.value));
+        const delta = target - predictedCodexStat(this.actor, path);
+        if (!Number.isSafeInteger(delta)) {
+          input.value = String(predictedCodexStat(this.actor, path));
+          return;
+        }
+        if (!delta) return;
+        try { await adjustCodexStat(this.actor, path, delta); }
+        catch (error) { ui.notifications.warn(error.message); }
+      });
+    });
+    // Group-Strength steppers (units left ±1), on a minion's sheet and on a minion vehicle
+    // group's. Units left are DERIVED from the group's damage track in prepared data, and the
+    // track is 1-indexed -- a unit only drops one point PAST its threshold -- so a flat ±threshold
+    // step is off by one. stepUnits (minion-group.js) splits the damage into lost units plus the
+    // partial damage on the next one, moves the lost count by one and keeps that partial:
+    //   e.g. 3/member, 2 applied, − → 5 wounds = 1 dead + the 2 carried over.
+    // groupTrack picks the track: wounds by unit_wounds for a minion, hull trauma by the
+    // per-vehicle threshold for a minion vehicle group.
+    root.querySelectorAll(".cdx-gs-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const dir = Number(ev.currentTarget.dataset.dir) || 0; // −1 destroy, +1 revive
+        const track = groupTrack(this.actor);
+        if (!track) return;
+        const next = stepUnits(track.damage, track.perUnit, track.size, dir);
+        if (next === track.damage) return;
+        await this.actor.update({ [track.path]: next });
+      });
+    });
+    // Wipe Out — eliminate the whole group (damage → group threshold + 1 ⇒ none left).
+    root.querySelectorAll(".cdx-wipeout").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        await killMinionGroup(this.actor);
+      });
+    });
+    // Minion config inputs — group size (quantity.max) and wounds-per-member
+    // (unit_wounds.value). These drive DERIVED values (wounds.max, alive count,
+    // the wound-pool track), so they need an explicit, re-rendering write:
+    //  • The generic change pipeline submits with render:false, so the combined
+    //    wound pool never updated in place after an edit.
+    //  • Worse, leaving edit mode triggers its own re-render that could race the
+    //    in-flight render:false submit, leaving the typed value seemingly lost.
+    // Persist via an explicit system path (no reliance on the data.* alias) and
+    // let actor.update re-render (default), so the pool updates live and the
+    // value survives leaving edit mode. stopPropagation keeps the generic form
+    // submit from also firing for this field and racing us.
+    root.querySelectorAll('input[name="data.quantity.max"], input[name="data.unit_wounds.value"]').forEach((input) => {
+      input.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        const raw = parseInt(String(ev.currentTarget.value).replace(/[^\d-]/g, ""), 10);
+        const val = Math.max(0, Number.isFinite(raw) ? raw : 0);
+        const path = ev.currentTarget.name === "data.quantity.max" ? "system.quantity.max" : "system.unit_wounds.value";
+        await this.actor.update({ [path]: val });
+      });
+    });
+
+    // Notched-block outlines. A CSS `border` on a --cdx-clip octagon is sliced
+    // off at the 45° notches; instead each notched block carries an SVG overlay
+    // whose single stroked <path> traces the SAME octagon geometry as the clip,
+    // sized to the block in px so the notches stay a fixed 9px and the line is a
+    // uniform 1px on every edge (see _cdxNotchOutlines).
+    this._cdxNotchOutlines(root);
+
+    // Eldritch marble: glue each block's marble to one content-anchored origin so
+    // the veins are continuous across blocks and scroll with the sheet.
+    cdxPositionMarble(this, root);
+
+    // Eldritch sigils: a per-actor procedural mask generated once and cached, fed
+    // to the header ornament as its CSS mask — Fate gets the dense "deco" wall,
+    // Scholar gets a single "medallion" sigil. Both seed off the actor + carry
+    // clouds/wear. Other schemes ignore it.
+    this._cdxFatedSigil();
+  }
+
+  /** Set the per-actor procedural sigil mask on the form (Fate → --cdx-fated-sigil,
+   *  Scholar → --cdx-scholar-sigil). Cleared for non-Eldritch schemes.
+   *  Generation (~a few 1024² passes) is deferred off the first-paint path so the
+   *  sheet opens instantly — the CSS transparent fallback hides the ornament until
+   *  the mask lands. Cached per (seed, style), and skipped when already set. */
+  _cdxFatedSigil() {
+    const form = this.form;
+    if (!form) return;
+    const scheme = this._cdxScheme();
+    const isFate = scheme === "eldritch-fate";
+    const isScholar = scheme === "eldritch-scholar";
+    if (!isFate) form.style.removeProperty("--cdx-fated-sigil");
+    if (!isScholar) form.style.removeProperty("--cdx-scholar-sigil");
+    if (!isFate && !isScholar) return;
+
+    const prop = isFate ? "--cdx-fated-sigil" : "--cdx-scholar-sigil";
+    if (form.style.getPropertyValue(prop)) return;   // already on this form — skip cheap re-renders
+
+    // Fate uses the 1024 deco wall (its 2× size breaks tiling); the Scholar single
+    // sigil is shown small, so 512 is ample and ~4x cheaper (cost is canvas area).
+    // Only the Fate wall is worn — the Scholar medallion is drawn clean, so it
+    // opts out of the wear pass entirely rather than inheriting the Fate default.
+    const opts = isFate
+      ? { style: "deco" }
+      : { style: "medallion", maskSize: 512, wearSource: "none" };
+    const seed = this.actor?.uuid ?? this.actor?.id ?? this.actor?.name ?? "codex";
+    this._cdxSigilCancel?.();
+    this._cdxSigilCancel = cdxDeferIdle(async () => {
+      this._cdxSigilCancel = null;
+      if (this.form !== form || this._cdxScheme() !== scheme) return;   // stale render / scheme changed
+      const url = await getFatedSigilMask(seed, opts);
+      // Re-check: the mask now decodes an image, so the sheet may have
+      // re-rendered or switched scheme while we awaited it.
+      if (this.form !== form || this._cdxScheme() !== scheme) return;
+      if (url) form.style.setProperty(prop, `url("${url}")`);
+    });
+  }
+
+  /** @see cdxBuildNotchOutlines — thin instance wrapper so the observer is
+   *  owned by (and torn down with) this sheet. */
+  _cdxNotchOutlines(root) {
+    cdxBuildNotchOutlines(this, root);
+  }
+
+  /**
+   * In-place credits editor: the "Change" tab on the CR chip opens a small +/-
+   * panel. + and − are a mutually-exclusive toggle (selecting one deselects the
+   * other); Confirm adds or subtracts the entered amount from the actor's
+   * credits, Cancel/Escape dismiss. Transient (no flag), re-wired each render.
+   */
+  _cdxWireCredits(root) {
+    const wrap = root.querySelector(".cdx-credits-wrap");
+    if (!wrap) return;
+    const amount = wrap.querySelector(".cdx-cr-amount");
+    const ops = [...wrap.querySelectorAll(".cdx-cr-op")];
+    const setOp = (b) => ops.forEach((x) => x.classList.toggle("active", x === b));
+    const close = () => wrap.classList.remove("editing");
+    // Stored credits as a plain integer, and a thousands-separated render of one.
+    const curCredits = () => parseInt(String(this.actor?.system?.stats?.credits?.value ?? "0").replace(/[^\d]/g, ""), 10) || 0;
+    const fmt = (v) => (parseInt(String(v).replace(/[^\d]/g, ""), 10) || 0).toLocaleString("en-US");
+    const open = () => {
+      wrap.classList.add("editing");
+      if (amount) amount.value = "";
+      setOp(ops.find((b) => b.dataset.op === "add") ?? ops[0]);
+      setTimeout(() => amount?.focus(), 0);
+    };
+    const commit = async () => {
+      const op = wrap.querySelector(".cdx-cr-op.active")?.dataset.op ?? "add";
+      const delta = parseInt(String(amount?.value ?? "").replace(/[^\d]/g, ""), 10) || 0;
+      close();
+      if (!delta) return;
+      const next = Math.max(0, op === "sub" ? curCredits() - delta : curCredits() + delta);
+      try { await this.actor?.update({ "system.stats.credits.value": String(next) }); } catch (e) { /* no permission */ }
+    };
+    // Main credits field — display with thousands-separating commas; show raw
+    // digits while editing, reformat + persist on commit. The input is NOT
+    // Foundry-bound (no name=), so the comma'd string can never round-trip into
+    // the stored value when a neighbouring field triggers a form submit.
+    const field = wrap.querySelector(".cdx-sq-input");
+    if (field) {
+      field.value = fmt(curCredits());
+      field.addEventListener("focus", () => { field.value = String(curCredits()); setTimeout(() => field.select(), 0); });
+      field.addEventListener("input", () => {
+        const caret = field.selectionStart;
+        const stripped = field.value.replace(/[^\d]/g, "");
+        if (stripped !== field.value) { field.value = stripped; try { field.setSelectionRange(caret - 1, caret - 1); } catch (e) { /* noop */ } }
+      });
+      field.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") { ev.preventDefault(); field.blur(); }
+        else if (ev.key === "Escape") { ev.preventDefault(); field.value = String(curCredits()); field.blur(); }
+      });
+      field.addEventListener("blur", async () => {
+        const n = parseInt(field.value.replace(/[^\d]/g, ""), 10) || 0;
+        field.value = fmt(n);
+        if (n !== curCredits()) { try { await this.actor?.update({ "system.stats.credits.value": String(n) }); } catch (e) { /* no permission */ } }
+      });
+    }
+    // Amount field (the +/- panel) — digits only too.
+    amount?.addEventListener("input", () => { const c = amount.selectionStart; const s = amount.value.replace(/[^\d]/g, ""); if (s !== amount.value) { amount.value = s; try { amount.setSelectionRange(c - 1, c - 1); } catch (e) { /* noop */ } } });
+    wrap.querySelector(".cdx-cr-change")?.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); open(); });
+    ops.forEach((b) => b.addEventListener("click", (ev) => { ev.preventDefault(); setOp(b); amount?.focus(); }));
+    wrap.querySelector(".cdx-cr-cancel")?.addEventListener("click", (ev) => { ev.preventDefault(); close(); });
+    wrap.querySelector(".cdx-cr-confirm")?.addEventListener("click", (ev) => { ev.preventDefault(); commit(); });
+    amount?.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); commit(); }
+      else if (ev.key === "Escape") { ev.preventDefault(); close(); }
+    });
+  }
+
+  /**
+   * Ammo chip on expanded weapon cards: the −/+ steppers adjust the weapon's
+   * system.ammo magazine. Writes use {render:false} + an optimistic DOM update
+   * so a +/- doesn't collapse the expanded card.
+   *
+   * Each click steps from the last count this sheet queued, not from the document,
+   * and the writes for one weapon run one after another. Reading the document made
+   * a quick second click step from the count the first click had not saved yet, so
+   * three clicks could land as one. `ffgAmmoStep` lets other clients patch the
+   * count in place instead of re-rendering (see helpers/sheet-sync.js).
+   */
+  _cdxWireAmmo(root) {
+    this._cdxAmmoTargets ??= new Map();
+    this._cdxAmmoWrites ??= new Map();
+    // Swallow clicks inside the chip so they don't toggle the card's expand state.
+    root.querySelectorAll(".cdx-ammo").forEach((chip) => {
+      chip.addEventListener("click", (ev) => ev.stopPropagation());
+    });
+    root.querySelectorAll(".cdx-ammo-step").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        const chip = ev.currentTarget.closest(".cdx-ammo"); if (!chip) return;
+        const w = this.actor?.items?.get(chip.dataset.weaponId); if (!w) return;
+        const dir = Number(ev.currentTarget.dataset.dir) || 0;
+        const mx = getAmmoMax(w);
+        let cur = (this._cdxAmmoTargets.get(w.id) ?? getAmmoValue(w)) + dir;
+        cur = Math.max(0, mx ? Math.min(mx, cur) : cur);
+        this._cdxAmmoTargets.set(w.id, cur);
+        this._cdxPaintAmmoCount(w.id, cur, mx);
+
+        const previous = this._cdxAmmoWrites.get(w.id)?.catch(() => undefined) ?? Promise.resolve();
+        const write = previous.then(() => w.update({ "system.ammo.value": cur }, { render: false, ffgAmmoStep: true }));
+        this._cdxAmmoWrites.set(w.id, write);
+        try {
+          await write;
+        } catch (e) {
+          // The document still holds the last count that did save; show that, and
+          // let the next click start from it.
+          if (this._cdxAmmoWrites.get(w.id) === write) {
+            this._cdxAmmoTargets.delete(w.id);
+            this._cdxAmmoWrites.delete(w.id);
+            this._cdxPaintAmmoCount(w.id, getAmmoValue(w), getAmmoMax(w));
+          }
+          return;
+        }
+        if (this._cdxAmmoWrites.get(w.id) === write) {
+          this._cdxAmmoTargets.delete(w.id);
+          this._cdxAmmoWrites.delete(w.id);
+        }
+      });
+    });
+  }
+
+  _cdxPaintAmmoCount(weaponId, current, max) {
+    const chip = this.form?.querySelector?.(`.cdx-ammo[data-weapon-id="${weaponId}"]`);
+    const count = chip?.querySelector(".cdx-ammo-count");
+    if (!count) return false;
+    count.textContent = `${current}/${max}`;
+    return true;
+  }
+
+  /**
+   * Show another client's ammo step without re-rendering, so this user's scroll
+   * position and expanded cards survive a player spending a shot. Returns false
+   * when the weapon has no chip on this sheet, so the caller re-renders instead.
+   * @param {Item} item
+   * @returns {boolean}
+   */
+  _ffgPaintAmmo(item) {
+    // This sheet's own queued clicks already show where the count is going.
+    if (this._cdxAmmoTargets?.has(item.id)) return true;
+    return this._cdxPaintAmmoCount(item.id, getAmmoValue(item), getAmmoMax(item));
+  }
+
+  /**
+   * Inventory card reordering (weapons / armour / gear). Each card carries a left-edge
+   * grip (`.cdx-grip`, draggable); dragging it reorders cards WITHIN their own category by
+   * rewriting the items' Foundry `sort` field. The whole-card cross-actor transfer drag
+   * (base DragDrop, dragSelector `.cdx-card`) is left intact: the grip's dragstart calls
+   * stopPropagation so the base transfer dragstart never fires for a grip drag, and the
+   * grip drop calls stopPropagation so it never bubbles to the base sheet drop zone (which
+   * would route it through _onSortItem and double-sort). A grip dropped on empty space just
+   * no-ops — the base _onTransferItemDrop ignores our non-JSON payload.
+   */
+  _cdxWireReorder(root) {
+    const clearMarks = () => root
+      .querySelectorAll(".cdx-card.cdx-drop-before, .cdx-card.cdx-drop-after")
+      .forEach((c) => c.classList.remove("cdx-drop-before", "cdx-drop-after"));
+
+    root.querySelectorAll(".cdx-card .cdx-grip").forEach((grip) => {
+      const card = grip.closest(".cdx-card[data-item-id]");
+      if (!card) return;
+      // A plain click on the grip must not expand/roll the card.
+      grip.addEventListener("click", (ev) => ev.stopPropagation());
+      grip.addEventListener("dragstart", (ev) => {
+        ev.stopPropagation(); // beat the base .cdx-card transfer dragstart
+        const item = this.actor?.items?.get(card.dataset.itemId);
+        if (!item) return;
+        this._cdxReorder = { id: item.id, type: item.type, card };
+        try {
+          ev.dataTransfer.effectAllowed = "move";
+          ev.dataTransfer.setData("text/plain", item.id); // Firefox needs a payload to start a drag
+          ev.dataTransfer.setDragImage(card, 12, 16);      // ghost the whole card, not the 5px sliver
+        } catch (e) { /* dataTransfer may be restricted; the drag still works */ }
+        card.classList.add("cdx-dragging");
+      });
+      grip.addEventListener("dragend", () => {
+        this._cdxReorder = null;
+        card.classList.remove("cdx-dragging");
+        clearMarks();
+      });
+    });
+
+    root.querySelectorAll(".cdx-card[data-item-id]").forEach((card) => {
+      // Whether the pointer is in the card's lower half → drop AFTER it, else BEFORE.
+      const dropsAfter = (ev) => {
+        const rect = card.getBoundingClientRect();
+        return (ev.clientY - rect.top) > rect.height / 2;
+      };
+      const validTarget = () => {
+        const drag = this._cdxReorder;
+        if (!drag) return null;
+        const target = this.actor?.items?.get(card.dataset.itemId);
+        // Same category only, and never the dragged card itself.
+        if (!target || target.type !== drag.type || target.id === drag.id) return null;
+        return { drag, target };
+      };
+      card.addEventListener("dragover", (ev) => {
+        const v = validTarget();
+        if (!v) return;            // not a grip reorder (or wrong category) → let the base transfer handle it
+        ev.preventDefault();       // mark the card as a valid drop target
+        ev.stopPropagation();
+        const after = dropsAfter(ev);
+        card.classList.toggle("cdx-drop-after", after);
+        card.classList.toggle("cdx-drop-before", !after);
+      });
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("cdx-drop-before", "cdx-drop-after");
+      });
+      card.addEventListener("drop", async (ev) => {
+        const v = validTarget();
+        if (!v) return;
+        ev.preventDefault();
+        ev.stopPropagation();      // never reach the base sheet drop (it would also _onSortItem)
+        const after = dropsAfter(ev);
+        clearMarks();
+        // Persist the new order WITHOUT a re-render, then move the card in place. A
+        // re-render would reset the form's scroll (you've usually scrolled into the
+        // inventory) and flash; the optimistic DOM move mirrors the ammo stepper.
+        const ok = await this._cdxReorderItem(v.drag.id, v.target.id, v.drag.type, after);
+        if (ok && v.drag.card) { if (after) card.after(v.drag.card); else card.before(v.drag.card); }
+      });
+    });
+  }
+
+  /**
+   * Persist a within-category reorder: re-number every item of `type` so the dragged item
+   * lands before/after the target, writing the Foundry `sort` field. Re-numbering the whole
+   * category (rather than a single relative sort) keeps the result deterministic even from a
+   * cold start where every item still has sort 0. Only items whose sort actually changes are
+   * written, and with {render:false} — the caller moves the card in the DOM. Returns true on
+   * success so the caller knows it's safe to do the optimistic move.
+   */
+  async _cdxReorderItem(dragId, targetId, type, after) {
+    if (dragId === targetId) return false;
+    const dragItem = this.actor?.items?.get(dragId);
+    if (!dragItem) return false;
+    const sibs = (this.actor?.items?.filter((i) => i.type === type) ?? []).sort(cdxInventoryOrder);
+    const from = sibs.findIndex((i) => i.id === dragId);
+    if (from < 0) return false;
+    sibs.splice(from, 1);
+    let to = sibs.findIndex((i) => i.id === targetId);
+    if (to < 0) return false;
+    if (after) to += 1;
+    sibs.splice(to, 0, dragItem);
+    const updates = [];
+    sibs.forEach((it, idx) => {
+      const want = (idx + 1) * CDX_SORT_BASE;
+      if ((Number(it.sort) || 0) !== want) updates.push({ _id: it.id, sort: want });
+    });
+    try {
+      if (updates.length) await this.actor.updateEmbeddedDocuments("Item", updates, { render: false });
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  _bindCdxTalentCardHandler(root) {
+    if (!root) return;
+    this._onCdxTalentCardClickBound ??= this._onCdxTalentCardClick.bind(this);
+    if (this._cdxTalentCardRoot === root) return;
+    this._cdxTalentCardRoot?.removeEventListener("click", this._onCdxTalentCardClickBound, true);
+    this._cdxTalentCardRoot = root;
+    root.addEventListener("click", this._onCdxTalentCardClickBound, true);
+  }
+
+  _onCdxTalentCardClick(ev) {
+    const card = ev.target.closest?.(".cdx-talent[data-item-id]");
+    if (!card || ev.target.closest(".item-control")) return;
+    const item = this.actor?.items?.get(card.dataset.itemId);
+    if (!item || !["forcepower", "signatureability"].includes(item.type)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (ev.target.closest(".item-details")) return;
+    this._itemDisplayDetails(item, { preventDefault() {}, currentTarget: card });
+  }
+
+  /**
+   * Fill each weapon card's dice-pool node with the actor's pool for that weapon's
+   * combat skill, reusing the same DiceHelpers.addSkillDicePool the Skills tab uses
+   * (so it's the real, full pool). The .roll-button node is display-only here
+   * (pointer-events:none in CSS) — the weapon icon is the roll trigger.
+   */
+  async _cdxWeaponPools(root) {
+    const nodes = root.querySelectorAll(".cdx-wpn-skill[data-ability]");
+    if (!nodes.length) return;
+    let data;
+    try { data = await this.getData({}); } catch (e) { return; }
+    // Awaited (not forEach): the tooltip only exists once the pool has rendered.
+    for (const elem of nodes) {
+      // Resolve the weapon item from its card so its roll modifiers are folded
+      // into the previewed pool (matches what clicking the weapon rolls).
+      const card = elem.closest(".cdx-card.weapon[data-item-id]");
+      const item = card ? (this.actor?.items?.get(card.dataset.itemId) ?? null) : null;
+      try { await DiceHelpers.addSkillDicePool(data, elem, item); } catch (e) { continue; }
+      this._cdxPoolHintPortal(elem);
+    }
+  }
+
+  /**
+   * The base sheet renders skill pools asynchronously. Portal only after the
+   * tooltip node exists; stock sheets leave this optional hook undefined.
+   */
+  _afterSkillDicePoolRendered(elem) {
+    const pool = elem?.querySelector?.(".cdx-sk-pool .dice-pool");
+    if (pool) this._cdxPoolHintPortal(pool);
+  }
+
+  /**
+   * Move a dice-pool source hint to document.body. The Codex form must be a
+   * scroll container, so neither z-index nor an in-form absolute host can escape
+   * its overflow clipping. A fixed body-level portal does, and viewport clamping
+   * keeps the complete hint visible at every sheet/window edge.
+   */
+  _cdxPoolHintPortal(trigger) {
+    const tip = trigger?.querySelector?.(".tooltip2");
+    if (!tip || !trigger.isConnected || trigger.dataset.cdxPoolTipBound) return;
+    trigger.dataset.cdxPoolTipBound = "1";
+
+    const portal = document.createElement("div");
+    portal.className = "starwarsffg cdx cdx-pool-tip-portal";
+    portal.dataset.cdxAppId = String(this.appId);
+    const host = document.createElement("div");
+    host.className = "hover cdx-pool-tip";
+    host.appendChild(tip);
+    portal.appendChild(host);
+    document.body.appendChild(portal);
+
+    const position = () => {
+      if (!trigger.isConnected) return;
+      host.style.left = "0px";
+      host.style.top = "0px";
+      const rect = trigger.getBoundingClientRect();
+      const popup = host.getBoundingClientRect();
+      const point = placeCodexPopup(rect, popup, {
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+      });
+      host.style.left = `${point.left}px`;
+      host.style.top = `${point.top}px`;
+    };
+    const reposition = () => {
+      if (host.classList.contains("cdx-tip-on")) position();
+    };
+    const show = () => {
+      position();
+      host.classList.add("cdx-tip-on");
+      window.addEventListener("scroll", reposition, true);
+      window.addEventListener("resize", reposition);
+    };
+    const hide = () => {
+      host.classList.remove("cdx-tip-on");
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+    const cleanup = () => {
+      hide();
+      trigger.removeEventListener("pointerenter", show);
+      trigger.removeEventListener("pointerleave", hide);
+      portal.remove();
+    };
+
+    trigger.addEventListener("pointerenter", show);
+    trigger.addEventListener("pointerleave", hide);
+    this._cdxPoolHintCleanups ??= new Set();
+    this._cdxPoolHintCleanups.add(cleanup);
+  }
+
+  _cdxClearPoolHints() {
+    for (const cleanup of this._cdxPoolHintCleanups ?? []) cleanup();
+    this._cdxPoolHintCleanups?.clear();
+  }
+
+  /**
+   * Distribute skills into two columns WITHOUT splitting a skill group across the
+   * break. The stock _createSkillColumns fills column 1 to a row target and spills
+   * a group across the gap (repeating its header); instead we keep each group
+   * [header, ...skills] whole and pick the in-order boundary that best balances the
+   * two columns — so e.g. Combat (Brawl…) moves wholesale to the second column
+   * rather than starting at the bottom of the first. @override
+   */
+  _createSkillColumns(data) {
+    const byLabel = game.settings.get("starwarsffg", "skillSorting");
+    const sortFn = byLabel
+      ? (a, b) => data.data.skills[a].label.localeCompare(data.data.skills[b].label, game.i18n.lang)
+      : (a, b) => a.toLowerCase().localeCompare(b.toLowerCase());
+
+    // Each group = its header row + sorted skill rows; treated as one unbreakable unit.
+    const groups = data.data.skilltypes.map((type) => {
+      const skills = Object.keys(data.data.skills)
+        .filter((s) => data.data.skills[s].type === type.type)
+        .sort(sortFn)
+        .map((s) => ({ name: s, ...data.data.skills[s] }));
+      return [{ id: "header", ...type }, ...skills];
+    }).filter((g) => g.length > 1);
+
+    // Pick the in-order split point (k groups in column 0, the rest in column 1)
+    // that minimises the row-count imbalance between the two columns.
+    const total = groups.reduce((n, g) => n + g.length, 0);
+    let bestK = groups.length, bestDiff = Infinity, running = 0;
+    for (let k = 1; k <= groups.length; k++) {
+      running += groups[k - 1].length;
+      const diff = Math.abs(running - (total - running));
+      if (diff < bestDiff) { bestDiff = diff; bestK = k; }
+    }
+
+    const cols = [[], []];
+    groups.forEach((g, i) => cols[i < bestK ? 0 : 1].push(...g));
+    return cols.filter((c) => c.length > 0);
+  }
+
+  /**
+   * Expose the crit-injury count (Injuries tab badge) and the wound/strain
+   * damage tracks (the colored pip bars next to the steppers). @override
+   */
+  async getData(options) {
+    const ctx = await super.getData(options);
+    // Per-actor collapsed-header preference (characters/rivals/nemeses/minions),
+    // unless a viewer has toggled it on this read-only sheet. Once the sheet is
+    // editable the saved flag rules again.
+    const viewerCollapsed = this.isEditable ? undefined : this._cdxViewerHeaderCollapsed;
+    ctx.cdxHeaderCollapsed = viewerCollapsed ?? !!this.actor?.getFlag?.("starwarsffg", "codexHeaderCollapsed");
+    // Inventory Style (Sheet Option): "combined" merges weapons/armour/gear into
+    // one Inventory tab; anything else (default "split") keeps the Combat + Gear
+    // tabs. Dotted-key getFlag, same idiom as config.enableEditMode above.
+    ctx.cdxCombinedInventory = this.actor?.getFlag?.("starwarsffg", "config.codexInventoryStyle") === "combined";
+    // Inventory render order: cdxItems is the actor's items in manual drag-sort order
+    // (see cdxInventoryOrder). The weapon/armour/gear partials iterate THIS instead of the
+    // collection-ordered `items`, so reordering via the card grips is reflected. These are
+    // still the live Item documents (not toObject'd), so the templates keep full
+    // item.system / item.flags / item.img access.
+    ctx.cdxItems = [...(this.actor?.items ?? [])].sort(cdxInventoryOrder);
+    // Show the inventory drag grips only to a user who can actually edit the actor —
+    // isEditable folds in document ownership (options.editable alone can be true for a
+    // non-owner, who would then get a permission error on drop). The wiring in
+    // _cdxWireReorder is gated by options.editable; with no grips rendered it's a no-op.
+    ctx.cdxCanReorder = !!this.isEditable;
+    // Labels for the codex header/bio-stats. The codex templates render these via
+    // context vars (not bare {{localize}}) so they reliably reflect the optional
+    // label override settings: the configured override when set, otherwise the
+    // localized default. Covers the credits square (expanded + collapsed) and the
+    // Obligation / Morality / Conflict bio-stats.
+    const cdxLabel = (settingKey, i18nKey) =>
+      game.settings.get("starwarsffg", settingKey) || game.i18n.localize(i18nKey);
+    ctx.cdxCreditsLabel = cdxLabel("labelCredits", "SWFFG.DescriptionCredits");
+    ctx.cdxObligationLabel = cdxLabel("labelObligation", "SWFFG.DescriptionObligation");
+    ctx.cdxDutyLabel = cdxLabel("labelDuty", "SWFFG.DescriptionDuty");
+    ctx.cdxMoralityLabel = cdxLabel("labelMorality", "SWFFG.DescriptionMorality");
+    ctx.cdxConflictLabel = cdxLabel("labelConflict", "SWFFG.DescriptionConflict");
+    // The entries list's Type column, keyed by an entry's system.type.
+    ctx.cdxTrackLabels = { obligation: ctx.cdxObligationLabel, duty: ctx.cdxDutyLabel, morality: ctx.cdxMoralityLabel };
+    try {
+      ctx.cdxCritCount = this.actor?.items?.filter((i) => i.type === "criticalinjury").length ?? 0;
+      // Header pill stacks (specializations / force powers / signature abilities):
+      // same shape, all driven by CdxPillStack. Ordered by acquisition — the one
+      // bought FIRST (oldest createdTime) comes first → first pill → top of stack.
+      // A null createdTime (e.g. carried over by a duplicated actor) sorts oldest;
+      // sort then id break exact ties.
+      const cdxStack = (type) => (this.actor?.items?.filter((i) => i.type === type) ?? [])
+        .sort((a, b) => ((a._stats?.createdTime ?? 0) - (b._stats?.createdTime ?? 0)) || (a.sort - b.sort) || a._id.localeCompare(b._id));
+      const specItems = cdxStack("specialization");
+      ctx.cdxSpecs = specItems; ctx.cdxSpecCount = specItems.length; ctx.cdxSpecExtra = Math.max(0, specItems.length - 1);
+      const forceItems = cdxStack("forcepower");
+      ctx.cdxForcePowers = forceItems; ctx.cdxForceCount = forceItems.length; ctx.cdxForceExtra = Math.max(0, forceItems.length - 1);
+      // Show the force pool / powers when the enableForcePool option isn't explicitly OFF
+      // (it defaults to true but is only written to the flag once the options are saved, so
+      // a fresh/wizard-built actor has it undefined) AND the actor is actually a Force user
+      // (has a force pool rating or force-power items). Fixes wizard-created Force characters.
+      ctx.cdxShowForcePool = (this.actor?.flags?.starwarsffg?.config?.enableForcePool !== false)
+        && ((Number(this.actor?.system?.stats?.forcePool?.max) || 0) > 0 || forceItems.length > 0);
+      const sigItems = cdxStack("signatureability");
+      ctx.cdxSigs = sigItems; ctx.cdxSigCount = sigItems.length; ctx.cdxSigExtra = Math.max(0, sigItems.length - 1);
+    } catch (e) { ctx.cdxCritCount = 0; }
+    // Obligation / Duty / Morality boxes: the same rules as the classic sheet (total outside
+    // Edit Mode, baseline inside it), except that a Force user keeps the Morality box this
+    // sheet has always shown them. The hint explains a box whose entries add to its baseline.
+    if (this.actor?.type === "character") {
+      const tracks = ActorSheetFFG.obligationTrackContext(this.actor, { forceUser: !!ctx.cdxShowForcePool });
+      for (const key of ["obligation", "duty"]) {
+        const t = tracks[key];
+        t.hint = t.fromEntries ? game.i18n.format("SWFFG.TrackBreakdown", { baseline: t.baseline, entries: t.fromEntries }) : "";
+      }
+      ctx.cdxOblig = tracks;
+    }
+    ctx.cdxTracks = {};
+    try {
+      for (const stat of ["wounds", "strain"]) {
+        const s = this.actor?.system?.stats?.[stat];
+        if (!s || s.max == null) continue;
+        ctx.cdxTracks[stat] = this._cdxTrack(Number(s.value) || 0, Number(s.max) || 0);
+      }
+    } catch (e) { /* leave tracks empty */ }
+    // First-two-letters + dot abbreviation per characteristic (e.g. "WILLPOWER"
+    // → "WI."), shown by the chip label when the window is too narrow for the
+    // full word. A single dot — NOT an ellipsis.
+    ctx.cdxCharAbbr = {};
+    try {
+      for (const [id, c] of Object.entries(ctx.data?.characteristics ?? {})) {
+        ctx.cdxCharAbbr[id] = String(c?.label ?? id).slice(0, 2) + ".";
+      }
+    } catch (e) { /* leave empty */ }
+    // Defence melee/ranged → setback-die render data for the locked (display)
+    // view. 0 → em-dash, 1–4 → that many black setback dice, 5+ → a plain digit
+    // (rules-illegal but shown rather than dropped). Built with an explicit
+    // for-loop on purpose: Array.from({length}).map can drop items under some
+    // transpilers. In edit mode the template shows plain number inputs instead.
+    ctx.cdxDef = {};
+    try {
+      for (const key of ["melee", "ranged"]) {
+        const v = Math.max(0, Math.trunc(Number(this.actor?.system?.stats?.defence?.[key]) || 0));
+        const dice = [];
+        if (v >= 1 && v <= 4) for (let i = 0; i < v; i++) dice.push(i);
+        // Group dice into unbreakable pairs so the layout can only wrap at pair
+        // boundaries: 4 → 2×2 (never 3+1), 3 → 2+1 pyramid. A single row still
+        // shows when there's room (the whole block stays on one line).
+        const pairs = [];
+        for (let i = 0; i < dice.length; i += 2) pairs.push(dice.slice(i, i + 2));
+        ctx.cdxDef[key] = { value: v, mode: v <= 0 ? "dash" : (v > 4 ? "digit" : "dice"), pairs };
+      }
+      // Larger of the two dice counts — both rows use it to flip single-row ⇄
+      // collapsed at the SAME width (so they switch together, never one of each).
+      const poolMax = Math.max(
+        ctx.cdxDef.melee.mode === "dice" ? ctx.cdxDef.melee.value : 0,
+        ctx.cdxDef.ranged.mode === "dice" ? ctx.cdxDef.ranged.value : 0,
+      );
+      ctx.cdxDef.melee.poolMax = poolMax;
+      ctx.cdxDef.ranged.poolMax = poolMax;
+    } catch (e) {
+      ctx.cdxDef = { melee: { value: 0, mode: "dash", pairs: [], poolMax: 0 }, ranged: { value: 0, mode: "dash", pairs: [], poolMax: 0 } };
+    }
+    // Force-chip alignment colour: cdxAlign = effective (baseline + Morality
+    // hysteresis), cdxAlignStored = the manually-set baseline (for the selector).
+    try {
+      const stored = this.actor?.getFlag("starwarsffg", "codexAlignment") ?? "neutral";
+      ctx.cdxAlignStored = CDX_ALIGNMENTS.includes(stored) ? stored : "neutral";
+      ctx.cdxAlign = cdxEffectiveAlignment(stored, this.actor?.system?.morality?.value);
+    } catch (e) { ctx.cdxAlignStored = "neutral"; ctx.cdxAlign = "neutral"; }
+    // Ammo chip on expanded personal- and vehicle-weapon cards. Tracking + magazine size come from
+    // ammo-helpers so this honours both the manual counter (Option A) and the
+    // "Limited Ammo" quality mode (Option B). cdxAmmo is keyed by item _id.
+    ctx.cdxAmmo = {};
+    try {
+      for (const item of (this.actor?.items ?? [])) {
+        if (!["weapon", "shipweapon"].includes(item.type)) continue;
+        if (!isAmmoTracked(item)) continue;
+        ctx.cdxAmmo[item._id] = {
+          current: getAmmoValue(item),
+          max: getAmmoMax(item),
+        };
+      }
+    } catch (e) { ctx.cdxAmmo = {}; }
+    // Short talent activation labels (shown on the talent card's controls line).
+    // "Active (Incidental, Out of Turn)" → "Active (OOT)"; others kept as-is.
+    try {
+      for (const t of (ctx.talentList ?? [])) {
+        const act = (t && typeof t.activation === "object") ? (t.activation?.value ?? "") : (t?.activation ?? "");
+        t.cdxAct = /out of turn/i.test(String(act)) ? "Active (OOT)" : String(act);
+      }
+    } catch (e) { /* leave talentList untouched */ }
+    // Optional tier grouping for the talent cards ("Sort Talents by Tier", on by
+    // default). The flat talentList is left in place - the template falls back to
+    // it whenever cdxTalentTiers is absent - and the order inside each tier is the
+    // one talentList already had, so the core activation/name sorting still holds.
+    try {
+      if (game.settings.get("starwarsffg", "codexTalentTierSorting")) {
+        const groups = groupTalentsByTier(ctx.talentList, buildTalentTierMap(this.actor?.items));
+        if (groups.length) {
+          ctx.cdxTalentTiers = groups.map((g) => ({
+            ...g,
+            label: game.i18n.format("SWFFG.Codex.TalentTier", { tier: g.tier }),
+          }));
+        }
+      }
+    } catch (e) { /* fall back to the flat talent list */ }
+    // Minion combined-wound-pool track: a grid of member groups, each
+    // `unit_wounds` segments wide, filled left-to-right by total wounds suffered.
+    // Precomputed here (booleans) rather than via Handlebars arithmetic helpers,
+    // which aren't all available. The system already derives quantity.value
+    // (alive) and stats.wounds.max (= unit_wounds × quantity.max) from wounds.
+    if (this.actor?.type === "minion") {
+      try {
+        const unit = Math.max(1, Math.trunc(Number(this.actor.system?.unit_wounds?.value) || 1));
+        const qmax = Math.max(0, Math.trunc(Number(this.actor.system?.quantity?.max) || 0));
+        const woundsVal = Math.max(0, Math.trunc(Number(this.actor.system?.stats?.wounds?.value) || 0));
+        const groups = [];
+        for (let g = 0; g < qmax; g++) {
+          const seg = [];
+          for (let s = 0; s < unit; s++) seg.push((g * unit + s) < woundsVal);
+          groups.push(seg);
+        }
+        ctx.cdxMinionGroups = groups;
+        // Pre-format the hint here (game.i18n.format is reliable; the {{localize}}
+        // Handlebars helper's hash-format support is version-dependent).
+        ctx.cdxMinionWoundHint = game.i18n.format("SWFFG.Codex.WoundsSuffered", { n: unit });
+      } catch (e) { ctx.cdxMinionGroups = []; }
+    }
+    // Vehicle derived data: hull/strain damage tracks, hard points used/rating,
+    // crew count, and a compact cost string.
+    if (this.actor?.type === "vehicle") {
+      try {
+        const s = this.actor.system?.stats ?? {};
+        ctx.cdxVehTracks = {
+          hull: this._cdxTrack(Number(s.hullTrauma?.value) || 0, Number(s.hullTrauma?.max) || 0),
+          strain: this._cdxTrack(Number(s.systemStrain?.value) || 0, Number(s.systemStrain?.max) || 0),
+        };
+        // A minion vehicle group's Combined Hull Pool: one segment group per vehicle, filled left
+        // to right like the minion wound pool (a bar per vehicle once its hull is too big for pips).
+        if (ctx.isMinionVehicle) {
+          const perVehicle = ctx.minionVehicle?.perVehicle ?? 0;
+          ctx.cdxVehHullGroups = hullPoolSegments(s.hullTrauma?.value, perVehicle, this.actor.system?.quantity?.max);
+          ctx.cdxVehHullHint = game.i18n.format("SWFFG.Codex.HullSuffered", { n: perVehicle });
+        }
+        let crew = 0, crit = 0;
+        for (const it of (this.actor.items ?? [])) {
+          if (it.type === "shipcrew") crew += 1;
+          if (it.type === "criticaldamage") crit += 1;
+        }
+        // Hard points are used-of-rating. The stored stat is NOT the rating: each
+        // attachment subtracts its own cost from it through an inherent Active
+        // Effect, so pairing the summed costs with it charged every attachment
+        // twice (2/5 became 4/3 on a 2-HP install). vehicleHardpoints gives the
+        // rating back. The edit field is bound to the rating for the same reason —
+        // submitting the sheet must not bake an attachment spend into the source.
+        const hp = vehicleHardpoints(this.actor);
+        ctx.cdxVehHpUsed = hp.used;
+        ctx.cdxVehHpMax = hp.max;
+        ctx.cdxVehCrewCount = crew;
+        ctx.cdxVehCritCount = crit;
+        const cost = Number(s.cost?.value) || 0;
+        ctx.cdxVehCost = cost >= 1000 ? `${(cost / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })}k` : String(cost);
+        // Speed-chip background ramp: white at 0, red-orange at full speed.
+        const spMax = Number(s.speed?.max) || 0;
+        const spVal = Number(s.speed?.value) || 0;
+        ctx.cdxVehSpeedPct = spMax > 0 ? Math.max(0, Math.min(100, Math.round((spVal / spMax) * 100))) : 0;
+        // 4-zone shields as a current-of-rating pair, the same shape as the Speed
+        // chip. `system.stats.shields.<zone>` stays what it has always been — the
+        // ship's RATING, what importers write, what the stock sheet shows and what
+        // "Vehicle Stat → Shields" active effects add to — while the CURRENT value
+        // of each zone lives in a Codex flag beside it. Zones move around in play
+        // for several reasons (Angle Deflector Shields and friends reassign points
+        // between zones, hits strip them, powers restore them), which is why the
+        // steppers are uncapped: a zone can legitimately sit above its own rating
+        // while another sits below. Unset reads as the rating, so a vehicle nobody
+        // has touched shows rating-of-rating. The steppers move only the flag, so
+        // re-angling shields never edits the ship's stats and an attachment's bonus
+        // still shows up in the rating.
+        //
+        // WHICH zones is the silhouette's call, not this loop's: a craft of
+        // silhouette 4 or below defends fore and aft only, unless the ship's own
+        // override says otherwise. Only the listed zones get a context entry, so
+        // the template's chips fall away with them -- and a chip that is not
+        // rendered submits nothing, leaving the rating of a zone that is out of
+        // play exactly as it was.
+        const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
+        ctx.cdxVehShields = {};
+        for (const { key: zone } of vehicleDefenceZones(this.actor)) {
+          const rating = Math.trunc(Number(s.shields?.[zone]) || 0);
+          const stored = shieldFlags?.[zone];
+          const cur = stored == null ? rating : Math.max(0, Math.trunc(Number(stored) || 0));
+          ctx.cdxVehShields[zone] = { cur, max: rating };
+        }
+        ctx.cdxVehZoneCount = Object.keys(ctx.cdxVehShields).length;
+      } catch (e) {
+        // Malformed legacy data aborted the richer vehicle context. Every RATING in this
+        // fallback must come from stored source data, never a fabricated zero: the hull and
+        // shield ratings render as editable inputs in Edit Mode, and the sheet submits its whole
+        // form on change AND on close, so a zero here is written straight over the stored value.
+        CONFIG.logger?.warn?.("Codex: falling back to source vehicle stats", e);
+        ctx.cdxVehTracks = { hull: {}, strain: {} };
+        ctx.cdxVehHullGroups = [];
+        ctx.cdxVehHullHint = "";
+        ctx.cdxVehHpUsed = 0;
+        ctx.cdxVehHpMax = vehicleHardpointSourceRating(this.actor);
+        ctx.cdxVehCrewCount = 0;
+        ctx.cdxVehCritCount = 0;
+        ctx.cdxVehSpeedPct = 0;
+        ctx.cdxVehCost = "0";
+        // All four zones here, deliberately, whatever the silhouette says. This
+        // path runs on data that already failed to prepare, so narrowing it could
+        // drop a zone whose rating is real, and these chips are editable inputs.
+        const shieldRatings = vehicleShieldSourceRatings(this.actor);
+        const shieldFlags = this.actor.getFlag("starwarsffg", "codexShields") ?? {};
+        ctx.cdxVehShields = {};
+        for (const zone of ["fore", "aft", "port", "starboard"]) {
+          const stored = shieldFlags?.[zone];
+          const cur = stored == null ? shieldRatings[zone] : Math.max(0, Math.trunc(Number(stored) || 0));
+          ctx.cdxVehShields[zone] = { cur, max: shieldRatings[zone] };
+        }
+        ctx.cdxVehZoneCount = 4;
+      }
+    }
+    return ctx;
+  }
+
+  /** Build a damage track: pips for small thresholds, a bar for large ones.
+   *  Colour escalates green → amber → red as current nears threshold. */
+  _cdxTrack(cur, max) {
+    const ratio = max > 0 ? cur / max : 0;
+    const color = ratio >= 0.8 ? "#a51f17" : ratio >= 0.5 ? "#c8902e" : "#3f7d3a";
+    if (max <= 0 || max >= 20) return { useBar: true, color, pct: Math.max(0, Math.min(100, Math.round(ratio * 100))) };
+    const pips = [];
+    for (let i = 0; i < max; i++) pips.push(i < cur);
+    return { useBar: false, color, pips };
+  }
+
+  /**
+   * Surface the per-actor scheme picker in the window-header controls menu (the
+   * ⋮ dropdown), rather than as an in-sheet button strip. Omitted on a read-only
+   * sheet, since the pick is saved to the actor.
+   * @override
+   */
+  _getHeaderControls() {
+    const controls = super._getHeaderControls();
+    if (!this.isEditable) return controls;
+    controls.push({
+      action: "cdxScheme",
+      icon: "fa-solid fa-palette",
+      label: "Scheme",
+      onClick: () => this._cdxPickScheme(),
+    });
+    return controls;
+  }
+
+  /** Categorised DialogV2 palette picker; writes the actor flag. */
+  async _cdxPickScheme() {
+    const choice = await cdxPickScheme(this._cdxScheme(), this.actor?.name);
+    if (choice) await this.actor.setFlag("starwarsffg", "scheme", choice);
+  }
+
+  /**
+   * Post-Encounter strain recovery for this actor. Ported from the
+   * token-action-hud-ffgsw "strainRecovery" macro (AdmiralDave/Wrycu) so the codex
+   * sheet no longer depends on that module: pops a Cool/Discipline dice-pool
+   * chooser, rolls the chosen pool, and removes strain equal to
+   * success + floor(advantage / 2). Operates directly on this actor (no token
+   * selection needed). No-op with a notice if there's no strain to heal.
+   */
+  async _cdxStrainRecovery() {
+    const actor = this.actor;
+    const currentStrain = Number(actor?.system?.stats?.strain?.value) || 0;
+    if (currentStrain <= 0) {
+      ui.notifications?.info(game.i18n.format("SWFFG.Codex.StrainRecovery.NoStrain", { name: actor?.name ?? "" }));
+      return;
+    }
+
+    const skills = actor.system?.skills ?? {};
+    const coolSkill = skills["Cool"];
+    const disciplineSkill = skills["Discipline"];
+    const coolChar = coolSkill ? actor.system?.characteristics?.[coolSkill.characteristic] : null;
+    const disciplineChar = disciplineSkill ? actor.system?.characteristics?.[disciplineSkill.characteristic] : null;
+    if (!coolSkill || !disciplineSkill || !coolChar || !disciplineChar) {
+      ui.notifications?.error(game.i18n.format("SWFFG.Codex.StrainRecovery.MissingSkill", { name: actor?.name ?? "" }));
+      return;
+    }
+
+    const buildPool = (skill, characteristic) => {
+      const pool = new DicePoolFFG({
+        ability: Math.max(characteristic?.value ?? 0, skill?.rank ?? 0),
+        boost: skill.boost,
+        setback: skill.setback,
+        remsetback: skill.remsetback,
+        force: skill.force ?? 0,
+        advantage: skill.advantage,
+        dark: skill.dark,
+        light: skill.light,
+        failure: skill.failure,
+        threat: skill.threat,
+        success: skill.success,
+        triumph: skill?.triumph ?? 0,
+        despair: skill?.despair ?? 0,
+      });
+      pool.upgrade(Math.min(characteristic.value ?? 0, skill.rank ?? 0));
+      return pool;
+    };
+
+    const coolPool = buildPool(coolSkill, coolChar);
+    const disciplinePool = buildPool(disciplineSkill, disciplineChar);
+
+    // Pre-select the stronger pool (more ability+proficiency+boost, proficiency breaks ties).
+    const weight = (p) => p.ability + p.proficiency + p.boost;
+    const coolBetter = weight(coolPool) > weight(disciplinePool)
+      || (weight(coolPool) === weight(disciplinePool) && coolPool.proficiency > disciplinePool.proficiency);
+
+    const content = `<form class="form cdx-strain-recovery">
+      <p>${game.i18n.localize("SWFFG.Codex.StrainRecovery.SelectSkill")}</p>
+      <div class="cdx-strain-choices">
+        <label><input type="radio" name="selected_skill" value="Cool"${coolBetter ? " checked" : ""} /> ${coolSkill.label} ${coolPool.renderPreview().outerHTML}</label>
+        <label><input type="radio" name="selected_skill" value="Discipline"${coolBetter ? "" : " checked"} /> ${disciplineSkill.label} ${disciplinePool.renderPreview().outerHTML}</label>
+      </div>
+    </form>`;
+
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("SWFFG.Codex.StrainRecovery.Title"), icon: "fa-solid fa-laptop-medical" },
+      content,
+      modal: true,
+      rejectClose: false,
+      buttons: [{
+        action: "recover",
+        label: game.i18n.localize("SWFFG.Codex.StrainRecovery.Recover"),
+        default: true,
+        callback: async (event, button) => {
+          const chosen = button.form.elements.selected_skill.value === "Cool" ? coolPool : disciplinePool;
+          await this._cdxApplyStrainRecovery(chosen, currentStrain);
+        },
+      }],
+    });
+  }
+
+  /**
+   * Roll a recovery pool and remove the recovered strain from this actor.
+   * Healed = success (+ floor(advantage / 2) when the "advantages heal strain"
+   * house rule is enabled), capped at current strain.
+   */
+  async _cdxApplyStrainRecovery(pool, currentStrain) {
+    const actor = this.actor;
+    const message = await new game.ffg.RollFFG(pool.renderDiceExpression()).toMessage({
+      speaker: { actor },
+      flavor: `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize("SWFFG.Codex.StrainRecovery.Title")}...`,
+    });
+    const result = message.rolls?.[0]?.ffg ?? {};
+    const advantageHeals = game.settings.get("starwarsffg", "codexAdvantageHealsStrain");
+    const rolled = (result.success ?? 0) + (advantageHeals ? Math.floor((result.advantage ?? 0) / 2) : 0);
+    const healed = Math.min(currentStrain, Math.max(0, rolled));
+    await ChatMessage.create({
+      speaker: { actor },
+      content: game.i18n.format("SWFFG.Codex.StrainRecovery.Healed", { quantity: healed }),
+    });
+    await actor.update({ "system.stats.strain.value": currentStrain - healed });
+  }
+
+  /**
+   * Wire the crit-card weekly-recovery controls. Elements are recreated every
+   * render, so close() needs no teardown; handlers re-check permission and
+   * availability live (the marker may be stale mid-refresh). All availability
+   * math routes through the shared `availFor` (same as the Handlebars wrapper,
+   * the GM bridge, and the unit suite).
+   */
+  _cdxWireCritRecovery(root) {
+    this._cdxCritInFlight ??= new Set();
+    const currentDay = () => Math.floor(Number(game.settings.get("starwarsffg", "campaignDay")) || 0);
+    const critItem = (ev) => {
+      const card = ev.target.closest(".cdx-injury");
+      const id = card?.dataset.itemId;
+      return { id, item: id ? this.actor?.items?.get(id) : null };
+    };
+
+    // Resilience self-heal — owner-only, gated. Strict ordering: every locally
+    // constructible prerequisite (permission, availability, skill, pool, roll)
+    // runs BEFORE the reservation stamp so a stamp is never spent on a
+    // pre-roll failure; a post-reservation toMessage failure KEEPS the stamp.
+    root.querySelectorAll(".cdx-inj-resilience").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const { id: itemId, item } = critItem(ev);
+        if (!item) return;
+        if (this._cdxCritInFlight.has(itemId)) return;     // 1. in-flight guard
+        this._cdxCritInFlight.add(itemId);
+        btn.disabled = true;
+        try {
+          if (!(item.parent?.isOwner || game.user.isGM)) return;   // 2. permission
+          const day = currentDay();
+          const stamp = item.system?.resilienceLastAttemptDay ?? item.system?.receivedDay ?? null;
+          if (!availFor(stamp, day).attemptable) {                 // 3. availability
+            ui.notifications.warn(game.i18n.localize("SWFFG.Codex.CritTrauma.AttemptUnavailable"));
+            return;
+          }
+          // 4. ALL non-dice prerequisites BEFORE any stamp.
+          const actor = this.actor;
+          const skill = actor?.system?.skills?.["Resilience"];
+          const characteristic = skill ? actor?.system?.characteristics?.[skill.characteristic] : null;
+          if (!skill || !characteristic) {
+            ui.notifications.warn(game.i18n.localize("SWFFG.Codex.CritTrauma.NoResilienceSkill"));
+            return;   // no stamp
+          }
+          const pool = new DicePoolFFG({
+            ability: Math.max(characteristic?.value ?? 0, skill?.rank ?? 0),
+            boost: skill.boost, setback: skill.setback, remsetback: skill.remsetback,
+            force: skill.force ?? 0, advantage: skill.advantage, dark: skill.dark, light: skill.light,
+            failure: skill.failure, threat: skill.threat, success: skill.success,
+            triumph: skill?.triumph ?? 0, despair: skill?.despair ?? 0,
+          });
+          pool.upgrade(Math.min(characteristic.value ?? 0, skill.rank ?? 0));
+          const flavor = `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize("SWFFG.Codex.CritTrauma.RollResilience")}...`;
+          const roll = new game.ffg.RollFFG(pool.renderDiceExpression());   // may throw here → BEFORE the stamp
+          // 5. Stamp the reservation.
+          await item.update({ "system.resilienceLastAttemptDay": day });
+          // 6. Roll + read back, preserving the stamp on any post-reservation failure.
+          let message;
+          try {
+            message = await roll.toMessage({
+              speaker: { actor }, flavor,
+              flags: { starwarsffg: { critTraumaRecovery: { actorUuid: actor.uuid, itemId, path: "resilience" } } },
+            });
+          } catch (err) {
+            CONFIG.logger?.warn?.("Crit-trauma: resilience roll message failed post-reservation", err);
+            ui.notifications.warn(game.i18n.localize("SWFFG.Codex.CritTrauma.RollFailedNoMessage"));
+            return;   // KEEP the stamp — a genuine attempt occurred, no free reroll
+          }
+          const net = message.rolls?.[0]?.ffg?.success ?? 0;   // net of failures
+          // 7. Resolve — no equality-based rollback anywhere.
+          if (net >= 1) await item.delete();
+        } finally {
+          this._cdxCritInFlight.delete(itemId);
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Medicine failure marker — always shown to permitted viewers. Owner stamps
+    // locally; a permitted non-owner forwards to the GM.
+    root.querySelectorAll(".cdx-inj-medfail").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const { id: itemId, item } = critItem(ev);
+        if (!item) return;
+        const day = currentDay();
+        if (!availFor(item.system?.medicineLastAttemptDay ?? null, day).attemptable) return;
+        if (item.isOwner) await item.update({ "system.medicineLastAttemptDay": day });
+        else await applyCritRecoveryAttempt(this.actor, itemId, "medicine");
+      });
+    });
+
+    // Vehicle Mechanics failure marker — house-rule + type gated (the owner-local
+    // path bypasses the GM bridge, and the button can be stale mid-refresh).
+    root.querySelectorAll(".cdx-inj-mechfail").forEach((btn) => {
+      btn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const { id: itemId, item } = critItem(ev);
+        if (!item) return;
+        if (game.settings.get("starwarsffg", "vehicleCritWeeklyLimit") !== true) return;
+        if (item.type !== "criticaldamage") return;
+        const day = currentDay();
+        if (!availFor(item.system?.mechanicsLastAttemptDay ?? null, day).attemptable) return;
+        if (item.isOwner) await item.update({ "system.mechanicsLastAttemptDay": day });
+        else await applyCritRecoveryAttempt(this.actor, itemId, "mechanics");
+      });
+    });
+  }
+};
+
+/** Codex sheet for character / rival / nemesis / minion / vehicle. */
+export class CodexActorSheet extends CodexSchemeMixin(ActorSheetFFG) {
+  /** @override */
+  get template() {
+    const t = this.actor.type;
+    const name = ["character", "rival", "nemesis"].includes(t) ? "character" : t;
+    return `${CDX_TEMPLATES}/codex-${name}.html`;
+  }
+}
+
+/**
+ * Codex Adversary sheet — the system's "Adversary Sheet" is a character-type
+ * actor sheet (used to build NPCs for compendium export), structurally the same
+ * as the character sheet, so it reuses codex-character.html. We keep it as a
+ * separate selectable class so a GM can pick it via the ⚙ Sheet picker; it
+ * inherits AdversarySheetFFG's adversary-specific getData (sizing, specialization
+ * refresh).
+ */
+export class CodexAdversarySheet extends CodexSchemeMixin(AdversarySheetFFG) {
+  /** @override */
+  get template() {
+    return `${CDX_TEMPLATES}/codex-character.html`;
+  }
+}
+
+/**
+ * Re-render every open Codex sheet. Its only caller is the setting hooks in integrations.js,
+ * which redraw open Codex sheets when campaignDay, vehicleCritWeeklyLimit or
+ * codexTalentTierSorting changes: crit cards recompute their availability countdowns, and the
+ * talent cards regroup by tier or go back to the flat list.
+ */
+export function refreshOpenCodexSheets() {
+  for (const app of foundry.applications.instances.values()) {
+    if (app.rendered && (app instanceof CodexActorSheet || app instanceof CodexAdversarySheet)) app.render();
+  }
+}

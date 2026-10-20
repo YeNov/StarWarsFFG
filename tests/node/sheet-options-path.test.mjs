@@ -55,13 +55,11 @@ test("Accept writes a path option to its path and every other option to its flag
   assert.match(source, /updateObject\[option\.path \?\? `flags\.starwarsffg\.\$\{control\.name\}`\] = value/);
 });
 
-test("neither vehicle sheet carries its own zone picker any more", () => {
+test("the stock vehicle sheet carries no zone picker; Sheet Options sets the override", () => {
   // The in-sheet select submitted with render:false, so the zones never redrew until
   // a reload. The override now lives only in Sheet Options, which re-renders on save.
-  for (const template of ["ffg-vehicle-sheet.html", "codex/codex-vehicle.html"]) {
-    const markup = fs.readFileSync(new URL(`../../templates/actors/${template}`, import.meta.url), "utf8");
-    assert.doesNotMatch(markup, /name="data\.stats\.defenceZones"/, template);
-  }
+  const markup = fs.readFileSync(new URL("../../templates/actors/ffg-vehicle-sheet.html", import.meta.url), "utf8");
+  assert.doesNotMatch(markup, /name="data\.stats\.defenceZones"/);
   const sheet = fs.readFileSync(new URL("../../modules/actors/actor-sheet-ffg.js", import.meta.url), "utf8");
   assert.match(sheet, /register\("defenceZones",[\s\S]{0,400}path: "system\.stats\.defenceZones"/);
 });

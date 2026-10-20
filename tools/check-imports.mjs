@@ -392,8 +392,13 @@ export function checkImports({ root = REPO_ROOT, cutover = false } = {}) {
   const jsFiles = [
     ...walk(path.join(root, "modules"), (n) => n.endsWith(".js")),
     ...walk(path.join(root, "tests"), (n) => n.endsWith(".js") || n.endsWith(".mjs")),
+    ...walk(path.join(root, "codex", "scripts"), (n) => n.endsWith(".js")),
+    ...walk(path.join(root, "codex", "tests"), (n) => n.endsWith(".js") || n.endsWith(".mjs")),
   ];
-  const htmlFiles = walk(path.join(root, "templates"), (n) => n.endsWith(".html"));
+  const htmlFiles = [
+    ...walk(path.join(root, "templates"), (n) => n.endsWith(".html")),
+    ...walk(path.join(root, "codex", "templates"), (n) => n.endsWith(".html")),
+  ];
 
   /** repo-relative path -> {specifiers, strings} */
   const parsed = new Map();

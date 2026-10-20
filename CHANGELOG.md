@@ -1,5 +1,6 @@
 `Unreleased`
 
+* Changed — **Configure Codex is now listed below Skill List Import** in Configure Settings, because Codex II now registers its own settings ahead of its move to a separate module.
 * Fixed — **attacks made from Token Action HUD counted the target's defence twice** ([#104](https://github.com/YeNov/StarWarsFFG/pull/104)), so a target with defence 2 added 4 setback dice instead of 2 (since 2.1.3). Attacks from the character sheet were not affected.
 * Fixed — **a weapon with special ammo loaded stopped firing once its own Limited Ammo ran out**, saying "Not enough ammo!" with magazines still in the inventory. With the FFG Star Wars Enhancements module's special ammo, the loaded ammo is now the weapon's magazine: each shot is checked against it and spends from it, and the weapon's own counter is left alone while it is loaded.
   * Needs the next FFG Star Wars Enhancements release as well; with an older module the weapon keeps spending its own counter.

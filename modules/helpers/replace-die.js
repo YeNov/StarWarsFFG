@@ -56,8 +56,9 @@ const RESULT_TYPES = [
 ];
 
 // Shared picker-window styles. Icons are recoloured for the dark dialog by the
-// shared `.cdx-dice .dice-pool` rules in cdx.css (added via the `.cdx-dice` marker
-// in render + the `.dice-pool` panel class) — no per-window recolour here.
+// shared `.cdx-dice .dice-pool` rules in styles/mandar.css and
+// styles/starwarsffg.css (added via the `.cdx-dice` marker in render + the
+// `.dice-pool` panel class) — no per-window recolour here.
 const BTN_STYLE = "position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:6px; padding:6px 4px; width:70px; height:72px; box-sizing:border-box; background:none; border:1px solid #888; border-radius:4px; cursor:pointer;";
 const ICON_BOX = "height:36px; display:flex; align-items:center; justify-content:center;";
 const LABEL_STYLE = "font-size:11px; line-height:1.1; text-align:center; word-break:break-word;";

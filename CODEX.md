@@ -58,7 +58,7 @@ item/ship attachment)
   firing arcs, hardpoint usage, and inline editing.
 - In-place editing of embedded attachments and their modifiers.
 
-**Styling** is hand-maintained in `styles/cdx.css` (everything scoped under `.cdx`).
+**Styling** is hand-maintained in `codex/styles/cdx.css` (everything scoped under `.cdx`).
 There is no SCSS build step for Codex.
 
 ## Roadmap — what v2 will add
@@ -85,13 +85,10 @@ abilities as cards and pills only.
 
 The Codex II UI — its original templates, styles, assets, and sheet code, specifically:
 
-- `templates/actors/codex/`
-- `templates/parts/codex/`
-- `templates/items/codex/`
-- `styles/cdx.css`
-- `images/codex/eldritch/`
-- `modules/actors/codex-sheets.js`
-- `modules/items/codex-item-sheet.js`
+- `codex/` (every file in it), except:
+  - `codex/fonts/Orbitron-VariableFont_wght.woff2`, which is the Orbitron font by
+    Matt McInerney under the SIL Open Font License 1.1;
+  - `codex/images/sith-emblem.svg`, which this license does not cover.
 
 — is authored by **YeNov** and released **free of charge**.
 

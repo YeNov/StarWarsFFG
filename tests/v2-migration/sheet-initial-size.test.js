@@ -15,7 +15,7 @@
 // pinned here is the contract every actor sheet class must honour: a size present
 // after the first getData survives every later getData.
 //
-// Covers legacy AND Codex, and BOTH sizing paths — which are distinct:
+// Covers BOTH sizing paths — which are distinct:
 //   ActorSheetFFG      sizes in its own getData (guarded by _sizeInitialized)
 //   AdversarySheetFFG  sizes AGAIN in an override that runs after super.getData(),
 //                      so it needs its own latch (_advSizeInitialized). The first
@@ -28,12 +28,9 @@
 
 import { ActorSheetFFG } from "../../modules/actors/actor-sheet-ffg.js";
 import { AdversarySheetFFG } from "../../modules/actors/adversary-sheet-ffg.js";
-import { CodexActorSheet, CodexAdversarySheet } from "../../modules/actors/codex-sheets.js";
 
 // Every declared Actor type (system.json documentTypes.Actor).
 const ALL_ACTOR_TYPES = ["character", "minion", "vehicle", "homestead", "rival", "nemesis"];
-// Codex II is registered for these only — see CODEX_ACTOR_TYPES in swffg-main.js.
-const CODEX_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
 
 export const SheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
   const _suite = suiteInstance.create(suite, "V2 Migration — Actor Sheet Initial Size");
@@ -78,24 +75,12 @@ export const SheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
     }));
   }
 
-  for (const type of CODEX_TYPES) {
-    _suite.addTest(new Test(`Codex sheet keeps its size across re-renders — ${type}`, async function () {
-      const actor = await makeActor(type);
-      try {
-        await assertSizeSurvives(new CodexActorSheet({ document: actor }), `CodexActorSheet/${type}`);
-      } finally {
-        await actor.delete();
-      }
-    }));
-  }
-
   // Adversary sheets are registered for `character` only, and size a second time
   // in their own getData override — the path the first #14 commit missed.
-  _suite.addTest(new Test("adversary sheets keep their size across re-renders — legacy + Codex", async function () {
+  _suite.addTest(new Test("adversary sheets keep their size across re-renders — legacy", async function () {
     const actor = await makeActor("character");
     try {
       await assertSizeSurvives(new AdversarySheetFFG({ document: actor }), "AdversarySheetFFG");
-      await assertSizeSurvives(new CodexAdversarySheet({ document: actor }), "CodexAdversarySheet");
     } finally {
       await actor.delete();
     }

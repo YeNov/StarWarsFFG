@@ -1,14 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 
 import {
   HARDPOINT_PATH,
   vehicleHardpoints,
   vehicleHardpointSourceRating,
 } from "../../modules/helpers/vehicle-hardpoints.js";
-
-const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 /**
  * Actor stand-in. `shown` is the PREPARED hard-point value -- what the sheet sees
@@ -100,19 +97,6 @@ test("the sheet error fallback preserves the stored hull rating", () => {
     _source: { system: { stats: { customizationHardPoints: { value: 5 } } } },
   }), 5);
   assert.equal(vehicleHardpointSourceRating({}), 0);
-
-  const sheet = read("modules/actors/codex-sheets.js");
-  assert.match(sheet, /cdxVehHpMax = vehicleHardpointSourceRating\(this\.actor\)/);
-});
-
-test("the Codex vehicle sheet shows used-of-rating and edits the rating", () => {
-  const sheet = read("modules/actors/codex-sheets.js");
-  const template = read("templates/actors/codex/codex-vehicle.html");
-  assert.match(sheet, /vehicleHardpoints/);
-  // The rating -- not the prepared value -- is what the readout and the edit
-  // field use, so submitting the sheet cannot bake an attachment's spend in.
-  assert.match(template, /\{\{cdxVehHpUsed\}\} \/ \{\{cdxVehHpMax\}\}/);
-  assert.doesNotMatch(template, /name="data\.stats\.customizationHardPoints\.value" value="\{\{data\.stats/);
 });
 
 test("an actor exposing only allApplicableEffects() is read the same way", () => {
