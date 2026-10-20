@@ -85,7 +85,11 @@ export function applyOfferedBuffs(pool, buffs, { characteristic = null, rank = n
   result.upgradeDifficulty(sum((row) => row.modtype === "Dice Modifiers" && row.mod === "Upgrade Difficulty"));
   result.upgradeDifficulty(-sum((row) => row.modtype === "Dice Modifiers" && row.mod === "Downgrade Difficulty"));
 
-  // 5. No count below zero.
-  for (const field of COUNTS) result[field] = Math.max(0, result[field]);
+  // 5. No count below zero, unless the player had already set it below zero by hand (a
+  //    negative setback is the dialog's "ignore N defence"): a tick must not undo that.
+  for (const field of COUNTS) {
+    const floor = Math.min(0, Number(pool[field]) || 0);
+    result[field] = Math.max(floor, result[field]);
+  }
   return result;
 }

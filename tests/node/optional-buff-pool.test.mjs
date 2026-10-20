@@ -66,6 +66,14 @@ test("downgrades never leave a negative count", () => {
   for (const f of ["ability", "proficiency", "difficulty", "challenge"]) assert.ok(p[f] >= 0, f);
 });
 
+test("a negative count the player entered by hand survives a tick", () => {
+  // A negative setback is the dialog's "ignore N defence"; a negative threat cancels one.
+  const p = applyOfferedBuffs(new DicePoolFFG({ ability: 2, setback: -1, threat: -1 }),
+    offered([row("Result Modifiers", "Add Advantage", 1)]));
+
+  assert.deepEqual([p.setback, p.threat, p.advantage], [-1, -1, 1]);
+});
+
 test("the pool given is left as it was", () => {
   const base = new DicePoolFFG({ ability: 2 });
 
