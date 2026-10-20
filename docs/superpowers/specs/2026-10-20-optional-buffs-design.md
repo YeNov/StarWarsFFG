@@ -81,10 +81,11 @@ Confirmed when played back to the user, or decided after review:
 ## Constraints
 
 - Items use V14 TypeDataModels (`modules/data/item-templates.js`, `modules/data/models/item/`).
-  The new field must be declared on the weapon, armour, gear, talent and attachment models, and
-  on the talent entries stored inside a specialization tree (`modules/data/models/item/_tree-fields.js`,
-  which already carries each talent's `attributes`), or Foundry strips it on save. Check
-  `modules/data/conformance-report.js` still passes.
+  The new field must be declared on the weapon, armour, gear, talent and attachment models, or
+  Foundry strips it on save. The talent entries inside a specialization tree are untyped
+  (`modules/data/models/item/_tree-fields.js`), so they need no schema change, but the code that
+  copies a dropped talent into the tree copies named fields one by one and must copy the buffs
+  too. Check `modules/data/conformance-report.js` still passes.
 - Decisions go in modules free of Foundry globals, covered by Node tests (`tests/node/`, see
   `tests/README.md` and the stub boundary). Sheets, dialogs and chat stay in thin Foundry-side
   code, as `apply-damage-plan.js` / `apply-damage.js` and `roll-costs.js` / `roll-builder.js` do.
@@ -162,7 +163,8 @@ how a skill's rank, characteristic and stored skill dice become the pool.
 
 - Weapon, armour and gear: each row's value is multiplied by the item's **quantity**
   (`system.quantity.value`), as ordinary gear modifiers are. A "Skill Boost: Stealth 1" buff on a
-  stack of three cloaks adds three boost.
+  stack of three cloaks adds three boost. This is the user's rule and deliberately goes further
+  than ordinary modifiers, which scale by quantity on gear only, not on weapons or armour.
 - Exception: a weapon's own Roll, Dice and Result rows on an attack **with that weapon** count
   once, since one weapon makes the attack. *(Builder's call.)*
 - Talents: each row's value is multiplied by the talent's **ranks**, as a ranked talent's ordinary
