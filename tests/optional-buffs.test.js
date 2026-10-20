@@ -39,4 +39,24 @@ export const OptionalBuffsTests = (suite, suiteInstance, Test, chai, harness) =>
       { message: "the dropped talent's buffs reach the tree slot" });
     chai.expect(spec.system.talents.talent0.optionalBuffs).to.deep.equal(BUFFS);
   }));
+
+  _suite.addTest(new Test("the classic carried toggle flips the flag once per click", async function () {
+    const hero = await harness.fixtures.create("Actor", { name: "carried-hero", type: "character" });
+    const [gear] = await hero.createEmbeddedDocuments("Item", [{ name: "Cloak", type: "gear" }]);
+    // The classic sheet, whatever the user's default theme: Codex cards bind their own toggle.
+    const sheet = new globalThis.starwarsffg.sheets.ActorSheetFFG({ document: hero });
+    await sheet.render({ force: true });
+    try {
+      await harness.waitFor(() => sheet.rendered, { message: "the classic sheet renders" });
+      const toggle = () => sheet.element.querySelector(`[data-item-id="${gear.id}"] .item-carried-toggle`);
+      chai.expect(toggle(), "the gear row has a carried toggle").to.not.equal(null);
+
+      toggle().click();
+      await harness.waitFor(() => gear.getFlag("starwarsffg", "carried") === false, { message: "one click marks it not carried" });
+      toggle().click();
+      await harness.waitFor(() => gear.getFlag("starwarsffg", "carried") === true, { message: "a second click marks it carried" });
+    } finally {
+      await sheet.close();
+    }
+  }));
 };

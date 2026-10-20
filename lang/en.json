@@ -347,6 +347,8 @@
   "SWFFG.Modifier": "Modifier",
   "SWFFG.ModifierValue": "Value",
   "SWFFG.ModifierEnabled": "Enabled",
+  "SWFFG.Carried": "Carried",
+  "SWFFG.CarriedHint": "Carried: counts toward encumbrance and offers its optional buffs. Untick for items left on the ship or at base.",
   "SWFFG.OptionalBuffs.Title": "Optional buffs",
   "SWFFG.OptionalBuffs.Add": "Add buff",
   "SWFFG.OptionalBuffs.NamePlaceholder": "Buff name, shown in the roll dialog",

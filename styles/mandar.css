@@ -2936,6 +2936,16 @@ img {
   color: #191813;
 }
 
+/* Carried toggle in the inventory row's controls, coloured like the equip toggle. */
+.starwarsffg .items .items-list .item .item-carried-toggle {
+  color: #888;
+  margin-right: 4px;
+}
+
+.starwarsffg .items .items-list .item .item-carried-toggle.active {
+  color: #191813;
+}
+
 .starwarsffg .items .items-list .force-power {
   line-height: 24px;
   padding: 3px 0;

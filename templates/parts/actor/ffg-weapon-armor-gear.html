@@ -37,6 +37,7 @@
       <div>{{localize item.system.range.label}}</div>
       <div>{{item.system.crit.value}} {{#if (and (ne item.system.crit.value item.system.crit.adjusted) (or (gt item.system.crit.adjusted.length 0) (gt item.system.crit.adjusted 0)))}}({{item.system.crit.adjusted}}){{/if}}</div>
       <div class="item-controls">
+        <a class="item-carried-toggle{{#unless (eq item.flags.starwarsffg.carried false)}} active{{/unless}}" title="{{localize 'SWFFG.CarriedHint'}}"><i class="fas fa-suitcase"></i></a>
         <a class="item-control item-edit" title="Edit Item"><i class="fas fa-edit"></i></a>
         <a class="item-control item-delete" title="Delete Item"><i class="fas fa-trash"></i></a>
       </div>
@@ -80,6 +81,7 @@
       <div>{{item.system.hardpoints.value}} {{#if (and (ne item.system.hardpoints.adjusted item.system.hardpoints.current) (or (gt item.system.hardpoints.current.length 0) (gt item.system.hardpoints.current 0)))}}({{item.system.hardpoints.current}}){{/if}}</div>
       <!-- <div>{{item.system.encumbrance.value}}</div> -->
       <div class="item-controls">
+        <a class="item-carried-toggle{{#unless (eq item.flags.starwarsffg.carried false)}} active{{/unless}}" title="{{localize 'SWFFG.CarriedHint'}}"><i class="fas fa-suitcase"></i></a>
         <a class="item-control item-edit" title="Edit Item"><i class="fas fa-edit"></i></a>
         <a class="item-control item-delete" title="Delete Item"><i class="fas fa-trash"></i></a>
       </div>
@@ -126,6 +128,7 @@
       </div>
       <!-- <div>{{item.system.encumbrance.value}}</div> -->
       <div class="item-controls">
+        <a class="item-carried-toggle{{#unless (eq item.flags.starwarsffg.carried false)}} active{{/unless}}" title="{{localize 'SWFFG.CarriedHint'}}"><i class="fas fa-suitcase"></i></a>
         <a class="item-control item-edit" title="Edit Item"><i class="fas fa-edit"></i></a>
         <a class="item-control item-delete" title="Delete Item"><i class="fas fa-trash"></i></a>
       </div>

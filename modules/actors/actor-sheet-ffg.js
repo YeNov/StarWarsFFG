@@ -32,6 +32,7 @@ import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js
 import { sourceSettingPackIds } from "../char-creator/source-descriptors.js";
 import { sheetTracks } from "../helpers/obligation-tracks.js";
 import { defenceZoneModeChoices, vehicleDefenceZones } from "../helpers/vehicle-defence.js";
+import { isCarried } from "../helpers/optional-buffs-offer.js";
 import {itemPillHover} from "../swffg-main.js";
 import {
   findOwnedTalentSourceId,
@@ -998,6 +999,16 @@ export class ActorSheetFFG extends FFGActorSheet {
       if (item) {
         item.update({ ["system.equippable.equipped"]: !item.system.equippable.equipped });
       }
+    });
+
+    // Toggle item carried (weapon, armour, gear). A not-carried item leaves encumbrance and offers
+    // no optional buffs. Its own class, not the Codex cards' `toggle-carried`: Codex sheets inherit
+    // these listeners and bind that class themselves, so sharing it would flip the flag twice.
+    html.find(".items .item a.item-carried-toggle").click(async (ev) => {
+      ev.preventDefault();
+      if (!this.actor.verifyEditModeIsNotEnabled()) return;
+      const item = this.actor.items.get($(ev.currentTarget).closest(".item").data("itemId"));
+      if (item) await item.setFlag("starwarsffg", "carried", !isCarried(item));
     });
 
     // Add Inventory Item
