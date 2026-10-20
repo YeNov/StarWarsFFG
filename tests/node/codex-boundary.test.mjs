@@ -60,7 +60,7 @@ test("the system loads Codex as its own script, after its own", () => {
   assert.ok(codex > system, "codex/scripts/codex-main.js must load after modules/swffg-main.js");
 });
 
-test("no system script, template or stylesheet names a Codex file", () => {
+test("no system script, template or stylesheet names a Codex file or uses the Codex campaign-day keys", () => {
   const files = [
     ...walk(path.join(ROOT, "modules"), (name) => name.endsWith(".js")),
     ...walk(path.join(ROOT, "templates"), (name) => name.endsWith(".html")),
@@ -68,7 +68,9 @@ test("no system script, template or stylesheet names a Codex file", () => {
   ];
   for (const file of files) {
     const source = fs.readFileSync(file, "utf8");
-    assert.doesNotMatch(source, /systems\/starwarsffg\/codex\/|templates\/(actors|items|parts)\/codex\/|styles\/cdx[\w-]*\.css|lang\/codex\//, rel(file));
+    // The campaign-day strings moved to the system catalog (campaign-day-strings.test.mjs); a system
+    // file that went back to the Codex keys would show nothing in a world without Codex II.
+    assert.doesNotMatch(source, /systems\/starwarsffg\/codex\/|templates\/(actors|items|parts)\/codex\/|styles\/cdx[\w-]*\.css|lang\/codex\/|SWFFG\.Codex\.CritTrauma\.(Day|EditDay)/, rel(file));
   }
   assert.equal(fs.existsSync(path.join(ROOT, "lang", "codex")), false, "lang/codex still exists");
 });

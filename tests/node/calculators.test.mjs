@@ -82,7 +82,7 @@ test("calcCredits: stacked purchases charge once per item in the stack", () => {
   assert.deepEqual(calcCredits(data), { total: 500, available: 400 });
 });
 
-test("calcObligation returns the selected ruleset track", () => {
+test("with no bonus, Force and Destiny reports the morality track at its starting value", () => {
   assert.deepEqual(calcObligation(withBonus()), {
     starting: 50,
     available: 50,
@@ -90,21 +90,27 @@ test("calcObligation returns the selected ruleset track", () => {
   });
 });
 
-test("calcObligation applies field-specific bonus conventions", () => {
+// The signs follow the starting-bonus labels in lang/en.json: "+5 Obligation" (Edge of the
+// Empire), "-5 Duty" (Age of Rebellion), "+21 Morality" and "-21 Morality" (Force and Destiny).
+test("Edge of the Empire adds the Obligation bonus to the starting Obligation", () => {
   const eote5 = withBonus({ obligation: 5 });
   eote5.selected.rules = "eote";
   assert.equal(calcObligation(eote5).available, 15);
   const eote10 = withBonus({ obligation: 10 });
   eote10.selected.rules = "eote";
   assert.equal(calcObligation(eote10).available, 20);
+});
 
+test("Age of Rebellion subtracts the Duty bonus from the starting Duty", () => {
   const aor5 = withBonus({ duty: 5 });
   aor5.selected.rules = "aor";
   assert.equal(calcObligation(aor5).available, 5);
   const aor10 = withBonus({ duty: 10 });
   aor10.selected.rules = "aor";
   assert.equal(calcObligation(aor10).available, 0);
+});
 
+test("Force and Destiny adds the Morality bonus to the starting Morality, whether it is positive or negative", () => {
   assert.equal(calcObligation(withBonus({ morality: 21 })).available, 71);
   assert.equal(calcObligation(withBonus({ morality: -21 })).available, 29);
 });

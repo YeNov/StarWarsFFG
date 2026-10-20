@@ -1549,7 +1549,8 @@ actor, ruleset/pool/filter, console-clean) → **§7.5**. **Neither invokes Cypr
   the GM deletes, never a lost or corrupted build.**
 
 **Owner decision flag-back:**
-1. **Q-2 — `2k_credits` grants 2500**, ported verbatim at Stage 7.
+1. **Q-2 — `2k_credits` grants 2500**, ported verbatim at Stage 7. Resolved 2026-10-12: the owner
+   confirmed 2,500 is correct; the `2k` keys keep their names.
 2. **Sources-panel placement** — design default (header-button overlay).
 3. **GM-absent flow** — design default: the wizard **opens** without a GM; `Notify.NoGm` at review
    and commit.

@@ -251,7 +251,7 @@ test("no esmodule listed before modules/swffg-main.js reaches it through static 
   );
 });
 
-test("the walk follows imports, so a pass is not vacuous", () => {
+test("at least one static import is followed from the esmodules loaded before swffg-main.js", () => {
   const entries = esmodulesBeforeMain();
   assert.ok(
     entries.length > 0,

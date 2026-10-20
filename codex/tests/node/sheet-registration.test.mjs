@@ -18,20 +18,17 @@ const STORED = [
   ["Items", "CodexItemSheet"],
 ];
 
-test("codex-main.js registers each Codex sheet under the scope worlds have stored", () => {
+// A class rename also breaks the registration below, but an import alias would hide it there: the
+// registration would still use the old name while Foundry reads the class's own name. So both are checked.
+test("each Codex sheet class is declared and registered under the scope and name worlds have stored", () => {
   const main = read("scripts/codex-main.js");
-  for (const [collection, cls] of STORED) {
-    assert.match(main, new RegExp(`\\b${collection}\\.registerSheet\\(\\s*(["'])ffg\\1,\\s*${cls}\\s*,`),
-      `${collection}.registerSheet must keep scope "ffg" for ${cls}, or "ffg.${cls}" stops resolving`);
-  }
-});
-
-test("the Codex sheet classes keep the names worlds have stored", () => {
   const scripts = fs.readdirSync(new URL("../../scripts/", import.meta.url))
     .filter((name) => name.endsWith(".js"))
     .map((name) => read(`scripts/${name}`))
     .join("\n");
-  for (const [, cls] of STORED) {
+  for (const [collection, cls] of STORED) {
+    assert.match(main, new RegExp(`\\b${collection}\\.registerSheet\\(\\s*(["'])ffg\\1,\\s*${cls}\\s*,`),
+      `${collection}.registerSheet must keep scope "ffg" for ${cls}, or "ffg.${cls}" stops resolving`);
     assert.match(scripts, new RegExp(`\\bclass ${cls}\\b`), `no class named ${cls} in codex/scripts`);
   }
 });

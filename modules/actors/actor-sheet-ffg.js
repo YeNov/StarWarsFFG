@@ -29,6 +29,7 @@ import {get_dice_pool} from "../helpers/dice-helpers.js";
 import { crewRollOptions, isMinionVehicle } from "../helpers/minion-group.js";
 import { hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
+import { sourceSettingPackIds } from "../char-creator/source-descriptors.js";
 import { sheetTracks } from "../helpers/obligation-tracks.js";
 import { defenceZoneModeChoices, vehicleDefenceZones } from "../helpers/vehicle-defence.js";
 import {itemPillHover} from "../swffg-main.js";
@@ -2692,7 +2693,7 @@ export class ActorSheetFFG extends FFGActorSheet {
         return;
       }
       const inCareerNames = Object.values(inCareer).map(i => i.name);
-      const sources = game.settings.get("starwarsffg", "specializationCompendiums").split(",");
+      const sources = sourceSettingPackIds(game.settings.get("starwarsffg", "specializationCompendiums"));
       let outCareer = [];
       let universal = [];
       for (const source of sources) {
@@ -2733,7 +2734,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       groups.push("Out of Career");
       content = await foundry.applications.handlebars.renderTemplate(template, { inCareer, outCareer, universal, baseCost, increasedCost, itemType: itemType, itemCategory: "specialization", groups: groups });
     } else if (action === "signatureability") {
-      const sources = game.settings.get("starwarsffg", "signatureAbilityCompendiums").split(",");
+      const sources = sourceSettingPackIds(game.settings.get("starwarsffg", "signatureAbilityCompendiums"));
       const rawSelectableItems =  this.object.items.find(i => i.type === "career").system.signatureabilities;
       const sigAbilityNames = Object.values(rawSelectableItems).map(i => i.name);
       let selectableItems = [];
@@ -2819,7 +2820,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       itemType = game.i18n.localize("TYPES.Item.signatureability");
       content = await foundry.applications.handlebars.renderTemplate(template, { selectableItems, itemType: itemType, itemCategory: "signatureability" });
     } else if (action === "forcepower") {
-      const sources = game.settings.get("starwarsffg", "forcePowerCompendiums").split(",");
+      const sources = sourceSettingPackIds(game.settings.get("starwarsffg", "forcePowerCompendiums"));
       let selectableItems = [];
       const worldItems = game.items.filter(i => i.type === "forcepower");
       for (const worldItem of worldItems) {
@@ -2855,7 +2856,7 @@ export class ActorSheetFFG extends FFGActorSheet {
       content = await foundry.applications.handlebars.renderTemplate(template, { selectableItems, itemType: itemType, itemCategory: "forcepower", groups: groups });
     } else if (action === "talent") {
       const purchasedItems = this.object.talentList;
-      const sources = game.settings.get("starwarsffg", "talentCompendiums").split(",");
+      const sources = sourceSettingPackIds(game.settings.get("starwarsffg", "talentCompendiums"));
       let selectableItems = [];
       const worldItems = game.items.filter(i => i.type === "talent");
       let worldItemsPack = [];

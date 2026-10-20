@@ -44,7 +44,7 @@ test("species data can add Droid-style bonus caps", () => {
   );
 });
 
-test("invalid and negative data is bounded", () => {
+test("non-numeric caps and bonuses fall back to their defaults, and negative ones count as zero", () => {
   assert.deepEqual(
     getFreeRankCaps(draft({
       careerCreation: { skillRankChoices: "x" },

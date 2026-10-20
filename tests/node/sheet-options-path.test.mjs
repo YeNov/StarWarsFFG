@@ -4,55 +4,90 @@
  * -- the vehicle defence-zone override lives in `system.stats.defenceZones`, where
  * the roll dialog finds it on the targeted vehicle -- so it must be read from and
  * written to that path instead.
+ *
+ * The rules for where an option is read from and written to are pure, so they are tested
+ * here (`modules/helpers/sheet-option-storage.js`). The dialog, the document update and the
+ * sheet redraw need Foundry and are checked there; the two source checks at the end only
+ * stand in for that until the Foundry cases replace them.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-// actor-ffg-options.js destructures foundry.applications.api at module load.
-globalThis.foundry ??= {};
-foundry.applications ??= { api: { DialogV2: class {} } };
-foundry.utils ??= {};
-foundry.utils.getProperty ??= (object, key) => key.split(".").reduce((node, part) => node?.[part], object);
+import "./_stub/foundry-stub.mjs";
 
-const { default: ActorOptions } = await import("../../modules/actors/actor-ffg-options.js");
+import { readSheetOptionValue, sheetOptionWritePath } from "../../modules/helpers/sheet-option-storage.js";
 
-/** An ActorOptions whose header injection is skipped, bound to a stand-in actor. */
-function optionsFor(object) {
-  const options = Object.create(ActorOptions.prototype);
-  options.data = { object };
-  options.options = {};
-  return options;
-}
+const { getProperty, setProperty } = foundry.utils;
+
+const read = (document, name, option) => readSheetOptionValue(document, name, option, getProperty);
 
 const zoneOption = { type: "Array", default: "auto", path: "system.stats.defenceZones" };
+const flagOption = { type: "Boolean", default: true };
 
-test("a path option reads its value from the document, not from a config flag", async () => {
-  const object = {
+test("a path option reads its value from the document, not from a config flag", () => {
+  const document = {
     system: { stats: { defenceZones: "two" } },
     flags: { starwarsffg: { config: { defenceZones: "four" } } },
-    setFlag: () => assert.fail("a path option must not create the config flag"),
   };
-  const options = optionsFor(object);
-  await options.register("defenceZones", zoneOption);
-  assert.equal(options.options.defenceZones.value, "two");
+  assert.equal(read(document, "defenceZones", zoneOption), "two");
 });
 
-test("a path option with nothing stored falls back to its default", async () => {
-  const options = optionsFor({ system: { stats: {} }, flags: {}, setFlag: () => assert.fail() });
-  await options.register("defenceZones", zoneOption);
-  assert.equal(options.options.defenceZones.value, "auto");
+test("a path option with nothing stored falls back to its default", () => {
+  assert.equal(read({ system: { stats: {} }, flags: {} }, "defenceZones", zoneOption), "auto");
 });
 
-test("a flag option still reads its config flag", async () => {
-  const options = optionsFor({ flags: { starwarsffg: { config: { enableSensors: false } } } });
-  await options.register("enableSensors", { type: "Boolean", default: true });
-  assert.equal(options.options.enableSensors.value, false);
+test("a flag option still reads its config flag", () => {
+  const document = { flags: { starwarsffg: { config: { enableSensors: false } } } };
+  assert.equal(read(document, "enableSensors", flagOption), false);
 });
+
+test("a flag option with nothing stored falls back to its default", () => {
+  assert.equal(read({}, "enableSensors", flagOption), true);
+  assert.equal(read({ flags: { starwarsffg: {} } }, "enableSensors", flagOption), true);
+});
+
+test("a stored value that is falsy is kept, not replaced by the default", () => {
+  assert.equal(read({ system: { stats: { defenceZones: "" } } }, "defenceZones", zoneOption), "");
+  assert.equal(read({ flags: { starwarsffg: { config: { medicalItemName: "" } } } }, "medicalItemName",
+    { type: "String", default: "Medpac" }), "");
+});
+
+test("reading an option never writes to the document", () => {
+  // Frozen all the way down: a read that seeded the default into the document would throw.
+  const deepFreeze = (value) => {
+    if (value && typeof value === "object") Object.values(value).forEach(deepFreeze);
+    return Object.freeze(value);
+  };
+  const document = deepFreeze({ system: { stats: {} }, flags: { starwarsffg: { config: {} } } });
+  assert.equal(read(document, "defenceZones", zoneOption), "auto");
+  assert.equal(read(document, "enableSensors", flagOption), true);
+});
+
+test("Accept writes a path option to its path", () => {
+  assert.equal(sheetOptionWritePath(zoneOption, "config.defenceZones"), "system.stats.defenceZones");
+});
+
+test("Accept writes every other option to a flag named after its control", () => {
+  assert.equal(sheetOptionWritePath(flagOption, "config.enableSensors"), "flags.starwarsffg.config.enableSensors");
+});
+
+test("what Accept writes is what the next read returns, for a path option and a flag option", () => {
+  const document = { system: { stats: {} }, flags: {} };
+  setProperty(document, sheetOptionWritePath(zoneOption, "config.defenceZones"), "four");
+  setProperty(document, sheetOptionWritePath(flagOption, "config.enableSensors"), false);
+  assert.equal(read(document, "defenceZones", zoneOption), "four");
+  assert.equal(read(document, "enableSensors", flagOption), false);
+  // and the path option did not leave a flag behind
+  assert.equal(document.flags.starwarsffg?.config?.defenceZones, undefined);
+});
+
+// Source checks, awaiting their Foundry replacements (Sheet Options opened on a vehicle, Accept,
+// the stored values read back, the sheet redrawn).
 
 test("Accept writes a path option to its path and every other option to its flag", () => {
   const source = fs.readFileSync(new URL("../../modules/actors/actor-ffg-options.js", import.meta.url), "utf8");
-  assert.match(source, /updateObject\[option\.path \?\? `flags\.starwarsffg\.\$\{control\.name\}`\] = value/);
+  assert.match(source, /updateObject\[sheetOptionWritePath\(option, control\.name\)\] = value/);
 });
 
 test("the stock vehicle sheet carries no zone picker; Sheet Options sets the override", () => {

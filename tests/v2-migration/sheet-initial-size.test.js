@@ -32,13 +32,14 @@ import { AdversarySheetFFG } from "../../modules/actors/adversary-sheet-ffg.js";
 // Every declared Actor type (system.json documentTypes.Actor).
 const ALL_ACTOR_TYPES = ["character", "minion", "vehicle", "homestead", "rival", "nemesis"];
 
-export const SheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
+export const SheetInitialSizeTests = (suite, suiteInstance, Test, chai, harness) => {
   const _suite = suiteInstance.create(suite, "V2 Migration — Actor Sheet Initial Size");
 
   // `loaded` short-circuits the specialization refresh inside getData: it is
-  // irrelevant to sizing and slow.
+  // irrelevant to sizing and slow. The run's fixture tracker deletes each actor
+  // right after its test, pass or fail.
   const makeActor = (type) =>
-    Actor.create({ name: `_v2mig_size_${type}`, type, flags: { starwarsffg: { loaded: true } } });
+    harness.fixtures.create("Actor", { name: `size-${type}`, type, flags: { starwarsffg: { loaded: true } } });
 
   /**
    * The contract: whatever size the sheet holds after its first getData, a
@@ -67,11 +68,7 @@ export const SheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
   for (const type of ALL_ACTOR_TYPES) {
     _suite.addTest(new Test(`legacy sheet keeps its size across re-renders — ${type}`, async function () {
       const actor = await makeActor(type);
-      try {
-        await assertSizeSurvives(new ActorSheetFFG({ document: actor }), `ActorSheetFFG/${type}`);
-      } finally {
-        await actor.delete();
-      }
+      await assertSizeSurvives(new ActorSheetFFG({ document: actor }), `ActorSheetFFG/${type}`);
     }));
   }
 
@@ -79,11 +76,7 @@ export const SheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
   // in their own getData override — the path the first #14 commit missed.
   _suite.addTest(new Test("adversary sheets keep their size across re-renders — legacy", async function () {
     const actor = await makeActor("character");
-    try {
-      await assertSizeSurvives(new AdversarySheetFFG({ document: actor }), "AdversarySheetFFG");
-    } finally {
-      await actor.delete();
-    }
+    await assertSizeSurvives(new AdversarySheetFFG({ document: actor }), "AdversarySheetFFG");
   }));
 
   // The guard must suppress RE-application, not sizing itself: a freshly opened
@@ -91,16 +84,12 @@ export const SheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
   _suite.addTest(new Test("first getData still applies the per-type default size", async function () {
     for (const type of ["character", "vehicle", "minion"]) {
       const actor = await makeActor(type);
-      try {
-        const sheet = new ActorSheetFFG({ document: actor });
-        await sheet.getData({});
-        chai.expect(sheet.position.width, `${type}: default width applied on first render`)
-          .to.equal(CONFIG.FFG.sheets.defaultWidth[type]);
-        chai.expect(sheet.position.height, `${type}: default height applied on first render`)
-          .to.equal(CONFIG.FFG.sheets.defaultHeight[type]);
-      } finally {
-        await actor.delete();
-      }
+      const sheet = new ActorSheetFFG({ document: actor });
+      await sheet.getData({});
+      chai.expect(sheet.position.width, `${type}: default width applied on first render`)
+        .to.equal(CONFIG.FFG.sheets.defaultWidth[type]);
+      chai.expect(sheet.position.height, `${type}: default height applied on first render`)
+        .to.equal(CONFIG.FFG.sheets.defaultHeight[type]);
     }
   }));
 };

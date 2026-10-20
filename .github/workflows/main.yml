@@ -77,7 +77,7 @@ jobs:
             - name: Install Dependencies
               # `--ignore-scripts` skips cypress's and playwright's postinstall
               # browser downloads, which none of these checks need. The install
-              # itself IS needed: the import gate resolves tests/ffg-tests.js's
+              # itself IS needed: the import gate resolves tests/harness/runner.js's
               # imports of mocha and chai against node_modules on disk.
               run: npm ci --ignore-scripts
 

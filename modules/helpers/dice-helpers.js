@@ -1,7 +1,6 @@
 import PopoutEditor from "../popout-editor.js";
 import RollBuilderFFG from "../dice/roll-builder.js";
 import ModifierHelpers from "../helpers/modifiers.js";
-import ImportHelpers from "../importer/import-helpers.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { hasAmmoToFire } from "./ammo-helpers.js";
 import { effectiveSkillRank } from "./minion-group.js";
@@ -329,31 +328,15 @@ export default class DiceHelpers {
   }
 
   /**
-   * Fold a weapon's own mods, its attachments, and their active modifiers into a pool.
+   * Fold a weapon's own mods, its attachments with their installed modifications, and its
+   * qualities into a pool; anything switched off adds nothing (ModifierHelpers.weaponRollSources).
    * @param trackSources see ModifierHelpers.getDicePoolModifiers — off by default so the
    *   roll paths are unaffected; the Codex weapon-card preview opts in to explain its dice.
    */
   static async getModifiers(dicePool, item, trackSources = false) {
-    if (item.type === "weapon" || item.type === "shipweapon") {
-      dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, item, [], trackSources);
-
-      if (item?.system?.itemattachment) {
-        await ImportHelpers.asyncForEach(item.system.itemattachment, async (attachment) => {
-          //get base mods and additional mods totals
-          dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, attachment, [], trackSources);
-          const activeModifiers = attachment.system.itemmodifier.filter((i) => i.system?.active);
-          await ImportHelpers.asyncForEach(activeModifiers, async (modifier) => {
-            dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, modifier, [], trackSources);
-          });
-        });
-      }
-      if (item?.system?.itemmodifier) {
-        await ImportHelpers.asyncForEach(item.system.itemmodifier, async (modifier) => {
-          dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, modifier, [], trackSources);
-        });
-      }
+    for (const source of ModifierHelpers.weaponRollSources(item)) {
+      dicePool = await ModifierHelpers.getDicePoolModifiers(dicePool, source, [], trackSources);
     }
-
     return dicePool;
   }
 }

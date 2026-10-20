@@ -1,3 +1,5 @@
+import { readSheetOptionValue, sheetOptionWritePath } from "../helpers/sheet-option-storage.js";
+
 const { DialogV2 } = foundry.applications.api;
 
 export default class ActorOptions {
@@ -138,7 +140,7 @@ export default class ActorOptions {
               // An option registered with a `path` is document data other code reads
               // (e.g. a vehicle's defence-zone override); everything else is a sheet flag.
               const option = this.options[control.id];
-              updateObject[option.path ?? `flags.starwarsffg.${control.name}`] = value;
+              updateObject[sheetOptionWritePath(option, control.name)] = value;
               option.value = value;
             }
 
@@ -188,14 +190,15 @@ export default class ActorOptions {
     if (!this.options[optionName]) {
       this.options[optionName] = { ...options };
     }
-    if (options.path) {
-      const stored = foundry.utils.getProperty(this.data.object, options.path);
-      this.options[optionName].value = stored ?? options.default;
-      return;
-    }
     // Read only: this runs on every render, so it must not write. Accept
-    // creates the config flag when it saves.
-    this.options[optionName].value = this.data.object.flags?.starwarsffg?.config?.[optionName] ?? this.options[optionName].default;
+    // creates the config flag when it saves. A path option falls back to the
+    // default of this call, a flag option to the one it was first registered with.
+    this.options[optionName].value = readSheetOptionValue(
+      this.data.object,
+      optionName,
+      { path: options.path, default: options.path ? options.default : this.options[optionName].default },
+      foundry.utils.getProperty,
+    );
   }
 
   registerMany(optionsArray) {

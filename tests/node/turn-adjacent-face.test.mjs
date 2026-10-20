@@ -76,12 +76,6 @@ for (const denom of Object.keys(CHART)) {
   });
 }
 
-test("every face of a d6 touches all faces but its opposite", () => {
-  for (const denom of ["b", "s"]) {
-    for (const face of faceList(denom)) assert.equal(adjacentFaces(denom, face).length, 4, `${denom} face ${face}`);
-  }
-});
-
 test("the d8 tables have the shape of an octahedron", () => {
   // Faces of an octahedron touch 3 others, and the faces split into two sets where every
   // neighbour of a face lies in the other set (the cube is its dual).

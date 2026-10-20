@@ -106,7 +106,7 @@ test("with --cutover a star re-export fails (it does not NAME CharacterCreator)"
   });
 });
 
-test("with --cutover a missing shim file fails (plan §0.8: it must not be deleted)", () => {
+test("with --cutover a missing CharacterCreator shim file is reported as not existing", () => {
   withFixture(null, (root) => {
     const findings = rule6(root, true);
     assert.equal(findings.length, 1);

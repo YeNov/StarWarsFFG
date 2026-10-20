@@ -96,7 +96,7 @@ test("characteristic + derived stats: 2 Brawn purchases raise Brawn, wounds, soa
   assert.equal(actorData.system.stats.encumbrance.max, 7);
 });
 
-test("skill purchases add ranks", () => {
+test("a skill purchase raises that skill's rank from 0 to 1", () => {
   const { actorData } = applyBuild(makeDraft(), makeDeps());
   assert.equal(actorData.system.skills.Astrogation.rank, 1);
 });
@@ -135,7 +135,7 @@ test("career and specialization skills are marked as career skills", () => {
   assert.equal(actorData.system.skills.Brawl.careerskill, false);
 });
 
-test("XP, credits (incl. spendingCredits) and the selected ruleset track match the calculators", () => {
+test("available XP falls by the purchases, credits include the spending credits, and Force and Destiny writes only the morality track", () => {
   const { actorData } = applyBuild(makeDraft(), makeDeps());
   assert.deepEqual(actorData.system.experience, { total: 100, available: 100 - 70 - 10 });
   assert.equal(actorData.system.stats.credits.value, 500 + 42); // available + spendingCredits
@@ -170,10 +170,13 @@ test("unsafe image schemes fall back to the system defaults", () => {
   assert.deepEqual(actorData.prototypeToken, { actorLink: true, sight: { enabled: true }, name: "Kel" });
 });
 
-test("force-attitude background is included when selected", () => {
+test("the species and the selected Force-attitude background are built as items on the actor", () => {
   const calls = { deltas: [], items: [] };
-  applyBuild(makeDraft(), makeDeps(calls));
+  const { actorData } = applyBuild(makeDraft(), makeDeps(calls));
   assert.ok(calls.items.some((c) => c.ref.uuid === "fa1"));
+  const names = actorData.items.map((it) => it.name);
+  assert.ok(names.includes("Human"));
+  assert.ok(names.includes("Guardian"));
 });
 
 test("force-attitude background is excluded outside Force and Destiny", () => {
@@ -182,14 +185,6 @@ test("force-attitude background is excluded outside Force and Destiny", () => {
   draft.selected.rules = "aor";
   applyBuild(draft, makeDeps(calls));
   assert.ok(!calls.items.some((call) => call.ref.uuid === "fa1"));
-});
-
-test("items are built via the injected toItemData (species + forceAttitude present)", () => {
-  const calls = { deltas: [], items: [] };
-  const { actorData } = applyBuild(makeDraft(), makeDeps(calls));
-  const names = actorData.items.map((it) => it.name);
-  assert.ok(names.includes("Human"));
-  assert.ok(names.includes("Guardian"));
 });
 
 test("species skill-rank choices are baked onto the species item", () => {

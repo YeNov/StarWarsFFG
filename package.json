@@ -8,6 +8,7 @@
     "lint": "npx eslint modules codex/scripts",
     "test": "node --test \"tests/node/**/*.test.mjs\" \"codex/tests/node/**/*.test.mjs\"",
     "check:imports": "node tools/check-imports.mjs",
+    "test:foundry": "playwright test",
     "watch": "gulp"
   },
   "author": "",
@@ -15,6 +16,7 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@types/node": "^24.0.0",
+    "acorn": "8.12.1",
     "chai": "4.5.0",
     "cypress": "^15.18.0",
     "eslint": "^9.10.0",

@@ -3,7 +3,7 @@ import ItemHelpers from "../../helpers/item-helpers.js";
 import { assembleCharacterSource } from "../../char-creator/assemble-character-source.js";
 import { assignWizardIdentity } from "../../char-creator/build-item-schema.js";
 import { makeBuildDependencies } from "../../char-creator/build-deps.js";
-import { loadSource } from "../../char-creator/load-source.js";
+import { loadImportCatalog } from "../../char-creator/load-source.js";
 import {
   SOURCE_DESCRIPTORS,
   sourceSettingPackIds,
@@ -16,6 +16,7 @@ import {
   buildSnapshotIndex,
   buildSkillMetadata,
   collectImportEntries,
+  dropWorldTwins,
   resolveFindingOverride,
 } from "./resolve.js";
 import { buildInPlace } from "./in-place.js";
@@ -80,7 +81,7 @@ async function collectLiveEntries() {
   const documentLists = [];
   for (const poolKey of Object.keys(SOURCE_DESCRIPTORS)) {
     try {
-      selectionRefs.push(...await loadSource(poolKey, { ignoreAvailabilityGates: true }));
+      selectionRefs.push(...await loadImportCatalog(poolKey));
     } catch (error) {
       CONFIG.logger?.warn?.(`Hyperdrive importer could not read configured '${poolKey}' sources: ${error.message}`);
     }
@@ -97,7 +98,9 @@ async function collectLiveEntries() {
       }
     }
   }
-  return collectImportEntries({ selectionRefs, docLists: documentLists })
+  // The pools now include the world items, so leave out the ones that are copies of a pack
+  // entry (a copy dragged from a pack keeps its ffgimportid): each would be a second match.
+  return dropWorldTwins(collectImportEntries({ selectionRefs, docLists: documentLists }))
     .map((entry) => ({
       ...entry,
       ref: decorateRefSource(entry.ref),

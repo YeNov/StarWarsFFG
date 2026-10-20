@@ -153,23 +153,20 @@ test("no planned change is ever non-finite", () => {
 
 // --- the empty-key effects on the Beskar Vamblades ------------------------------------
 
-test("an unrecognised mod produces no change rather than a change with no key", () => {
-  const plan = ItemHelpers.planModifierEffects(weapon({
-    itemmodifier: [quality("Nonsense Quality", {
-      attr1700000000001: { modtype: "Bogus Type", mod: "Nope", value: 1 },
-    })],
-  }));
+test("an attribute that cannot form a key plans no effect and is reported, instead of planning a change with no key", () => {
+  const cannotFormAKey = [
+    ["an unrecognised mod", { modtype: "Bogus Type", mod: "Nope", value: 1 }, "no-key"],
+    ["an attribute missing modtype and mod entirely", { value: 1 }, "incomplete-attribute"],
+  ];
 
-  assert.equal(plan.desired.length, 0, "an effect with no usable key must not be planned");
-  assert.ok(plan.warnings.some((w) => w.code === "no-key"));
-});
+  for (const [what, attribute, code] of cannotFormAKey) {
+    const plan = ItemHelpers.planModifierEffects(weapon({
+      itemmodifier: [quality("Unusable Quality", { attr1700000000001: attribute })],
+    }));
 
-test("an attribute missing modtype/mod entirely is skipped, not exploded", () => {
-  const plan = ItemHelpers.planModifierEffects(weapon({
-    itemmodifier: [quality("Broken Quality", { attr1700000000001: { value: 1 } })],
-  }));
-
-  assert.equal(plan.desired.length, 0);
+    assert.equal(plan.desired.length, 0, `${what} must not plan an effect`);
+    assert.ok(plan.warnings.some((w) => w.code === code), `${what} should warn "${code}"`);
+  }
 });
 
 test("a mod that explodes to several keys keeps every one of them", () => {
@@ -362,14 +359,6 @@ test("an unequipped weapon plans its quality effects as disabled", () => {
   assert.equal(byName(plan, "attr1700000000001").disabled, true);
 });
 
-test("an equipped weapon plans its quality effects as active", () => {
-  const plan = ItemHelpers.planModifierEffects(weapon({
-    itemmodifier: [quality("Q", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } })],
-  }));
-
-  assert.equal(byName(plan, "attr1700000000001").disabled, false);
-});
-
 test("an inactive modification inside an attachment stays suspended even when equipped", () => {
   const plan = ItemHelpers.planModifierEffects(weapon({
     itemattachment: [{
@@ -386,14 +375,259 @@ test("an inactive modification inside an attachment stays suspended even when eq
   assert.equal(byName(plan, "attr1700000000001").disabled, true);
 });
 
-test("a directly-attached quality is not judged by the attachment `active` flag", () => {
-  // Qualities dropped straight onto a weapon carry no `active` field at all; treating
-  // that absence as "inactive" would silently suspend every imported quality.
+test("a modification inside an attachment with no `active` field is not suspended", () => {
+  // Only an explicit `active: false` switches a quality off; a missing field means enabled.
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    itemattachment: [{
+      name: "Att",
+      system: {
+        attributes: {},
+        itemmodifier: [quality("Dropped", {
+          attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+        })],
+      },
+    }],
+  }));
+
+  assert.equal(byName(plan, "attr1700000000001").disabled, false);
+});
+
+// A modifier's enabled toggle suspends it wherever it sits -- directly on the weapon or in an
+// attachment. Only an explicit `active: false` does; qualities dropped or imported straight onto
+// a weapon often carry no `active` field, and reading that absence as "off" would silently
+// suspend every one of them.
+
+test("a direct quality switched off with `active: false` is planned disabled on an equipped weapon", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 2 },
+    }, { active: false })],
+  }));
+
+  assert.equal(byName(plan, "attr1700000000001").disabled, true);
+});
+
+test("a direct quality with no `active` field is planned enabled on an equipped weapon", () => {
   const plan = ItemHelpers.planModifierEffects(weapon({
     itemmodifier: [quality("Q", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } })],
   }));
 
   assert.equal(byName(plan, "attr1700000000001").disabled, false);
+});
+
+test("a direct quality with `active: true` is planned enabled on an equipped weapon", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+    }, { active: true })],
+  }));
+
+  assert.equal(byName(plan, "attr1700000000001").disabled, false);
+});
+
+test("switching one direct quality off leaves the other qualities on the weapon enabled", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    itemmodifier: [
+      quality("Off", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } }, { active: false }),
+      quality("On", { attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 } }, { active: true }),
+      quality("Plain", { attr1700000000003: { modtype: "Stat", mod: "Soak", value: 1 } }),
+    ],
+  }));
+
+  assert.deepEqual(
+    plan.desired.map((effect) => [effect.name, effect.disabled]),
+    [
+      ["attr1700000000001", true],
+      ["attr1700000000002", false],
+      ["attr1700000000003", false],
+    ],
+  );
+});
+
+test("a direct quality switched on does not override an unequipped weapon", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    equippable: { equipped: false },
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+    }, { active: true })],
+  }));
+
+  assert.equal(byName(plan, "attr1700000000001").disabled, true);
+});
+
+// The live path that decides whether an equip toggle may flip a quality's effect must read the
+// same flag, or equipping a weapon would re-enable a quality the user switched off.
+
+const effectOf = (name) => ({ name });
+
+test("shouldUpdateAEStatus leaves the effect of a switched-off direct quality alone", async () => {
+  const item = weapon({
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+    }, { active: false })],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), false);
+});
+
+test("shouldUpdateAEStatus updates the effect of a direct quality with no `active` field", async () => {
+  const item = weapon({
+    itemmodifier: [quality("Q", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } })],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), true);
+});
+
+test("shouldUpdateAEStatus updates the effect of a direct quality with `active: true`", async () => {
+  const item = weapon({
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+    }, { active: true })],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), true);
+});
+
+test("shouldUpdateAEStatus only holds back the quality that is switched off", async () => {
+  const item = weapon({
+    itemmodifier: [
+      quality("Off", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } }, { active: false }),
+      quality("On", { attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 } }, { active: true }),
+    ],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), false);
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000002")), true);
+});
+
+test("shouldUpdateAEStatus leaves the effect of an uninstalled attachment modification alone", async () => {
+  const item = weapon({
+    itemattachment: [{
+      name: "Att",
+      system: {
+        attributes: {},
+        itemmodifier: [
+          quality("Installed", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } }, { active: true }),
+          quality("Spare", { attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 } }, { active: false }),
+        ],
+      },
+    }],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), true);
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000002")), false);
+});
+
+test("shouldUpdateAEStatus updates an effect that no quality on the item owns", async () => {
+  const item = weapon({
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 },
+    }, { active: false })],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("(inherent)")), true);
+});
+
+test("shouldUpdateAEStatus updates the effect of an attachment modification with no `active` field", async () => {
+  // A quality dropped into an attachment carries no `active` and counts as installed (R33).
+  const item = weapon({
+    itemattachment: [{
+      name: "Att",
+      system: {
+        attributes: {},
+        itemmodifier: [quality("Dropped", { attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1 } })],
+      },
+    }],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), true);
+});
+
+test("shouldUpdateAEStatus reads the modifications of every attachment, not only the first", async () => {
+  const item = weapon({
+    itemattachment: [
+      {
+        name: "First",
+        system: {
+          attributes: {},
+          itemmodifier: [quality("Fitted", { attr1700000000001: { modtype: "Stat", mod: "Soak", value: 1 } }, { active: true })],
+        },
+      },
+      {
+        name: "Second",
+        system: {
+          attributes: {},
+          itemmodifier: [
+            quality("Fitted too", { attr1700000000002: { modtype: "Stat", mod: "Defence-Melee", value: 1 } }, { active: true }),
+            quality("Spare", { attr1700000000003: { modtype: "Stat", mod: "Defence-Ranged", value: 1 } }, { active: false }),
+          ],
+        },
+      },
+    ],
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000002")), true);
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000003")), false);
+});
+
+// --- the Enabled box on a modifier row (R34) -----------------------------------------
+// Unticking Enabled stores `active: false` on the row itself, so the planner and the equip
+// toggle can read it back instead of switching the row on again.
+
+test("an own modifier row switched off is planned disabled on an equipped weapon; its neighbour stays on", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    attributes: {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1, active: false },
+      attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+    },
+  }));
+
+  assert.deepEqual(
+    plan.desired.map((effect) => [effect.name, effect.disabled]),
+    [["attr1700000000001", true], ["attr1700000000002", false]],
+  );
+});
+
+test("a row switched off inside a quality or an attachment is planned disabled", () => {
+  const plan = ItemHelpers.planModifierEffects(weapon({
+    itemmodifier: [quality("Q", {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1, active: false },
+      attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+    })],
+    itemattachment: [{
+      name: "Att",
+      system: {
+        attributes: { attr1700000000003: { modtype: "Stat", mod: "Soak", value: 1, active: false } },
+        itemmodifier: [],
+      },
+    }],
+  }));
+
+  assert.deepEqual(
+    plan.desired.map((effect) => [effect.name, effect.disabled]),
+    [["attr1700000000001", true], ["attr1700000000002", false], ["attr1700000000003", true]],
+  );
+});
+
+test("shouldUpdateAEStatus leaves the effect of an own row switched off alone", async () => {
+  const item = weapon({
+    attributes: {
+      attr1700000000001: { modtype: "Stat", mod: "Defence-Melee", value: 1, active: false },
+      attr1700000000002: { modtype: "Stat", mod: "Defence-Ranged", value: 1 },
+    },
+  });
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000001")), false);
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(item, effectOf("attr1700000000002")), true);
+});
+
+test("shouldUpdateAEStatus leaves a switched-off gear row alone, so the carried toggle keeps it off", async () => {
+  const gear = {
+    type: "gear",
+    system: { attributes: { attr1700000000001: { modtype: "Stat", mod: "Soak", value: 1, active: false } }, itemmodifier: [] },
+  };
+
+  assert.equal(await ItemHelpers.shouldUpdateAEStatus(gear, effectOf("attr1700000000001")), false);
 });
 
 // --- non-numeric grants --------------------------------------------------------------

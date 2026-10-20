@@ -71,12 +71,15 @@ test("projectItemSource keeps name/type/img/system/effects + starwarsffg flags; 
   assert.ok(!("third-party" in out.flags));
 });
 
-test("projectEffectSource strips _id/origin/_stats; keeps normalized changes and sort", () => {
+// 1 and 3 — effect fields: priority and flags.core.overlay survive; flags.core.sourceId and origin do not
+test("an item's effects lose _id, origin and _stats but keep sort, priority, normalized changes and the overlay flag", () => {
   const out = projectItemSource(rawItem());
   const fx = out.effects[0];
   assert.ok(!("_id" in fx) && !("origin" in fx) && !("_stats" in fx));
   assert.equal(fx.sort, 100);
   assert.deepEqual(fx.changes[0], { key: "system.stats.wounds.max", value: "1", mode: 2, priority: 20 });
+  // flags.core.overlay survives; flags.core.sourceId is dropped (the exact object excludes it)
+  assert.deepEqual(fx.flags.core, { overlay: true });
 });
 
 // 2 — idempotence
@@ -84,15 +87,6 @@ test("projection is idempotent", () => {
   const once = projectItemSource(rawItem());
   const twice = projectItemSource(once);
   assert.deepEqual(twice, once);
-});
-
-// 3 — priority + flags.core.overlay survive; flags.core.sourceId/origin do not
-test("effect priority + flags.core.overlay survive; flags.core.sourceId and origin are dropped", () => {
-  const fx = projectItemSource(rawItem()).effects[0];
-  assert.equal(fx.changes[0].priority, 20);
-  assert.deepEqual(fx.flags.core, { overlay: true });
-  assert.ok(!("sourceId" in fx.flags.core));
-  assert.ok(!("origin" in fx));
 });
 
 test("a change with no priority stays priority-less (not priority: undefined)", () => {
@@ -104,7 +98,7 @@ test("a change with no priority stays priority-less (not priority: undefined)", 
 });
 
 // 4 — forced collision proof: one seed, many indices → constant prefix, all-unique ids
-test("forced collision: one seed with many distinct indices yields distinct ids sharing a prefix", () => {
+test("2000 ids from one seed are all distinct and share the seed's 13-character prefix", () => {
   const seed = "item|COMMITabc";
   const ids = Array.from({ length: 2000 }, (_, i) => embedId16(seed, i));
   const prefix = prefix13(seed);
@@ -129,7 +123,7 @@ test("b62_3: MAX (238328) throws WizardIdRangeError, 238327 succeeds, output is 
 });
 
 // 7 — duplicate-id injection throws
-test("assertWizardIdIntegrity throws on a duplicate item id and on a bad id shape", () => {
+test("wizard id integrity rejects a duplicate item id, a malformed item or effect id, and an attachment without an id", () => {
   const dup = "AAAAAAAAAAAAAAAA";
   assert.throws(
     () => assertWizardIdIntegrity({ items: [{ _id: dup, effects: [] }, { _id: dup, effects: [] }] }),
@@ -188,7 +182,7 @@ test("assignWizardIdentity: every actor/item/effect id matches the document-id r
   assert.equal(new Set(itemIds).size, itemIds.length);
 });
 
-test("deriveCommitActorId is deterministic, 16 chars, and memoized per {userId, commitId}", async () => {
+test("deriveCommitActorId returns the same 16-character id for the same user and commit and a different id for another commit", async () => {
   const a = await deriveCommitActorId("u", "c");
   const b = await deriveCommitActorId("u", "c");
   assert.equal(a, b);

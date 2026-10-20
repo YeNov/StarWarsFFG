@@ -61,22 +61,26 @@ test("a talent in several trees and on no item keeps the lowest row", () => {
   assert.equal(map.get("Parry"), 2);
 });
 
-test("duplicate talent items are decided by the one edited most recently", () => {
-  const map = buildTalentTierMap([
+test("duplicate talent items are decided by the one edited most recently, wherever it is listed and whatever its tier", () => {
+  // The newest edit (tier 2, time 3000) is neither the first nor the last item and has neither
+  // the lowest nor the highest tier, so "first wins", "last wins", "highest tier wins" and
+  // "lowest tier wins" each give a different answer than "most recently edited wins".
+  const copies = [
     talentItem("Precise Aim", 1, 1000),
-    talentItem("Precise Aim", 2, 2000),
-  ]);
-  assert.equal(map.get("Precise Aim"), 2);
-  const reversed = buildTalentTierMap([
-    talentItem("Precise Aim", 2, 2000),
-    talentItem("Precise Aim", 3, 3000),
-  ]);
-  assert.equal(reversed.get("Precise Aim"), 3);
+    talentItem("Precise Aim", 2, 3000),
+    talentItem("Precise Aim", 3, 2000),
+  ];
+  assert.equal(buildTalentTierMap(copies).get("Precise Aim"), 2);
+  assert.equal(buildTalentTierMap([...copies].reverse()).get("Precise Aim"), 2, "listed in the opposite order");
 });
 
-test("duplicates with no usable timestamp fall back to the highest tier", () => {
-  const map = buildTalentTierMap([talentItem("Grit", 1), talentItem("Grit", 4)]);
-  assert.equal(map.get("Grit"), 4);
+test("duplicates with no usable timestamp fall back to the highest tier, wherever it is listed", () => {
+  // Neither copy has a time to compare (one has none, one has text), so only the tier decides.
+  // The highest tier sits first in one order and last in the other, so "first wins" and
+  // "last wins" cannot pass for the right reason.
+  const copies = [talentItem("Grit", 1, undefined), talentItem("Grit", 4, "not a time")];
+  assert.equal(buildTalentTierMap(copies).get("Grit"), 4);
+  assert.equal(buildTalentTierMap([...copies].reverse()).get("Grit"), 4, "listed in the opposite order");
 });
 
 test("groups ascending by tier and keeps the incoming order within a tier", () => {

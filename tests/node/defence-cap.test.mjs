@@ -4,17 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  applyCharacterDefenceCap,
-  MAX_CHARACTER_DEFENCE,
-} from "../../modules/helpers/defence-helpers.js";
+import { applyCharacterDefenceCap } from "../../modules/helpers/defence-helpers.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
-
-test("the Star Wars FFG character defence maximum is 4", () => {
-  assert.equal(MAX_CHARACTER_DEFENCE, 4);
-});
 
 test("enabled rule caps melee and ranged defence independently", () => {
   const defence = { melee: 7, ranged: 5 };

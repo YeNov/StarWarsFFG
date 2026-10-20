@@ -98,6 +98,10 @@ the settings later starts out on.
 If you disable the source of something you had already selected, the selection stays in your draft
 with a note; it is not silently dropped.
 
+These switches belong to the wizard. The Hyperdrive importer ignores them: it matches an imported
+character against every compendium configured in the settings and the world items, so the character
+keeps the gear it owns. A compendium named twice in a setting contributes its items once.
+
 ## Inventory filters
 
 **Weapons** / **Armor** / **Gear** buttons, a name search, **Min** and **Max** price, and

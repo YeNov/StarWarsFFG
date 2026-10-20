@@ -121,9 +121,15 @@ test("reSpecialized reduces by a flat 4 for every listed name, whatever the rank
   assert.equal(plan(target({ talents: [talent("Block", "N/A"), talent("Parry", 2)] }), respec).reduction, 4);
   assert.equal(plan(target({ talents: [talent("Reflect", 2)] }), { ...respec, attack: "ranged" }).reduction, 4);
   assert.equal(plan(target({ talents: [talent("Deflect", "N/A")] }), { ...respec, attack: "ranged" }).reduction, 4);
+  // The Supreme and Unarmed modifiers, and a similarly named talent, add nothing to it.
+  const modified = [talent("Block", "N/A"), talent("Unarmed Block", "N/A"), talent("Improved Unarmed Block", "N/A")];
+  assert.equal(plan(target({ talents: modified }), respec).reduction, 4);
+  const aliased = [talent("Parry", 2), talent("Supreme Parry"), talent("Unarmed Parry"), talent("Reflect", 3), talent("Reflect (Supreme)")];
+  assert.equal(plan(target({ talents: aliased }), respec).reduction, 4);
+  assert.equal(plan(target({ talents: aliased }), { ...respec, attack: "ranged" }).reduction, 4);
 });
 
-test("a reSpecialized v.56 character: Block and Deflect take 4 off, Unarmed Block cuts melee only", () => {
+test("in a reSpecialized world Block and Deflect are named and priced on their own, and only Unarmed Block (not Improved Unarmed Block) cuts the melee cost", () => {
   // The names the v.56 Martial Artist and Pit Fighter trees and the Arbiter tree print.
   // Improved Unarmed Block disarms an attacker; it is neither Block nor Unarmed Block.
   const actor = target({
@@ -134,7 +140,6 @@ test("a reSpecialized v.56 character: Block and Deflect take 4 off, Unarmed Bloc
 
   const block = plan(actor, respec);
   assert.deepEqual(block.talentNames, ["Block"]);
-  assert.equal(block.reduction, 4);
   assert.equal(block.formula.key, "SWFFG.ApplyDamage.Defence.FormulaRespec");
   assert.equal(block.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyBlock");
   assert.equal(block.hasUnarmed, true);
@@ -145,7 +150,6 @@ test("a reSpecialized v.56 character: Block and Deflect take 4 off, Unarmed Bloc
 
   const deflect = plan(actor, { ...respec, attack: "ranged" });
   assert.deepEqual(deflect.talentNames, ["Deflect"]);
-  assert.equal(deflect.reduction, 4);
   assert.equal(deflect.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyDeflect");
   assert.equal(deflect.hasUnarmed, false);
   assert.equal(deflect.hasSupreme, false);
@@ -162,14 +166,12 @@ test("in a reSpecialized world Parry and Reflect, and their modifiers, stand in 
   const respec = { ruleset: RULESET_RESPECIALIZED };
 
   const parry = plan(actor, respec);
-  assert.equal(parry.reduction, 4);
   assert.equal(parry.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyBlock");
   assert.equal(parry.hasSupreme, true);
   assert.equal(parry.hasUnarmed, true);
   assert.equal(cheapestCost(parry), 1);
 
   const reflect = plan(actor, { ...respec, attack: "ranged" });
-  assert.equal(reflect.reduction, 4);
   assert.equal(reflect.toggleLabelKey, "SWFFG.ApplyDamage.Defence.ApplyDeflect");
   assert.equal(reflect.hasSupreme, true);
   assert.equal(reflect.hasUnarmed, false);

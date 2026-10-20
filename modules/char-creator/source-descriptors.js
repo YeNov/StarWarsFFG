@@ -136,15 +136,17 @@ export function passesSourceAvailabilityGate(
 /**
  * Normalise a source setting into a trimmed list of compendium ids. The legacy
  * settings are comma-separated strings, but accepting arrays keeps the UI ready
- * for a future settings migration.
+ * for a future settings migration. A pack named more than once is listed once,
+ * where it was first named, so it contributes its items once.
  * @param {(string|string[]|null|undefined)} settingValue
  * @returns {string[]}
  */
 export function sourceSettingPackIds(settingValue) {
   const values = typeof settingValue === "string" ? settingValue.split(",") : (settingValue || []);
-  return values
+  const packIds = values
     .map((value) => typeof value === "string" ? value.trim() : value)
     .filter((value) => typeof value === "string" && value.length > 0);
+  return [...new Set(packIds)];
 }
 
 /**
@@ -204,4 +206,25 @@ export function setSourceEnabled(exclusions = {}, poolKey, sourceId, enabled) {
   else delete next[poolKey];
 
   return next;
+}
+
+/**
+ * The loadSource options of a character import (ruling R35, extending R20: an
+ * imported character keeps the gear it owns). An import matches against every
+ * source the pool has: all configured packs and the world items, whatever the
+ * importing user switched off in their own Content sources panel; it ignores the
+ * Max Rarity / Allow Restricted limits; and it reads the packs and world items as
+ * they are now, never from the pool cache the wizard keeps (`fresh`).
+ *
+ * The exclusions are the same flag shape the panel stores, so isSourceEnabled
+ * answers for them: no pack excluded, world items opted in.
+ * @param {string} poolKey
+ * @returns {{exclusions: Object<string, string[]>, ignoreAvailabilityGates: boolean, fresh: boolean}}
+ */
+export function importCatalogOptions(poolKey) {
+  return {
+    exclusions: setSourceEnabled({}, poolKey, WORLD_SOURCE_ID, true),
+    ignoreAvailabilityGates: true,
+    fresh: true,
+  };
 }

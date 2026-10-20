@@ -57,7 +57,7 @@ test("items that are not obligation entries are ignored even if their type field
   assert.equal(characterTrack(dax, "obligation").total, 10);
 });
 
-test("an entry with a blank magnitude leaves the total a number", () => {
+test("an entry with a blank magnitude adds nothing to the total", () => {
   const dax = pc("dax", "Dax", { obligation: 10, items: [entry("Blank", "obligation", ""), entry("Debt", "obligation", 5)] });
 
   assert.equal(characterTrack(dax, "obligation").total, 15);
@@ -114,7 +114,7 @@ test("a box reports how much its entries add, for the sheet's hint", () => {
   assert.deepEqual(sheetTracks(dax).duty, { baseline: 10, total: 18, shown: 18, fromEntries: 8 });
 });
 
-test("the boxes a sheet draws follow Edit Mode too", () => {
+test("sheetTracks lists every box as shown in Edit Mode", () => {
   assert.deepEqual(sheetTracks(pc("dax", "Dax"), { editMode: true }).show, { obligation: true, duty: true, morality: true });
 });
 
@@ -126,7 +126,7 @@ test("with exactly one entry, the baseline folds into it", () => {
   assert.deepEqual(ranges(buildTrackTable([dax], "obligation")), ["Dax:Debt 1-15"]);
 });
 
-test("a folded entry also keeps its own magnitude", () => {
+test("with one entry, its slice is the baseline plus the entry's own magnitude", () => {
   const dax = pc("dax", "Dax", { obligation: 10, items: [entry("Debt", "obligation", 5)] });
 
   assert.deepEqual(ranges(buildTrackTable([dax], "obligation")), ["Dax:Debt 1-15"]);
@@ -168,18 +168,12 @@ test("an old import's list that no longer matches the baseline is not trusted", 
   assert.deepEqual(ranges(buildTrackTable([dax], "obligation")), ["Dax:- 1-20"]);
 });
 
-test("building the table again gives the same table, not a longer one", () => {
-  const dax = pc("dax", "Dax", { obligation: 10 });
-  buildTrackTable([dax], "obligation");
-  buildTrackTable([dax], "obligation");
-
-  assert.deepEqual(ranges(buildTrackTable([dax], "obligation")), ["Dax:- 1-10"]);
-});
-
-test("a character who has left the group leaves nothing behind in the next table", () => {
+test("buildTrackTable returns only the characters it is given, however often it ran before", () => {
   const dax = pc("dax", "Dax", { obligation: 10 });
   const vex = pc("vex", "Vex", { obligation: 10 });
-  buildTrackTable([dax, vex], "obligation");
+  buildTrackTable([dax, vex], "obligation"); // Vex was in the group on an earlier run
+  buildTrackTable([dax], "obligation");
+  buildTrackTable([dax], "obligation");
 
   assert.deepEqual(ranges(buildTrackTable([dax], "obligation")), ["Dax:- 1-10"]);
 });

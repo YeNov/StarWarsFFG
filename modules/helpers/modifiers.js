@@ -1,4 +1,5 @@
 import { AE_MODES } from "../config/ffg-active-effect-modes.js";
+import { isAttributeSuspended, isModifierSuspended, planAttributeToggle, switchedOn } from "./modifier-switch.js";
 // PopoutModifiers is imported lazily inside popoutModiferWindow (below) rather
 // than at module scope. Its transitive import of apps/ffg-form-application.js
 // destructures `foundry.applications.api` at module-eval time, which throws
@@ -26,13 +27,14 @@ export default class ModifierHelpers {
           // don't process null items
           return;
         }
-        if (Object.keys(item.system).includes("active") && item.system.active === false) {
-          // there is a mod or something, and it's not active - don't process it
+        if (isModifierSuspended(item)) {
+          // a quality or modification switched off adds nothing (modifier-switch.js)
           return;
         }
         if (item.system?.attributes) {
           const attrsToApply = Object.keys(item.system.attributes)
             .filter((id) => (item.system.attributes[id].mod === key || item.system.attributes[id].mod === "*") && item.system.attributes[id].modtype === modtype)
+            .filter((id) => !isAttributeSuspended(item.system.attributes[id]))
             .map((i) => item.system.attributes[i]);
           if (item.type === "armour" || item.type === "weapon" || item.type === "itemattachment") {
             if (item?.system?.equippable?.equipped || item.type === "itemattachment") {
@@ -188,12 +190,19 @@ export default class ModifierHelpers {
     let checked = false;
     let sources = [];
 
+    // a quality switched off adds nothing, and nothing through it either (modifier-switch.js)
+    if (isModifierSuspended(item)) {
+      return includeSource ? { total, sources } : total;
+    }
+
     let rank = item?.system?.rank;
     if(rank === null || rank === undefined) {
       rank = 1;
     }
     if (item?.system) {
-      const filteredAttributes = Object.values(item.system.attributes || {}).filter(a => a).filter((a) => a.modtype === modtype && a.mod === key);
+      const filteredAttributes = Object.values(item.system.attributes || {})
+        .filter(a => a)
+        .filter((a) => a.modtype === modtype && a.mod === key && !isAttributeSuspended(a));
 
       filteredAttributes.forEach((attr) => {
         sources.push({ modtype, key, name: item.name, value: attr.value * rank, type: item.type });
@@ -305,8 +314,8 @@ export default class ModifierHelpers {
   }
 
   /**
-   * Toggle the enabled/disabled state of the Active Effect backing a modifier row.
-   * This is the direct escape hatch for an effect stuck disabled by an interrupted bulk
+   * The Enabled box of a modifier row: switch the row on or off.
+   * It is also the direct escape hatch for an effect stuck disabled by an interrupted bulk
    * suspend (e.g. edit mode) -- gear items in particular have no equip toggle to force a
    * resync, so without this the only fix was hand-editing the effect via Foundry's own
    * Active Effects config sheet.
@@ -316,14 +325,29 @@ export default class ModifierHelpers {
     if (this.actor && !this.actor.verifyEditModeIsNotEnabled()) return;
     const key = event.currentTarget.dataset.attrKey;
     const enabled = event.currentTarget.checked;
-    const effect = this.object.effects.find((e) => e.name === key);
-    if (!effect) return;
-    await effect.update({ disabled: !enabled });
+    await ModifierHelpers.setAttributeEnabled(this.object, key, enabled);
     // the owning actor's derived stats (e.g. encumbrance max) won't reflect the change
     // until its sheet re-renders
     if (this.object.isEmbedded && this.object.actor?.sheet?.rendered) {
       this.object.actor.sheet.render(false);
     }
+  }
+
+  /**
+   * Switch one of an item's own modifier rows on or off. The state is stored on the row
+   * (`system.attributes[key].active`), where equipping, unequipping and reconciling the item
+   * read it back, and mirrored onto the row's Active Effect (see planAttributeToggle).
+   * @param item - the item that carries the row
+   * @param {string} key - the row's key in `system.attributes`
+   * @param {boolean} enabled
+   * @returns {Promise<void>}
+   */
+  static async setAttributeEnabled(item, key, enabled) {
+    const plan = planAttributeToggle(item, key, enabled);
+    if (!plan) return;
+    await item.update(plan.update);
+    const effect = item.effects.find((e) => e.name === key);
+    if (effect) await effect.update({ disabled: plan.effectDisabled });
   }
 
   /**
@@ -340,6 +364,23 @@ export default class ModifierHelpers {
     new PopoutModifiers(this.object, {
       title,
     }).render(true);
+  }
+
+  /**
+   * Everything on a weapon that adds to its dice pool, in the order the pool folds it: the
+   * weapon itself, each attachment followed by its modifications that are installed, then the
+   * weapon's own qualities that are not switched off (modifier-switch.js).
+   * @param item - a weapon or ship weapon; anything else adds nothing
+   * @returns {Array<object>}
+   */
+  static weaponRollSources(item) {
+    if (item?.type !== "weapon" && item?.type !== "shipweapon") return [];
+    const attachments = Array.isArray(item.system?.itemattachment) ? item.system.itemattachment : [];
+    return [
+      item,
+      ...attachments.flatMap((attachment) => [attachment, ...switchedOn(attachment?.system?.itemmodifier)]),
+      ...switchedOn(item.system?.itemmodifier),
+    ];
   }
 
   /**
@@ -631,7 +672,9 @@ export default class ModifierHelpers {
           value: attribute.value,
         });
       }
-      if (changes.length) planned.push({ name: key, changes });
+      if (!changes.length) continue;
+      // a row switched off with its Enabled box keeps its effect off (modifier-switch.js)
+      planned.push(isAttributeSuspended(attribute) ? { name: key, changes, disabled: true } : { name: key, changes });
     }
     return planned;
   }

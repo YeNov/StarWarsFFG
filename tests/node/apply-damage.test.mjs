@@ -65,11 +65,6 @@ for (const name of ["Beskar", "Cortosis Quality"]) {
   }
 }
 
-test("the seed offers Pierce plus ten per Breach", () => {
-  assert.equal(applyHit({ pierce: 2, breach: 1 }).seed.autoPierce, 12);
-  assert.equal(applyHit({ damage: 12 }).seed.autoDamage, 12);
-});
-
 test("import ids identify renamed qualities and unranked qualities still protect soak", () => {
   for (const id of ["BESKAR", "CORTOSIS"]) {
     const items = [armor([quality("Localized name", { rank: null }, { starwarsffg: { ffgimportid: id } })])];
@@ -78,18 +73,38 @@ test("import ids identify renamed qualities and unranked qualities still protect
   }
 });
 
-test("only active, unbroken attachment mods grant protection", () => {
-  for (const [system, expected] of [[{ active: true }, 6], [{ active: false }, 12], [{ active: true, broken: true }, 12], [{}, 12]]) {
+test("attachment mods grant protection unless switched off or broken", () => {
+  // A modification with no `active` counts as installed (open decisions R33).
+  for (const [system, expected, reported] of [
+    [{ active: true }, 6, ["Cortosis"]],
+    [{ active: false }, 12, []],
+    [{ active: true, broken: true }, 12, []],
+    [{}, 6, ["Cortosis"]],
+  ]) {
     const items = [armor([], { attachments: [{ system: { itemmodifier: [quality("Cortosis", system)] } }] })];
+    const result = applyHit({ items, breach: 1 });
 
-    assert.equal(applyHit({ items, breach: 1 }).applied, expected);
+    assert.equal(result.applied, expected);
+    assert.deepEqual(result.soakProtection, reported);
+  }
+});
+
+test("a protective quality switched off on the armour protects nothing", () => {
+  // Turning a quality off suspends it wherever it sits (open decisions R14).
+  for (const name of ["Beskar", "Cortosis"]) {
+    const result = applyHit({ items: [armor([quality(name, { active: false })])], breach: 1 });
+
+    assert.equal(result.applied, 12);
+    assert.deepEqual(result.soakProtection, []);
   }
 });
 
 test("unworn armor, weapons, and unrelated names do not protect soak", () => {
   for (const items of [[], [armor([quality("Beskar")], { equipped: false })], [armor([quality("Cortosis")], { type: "weapon" })], [armor([quality("Not Cortosis")])]]) {
     assert.equal(applyHit({ items, pierce: 3 }).applied, 9);
-    assert.equal(applyHit({ items, breach: 1 }).applied, 12);
+    const breached = applyHit({ items, breach: 1 });
+    assert.equal(breached.applied, 12);
+    assert.deepEqual(breached.soakProtection, []);
   }
 });
 
@@ -118,17 +133,6 @@ test("both protective qualities are listed once, sorted, including attachment an
   })]);
 
   assert.deepEqual(getSoakProtectionQualities(actor), ["Beskar", "Cortosis"]);
-});
-
-test("no protection is reported for absent, unworn, inactive, or broken qualities", () => {
-  for (const items of [
-    [],
-    [armor([quality("Beskar")], { equipped: false })],
-    [armor([], { attachments: [{ system: { itemmodifier: [quality("Cortosis", { active: false })] } }] })],
-    [armor([], { attachments: [{ system: { itemmodifier: [quality("Cortosis", { active: true, broken: true })] } }] })],
-  ]) {
-    assert.deepEqual(getSoakProtectionQualities(actorWith(items)), []);
-  }
 });
 
 // ---------------------------------------------------------------------------

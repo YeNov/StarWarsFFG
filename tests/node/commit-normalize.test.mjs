@@ -45,7 +45,7 @@ test("the commit stamp is written to flags.starwarsffg.pcWizardCommit", async ()
   assert.deepEqual(source.flags.starwarsffg.pcWizardCommit, { commitId: "COMMIT0000000001", userId: "u1", xp: { total: 100, available: 20 }, date: "2026-07-21" });
 });
 
-test("normalization is deterministic for the same input (fingerprint stable)", async () => {
+test("normalizing the same draft and commit twice gives the same fingerprint and source", async () => {
   const a = await normalizeCommitSource(actorData(), commit);
   const b = await normalizeCommitSource(actorData(), commit);
   assert.equal(a.fingerprint, b.fingerprint);
@@ -97,7 +97,7 @@ test("sanitizer clamps an over-long name", () => {
   assert.equal(source.name.length, 128);
 });
 
-test("sanitizer rejects a non-finite xp", () => {
+test("the sanitizer rejects a request whose XP total is infinite, whose available XP is missing, or that has no XP at all", () => {
   assert.throws(() => sanitizeCommitRequest({ source: {}, commit: { xp: { total: Infinity, available: 0 } } }, "s"), InvalidCommitRequestError);
   assert.throws(() => sanitizeCommitRequest({ source: {}, commit: { xp: { total: 10 } } }, "s"), InvalidCommitRequestError);
   assert.throws(() => sanitizeCommitRequest({ source: {}, commit: {} }, "s"), InvalidCommitRequestError);

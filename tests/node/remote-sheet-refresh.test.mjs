@@ -33,7 +33,7 @@ const doc = ({ open = true, actorOpen = null } = {}) => ({
 const ME = "user-me";
 const OTHER = "user-other";
 
-test("refreshes an open item sheet when another client suppressed the render", () => {
+test("an open item sheet is refreshed without taking focus when another client suppressed the render, even for a world item with no owning actor", () => {
   const item = doc({ open: true });
 
   const refreshed = refreshSheetsForRemoteUpdate(item, { render: false }, OTHER, ME);
@@ -78,12 +78,6 @@ test("skips sheets nobody has open", () => {
   assert.deepEqual(closed.actor.sheet.calls, []);
 });
 
-test("handles a world item, which has no owning actor", () => {
-  const worldItem = doc({ open: true });
-
-  assert.deepEqual(refreshSheetsForRemoteUpdate(worldItem, { render: false }, OTHER, ME), ["item"]);
-});
-
 test("survives a document with no sheet at all", () => {
   assert.deepEqual(refreshSheetsForRemoteUpdate({}, { render: false }, OTHER, ME), []);
   assert.deepEqual(refreshSheetsForRemoteUpdate(undefined, { render: false }, OTHER, ME), []);
@@ -96,7 +90,7 @@ test("the refresh is wired to the updateItem hook", () => {
   assert.match(source, /refreshSheetsForRemoteUpdate/, "must use the shared predicate");
 });
 
-test("another client's ammo step is painted in place, keeping scroll and open cards", () => {
+test("another client's ammo step is painted through each open sheet's in-place painter without a re-render", () => {
   const item = doc({ open: true, actorOpen: true });
   const painted = [];
   item.sheet._ffgPaintAmmo = (d) => { painted.push(["item", d]); return true; };

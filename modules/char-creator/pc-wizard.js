@@ -16,7 +16,7 @@ import ItemHelpers from "../helpers/item-helpers.js";
 import { toItemData } from "./to-item-data.js";
 import { makeBuildDependencies } from "./build-deps.js";
 import { buildPreviewActor } from "./preview.js";
-import { createInitialData, setIdentity } from "./wizard-state.js";
+import { createInitialData, restoreDerivedState, setIdentity } from "./wizard-state.js";
 import { applyStartingBonus, getStartingBonusOptions } from "./starting-bonus.js";
 import { prepareTalentTree, rootConnectedKeys, canLearn, talentTierCost } from "./talent-selection.js";
 import { dedicationCharacteristicDeltas, isDedicationTalent } from "./dedication.js";
@@ -1946,7 +1946,7 @@ export class CharacterCreator extends HandlebarsApplicationMixin(ApplicationV2) 
     try {
       const record = await this.draftStore.load();
       if (record) {
-        this.data = record.data;
+        this.data = restoreDerivedState(record.data);
         this.#draft.commit = record.commit ?? null;
         this.#draftBannerDismissed = true;
         for (const warning of record.warnings ?? []) ui.notifications.warn(game.i18n.localize(warning));

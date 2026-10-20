@@ -7,8 +7,8 @@
 #
 # The checks need node_modules on disk even though they import nothing from it:
 # the import gate (check-imports-pins) resolves every relative import in the
-# tree, and tests/ffg-tests.js -- the in-Foundry mocha harness -- imports
-# ../node_modules/mocha/mocha.js and ../node_modules/chai/chai.js. Those two were
+# tree, and tests/harness/runner.js -- the in-Foundry mocha runner -- imports
+# ../../node_modules/mocha/mocha.js and ../../node_modules/chai/chai.js. Those two were
 # not declared dependencies at all until this workflow caught it on a clean
 # checkout; they are now in devDependencies.
 name: Tests
@@ -41,7 +41,7 @@ jobs:
             - name: Install Dependencies
               # `--ignore-scripts` skips cypress's and playwright's postinstall
               # browser downloads, which none of these checks need. The install
-              # itself IS needed: the import gate resolves tests/ffg-tests.js's
+              # itself IS needed: the import gate resolves tests/harness/runner.js's
               # imports of mocha and chai against node_modules on disk.
               run: npm ci --ignore-scripts
 

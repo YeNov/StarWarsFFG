@@ -67,17 +67,22 @@ function withLearned(talents, learnedSet) {
  * each pass admits nodes that connect to the confirmed frontier until nothing new is added.
  *
  * @param {object} talents         a specialization's `system.talents` dict
- * @param {Set<string>} learnedSet the currently-learned node keys
- * @returns {Set<string>} the root-connected subset (orphans excluded)
+ * @param {Set<string>} learnedSet the currently-learned node keys; keys that are not talents of
+ *                                 the tree are never connected
+ * @returns {Set<string>} the root-connected subset (orphans and unknown keys excluded)
  */
 export function rootConnectedKeys(talents, learnedSet) {
-  const total = talentKeys(talents).length;
+  const treeKeys = new Set(talentKeys(talents));
+  const total = treeKeys.size;
   const connected = new Set();
   let added = true;
   while (added) {
     added = false;
     for (const key of learnedSet) {
       if (connected.has(key)) continue;
+      // A purchase for a talent the tree no longer has (a draft resumed against a specialization
+      // whose talents changed) has no path to the root row, so it is never connected.
+      if (!treeKeys.has(key)) continue;
       const probe = withLearned(talents, connected); // only confirmed nodes count as learned
       probe[key].islearned = false;                  // the oracle evaluates an UNLEARNED candidate
       if (canPurchaseNode(probe, key, specOpts(total))) {

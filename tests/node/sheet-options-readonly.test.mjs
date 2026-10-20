@@ -22,11 +22,19 @@ function method(source, signature) {
   return source.slice(start, source.indexOf("\n  }\n", start));
 }
 
-for (const path of ["modules/items/item-ffg-options.js", "modules/actors/actor-ffg-options.js"]) {
+// How each class reads an option's value. The actor class hands the read to the pure rules in
+// modules/helpers/sheet-option-storage.js (tested in sheet-options-path.test.mjs), which take
+// the document and have no way to write to it.
+const OPTION_READS = {
+  "modules/items/item-ffg-options.js": /this\.options\[optionName\]\.value = this\.data\.object\.flags\?\.starwarsffg\?\.config\?\.\[optionName\] \?\? this\.options\[optionName\]\.default;/,
+  "modules/actors/actor-ffg-options.js": /this\.options\[optionName\]\.value = readSheetOptionValue\(/,
+};
+
+for (const [path, optionRead] of Object.entries(OPTION_READS)) {
   test(`${path}: registering an option reads it without writing`, () => {
     const register = method(read(path), "async register(optionName, options)");
     assert.doesNotMatch(register, /setFlag|\.update\(/, "registering runs on every render");
-    assert.match(register, /this\.options\[optionName\]\.value = this\.data\.object\.flags\?\.starwarsffg\?\.config\?\.\[optionName\] \?\? this\.options\[optionName\]\.default;/);
+    assert.match(register, optionRead);
   });
 }
 

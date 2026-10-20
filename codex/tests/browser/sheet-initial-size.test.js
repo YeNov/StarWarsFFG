@@ -29,13 +29,14 @@
 import { CodexActorSheet, CodexAdversarySheet } from "../../scripts/codex-sheets.js";
 import { CODEX_ACTOR_TYPES } from "../../scripts/codex-main.js";
 
-export const CodexSheetInitialSizeTests = (suite, suiteInstance, Test, chai) => {
+export const CodexSheetInitialSizeTests = (suite, suiteInstance, Test, chai, harness) => {
   const _suite = suiteInstance.create(suite, "Codex II — Actor Sheet Initial Size");
 
   // `loaded` short-circuits the specialization refresh inside getData: it is
-  // irrelevant to sizing and slow.
+  // irrelevant to sizing and slow. The run's fixture tracker deletes each actor
+  // right after its test, pass or fail.
   const makeActor = (type) =>
-    Actor.create({ name: `_v2mig_size_${type}`, type, flags: { starwarsffg: { loaded: true } } });
+    harness.fixtures.create("Actor", { name: `size-${type}`, type, flags: { starwarsffg: { loaded: true } } });
 
   /**
    * The contract: whatever size the sheet holds after its first getData, a
@@ -64,11 +65,7 @@ export const CodexSheetInitialSizeTests = (suite, suiteInstance, Test, chai) => 
   for (const type of CODEX_ACTOR_TYPES) {
     _suite.addTest(new Test(`Codex sheet keeps its size across re-renders — ${type}`, async function () {
       const actor = await makeActor(type);
-      try {
-        await assertSizeSurvives(new CodexActorSheet({ document: actor }), `CodexActorSheet/${type}`);
-      } finally {
-        await actor.delete();
-      }
+      await assertSizeSurvives(new CodexActorSheet({ document: actor }), `CodexActorSheet/${type}`);
     }));
   }
 
@@ -76,10 +73,6 @@ export const CodexSheetInitialSizeTests = (suite, suiteInstance, Test, chai) => 
   // in their own getData override — the path the first #14 commit missed.
   _suite.addTest(new Test("Codex adversary sheet keeps its size across re-renders", async function () {
     const actor = await makeActor("character");
-    try {
-      await assertSizeSurvives(new CodexAdversarySheet({ document: actor }), "CodexAdversarySheet");
-    } finally {
-      await actor.delete();
-    }
+    await assertSizeSurvives(new CodexAdversarySheet({ document: actor }), "CodexAdversarySheet");
   }));
 };
