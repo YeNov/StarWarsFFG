@@ -8,7 +8,7 @@
  *
  * apiVersion is the contract number. Bump it, and update the Codex II module in the same change,
  * whenever a name in PUBLIC_API_SHAPE changes, or one of the members below changes its name,
- * arguments or meaning. Besides the names in PUBLIC_API_SHAPE, apiVersion 1 covers what the
+ * arguments or meaning. Besides the names in PUBLIC_API_SHAPE, apiVersion 2 covers what the
  * Codex sheets inherit and override:
  *   FFGDocumentSheet: _getLegacyRootClasses, _applyLegacyRootClasses, _preRender, _onRender,
  *     _onSubmit, _scrollPreservationSelectors, _minDimensions, VIEWER_CONTROLS, viewerControls,
@@ -30,7 +30,11 @@
  *       "<namespace>.<key>", and carries the Reset and file-picker buttons.
  * tests/node/public-api-surface.test.mjs pins those.
  */
-export const PUBLIC_API_VERSION = 1;
+// apiVersion 2 adds the optional buffs editor: the shared partial
+// templates/parts/shared/ffg-optional-buffs.html, which Codex item templates include, and
+// ItemSheetFFG#_activateOptionalBuffListeners / #_saveOptionalBuffs, which Codex item sheets
+// inherit through activateListeners.
+export const PUBLIC_API_VERSION = 2;
 
 export const PUBLIC_API_SHAPE = Object.freeze({
   sheets: ["ActorSheetFFG", "AdversarySheetFFG", "ItemSheetFFG"],

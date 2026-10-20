@@ -14,6 +14,18 @@ import { canPurchaseNode } from "../helpers/talent-tree.js";
 import { isAmmoTracked, isQualityAmmoMode, getAmmoMax, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
 import { attributeShowsEnabled, isModifierSuspended } from "../helpers/modifier-switch.js";
+import {
+  BUFF_ITEM_TYPES,
+  addBuff,
+  addBuffRow,
+  buffModifierTypes,
+  cleanBuffs,
+  createBuffEditQueue,
+  removeBuff,
+  removeBuffRow,
+  renameBuff,
+  setBuffRow,
+} from "../helpers/optional-buffs.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -739,6 +751,13 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       data.modifierChoices = updatedChoices;
     }
 
+    // Optional buffs (templates/parts/shared/ffg-optional-buffs.html). The modifier choices are
+    // kept on the sheet so a buff row's target list can follow a change of its type.
+    data.showOptionalBuffs = BUFF_ITEM_TYPES.includes(this.object.type);
+    data.optionalBuffs = cleanBuffs(this.object.system?.optionalBuffs);
+    data.buffModifierTypes = buffModifierTypes(data.modifierTypes);
+    this._optionalBuffModChoices = data.modifierChoices;
+
     return data;
   }
 
@@ -1306,6 +1325,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
         $(event.currentTarget).parent().find(".flat_editor.dropdown.mod").html(modHtml);
       }
     });
+
+    // Optional buffs; the Codex II item sheets inherit this.
+    this._activateOptionalBuffListeners(html);
 
     if (["signatureability"].includes(this.object.type)) {
       html.find(".talent-action").on("click", this._onClickTalentControl.bind(this));
@@ -2393,6 +2415,78 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     });
   }
 
+  /**
+   * Edit the item's optional buffs (templates/parts/shared/ffg-optional-buffs.html). Every
+   * control describes its change with the rules in helpers/optional-buffs.js, and
+   * _saveOptionalBuffs saves the whole list. Change events stop here, so the sheet's own submit
+   * never runs for a buff edit.
+   *
+   * Name, target and value edits save without re-rendering: their change event fires as the
+   * field loses focus, often on the mousedown of the next click, and a re-render then would
+   * replace the control being clicked. Adding or deleting, and a new row type (whose target
+   * list differs), re-render.
+   * @param {jQuery} html
+   */
+  _activateOptionalBuffListeners(html) {
+    const section = html.find(".optional-buffs");
+    if (!section.length) return;
+
+    const buffIdOf = (el) => el.closest(".optional-buff")?.dataset.buffId;
+    const rowIndexOf = (el) => Number(el.closest(".optional-buff-row")?.dataset.rowIndex);
+
+    section.on("click", ".optional-buff-control", async (event) => {
+      event.preventDefault();
+      const control = event.currentTarget;
+      const buffId = buffIdOf(control);
+      switch (control.dataset.action) {
+        case "create": return this._saveOptionalBuffs((list) => addBuff(list));
+        case "delete": return this._saveOptionalBuffs((list) => removeBuff(list, buffId));
+        case "add-row": return this._saveOptionalBuffs((list) => addBuffRow(list, buffId));
+        case "delete-row": return this._saveOptionalBuffs((list) => removeBuffRow(list, buffId, rowIndexOf(control)));
+        default: return undefined;
+      }
+    });
+
+    section.on("change", "input, select", async (event) => {
+      event.stopPropagation();
+      const field = event.currentTarget;
+      const buffId = buffIdOf(field);
+      const index = rowIndexOf(field);
+      const quiet = { render: false };
+      if (field.classList.contains("optional-buff-name")) {
+        return this._saveOptionalBuffs((list) => renameBuff(list, buffId, field.value), quiet);
+      }
+      if (field.classList.contains("optional-buff-modtype")) {
+        // A new type gets the first target of that type, as the Modifiers list does.
+        const firstTarget = Object.values(this._optionalBuffModChoices?.[field.value] ?? {})[0]?.value ?? "";
+        return this._saveOptionalBuffs((list) => setBuffRow(list, buffId, index, { modtype: field.value, mod: firstTarget }));
+      }
+      if (field.classList.contains("optional-buff-mod")) {
+        return this._saveOptionalBuffs((list) => setBuffRow(list, buffId, index, { mod: field.value }), quiet);
+      }
+      if (field.classList.contains("optional-buff-value")) {
+        return this._saveOptionalBuffs((list) => setBuffRow(list, buffId, index, { value: field.value }), quiet);
+      }
+      return undefined;
+    });
+  }
+
+  /**
+   * Save one change to the optional buffs list, unless the owning actor is in Edit Mode. Saves
+   * go one after another, each built on the last (createBuffEditQueue), so an edit made while
+   * the previous one is still saving is not lost.
+   * @param {(buffs: Array<object>) => Array<object>} change
+   * @param {object} [options] - passed to the update, e.g. {render: false}
+   */
+  async _saveOptionalBuffs(change, options) {
+    if (this.actor && !this.actor.verifyEditModeIsNotEnabled()) return;
+    this._optionalBuffQueue ??= createBuffEditQueue({
+      read: () => this.object.system?.optionalBuffs,
+      write: (next, updateOptions) => this.object.update({ "system.optionalBuffs": next }, updateOptions),
+    });
+    await this._optionalBuffQueue.edit(change, options);
+  }
+
   async _onDropTalentToSpecialization(event) {
     let data;
     const specialization = this.object;
@@ -2483,6 +2577,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
               // these are cloned to avoid local-only clobbers to the dropped object
               description: foundry.utils.deepClone(itemObject.system.description),
               attributes: foundry.utils.deepClone(itemObject.system.attributes),
+              // The talent's optional buffs travel into the tree like its modifiers do. An array,
+              // so a later drop onto this slot replaces them instead of merging.
+              optionalBuffs: cleanBuffs(itemObject.system.optionalBuffs),
               isRanked: itemObject.system.ranks.ranked,
               isForceTalent: itemObject.system.isForceTalent,
               isConflictTalent: itemObject.system.isConflictTalent,

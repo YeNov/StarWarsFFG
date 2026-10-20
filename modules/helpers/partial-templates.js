@@ -2,6 +2,7 @@ export default class TemplateHelpers {
   static async preload() {
     const templatePaths = [
       "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html",
+      "systems/starwarsffg/templates/parts/shared/ffg-optional-buffs.html",
       "systems/starwarsffg/templates/parts/shared/ffg-sources.html",
       "systems/starwarsffg/templates/parts/shared/ffg-tags.html",
       "systems/starwarsffg/templates/parts/shared/ffg-effects.html",

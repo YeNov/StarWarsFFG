@@ -136,6 +136,18 @@
       </tr>
       {{/if}}
     </table>
+    {{#if optionalBuffs.length}}
+    <section class="optional-buffs">
+      <div class="optional-buffs-title">{{localize "SWFFG.OptionalBuffs.DialogTitle"}}</div>
+      {{#each optionalBuffs as |buff|}}
+      <label class="optional-buff-option" title="{{#if buff.locked}}{{localize 'SWFFG.OptionalBuffs.AlreadyApplied'}}{{else}}{{#if buff.source}}{{localize 'SWFFG.OptionalBuffs.From' source=buff.source}}{{/if}}{{/if}}">
+        <input type="checkbox" class="optional-buff-tick" data-buff-key="{{buff.key}}" {{#if buff.ticked}}checked{{/if}} {{#if buff.locked}}disabled{{/if}} />
+        <span class="optional-buff-option-name">{{buff.name}}</span>
+        {{#if buff.source}}<span class="optional-buff-option-source">{{buff.source}}</span>{{/if}}
+      </label>
+      {{/each}}
+    </section>
+    {{/if}}
     <details>
     <summary>Options</summary>
     <div class="pool-roll-options">

@@ -6,6 +6,7 @@ import {
   EquippableTemplate,
   ItemAttachmentsTemplate,
   QualitiesTemplate,
+  OptionalBuffsTemplate,
 } from "../../item-templates.js";
 import {
   damageField,
@@ -30,6 +31,7 @@ export class WeaponDataModel extends mix(
   EquippableTemplate,
   ItemAttachmentsTemplate,
   QualitiesTemplate,
+  OptionalBuffsTemplate,
 ) {
   static defineSchema() {
     const f = foundry.data.fields;

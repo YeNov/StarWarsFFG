@@ -1,0 +1,40 @@
+{{!--
+  Optional buffs editor: named groups of modifier rows that apply to a roll only when the player
+  ticks them in the roll dialog (modules/helpers/optional-buffs.js). Shared by the classic and the
+  Codex II item sheets; ItemSheetFFG#_activateOptionalBuffListeners saves every edit.
+
+  The inputs carry no `name`, so the sheet's own form submit never picks them up, and none of the
+  modifier list's classes (attribute*, flat_editor, modtype, mod, dropdown, add-mod), so its
+  handlers never fire here.
+--}}
+{{#if showOptionalBuffs}}
+<section class="optional-buffs">
+  <header class="optional-buffs-header flexrow">
+    <span class="optional-buffs-title">{{localize "SWFFG.OptionalBuffs.Title"}}</span>
+    <a class="optional-buff-control" data-action="create" title="{{localize 'SWFFG.OptionalBuffs.Add'}}"><i class="fas fa-plus"></i></a>
+  </header>
+  {{#each optionalBuffs as |buff|}}
+  <div class="optional-buff" data-buff-id="{{buff.id}}">
+    <div class="optional-buff-head flexrow">
+      <input type="text" class="optional-buff-name" value="{{buff.name}}" placeholder="{{localize 'SWFFG.OptionalBuffs.NamePlaceholder'}}" />
+      <a class="optional-buff-control" data-action="add-row" title="{{localize 'SWFFG.OptionalBuffs.AddRow'}}"><i class="fas fa-plus"></i></a>
+      <a class="optional-buff-control" data-action="delete" title="{{localize 'SWFFG.OptionalBuffs.Delete'}}"><i class="fas fa-trash"></i></a>
+    </div>
+    <ol class="optional-buff-rows">
+      {{#each buff.rows as |row index|}}
+      <li class="optional-buff-row flexrow" data-row-index="{{index}}">
+        <select class="optional-buff-modtype">
+          {{selectOptions @root.buffModifierTypes selected=row.modtype valueAttr="value" labelAttr="label" localize=true}}
+        </select>
+        <select class="optional-buff-mod">
+          {{selectOptions (lookup @root.modifierChoices row.modtype) selected=row.mod valueAttr="value" labelAttr="label" localize=true}}
+        </select>
+        <input type="number" class="optional-buff-value" value="{{row.value}}" />
+        <a class="optional-buff-control" data-action="delete-row" title="{{localize 'SWFFG.OptionalBuffs.DeleteRow'}}"><i class="fas fa-trash"></i></a>
+      </li>
+      {{/each}}
+    </ol>
+  </div>
+  {{/each}}
+</section>
+{{/if}}

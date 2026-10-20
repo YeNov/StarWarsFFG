@@ -78,6 +78,7 @@ const SYSTEM_SUITES = [
   ["MinimizedCloseTests", () => import("./v2-migration/minimized-close.test.js")],
   ["CritTraumaCounterTests", () => import("./crit-trauma-counter.test.js")],
   ["HyperdriveImportCatalogTests", () => import("./hyperdrive-import-catalog.test.js")],
+  ["OptionalBuffsTests", () => import("./optional-buffs.test.js")],
 ];
 
 /**

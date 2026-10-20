@@ -1701,6 +1701,13 @@ Hooks.on("renderChatMessageHTML", async (message, html) => {
         skillValue: poolData.roll.skillValue ?? null,
         targetDefenceResolved: poolData.roll.targetDefenceResolved === true,
         defenceZone: poolData.roll.defenceZone ?? null,
+        // Optional buffs: the sender's ticked ones are already in the pool, and the rest stay
+        // on offer to the player.
+        skillKey: poolData.roll.skillKey ?? null,
+        characteristic: poolData.roll.characteristic ?? null,
+        rank: poolData.roll.rank ?? null,
+        appliedBuffs: poolData.roll.appliedBuffs ?? [],
+        actorUuid: poolData.roll.actorUuid ?? null,
       },
     );
   });

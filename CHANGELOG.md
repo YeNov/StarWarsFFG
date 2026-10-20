@@ -2,6 +2,8 @@
 
 * Changed — **Configure Codex is now listed below Skill List Import** in Configure Settings, because Codex II now registers its own settings ahead of its move to a separate module.
 * Added — **Apply Crit counts the attacker's Lethal Blows**: +10 per rank on a Critical Injury roll, shown beside Vicious in the crit dialog, where it can be adjusted. It does not apply to a vehicle's Critical Hit.
+* Added — **optional buffs**: weapons, armour, gear, talents and attachments can carry named, situational bonuses (say "+1 Boost on Charm with Hutt Cartel members"), edited under Modifiers on both the classic and the Codex II item sheets. The dice dialog lists the ones that fit the roll, unticked; tick one when it applies, and the chat card names the buffs used.
+* Added — **the classic actor sheet has the carried toggle** the Codex inventory already had, on weapon, armour and gear rows. An item marked not carried leaves encumbrance, as before, and offers no optional buffs.
 * Fixed — **a roll that failed to reach chat still used up the actor's one-check effects and a round of ammo**. Both are now spent only once the roll has posted, so the roll can simply be made again.
 * Fixed — **Apply Crit added nothing when the table row links an item from a compendium**: the draw appeared in chat, but the target got no injury. Compendium items are now added like world items, and a row with no linked item says so instead of failing silently.
 * Fixed — **an Apply Crit total above the table's highest row was quietly rolled again until it fit**, so the worst results never came up. It now lands on the top row (the book's 151+).

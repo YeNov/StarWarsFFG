@@ -25,13 +25,14 @@ import {
   buildPilotRoll
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
-import {get_dice_pool} from "../helpers/dice-helpers.js";
+import {get_dice_pool, crewRollBuffOptions} from "../helpers/dice-helpers.js";
 import { crewRollOptions, isMinionVehicle } from "../helpers/minion-group.js";
 import { hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
 import { sourceSettingPackIds } from "../char-creator/source-descriptors.js";
 import { sheetTracks } from "../helpers/obligation-tracks.js";
 import { defenceZoneModeChoices, vehicleDefenceZones } from "../helpers/vehicle-defence.js";
+import { isCarried } from "../helpers/optional-buffs-offer.js";
 import {itemPillHover} from "../swffg-main.js";
 import {
   findOwnedTalentSourceId,
@@ -1000,6 +1001,16 @@ export class ActorSheetFFG extends FFGActorSheet {
       }
     });
 
+    // Toggle item carried (weapon, armour, gear). A not-carried item leaves encumbrance and offers
+    // no optional buffs. Its own class, not the Codex cards' `toggle-carried`: Codex sheets inherit
+    // these listeners and bind that class themselves, so sharing it would flip the flag twice.
+    html.find(".items .item a.item-carried-toggle").click(async (ev) => {
+      ev.preventDefault();
+      if (!this.actor.verifyEditModeIsNotEnabled()) return;
+      const item = this.actor.items.get($(ev.currentTarget).closest(".item").data("itemId"));
+      if (item) await item.setFlag("starwarsffg", "carried", !isCarried(item));
+    });
+
     // Add Inventory Item
     html.find(".item-add").click((ev) => {
       if(!this.actor.verifyEditModeIsNotEnabled()) {
@@ -1427,7 +1438,10 @@ export class ActorSheetFFG extends FFGActorSheet {
                 pool,
                 `${game.i18n.localize("SWFFG.Rolling")} ${skill}`,
                 skill,
-                foundry.utils.mergeObject(raw_weapons[i], card_data)
+                foundry.utils.mergeObject(raw_weapons[i], card_data),
+                undefined,
+                undefined,
+                crewRollBuffOptions(crew_id, skill, crewRollOptions(ship)),
               );
             }
           }
@@ -1458,7 +1472,10 @@ export class ActorSheetFFG extends FFGActorSheet {
           pool,
           `${game.i18n.localize("SWFFG.Rolling")} ${role_info[0].role_skill}`,
           `${role_info[0].role_skill}`,
-          card_data
+          card_data,
+          undefined,
+          undefined,
+          crewRollBuffOptions(crew_id, role_info[0].role_skill, crewRollOptions(ship)),
         );
       }
     });
@@ -1829,7 +1846,10 @@ export class ActorSheetFFG extends FFGActorSheet {
       pool,
       `${game.i18n.localize("SWFFG.Rolling")} ${weaponSkill}`,
       weaponSkill,
-      foundry.utils.mergeObject(weapon, card_data)
+      foundry.utils.mergeObject(weapon, card_data),
+      undefined,
+      undefined,
+      crewRollBuffOptions(selectedGunner.actor_id, weaponSkill, crewRollOptions(ship)),
     );
   }
 

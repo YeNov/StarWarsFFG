@@ -2,6 +2,9 @@ import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.j
 import { DicePoolFFG } from "./pool.js";
 import { spendsOwnAmmo, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { onceEffectIds, postThenPay } from "./roll-costs.js";
+import { applyOfferedBuffs } from "./optional-buff-pool.js";
+import { rollActorFrom } from "./roll-actor.js";
+import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
 import { characterDefenceDice } from "../helpers/defence-helpers.js";
@@ -29,6 +32,17 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       targetDefenceResolved: rollOptions.targetDefenceResolved === true,
       // {key, label, dice} carried by such a pool so its chat card keeps the line.
       defenceZone: rollOptions.defenceZone ?? null,
+      // Optional buffs (helpers/optional-buffs-offer.js): the rolled skill's key, the
+      // characteristic and rank Skill Rank rebuilds from, and the buffs already in a pool
+      // sent to this player, as {key, name}.
+      skillKey: rollOptions.skillKey ?? null,
+      characteristic: rollOptions.characteristic ?? null,
+      rank: rollOptions.rank ?? null,
+      appliedBuffs: Array.isArray(rollOptions.appliedBuffs) ? rollOptions.appliedBuffs : [],
+      // The actor the roll is for, when the caller knows it better than `data` does (a crew
+      // member rolling from the vehicle's sheet). Filled in below otherwise, so a pool sent to a
+      // player still names the token's own actor.
+      actorUuid: rollOptions.actorUuid ?? null,
     };
     this.dicePool = rollDicePool;
     this.description = rollDescription;
@@ -41,6 +55,46 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     this._defenceZone = null;
     /** Latest resolveDefenceTarget() result; refreshed by the targetToken hook. */
     this._defenceTarget = { status: "none", actor: null, zones: [] };
+    /** The optional buffs this roll offers, and the keys of those the player ticked. */
+    this._optionalBuffs = this._collectOptionalBuffs();
+    this._tickedBuffKeys = new Set();
+  }
+
+  /**
+   * The optional buffs this roll offers, read once from the rolling actor's items. Buffs
+   * already in a sent pool are marked applied: shown ticked and locked, never added again.
+   * @returns {Array<object>}
+   */
+  _collectOptionalBuffs() {
+    try {
+      const item = this.roll.item;
+      const actor = rollActorFrom(
+        { data: this.roll.data, item, actorUuid: this.roll.actorUuid },
+        (id) => game.actors.get(id),
+        (uuid) => foundry.utils.fromUuidSync(uuid),
+      );
+      this.roll.actorUuid ??= actor?.uuid ?? null;
+      const offered = collectOfferedBuffs({
+        items: actor?.items ?? [],
+        skillKey: this.roll.skillKey,
+        weaponId: item?.type === "weapon" ? (item.id ?? item._id ?? null) : null,
+        isForcePower: item?.type === "forcepower",
+      });
+      return withAppliedBuffs(offered, this.roll.appliedBuffs);
+    } catch (error) {
+      CONFIG.logger.warn(`Could not read the optional buffs for this roll: ${error}`);
+      return withAppliedBuffs([], this.roll.appliedBuffs);
+    }
+  }
+
+  /** The ticked optional buffs that still need adding to the pool. */
+  _tickedBuffs() {
+    return this._optionalBuffs.filter((buff) => !buff.applied && this._tickedBuffKeys.has(buff.key));
+  }
+
+  /** A buff's name for the dialog and the card. */
+  static _buffLabel(buff) {
+    return buff.name || game.i18n.localize("SWFFG.OptionalBuffs.Unnamed");
   }
 
   /**
@@ -218,6 +272,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       diceSymbols,
       simDisplay: display,
       simCount: game.settings.get("starwarsffg", "rollSimulation"),
+      optionalBuffs: this._optionalBuffs.map((buff) => ({
+        key: buff.key,
+        name: RollBuilderFFG._buffLabel(buff),
+        source: buff.source,
+        ticked: buff.applied === true || this._tickedBuffKeys.has(buff.key),
+        locked: buff.applied === true,
+      })),
     };
   }
 
@@ -228,6 +289,14 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
 
     this._initializeInputs(html);
     this._activateInputs(html);
+
+    // Optional buffs: ticking one layers it onto the preview (see _effectivePool).
+    html.find(".optional-buffs input.optional-buff-tick").on("change", (event) => {
+      const key = event.currentTarget.dataset.buffKey;
+      if (event.currentTarget.checked) this._tickedBuffKeys.add(key);
+      else this._tickedBuffKeys.delete(key);
+      this._updatePreview(html);
+    });
 
     html.find(".adversary-mode-btn").on("click", (event) => {
       event.preventDefault();
@@ -298,6 +367,8 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       const defenceSnapshot = this._defenceDice();
       const zoneSnapshot = this._defenceZoneSnapshot();
       const rollPool = this._effectivePool(defenceSnapshot);
+      // The optional buffs in that pool: those already in a sent pool, then those ticked here.
+      const buffsInPool = [...this._optionalBuffs.filter((buff) => buff.applied), ...this._tickedBuffs()];
       // Forward roll diagnostics to the GM machine (and log locally) so the table
       // can audit what each player's client computed -- on every roll. The
       // adversary pool is only meaningful when an Adversary is targeted (ranks > 0).
@@ -383,6 +454,8 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         // snapshot so the eventual card still names the zone the sender picked.
         this.roll.targetDefenceResolved = true;
         this.roll.defenceZone = zoneSnapshot;
+        // Likewise its optional buffs: the recipient shows them ticked and locked.
+        this.roll.appliedBuffs = buffsInPool.map((buff) => ({ key: buff.key, name: buff.name }));
 
         let chatOptions = {
           user: game.user.id,
@@ -419,6 +492,9 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
                 zone: zoneSnapshot.label,
                 dice: zoneSnapshot.dice,
               });
+        roll.optionalBuffsText = buffsInPool.length > 0
+          ? game.i18n.format("SWFFG.OptionalBuffs.CardLine", { names: buffsInPool.map(RollBuilderFFG._buffLabel).join(", ") })
+          : null;
         // check if this is a crew roll - and it's a roll for a weapon
         if (this.roll.item && this.roll.item.hasOwnProperty('crew') && Object.keys(this.roll.item).length > 1) {
           await this.roll.item.update({"flags": {"starwarsffg": {"crew": this.roll.item.crew}}})
@@ -699,15 +775,21 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
 
   _effectivePool(defenceOverride = null) {
     const defence = defenceOverride == null ? this._defenceDice() : defenceOverride;
-    const adversaryActive = this._adversaryMode && this.adversaryRanks > 0 && this.dicePool.difficulty > 0;
+    // Ticked optional buffs go on first, on a copy: the live base pool that manual edits
+    // mutate is never changed by them, so unticking always gives the player's pool back.
+    const ticked = this._tickedBuffs();
+    const base = ticked.length > 0
+      ? applyOfferedBuffs(this._clonePool(), ticked, { characteristic: this.roll.characteristic, rank: this.roll.rank })
+      : this.dicePool;
+    const adversaryActive = this._adversaryMode && this.adversaryRanks > 0 && base.difficulty > 0;
     // A negative base setback is an "ignore N defence" adjustment, not a count of
     // dice, so it cancels defence and then floors at zero. It must never leave here
     // negative: the preview would draw nothing for it and the roll would clamp it
     // anyway, but the logged pool summary would report a die count that cannot exist.
-    const netSetback = Math.max(0, this.dicePool.setback + defence);
+    const netSetback = Math.max(0, base.setback + defence);
     // Nothing to change: hand back the live base pool that manual edits mutate.
-    if (!adversaryActive && netSetback === this.dicePool.setback) return this.dicePool;
-    const clone = this._clonePool();
+    if (!adversaryActive && netSetback === base.setback) return base;
+    const clone = base === this.dicePool ? this._clonePool() : base;
     clone.setback = netSetback;
     if (adversaryActive) clone.upgradeDifficulty(this.adversaryRanks);
     return clone;

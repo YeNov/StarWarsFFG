@@ -1,4 +1,4 @@
-import {get_dice_pool} from "./dice-helpers.js";
+import {get_dice_pool, crewRollBuffOptions} from "./dice-helpers.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import DiceHelpers from "../helpers/dice-helpers.js";
 import { crewRollOptions } from "./minion-group.js";
@@ -282,7 +282,10 @@ export async function handlePilotCheck(vehicle, pilot_id) {
     pool,
     `${game.i18n.localize("SWFFG.Rolling")} ${skill}`,
     skill,
-    card_data
+    card_data,
+    undefined,
+    undefined,
+    crewRollBuffOptions(pilot_id, skill, crewRollOptions(vehicle)),
   );
 }
 
