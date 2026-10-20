@@ -1,6 +1,7 @@
 import { MonteCarlo } from "../../lib/@swrpg-online/monte-carlo/dist/index.esm.js";
 import { DicePoolFFG } from "./pool.js";
 import { spendsOwnAmmo, getAmmoValue } from "../helpers/ammo-helpers.js";
+import { onceEffectIds, postThenPay } from "./roll-costs.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
 import { characterDefenceDice } from "../helpers/defence-helpers.js";
@@ -362,43 +363,9 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       }
 
 
-      try {
-        // remove one-time status effects
-        CONFIG.logger.debug("Removing one-time status effects from actor");
-        const actorData = this.roll.data.document;
-        if (actorData) {
-          if (actorData) {
-            const actorEffects = actorData.getEmbeddedCollection("ActiveEffect");
-            if (actorEffects) {
-              const toDelete = [];
-              for (const activeEffect of actorEffects.contents) {
-                // duration marker moved to flags: V14's strict ActiveEffect system model
-                // strips unknown `system` keys. Fall back to the legacy location for safety.
-                const duration = activeEffect?.flags?.starwarsffg?.duration ?? activeEffect?.system?.duration;
-                if (duration === "once") {
-                  toDelete.push(activeEffect._id);
-                }
-              }
-              if (toDelete.length > 0) {
-                await actorData.deleteEmbeddedDocuments("ActiveEffect", toDelete);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        CONFIG.logger.warn(`Caught error in roller: ${error}`);
-      }
-
-      try {
-        if (this?.roll?.item && (this.roll.item.type === "weapon" || this.roll.item.type === "shipweapon")) {
-          const item = await foundry.utils.fromUuid(this.roll.item.uuid);
-          if (item && spendsOwnAmmo(item)) {
-            await item.update({ "system.ammo.value": Math.max(0, getAmmoValue(item) - 1) });
-          }
-        }
-      } catch (error) {
-        CONFIG.logger.warn(`Caught ammo error in roller: ${error}`);
-      }
+      // What this roll costs, read now so it matches the pool above. It is paid only once the
+      // roll has reached chat, so a post that fails leaves the actor and the weapon as they were.
+      const rollCosts = this._rollCosts();
 
       const sentToPlayer = html.find(".user-selection")?.[0]?.value;
       if (sentToPlayer) {
@@ -433,7 +400,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           chatOptions.whisper = [sentToPlayer];
         }
 
-        ChatMessage.create(chatOptions);
+        await postThenPay(() => ChatMessage.create(chatOptions), rollCosts);
         await this.close();
       } else {
         if (this.roll.crew) {
@@ -456,7 +423,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         if (this.roll.item && this.roll.item.hasOwnProperty('crew') && Object.keys(this.roll.item).length > 1) {
           await this.roll.item.update({"flags": {"starwarsffg": {"crew": this.roll.item.crew}}})
         }
-        await roll.toMessage({
+        await postThenPay(() => roll.toMessage({
           user: game.user.id,
           speaker: {
             actor: game.actors.get(this.roll.data?.actor?._id),
@@ -464,7 +431,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
             token: this.roll.data?.token?._id,
           },
           flavor: `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize(this.roll.skillName)}...`,
-        });
+        }), rollCosts);
         if (this.roll?.sound) {
           AudioHelper.play({ src: this.roll.sound }, true);
         }
@@ -744,6 +711,30 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     clone.setback = netSetback;
     if (adversaryActive) clone.upgradeDifficulty(this.adversaryRanks);
     return clone;
+  }
+
+  /**
+   * What the roll about to be made costs, ready to pay once it has posted (see roll-costs.js):
+   * the actor's once-only effects as they stand now, and one round of the weapon's ammo.
+   * @returns {Array<() => Promise<*>>}
+   */
+  _rollCosts() {
+    const costs = [];
+    const actor = this.roll.data?.document;
+    const effectIds = onceEffectIds(actor?.getEmbeddedCollection?.("ActiveEffect")?.contents);
+    if (effectIds.length > 0) {
+      costs.push(() => actor.deleteEmbeddedDocuments("ActiveEffect", effectIds));
+    }
+    const item = this.roll.item;
+    if (item && (item.type === "weapon" || item.type === "shipweapon")) {
+      costs.push(async () => {
+        const weapon = await foundry.utils.fromUuid(item.uuid);
+        if (weapon && spendsOwnAmmo(weapon)) {
+          await weapon.update({ "system.ammo.value": Math.max(0, getAmmoValue(weapon) - 1) });
+        }
+      });
+    }
+    return costs;
   }
 
   _initializeInputs(html) {

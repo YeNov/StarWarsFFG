@@ -42,7 +42,7 @@ const applyHit = ({ items = [], type = "character", pierce = 0, breach = 0, pool
         { name: "Breach Quality", totalRanks: breach },
       ] },
     },
-  }, 2);
+  }, 2, target);
   // The dialog seeds its two inputs from `seed` and hands back whatever the user left there.
   return { seed, ...planDamageApplication(actor, target, { damage: seed.autoDamage, pierce: seed.autoPierce, pool }) };
 };
@@ -123,8 +123,24 @@ test("personal armor does not grant vehicle armor protection", () => {
   const result = applyHit({ items: [armor([quality("Beskar")])], type: "vehicle", breach: 1 });
 
   assert.equal(result.path, "system.stats.hullTrauma.value");
-  assert.equal(result.applied, 12);
+  // Breach 1 gets through one of the vehicle's 6 armour: 12 - 5.
+  assert.equal(result.applied, 7);
   assert.deepEqual(result.soakProtection, []);
+});
+
+test("against a vehicle, Breach gets through one armour per rank and Pierce through none", () => {
+  const result = applyHit({ type: "vehicle", pierce: 3, breach: 2, damage: 12 });
+
+  assert.equal(result.seed.autoPierce, 2);
+  assert.equal(result.effectiveSoak, 4);
+  assert.equal(result.applied, 8);
+});
+
+test("against a character, Breach still gets through ten soak per rank", () => {
+  const result = applyHit({ type: "character", pierce: 3, breach: 1, damage: 12 });
+
+  assert.equal(result.seed.autoPierce, 13);
+  assert.equal(result.effectiveSoak, 0);
 });
 
 test("both protective qualities are listed once, sorted, including attachment and renamed ones", () => {

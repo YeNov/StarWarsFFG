@@ -1,6 +1,12 @@
 `Unreleased`
 
 * Changed — **Configure Codex is now listed below Skill List Import** in Configure Settings, because Codex II now registers its own settings ahead of its move to a separate module.
+* Added — **Apply Crit counts the attacker's Lethal Blows**: +10 per rank on a Critical Injury roll, shown beside Vicious in the crit dialog, where it can be adjusted. It does not apply to a vehicle's Critical Hit.
+* Fixed — **a roll that failed to reach chat still used up the actor's one-check effects and a round of ammo**. Both are now spent only once the roll has posted, so the roll can simply be made again.
+* Fixed — **Apply Crit added nothing when the table row links an item from a compendium**: the draw appeared in chat, but the target got no injury. Compendium items are now added like world items, and a row with no linked item says so instead of failing silently.
+* Fixed — **an Apply Crit total above the table's highest row was quietly rolled again until it fit**, so the worst results never came up. It now lands on the top row (the book's 151+).
+* Fixed — **Apply Crit posted its result publicly even after a whispered or blind attack**. The draw and the injury now go to whoever saw the attack.
+* Fixed — **Apply Damage against a vehicle pre-filled Breach as 10 armour per rank**, so Breach 1 got through up to 10 armour. Against a vehicle, Breach now gets through 1 armour per rank and Pierce none; against characters it is still 10 soak per rank.
 * Fixed — **attacks made from Token Action HUD counted the target's defence twice** ([#104](https://github.com/YeNov/StarWarsFFG/pull/104)), so a target with defence 2 added 4 setback dice instead of 2 (since 2.1.3). Attacks from the character sheet were not affected.
 * Fixed — **the Codex + and − buttons on a minion group or minion vehicle group now behave at the ends**. + on a group wiped out by a big hit brings back exactly one member (it left the group wiped out), + on a group that has lost nobody changes nothing (it cleared a single point of damage), and − on a wiped-out group changes nothing (after a big hit it lowered the damage).
 * Fixed — **every minion kill after the first left one extra wound on the next minion**, so the group lost members early (with 3 wounds per minion, a kill at 4 wounds went to 8 instead of 7). The classic sheet's Kill Minion button and a critical hit on a minion group now remove exactly one minion each time and keep any damage already on the next; a kill with no minion left does nothing.

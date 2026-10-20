@@ -99,11 +99,16 @@ export function planDamageTarget(actor) {
  * The numbers the dialog opens with, read off the weapon data embedded in the attack's chat
  * message. The user is free to overwrite both before applying.
  *
+ * Pierce and Breach go into one number, in the target's own units: against soak, Pierce gets
+ * through one point per rank and Breach ten; against a vehicle's armour, Breach gets through one
+ * point per rank and Pierce through none.
+ *
  * @param {object} itemData - the rendered weapon copy carried on the roll
  * @param {number} successes - the attack's net successes
+ * @param {object} [target] - what `planDamageTarget` returned for the target
  * @returns {{autoDamage: number, autoPierce: number, weaponName: string}}
  */
-export function planDamageSeed(itemData, successes) {
+export function planDamageSeed(itemData, successes, target) {
   const itemSystem = itemData?.system || {};
   // `adjusted` folds in modifiers and attachments; it is 0 on a weapon that has never been
   // through the item sheet, in which case the raw value is the honest number.
@@ -123,9 +128,10 @@ export function planDamageSeed(itemData, successes) {
     else if (name.includes("breach")) breachRanks += ranks;
   }
 
+  const againstArmour = target?.soakWord === "armour";
   return {
     autoDamage: baseDamage + (Number(successes) || 0),
-    autoPierce: pierceRanks + 10 * breachRanks,
+    autoPierce: againstArmour ? breachRanks : pierceRanks + 10 * breachRanks,
     weaponName: itemData?.name || itemSystem.name || "weapon",
   };
 }

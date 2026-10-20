@@ -66,7 +66,8 @@ test("every ammo gate and the ammo spend ask the ammo-source hook", () => {
   const gates = [
     ["modules/helpers/dice-helpers.js", /if \(item && !hasAmmoToFire\(item\)\) \{/, "rollItem's gate"],
     ["modules/actors/actor-sheet-ffg.js", /if \(!hasAmmoToFire\(weapon\)\) \{/, "the crew gunnery gate"],
-    ["modules/dice/roll-builder.js", /if \(item && spendsOwnAmmo\(item\)\) \{/, "the roll's ammo spend"],
+    // The spend lives in RollBuilderFFG#_rollCosts, paid once the roll has posted.
+    ["modules/dice/roll-builder.js", /if \((item|weapon) && spendsOwnAmmo\(\1\)\) \{/, "the roll's ammo spend"],
   ];
   for (const [path, pattern, what] of gates) {
     assert.ok(pattern.test(read(path)), `${what} in ${path} does not ask the ammo-source hook`);
