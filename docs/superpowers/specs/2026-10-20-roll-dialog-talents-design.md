@@ -54,7 +54,9 @@ one, and editing one macro changes every item that uses it.
     instead of strain, and **minions** cannot use options with a strain cost (the Parry / Reflect
     rule).
 14. **When the person rolling cannot update the actor who pays**, the charge goes **through the GM
-    bridge**, as Parry's does, and the GM's client re-checks the threshold.
+    bridge**, as Parry's does, and the GM's client re-checks the threshold. *(After review: every
+    charge takes that path, owners included, so two charges for one actor share one queue and
+    never overwrite each other.)*
 15. **The options sit on a foldable side card on the right of the roll dialog**, and the **optional
     buffs move onto that card** too.
 16. **A pool the GM sends to a player** keeps its options **ticked but not locked**: the player can
@@ -90,7 +92,7 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
 - The roll dialog's side card offers exactly the options that fit the roll, with their cost, and
   greys out (with the reason) those the actor cannot pay for or whose condition is not met.
 - A ticked option changes the dice as its code says; the roll charges its strain (or wounds) after
-  it posts, directly or through the GM; the chat card names it.
+  it posts, through the GM bridge's queue; the chat card names it.
 - Two-weapon attacks add their difficulty from the card, on any personal weapon attack.
 - One library run gives every matching item the GM can edit a working link.
 
@@ -112,7 +114,10 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
 
 - **Strain charged for a roll that never reached chat**, or charged on ticking, or charged twice.
 - **Strain silently left unpaid** after a roll that used a costed option. A charge that fails after
-  the roll posted (the GM refused it, or the bridge could not reach a writer) says so on screen.
+  the roll posted (the writer refused it, or no writer could be reached) says so on screen.
+- **Calling a charge unpaid when it may have gone through.** A bridged charge whose reply was lost
+  may already be applied; telling the user it was not invites a second charge.
+- **Two charges for the same actor reading the same strain** and one overwriting the other.
 - **An option taking an actor past their strain (or wound) threshold.**
 - **A player changing option code or links from any sheet**, or a macro's text being run.
 - **Ticking and unticking that leaves the pool changed.** Manual edits survive any sequence of
@@ -141,10 +146,16 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
   The payer pool, its threshold and the "over, not at" rule are those of
   `modules/helpers/defensive-talents.js` (`defenceCostPool`, `readCostPool`, `wouldIncapacitate`);
   reuse them rather than restating them.
-- Charges for an actor the roller cannot update go through `applyToTargetActor` in
-  `modules/helpers/gm-bridge.js`, whose writer re-checks the cost against the live actor inside its
-  queue, as Parry's `defenceCost` does. Strain and wounds are already among the paths it accepts
-  for unowned targets.
+- **Every** option charge goes through `applyToTargetActor` in `modules/helpers/gm-bridge.js`,
+  whether or not the roller owns the payer. Its coordinator (`actor-apply-coordinator.js`) gives
+  each actor one writer and one queue, shared with damage and Parry, so two charges never read the
+  same strain; the writer re-checks the cost against the live actor inside that queue, as Parry's
+  `defenceCost` does. Strain and wounds are already among the paths it accepts for unowned
+  targets. A writer on an older version must refuse rather than misapply: the request names a
+  capability, as Parry's does with `DEFENSIVE_DAMAGE_CAPABILITY`.
+- Qualities and attachment modifications that are switched off or broken count for nothing, as
+  elsewhere in the system: `isModifierSuspended` (`modules/helpers/modifier-switch.js`) and
+  `system.broken === true` (see `modules/helpers/innate-talents.js`).
 - Codex II reaches the system only through `modules/api/public-api.js`.
   `tests/node/codex-boundary.test.mjs` and `tests/node/public-api-surface.test.mjs` must keep
   passing. The link list follows the optional-buffs pattern (a shared partial Codex templates
@@ -202,9 +213,9 @@ Each option is an object with these keys. Every key except `label` is optional.
     "attack": true,                //   the roll is made with a weapon (personal or ship)
     "twoWeapons": "same"           //   Two weapons is set to "same", "different" or "any" (not "no")
   },
-  "amount": { "max": "ranks", "label": "Strain" },  // the player picks 1..max; max is a number,
-                                                    // "ranks" or "forceRating"
-  "cost": { "strain": 2, "maneuvers": 1 },          // a number, or "amount"
+  "amount": { "max": "ranks", "label": "Strain" },  // the player picks 1..max; max is a positive
+                                                    // whole number, "ranks" or "forceRating"
+  "cost": { "strain": 2, "maneuvers": 1 },          // a whole number of 0 or more, or "amount"
   "dice": { "difficulty": -1 }                      // see below
 }
 ```
@@ -212,6 +223,12 @@ Each option is an object with these keys. Every key except `label` is optional.
 **`dice` keys:** `boost`, `setback`, `removeSetback`, `difficulty`, `upgradeAbility`,
 `downgradeAbility`, `upgradeDifficulty`, `downgradeDifficulty`. Each value is a whole number
 (negative allowed), `"ranks"`, `"amount"` or `"forceRating"`.
+
+**Limits:** every number is a finite whole number. Costs are 0 or more, so no option can lower
+strain and make room for another. A numeric `amount.max` is 1 or more. When `amount.max` is a word
+that resolves to 0 at roll time (a Force rating of 0, say), the option is shown greyed with the
+reason ("Force rating 0"). The amount the player picks is a whole number from 1 to the max (and to
+what the payer pool still has room for).
 
 **What the words mean:**
 
@@ -223,9 +240,10 @@ Each option is an object with these keys. Every key except `label` is optional.
 
 **Rules the validator enforces:** the JSON parses; it is an option or an array of options; each
 option is an object with only the keys above; `offer.twoWeapons` is one of `same`, `different`,
-`any`; skill types are the five known ones; values are of the types listed; `"amount"` appears only
-in an option with an `amount`; `label`, when given, is a non-empty string. Errors name the option
-and the key ("option 2: cost.strain must be a number or \"amount\"").
+`any`; skill types are the five known ones; values are of the types listed and within the limits
+above; `"amount"` appears only in an option with an `amount`; `label`, when given, is a non-empty
+string. Errors name the option and the key ("option 2: cost.strain must be a whole number of 0 or
+more, or \"amount\"").
 
 **When it runs:**
 
@@ -246,6 +264,9 @@ from a vehicle sheet, the crew member. Its items count with the optional-buffs r
   attacks made **with that weapon**, and only while it is carried (not marked "not carried").
 - **armour** (while equipped) and its qualities and attachments, and **gear** (while carried): when
   their `offer` matches.
+- **A quality or modification that is switched off** (its Installed? / active box unticked, as
+  `isModifierSuspended` reads it) **or broken** (`system.broken === true`) offers nothing. This
+  applies to qualities on a weapon or armour and to the modifications inside an attachment.
 - **Force power rolls offer nothing.** A roll with no actor offers nothing.
 
 Two items linking the same macro show its options once (rows are keyed by macro uuid and option
@@ -280,19 +301,30 @@ player already set below zero by hand, as today.
   current + the cost of everything already ticked + its own cost would go **over** the threshold.
   Reaching the threshold exactly is allowed; an unknown threshold never refuses, as in
   `wouldIncapacitate`. An `amount` box is capped to what still fits.
-- **Who can charge:** if the current user can update the payer, the charge is a direct update.
-  Otherwise it goes through the GM bridge. If neither is possible (no GM connected, and the bridge
-  would find no writer), costed options are greyed ("Needs the GM connected").
+- **Who can charge:** every charge goes through the GM bridge's queue for the payer (see
+  Constraints), whoever rolls. When the bridge would find no writer for the payer (no GM
+  connected, and no owner of the payer connected), costed options are greyed ("Needs the GM
+  connected").
 - **Dependencies:** an option whose `offer.twoWeapons` does not match the current Two weapons
   choice is shown greyed ("Needs Two weapons: same skill"). Changing Two weapons so it no longer
   matches unticks it.
 - **Footer:** when the roll offers any option with a cost, the card's footer shows the payer pool
   after the roll ("Strain after roll: 12 / 12", or "Wounds after roll" for a rival).
 - **Paying:** at the Roll click the dialog snapshots what is ticked, with the pool. The total cost
-  is charged through `postThenPay`, after the message posts, in one update (direct or bridged). A
-  failed post charges nothing. If the charge itself fails after posting (the writer finds the
-  actor can no longer pay, or no writer answers), the user gets a warning naming the actor and the
-  unpaid cost; the roll stays posted. Maneuvers are shown, never counted.
+  is charged through `postThenPay`, after the message posts, as one request to the bridge. A failed
+  post charges nothing. Maneuvers are shown, never counted.
+- **What the roller is told about the charge.** The roll stays posted whatever happens. The bridge
+  already tells these apart, and the warning must too:
+  - **Charged** (the writer confirmed): nothing more to say.
+  - **Not charged, for certain:** no writer could be reached, so nothing was sent; or the writer
+    refused (the actor can no longer pay, or the writer's version is too old). The warning names
+    the actor, the cost and the reason ("Kira's 2 strain for Guns Blazing was not charged: it
+    would take her past her threshold").
+  - **Still waiting:** the coordinator's existing "still waiting for confirmation" notice covers
+    it. A later confirmation needs nothing more; a later refusal gives the "not charged" warning.
+  - **Unknown:** the writer disconnected before confirming, so the charge may or may not have gone
+    through. The warning says so and tells the user to check the actor's strain before charging it
+    by hand. It never says "not charged".
 
 ### Side card
 
@@ -336,7 +368,7 @@ changes:
   preview matches the sender's. Unticking takes a selection's dice off. A selection that no longer
   fits (no room left in the payer pool, the item or macro gone) arrives unticked.
 - Option costs are charged when the **recipient's** roll posts, for the actor the roll is for,
-  directly or through the GM bridge. The sender's ammo and one-check effects are still paid when
+  through the GM bridge's queue. The sender's ammo and one-check effects are still paid when
   the sender's message posts, as today.
 - A message sent before this change (with `appliedBuffs` and a baked pool) still opens as it does
   today.
@@ -357,17 +389,26 @@ armour, gear and attachment:
 *(Builder's call: placed next to the Optional buffs block on the Modifiers tab, and the matching
 place in the popups and on Codex sheets.)*
 
-**Only the GM can change links:** a `preUpdateItem` check refuses a non-GM update that changes the
-link list of the item itself or of any copy it holds (specialization tree nodes, qualities,
-attachments and their qualities). Creating an item is copying, not editing: an item a player
-drops, duplicates or takes from a compendium keeps the links it came with. Inside an update, a
-copy that arrives by dropping an existing item (a talent into a tree, a quality onto a weapon)
-carries the dropped item's links unchanged and still works for players. *(Builder's call how the
-check tells such a copy from an edit, e.g. by comparing the new links against the dropped
-source's.)* The check runs on the player's own
-client, which is as far as Foundry lets a system enforce it: it stops every sheet path, not a
-determined player at the console. The library's macros belong to the GM, and Foundry's server
-refuses a player's edit to their text.
+**Only the GM can change links.** A `preUpdateItem` check refuses a non-GM update that changes a
+link list, and allows everything else a player does with copies today. The rule compares the item
+before and after the update:
+
+- **The item's own link list** must be unchanged.
+- **Copies it holds** are matched before and after by identity: a quality or attachment by its id
+  (the `id` / `_id` each copy gets when dropped), a specialization tree node by its slot key **and**
+  the talent it holds (`itemId`, falling back to the name); the qualities inside an attachment, by
+  the attachment's id and then their own.
+  - A copy present **before and after** must keep exactly the same links.
+  - A copy **removed** (a quality or attachment taken off), **added** (one dropped on), or
+    **replaced** (a tree slot now holding a different talent) is allowed, whatever links it carries.
+  - **Reordering** copies changes nothing, since they are matched by identity, not position.
+
+Creating an item is copying, not editing: an item a player drops, duplicates or takes from a
+compendium keeps the links it came with. The check runs on the player's own client, which is as
+far as Foundry lets a system enforce it: it stops every sheet path, not a determined player at the
+console. The library's macros belong to the GM, and Foundry's server refuses a player's edit to
+their text. The decision (old data, new data → allowed or refused, with the reason) is a pure
+function, tested in Node.
 
 ### The library
 
@@ -426,7 +467,8 @@ tested in Node; the runner only gathers documents and applies the result.
   each place that opens it; a place that cannot supply it offers only options without
   `skillTypes`.
 - Whether the bridged charge reuses the `damage` operation with a cost check or adds its own
-  operation, as long as the writer re-checks the threshold.
+  operation, as long as every charge goes through the coordinator's queue, the writer re-checks
+  the threshold, and an older writer refuses through a capability check.
 - How the save check keeps the GM's text (see **When it runs**).
 - The player-read check for macros (see **Data**).
 - Checking each library entry against the rule text, as above.
@@ -438,11 +480,16 @@ Node tests for the parts free of Foundry:
 - validation: parsing, one option or a list, every key and value type, unknown keys, `"amount"`
   without `amount`, bad skill types, error messages naming the option and key; every library entry
   passes;
+- limits: negative, fractional and non-finite costs refused; cost 0 accepted; numeric
+  `amount.max` of 0, negative or fractional refused; a word max resolving to 0 greys the option;
+  the picked amount kept within 1..max and the room left;
 - which links count: unresolved links and invalid JSON skipped; any author and either macro type
   accepted;
 - offering: skills, skill types, attack-only, weapon-borne options only with that weapon, carried /
-  equipped rules, talents from items and trees with combined ranks, the same macro on two items
-  shown once, crew rolls offering for the crew member, Force power rolls, no actor;
+  equipped rules, switched-off and broken qualities and attachment modifications offering nothing
+  (on a weapon, on armour, inside an attachment), talents from items and trees with combined ranks,
+  the same macro on two items shown once, crew rolls offering for the crew member, Force power
+  rolls, no actor;
 - `ranks`, `forceRating` and `amount` resolution;
 - pool changes and their order, including Two weapons + Guns Blazing cancelling exactly, around
   Adversary upgrades and negative manual setback; tick / untick / re-tick leaving the base pool
@@ -450,13 +497,21 @@ Node tests for the parts free of Foundry:
 - room checks: strain and wounds, exactly-at-threshold allowed, over refused, amounts capped,
   minions and vehicles greyed, "needs the GM" greying, dependency greying and unticking on a Two
   weapons change;
+- charging: every charge, owner or not, goes through the coordinator; two concurrent charges for
+  the same actor both land (the second reads the first's result), and the second is refused when
+  the two together would pass the threshold; the roller's message for each outcome (charged,
+  refused, no writer, still waiting then confirmed or refused, writer disconnected = unknown),
+  with "unknown" never worded as "not charged";
 - the chat line's text;
 - sent pools: the message's selections round-tripping, the recipient's layered pool matching the
   sender's, a selection that no longer fits, an old `appliedBuffs` message;
 - the library planner: matches, name normalisation, existing macros reused and never overwritten,
   live links left alone, dead links replaced, tree nodes, qualities on weapons, armour and
   attachments, attachment qualities, species skipped, idempotence;
-- the link guard's decision (pure part).
+- the link guard's decision: the item's own links changed by a player refused; a kept copy's links
+  changed refused; a quality or attachment removed, added or replaced allowed; a tree slot given a
+  different talent allowed; copies reordered allowed; qualities inside an attachment matched
+  through the attachment; any change by a GM allowed.
 
 In Foundry, on the `test` world (ask before starting Foundry: the campaign world shares the data
 folder), by hand: run the library and check the report and the macro folder; on a character with
@@ -464,8 +519,10 @@ the first-iteration talents and a weapon with Auto-fire, check each option shows
 greys out at the threshold, changes the preview, charges after posting (and not on a failed post),
 and is named in chat; edit a library macro and see every linked item follow; a rival paying wounds
 and a minion greyed; a crew roll charging the crew member; a player rolling for an actor they do
-not own, charged through the GM; the link lists on classic sheets, popups and Codex sheets, and
-their absence for a player; a GM-sent pool arriving ticked and unticking cleanly.
+not own, charged through the GM; two quick rolls in a row both charged; a broken or uninstalled
+Auto-fire offering nothing; a player removing a linked quality from their weapon without being
+refused; the link lists on classic sheets, popups and Codex sheets, and their absence for a
+player; a GM-sent pool arriving ticked and unticking cleanly.
 
 ## Documentation
 
