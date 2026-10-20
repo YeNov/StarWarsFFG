@@ -16,42 +16,51 @@ charges strain from the roll dialog. Optional buffs (merged in PR #109) let an i
 situational dice changes, but they carry no cost, no condition and no amount to choose.
 
 A **roll option** is something the player switches on in the roll dialog that changes that one
-roll, and may cost something. Options are **data carried by the item** (a talent, a weapon quality,
-a weapon…), written as JSON by the GM, so the long tail of talents can be covered without new code
-for each one.
+roll, and may cost something. Options are **written as JSON in a macro** that the GM owns, and
+**items link to that macro**, so the long tail of talents can be covered without new code for each
+one, and editing one macro changes every item that uses it.
 
 ## What the user decided
 
-1. **Each item carries its own option code.** Talents (Guns Blazing, Saber Swarm) carry their logic;
-   the **Auto-fire quality** carries the autofire option.
-2. **Two-weapon attacks are built in**, not item code: on any attack the player picks **no / same
-   skill / different skills**.
-3. **The code is JSON** (a config describing behaviour), not a script.
-4. **The system ships a library** of ready-made code for the common talents and qualities, and a
-   **GM macro injects it** into matching items: on characters and actors generally, in the world's
-   items, and in compendiums.
-5. **Players cannot edit the code.** Only the GM can.
-6. **First iteration** covers exactly: two-weapon attacks (built in), Auto-fire, Intense Focus,
+1. **Option code lives in Foundry macros, as JSON.** A macro (the hotbar kind, type script) whose
+   text is JSON describes one or more options. The system reads that text and never runs it.
+2. **Items link to the macro by uuid; they do not copy it.** The GM drops a macro onto a talent,
+   quality, weapon, armour, gear or attachment. Editing the macro changes the behaviour of every
+   item linked to it. Copies the system makes of an item (a talent dropped into a specialization
+   tree, a quality dropped onto a weapon) copy the link.
+3. **The Auto-fire quality carries the autofire option**; talents like Guns Blazing and Saber Swarm
+   carry their own.
+4. **Two-weapon attacks are built in**, not macro code: on personal weapon attacks the player picks
+   **no / same skill / different skills**.
+5. **The system ships a library** of ready-made code for the common talents and qualities, and a
+   **GM macro run** creates the library's macros and links them into matching items: on actors
+   generally, in the world's items and in compendiums.
+6. **Players cannot edit the code.** Only the GM edits the macros and the links.
+7. **Link lists are on the item sheets and in the popups** that edit copies inside other items: the
+   qualities and attachments inside a weapon or armour, and specialization tree nodes.
+8. **The link list is on the classic and the Codex II item sheets.**
+9. **First iteration** covers exactly: two-weapon attacks (built in), Auto-fire, Intense Focus,
    Frenzied Attack, Guns Blazing, Saber Swarm, True Aim, Sniper Shot and Point Blank. A broader pass
    over more talents comes later.
-7. **The system's job ends at the roll.** Extra hits (second weapon, Auto-fire, Linked) and
-   spending advantage stay with the table.
-8. **Nothing is enforced per round.** "Once per round" is not tracked or blocked.
-9. **Options do not change the weapon.** Linked, damage and range are not written onto the weapon
-   copy the chat card carries; the chat card **names each option used, with its rank** (or chosen
-   amount) where it has one.
-10. **An option cannot be ticked if its cost would incapacitate the actor.** Rivals pay **wounds**
+10. **The system's job ends at the roll.** Extra hits (second weapon, Auto-fire, Linked) and
+    spending advantage stay with the table.
+11. **Nothing is enforced per round.** "Once per round" is not tracked or blocked.
+12. **Options do not change the weapon.** Linked, damage and range are not written onto the weapon
+    copy the chat card carries; the chat card **names each option used, with its rank** (or chosen
+    amount) where it has one.
+13. **An option cannot be ticked if its cost would incapacitate the actor.** Rivals pay **wounds**
     instead of strain, and **minions** cannot use options with a strain cost (the Parry / Reflect
     rule).
-11. **The GM code editor is on both the classic and the Codex II item sheets.**
-12. **The options sit on a foldable side card on the right of the roll dialog**, and the **optional
+14. **When the person rolling cannot update the actor who pays**, the charge goes **through the GM
+    bridge**, as Parry's does, and the GM's client re-checks the threshold.
+15. **The options sit on a foldable side card on the right of the roll dialog**, and the **optional
     buffs move onto that card** too.
-13. **A pool the GM sends to a player** keeps its options **ticked but not locked**: the player can
+16. **A pool the GM sends to a player** keeps its options **ticked but not locked**: the player can
     untick them.
-14. **An option can be offered by skill type** (Combat, General, Knowledge, Social, Magic) as well as
+17. **An option can be offered by skill type** (Combat, General, Knowledge, Social, Magic) as well as
     by named skill.
 
-Played back and accepted (the user answered "all good" or did not object):
+Played back and accepted (the user answered "all good", "sounds right", or did not object):
 
 - Strain is charged only once the roll has reached chat; nothing is charged on ticking or closing.
 - Every option starts unticked on every roll.
@@ -59,21 +68,30 @@ Played back and accepted (the user answered "all good" or did not object):
 - Guns Blazing greys out until Two weapons is set.
 - The card opens unfolded each time; folded, its tab shows how many options are ticked.
 - Ticking updates the dice preview at once, and the player's manual edits survive any ticking.
-- The code is GM-edited JSON, checked on save; bad JSON or an unknown field is refused with a
-  message and the old code is kept.
-- The macro skips items that already carry code, and ends with a report.
+- Validation on save names the problem; the GM's text is not lost; an invalid macro is skipped at
+  roll time.
+- Only macros created by a GM count.
+- The library run creates its macros once, never overwrites one already there, links only items
+  with no live link, and ends with a report.
+- Talent options appear on crew rolls (a crew member's ship-weapon or piloting check) when their
+  conditions match, and the crew member pays. Only Two weapons is limited to personal weapons.
+- A sent pool travels before the Adversary upgrade, with the ranks and the defence alongside, so
+  the recipient's dialog applies everything in the same order as the sender's.
+- Species need no change: a species stores only links to its talents, and a granted talent is
+  created from the source talent, links included. The library run skips species entries.
+- Codex II has no quality sheet, so its link list covers five item types.
 - Rules as read back to the user for the first iteration (see **The library**).
 
 ## Goals
 
-- A GM can give any talent, weapon, armour, gear, attachment or quality a list of roll options, as
-  JSON, from the classic or the Codex II item sheet.
+- A GM can write options as JSON in a macro and link it to any talent, quality, weapon, armour,
+  gear or attachment, including the copies inside other items, from the classic or Codex II sheets.
 - The roll dialog's side card offers exactly the options that fit the roll, with their cost, and
   greys out (with the reason) those the actor cannot pay for or whose condition is not met.
 - A ticked option changes the dice as its code says; the roll charges its strain (or wounds) after
-  it posts; the chat card names it.
+  it posts, directly or through the GM; the chat card names it.
 - Two-weapon attacks add their difficulty from the card, on any personal weapon attack.
-- One macro run puts the library's code on every matching item the GM can edit.
+- One library run gives every matching item the GM can edit a working link.
 
 ## Non-goals
 
@@ -81,68 +99,90 @@ Played back and accepted (the user answered "all good" or did not object):
   Damage or Apply Crit changes.
 - Changing the weapon for the roll (qualities, damage, range) or the weapon copy on the chat card.
 - Tracking or enforcing once-per-round use, counting maneuvers, or measuring range to the target.
-- Script code on items, or any way for item data to run code.
+- Running any code from a macro or item. The macro's text is data.
 - Library entries beyond the first iteration's eight, and library names in languages other than
-  English. The GM can still write code by hand on any item, whatever its name.
-- Options on Force power rolls (they get none, as with optional buffs), on vehicle and ship weapon
-  attacks (Two weapons is for personal weapons), or from species, careers or specializations as
-  items (talents learned in their trees do count).
+  English. The GM can still link any macro to any item by hand, whatever the item's name.
+- Options on Force power rolls (they get none, as with optional buffs); Two weapons on vehicle and
+  ship weapon attacks; options carried by ship weapons, ship attachments, vehicles, species,
+  careers or specializations as items (talents learned in their trees do count).
 - Translations beyond English. Other languages fall back to the English strings.
 
 ## Anti-goals (a failure even if it otherwise works)
 
 - **Strain charged for a roll that never reached chat**, or charged on ticking, or charged twice.
+- **Strain silently left unpaid** after a roll that used a costed option. A charge that fails after
+  the roll posted (the GM refused it, or the bridge could not reach a writer) says so on screen.
 - **An option taking an actor past their strain (or wound) threshold.**
-- **A player editing option code from any sheet**, or item data that can run code.
+- **A player changing option code or links from any sheet**, or a macro's text being run.
 - **Ticking and unticking that leaves the pool changed.** Manual edits survive any sequence of
   ticks, as they do for optional buffs today.
-- **The macro overwriting code the GM wrote or changed.**
-- **Changing what existing items do.** An item without code behaves exactly as before; the only
+- **The library run overwriting a macro the GM changed, or relinking an item the GM linked.**
+- **Changing what existing items do.** An item without links behaves exactly as before; the only
   visible changes for existing data are that optional buffs move onto the side card and that buffs
-  in a sent pool arrive unlocked (decision 13).
+  in a sent pool arrive unlocked (decision 16).
 
 ## Constraints
 
 - Items use V14 TypeDataModels (`modules/data/item-templates.js`, `modules/data/models/item/`). The
-  new field must be declared on the talent, weapon, armour, gear, itemattachment and itemmodifier
+  link list must be declared on the talent, weapon, armour, gear, itemattachment and itemmodifier
   models or Foundry strips it on save. Check `modules/data/conformance-report.js` still passes.
-- Copies the system already makes must carry the code: a talent dropped into a specialization tree
+- Copies the system makes must carry the links: a talent dropped into a specialization tree
   (`_onDropTalentToSpecialization` in `modules/items/item-sheet-ffg.js` copies fields one by one,
-  as it does for `optionalBuffs`); a talent granted by a species (`system.talents` on the species);
-  a quality dropped onto a weapon, armour or attachment (`_onDropItem` duplicates the whole item, so
-  the field travels if it is on the quality's `system`); an attachment installed on a weapon or
-  armour (`system.itemattachment`), with its own qualities.
+  as it does for `optionalBuffs`); a quality dropped onto a weapon, armour or attachment
+  (`_onDropItem` duplicates the whole item, so the field travels if it is on the quality's
+  `system`); an attachment installed on a weapon or armour (`system.itemattachment`), with its own
+  qualities. Species store only `{name, source, id}` references and need nothing.
 - Decisions go in modules free of Foundry globals, covered by Node tests (`tests/node/`, see
-  `tests/README.md` and the stub boundary). The dialog, sheets, macro runner and chat stay thin
-  Foundry-side code, as `roll-costs.js` / `roll-builder.js` and `optional-buff-pool.js` do.
+  `tests/README.md` and the stub boundary). The dialog, sheets, popups, library runner, bridge
+  wiring and chat stay thin Foundry-side code, as `roll-costs.js` / `roll-builder.js` and
+  `optional-buff-pool.js` do.
 - Costs are paid through `postThenPay` (`modules/dice/roll-costs.js`), after the message posts.
+  The payer pool, its threshold and the "over, not at" rule are those of
+  `modules/helpers/defensive-talents.js` (`defenceCostPool`, `readCostPool`, `wouldIncapacitate`);
+  reuse them rather than restating them.
+- Charges for an actor the roller cannot update go through `applyToTargetActor` in
+  `modules/helpers/gm-bridge.js`, whose writer re-checks the cost against the live actor inside its
+  queue, as Parry's `defenceCost` does. Strain and wounds are already among the paths it accepts
+  for unowned targets.
 - Codex II reaches the system only through `modules/api/public-api.js`.
   `tests/node/codex-boundary.test.mjs` and `tests/node/public-api-surface.test.mjs` must keep
-  passing. The new editor follows the optional-buffs pattern (a shared partial Codex templates
+  passing. The link list follows the optional-buffs pattern (a shared partial Codex templates
   include, plus listeners Codex sheets inherit) and bumps `PUBLIC_API_VERSION` to 3.
 - Classic sheet and dialog CSS goes in `styles/mandar.css` (the defence card's styles are there to
   mirror). `styles/starwarsffg.css` is hand-maintained: never commit `npm run compile` output for
   it. Codex styles stay in `codex/styles/`.
 - English strings in `lang/en.json` (Codex labels in `codex/lang/`).
 - `CHANGELOG.md` entry under `Unreleased` and the wiki tutorial updated before any push.
-- The system ships no compendiums (`system.json` `packs` is empty), so library code reaches items
-  only through the macro or by hand.
+- The system ships no compendiums (`system.json` `packs` is empty), so library code reaches the
+  world only through the library run, or a GM writing macros by hand.
 
 ## How it works
 
 ### Words used below
 
-- **Option**: one entry of an item's code; one row on the side card.
-- **Code**: an item's list of options (the `rollOptions` field).
-- **Library**: the system's built-in code for known talent and quality names.
+- **Option**: one entry in a macro's JSON; one row on the side card.
+- **Option macro**: a script macro, created by a GM, whose text is option JSON.
+- **Link**: an option macro's uuid stored on an item.
+- **Library**: the system's built-in option JSON for known talent and quality names.
 - **Payer pool**: what an option's strain cost is paid from: strain for characters and nemeses,
   wounds for rivals; none for minions and vehicles.
 
 ### Data
 
-Talent, weapon, armour, gear, itemattachment and itemmodifier (quality) items gain `system.rollOptions`:
-an array of option objects. *(Builder's call: stored parsed, as an `ArrayField` of `ObjectField`
-like `optionalBuffs`, and shown pretty-printed in the editor.)*
+- Talent, weapon, armour, gear, itemattachment and itemmodifier (quality) items gain a list of
+  links: macro uuids. *(Builder's call: the field name, e.g. `system.rollOptions`, an array of
+  strings.)*
+- An option macro is an ordinary Foundry `Macro` of type `script`, created by a GM (its `author`
+  is a GM user, which the server sets), whose `command` is JSON: one option object, or an array of
+  them. *(Builder's call: a flag marking it as an option macro, set by the library run and when a
+  GM first links it, so the save check knows to run.)*
+- A link that does not resolve (the macro was deleted), a macro not authored by a GM, or a macro
+  whose JSON is invalid contributes nothing, with a console warning at roll time.
+- The dialog must read the macros of every link before it renders. World macros resolve
+  synchronously; a macro in a compendium needs loading first. *(Builder's check: a player's client
+  can read a GM macro the player has no permission on. If it cannot, the library run gives option
+  macros Observer permission for all players; running one does nothing, since its text is plain
+  JSON.)*
 
 ### The option format
 
@@ -150,13 +190,13 @@ Each option is an object with these keys. Every key except `label` is optional.
 
 ```jsonc
 {
-  "id": "guns-blazing",            // stable within the item; defaults to the option's position
-  "label": "Guns Blazing",         // what the card and the chat line show; defaults to the item's name
+  "id": "guns-blazing",            // stable within the macro; defaults to the option's position
+  "label": "Guns Blazing",         // what the card and the chat line show; defaults to the linking item's name
   "hint": "Once per round",        // a short reminder under the option on the side card
   "offer": {                       // when the option appears; every key given must match
     "skills": ["Ranged: Light"],   //   the rolled skill's key is one of these
     "skillTypes": ["Combat"],      //   the rolled skill's type is one of these
-    "attack": true,                //   the roll is made with a personal weapon
+    "attack": true,                //   the roll is made with a weapon (personal or ship)
     "twoWeapons": "same"           //   Two weapons is set to "same", "different" or "any" (not "no")
   },
   "amount": { "max": "ranks", "label": "Strain" },  // the player picks 1..max; max is a number,
@@ -172,34 +212,41 @@ Each option is an object with these keys. Every key except `label` is optional.
 
 **What the words mean:**
 
-- `ranks`: for a talent, its ranks as optional buffs count them (talent items with the same name
-  summed, a learned tree node counting 1, an unranked talent 1, a cleared rank 1); for a quality,
-  its rank; for anything else, 1.
+- `ranks`: of the **linking item**. For a talent, its ranks as optional buffs count them (talent
+  items with the same name summed, a learned tree node counting 1, an unranked talent 1, a cleared
+  rank 1); for a quality, its rank; for anything else, 1.
 - `forceRating`: the rolling actor's Force rating, as the sheet shows it.
 - `amount`: the number the player picked in the option's box (only valid when `amount` is given).
 
-**Rules the validator enforces** (on save in the editor, and on every item at roll time, where an
-invalid option is skipped with a console warning): the code is an array; each option is an object
-with only the keys above; `offer.twoWeapons` is one of `same`, `different`, `any`; skill types are
-the five known ones; values are of the types listed; `"amount"` appears only in an option with an
-`amount`; `label` is a non-empty string. Errors name the option and the key ("option 2:
-cost.strain must be a number or \"amount\"").
+**Rules the validator enforces:** the JSON parses; it is an option or an array of options; each
+option is an object with only the keys above; `offer.twoWeapons` is one of `same`, `different`,
+`any`; skill types are the five known ones; values are of the types listed; `"amount"` appears only
+in an option with an `amount`; `label`, when given, is a non-empty string. Errors name the option
+and the key ("option 2: cost.strain must be a number or \"amount\"").
+
+**When it runs:**
+
+- **On save** of an option macro by a GM: errors are shown, and the GM's text is not lost (the
+  editor keeps it so it can be fixed). *(Builder's call how: refuse the update and keep Foundry's
+  macro editor open, or save it and warn; either way the GM sees the errors at once.)*
+- **When a GM drops a macro onto a link list:** an invalid macro is refused with its errors.
+- **At roll time:** an invalid macro is skipped, with a console warning.
 
 ### Which items offer their options
 
-The rolling actor (as `rollActorFrom` in `modules/dice/roll-actor.js` finds it) and its items,
-with the optional buffs rules:
+The rolling actor is the one `rollActorFrom` (`modules/dice/roll-actor.js`) finds: for a crew roll
+from a vehicle sheet, the crew member. Its items count with the optional-buffs rules:
 
-- **talents** the character has (items, species grants and learned tree nodes): when their `offer`
-  matches. The same talent from several sources is one option, with its ranks combined.
+- **talents** the actor has (items, and learned specialization tree nodes): when their `offer`
+  matches. The same talent from several sources is one row, with its ranks combined.
 - **weapons**, their **qualities**, their **attachments** and the attachments' qualities: only on
   attacks made **with that weapon**, and only while it is carried (not marked "not carried").
 - **armour** (while equipped) and its qualities and attachments, and **gear** (while carried): when
   their `offer` matches.
 - **Force power rolls offer nothing.** A roll with no actor offers nothing.
 
-Duplicates: two items offering the same option (same item name and option id) show once.
-*(Builder's call.)*
+Two items linking the same macro show its options once (rows are keyed by macro uuid and option
+id, plus the talent name for talents). *(Builder's call.)*
 
 ### Two weapons (built in)
 
@@ -223,20 +270,26 @@ player already set below zero by hand, as today.
 
 ### Costs and what can be ticked
 
-- **Payer pool:** characters and nemeses pay strain (`system.stats.strain`); rivals pay wounds
-  (`system.stats.wounds`); minions and vehicles cannot pay, so options with a strain cost are
-  greyed for them ("Minions can't suffer strain"). Options without a cost are unaffected.
+- **Payer pool:** characters and nemeses pay strain; rivals pay wounds; minions and vehicles
+  cannot pay, so options with a strain cost are greyed for them ("Minions can't suffer strain").
+  Options without a cost are unaffected.
 - **Room:** an option is greyed, with its reason ("Would take strain to 13 / 12"), when
   current + the cost of everything already ticked + its own cost would go **over** the threshold.
-  Reaching the threshold exactly is allowed. An `amount` box is capped to what still fits.
+  Reaching the threshold exactly is allowed; an unknown threshold never refuses, as in
+  `wouldIncapacitate`. An `amount` box is capped to what still fits.
+- **Who can charge:** if the current user can update the payer, the charge is a direct update.
+  Otherwise it goes through the GM bridge. If neither is possible (no GM connected, and the bridge
+  would find no writer), costed options are greyed ("Needs the GM connected").
 - **Dependencies:** an option whose `offer.twoWeapons` does not match the current Two weapons
   choice is shown greyed ("Needs Two weapons: same skill"). Changing Two weapons so it no longer
   matches unticks it.
 - **Footer:** when the roll offers any option with a cost, the card's footer shows the payer pool
   after the roll ("Strain after roll: 12 / 12", or "Wounds after roll" for a rival).
 - **Paying:** at the Roll click the dialog snapshots what is ticked, with the pool. The total cost
-  is added to the payer pool through `postThenPay`, after the message posts, in one actor update. A
-  failed post charges nothing. Maneuvers are shown, never counted.
+  is charged through `postThenPay`, after the message posts, in one update (direct or bridged). A
+  failed post charges nothing. If the charge itself fails after posting (the writer finds the
+  actor can no longer pay, or no writer answers), the user gets a warning naming the actor and the
+  unpaid cost; the roll stays posted. Maneuvers are shown, never counted.
 
 ### Side card
 
@@ -268,37 +321,51 @@ used. The optional-buffs line stays as it is. *(Builder's call: two lines rather
 
 ### A pool the GM sends to a player
 
-Today the share button bakes the sender's ticked buffs into the pool and the recipient sees them
-ticked and locked (`appliedBuffs`, `withAppliedBuffs`). That changes:
+Today the share button bakes the sender's ticked buffs, defence and Adversary upgrade into the pool,
+and the recipient sees the buffs ticked and locked (`appliedBuffs`, `withAppliedBuffs`). That
+changes:
 
-- The sent pool carries the base pool with target defence and the Adversary upgrade as today, **but
-  not** the dice of ticked options, buffs or Two weapons. Those travel as selections (keys, amounts,
-  the Two weapons choice).
-- The recipient's dialog opens with them **ticked and unlocked** and applies them itself, so
-  unticking takes their dice off. An option that no longer fits (no room left in the payer pool,
-  the item gone) arrives unticked.
-- Option costs are paid when the **recipient's** roll posts, by the actor the roll is for. The
-  sender's ammo and one-check effects are still paid when the sender's message posts, as today.
-- A message sent before this change (with `appliedBuffs`) still opens as it does today.
+- The sent message carries the **base pool** (the player's edits, nothing layered), the
+  **defence dice** the sender's targets gave, the **Adversary ranks** and mode, and the
+  **selections**: ticked option rows (with amounts), ticked buffs, and the Two weapons choice.
+- The recipient's dialog opens with the selections **ticked and unlocked**, uses the sent defence
+  and Adversary ranks instead of its own targets, and layers everything in the usual order, so its
+  preview matches the sender's. Unticking takes a selection's dice off. A selection that no longer
+  fits (no room left in the payer pool, the item or macro gone) arrives unticked.
+- Option costs are charged when the **recipient's** roll posts, for the actor the roll is for,
+  directly or through the GM bridge. The sender's ammo and one-check effects are still paid when
+  the sender's message posts, as today.
+- A message sent before this change (with `appliedBuffs` and a baked pool) still opens as it does
+  today.
 
-### The GM code editor
+### Link lists on items
 
-On the classic talent, weapon, armour, gear, attachment and quality sheets, and on the Codex II
-sheets for the same types: a **Roll options** block holding a JSON text area and a Save button,
-**shown only to a GM**. Save validates; on errors it shows them and keeps the stored code. An empty
-text area clears the code. *(Builder's call: placed next to the Optional buffs block on the
-Modifiers tab, and on the matching Codex tab.)*
+On the classic talent, weapon, armour, gear, attachment and quality sheets; in the popups that edit
+copies inside other items (`itemEditor` for qualities and attachments inside a weapon or armour,
+`talentEditor` for specialization tree nodes); and on the Codex II sheets for talent, weapon,
+armour, gear and attachment:
 
-**Players cannot change the code:** they never see the editor, and a `preUpdateItem` guard refuses
-a non-GM update that changes `system.rollOptions` on an item. Copies that arrive by dropping an
-item (a talent into a tree, a quality onto a weapon) are not edits and still work for players. This
-guard runs on the player's own client, which is as far as Foundry lets a system enforce it; it
-stops the sheet path, not a determined player at the console.
+- a **Roll options** block listing the linked macros by name, each with an open control (opens
+  Foundry's macro editor) and a remove control, and a drop zone for a macro dragged from the macro
+  directory or the hotbar;
+- **shown only to a GM**;
+- a dropped macro is refused if it is not a script macro created by a GM, or if its JSON is invalid
+  (with the errors).
+
+*(Builder's call: placed next to the Optional buffs block on the Modifiers tab, and the matching
+place in the popups and on Codex sheets.)*
+
+**Players cannot change code or links:** option macros are owned by the GM, and Foundry's server
+refuses a player's edit to them. Links are guarded by a `preUpdateItem` check that refuses a
+non-GM update changing an item's link list. Copies that arrive by dropping an item (a talent into a
+tree, a quality onto a weapon) are not edits and still work for players. The link guard runs on
+the player's own client, which is as far as Foundry lets a system enforce it; together with "only
+GM-authored macros count", a player can at most link a macro the GM wrote.
 
 ### The library
 
-Data shipped with the system: one entry per known item, with its names and its code. Names match
-case-insensitively, ignoring spaces, hyphens and punctuation ("Auto-fire", "Autofire" and
+Data shipped with the system: one entry per known item, with its names and its option JSON. Names
+match case-insensitively, ignoring spaces, hyphens and punctuation ("Auto-fire", "Autofire" and
 "Auto Fire" are one name). The first iteration, as the user accepted it:
 
 | Item | Offered on | Cost | Dice | Card |
@@ -318,71 +385,86 @@ spellings the OggDude importer produces where they differ. *(Builder's call: the
 are what the user accepted; the builder checks each entry against the rule text while writing it,
 and raises any disagreement rather than silently changing it.)*
 
-### The injection macro
+### The library run
 
 A GM-only function on `game.ffg` that the wiki shows as a one-line script macro. It:
 
 1. Asks for confirmation, saying what it will scan.
-2. Scans: world items; the items of every world actor; the items of every unlinked token's actor on
-   every scene; and every **unlocked** Item or Actor compendium, world or module. Locked compendiums
-   are skipped and named in the report. *(Builder's call: skip rather than unlock.)*
-3. In each of those, finds every place a library item lives: talent and quality items themselves,
-   specialization tree nodes, species talent grants, qualities on weapons, armour and attachments,
-   attachments installed on weapons and armour, and those attachments' qualities.
-4. Writes the library code where the name matches and **no code is there yet** (an empty array
-   counts as none). Anything with code is left alone.
-5. Reports what it changed, per kind and per place, what it skipped and why, and any errors.
+2. **Creates the library's macros** in a "Roll options" folder in the world, one per library
+   entry, marked with the entry's id. An entry whose macro already exists (found by that mark) is
+   left as it is, even if the GM edited it.
+3. **Scans:** world items; the items of every world actor; the items of every unlinked token's
+   actor on every scene; and every **unlocked** Item or Actor compendium, world or module. Locked
+   compendiums are skipped and named in the report. *(Builder's call: skip rather than unlock.)*
+   A compendium shared between worlds gets links to this world's macros, which mean nothing in
+   another world; the report says so for module compendiums.
+4. In each of those, finds every place a library item lives: talent and quality items themselves,
+   specialization tree nodes, qualities on weapons, armour and attachments, attachments installed
+   on weapons and armour, and those attachments' qualities. Species entries are skipped.
+5. **Links** the library macro where the name matches and the item has **no live link** (none, or
+   only links to macros that no longer exist). An item with a live link is left alone.
+6. Reports what it created and linked, per kind and per place, what it skipped and why, and any
+   errors.
 
-Running it twice changes nothing the second time. The decision of what to write where is a pure
-function (input: plain item data; output: the updates), tested in Node; the runner only gathers
-documents and applies the updates.
+Running it twice changes nothing the second time. What to create and link is a pure function
+(input: plain item data and the existing library macros; output: the creations and updates),
+tested in Node; the runner only gathers documents and applies the result.
 
 ## Left to the builder
 
-- Module and file names, the stored shape's details within the format above, and how the card's
-  state is held in the dialog.
-- Layout and styling of the side card, the fold tab and the editor, within what is described.
+- Module and file names, field and flag names, and how the card's state is held in the dialog.
+- Layout and styling of the side card, the fold tab and the link lists, within what is described.
 - Wording of labels, hints and messages.
 - How the skill's type reaches the dialog (from the actor's skill or the configured skill list) for
   each place that opens it; a place that cannot supply it offers only options without
   `skillTypes`.
+- Whether the bridged charge reuses the `damage` operation with a cost check or adds its own
+  operation, as long as the writer re-checks the threshold.
+- How the save check keeps the GM's text (see **When it runs**).
+- The player-read check for macros (see **Data**).
 - Checking each library entry against the rule text, as above.
 
 ## Testing
 
 Node tests for the parts free of Foundry:
 
-- validation: every key and value type, unknown keys, `"amount"` without `amount`, bad skill types,
-  error messages naming the option and key; every library entry passes;
+- validation: parsing, one option or a list, every key and value type, unknown keys, `"amount"`
+  without `amount`, bad skill types, error messages naming the option and key; every library entry
+  passes;
+- which macros count: unresolved links, non-GM authors, non-script macros, invalid JSON;
 - offering: skills, skill types, attack-only, weapon-borne options only with that weapon, carried /
-  equipped rules, talents from items, species and trees with combined ranks, Force power rolls,
-  no actor;
+  equipped rules, talents from items and trees with combined ranks, the same macro on two items
+  shown once, crew rolls offering for the crew member, Force power rolls, no actor;
 - `ranks`, `forceRating` and `amount` resolution;
 - pool changes and their order, including Two weapons + Guns Blazing cancelling exactly, around
   Adversary upgrades and negative manual setback; tick / untick / re-tick leaving the base pool
   untouched;
 - room checks: strain and wounds, exactly-at-threshold allowed, over refused, amounts capped,
-  minions and vehicles greyed, dependency greying and unticking on Two weapons change;
+  minions and vehicles greyed, "needs the GM" greying, dependency greying and unticking on a Two
+  weapons change;
 - the chat line's text;
-- sent-pool selections round-tripping, including an option that no longer fits and an old
-  `appliedBuffs` message;
-- the injection planner: matches, name normalisation, skip when code exists, tree nodes, species
-  grants, qualities on weapons, armour and attachments, attachment qualities, idempotence;
-- the non-GM guard's decision (pure part).
+- sent pools: the message's selections round-tripping, the recipient's layered pool matching the
+  sender's, a selection that no longer fits, an old `appliedBuffs` message;
+- the library planner: matches, name normalisation, existing macros reused and never overwritten,
+  live links left alone, dead links replaced, tree nodes, qualities on weapons, armour and
+  attachments, attachment qualities, species skipped, idempotence;
+- the link guard's decision (pure part).
 
 In Foundry, on the `test` world (ask before starting Foundry: the campaign world shares the data
-folder), by hand: run the macro and check the report; on a character with the first-iteration
-talents and a weapon with Auto-fire, check each option shows where it should, greys out at the
-threshold, changes the preview, charges after posting (and not on a failed post), and is named in
-chat; a rival paying wounds and a minion greyed; the GM editor on classic and Codex sheets, its
-validation, and its absence for a player; a GM-sent pool arriving ticked and unticking cleanly.
+folder), by hand: run the library and check the report and the macro folder; on a character with
+the first-iteration talents and a weapon with Auto-fire, check each option shows where it should,
+greys out at the threshold, changes the preview, charges after posting (and not on a failed post),
+and is named in chat; edit a library macro and see every linked item follow; a rival paying wounds
+and a minion greyed; a crew roll charging the crew member; a player rolling for an actor they do
+not own, charged through the GM; the link lists on classic sheets, popups and Codex sheets, and
+their absence for a player; a GM-sent pool arriving ticked and unticking cleanly.
 
 ## Documentation
 
 - `CHANGELOG.md` under `Unreleased`: **Added** entries for roll options with the first library and
-  Two weapons, the GM code editor, and the injection macro (with a sub-bullet telling the GM to run
-  it once); a **Changed** entry for optional buffs moving onto the side card and arriving unlocked
-  in a sent pool.
+  Two weapons, option macros and the link lists, and the library run (with a sub-bullet telling the
+  GM to run it once); a **Changed** entry for optional buffs moving onto the side card and arriving
+  unlocked in a sent pool.
 - Wiki: chapter 9 (*Changing a roll before and after*) for the side card, Two weapons and options;
-  the item-editing chapter for the GM code editor, with the option format and the library table;
-  the macro and how to run it; screenshots.
+  the item-editing chapter for option macros, the link lists, the option format and the library
+  table; the library run and how to start it; screenshots.
