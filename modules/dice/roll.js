@@ -279,10 +279,12 @@ export class RollFFG extends Roll {
       // Re-applied here, not written once before render: the branches above
       // overwrite `this.data` wholesale from the item uuid.
       this.data.defenceZoneText = this.defenceZoneText ?? null;
+      this.data.optionalBuffsText = this.optionalBuffsText ?? null;
     } else {
       this.data = {
         additionalFlavorText: this.flavorText,
         defenceZoneText: this.defenceZoneText ?? null,
+        optionalBuffsText: this.optionalBuffsText ?? null,
       };
     }
 
@@ -412,6 +414,7 @@ export class RollFFG extends Roll {
     json.addedResults = this.addedResults;
     json.flavorText = this.flavorText;
     json.defenceZoneText = this.defenceZoneText ?? null;
+    json.optionalBuffsText = this.optionalBuffsText ?? null;
     json.modifications = this.modifications ?? [];
     return json;
   }
@@ -426,6 +429,7 @@ export class RollFFG extends Roll {
     roll.addedResults = data.addedResults;
     roll.flavorText = data.flavorText;
     roll.defenceZoneText = data.defenceZoneText ?? null;
+    roll.optionalBuffsText = data.optionalBuffsText ?? null;
     roll.modifications = data.modifications ?? [];
     return roll;
   }

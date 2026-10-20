@@ -114,7 +114,13 @@ export default class DiceHelpers {
     }
 
     dicePool = new DicePoolFFG(await this.getModifiers(dicePool, itemData));
-    await this.displayRollDialog(data, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize(skill.label)}`, skill.label, itemData, flavorText, sound, { skillValue: skill.value });
+    await this.displayRollDialog(data, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize(skill.label)}`, skill.label, itemData, flavorText, sound, {
+      skillValue: skill.value,
+      // For the optional buffs the dialog offers (a skill row needs the key, Skill Rank the rest).
+      skillKey: skillName ?? null,
+      characteristic: Number(characteristic.value) || 0,
+      rank: Number(skill.rank) || 0,
+    });
   }
 
   /**
@@ -270,7 +276,12 @@ export default class DiceHelpers {
 
     dicePool = new DicePoolFFG(await this.getModifiers(dicePool, item));
 
-    this.displayRollDialog(actorSheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${skill.label}`, skill.label, item, flavorText, sound, { skillValue: itemData.skill.value });
+    this.displayRollDialog(actorSheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${skill.label}`, skill.label, item, flavorText, sound, {
+      skillValue: itemData.skill.value,
+      skillKey: itemData.skill.value ?? null,
+      characteristic: Number(characteristic.value) || 0,
+      rank: Number(skill.rank) || 0,
+    });
   }
 
   // Takes a skill object, characteristic object, difficulty number and ActorSheetFFG.getData() object and creates the appropriate roll dialog.
@@ -296,7 +307,11 @@ export default class DiceHelpers {
     dicePool.upgrade(Math.min(characteristic.value, skill.rank) + dicePool.upgrades);
     dicePool.upgradeDifficulty(skill.upgradeDifficulty ?? 0);
 
-    this.displayRollDialog(sheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${skill.label}`, skill.label, {}, flavorText, sound);
+    this.displayRollDialog(sheet, dicePool, `${game.i18n.localize("SWFFG.Rolling")} ${skill.label}`, skill.label, {}, flavorText, sound, {
+      skillKey: skill.value ?? skill.name ?? null,
+      characteristic: Number(characteristic.value) || 0,
+      rank: Number(skill.rank) || 0,
+    });
   }
 
   /**

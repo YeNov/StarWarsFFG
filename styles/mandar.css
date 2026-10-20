@@ -1660,6 +1660,32 @@ img {
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/* Optional buffs in the roll dialog: one checkbox per buff the roll offers, under the dice. */
+.starwarsffg .dice-pool-dialog .optional-buffs {
+  margin: 6px 0;
+}
+
+.starwarsffg .dice-pool-dialog .optional-buffs-title {
+  font-weight: bold;
+  margin: 0 0 2px 0;
+}
+
+.starwarsffg .dice-pool-dialog .optional-buff-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.starwarsffg .dice-pool-dialog .optional-buff-option input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.starwarsffg .dice-pool-dialog .optional-buff-option-source {
+  opacity: 0.7;
+  font-size: 0.9em;
+}
 /* The zone card hangs off the OUTSIDE of the roll window's left edge.
 
    Both `.application` and `.window-content` set `overflow: hidden`, so the card is
