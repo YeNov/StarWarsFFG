@@ -9,14 +9,23 @@
  * Free of Foundry globals (the world lookup is passed in), so Node covers it
  * (tests/node/roll-actor.test.mjs).
  *
+ * An actor named by uuid comes first: a crew roll opens on the vehicle's sheet but rolls for a
+ * crew member, and a pool sent to a player names the actor it was built for, token or not.
+ *
  * @param {object} roll
  * @param {object} roll.data - what the dialog was opened with
  * @param {object} [roll.item] - the item rolled with, if any
+ * @param {string|null} [roll.actorUuid] - the actor the roll is for, when the caller knows it
  * @param {(id: string) => object|undefined} lookupWorldActor - e.g. `(id) => game.actors.get(id)`
+ * @param {(uuid: string) => object|undefined} [lookupByUuid] - e.g. `fromUuidSync`
  * @returns {object|null}
  */
-export function rollActorFrom({ data, item }, lookupWorldActor) {
+export function rollActorFrom({ data, item, actorUuid }, lookupWorldActor, lookupByUuid) {
   const isActor = (candidate) => candidate?.documentName === "Actor";
+  if (actorUuid && lookupByUuid) {
+    const named = lookupByUuid(actorUuid);
+    if (isActor(named)) return named;
+  }
   if (isActor(data?.document)) return data.document;
   if (isActor(item?.actor)) return item.actor;
   if (isActor(data?.token?.actor)) return data.token.actor;

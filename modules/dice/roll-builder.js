@@ -39,6 +39,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       characteristic: rollOptions.characteristic ?? null,
       rank: rollOptions.rank ?? null,
       appliedBuffs: Array.isArray(rollOptions.appliedBuffs) ? rollOptions.appliedBuffs : [],
+      // The actor the roll is for, when the caller knows it better than `data` does (a crew
+      // member rolling from the vehicle's sheet). Filled in below otherwise, so a pool sent to a
+      // player still names the token's own actor.
+      actorUuid: rollOptions.actorUuid ?? null,
     };
     this.dicePool = rollDicePool;
     this.description = rollDescription;
@@ -64,7 +68,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
   _collectOptionalBuffs() {
     try {
       const item = this.roll.item;
-      const actor = rollActorFrom({ data: this.roll.data, item }, (id) => game.actors.get(id));
+      const actor = rollActorFrom(
+        { data: this.roll.data, item, actorUuid: this.roll.actorUuid },
+        (id) => game.actors.get(id),
+        (uuid) => foundry.utils.fromUuidSync(uuid),
+      );
+      this.roll.actorUuid ??= actor?.uuid ?? null;
       const offered = collectOfferedBuffs({
         items: actor?.items ?? [],
         skillKey: this.roll.skillKey,

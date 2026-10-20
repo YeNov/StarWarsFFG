@@ -25,7 +25,7 @@ import {
   buildPilotRoll
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
-import {get_dice_pool} from "../helpers/dice-helpers.js";
+import {get_dice_pool, crewRollBuffOptions} from "../helpers/dice-helpers.js";
 import { crewRollOptions, isMinionVehicle } from "../helpers/minion-group.js";
 import { isAmmoTracked, hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
@@ -1438,7 +1438,10 @@ export class ActorSheetFFG extends FFGActorSheet {
                 pool,
                 `${game.i18n.localize("SWFFG.Rolling")} ${skill}`,
                 skill,
-                foundry.utils.mergeObject(raw_weapons[i], card_data)
+                foundry.utils.mergeObject(raw_weapons[i], card_data),
+                undefined,
+                undefined,
+                crewRollBuffOptions(crew_id, skill, crewRollOptions(ship)),
               );
             }
           }
@@ -1469,7 +1472,10 @@ export class ActorSheetFFG extends FFGActorSheet {
           pool,
           `${game.i18n.localize("SWFFG.Rolling")} ${role_info[0].role_skill}`,
           `${role_info[0].role_skill}`,
-          card_data
+          card_data,
+          undefined,
+          undefined,
+          crewRollBuffOptions(crew_id, role_info[0].role_skill, crewRollOptions(ship)),
         );
       }
     });
@@ -1840,7 +1846,10 @@ export class ActorSheetFFG extends FFGActorSheet {
       pool,
       `${game.i18n.localize("SWFFG.Rolling")} ${weaponSkill}`,
       weaponSkill,
-      foundry.utils.mergeObject(weapon, card_data)
+      foundry.utils.mergeObject(weapon, card_data),
+      undefined,
+      undefined,
+      crewRollBuffOptions(selectedGunner.actor_id, weaponSkill, crewRollOptions(ship)),
     );
   }
 
