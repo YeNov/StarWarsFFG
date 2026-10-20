@@ -17,6 +17,8 @@ const SURFACE = {
     "get viewerControls(",
   ],
   "modules/apps/ffg-actor-sheet.js": ["_getHeaderControls(", 'Hooks.callAll("renderActorSheetV2"'],
+  // Codex II item sheets inherit the optional buffs editor (apiVersion 2).
+  "modules/items/item-sheet-ffg.js": ["_activateOptionalBuffListeners(", "async _saveOptionalBuffs("],
   "modules/actors/actor-sheet-ffg.js": [
     "async getData(", "activateListeners(html)", "async _buyCore(", "async _buySkillRank(",
     "_createSkillColumns(", "async _itemDisplayDetails(", "async _itemDetailsElement(",
@@ -49,6 +51,7 @@ for (const [path, needles] of Object.entries(SURFACE)) {
 const SHARED_PARTIALS = [
   "templates/parts/shared/ffg-effects.html",
   "templates/parts/shared/ffg-modifiers.html",
+  "templates/parts/shared/ffg-optional-buffs.html",
   "templates/parts/shared/ffg-sources.html",
   "templates/parts/shared/ffg-tags.html",
   "templates/parts/ffg-mods.html",

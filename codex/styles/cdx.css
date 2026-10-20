@@ -1063,6 +1063,10 @@
   background:var(--cdx-paper2); color:var(--cdx-ink); padding:8px; border:1px solid var(--cdx-line); border-radius:4px;
 }
 .cdx .cdx-pane.effects *, .cdx .cdx-pane.attributes *, .cdx .cdx-sub * { color:var(--cdx-ink); }
+/* Optional buffs (the system's ffg-optional-buffs partial) sit in the Modifiers pane and take
+   its card and ink from the rule above; only their dividing lines follow the scheme here. */
+.cdx .cdx-pane.attributes .optional-buffs .optional-buffs-header { border-color:var(--cdx-line); }
+.cdx .cdx-pane.attributes .optional-buffs .optional-buff { border-bottom-color:var(--cdx-line); }
 /* Effects table is full-bleed (no pane padding) so the accent header reaches the
    edges. NOTE: do NOT use overflow:hidden here — the pane is a flex item, and any
    non-visible overflow sets its min-height to 0, letting it collapse and clip the
