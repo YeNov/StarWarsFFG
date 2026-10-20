@@ -20,6 +20,7 @@ import {
   addBuffRow,
   buffModifierTypes,
   cleanBuffs,
+  createBuffEditQueue,
   removeBuff,
   removeBuffRow,
   renameBuff,
@@ -2416,8 +2417,14 @@ export class ItemSheetFFG extends FFGDocumentSheet {
 
   /**
    * Edit the item's optional buffs (templates/parts/shared/ffg-optional-buffs.html). Every
-   * control builds the next list with the rules in helpers/optional-buffs.js and saves it whole.
-   * Change events stop here, so the sheet's own submit never runs for a buff edit.
+   * control describes its change with the rules in helpers/optional-buffs.js, and
+   * _saveOptionalBuffs saves the whole list. Change events stop here, so the sheet's own submit
+   * never runs for a buff edit.
+   *
+   * Name, target and value edits save without re-rendering: their change event fires as the
+   * field loses focus, often on the mousedown of the next click, and a re-render then would
+   * replace the control being clicked. Adding or deleting, and a new row type (whose target
+   * list differs), re-render.
    * @param {jQuery} html
    */
   _activateOptionalBuffListeners(html) {
@@ -2430,48 +2437,54 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     section.on("click", ".optional-buff-control", async (event) => {
       event.preventDefault();
       const control = event.currentTarget;
-      const current = this.object.system?.optionalBuffs;
-      let next;
+      const buffId = buffIdOf(control);
       switch (control.dataset.action) {
-        case "create": next = addBuff(current); break;
-        case "delete": next = removeBuff(current, buffIdOf(control)); break;
-        case "add-row": next = addBuffRow(current, buffIdOf(control)); break;
-        case "delete-row": next = removeBuffRow(current, buffIdOf(control), rowIndexOf(control)); break;
-        default: return;
+        case "create": return this._saveOptionalBuffs((list) => addBuff(list));
+        case "delete": return this._saveOptionalBuffs((list) => removeBuff(list, buffId));
+        case "add-row": return this._saveOptionalBuffs((list) => addBuffRow(list, buffId));
+        case "delete-row": return this._saveOptionalBuffs((list) => removeBuffRow(list, buffId, rowIndexOf(control)));
+        default: return undefined;
       }
-      await this._saveOptionalBuffs(next);
     });
 
     section.on("change", "input, select", async (event) => {
       event.stopPropagation();
       const field = event.currentTarget;
       const buffId = buffIdOf(field);
-      const current = this.object.system?.optionalBuffs;
-      let next;
+      const index = rowIndexOf(field);
+      const quiet = { render: false };
       if (field.classList.contains("optional-buff-name")) {
-        next = renameBuff(current, buffId, field.value);
-      } else if (field.classList.contains("optional-buff-modtype")) {
+        return this._saveOptionalBuffs((list) => renameBuff(list, buffId, field.value), quiet);
+      }
+      if (field.classList.contains("optional-buff-modtype")) {
         // A new type gets the first target of that type, as the Modifiers list does.
         const firstTarget = Object.values(this._optionalBuffModChoices?.[field.value] ?? {})[0]?.value ?? "";
-        next = setBuffRow(current, buffId, rowIndexOf(field), { modtype: field.value, mod: firstTarget });
-      } else if (field.classList.contains("optional-buff-mod")) {
-        next = setBuffRow(current, buffId, rowIndexOf(field), { mod: field.value });
-      } else if (field.classList.contains("optional-buff-value")) {
-        next = setBuffRow(current, buffId, rowIndexOf(field), { value: field.value });
-      } else {
-        return;
+        return this._saveOptionalBuffs((list) => setBuffRow(list, buffId, index, { modtype: field.value, mod: firstTarget }));
       }
-      await this._saveOptionalBuffs(next);
+      if (field.classList.contains("optional-buff-mod")) {
+        return this._saveOptionalBuffs((list) => setBuffRow(list, buffId, index, { mod: field.value }), quiet);
+      }
+      if (field.classList.contains("optional-buff-value")) {
+        return this._saveOptionalBuffs((list) => setBuffRow(list, buffId, index, { value: field.value }), quiet);
+      }
+      return undefined;
     });
   }
 
   /**
-   * Save a whole optional buffs list, unless the owning actor is in Edit Mode.
-   * @param {Array<object>} next
+   * Save one change to the optional buffs list, unless the owning actor is in Edit Mode. Saves
+   * go one after another, each built on the last (createBuffEditQueue), so an edit made while
+   * the previous one is still saving is not lost.
+   * @param {(buffs: Array<object>) => Array<object>} change
+   * @param {object} [options] - passed to the update, e.g. {render: false}
    */
-  async _saveOptionalBuffs(next) {
+  async _saveOptionalBuffs(change, options) {
     if (this.actor && !this.actor.verifyEditModeIsNotEnabled()) return;
-    await this.object.update({ "system.optionalBuffs": next });
+    this._optionalBuffQueue ??= createBuffEditQueue({
+      read: () => this.object.system?.optionalBuffs,
+      write: (next, updateOptions) => this.object.update({ "system.optionalBuffs": next }, updateOptions),
+    });
+    await this._optionalBuffQueue.edit(change, options);
   }
 
   async _onDropTalentToSpecialization(event) {

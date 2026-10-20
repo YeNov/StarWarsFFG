@@ -127,3 +127,40 @@ export function setBuffRow(buffs, buffId, index, patch) {
 export function removeBuffRow(buffs, buffId, index) {
   return editBuff(buffs, buffId, (buff) => ({ ...buff, rows: buff.rows.filter((_, i) => i !== index) }));
 }
+
+/**
+ * Save buff edits one after another, each built on the one before it. A sheet saves the whole
+ * list on every edit, and a second edit can start before the first save has landed (typing a
+ * name, then clicking "+ row"): reading the stored list then would save the row over the name.
+ * While saves are pending, the next edit starts from the list the last edit produced; once they
+ * are all done, it reads the stored list again, so changes made elsewhere are picked up.
+ * @param {object} params
+ * @param {() => unknown} params.read - the stored list
+ * @param {(next: Array, options?: object) => Promise<*>} params.write - saves a whole list
+ * @param {(error: Error) => void} [params.onError] - told about a save that failed
+ * @returns {{edit: (change: (buffs: Array) => Array, options?: object) => Promise<void>}}
+ */
+export function createBuffEditQueue({ read, write, onError = reportSaveError }) {
+  let pending = null;
+  let waiting = 0;
+  let chain = Promise.resolve();
+  return {
+    edit(change, options) {
+      const next = change(waiting > 0 ? pending : cleanBuffs(read()));
+      pending = next;
+      waiting += 1;
+      chain = chain
+        .then(() => write(next, options))
+        .catch((error) => onError(error))
+        .finally(() => {
+          waiting -= 1;
+          if (waiting === 0) pending = null;
+        });
+      return chain;
+    },
+  };
+}
+
+function reportSaveError(error) {
+  globalThis.CONFIG?.logger?.warn?.(`Could not save the optional buffs: ${error}`);
+}

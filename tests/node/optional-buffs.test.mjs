@@ -7,6 +7,7 @@ import {
   addBuffRow,
   buffModifierTypes,
   cleanBuffs,
+  createBuffEditQueue,
   newBuff,
   removeBuff,
   removeBuffRow,
@@ -99,4 +100,79 @@ test("a buff stored without an id keeps the same id on every read, so edits can 
 
   assert.equal(cleanBuffs(stored)[0].id, id);
   assert.deepEqual(renameBuff(stored, id, "Renamed").map((b) => b.name), ["Renamed"]);
+});
+
+// ---------------------------------------------------------------------------
+// Saving edits one after another
+// ---------------------------------------------------------------------------
+
+/** A stored list whose saves finish only when the test lets them. */
+function slowStore(initial) {
+  const store = { list: initial, writes: [], release: [] };
+  store.read = () => store.list;
+  store.write = (next) => new Promise((resolve) => {
+    store.writes.push(next);
+    store.release.push(() => { store.list = next; resolve(); });
+  });
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+  // Let the queue start the next save, finish it, then let the queue react.
+  store.finishNext = async () => { await tick(); store.release.shift()?.(); await tick(); };
+  return store;
+}
+
+test("an edit made while an earlier one is still saving builds on it", async () => {
+  // Typing a name and then clicking "+ row": the row must not be saved over the name.
+  const store = slowStore([{ id: "a", name: "", rows: [] }]);
+  const queue = createBuffEditQueue({ read: store.read, write: store.write });
+
+  queue.edit((list) => renameBuff(list, "a", "Hood up"));
+  queue.edit((list) => addBuffRow(list, "a"));
+  await store.finishNext();
+  await store.finishNext();
+
+  assert.deepEqual(store.list, [{ id: "a", name: "Hood up", rows: [{ modtype: "Roll Modifiers", mod: "Add Boost", value: 1 }] }]);
+});
+
+test("saves run one at a time, in the order the edits were made", async () => {
+  const store = slowStore([{ id: "a", name: "", rows: [] }]);
+  const queue = createBuffEditQueue({ read: store.read, write: store.write });
+
+  queue.edit((list) => renameBuff(list, "a", "First"));
+  queue.edit((list) => renameBuff(list, "a", "Second"));
+  await new Promise((r) => setTimeout(r, 0));
+
+  assert.equal(store.writes.length, 1, "the second save waits for the first");
+  await store.finishNext();
+  await store.finishNext();
+  assert.deepEqual(store.writes.map((list) => list[0].name), ["First", "Second"]);
+});
+
+test("once every save is done, the next edit starts from the stored list again", async () => {
+  const store = slowStore([{ id: "a", name: "Mine", rows: [] }]);
+  const queue = createBuffEditQueue({ read: store.read, write: store.write });
+
+  queue.edit((list) => renameBuff(list, "a", "Mine, edited"));
+  await store.finishNext();
+  store.list = [{ id: "a", name: "Theirs", rows: [] }, { id: "b", name: "Added elsewhere", rows: [] }];
+  queue.edit((list) => removeBuff(list, "a"));
+  await store.finishNext();
+
+  assert.deepEqual(store.list.map((b) => b.name), ["Added elsewhere"]);
+});
+
+test("a save that fails is reported and the next one still runs", async () => {
+  const reported = [];
+  let stored = [{ id: "a", name: "", rows: [] }];
+  let calls = 0;
+  const queue = createBuffEditQueue({
+    read: () => stored,
+    write: async (next) => { calls += 1; if (calls === 1) throw new Error("offline"); stored = next; },
+    onError: (error) => reported.push(error.message),
+  });
+
+  queue.edit((list) => renameBuff(list, "a", "Lost"));
+  await queue.edit((list) => addBuffRow(list, "a"));
+
+  assert.deepEqual(reported, ["offline"]);
+  assert.equal(stored[0].rows.length, 1);
 });
