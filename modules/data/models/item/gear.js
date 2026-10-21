@@ -5,6 +5,7 @@ import {
   ItemAttachmentsTemplate,
   QualitiesTemplate,
   OptionalBuffsTemplate,
+  RollOptionLinksTemplate,
 } from "../../item-templates.js";
 
 /**
@@ -18,4 +19,5 @@ export class GearDataModel extends mix(
   ItemAttachmentsTemplate,
   QualitiesTemplate,
   OptionalBuffsTemplate,
+  RollOptionLinksTemplate,
 ) {}

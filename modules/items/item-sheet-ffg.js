@@ -2580,6 +2580,8 @@ export class ItemSheetFFG extends FFGDocumentSheet {
               // The talent's optional buffs travel into the tree like its modifiers do. An array,
               // so a later drop onto this slot replaces them instead of merging.
               optionalBuffs: cleanBuffs(itemObject.system.optionalBuffs),
+              // Its roll option links too: links, not copies, so the node follows the macros.
+              rollOptions: [...(itemObject.system.rollOptions ?? [])],
               isRanked: itemObject.system.ranks.ranked,
               isForceTalent: itemObject.system.isForceTalent,
               isConflictTalent: itemObject.system.isConflictTalent,
