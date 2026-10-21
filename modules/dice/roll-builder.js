@@ -3,6 +3,7 @@ import { DicePoolFFG } from "./pool.js";
 import { spendsOwnAmmo, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { onceEffectIds, postThenPay } from "./roll-costs.js";
 import { layerPool, optionDiceRows } from "./roll-option-pool.js";
+import { packSentLayers, readSentLayers } from "./roll-option-sent.js";
 import { rollActorFrom } from "./roll-actor.js";
 import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
 import { parseOptionText } from "../helpers/roll-options.js";
@@ -54,11 +55,17 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     };
     this.dicePool = rollDicePool;
     this.description = rollDescription;
-    this.adversaryRanks = RollBuilderFFG._computeAdversaryRanks();
+    /**
+     * What a pool the GM sent layers on top of its base pool (roll-option-sent.js): the sender's
+     * defence and Adversary upgrade, ticked options and buffs, and Two weapons. Null for any other
+     * roll, and for a message sent before layers travelled apart (its pool already holds them).
+     */
+    this._sentLayers = readSentLayers({ sentLayers: rollOptions.sentLayers });
+    this.adversaryRanks = this._sentLayers ? this._sentLayers.adversaryRanks : RollBuilderFFG._computeAdversaryRanks();
     // Which pool the dialog shows/rolls when an Adversary is targeted. Defaults
     // to the Adversary pool so the upgrade is applied by default (mirrors the old
     // checkbox defaulting to checked). Only takes effect while adversaryRanks > 0.
-    this._adversaryMode = true;
+    this._adversaryMode = this._sentLayers ? this._sentLayers.adversaryMode : true;
     /** Selected defence zone key, or null. Cleared on every target change. */
     this._defenceZone = null;
     /** Latest resolveDefenceTarget() result; refreshed by the targetToken hook. */
@@ -66,8 +73,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     /** The optional buffs this roll offers, and the keys of those the player ticked. */
     this._optionalBuffs = this._collectOptionalBuffs();
     this._tickedBuffKeys = new Set();
+    // A sent pool's buffs arrive ticked and unlocked (one baked into an older message stays locked).
+    for (const key of this._sentLayers?.buffs ?? []) {
+      if (this._optionalBuffs.some((buff) => buff.key === key && !buff.applied)) this._tickedBuffKeys.add(key);
+    }
     /** The Two weapons switch on the roll options card: "no", "same" or "different". */
-    this._twoWeapons = "no";
+    this._twoWeapons = this._twoWeaponsAvailable() ? (this._sentLayers?.twoWeapons ?? "no") : "no";
     /**
      * Roll options (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md). Everything
      * read off the rolling actor goes through rollOptionInputs, which turns a roll with no actor into
@@ -85,6 +96,8 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     /** Amounts typed into rows that are not ticked yet, used when they are. */
     this._optionAmounts = {};
     this._rollOptionsLoaded = false;
+    /** A sent pool's ticked options, applied once the options they name have loaded. */
+    this._pendingSentOptions = this._sentLayers?.options ?? null;
     this._planOptions();
   }
 
@@ -133,6 +146,11 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       macros,
       context: this._optionInputs.context,
     });
+    // A sent pool's options arrive ticked; the plan unticks any that no longer fit.
+    if (this._pendingSentOptions) {
+      this._optionSelection = { ...this._pendingSentOptions };
+      this._pendingSentOptions = null;
+    }
     this._planOptions();
   }
 
@@ -444,6 +462,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         unit: this._optionInputs.pool?.unit === "wounds" ? "wounds" : "strain",
       });
       const rollPool = this._effectivePool(defenceSnapshot);
+      const basePoolSnapshot = this._clonePool();
+      const layerSnapshot = {
+        adversaryRanks: this.adversaryRanks,
+        adversaryMode: this._adversaryMode,
+        twoWeapons: this._twoWeapons,
+      };
       // The optional buffs in that pool: those already in a sent pool, then those ticked here.
       const buffsInPool = [...this._optionalBuffs.filter((buff) => buff.applied), ...this._tickedBuffs()];
       // Forward roll diagnostics to the GM machine (and log locally) so the table
@@ -538,8 +562,19 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         // snapshot so the eventual card still names the zone the sender picked.
         this.roll.targetDefenceResolved = true;
         this.roll.defenceZone = zoneSnapshot;
-        // Likewise its optional buffs: the recipient shows them ticked and locked.
-        this.roll.appliedBuffs = buffsInPool.map((buff) => ({ key: buff.key, name: buff.name }));
+        // Buffs baked into a pool this dialog received stay baked and locked. Everything this dialog
+        // layered travels apart from the base pool (roll-option-sent.js), so the player's dialog lays
+        // it on in the same order, shows it ticked, and can untick it. Option costs are charged when
+        // the player rolls.
+        this.roll.appliedBuffs = buffsInPool.filter((buff) => buff.applied).map((buff) => ({ key: buff.key, name: buff.name }));
+        const sentLayers = packSentLayers({
+          defence: defenceSnapshot,
+          adversaryRanks: layerSnapshot.adversaryRanks,
+          adversaryMode: layerSnapshot.adversaryMode,
+          options: optionStates.selection,
+          buffs: buffsInPool.filter((buff) => !buff.applied).map((buff) => buff.key),
+          twoWeapons: layerSnapshot.twoWeapons,
+        });
 
         let chatOptions = {
           user: game.user.id,
@@ -547,8 +582,9 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           flags: {
             starwarsffg: {
               roll: this.roll,
-              dicePool: rollPool,
+              dicePool: basePoolSnapshot,
               description: this.description,
+              sentLayers,
             },
           },
         };
@@ -627,7 +663,8 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
   }
 
   _refreshAdversary(html) {
-    this.adversaryRanks = RollBuilderFFG._computeAdversaryRanks();
+    // A sent pool keeps the sender's Adversary ranks; the player's own targets do not count.
+    if (!this._sentLayers) this.adversaryRanks = RollBuilderFFG._computeAdversaryRanks();
     // Show the Base/Adversary toggle only while an Adversary is targeted (ranks > 0).
     const toggle = html.find(".adversary-pool-toggle")[0];
     if (toggle) toggle.style.display = this.adversaryRanks > 0 ? "" : "none";
@@ -992,6 +1029,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
    * from the recipient's targeting.
    */
   _defenceDice() {
+    if (this._sentLayers) return this._sentLayers.defence;
     if (!this._defenceEligible()) return 0;
 
     const targets = game.user?.targets ?? [];
