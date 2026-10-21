@@ -1661,28 +1661,19 @@ img {
   min-width: 0;
 }
 
-/* Optional buffs in the roll dialog: one checkbox per buff the roll offers, under the dice. */
-.starwarsffg .dice-pool-dialog .optional-buffs {
-  margin: 6px 0;
-}
-
-.starwarsffg .dice-pool-dialog .optional-buffs-title {
-  font-weight: bold;
-  margin: 0 0 2px 0;
-}
-
-.starwarsffg .dice-pool-dialog .optional-buff-option {
+/* Optional buffs on the roll options card: one checkbox per buff the roll offers. */
+.starwarsffg .ffg-roll-options-panel .optional-buff-option {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.starwarsffg .dice-pool-dialog .optional-buff-option input {
+.starwarsffg .ffg-roll-options-panel .optional-buff-option input {
   flex: 0 0 auto;
   margin: 0;
 }
 
-.starwarsffg .dice-pool-dialog .optional-buff-option-source {
+.starwarsffg .ffg-roll-options-panel .optional-buff-option-source {
   opacity: 0.7;
   font-size: 0.9em;
 }
@@ -1767,6 +1758,123 @@ img {
 @media (prefers-reduced-motion: reduce) {
   .starwarsffg .ffg-defence-panel,
   .starwarsffg .ffg-defence-inner {
+    transition: none;
+  }
+}
+/* The roll options card hangs off the window's RIGHT edge, mirroring the defence card on the left
+   (see above for why it is a direct child of .application). Its tab trails on the outer edge, so
+   folding leaves the tab, with a count of ticked rows, beside the window. */
+.starwarsffg .ffg-roll-options-panel {
+  position: absolute;
+  left: 100%;
+  top: 48px;
+  margin-left: -2px;
+  display: flex;
+  align-items: flex-start;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 180ms ease;
+}
+.starwarsffg .ffg-roll-options-panel.ffg-ro-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+.starwarsffg.roll-builder-dialog.minimized .ffg-roll-options-panel,
+.starwarsffg.roll-builder-dialog.minimizing .ffg-roll-options-panel {
+  display: none;
+}
+.starwarsffg .ffg-roll-options-inner {
+  width: 220px;
+  max-height: 70vh;
+  box-sizing: border-box;
+  padding: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-size: 12px;
+  background: var(--background, rgba(20, 20, 24, 0.95));
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-left: none;
+  border-right: none;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.45);
+  transition: width 180ms ease, padding 180ms ease, opacity 140ms ease;
+}
+.starwarsffg .ffg-roll-options-panel.ffg-ro-collapsed .ffg-roll-options-inner {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  overflow: hidden;
+  border-width: 1px 0;
+}
+.starwarsffg .ffg-roll-options-toggle {
+  flex: 0 0 auto;
+  width: 16px;
+  min-height: 34px;
+  margin: 6px 0 0 0;
+  padding: 2px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--background, rgba(20, 20, 24, 0.95));
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.45);
+  color: inherit;
+}
+.starwarsffg .ffg-roll-options-toggle::before {
+  content: "❮";
+  font-size: 10px;
+}
+.starwarsffg .ffg-roll-options-panel.ffg-ro-collapsed .ffg-roll-options-toggle::before {
+  content: "❯";
+}
+.starwarsffg .ffg-roll-options-count {
+  font-size: 9px;
+  font-weight: 600;
+}
+.starwarsffg .ffg-ro-section + .ffg-ro-section {
+  margin-top: 8px;
+}
+.starwarsffg .ffg-ro-heading {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+  margin: 0 0 3px 0;
+}
+.starwarsffg .ffg-ro-switch {
+  display: flex;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-radius: 3px;
+  overflow: hidden;
+}
+.starwarsffg .ffg-ro-switch .ffg-ro-choice {
+  flex: 1 1 0;
+  margin: 0;
+  padding: 2px 1px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+.starwarsffg .ffg-ro-switch .ffg-ro-choice + .ffg-ro-choice {
+  border-left: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+}
+.starwarsffg .ffg-ro-switch .ffg-ro-choice.on {
+  background: rgba(168, 121, 31, 0.35);
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .starwarsffg .ffg-roll-options-panel,
+  .starwarsffg .ffg-roll-options-inner {
     transition: none;
   }
 }

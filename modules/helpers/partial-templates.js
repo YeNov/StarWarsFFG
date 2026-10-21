@@ -4,6 +4,7 @@ export default class TemplateHelpers {
       "systems/starwarsffg/templates/parts/shared/ffg-modifiers.html",
       "systems/starwarsffg/templates/parts/shared/ffg-optional-buffs.html",
       "systems/starwarsffg/templates/parts/shared/ffg-roll-option-links.html",
+      "systems/starwarsffg/templates/dice/parts/roll-options-panel.html",
       "systems/starwarsffg/templates/parts/shared/ffg-sources.html",
       "systems/starwarsffg/templates/parts/shared/ffg-tags.html",
       "systems/starwarsffg/templates/parts/shared/ffg-effects.html",

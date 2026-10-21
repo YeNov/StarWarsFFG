@@ -1,0 +1,28 @@
+{{!--
+  The roll options card's content (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md,
+  "Side card"), rendered by RollBuilderFFG#_renderRollOptionsPanel on every change. Its controls
+  carry no `name`, so the dialog's form never submits them; the dialog's delegated listeners on the
+  card read their data attributes.
+--}}
+{{#if twoWeapons.available}}
+<section class="ffg-ro-section ffg-ro-two-weapons">
+  <div class="ffg-ro-heading">{{localize "SWFFG.RollOptions.Panel.TwoWeapons"}}</div>
+  <div class="ffg-ro-switch" role="group" aria-label="{{localize "SWFFG.RollOptions.Panel.TwoWeapons"}}">
+    {{#each twoWeapons.choices as |choice|}}
+    <button type="button" class="ffg-ro-choice{{#if choice.on}} on{{/if}}" data-two-weapons="{{choice.value}}" aria-pressed="{{#if choice.on}}true{{else}}false{{/if}}">{{choice.label}}</button>
+    {{/each}}
+  </div>
+</section>
+{{/if}}
+{{#if buffs.length}}
+<section class="ffg-ro-section optional-buffs">
+  <div class="ffg-ro-heading optional-buffs-title">{{localize "SWFFG.OptionalBuffs.DialogTitle"}}</div>
+  {{#each buffs as |buff|}}
+  <label class="optional-buff-option" title="{{#if buff.locked}}{{localize 'SWFFG.OptionalBuffs.AlreadyApplied'}}{{else}}{{#if buff.source}}{{localize 'SWFFG.OptionalBuffs.From' source=buff.source}}{{/if}}{{/if}}">
+    <input type="checkbox" class="optional-buff-tick" data-buff-key="{{buff.key}}" {{#if buff.ticked}}checked{{/if}} {{#if buff.locked}}disabled{{/if}} />
+    <span class="optional-buff-option-name">{{buff.name}}</span>
+    {{#if buff.source}}<span class="optional-buff-option-source">{{buff.source}}</span>{{/if}}
+  </label>
+  {{/each}}
+</section>
+{{/if}}
