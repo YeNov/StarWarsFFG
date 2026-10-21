@@ -77,6 +77,7 @@ import { killMinionGroup } from "./helpers/minions.js";
 import { getAmmoMax, getAmmoValue, isAmmoTracked } from "./helpers/ammo-helpers.js";
 import { vehicleHardpointSourceRating, vehicleHardpoints, vehicleShieldSourceRatings } from "./helpers/vehicle-hardpoints.js";
 import { vehicleDefenceZones } from "./helpers/vehicle-defence.js";
+import { registerRollOptionHooks } from "./helpers/roll-option-hooks.js";
 
 // The system's public API for optional packages (the Codex II module): see
 // modules/api/public-api.js. Set while this file is evaluated, before any module script runs.
@@ -254,6 +255,7 @@ Hooks.once("init", async function () {
   CONFIG.module = "Starwars FFG";
   CONFIG.logger = Helpers.logger;
   registerActorItemValidationHooks();
+  registerRollOptionHooks();
   registerDuplicateIdentityHooks();
 
   // Define custom Entity classes. This will override the default Actor

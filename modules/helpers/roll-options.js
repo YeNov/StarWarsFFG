@@ -57,6 +57,18 @@ export function normalizeName(name) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+/**
+ * The lang key that explains a validation error: `SWFFG.RollOptions.Error.<Code>`, with an option
+ * that is not an object told apart from a group (offer, amount, cost, dice) that is not.
+ * @param {{code: string, key: string}} error
+ * @returns {string}
+ */
+export function optionErrorKey(error) {
+  const code = String(error?.code ?? "");
+  const name = code.charAt(0).toUpperCase() + code.slice(1);
+  return `SWFFG.RollOptions.Error.${name}${code === "notObject" && !error?.key ? "Option" : ""}`;
+}
+
 const isPlainObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 const isText = (value) => typeof value === "string" && value.trim() !== "";
 

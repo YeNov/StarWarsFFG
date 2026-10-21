@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
-import { normalizeName, parseOptionText, validateOptions } from "../../modules/helpers/roll-options.js";
+import { normalizeName, optionErrorKey, parseOptionText, validateOptions } from "../../modules/helpers/roll-options.js";
 
 /**
  * The roll option format and what its validator refuses
@@ -70,6 +70,32 @@ test("an explicit id may appear only once in a macro", () => {
 
 test("every error in a list is reported, not just the first", () => {
   assert.equal(validateOptions([{ lable: 1 }, { cost: { strain: -1 } }]).errors.length, 2);
+});
+
+test("every error the validator can report has an English message", async () => {
+  const fs = await import("node:fs");
+  const EN = JSON.parse(fs.readFileSync(new URL("../../lang/en.json", import.meta.url), "utf8"));
+  const samples = [
+    parseOptionText("[{"),
+    validateOptions(3),
+    validateOptions([1, { offer: 1 }]),
+    validateOptions({ lable: 1, label: "", offer: { skills: "x", skillTypes: ["Fighting"], attack: 1, twoWeapons: "no" } }),
+    validateOptions({ amount: { max: 0 }, cost: { strain: -1 }, dice: { boost: 0.5 } }),
+    validateOptions({ dice: { boost: "amount" } }),
+    validateOptions([{ id: "a" }, { id: "a" }]),
+  ];
+  const errors = samples.flatMap((r) => r.errors);
+  const codes = new Set(errors.map((e) => e.code));
+  for (const code of ["json", "notList", "notObject", "unknownKey", "notText", "notTextList", "notSkillType", "notBoolean",
+    "notTwoWeapons", "notCost", "notMax", "notDiceValue", "amountWithoutAmount", "duplicateId"]) {
+    assert.ok(codes.has(code), `sample covers ${code}`);
+  }
+  for (const error of errors) {
+    const key = optionErrorKey(error);
+    assert.ok(key in EN, `${key} is in lang/en.json`);
+  }
+  assert.equal(optionErrorKey({ code: "notObject", key: "" }), "SWFFG.RollOptions.Error.NotObjectOption");
+  assert.equal(optionErrorKey({ code: "notObject", key: "offer" }), "SWFFG.RollOptions.Error.NotObject");
 });
 
 test("normalizeName ignores case, spaces, hyphens, punctuation and accents", () => {
