@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Let a player tick talent, quality and two-weapon options on a foldable side card of the roll dialog, with option code written as JSON in GM macros that items link to, costs charged through the GM bridge after the roll posts, and a GM library run that links the first eight options into existing items.
+**Goal:** A player ticks talent, quality and Two weapons options on a foldable side card of the roll dialog, and the dice change at once. The strain (wounds for a rival) the ticked options cost is charged after the roll posts, through the GM bridge's queue. A GM-run library install creates option macros for the first eight options and links them into existing items.
 
 **Architecture:** Every decision is a pure module under `modules/helpers/`, `modules/dice/` or `modules/config/`, covered by Node tests in `tests/node/`. Foundry-side code stays thin: the roll dialog (`RollBuilderFFG`), the item sheets and popups, two hooks, the GM bridge's new operation, and the library runner. Ticked options become ordinary optional-buff rows, so one pass of `applyOfferedBuffs` applies buffs, Two weapons and options in the order the spec fixes.
 
@@ -18,8 +18,10 @@
 - English strings in `lang/en.json` under `SWFFG.RollOptions.*`. Never add a key whose dotted prefix is already a string (`tests/node/lang-expansion.test.mjs`): `SWFFG.RollOptions` itself is never a string.
 - Classic CSS in `styles/mandar.css`; never commit `npm run compile` output for `styles/starwarsffg.css`. Codex styles in `codex/styles/`.
 - Codex II reaches the system only through `modules/api/public-api.js`; `PUBLIC_API_VERSION` becomes **3**.
-- Costs are paid through `postThenPay` (`modules/dice/roll-costs.js`), after the message posts, and every option charge goes through `applyToTargetActor` (`modules/helpers/gm-bridge.js`), owners included.
+- Costs are paid through `postThenPay` (`modules/dice/roll-costs.js`), after the message posts.
+- **One charging rule:** every option charge, owners included, goes through the GM bridge's coordinator queue, the same `applyCoordinator` that `applyToTargetActor` uses (`modules/helpers/gm-bridge.js`). Option charges call `chargeRollCost` (Task 6), which adds no notification of its own; nothing writes option strain with a direct `actor.update`.
 - Payer pool and threshold rule: reuse `defenceCostPool`, `readCostPool`, `wouldIncapacitate` from `modules/helpers/defensive-talents.js` (characters and nemeses pay strain, rivals wounds, minions and vehicles cannot pay; reaching the threshold is allowed, going over is not; an unknown threshold never refuses).
+- **Remaining capacity** means the payer pool's threshold, minus its current value, minus the strain of the options already ticked; it is unlimited when the threshold is unknown (not a positive number). The plan uses this term wherever an option's cost is checked.
 - Skill types: exactly `Combat`, `General`, `Knowledge`, `Social`, `Magic`.
 - Option format keys (spec, *The option format*): `id`, `label`, `hint`, `offer{skills, skillTypes, attack, twoWeapons}`, `amount{max, label}`, `cost{strain, maneuvers}`, `dice{boost, setback, removeSetback, difficulty, upgradeAbility, downgradeAbility, upgradeDifficulty, downgradeDifficulty}`. Every key optional.
 - Before any push: `CHANGELOG.md` entry under `Unreleased` and the wiki tutorial updated (Task 18).
@@ -46,7 +48,7 @@
 | `modules/config/roll-option-library.js` | The eight library entries and `libraryEntryFor`. |
 | `modules/helpers/roll-options-offer.js` | Which options a roll offers: `linkedMacroUuids`, `skillTypeOf`, `collectOfferedOptions`. |
 | `modules/dice/roll-option-pool.js` | Options to dice: `optionDiceRows`, `layerPool` (the dialog's whole layering, shared by sender and recipient). |
-| `modules/helpers/roll-option-costs.js` | Row states, room and totals: `planOptionStates`, `canChargeFor`. |
+| `modules/helpers/roll-option-costs.js` | The dialog's inputs, row states, remaining capacity and totals: `rollOptionInputs`, `planOptionStates`, `canChargeFor`. |
 | `modules/helpers/roll-option-card.js` | The chat line: `rollOptionCardEntries`, `formatRollOptionsLine`. |
 | `modules/dice/roll-option-sent.js` | A sent pool's layers: `packSentLayers`, `readSentLayers`. |
 | `modules/helpers/roll-option-links.js` | Link lists and the guard: `addLink`, `removeLink`, `copyIdentity`, `nodeIdentity`, `withCopyLinks`, `linkSnapshot`, `linkChangeVerdict`. |
@@ -65,6 +67,29 @@
 
 ---
 
+### Task 0: Two Foundry feasibility checks
+
+Two answers change later tasks (the save check in Task 9, macro permissions in Task 17), so get them before writing code. They need no system changes: only the browser console on the `test` world.
+
+**Files:**
+- Modify: this plan's **Task 0 results** block below (record the answers; commit them).
+
+- [ ] **Step 1: Ask the user before starting Foundry** (their campaign world shares the data folder). Then start it on the `test` world: `node tools/foundry-test-server.mjs` with `FVTT_APP` / `FVTT_DATA` set as `tests/README.md` describes.
+- [ ] **Step 2: Can a player read a GM macro they have no permission on?** As the GM, create a script macro `ffgtest-read` with command `[{"label":"x"}]` and default ownership None. Log in as a player in a second browser (or a `sessions.player()` Playwright context, `tests/README.md`), and run `game.macros.getName("ffgtest-read")?.command` in its console.
+  - Prints the text → **readable**.
+  - `undefined`, or the macro is missing → **not readable**.
+- [ ] **Step 3: Does Foundry's macro editor keep the text after a refused save?** As the GM, run `Hooks.once("preUpdateMacro", () => false)`, open `ffgtest-read` in the macro editor, change its text and save.
+  - The editor stays open with the changed text → **keeps text**.
+  - It closes, or reverts the text → **loses text**.
+- [ ] **Step 4: Clean up** — delete `ffgtest-read` and the test player; stop Foundry.
+- [ ] **Step 5: Record and commit** — fill in the block below, then `git commit -m "Record the roll options feasibility checks"`.
+
+**Task 0 results** (fill in):
+- Player can read a GM macro without permission: `readable` / `not readable` → if not readable, Task 17 gives library macros Observer default ownership.
+- Macro editor after a refused save: `keeps text` / `loses text` → if it loses text, Task 9's save check warns instead of refusing.
+
+---
+
 ### Task 1: The option format and its validator
 
 **Files:**
@@ -80,7 +105,7 @@
   - `normalizeName(name: string): string` — strip accents, lowercase, keep only `[a-z0-9]`.
   - `validateOptions(value: unknown): {ok: true, options: Option[]} | {ok: false, errors: OptionError[]}` — accepts one option object or an array; `options` is always an array of deep copies.
   - `parseOptionText(text: string): same result` — `JSON.parse`, then `validateOptions`.
-  - `OptionError = {option: number|null, key: string, code: string, detail?: string}`; `option` is 1-based (null for whole-text errors). Codes: `json`, `notList`, `notObject`, `unknownKey`, `notText`, `notTextList`, `notSkillType`, `notBoolean`, `notTwoWeapons`, `notCost`, `notMax`, `notDiceValue`, `amountWithoutAmount`.
+  - `OptionError = {option: number|null, key: string, code: string, detail?: string}`; `option` is 1-based (null for whole-text errors). Codes: `json`, `notList`, `notObject`, `unknownKey`, `notText`, `notTextList`, `notSkillType`, `notBoolean`, `notTwoWeapons`, `notCost`, `notMax`, `notDiceValue`, `amountWithoutAmount`, `duplicateId` (a second option in the same macro with an `id` already used; reported on the later one, key `id`).
 
 - [ ] **Step 1: Write the failing tests** in `tests/node/roll-options.test.mjs` (import the stub first, as every Node test does):
 
@@ -129,6 +154,10 @@ test("offer checks skills, skill types, attack and twoWeapons", () => {
 test("label, hint and id are non-empty text when given", () => {
   assert.equal(validateOptions({ label: "" }).errors[0].code, "notText");
   assert.equal(validateOptions({ hint: 3 }).errors[0].key, "hint");
+});
+test("an explicit id may appear only once in a macro", () => {
+  assert.deepEqual(validateOptions([{ id: "x" }, { id: "y" }, { id: "x" }]).errors, [{ option: 3, key: "id", code: "duplicateId" }]);
+  assert.equal(validateOptions([{ id: "1" }, {}]).ok, true); // an id that looks like a position is fine
 });
 test("every error in a list is reported, not just the first", () => {
   assert.equal(validateOptions([{ lable: 1 }, { cost: { strain: -1 } }]).errors.length, 2);
@@ -231,7 +260,7 @@ test("Guns Blazing cancels exactly one Two weapons die", () => {
   - `collectOfferedOptions({items, macros, context}): OfferedOption[]`
     - `macros: Map<string, {ok: true, options: Option[]} | {ok: false}>` — parsed macro text by uuid; a missing uuid or `ok: false` contributes nothing.
     - `context: {skillKey: string|null, skillType: string|null, weaponId: string|null, isAttack: boolean, isForcePower: boolean, forceRating: number}`
-    - `OfferedOption = {key: string, label: string, source: string, ranked: boolean, rank: number, hint: string|null, twoWeapons: "same"|"different"|"any"|null, amount: {max: number, label: string|null}|null, cost: {strain: number|"amount", maneuvers: number}, dice: Record<string, number|"amount">}` — `"ranks"` and `"forceRating"` are already resolved to numbers in `amount.max` and `dice`; `"amount"` is left for Task 4.
+    - `OfferedOption = {key: string, label: string, source: string, ranked: boolean, rank: number, hint: string|null, twoWeapons: "same"|"different"|"any"|null, amount: {max: number, label: string|null}|null, cost: {strain: number|"amount", maneuvers: number|"amount"}, dice: Record<string, number|"amount">}` — `"ranks"` and `"forceRating"` are already resolved to numbers in `amount.max` and `dice`; `"amount"` stays as it is, in `cost` and `dice`, until a row's amount is known (Tasks 4 and 5). A missing `cost` key is 0.
 
 Rules (spec, *Which items offer their options* and *What the words mean*):
 - Force power roll → `[]`.
@@ -240,7 +269,7 @@ Rules (spec, *Which items offer their options* and *What the words mean*):
 - A quality or attachment modification is skipped when `isModifierSuspended(q)` or `q.system?.broken === true`.
 - `ranks` for a quality is `Number(system.rank)` (a string `"2"` counts 2; below 1 or not a number counts 1); for weapon, armour, gear and attachment itself, 1.
 - `offer.skills` must contain `skillKey`; `offer.skillTypes` must contain `skillType`; `offer.attack` needs `isAttack`. A null `skillKey` / `skillType` fails any option that names skills / skill types. `offer.twoWeapons` does not filter: it is copied to `twoWeapons` for Task 5 to grey.
-- `key` = `"<macroUuid>:<optionId>"`, plus `":<normalized talent name>"` for talents; `optionId` = `option.id` or the option's index as text. Two sources with the same key give one row.
+- `key` = `"<macroUuid>:id:<option.id>"` for an option with an explicit `id`, or `"<macroUuid>:#<index>"` (0-based position) for one without, plus `":<normalized talent name>"` for talents. The two forms cannot collide, and Task 1 refuses duplicate explicit ids, so every option of a valid macro gets its own key. Two sources with the same key give one row.
 - `label` = `option.label` or the linking item's name; `source` = the linking item's name.
 
 - [ ] **Step 1: Write the failing tests.** Fixture helpers build plain items like `tests/node/optional-buffs-offer.test.mjs` does, with `system.rollOptions: ["Macro.m1"]` and a `macros` map. Tests (one `test()` each, assertions as stated):
@@ -254,6 +283,7 @@ Rules (spec, *Which items offer their options* and *What the words mean*):
   - `ranks and forceRating resolve to numbers` — `dice:{upgradeAbility:"ranks"}` on a rank-2 talent → `dice.upgradeAbility === 2`; `amount:{max:"forceRating"}` with `forceRating:3` → `amount.max === 3`; `dice:{upgradeAbility:"amount"}` stays `"amount"`.
   - `a quality's string rank counts as a number` — quality `system.rank:"2"`, `dice:{difficulty:"ranks"}` → `dice.difficulty === 2`.
   - `the same macro on two talents shows once per talent name; on two gear items once` — two gear items linking `Macro.m1` → one row.
+  - `explicit ids and positions never share a key` — macro `[{id:"1", label:"A"}, {label:"B"}]` on one gear item → two rows, keys `"Macro.m1:id:1"` and `"Macro.m1:#1"`.
   - `unresolved or invalid macros contribute nothing` — uuid absent from `macros`, and `{ok:false}` → `[]`.
   - `Force power rolls offer nothing`.
   - `label defaults to the linking item's name and twoWeapons is carried through`.
@@ -298,7 +328,7 @@ Rules (spec, *Which items offer their options* and *What the words mean*):
   - `amount and ranks become counts` — option `dice:{upgradeAbility:"amount"}` ticked with `amount:2`, base `{ability:3}` → `ability:1, proficiency:2`.
   - `the base pool is never changed` — after `layerPool`, `base` deep-equals its copy taken before.
   - `a negative manual setback survives and cancels defence` — base `{setback:-1}`, `defence:2` → `setback:1`; base `{setback:-2}`, `defence:1`, nothing ticked → `setback:0`.
-  - `the Adversary upgrade waits for difficulty` — base `{difficulty:0}`, `adversaryRanks:2`, nothing ticked → `challenge:0`; with `twoWeapons:"same"` → `challenge:1, difficulty:0`.
+  - `the Adversary upgrade waits for difficulty` — base `{difficulty:0}`, `adversaryRanks:2`, nothing ticked → `difficulty:0, challenge:0`; with `twoWeapons:"same"` → `difficulty:1, challenge:1` (the one die from Two weapons is upgraded once, then the second upgrade finds no difficulty die and adds one, as `DicePoolFFG.upgradeDifficulty` does).
   - `adversaryMode false skips the upgrade`.
 - [ ] **Step 2: Run to see them fail** — `node --test tests/node/roll-option-pool.test.mjs`.
 - [ ] **Step 3: Implement** both functions in `modules/dice/roll-option-pool.js`.
@@ -307,48 +337,60 @@ Rules (spec, *Which items offer their options* and *What the words mean*):
 
 ---
 
-### Task 5: Row states and room
+### Task 5: The dialog's inputs, row states and remaining capacity
 
 **Files:**
 - Create: `modules/helpers/roll-option-costs.js`
 - Test: `tests/node/roll-option-costs.test.mjs`
 
 **Interfaces:**
-- Consumes: `OfferedOption` (Task 3); `wouldIncapacitate` (`modules/helpers/defensive-talents.js`).
+- Consumes: `OfferedOption`, `skillTypeOf` (Task 3); `readCostPool`, `wouldIncapacitate` (`modules/helpers/defensive-talents.js`).
 - Produces:
   - `canChargeFor({hasActiveGM: boolean, isOwner: boolean}): boolean` — `hasActiveGM || isOwner` (the coordinator's own rule in `actor-apply-coordinator.js` `apply`).
+  - `rollOptionInputs(actor: object|null, {skillKey, item, configuredSkills, hasActiveGM}): {items: object[], context: object, pool: object|null, canCharge: boolean}` — everything Task 13 reads off the actor, in one place that tolerates a roll with no actor (`rollActorFrom` returns null for some rolls). With `actor === null`: `items: []`, `context.forceRating: 0`, `context.skillType` from `configuredSkills` only, `pool: null`, `canCharge: false`. Otherwise `items: [...actor.items]`, `forceRating: Number(actor.system?.stats?.forcePool?.max) || 0`, `pool: readCostPool(actor)`, `canCharge: canChargeFor({hasActiveGM, isOwner: actor.isOwner === true})`. `context` also carries `skillKey`, `weaponId` (`item.id` when `item.type === "weapon"`), `isAttack` (`item.type` is `weapon` or `shipweapon`) and `isForcePower` (`item.type === "forcepower"`).
   - `planOptionStates({offered, selection, twoWeapons, pool, canCharge}): {rows: RowState[], selection: Record<string, number>, strain: number, maneuvers: number, after: number|null}`
     - `selection`: ticked keys → amount (1 for options without `amount`).
     - `pool`: `readCostPool(actor)` result or null.
-    - `RowState = {key, ticked: boolean, amount: number, maxAmount: number|null, disabled: boolean, reason: {code: string, data: object}|null}`
+    - `RowState = {key, ticked: boolean, amount: number, maxAmount: number|null, cost: {strain: number, maneuvers: number}, disabled: boolean, reason: {code: string, data: object}|null}` — `cost` is resolved with the row's amount (the chosen amount for a ticked row, 1 for an unticked one), so `"amount"` never reaches the totals, the card or the chat line.
     - Reason codes and data: `needsTwoWeapons {choice}`, `cannotPay {}`, `needsWriter {}`, `zeroMax {}`, `overThreshold {unit, value, threshold}`.
-    - Returned `selection` drops what cannot stay ticked and caps amounts; `strain` is the ticked total in the payer's unit; `after = pool.current + strain` (null without a pool).
+    - Returned `selection` drops what cannot stay ticked and caps amounts; `strain` and `maneuvers` are the ticked rows' resolved totals; `after = pool.current + strain` (null without a pool).
 
 Algorithm (spec, *Costs and what can be ticked*), in this order:
 0. Selection keys that are not among `offered` are dropped (a sent option whose item or macro is gone).
 1. A row whose `twoWeapons` does not match the choice (`same`/`different` need that choice, `any` needs not `no`) → disabled `needsTwoWeapons`, unticked.
-2. A row with a strain cost (`cost.strain > 0` or `"amount"`): no pool → `cannotPay`; `!canCharge` → `needsWriter`. Unticked.
+2. A row with a strain cost (`cost.strain > 0` or `"amount"`): no pool → `cannotPay`; `!canCharge` → `needsWriter`. Unticked. A row with no strain cost is never limited by the payer pool.
 3. `amount.max === 0` → `zeroMax`, unticked.
-4. Ticked rows, in `offered` order: the room left is `threshold - current - strain so far` (no limit when `wouldIncapacitate` would never refuse, i.e. threshold not a positive number). A fixed cost that does not fit → unticked with `overThreshold`; an `"amount"` cost caps `amount` to `min(max, room)`, unticked if that is below 1.
-5. Unticked rows: disabled `overThreshold` when their smallest cost (amount 1) does not fit the room left after all ticked rows; otherwise enabled, with `maxAmount = min(max, room)` for amount rows.
+4. Ticked rows, in `offered` order, against the remaining capacity so far:
+   - fixed strain cost (a number above 0): unticked with `overThreshold` when it exceeds the remaining capacity; its amount, if it has one, keeps the full `1..max` range;
+   - `cost.strain === "amount"`: `amount` is capped to `min(max, remaining capacity)`, unticked with `overThreshold` when that is below 1;
+   - no strain cost: unchanged.
+5. Unticked rows, against the remaining capacity after every ticked row:
+   - fixed strain cost: disabled `overThreshold` when it exceeds the remaining capacity; otherwise enabled, `maxAmount = max`;
+   - `cost.strain === "amount"`: disabled `overThreshold` when the remaining capacity is below 1; otherwise `maxAmount = min(max, remaining capacity)`;
+   - no strain cost: enabled, `maxAmount = max`.
 
 - [ ] **Step 1: Write the failing tests**
   - `exactly at the threshold is allowed, over is not` — pool `{current:10, threshold:12, unit:"strain"}`, Guns Blazing (2) ticked → ticked, `after:12`; Intense Focus (1) unticked → disabled `overThreshold {unit:"strain", value:13, threshold:12}`.
-  - `amounts are capped to the room left` — pool `{current:9, threshold:12}`, Frenzied Attack `max:5` ticked with amount 5 → amount 3, `maxAmount:3`.
-  - `an amount option with no room left greys out` — pool `{current:12, threshold:12}` → Frenzied Attack disabled `overThreshold`.
+  - `strain-per-amount is capped to the remaining capacity` — pool `{current:9, threshold:12}`, Frenzied Attack `max:5` ticked with amount 5 → amount 3, `maxAmount:3`, `cost.strain:3`.
+  - `a strain-per-amount option with no remaining capacity greys out` — pool `{current:12, threshold:12}` → Frenzied Attack disabled `overThreshold`.
+  - `a free amount option keeps its full range at the threshold` — pool `{current:12, threshold:12}`, Sniper Shot (`amount.max:2`, `cost.maneuvers:1`, no strain) → enabled, `maxAmount:2`; ticked with amount 2 → stays 2.
+  - `a fixed-cost amount option keeps its full range` — option `amount.max:3`, `cost.strain:1`: with remaining capacity 1 → enabled, `maxAmount:3`; ticked with amount 3 → stays 3, `cost.strain:1`; with remaining capacity 0 → disabled `overThreshold`.
+  - `a maneuver cost per amount resolves with the amount and charges no strain` — option `amount.max:3`, `cost:{maneuvers:"amount"}`, ticked with amount 3, `pool:null` → stays ticked, row `cost {strain:0, maneuvers:3}`, totals `maneuvers:3, strain:0`.
+  - `a roll with no actor gives empty, safe inputs` — `rollOptionInputs(null, {skillKey:"Melee", item:null, configuredSkills:{Melee:{type:"Combat"}}, hasActiveGM:true})` → `items:[]`, `pool:null`, `canCharge:false`, `context.forceRating:0`, `context.skillType:"Combat"`; and `planOptionStates({offered:[], selection:{}, twoWeapons:"no", pool:null, canCharge:false}).rows` is `[]`.
+  - `inputs read the actor` — a character with `forcePool.max:2`, `isOwner:true`, strain 3 / 12 → `forceRating:2`, `pool.current:3`, `canCharge:true` with `hasActiveGM:false`.
   - `a zero maximum greys the option` — `amount:{max:0}` → disabled `zeroMax`; no row has `maxAmount` 0 enabled or NaN.
   - `minions and vehicles cannot pay strain but keep free options` — `pool:null` → strain rows `cannotPay`; Point Blank (no cost) enabled and stays ticked.
   - `rivals are measured in wounds` — pool `{unit:"wounds", current:8, threshold:10}` → reason data `unit:"wounds"`.
   - `without a writer, costed options grey out` — `canCharge:false` → `needsWriter`; free options unaffected.
   - `dependencies follow the Two weapons choice and untick` — Guns Blazing ticked, `twoWeapons:"no"` → unticked, `needsTwoWeapons {choice:"same"}`; `"different"` likewise; `"same"` → enabled.
-  - `ticked rows are fitted in order` — pool room 2, Guns Blazing (2) then Intense Focus (1) both ticked → Guns Blazing stays, Intense Focus unticked `overThreshold`.
-  - `an unknown threshold never refuses` — `threshold:0` → nothing disabled for room.
+  - `ticked rows are fitted in order` — remaining capacity 2, Guns Blazing (2) then Intense Focus (1) both ticked → Guns Blazing stays, Intense Focus unticked `overThreshold`.
+  - `an unknown threshold never refuses` — `threshold:0` → nothing disabled for capacity.
   - `a selection key that is not offered is dropped` — `selection:{gone:1}` → returned `selection` is `{}`.
   - `canChargeFor` — the four combinations.
 - [ ] **Step 2: Run to see them fail** — `node --test tests/node/roll-option-costs.test.mjs`.
 - [ ] **Step 3: Implement** `modules/helpers/roll-option-costs.js`.
 - [ ] **Step 4: Run the tests** — PASS; `npm test` — PASS.
-- [ ] **Step 5: Commit** — `git commit -m "Plan roll option rows and the room left to pay them"`.
+- [ ] **Step 5: Commit** — `git commit -m "Plan roll option rows against the capacity left to pay them"`.
 
 ---
 
@@ -395,7 +437,7 @@ Algorithm (spec, *Costs and what can be ticked*), in this order:
 **Interfaces:**
 - Consumes: `OfferedOption`, the `planOptionStates` result (Tasks 3, 5).
 - Produces:
-  - `rollOptionCardEntries({offered, selection, twoWeapons, unit}): CardEntry[]` — Two weapons first (when not `no`), then ticked options in `offered` order. `CardEntry = {label: string|null, labelKey: string|null, number: number|null, strain: number, unit: "strain"|"wounds", maneuvers: number}`; Two weapons uses `labelKey` `SWFFG.RollOptions.Card.TwoWeaponsSame` / `...Different`; `number` is the chosen amount for an amount option, else the rank for a ranked source, else null.
+  - `rollOptionCardEntries({offered, states, twoWeapons, unit}): CardEntry[]` — `states` is the `planOptionStates` result; Two weapons first (when not `no`), then each ticked row in `offered` order, its costs taken from the row's resolved `cost` (never `"amount"`). `CardEntry = {label: string|null, labelKey: string|null, number: number|null, strain: number, unit: "strain"|"wounds", maneuvers: number}`; Two weapons uses `labelKey` `SWFFG.RollOptions.Card.TwoWeaponsSame` / `...Different`; `number` is the row's amount for an amount option, else the rank for a ranked source, else null.
   - `formatRollOptionsLine(entries: CardEntry[], localize: (key: string, data?: object) => string): string|null` — null for no entries; otherwise `localize("SWFFG.RollOptions.CardLine", {entries})` with entries joined by `", "`; each entry is `label[ number][ (costs)]`, costs joined by `", "` from `SWFFG.RollOptions.Cost.Strain` / `.Wound` / `.Wounds` / `.Maneuver` / `.Maneuvers` with `{n}`.
 - Strings (`lang/en.json`): `SWFFG.RollOptions.CardLine`: `"Roll options: {entries}"`; `SWFFG.RollOptions.Card.TwoWeaponsSame`: `"Two weapons (same skill)"`; `SWFFG.RollOptions.Card.TwoWeaponsDifferent`: `"Two weapons (different skills)"`; `SWFFG.RollOptions.Cost.Strain`: `"{n} strain"`; `.Wound`: `"{n} wound"`; `.Wounds`: `"{n} wounds"`; `.Maneuver`: `"{n} maneuver"`; `.Maneuvers`: `"{n} maneuvers"`.
 
@@ -404,6 +446,7 @@ Algorithm (spec, *Costs and what can be ticked*), in this order:
   - `maneuvers and wounds` — Intense Focus for a rival → `"Intense Focus (1 wound, 1 maneuver)"`.
   - `nothing used, no line` — `formatRollOptionsLine([], t) === null`.
   - `an unranked talent shows no number` — Saber Swarm → `"Saber Swarm (1 strain, 1 maneuver)"`.
+  - `a maneuver cost per amount shows the resolved count` — an option labelled `"Steady Aim"` with `amount.max:3`, `cost:{maneuvers:"amount"}`, ticked with amount 3, through `planOptionStates` then `rollOptionCardEntries` → `"Steady Aim 3 (3 maneuvers)"`, and the entry's `strain` is 0.
 - [ ] **Step 2: Run to see them fail** — `node --test tests/node/roll-option-card.test.mjs`.
 - [ ] **Step 3: Implement** the module, the `roll.js` and template changes, the CSS and the strings.
 - [ ] **Step 4: Run** — the new test PASS; `npm test` PASS; `node --input-type=module --check < modules/dice/roll.js` prints nothing.
@@ -449,7 +492,8 @@ Algorithm (spec, *Costs and what can be ticked*), in this order:
     - `preUpdateItem(item, changes, options, userId)`: skip unless `changes.system` touches `rollOptions`, `itemmodifier`, `itemattachment` or `talents`; build `after = foundry.utils.mergeObject(item.toObject(), changes, {inplace: false, performDeletions: true})`; on a refused verdict, `ui.notifications.warn(SWFFG.RollOptions.Links.NotAllowed)` and return false.
     - `preUpdateMacro(macro, changes)`: when `changes.command !== undefined` and the macro (or `changes.flags.starwarsffg.rollOption`) is flagged `flags.starwarsffg.rollOption === true`, run `parseOptionText(changes.command)`; on errors show them (`localizeOptionErrors`) and return false.
   - `localizeOptionErrors(errors: OptionError[]): string[]` — `game.i18n.format("SWFFG.RollOptions.Error.<Code>", {option, key, detail})` with `Code` the code's first letter capitalised.
-- Strings: `SWFFG.RollOptions.Links.NotAllowed`: `"Only the GM can change roll option links."`; `SWFFG.RollOptions.Error.Header`: `"{name} was not saved:"`; one `SWFFG.RollOptions.Error.<Code>` per code, e.g. `Json`: `"The text is not valid JSON: {detail}"`, `NotList`: `"The text must be one option or a list of options."`, `NotObject`: `"Option {option} must be an object."`, `UnknownKey`: `"Option {option}: {key} is not a known key."`, `NotCost`: `"Option {option}: {key} must be a whole number of 0 or more, or \"amount\"."`, `NotMax`: `"Option {option}: {key} must be a whole number of 1 or more, \"ranks\" or \"forceRating\"."`, `AmountWithoutAmount`: `"Option {option}: {key} uses \"amount\", but the option has no amount."`, and the rest in the same voice.
+- Strings: `SWFFG.RollOptions.Links.NotAllowed`: `"Only the GM can change roll option links."`; `SWFFG.RollOptions.Error.Header`: `"{name} was not saved:"`; one `SWFFG.RollOptions.Error.<Code>` per code, e.g. `Json`: `"The text is not valid JSON: {detail}"`, `NotList`: `"The text must be one option or a list of options."`, `NotObject`: `"Option {option} must be an object."`, `UnknownKey`: `"Option {option}: {key} is not a known key."`, `NotCost`: `"Option {option}: {key} must be a whole number of 0 or more, or \"amount\"."`, `NotMax`: `"Option {option}: {key} must be a whole number of 1 or more, \"ranks\" or \"forceRating\"."`, `AmountWithoutAmount`: `"Option {option}: {key} uses \"amount\", but the option has no amount."`, `DuplicateId`: `"Option {option}: the id is already used by another option in this macro."`, and the rest in the same voice.
+- **Save-check mode comes from Task 0.** If Foundry's macro editor keeps the GM's text after a refused update, `preUpdateMacro` refuses invalid text (returns false). If it loses the text, it lets the save through and shows the errors as a warning instead; the invalid text then fails `parseOptionText` at roll time and the macro is skipped, as the spec allows.
 
 - [ ] **Step 1: Write the failing tests** (`roll-option-links.test.mjs`, data built as plain objects)
   - `a player cannot change an item's own links` — `{system:{rollOptions:["Macro.a"]}}` → `["Macro.b"]`, `isGM:false` → `{ok:false, where:"self"}`; same with `isGM:true` → ok.
@@ -541,14 +585,15 @@ Algorithm (spec, *Costs and what can be ticked*), in this order:
 - Modify: `modules/dice/roll-builder.js`, `templates/dice/parts/roll-options-panel.html`, `modules/helpers/roll-option-hooks.js` (add `chargeRollOptionCost`), `styles/mandar.css`, `lang/en.json`
 
 **Interfaces:**
-- Consumes: `linkedMacroUuids`, `skillTypeOf`, `collectOfferedOptions` (Task 3); `planOptionStates`, `canChargeFor` (Task 5); `chargeRollCost`, `classifyCharge` (Task 6); `rollOptionCardEntries`, `formatRollOptionsLine` (Task 7); `parseOptionText` (Task 1); `readCostPool` (`defensive-talents.js`).
+- Consumes: `linkedMacroUuids`, `collectOfferedOptions` (Task 3); `rollOptionInputs`, `planOptionStates` (Task 5); `chargeRollCost`, `classifyCharge` (Task 6); `rollOptionCardEntries`, `formatRollOptionsLine` (Task 7); `parseOptionText` (Task 1).
 - Produces:
-  - Loading: `_prepareContext` (async) loads every uuid from `linkedMacroUuids(actor.items)` once per dialog with `fromUuid`, parses each command with `parseOptionText`, and keeps `this._rollOptionMacros: Map`. A load or parse failure logs `CONFIG.logger.warn` and leaves that uuid out.
-  - `this._offeredOptions = collectOfferedOptions({items: actor.items, macros, context})` with `context = {skillKey: this.roll.skillKey, skillType: skillTypeOf(actor, skillKey, CONFIG.FFG.skills), weaponId: item?.type === "weapon" ? item.id : null, isAttack: ["weapon","shipweapon"].includes(item?.type), isForcePower: item?.type === "forcepower", forceRating: Number(actor.system?.stats?.forcePool?.max) || 0}`.
-  - `this._optionSelection = {}`; every change (tick, amount, Two weapons) runs `planOptionStates({offered, selection, twoWeapons, pool: readCostPool(actor), canCharge: canChargeFor({hasActiveGM: !!game.users.activeGM, isOwner: actor.isOwner})})`, stores the returned `selection`, re-renders the card and updates the preview.
+  - Inputs: `this._optionInputs = rollOptionInputs(this._rollActor, {skillKey: this.roll.skillKey, item: this.roll.item, configuredSkills: CONFIG.FFG.skills, hasActiveGM: !!game.users.activeGM})`. **No code in the dialog reads `actor.items`, `actor.system` or `actor.isOwner` directly**: `this._rollActor` can be null (`rollActorFrom` returns null for a roll with no actor), and the inputs already turn that into an empty item list, Force rating 0 and no payer. A roll with no actor must open, preview and post as it does today.
+  - Loading: `_prepareContext` (async) loads every uuid from `linkedMacroUuids(this._optionInputs.items)` once per dialog with `fromUuid`, parses each command with `parseOptionText`, and keeps `this._rollOptionMacros: Map`. A load or parse failure logs `CONFIG.logger.warn` and leaves that uuid out.
+  - `this._offeredOptions = collectOfferedOptions({items: inputs.items, macros, context: inputs.context})`.
+  - `this._optionSelection = {}`; every change (tick, amount, Two weapons) runs `planOptionStates({offered, selection, twoWeapons, pool: inputs.pool, canCharge: inputs.canCharge})`, stores the result and its `selection`, re-renders the card and updates the preview. When the GM connects or disconnects the dialog keeps its inputs; the writer's own check at charge time is what counts.
   - `_tickedOptions(): Array<{option, amount}>` from the current selection.
-  - Row markup: checkbox, label (+ rank when `ranked`), cost text (`2 strain · maneuver`, built from the `SWFFG.RollOptions.Cost.*` strings), an amount box (`min 1`, `max = maxAmount`) when the option has an amount, then the hint or the localized reason. Footer `SWFFG.RollOptions.Panel.StrainAfter` / `.WoundsAfter` with `{value, threshold}` when any offered option has a strain cost.
-  - Roll click: snapshot the selection, Two weapons and the card entries synchronously with the pool (before any `await`, as the existing snapshot does). Set `roll.rollOptionsText = formatRollOptionsLine(entries, localize)`. When the ticked strain total is above 0, push `() => chargeRollOptionCost(this._rollActor, total, entries)` onto the costs `postThenPay` runs.
+  - Row markup: checkbox, label (+ rank when `ranked`), cost text from the row's resolved `cost` (`2 strain · maneuver`, built from the `SWFFG.RollOptions.Cost.*` strings), an amount box (`min 1`, `max = maxAmount`) when the option has an amount, then the hint or the localized reason. Footer `SWFFG.RollOptions.Panel.StrainAfter` / `.WoundsAfter` with `{value: after, threshold}` when there is a payer and any offered option has a strain cost.
+  - Roll click: snapshot the states, Two weapons and the card entries (`rollOptionCardEntries({offered, states, twoWeapons, unit: inputs.pool?.unit ?? "strain"})`) synchronously with the pool (before any `await`, as the existing snapshot does). Set `roll.rollOptionsText = formatRollOptionsLine(entries, localize)`. When `states.strain > 0` (which implies a payer), push `() => chargeRollOptionCost(this._rollActor, states.strain, entries)` onto the costs `postThenPay` runs.
   - `chargeRollOptionCost(actor, total, entries): Promise<void>` (in `roll-option-hooks.js`) — calls `chargeRollCost`, classifies with `classifyCharge`, never throws:
     - `charged` → nothing;
     - `notCharged` → `ui.notifications.warn(SWFFG.RollOptions.Charge.NotCharged)` with `{actor, cost, options, reason}`, the reason from `SWFFG.RollOptions.Charge.Reason.<NoWriter|Unaffordable|Outdated|Failed>`;
@@ -556,9 +601,10 @@ Algorithm (spec, *Costs and what can be ticked*), in this order:
     - The coordinator's own "still waiting" notice covers a slow reply; a later rejection lands in the `notCharged` / `unknown` branches because the promise settles then.
 - Strings: `SWFFG.RollOptions.Panel.StrainAfter`: `"Strain after roll: {value} / {threshold}"`; `.WoundsAfter`: `"Wounds after roll: {value} / {threshold}"`; `SWFFG.RollOptions.Reason.NeedsTwoWeaponsSame`: `"Needs Two weapons: same skill"`; `.NeedsTwoWeaponsDifferent`: `"Needs Two weapons: different skills"`; `.NeedsTwoWeaponsAny`: `"Needs Two weapons"`; `.CannotPay`: `"Minions can't suffer strain"`; `.NeedsWriter`: `"Needs the GM connected"`; `.ZeroMax`: `"Nothing to choose: the maximum is 0"`; `.OverThreshold`: `"Would take {unit} to {value} / {threshold}"`; `SWFFG.RollOptions.Charge.NotCharged`: `"{actor}'s {cost} for {options} was not charged: {reason}."`; `.Reason.NoWriter`: `"no GM or owner of {actor} is connected"`; `.Reason.Unaffordable`: `"it would take them past their threshold"`; `.Reason.Outdated`: `"the client that would apply it runs an older version"`; `.Reason.Failed`: `"the update failed"`; `.Unknown`: `"{actor}'s {cost} for {options} may or may not have been charged: the client applying it disconnected. Check {actor}'s {unit} before charging it by hand."`
 
-- [ ] **Step 1: Implement** the loading, state, rows, footer, Roll click snapshot, `chargeRollOptionCost` and the strings.
-- [ ] **Step 2: Run** — `npm test` PASS; `npm run lint` PASS; syntax checks on `roll-builder.js` and `roll-option-hooks.js` print nothing.
-- [ ] **Step 3: Commit** — `git commit -m "Offer roll options in the dialog and charge them after the roll posts"`.
+- [ ] **Step 1: Implement** the inputs, loading, state, rows, footer, Roll click snapshot, `chargeRollOptionCost` and the strings.
+- [ ] **Step 2: Run** — `npm test` PASS (Task 5's no-actor test covers the inputs); `npm run lint` PASS; syntax checks on `roll-builder.js` and `roll-option-hooks.js` print nothing.
+- [ ] **Step 3: Check the dialog still opens with no actor** — `grep -nE "_rollActor\.(items|system|isOwner)|actor\.(items|system|isOwner)" modules/dice/roll-builder.js` shows no new unguarded reads in the code this task added; the Foundry check in Task 18 opens one for real.
+- [ ] **Step 4: Commit** — `git commit -m "Offer roll options in the dialog and charge them after the roll posts"`.
 
 ---
 
@@ -649,7 +695,7 @@ Algorithm (spec, *Costs and what can be ticked*), in this order:
 - Consumes: `ROLL_OPTION_LIBRARY` (Task 2); `planLibraryMacros`, `planItemLinks` (Task 16).
 - Produces: `installRollOptionLibrary(): Promise<object|null>` — GM only (others get a warning and null). Steps (spec, *The library run*):
   1. A `foundry.applications.api.DialogV2.confirm` naming what it scans; cancel → null.
-  2. Find or create the world folder `SWFFG.RollOptions.Library.FolderName` (`"Roll options"`, type `Macro`); find existing macros by `flags.starwarsffg.rollOptionLibraryId`; create the missing ones as type `script`, name `entry.macroName`, command `JSON.stringify(entry.options, null, 2)`, flags `{starwarsffg: {rollOption: true, rollOptionLibraryId: entry.id}}`.
+  2. Find or create the world folder `SWFFG.RollOptions.Library.FolderName` (`"Roll options"`, type `Macro`); find existing macros by `flags.starwarsffg.rollOptionLibraryId`; create the missing ones as type `script`, name `entry.macroName`, command `JSON.stringify(entry.options, null, 2)`, flags `{starwarsffg: {rollOption: true, rollOptionLibraryId: entry.id}}`. If Task 0 found that a player cannot read a GM macro they have no permission on, also set `ownership: {default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER}`.
   3. Scan world items; each world actor's items; each unlinked token's actor (`!token.actorLink`) on every scene; every unlocked `Item` or `Actor` compendium (load documents; for actors, their items). Skip locked compendiums and list them.
   4. For each item, `planItemLinks` with `isLive = (uuid) => !!fromUuidSync(uuid)` (world macros); apply `item.update(update)`; one failure is reported and the run goes on.
   5. Return and show the report (a whispered chat message to the GM): created macros, linked places per kind and per location, skipped locked compendiums, and for module compendiums the note that links point at this world's macros.
@@ -667,12 +713,10 @@ Algorithm (spec, *Costs and what can be ticked*), in this order:
 **Files:**
 - Modify: `CHANGELOG.md`; the wiki (separate repo `https://github.com/YeNov/StarWarsFFG.wiki.git`, set `user.email` in that clone as the memory note on fresh clones says)
 
-- [ ] **Step 1: Ask the user before starting Foundry** (their campaign world shares the data folder), then start it on the `test` world (`node main.js --noupnp --world=test` from the Foundry app folder, or `node tools/foundry-test-server.mjs`).
-- [ ] **Step 2: Builder checks the spec leaves open.**
-  - As a player who has no permission on a GM macro, run `game.macros.get(id)?.command` in the console. If it is unreadable, give library macros `ownership.default = OBSERVER` in Task 17 and re-run.
-  - Save invalid JSON in a flagged macro through Foundry's macro editor. Confirm the editor keeps the text after the refusal. If it loses it, change the `preUpdateMacro` check to save and warn, flag the macro invalid, and have the dialog skip it; then re-check.
-  - Run `await game.ffg.reportDataModelConformance()`: no new findings.
+- [ ] **Step 1: Ask the user before starting Foundry** (their campaign world shares the data folder), then start it on the `test` world, as in Task 0.
+- [ ] **Step 2: Conformance** — `await game.ffg.reportDataModelConformance()` as the GM: no new findings.
 - [ ] **Step 3: Walk the spec's Foundry checks.**
+  - Open a roll dialog with no actor from the GM console (`game.ffg.DiceHelpers.displayRollDialog({}, new starwarsffg.helpers.DicePoolFFG({ability: 2, difficulty: 2}), "No actor", "Test", null, "", null)`): it opens, shows no option rows, and rolls.
   - Run the library and read the report and the macro folder.
   - On a character with the eight talents and a weapon with Auto-fire, check each option:
     - shows where it should;

@@ -146,8 +146,9 @@ Played back and accepted (the user answered "all good", "sounds right", or did n
   The payer pool, its threshold and the "over, not at" rule are those of
   `modules/helpers/defensive-talents.js` (`defenceCostPool`, `readCostPool`, `wouldIncapacitate`);
   reuse them rather than restating them.
-- **Every** option charge goes through `applyToTargetActor` in `modules/helpers/gm-bridge.js`,
-  whether or not the roller owns the payer. Its coordinator (`actor-apply-coordinator.js`) gives
+- **Every** option charge goes through the GM bridge's coordinator queue in
+  `modules/helpers/gm-bridge.js`, the same one `applyToTargetActor` uses, whether or not the roller
+  owns the payer; no option charge is a direct actor update. The coordinator (`actor-apply-coordinator.js`) gives
   each actor one writer and one queue, shared with damage and Parry, so two charges never read the
   same strain; the writer re-checks the cost against the live actor inside that queue, as Parry's
   `defenceCost` does. Strain and wounds are already among the paths it accepts for unowned
