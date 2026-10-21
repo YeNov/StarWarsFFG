@@ -4125,6 +4125,60 @@ img {
   flex: 0 0 3.5rem;
 }
 
+/* Roll option links (shared ffg-roll-option-links partial, GM only), after the optional buffs on
+   the classic item sheets and in the embedded item popups: a header bar, the linked macros, and a
+   drop zone for another macro. */
+.starwarsffg .roll-option-links {
+  margin: 10px 0 0 0;
+}
+
+.starwarsffg .roll-option-links .roll-option-links-header {
+  padding: 5px;
+  margin: 0 0 5px 0;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #aaa;
+  border-radius: 2px;
+  font-weight: bold;
+  align-items: center;
+}
+
+.starwarsffg .roll-option-links .roll-option-link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.starwarsffg .roll-option-links .roll-option-link {
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-bottom: 1px solid #aaa;
+}
+
+.starwarsffg .roll-option-links .roll-option-link.missing .roll-option-link-name {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.starwarsffg .roll-option-links .roll-option-link-name {
+  min-width: 0;
+}
+
+.starwarsffg .roll-option-links .roll-option-link-control {
+  flex: 0 0 20px;
+  text-align: center;
+}
+
+.starwarsffg .roll-option-links .roll-option-link-drop {
+  margin: 4px 0 0 0;
+  padding: 6px;
+  border: 1px dashed #aaa;
+  border-radius: 2px;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.8;
+}
+
 .starwarsffg .item-sheet-criticalinjury .sheet-header {
   overflow: visible;
 }

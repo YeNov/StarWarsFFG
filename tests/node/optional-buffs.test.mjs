@@ -176,3 +176,17 @@ test("a save that fails is reported and the next one still runs", async () => {
   assert.deepEqual(reported, ["offline"]);
   assert.equal(stored[0].rows.length, 1);
 });
+
+test("the queue can hold another kind of list, cleaned its own way", async () => {
+  // Roll option links (a list of macro uuids) reuse the queue; the buff cleaner would drop them.
+  const store = slowStore(["Macro.a"]);
+  const queue = createBuffEditQueue({
+    read: store.read, write: store.write, clean: (list) => (Array.isArray(list) ? [...list] : []),
+  });
+  queue.edit((links) => [...links, "Macro.b"]);
+  await store.finishNext();
+  assert.deepEqual(store.list, ["Macro.a", "Macro.b"]);
+  queue.edit((links) => links.filter((uuid) => uuid !== "Macro.a"));
+  await store.finishNext();
+  assert.deepEqual(store.list, ["Macro.b"]);
+});

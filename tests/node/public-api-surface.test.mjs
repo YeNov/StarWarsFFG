@@ -18,7 +18,11 @@ const SURFACE = {
   ],
   "modules/apps/ffg-actor-sheet.js": ["_getHeaderControls(", 'Hooks.callAll("renderActorSheetV2"'],
   // Codex II item sheets inherit the optional buffs editor (apiVersion 2).
-  "modules/items/item-sheet-ffg.js": ["_activateOptionalBuffListeners(", "async _saveOptionalBuffs("],
+  // ...and the roll option link list (apiVersion 3).
+  "modules/items/item-sheet-ffg.js": [
+    "_activateOptionalBuffListeners(", "async _saveOptionalBuffs(",
+    "_activateRollOptionLinkListeners(", "async _saveRollOptionLinks(",
+  ],
   "modules/actors/actor-sheet-ffg.js": [
     "async getData(", "activateListeners(html)", "async _buyCore(", "async _buySkillRank(",
     "_createSkillColumns(", "async _itemDisplayDetails(", "async _itemDetailsElement(",

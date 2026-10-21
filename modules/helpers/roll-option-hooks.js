@@ -11,7 +11,7 @@
  *   skips the macro until it is fixed.
  */
 import { optionErrorKey, parseOptionText } from "./roll-options.js";
-import { linkChangeVerdict } from "./roll-option-links.js";
+import { addLink, linkChangeVerdict, removeLink } from "./roll-option-links.js";
 
 /** The `system` keys under which an item holds link lists, its own or its copies'. */
 const LINKED_KEYS = Object.freeze(["rollOptions", "itemmodifier", "itemattachment", "talents"]);
@@ -37,6 +37,80 @@ export function localizeOptionErrors(errors) {
 export function warnOptionErrors(name, errors) {
   const lines = [game.i18n.format("SWFFG.RollOptions.Error.Header", { name }), ...localizeOptionErrors(errors)];
   ui.notifications.warn(lines.join(" "), { permanent: true });
+}
+
+/**
+ * The link list as the shared partial shows it (templates/parts/shared/ffg-roll-option-links.html).
+ * @param {string[]|undefined} uuids
+ * @returns {Array<{uuid: string, name: string, missing: boolean}>}
+ */
+export function describeRollOptionLinks(uuids) {
+  return (Array.isArray(uuids) ? uuids : []).map((uuid) => {
+    let macro = null;
+    try {
+      macro = foundry.utils.fromUuidSync(uuid);
+    } catch {
+      macro = null;
+    }
+    return macro
+      ? { uuid, name: macro.name ?? uuid, missing: false }
+      : { uuid, name: game.i18n.localize("SWFFG.RollOptions.Links.Missing"), missing: true };
+  });
+}
+
+/**
+ * Wire a rendered link list: drop a macro to link it (refused, with the errors, when its text does
+ * not validate), open a linked macro, remove a link. Used by the item sheets (and so the Codex II
+ * sheets) and by the embedded item popups, each with its own `save`.
+ * @param {HTMLElement|jQuery} root
+ * @param {object} params
+ * @param {(change: (links: string[]) => string[]) => Promise<void>} params.save
+ */
+export function bindRollOptionLinks(root, { save }) {
+  const element = root instanceof HTMLElement ? root : root?.[0];
+  const section = element?.querySelector?.(".roll-option-links");
+  if (!section) return;
+
+  section.addEventListener("dragover", (event) => event.preventDefault());
+  section.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    let data;
+    try {
+      data = JSON.parse(event.dataTransfer.getData("text/plain"));
+    } catch {
+      return;
+    }
+    if (data?.type !== "Macro" || !data.uuid) return;
+    const macro = await foundry.utils.fromUuid(data.uuid);
+    if (!macro) return;
+    const result = parseOptionText(macro.command);
+    if (!result.ok) {
+      const lines = [game.i18n.format("SWFFG.RollOptions.Links.Invalid", { name: macro.name }), ...localizeOptionErrors(result.errors)];
+      ui.notifications.warn(lines.join(" "), { permanent: true });
+      return;
+    }
+    await save((links) => addLink(links, macro.uuid));
+    // Mark it as an option macro, so a later edit of its text is checked on save.
+    if (macro.getFlag?.("starwarsffg", "rollOption") !== true && macro.isOwner && !macro.compendium?.locked) {
+      await macro.setFlag("starwarsffg", "rollOption", true);
+    }
+  });
+
+  section.addEventListener("click", async (event) => {
+    const control = event.target.closest?.(".roll-option-link-control");
+    if (!control) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const uuid = control.closest(".roll-option-link")?.dataset.uuid;
+    if (!uuid) return;
+    if (control.dataset.action === "open") {
+      const macro = await foundry.utils.fromUuid(uuid);
+      macro?.sheet?.render(true);
+    } else if (control.dataset.action === "remove") {
+      await save((links) => removeLink(links, uuid));
+    }
+  });
 }
 
 function touchesLinks(changes) {

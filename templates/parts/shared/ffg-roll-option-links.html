@@ -1,0 +1,31 @@
+{{!--
+  Roll option links (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md): the macros
+  whose JSON describes what this item offers in the roll dialog. GM only. Shared by the classic item
+  sheets, the embedded item popups and the Codex II item sheets; bindRollOptionLinks
+  (helpers/roll-option-hooks.js) handles the drop, open and remove controls.
+
+  The block carries no form inputs, so the sheet's own submit never touches the links.
+--}}
+{{#if showRollOptionLinks}}
+<section class="roll-option-links">
+  <header class="roll-option-links-header flexrow">
+    <span class="roll-option-links-title">{{localize "SWFFG.RollOptions.Links.Title"}}</span>
+  </header>
+  <ol class="roll-option-link-list">
+    {{#each rollOptionLinks as |link|}}
+    <li class="roll-option-link flexrow{{#if link.missing}} missing{{/if}}" data-uuid="{{link.uuid}}">
+      <span class="roll-option-link-name">{{link.name}}</span>
+      {{#unless link.missing}}
+      <a class="roll-option-link-control" data-action="open" title="{{localize 'SWFFG.RollOptions.Links.Open'}}"><i class="fas fa-code"></i></a>
+      {{/unless}}
+      {{#if @root.rollOptionLinksEditable}}
+      <a class="roll-option-link-control" data-action="remove" title="{{localize 'SWFFG.RollOptions.Links.Remove'}}"><i class="fas fa-trash"></i></a>
+      {{/if}}
+    </li>
+    {{/each}}
+  </ol>
+  {{#if rollOptionLinksEditable}}
+  <div class="roll-option-link-drop">{{localize "SWFFG.RollOptions.Links.Drop"}}</div>
+  {{/if}}
+</section>
+{{/if}}

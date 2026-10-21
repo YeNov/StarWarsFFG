@@ -138,15 +138,17 @@ export function removeBuffRow(buffs, buffId, index) {
  * @param {() => unknown} params.read - the stored list
  * @param {(next: Array, options?: object) => Promise<*>} params.write - saves a whole list
  * @param {(error: Error) => void} [params.onError] - told about a save that failed
+ * @param {(stored: unknown) => Array} [params.clean] - turns the stored list into a working copy;
+ *   the buff cleaner by default. Roll option link lists pass their own.
  * @returns {{edit: (change: (buffs: Array) => Array, options?: object) => Promise<void>}}
  */
-export function createBuffEditQueue({ read, write, onError = reportSaveError }) {
+export function createBuffEditQueue({ read, write, onError = reportSaveError, clean = cleanBuffs }) {
   let pending = null;
   let waiting = 0;
   let chain = Promise.resolve();
   return {
     edit(change, options) {
-      const next = change(waiting > 0 ? pending : cleanBuffs(read()));
+      const next = change(waiting > 0 ? pending : clean(read()));
       pending = next;
       waiting += 1;
       chain = chain
