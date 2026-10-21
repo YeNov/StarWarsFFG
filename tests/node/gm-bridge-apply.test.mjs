@@ -27,7 +27,11 @@ import {
   DAMAGE_PATHS,
   CRIT_ITEM_TYPES,
   DEFENCE_UNAFFORDABLE,
+  ROLL_COST_UNAFFORDABLE,
+  planRollCostWrite,
+  classifyCharge,
 } from "../../modules/helpers/gm-bridge.js";
+import { WRITER_DISCONNECTED, WRITER_OUTDATED } from "../../modules/helpers/actor-apply-coordinator.js";
 
 /* -------------------------------------------------------------------------- */
 /*  The serializer                                                            */
@@ -304,4 +308,52 @@ test("the writer validates the two-pool form itself, for owners who skip narrowi
     { name: "ApplyRequestError", message: "Invalid apply request: defence-cost." });
   assert.throws(() => planDamageWrite(liveActor(), talentRequest({ changes: [{ path: "system.custom.pool", delta: 1 }] })),
     { name: "ApplyRequestError", message: "Invalid apply request: path." });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Roll option costs (docs/superpowers/specs/2026-10-20-roll-dialog-talents-  */
+/*  design.md, "Costs and what can be ticked")                                */
+/* -------------------------------------------------------------------------- */
+
+const rollCost = (path, delta) => ({ type: "roll-cost", path, delta });
+
+test("roll-cost requests are narrowed to the actor's own cost pool", () => {
+  assert.deepEqual(narrowApplyRequest({ ...rollCost(STRAIN, 3), event: "x", gmChat: {} }, "character"),
+    { ok: true, op: { type: "roll-cost", path: STRAIN, delta: 3 } });
+  assert.deepEqual(narrowApplyRequest(rollCost(STRAIN, 3), "nemesis").ok, true);
+  refuse(rollCost(WOUNDS, 3), "roll-cost"); // a character pays strain
+  assert.deepEqual(narrowApplyRequest(rollCost(WOUNDS, 3), "rival").ok, true);
+  refuse(rollCost(STRAIN, 3), "roll-cost", "minion");
+  refuse(rollCost(WOUNDS, 3), "roll-cost", "minion");
+  refuse(rollCost(STRAIN, 1), "roll-cost", "vehicle");
+  for (const delta of [0, -1, 1.5, "2", null, Infinity]) refuse(rollCost(STRAIN, delta), "roll-cost");
+});
+
+test("a roll cost is refused past the threshold, allowed at it", () => {
+  const pc = { type: "character", system: { stats: { strain: { value: 10, max: 12 } } } };
+  assert.deepEqual(planRollCostWrite(pc, rollCost(STRAIN, 2)), { [STRAIN]: 12 });
+  assert.throws(() => planRollCostWrite(pc, rollCost(STRAIN, 3)), { name: "ApplyRequestError", code: ROLL_COST_UNAFFORDABLE });
+});
+
+test("the writer validates a roll cost itself, for owners who skip narrowing", () => {
+  const pc = liveActor();
+  assert.throws(() => planRollCostWrite(pc, rollCost(WOUNDS, 1)), { name: "ApplyRequestError", message: "Invalid apply request: roll-cost." });
+  assert.throws(() => planRollCostWrite(pc, rollCost(STRAIN, -2)), { name: "ApplyRequestError", message: "Invalid apply request: roll-cost." });
+  assert.throws(() => planRollCostWrite(liveActor({ type: "minion" }), rollCost(STRAIN, 1)), { name: "ApplyRequestError" });
+  // A rival pays wounds; an unknown threshold never refuses.
+  assert.deepEqual(planRollCostWrite(liveActor({ type: "rival", wounds: [4, 10] }), rollCost(WOUNDS, 2)), { [WOUNDS]: 6 });
+  assert.deepEqual(planRollCostWrite(liveActor({ strain: [9, 0] }), rollCost(STRAIN, 5)), { [STRAIN]: 14 });
+});
+
+test("classifyCharge", () => {
+  const coded = (code) => Object.assign(new Error("x"), { code });
+  assert.deepEqual(classifyCharge({ result: "local" }), { kind: "charged", reason: null });
+  assert.deepEqual(classifyCharge({ result: "forwarded" }), { kind: "charged", reason: null });
+  assert.deepEqual(classifyCharge({ result: false }), { kind: "notCharged", reason: "noWriter" });
+  assert.deepEqual(classifyCharge({ error: coded(ROLL_COST_UNAFFORDABLE) }), { kind: "notCharged", reason: "unaffordable" });
+  assert.deepEqual(classifyCharge({ error: coded(WRITER_OUTDATED) }), { kind: "notCharged", reason: "outdated" });
+  assert.deepEqual(classifyCharge({ error: coded(WRITER_DISCONNECTED) }), { kind: "unknown", reason: null });
+  assert.deepEqual(classifyCharge({ error: new Error("x") }), { kind: "notCharged", reason: "failed" });
+  assert.equal(ROLL_COST_UNAFFORDABLE, "roll-cost-unaffordable");
+  assert.equal(WRITER_DISCONNECTED, "writer-disconnected");
 });

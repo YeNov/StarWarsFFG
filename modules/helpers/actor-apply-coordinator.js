@@ -12,10 +12,21 @@ export const CAPABILITY_RESULT_EVENT = "ffgApplyCapabilityResult";
  * refuse an unowned one, so a talent application goes only to a writer that has said yes.
  */
 export const DEFENSIVE_DAMAGE_CAPABILITY = "defensive-damage-v1";
+/**
+ * The writer understands the "roll-cost" operation: the strain (or wounds) a roll's ticked options
+ * cost, checked against the live actor's threshold inside its queue. A writer on older code would
+ * refuse it as an unknown operation, or never answer, so the charge goes only to one that said yes.
+ */
+export const ROLL_OPTION_COST_CAPABILITY = "roll-option-cost-v1";
 /** What this build can do on behalf of other clients. */
-const SUPPORTED_CAPABILITIES = Object.freeze([DEFENSIVE_DAMAGE_CAPABILITY]);
+const SUPPORTED_CAPABILITIES = Object.freeze([DEFENSIVE_DAMAGE_CAPABILITY, ROLL_OPTION_COST_CAPABILITY]);
 /** ApplyRequestError code: the elected writer did not confirm a capability the request needs. */
 export const WRITER_OUTDATED = "writer-outdated";
+/**
+ * ApplyRequestError code: the writer disconnected before confirming, so the write may or may not
+ * have happened. A caller must say the outcome is unknown, never that nothing was applied.
+ */
+export const WRITER_DISCONNECTED = "writer-disconnected";
 /** Elections a capability check follows before giving up on a seat that keeps moving. */
 const MAX_CAPABILITY_ATTEMPTS = 3;
 const LOCAL_REQUEST = Symbol("local apply");
@@ -175,7 +186,7 @@ export function createActorApplyCoordinator(io) {
         // the outcome is unknown rather than implying the hit was lost.
         if (!Array.from(io.getUsers()).some((user) => user.id === executorId && user.active)) {
           pending.delete(requestId);
-          reject(new ApplyRequestError("The client applying this disconnected before confirming it. Check the target before applying it again."));
+          reject(new ApplyRequestError("The client applying this disconnected before confirming it. Check the target before applying it again.", WRITER_DISCONNECTED));
           return;
         }
         // Losing a reply does not cancel the queued write. Keep its caller and
