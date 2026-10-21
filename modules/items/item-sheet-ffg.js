@@ -28,6 +28,7 @@ import {
 } from "../helpers/optional-buffs.js";
 import { LINK_ITEM_TYPES } from "../helpers/roll-options.js";
 import { bindRollOptionLinks, describeRollOptionLinks } from "../helpers/roll-option-hooks.js";
+import { keepCopyFields } from "../helpers/roll-option-links.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -2207,6 +2208,11 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           }
           expanded.system[cleanKey].push(expanded.system[arrayKey]);
           delete expanded.system[arrayKey];
+        }
+        // The form carries neither the modifications' ids nor their roll option links, and the
+        // array is written whole: put back what the form does not carry.
+        if (Array.isArray(expanded.system.itemmodifier)) {
+          expanded.system.itemmodifier = keepCopyFields(this.object.system?.itemmodifier, expanded.system.itemmodifier);
         }
         // flatten back to dot notation for the standard update path
         formData = foundry.utils.flattenObject(expanded);

@@ -31,3 +31,14 @@ test("a talent dropped into a tree carries its links into the node", () => {
   const drop = sheet.slice(sheet.indexOf("async _onDropTalentToSpecialization("), sheet.indexOf("async _onDropItem("));
   assert.match(drop, /rollOptions: \[\.\.\.\(itemObject\.system\.rollOptions \?\? \[\]\)\]/);
 });
+
+test("saving an attachment keeps its modifications' links (final review, Important 1)", () => {
+  // The attachment popup (item-editor.js) and the attachment sheet (item-sheet-ffg.js) rebuild the
+  // modifications from the form; both must put back what the form does not carry.
+  const editor = read("modules/items/item-editor.js");
+  const attachmentBranch = editor.slice(editor.indexOf('if (this.data.clickedObject.type === "itemattachment") {'), editor.indexOf('if (this.data.clickedObject.type === "itemmodifier") {'));
+  assert.match(attachmentBranch, /keepCopyFields\(attachment\.system\?\.itemmodifier, formData\.system\.itemmodifier\)/);
+  const sheet = read("modules/items/item-sheet-ffg.js");
+  const standalone = sheet.slice(sheet.indexOf("// For standalone itemattachments"), sheet.indexOf("const itemUpdate = ItemHelpers.itemUpdate.bind(this);"));
+  assert.match(standalone, /keepCopyFields\(this\.object\.system\?\.itemmodifier, expanded\.system\.itemmodifier\)/);
+});

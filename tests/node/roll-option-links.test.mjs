@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import {
-  addLink, copyIdentity, linkChangeVerdict, nodeIdentity, removeLink, withCopyLinks,
+  addLink, copyIdentity, keepCopyFields, linkChangeVerdict, nodeIdentity, removeLink, withCopyLinks,
 } from "../../modules/helpers/roll-option-links.js";
 
 /**
@@ -97,4 +97,52 @@ test("identities", () => {
   assert.equal(copyIdentity({ name: "Auto-fire" }), "|Auto-fire");
   assert.equal(nodeIdentity("talent3", { itemId: "t1", name: "X" }), "talent3|t1");
   assert.equal(nodeIdentity("talent3", { name: "X" }), "talent3|X");
+});
+
+/* Saving an attachment rebuilds its modifications from the form, which carries neither links nor
+ * identity. keepCopyFields puts back what the form never edits (final review, Important 1). */
+
+const stored = (id, name, links, system = {}) =>
+  ({ _id: id, name, type: "itemmodifier", img: `${id}.svg`, system: { rollOptions: links, rank: 1, attributes: { a1: { modtype: "x" } }, ...system } });
+const fromForm = (name, system = {}) => ({ name, system: { description: "", active: true, rank: 2, attributes: {}, ...system } });
+
+test("a form-rebuilt modification keeps its links and identity, and the form's edits", () => {
+  const [kept] = keepCopyFields([stored("m1", "Auto-fire", ["Macro.a"])], [fromForm("Auto-fire")]);
+  assert.deepEqual(kept, {
+    _id: "m1", name: "Auto-fire", type: "itemmodifier", img: "m1.svg",
+    system: { description: "", active: true, rank: 2, attributes: {}, rollOptions: ["Macro.a"] },
+  });
+});
+
+test("modifications are matched by name when one before them was removed", () => {
+  const result = keepCopyFields([stored("m1", "Pierce", ["Macro.p"]), stored("m2", "Auto-fire", ["Macro.a"])], [fromForm("Auto-fire")]);
+  assert.equal(result[0]._id, "m2");
+  assert.deepEqual(result[0].system.rollOptions, ["Macro.a"]);
+});
+
+test("a modification renamed in place keeps its links; a new one gets none", () => {
+  // The sheets save on every change, so a rename and an addition never share a save.
+  const renamed = keepCopyFields([stored("m1", "Auto-fire", ["Macro.a"])], [fromForm("Autofire")]);
+  assert.deepEqual(renamed[0].system.rollOptions, ["Macro.a"]);
+  assert.equal(renamed[0]._id, "m1");
+  const added = keepCopyFields([stored("m1", "Auto-fire", ["Macro.a"])], [fromForm("Auto-fire"), fromForm("Pierce")]);
+  assert.deepEqual(added[0].system.rollOptions, ["Macro.a"]);
+  assert.equal(added[1]._id, undefined);
+  assert.equal("rollOptions" in added[1].system, false);
+});
+
+test("two copies of one name each keep their own", () => {
+  const result = keepCopyFields(
+    [stored("m1", "Auto-fire", ["Macro.a"]), stored("m2", "Auto-fire", ["Macro.b"])],
+    [fromForm("Auto-fire"), fromForm("Auto-fire")],
+  );
+  assert.deepEqual(result.map((m) => m._id), ["m1", "m2"]);
+  assert.deepEqual(result.map((m) => m.system.rollOptions), [["Macro.a"], ["Macro.b"]]);
+});
+
+test("a player's attachment save passes the guard once the fields are kept", () => {
+  const before = weapon({ attachments: [attachment("a1", "Rapid Recharge", [], [stored("m1", "Auto-fire", ["Macro.a"])])] });
+  const saved = keepCopyFields(before.system.itemattachment[0].system.itemmodifier, [fromForm("Auto-fire")]);
+  const after = weapon({ attachments: [attachment("a1", "Rapid Recharge", [], saved)] });
+  assert.deepEqual(linkChangeVerdict(before, after, player), { ok: true });
 });

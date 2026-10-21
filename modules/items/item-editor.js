@@ -5,7 +5,7 @@ import { applyTalentToInnateModification, buildInnateTalentModification } from "
 import { isAttributeSuspended, isModifierSuspended } from "../helpers/modifier-switch.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
 import { bindRollOptionLinks, describeRollOptionLinks } from "../helpers/roll-option-hooks.js";
-import { copyIdentity, withCopyLinks } from "../helpers/roll-option-links.js";
+import { copyIdentity, keepCopyFields, withCopyLinks } from "../helpers/roll-option-links.js";
 
 export class itemEditor extends FFGFormApplication {
   /*
@@ -728,6 +728,11 @@ export class itemEditor extends FFGFormApplication {
             }
           }
 
+          // The form rebuilds the modifications without their ids or roll option links, and the
+          // merge below replaces the array whole: put back what the form does not carry.
+          if (Array.isArray(formData.system?.itemmodifier)) {
+            formData.system.itemmodifier = keepCopyFields(attachment.system?.itemmodifier, formData.system.itemmodifier);
+          }
           // merge the existing data in so we end up with all fields present.
           // performDeletions:true APPLIES the `-=key` deletion markers (v12+
           // defaults this to false) — otherwise they linger in the merged

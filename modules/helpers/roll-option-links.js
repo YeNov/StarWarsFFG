@@ -71,6 +71,51 @@ export function withCopyLinks(list, identity, links) {
     : copy));
 }
 
+/** Fields a modification form never carries, put back on save: identity, and the links. */
+const KEPT_IDENTITY = ["_id", "id", "type", "img"];
+
+/**
+ * Put back what a form-rebuilt list of copies lost. Saving an attachment (its popup, or its own
+ * sheet) rebuilds the modifications inside it from the form, which carries only their name,
+ * description, switches, rank and modifier rows: their ids and roll option links would be dropped.
+ * Each rebuilt copy is matched to the stored one at the same place with the same name, else the
+ * first unmatched one with that name, else (when nothing was added or removed, so a rename) the
+ * one at the same place. Only fields the form lacks are taken from it, so edits and removed
+ * modifier rows stay as the form has them.
+ * @param {object[]|undefined} stored - the copies as stored before the save
+ * @param {object[]} edited - the copies the form built
+ * @returns {object[]}
+ */
+export function keepCopyFields(stored, edited) {
+  const before = listOf(stored);
+  const after = listOf(edited);
+  const used = new Set();
+  const take = (index) => {
+    used.add(index);
+    return before[index];
+  };
+  return after.map((copy, index) => {
+    let match = null;
+    if (before[index] && !used.has(index) && before[index]?.name === copy?.name) match = take(index);
+    if (!match) {
+      const found = before.findIndex((old, i) => !used.has(i) && old?.name === copy?.name);
+      if (found >= 0) match = take(found);
+    }
+    if (!match && before.length === after.length && before[index] && !used.has(index)) match = take(index);
+    if (!match || !copy || typeof copy !== "object") return copy;
+
+    const next = { ...copy };
+    for (const key of KEPT_IDENTITY) {
+      if (next[key] === undefined && match[key] !== undefined) next[key] = match[key];
+    }
+    const links = match.system?.rollOptions;
+    if (Array.isArray(links) && !Array.isArray(next.system?.rollOptions)) {
+      next.system = { ...(next.system ?? {}), rollOptions: [...links] };
+    }
+    return next;
+  });
+}
+
 /**
  * Every link list an item holds, by where it sits.
  * @param {object} itemData - plain item data
