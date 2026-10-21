@@ -4,6 +4,8 @@ import ModifierHelpers from "../helpers/modifiers.js";
 import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
 import { isAttributeSuspended, isModifierSuspended } from "../helpers/modifier-switch.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
+import { bindRollOptionLinks, describeRollOptionLinks } from "../helpers/roll-option-hooks.js";
+import { copyIdentity, withCopyLinks } from "../helpers/roll-option-links.js";
 
 export class itemEditor extends FFGFormApplication {
   /*
@@ -94,11 +96,50 @@ export class itemEditor extends FFGFormApplication {
       modifierChoices = updatedChoices;
     }
 
+    const linkable = game.user.isGM && ["itemmodifier", "itemattachment"].includes(this.data.clickedObject?.type);
     return {
       modifierTypes: CONFIG.FFG.allowableModifierTypes,
       modifierChoices: modifierChoices,
       data: data,
+      ...this._rollOptionLinkContext(linkable, this.data.clickedObject?.system?.rollOptions),
     };
+  }
+
+  /**
+   * The roll option link list's context (templates/parts/shared/ffg-roll-option-links.html), GM only.
+   * @param {boolean} show
+   * @param {string[]|undefined} links
+   * @returns {{showRollOptionLinks: boolean, rollOptionLinksEditable: boolean, rollOptionLinks: object[]}}
+   */
+  _rollOptionLinkContext(show, links) {
+    return {
+      showRollOptionLinks: show,
+      rollOptionLinksEditable: show && !this.data.sourceObject?.compendium?.locked,
+      rollOptionLinks: show ? describeRollOptionLinks(links) : [],
+    };
+  }
+
+  /**
+   * Save a change to the links of the copy this popup edits (a quality or an attachment held by
+   * another item). Saves go one after another, each reading the list the last one stored; they go
+   * straight to the parent item, never through this popup's form, whose write-back rebuilds the copy
+   * from its fields.
+   * @param {(links: string[]) => string[]} change
+   */
+  async _saveCopyLinks(change) {
+    const parent = this.data.sourceObject;
+    if (parent?.actor && !parent.actor.verifyEditModeIsNotEnabled()) return;
+    this._copyLinkChain = (this._copyLinkChain ?? Promise.resolve()).then(async () => {
+      const field = this.data.clickedObject.type === "itemattachment" ? "itemattachment" : "itemmodifier";
+      const identity = copyIdentity(this.data.clickedObject);
+      const list = parent.system?.[field] ?? [];
+      const stored = list.find((copy) => copyIdentity(copy) === identity)?.system?.rollOptions;
+      const updated = withCopyLinks(list, identity, change(Array.isArray(stored) ? [...stored] : []));
+      await parent.update({ [`system.${field}`]: updated });
+      this.data.clickedObject = updated.find((copy) => copyIdentity(copy) === identity) ?? this.data.clickedObject;
+      this.render(true);
+    }).catch((error) => CONFIG.logger?.warn?.(`Could not save the roll option links: ${error}`));
+    await this._copyLinkChain;
   }
 
   /**
@@ -128,6 +169,7 @@ export class itemEditor extends FFGFormApplication {
     this._setupTabs();
     this._activateListeners($(this.form));
     this._activateEditors();
+    bindRollOptionLinks(this.form, { save: (change) => this._saveCopyLinks(change) });
   }
 
   /* ---- Inline {{editor}} (ProseMirror) support ----
@@ -786,10 +828,28 @@ export class talentEditor extends itemEditor {
       data.modifierChoices = updatedChoices;
     }
 
+    const node = this.data.sourceObject.system?.talents?.[this.data.talentId];
     return {
       activations: activations,
       data: data,
+      ...this._rollOptionLinkContext(game.user.isGM, node?.rollOptions),
     };
+  }
+
+  /**
+   * Save a change to the links of the tree node this popup edits.
+   * @param {(links: string[]) => string[]} change
+   */
+  async _saveCopyLinks(change) {
+    const specialization = this.data.sourceObject;
+    if (specialization?.actor && !specialization.actor.verifyEditModeIsNotEnabled()) return;
+    this._copyLinkChain = (this._copyLinkChain ?? Promise.resolve()).then(async () => {
+      const stored = specialization.system?.talents?.[this.data.talentId]?.rollOptions;
+      const next = change(Array.isArray(stored) ? [...stored] : []);
+      await specialization.update({ [`system.talents.${this.data.talentId}.rollOptions`]: next });
+      this.render(true);
+    }).catch((error) => CONFIG.logger?.warn?.(`Could not save the roll option links: ${error}`));
+    await this._copyLinkChain;
   }
 
   /**
