@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import { DicePoolFFG } from "../../modules/dice/pool.js";
 import { layerPool, optionDiceRows } from "../../modules/dice/roll-option-pool.js";
-import { packSentLayers, readSentLayers } from "../../modules/dice/roll-option-sent.js";
+import { packSentLayers, packSentPool, readSentLayers } from "../../modules/dice/roll-option-sent.js";
 import { planOptionStates } from "../../modules/helpers/roll-option-costs.js";
 
 /**
@@ -74,4 +74,30 @@ test("bad layers are cleaned", () => {
     v: 1, defence: -3, adversaryRanks: -1, adversaryMode: "yes", options: { a: 2, b: 1.5, c: 0, d: "2" }, buffs: ["k", 3, ""], twoWeapons: "both",
   } });
   assert.deepEqual(layers, { v: 1, defence: 0, adversaryRanks: 0, adversaryMode: true, options: { a: 2 }, buffs: ["k"], twoWeapons: "no" });
+});
+
+/** Foundry expands dotted keys in a document's flags, as foundry.utils.expandObject does. */
+function expandDotted(value) {
+  if (Array.isArray(value)) return value.map(expandDotted);
+  if (!value || typeof value !== "object") return value;
+  const out = {};
+  for (const [key, inner] of Object.entries(value)) foundry.utils.setProperty(out, key, expandDotted(inner));
+  return out;
+}
+
+test("option keys with dots survive Foundry's flag expansion", () => {
+  const key = "Macro.abc:id:guns-blazing:gunsblazing";
+  const packed = packSentLayers({ options: { [key]: 1 } });
+  assert.ok(Array.isArray(packed.options), "stored as a list, not as an object keyed by option key");
+  const stored = expandDotted(JSON.parse(JSON.stringify({ sentLayers: packed })));
+  assert.deepEqual(readSentLayers(stored).options, { [key]: 1 });
+});
+
+test("the base pool travels as plain data", () => {
+  const pool = new DicePoolFFG({ ability: 2, proficiency: 1, difficulty: 3, setback: -1, upgrades: 1 });
+  const packed = packSentPool(pool);
+  assert.equal(Object.getPrototypeOf(packed), Object.prototype);
+  const received = new DicePoolFFG(JSON.parse(JSON.stringify(packed)));
+  assert.equal(received.renderDiceExpression(), pool.renderDiceExpression());
+  assert.deepEqual(counts(received), counts(pool));
 });

@@ -3,7 +3,7 @@ import { DicePoolFFG } from "./pool.js";
 import { spendsOwnAmmo, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { onceEffectIds, postThenPay } from "./roll-costs.js";
 import { layerPool, optionDiceRows } from "./roll-option-pool.js";
-import { packSentLayers, readSentLayers } from "./roll-option-sent.js";
+import { packSentLayers, packSentPool, readSentLayers } from "./roll-option-sent.js";
 import { rollActorFrom } from "./roll-actor.js";
 import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
 import { parseOptionText } from "../helpers/roll-options.js";
@@ -584,7 +584,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
               // A copy: `data` is the sheet context, whose frozen application options make
               // Foundry 14's flag cleaning throw ("Cannot assign to read only property 'window'").
               roll: foundry.utils.deepClone(this.roll),
-              dicePool: basePoolSnapshot,
+              dicePool: packSentPool(basePoolSnapshot),
               description: this.description,
               sentLayers,
             },

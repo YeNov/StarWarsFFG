@@ -19,9 +19,15 @@ const VERSION = 1;
 
 const wholeAtLeastZero = (value) => (Number.isFinite(Number(value)) && Number(value) > 0 ? Math.trunc(Number(value)) : 0);
 
+/** Option selections as key → amount, from the stored list (or an object, as the dialog holds them). */
+function optionEntries(options) {
+  if (Array.isArray(options)) return options.map((entry) => [entry?.key, entry?.amount]);
+  return Object.entries(options ?? {});
+}
+
 function normalize(raw) {
   const options = {};
-  for (const [key, amount] of Object.entries(raw?.options ?? {})) {
+  for (const [key, amount] of optionEntries(raw?.options)) {
     if (typeof key === "string" && key && Number.isInteger(amount) && amount >= 1) options[key] = amount;
   }
   return {
@@ -36,7 +42,7 @@ function normalize(raw) {
 }
 
 /**
- * The layers to store as `flags.starwarsffg.sentLayers`.
+ * The layers to store as `flags.starwarsffg.sentLayers`, with the options as a list of {key, amount}.
  * @param {object} layers
  * @param {number} [layers.defence] - setback dice the sender's targets gave
  * @param {number} [layers.adversaryRanks]
@@ -47,7 +53,20 @@ function normalize(raw) {
  * @returns {object}
  */
 export function packSentLayers(layers = {}) {
-  return normalize(layers);
+  const normalized = normalize(layers);
+  // Option keys hold macro uuids ("Macro.abc:…"), and Foundry expands dotted keys in a document's
+  // flags, so the selection is stored as a list of entries rather than an object keyed by them.
+  return { ...normalized, options: Object.entries(normalized.options).map(([key, amount]) => ({ key, amount })) };
+}
+
+/**
+ * The base pool as plain data for the message's flags. Foundry 14 does not keep a class instance
+ * there (a DicePoolFFG arrived as {}), so only its own fields travel; the recipient rebuilds it.
+ * @param {import("./pool.js").DicePoolFFG} pool
+ * @returns {object}
+ */
+export function packSentPool(pool) {
+  return JSON.parse(JSON.stringify(pool ?? {}));
 }
 
 /**
