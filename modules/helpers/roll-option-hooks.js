@@ -12,9 +12,54 @@
  */
 import { optionErrorKey, parseOptionText } from "./roll-options.js";
 import { addLink, linkChangeVerdict, removeLink } from "./roll-option-links.js";
+import { describeCharge } from "./roll-option-card.js";
+import { readCostPool } from "./defensive-talents.js";
+import { chargeRollCost, classifyCharge } from "./gm-bridge.js";
 
 /** The `system` keys under which an item holds link lists, its own or its copies'. */
 const LINKED_KEYS = Object.freeze(["rollOptions", "itemmodifier", "itemattachment", "talents"]);
+
+/** game.i18n.format when there is data, game.i18n.localize when there is none. */
+export function localizeRollOptionText(key, data) {
+  return data ? game.i18n.format(key, data) : game.i18n.localize(key);
+}
+
+const REASON_KEYS = Object.freeze({
+  noWriter: "SWFFG.RollOptions.Charge.Reason.NoWriter",
+  unaffordable: "SWFFG.RollOptions.Charge.Reason.Unaffordable",
+  outdated: "SWFFG.RollOptions.Charge.Reason.Outdated",
+  failed: "SWFFG.RollOptions.Charge.Reason.Failed",
+});
+
+/**
+ * Charge the strain (wounds, for a rival) of a roll's ticked options after the roll has posted,
+ * through the GM bridge's queue, and tell the roller if it did not go through. Never throws: the
+ * roll is already in chat. A charge whose writer disconnected before confirming is reported as
+ * unknown, never as unpaid, so nobody charges it twice by hand.
+ * @param {Actor} actor - the payer
+ * @param {number} total - the ticked options' strain, 1 or more
+ * @param {Array<object>} entries - the chat line's entries, from rollOptionCardEntries
+ */
+export async function chargeRollOptionCost(actor, total, entries) {
+  let outcome;
+  try {
+    outcome = classifyCharge({ result: await chargeRollCost(actor, total) });
+  } catch (error) {
+    outcome = classifyCharge({ error });
+  }
+  if (outcome.kind === "charged") return;
+
+  const unit = readCostPool(actor)?.unit === "wounds" ? "wounds" : "strain";
+  const { cost, options } = describeCharge(entries, total, unit, localizeRollOptionText);
+  const name = actor?.name ?? "";
+  if (outcome.kind === "unknown") {
+    const unitWord = game.i18n.localize(unit === "wounds" ? "SWFFG.RollOptions.Unit.Wounds" : "SWFFG.RollOptions.Unit.Strain");
+    ui.notifications.warn(game.i18n.format("SWFFG.RollOptions.Charge.Unknown", { actor: name, cost, options, unit: unitWord }), { permanent: true });
+    return;
+  }
+  const reason = game.i18n.format(REASON_KEYS[outcome.reason] ?? REASON_KEYS.failed, { actor: name });
+  ui.notifications.warn(game.i18n.format("SWFFG.RollOptions.Charge.NotCharged", { actor: name, cost, options, reason }), { permanent: true });
+}
 
 /**
  * Validation errors as sentences for the GM.

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import "./_stub/foundry-stub.mjs";
-import { formatRollOptionsLine, rollOptionCardEntries } from "../../modules/helpers/roll-option-card.js";
+import { costText, describeCharge, formatRollOptionsLine, rollOptionCardEntries } from "../../modules/helpers/roll-option-card.js";
 import { planOptionStates } from "../../modules/helpers/roll-option-costs.js";
 
 /**
@@ -67,4 +67,23 @@ test("two weapons on different skills, and plural strain and wounds", () => {
   const offered = [option("x", "Big", { strain: 3 })];
   assert.equal(line({ offered, selection: { x: 1 }, twoWeapons: "different" }), "Roll options: Two weapons (different skills), Big (3 strain)");
   assert.equal(line({ offered, selection: { x: 1 }, unit: "wounds" }), "Roll options: Big (3 wounds)");
+});
+
+test("a row's cost text", () => {
+  assert.equal(costText({ strain: 2, maneuvers: 1 }, "strain", localize), "2 strain · 1 maneuver");
+  assert.equal(costText({ strain: 1, maneuvers: 0 }, "wounds", localize), "1 wound");
+  assert.equal(costText({ strain: 0, maneuvers: 2 }, "strain", localize), "2 maneuvers");
+  assert.equal(costText({ strain: 0, maneuvers: 0 }, "strain", localize), "");
+});
+
+test("what a charge warning names: the total and the options that cost it", () => {
+  const offered = [
+    option("gb", "Guns Blazing", { strain: 2, twoWeapons: "same" }),
+    option("pb", "Point Blank", { ranked: true, rank: 2 }),
+    option("if", "Intense Focus", { strain: 1, maneuvers: 1 }),
+  ];
+  const states = planOptionStates({ offered, selection: { gb: 1, pb: 1, if: 1 }, twoWeapons: "same", pool: pool(), canCharge: true });
+  const entries = rollOptionCardEntries({ offered, states, twoWeapons: "same", unit: "strain" });
+  assert.deepEqual(describeCharge(entries, states.strain, "strain", localize), { cost: "3 strain", options: "Guns Blazing, Intense Focus" });
+  assert.deepEqual(describeCharge(entries, 1, "wounds", localize).cost, "1 wound");
 });

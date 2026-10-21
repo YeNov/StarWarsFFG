@@ -14,6 +14,27 @@
   </div>
 </section>
 {{/if}}
+{{#if options.length}}
+<section class="ffg-ro-section ffg-ro-options">
+  <div class="ffg-ro-heading">{{localize "SWFFG.RollOptions.Panel.Options"}}</div>
+  {{#each options as |option|}}
+  <div class="ffg-ro-option{{#if option.disabled}} disabled{{/if}}">
+    <label class="ffg-ro-option-line">
+      <input type="checkbox" class="ffg-ro-option-tick" data-option-key="{{option.key}}" {{#if option.ticked}}checked{{/if}} {{#if option.disabled}}disabled{{/if}} />
+      <span class="ffg-ro-option-label">{{option.label}}</span>
+      {{#if option.cost}}<span class="ffg-ro-option-cost">{{option.cost}}</span>{{/if}}
+    </label>
+    {{#if option.amount}}
+    <label class="ffg-ro-amount-line">
+      <span>{{option.amount.label}}</span>
+      <input type="number" class="ffg-ro-amount" data-option-key="{{option.key}}" min="1" max="{{option.amount.max}}" step="1" value="{{option.amount.value}}" aria-label="{{option.amount.label}}" />
+    </label>
+    {{/if}}
+    {{#if option.note}}<div class="ffg-ro-note{{#if option.reason}} ffg-ro-reason{{/if}}">{{option.note}}</div>{{/if}}
+  </div>
+  {{/each}}
+</section>
+{{/if}}
 {{#if buffs.length}}
 <section class="ffg-ro-section optional-buffs">
   <div class="ffg-ro-heading optional-buffs-title">{{localize "SWFFG.OptionalBuffs.DialogTitle"}}</div>
@@ -25,4 +46,7 @@
   </label>
   {{/each}}
 </section>
+{{/if}}
+{{#if footer}}
+<div class="ffg-ro-footer">{{footer}}</div>
 {{/if}}

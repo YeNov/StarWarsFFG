@@ -1872,6 +1872,58 @@ img {
   background: rgba(168, 121, 31, 0.35);
   font-weight: 600;
 }
+.starwarsffg .ffg-ro-option {
+  margin: 0 0 4px 0;
+}
+.starwarsffg .ffg-ro-option.disabled {
+  opacity: 0.55;
+}
+.starwarsffg .ffg-ro-option-line,
+.starwarsffg .ffg-ro-amount-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.starwarsffg .ffg-ro-option-line input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.starwarsffg .ffg-ro-option-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.starwarsffg .ffg-ro-option-cost {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.starwarsffg .ffg-ro-amount-line {
+  margin: 2px 0 0 20px;
+  font-size: 10.5px;
+}
+.starwarsffg .ffg-ro-amount-line .ffg-ro-amount {
+  flex: 0 0 3rem;
+  height: 1.6em;
+  text-align: center;
+}
+.starwarsffg .ffg-ro-note {
+  margin: 1px 0 0 20px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+.starwarsffg .ffg-ro-note.ffg-ro-reason {
+  color: #a3521f;
+  opacity: 1;
+}
+.starwarsffg .ffg-ro-footer {
+  margin: 8px 0 0 0;
+  padding: 3px 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.45));
+  border-radius: 3px;
+}
 @media (prefers-reduced-motion: reduce) {
   .starwarsffg .ffg-roll-options-panel,
   .starwarsffg .ffg-roll-options-inner {

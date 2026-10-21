@@ -5,6 +5,11 @@ import { onceEffectIds, postThenPay } from "./roll-costs.js";
 import { layerPool, optionDiceRows } from "./roll-option-pool.js";
 import { rollActorFrom } from "./roll-actor.js";
 import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
+import { parseOptionText } from "../helpers/roll-options.js";
+import { collectOfferedOptions, linkedMacroUuids } from "../helpers/roll-options-offer.js";
+import { planOptionStates, rollOptionInputs } from "../helpers/roll-option-costs.js";
+import { costText, formatRollOptionsLine, rollOptionCardEntries } from "../helpers/roll-option-card.js";
+import { chargeRollOptionCost, localizeRollOptionText } from "../helpers/roll-option-hooks.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
 import { characterDefenceDice } from "../helpers/defence-helpers.js";
@@ -63,6 +68,72 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     this._tickedBuffKeys = new Set();
     /** The Two weapons switch on the roll options card: "no", "same" or "different". */
     this._twoWeapons = "no";
+    /**
+     * Roll options (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md). Everything
+     * read off the rolling actor goes through rollOptionInputs, which turns a roll with no actor into
+     * no items, Force rating 0 and no payer. The offered options arrive once their macros have loaded
+     * (_loadRollOptions); the selection maps ticked keys to amounts; _optionStates is the latest plan.
+     */
+    this._optionInputs = rollOptionInputs(this._rollActor ?? null, {
+      skillKey: this.roll.skillKey,
+      item: this.roll.item,
+      configuredSkills: CONFIG.FFG?.skills ?? null,
+      hasActiveGM: !!game.users?.activeGM,
+    });
+    this._offeredOptions = [];
+    this._optionSelection = {};
+    /** Amounts typed into rows that are not ticked yet, used when they are. */
+    this._optionAmounts = {};
+    this._rollOptionsLoaded = false;
+    this._planOptions();
+  }
+
+  /** Re-plan the option rows from the current selection and Two weapons choice. */
+  _planOptions() {
+    const inputs = this._optionInputs;
+    const states = planOptionStates({
+      offered: this._offeredOptions,
+      selection: this._optionSelection,
+      twoWeapons: this._twoWeapons,
+      pool: inputs.pool,
+      canCharge: inputs.canCharge,
+    });
+    this._optionSelection = states.selection;
+    this._optionStates = states;
+    return states;
+  }
+
+  /**
+   * Load and parse the option macros the rolling actor's items link, once per dialog. A macro that
+   * is gone or whose text does not validate is left out, with a console warning.
+   */
+  async _loadRollOptions() {
+    if (this._rollOptionsLoaded) return;
+    this._rollOptionsLoaded = true;
+    const macros = new Map();
+    for (const uuid of linkedMacroUuids(this._optionInputs.items)) {
+      try {
+        const macro = await foundry.utils.fromUuid(uuid);
+        if (!macro) {
+          CONFIG.logger.warn(`Roll option macro ${uuid} was not found; its options are skipped.`);
+          continue;
+        }
+        const parsed = parseOptionText(macro.command);
+        if (!parsed.ok) {
+          CONFIG.logger.warn(`Roll option macro "${macro.name}" (${uuid}) has errors; its options are skipped.`);
+          continue;
+        }
+        macros.set(uuid, parsed);
+      } catch (error) {
+        CONFIG.logger.warn(`Could not load roll option macro ${uuid}: ${error}`);
+      }
+    }
+    this._offeredOptions = collectOfferedOptions({
+      items: this._optionInputs.items,
+      macros,
+      context: this._optionInputs.context,
+    });
+    this._planOptions();
   }
 
   /**
@@ -200,6 +271,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
 
   /** @override */
   async _prepareContext(_options) {
+    await this._loadRollOptions();
     //get all possible sounds
     let sounds = [];
     const diceSymbols = {
@@ -363,6 +435,14 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // one actually rolled.
       const defenceSnapshot = this._defenceDice();
       const zoneSnapshot = this._defenceZoneSnapshot();
+      // The roll options in that pool, what they cost and how the card names them, frozen with it.
+      const optionStates = this._planOptions();
+      const optionEntries = rollOptionCardEntries({
+        offered: this._offeredOptions,
+        states: optionStates,
+        twoWeapons: this._twoWeapons,
+        unit: this._optionInputs.pool?.unit === "wounds" ? "wounds" : "strain",
+      });
       const rollPool = this._effectivePool(defenceSnapshot);
       // The optional buffs in that pool: those already in a sent pool, then those ticked here.
       const buffsInPool = [...this._optionalBuffs.filter((buff) => buff.applied), ...this._tickedBuffs()];
@@ -434,6 +514,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // What this roll costs, read now so it matches the pool above. It is paid only once the
       // roll has reached chat, so a post that fails leaves the actor and the weapon as they were.
       const rollCosts = this._rollCosts();
+      // The options' strain (wounds, for a rival) is charged after the roll posts, through the GM
+      // bridge's queue, for the actor the roll is for. A pool sent to a player is charged when that
+      // player rolls it, not here.
+      const rollActor = this._rollActor;
+      const optionCosts = (costs) => (optionStates.strain > 0 && rollActor
+        ? [...costs, () => chargeRollOptionCost(rollActor, optionStates.strain, optionEntries)]
+        : costs);
 
       const sentToPlayer = html.find(".user-selection")?.[0]?.value;
       if (sentToPlayer) {
@@ -489,6 +576,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
                 zone: zoneSnapshot.label,
                 dice: zoneSnapshot.dice,
               });
+        roll.rollOptionsText = formatRollOptionsLine(optionEntries, localizeRollOptionText);
         roll.optionalBuffsText = buffsInPool.length > 0
           ? game.i18n.format("SWFFG.OptionalBuffs.CardLine", { names: buffsInPool.map(RollBuilderFFG._buffLabel).join(", ") })
           : null;
@@ -504,7 +592,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
             token: this.roll.data?.token?._id,
           },
           flavor: `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize(this.roll.skillName)}...`,
-        }), rollCosts);
+        }), optionCosts(rollCosts));
         if (this.roll?.sound) {
           AudioHelper.play({ src: this.roll.sound }, true);
         }
@@ -583,6 +671,23 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     const panel = this._relocateRollOptionsPanel();
     if (!panel) return;
     panel.addEventListener("change", (event) => {
+      const optionTick = event.target.closest?.(".ffg-ro-option-tick");
+      if (optionTick) {
+        const key = optionTick.dataset.optionKey;
+        if (optionTick.checked) this._optionSelection[key] = this._optionAmounts[key] ?? 1;
+        else delete this._optionSelection[key];
+        this._onRollOptionsChanged();
+        return;
+      }
+      const amount = event.target.closest?.(".ffg-ro-amount");
+      if (amount) {
+        const key = amount.dataset.optionKey;
+        const value = Math.max(1, Math.trunc(Number(amount.value)) || 1);
+        this._optionAmounts[key] = value;
+        if (key in this._optionSelection) this._optionSelection[key] = value;
+        this._onRollOptionsChanged();
+        return;
+      }
       const tick = event.target.closest?.(".optional-buff-tick");
       if (!tick) return;
       if (tick.checked) this._tickedBuffKeys.add(tick.dataset.buffKey);
@@ -608,6 +713,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
 
   /** After any change on the card: re-render it and update the dice preview. */
   async _onRollOptionsChanged() {
+    this._planOptions();
     await this._renderRollOptionsPanel();
     this._updatePreview($(this.element));
   }
@@ -636,7 +742,59 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         ticked: buff.applied === true || this._tickedBuffKeys.has(buff.key),
         locked: buff.applied === true,
       })),
+      options: this._optionRowsContext(),
+      footer: this._optionFooter(),
     };
+  }
+
+  /** The option rows as the card shows them. */
+  _optionRowsContext() {
+    const unit = this._optionInputs.pool?.unit === "wounds" ? "wounds" : "strain";
+    const rows = new Map(this._optionStates.rows.map((row) => [row.key, row]));
+    return this._offeredOptions.map((option) => {
+      const row = rows.get(option.key);
+      const amountLabel = option.amount?.label ?? game.i18n.localize("SWFFG.RollOptions.Panel.Amount");
+      const max = row?.maxAmount ?? option.amount?.max ?? 1;
+      return {
+        key: option.key,
+        label: option.ranked ? `${option.label} ${option.rank}` : option.label,
+        cost: costText(row?.cost, unit, localizeRollOptionText),
+        ticked: row?.ticked === true,
+        disabled: row?.disabled === true,
+        amount: option.amount && !row?.disabled
+          ? { value: row?.ticked ? row.amount : Math.min(this._optionAmounts[option.key] ?? 1, max), max, label: amountLabel }
+          : null,
+        reason: !!row?.reason,
+        note: row?.reason ? RollBuilderFFG._optionReasonText(row.reason) : option.hint,
+      };
+    });
+  }
+
+  /** Why a row is greyed, in words. */
+  static _optionReasonText({ code, data }) {
+    const unitWord = (unit) => game.i18n.localize(unit === "wounds" ? "SWFFG.RollOptions.Unit.Wounds" : "SWFFG.RollOptions.Unit.Strain");
+    switch (code) {
+      case "needsTwoWeapons": {
+        const suffix = { same: "Same", different: "Different" }[data.choice] ?? "Any";
+        return game.i18n.localize(`SWFFG.RollOptions.Reason.NeedsTwoWeapons${suffix}`);
+      }
+      case "cannotPay": return game.i18n.localize("SWFFG.RollOptions.Reason.CannotPay");
+      case "needsWriter": return game.i18n.localize("SWFFG.RollOptions.Reason.NeedsWriter");
+      case "zeroMax": return game.i18n.localize("SWFFG.RollOptions.Reason.ZeroMax");
+      case "overThreshold":
+        return game.i18n.format("SWFFG.RollOptions.Reason.OverThreshold", { unit: unitWord(data.unit), value: data.value, threshold: data.threshold });
+      default: return "";
+    }
+  }
+
+  /** "Strain after roll: 12 / 12" when the payer has a threshold and an offered option costs strain. */
+  _optionFooter() {
+    const pool = this._optionInputs.pool;
+    if (!pool || !(Number(pool.threshold) > 0)) return null;
+    const costs = this._offeredOptions.some((option) => option.cost.strain === "amount" || Number(option.cost.strain) > 0);
+    if (!costs) return null;
+    const key = pool.unit === "wounds" ? "SWFFG.RollOptions.Panel.WoundsAfter" : "SWFFG.RollOptions.Panel.StrainAfter";
+    return game.i18n.format(key, { value: this._optionStates.after, threshold: pool.threshold });
   }
 
   /** How many rows on the card are ticked, for the fold tab. */
@@ -889,7 +1047,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
 
   /** The ticked roll options with their amounts, for optionDiceRows. */
   _tickedOptions() {
-    return [];
+    const offered = new Map(this._offeredOptions.map((option) => [option.key, option]));
+    return Object.entries(this._optionSelection ?? {})
+      .filter(([key]) => offered.has(key))
+      .map(([key, amount]) => ({ option: offered.get(key), amount }));
   }
 
   /**

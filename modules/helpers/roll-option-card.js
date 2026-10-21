@@ -41,6 +41,54 @@ export function rollOptionCardEntries({ offered, states, twoWeapons, unit = "str
   return entries;
 }
 
+/** "2 strain", "1 wound", "3 wounds". */
+function strainText(n, unit, localize) {
+  const key = unit === "wounds"
+    ? (n === 1 ? "SWFFG.RollOptions.Cost.Wound" : "SWFFG.RollOptions.Cost.Wounds")
+    : "SWFFG.RollOptions.Cost.Strain";
+  return localize(key, { n });
+}
+
+/** "1 maneuver", "2 maneuvers". */
+function maneuverText(n, localize) {
+  return localize(n === 1 ? "SWFFG.RollOptions.Cost.Maneuver" : "SWFFG.RollOptions.Cost.Maneuvers", { n });
+}
+
+/** The costs of one entry or row, in reading order. */
+function costParts({ strain = 0, maneuvers = 0 }, unit, localize) {
+  const parts = [];
+  if (strain > 0) parts.push(strainText(strain, unit, localize));
+  if (maneuvers > 0) parts.push(maneuverText(maneuvers, localize));
+  return parts;
+}
+
+/**
+ * A row's cost on the roll options card: "2 strain · 1 maneuver", or "" when it costs nothing.
+ * @param {{strain: number, maneuvers: number}} cost - the row's resolved cost
+ * @param {"strain"|"wounds"} unit
+ * @param {(key: string, data?: object) => string} localize
+ * @returns {string}
+ */
+export function costText(cost, unit, localize) {
+  return costParts(cost ?? {}, unit, localize).join(" · ");
+}
+
+/**
+ * What a charge warning names: the total cost, and the options that cost it.
+ * @param {ReturnType<typeof rollOptionCardEntries>} entries
+ * @param {number} total
+ * @param {"strain"|"wounds"} unit
+ * @param {(key: string, data?: object) => string} localize
+ * @returns {{cost: string, options: string}}
+ */
+export function describeCharge(entries, total, unit, localize) {
+  const options = (entries ?? [])
+    .filter((entry) => entry.strain > 0)
+    .map((entry) => (entry.labelKey ? localize(entry.labelKey) : entry.label))
+    .join(", ");
+  return { cost: strainText(total, unit, localize), options };
+}
+
 /**
  * The line's text, or null when nothing was used.
  * @param {ReturnType<typeof rollOptionCardEntries>} entries
@@ -52,17 +100,7 @@ export function formatRollOptionsLine(entries, localize) {
   const parts = entries.map((entry) => {
     let text = entry.labelKey ? localize(entry.labelKey) : entry.label;
     if (entry.number !== null && entry.number !== undefined) text += ` ${entry.number}`;
-    const costs = [];
-    if (entry.strain > 0) {
-      const key = entry.unit === "wounds"
-        ? (entry.strain === 1 ? "SWFFG.RollOptions.Cost.Wound" : "SWFFG.RollOptions.Cost.Wounds")
-        : "SWFFG.RollOptions.Cost.Strain";
-      costs.push(localize(key, { n: entry.strain }));
-    }
-    if (entry.maneuvers > 0) {
-      const key = entry.maneuvers === 1 ? "SWFFG.RollOptions.Cost.Maneuver" : "SWFFG.RollOptions.Cost.Maneuvers";
-      costs.push(localize(key, { n: entry.maneuvers }));
-    }
+    const costs = costParts(entry, entry.unit, localize);
     if (costs.length > 0) text += ` (${costs.join(", ")})`;
     return text;
   });
