@@ -78,6 +78,7 @@ import { getAmmoMax, getAmmoValue, isAmmoTracked } from "./helpers/ammo-helpers.
 import { vehicleHardpointSourceRating, vehicleHardpoints, vehicleShieldSourceRatings } from "./helpers/vehicle-hardpoints.js";
 import { vehicleDefenceZones } from "./helpers/vehicle-defence.js";
 import { registerRollOptionHooks } from "./helpers/roll-option-hooks.js";
+import { installRollOptionLibrary } from "./helpers/roll-option-library-run.js";
 
 // The system's public API for optional packages (the Codex II module): see
 // modules/api/public-api.js. Set while this file is evaluated, before any module script runs.
@@ -249,6 +250,8 @@ Hooks.once("init", async function () {
     ActiveEffectFFG,
     // Read-only migration self-check: await game.ffg.reportDataModelConformance()
     reportDataModelConformance,
+    // GM: create the roll option library's macros and link them into matching items.
+    rollOptions: { installLibrary: installRollOptionLibrary },
   };
 
   // Define custom log prefix and logger
