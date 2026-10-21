@@ -10,10 +10,14 @@
  * The labels and hints are English, like the book names: once installed they are the GM's macro
  * text to edit.
  *
- * Checked against the talents' rule text. Saber Swarm's text says "this turn" rather than
- * "once per round"; the hint follows what the user accepted in the design.
+ * The first eight entries (Auto-fire and seven talents) were checked against their rule text.
+ * Saber Swarm's text says "this turn" rather than "once per round"; the hint follows what the user
+ * accepted in the design. After them come the talents from the core and reSpecialized
+ * specialization trees, kept as data in roll-option-library-talents.js. A run made after new
+ * entries arrive creates only their macros and leaves the existing ones alone.
  */
 import { normalizeName } from "../helpers/roll-options.js";
+import { TALENT_ENTRIES } from "./roll-option-library-talents.js";
 
 const entry = (id, kind, names, options) => Object.freeze({
   id,
@@ -87,6 +91,7 @@ export const ROLL_OPTION_LIBRARY = Object.freeze([
       offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
     },
   ]),
+  ...TALENT_ENTRIES.map(({ id, names, options }) => entry(id, "talent", names, options)),
 ]);
 
 /**

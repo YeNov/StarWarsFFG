@@ -23,10 +23,29 @@ function apply(data, update) {
 
 test("existing macros are reused and never rewritten", () => {
   const { create, uuidByEntry: map } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.af", libraryId: "auto-fire" }]);
-  assert.equal(create.length, 7);
+  assert.equal(create.length, ROLL_OPTION_LIBRARY.length - 1);
   assert.equal(create.some((entry) => entry.id === "auto-fire"), false);
   assert.equal(map.get("auto-fire"), "Macro.af");
-  assert.equal(planLibraryMacros(ROLL_OPTION_LIBRARY, []).create.length, 8);
+  assert.equal(planLibraryMacros(ROLL_OPTION_LIBRARY, []).create.length, ROLL_OPTION_LIBRARY.length);
+});
+
+test("a world with the first eight macros gets only the new entries, and their talents get linked", () => {
+  const firstEight = ["auto-fire", "intense-focus", "frenzied-attack", "guns-blazing", "saber-swarm", "true-aim", "sniper-shot", "point-blank"];
+  const existing = firstEight.map((id) => ({ uuid: `Macro.old-${id}`, libraryId: id }));
+  const { create, uuidByEntry: map } = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
+  assert.deepEqual(create.map((entry) => entry.id), ROLL_OPTION_LIBRARY.filter((entry) => !firstEight.includes(entry.id)).map((entry) => entry.id));
+  assert.equal(create.length, 261);
+  assert.ok(create.some((entry) => entry.id === "master-slicer"));
+  for (const id of firstEight) assert.equal(map.get(id), `Macro.old-${id}`);
+
+  // The run adds each created macro's uuid to the map before linking.
+  for (const entry of create) map.set(entry.id, `Macro.new-${entry.id}`);
+  const link = (itemData, isLive) => planItemLinks(itemData, { uuidByEntry: map, isLive });
+  const fresh = link({ type: "talent", name: "Master Slicer", system: { rollOptions: [] } }, () => true);
+  assert.deepEqual(fresh.update, { "system.rollOptions": ["Macro.new-master-slicer"] });
+  assert.deepEqual(fresh.linked, [{ entryId: "master-slicer", place: "item" }]);
+  assert.equal(link({ type: "talent", name: "Master Slicer", system: { rollOptions: ["Macro.mine"] } }, () => true).update, null);
+  assert.equal(link({ type: "talent", name: "Guns Blazing", system: { rollOptions: ["Macro.old-guns-blazing"] } }, () => true).update, null);
 });
 
 test("a talent item gets its link", () => {
