@@ -84,9 +84,9 @@ Two answers change later tasks (the save check in Task 9, macro permissions in T
 - [ ] **Step 4: Clean up** — delete `ffgtest-read` and the test player; stop Foundry.
 - [ ] **Step 5: Record and commit** — fill in the block below, then `git commit -m "Record the roll options feasibility checks"`.
 
-**Task 0 results** (fill in):
-- Player can read a GM macro without permission: `readable` / `not readable` → if not readable, Task 17 gives library macros Observer default ownership.
-- Macro editor after a refused save: `keeps text` / `loses text` → if it loses text, Task 9's save check warns instead of refusing.
+**Task 0 results** (recorded 2026-10-21, Foundry 14.364, system 2.1.6, `test` world):
+- Player can read a GM macro without permission: **readable**. A player with default ownership None got the command through `game.macros.get`, `getName`, `fromUuid` and `fromUuidSync` (the macro's `visible` was false). Task 17 leaves library macro ownership at its default.
+- Macro editor after a refused save: **loses text**. With `preUpdateMacro` returning false, Save Macro closed `MacroConfig` and the stored command stayed as before; without the hook, the same steps saved the new text. Task 9's save check lets the save through and shows the errors as a warning.
 
 ---
 
