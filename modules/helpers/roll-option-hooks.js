@@ -168,7 +168,7 @@ function guardLinks(item, changes, _options, userId) {
   const user = game.users.get(userId) ?? game.user;
   if (user?.isGM) return true;
   const before = item.toObject();
-  const after = foundry.utils.mergeObject(item.toObject(), foundry.utils.expandObject(changes), { inplace: false, performDeletions: true });
+  const after = foundry.utils.mergeObject(item.toObject(), foundry.utils.expandObject(changes), { inplace: false, applyOperators: true });
   const verdict = linkChangeVerdict(before, after, { isGM: false });
   if (verdict.ok) return true;
   ui.notifications.warn(game.i18n.localize("SWFFG.RollOptions.Links.NotAllowed"));

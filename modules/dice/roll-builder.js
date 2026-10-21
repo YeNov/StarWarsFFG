@@ -581,7 +581,9 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           content: messageText,
           flags: {
             starwarsffg: {
-              roll: this.roll,
+              // A copy: `data` is the sheet context, whose frozen application options make
+              // Foundry 14's flag cleaning throw ("Cannot assign to read only property 'window'").
+              roll: foundry.utils.deepClone(this.roll),
               dicePool: basePoolSnapshot,
               description: this.description,
               sentLayers,
