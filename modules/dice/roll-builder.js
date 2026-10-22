@@ -1085,12 +1085,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     });
   }
 
-  /** The ticked roll options with their amounts, for optionDiceRows. */
+  /** The ticked roll options as the latest plan resolved them, with their floors, for optionDiceRows. */
   _tickedOptions() {
     const offered = new Map(this._offeredOptions.map((option) => [option.key, option]));
-    return Object.entries(this._optionSelection ?? {})
-      .filter(([key]) => offered.has(key))
-      .map(([key, amount]) => ({ option: offered.get(key), amount }));
+    return (this._optionStates?.rows ?? [])
+      .filter((row) => row.ticked && offered.has(row.key))
+      .map((row) => ({ dice: row.dice ?? {}, floor: offered.get(row.key).difficultyFloor ?? null }));
   }
 
   /**

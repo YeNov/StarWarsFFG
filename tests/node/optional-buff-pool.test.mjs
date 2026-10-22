@@ -81,3 +81,46 @@ test("the pool given is left as it was", () => {
 
   assert.deepEqual([base.ability, base.proficiency, base.boost], [2, 0, 0]);
 });
+
+/* The talent review batch (2026-10-22): Force dice, lowering difficulty, swaps. */
+
+test("Dice Modifiers Add Force adds Force dice", () => {
+  assert.equal(applyOfferedBuffs(new DicePoolFFG({ ability: 2 }), offered([row("Dice Modifiers", "Add Force", 2)])).force, 2);
+});
+
+test("a negative Add Difficulty removes difficulty dice, then challenge dice", () => {
+  const pool = applyOfferedBuffs(new DicePoolFFG({ difficulty: 1, challenge: 1 }), offered([row("Dice Modifiers", "Add Difficulty", -2)]));
+  assert.deepEqual({ difficulty: pool.difficulty, challenge: pool.challenge }, { difficulty: 0, challenge: 0 });
+});
+
+/** The positive dice a characteristic, rank and upgrades build, as DiceHelpers.rollSkill does. */
+const built = (characteristic, rank, upgrades = 0) => {
+  const pool = new DicePoolFFG({ ability: Math.max(characteristic, rank), upgrades });
+  pool.upgrade(Math.min(characteristic, rank) + upgrades);
+  return pool;
+};
+
+for (const [c, r, u, c2] of [[1, 2, 0, 2], [4, 2, 2, 2], [3, 2, 0, 1], [2, 2, 0, 4], [0, 2, 0, 3], [2, 0, 1, 3]]) {
+  test(`a characteristic swap ${c} to ${c2} at rank ${r} with ${u} upgrades rebuilds the positive dice`, () => {
+    const pool = applyOfferedBuffs(built(c, r, u), [], { characteristic: c, rank: r, swapCharacteristic: c2 });
+    const want = built(c2, r, u);
+    assert.deepEqual({ ability: pool.ability, proficiency: pool.proficiency }, { ability: want.ability, proficiency: want.proficiency });
+  });
+}
+
+test("a skill swap keeps the characteristic and takes the new skill's rank", () => {
+  const pool = applyOfferedBuffs(built(3, 1), [], { characteristic: 3, rank: 1, swapRank: 3 });
+  assert.deepEqual({ ability: pool.ability, proficiency: pool.proficiency }, { ability: 0, proficiency: 3 });
+});
+
+test("a swap keeps the player's own extra dice", () => {
+  const base = built(1, 2);
+  base.ability += 1; // one green added by hand
+  const pool = applyOfferedBuffs(base, [], { characteristic: 1, rank: 2, swapCharacteristic: 2 });
+  assert.deepEqual({ ability: pool.ability, proficiency: pool.proficiency }, { ability: 1, proficiency: 2 });
+});
+
+test("a swap with no characteristic or rank known does nothing", () => {
+  const pool = applyOfferedBuffs(built(1, 2), [], { characteristic: null, rank: 2, swapCharacteristic: 3 });
+  assert.deepEqual({ ability: pool.ability, proficiency: pool.proficiency }, { ability: 1, proficiency: 1 });
+});

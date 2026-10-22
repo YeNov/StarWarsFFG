@@ -10,7 +10,8 @@ import { layerPool, optionDiceRows } from "../../modules/dice/roll-option-pool.j
  * does to the pool").
  */
 
-const ticked = (dice, amount = 1) => ({ option: { dice }, amount });
+// The planner resolves every value ("amount", live words) before the pool sees it.
+const ticked = (dice, floor = null) => ({ dice, floor });
 const counts = (pool) => ({
   ability: pool.ability, proficiency: pool.proficiency, difficulty: pool.difficulty, challenge: pool.challenge,
   boost: pool.boost, setback: pool.setback,
@@ -37,10 +38,9 @@ test("options and buffs share one pass", () => {
   assert.deepEqual({ difficulty: pool.difficulty, challenge: pool.challenge }, { difficulty: 0, challenge: 1 });
 });
 
-test("amount and ranks become counts", () => {
-  const pool = layer({ ability: 3 }, { options: [ticked({ upgradeAbility: "amount" }, 2)] });
+test("resolved dice become counts and upgrades", () => {
+  const pool = layer({ ability: 3 }, { options: [ticked({ upgradeAbility: 2 })] });
   assert.deepEqual({ ability: pool.ability, proficiency: pool.proficiency }, { ability: 1, proficiency: 2 });
-  // "ranks" arrives already resolved to a number (roll-options-offer.js).
   assert.equal(layer({ ability: 1 }, { options: [ticked({ boost: 2 })] }).boost, 2);
 });
 
@@ -76,4 +76,39 @@ test("the Adversary upgrade waits for difficulty", () => {
 test("adversaryMode false skips the upgrade", () => {
   const pool = layer({ difficulty: 2 }, { adversaryRanks: 2, adversaryMode: false });
   assert.deepEqual({ difficulty: pool.difficulty, challenge: pool.challenge }, { difficulty: 2, challenge: 0 });
+});
+
+/* The talent review batch (2026-10-22). */
+
+test("results, Force dice and Boost removal reach the pool", () => {
+  const pool = layer({ boost: 2 }, { options: [ticked({ success: 1, advantage: 2, triumph: 1, threat: 1, failure: 1, despair: 1, force: 3, removeBoost: 1 })] });
+  assert.deepEqual(
+    [pool.success, pool.advantage, pool.triumph, pool.threat, pool.failure, pool.despair, pool.force, pool.boost],
+    [1, 2, 1, 1, 1, 1, 3, 1],
+  );
+});
+
+test("lowering difficulty removes difficulty dice, then challenge dice", () => {
+  const pool = layer({ difficulty: 1, challenge: 2 }, { options: [ticked({ difficulty: -2 })] });
+  assert.deepEqual({ difficulty: pool.difficulty, challenge: pool.challenge }, { difficulty: 0, challenge: 1 });
+});
+
+test("a floor stops its own reduction, and floored reductions go first", () => {
+  const both = layer({ difficulty: 2 }, { options: [ticked({ difficulty: -1 }), ticked({ difficulty: -1 }, 1)] });
+  assert.equal(both.difficulty, 0, "the floored one first (2 to 1), then the other (1 to 0)");
+  assert.equal(layer({ difficulty: 1 }, { options: [ticked({ difficulty: -1 }, 1)] }).difficulty, 1);
+  const red = layer({ challenge: 1 }, { options: [ticked({ difficulty: -1 }, 1)] });
+  assert.deepEqual({ difficulty: red.difficulty, challenge: red.challenge }, { difficulty: 0, challenge: 1 }, "a red die counts toward the floor");
+  assert.equal(layer({ difficulty: 0 }, { options: [ticked({ difficulty: -1 }, 1)] }).difficulty, 0, "a floor never adds dice");
+});
+
+test("Guns Blazing still cancels the Two weapons die exactly when the pool holds red dice", () => {
+  const withBoth = layer({ challenge: 1 }, { twoWeapons: "same", options: [ticked({ difficulty: -1 })] });
+  const withNeither = layer({ challenge: 1 });
+  assert.deepEqual(counts(withBoth), counts(withNeither));
+});
+
+test("a swap travels to the pool through the skill layer", () => {
+  const pool = layerPool(new DicePoolFFG({ ability: 1, proficiency: 1 }), { skill: { characteristic: 1, rank: 2, swapCharacteristic: 2 } });
+  assert.deepEqual({ ability: pool.ability, proficiency: pool.proficiency }, { ability: 0, proficiency: 2 });
 });

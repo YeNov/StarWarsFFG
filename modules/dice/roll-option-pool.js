@@ -13,7 +13,7 @@
  */
 import { applyOfferedBuffs } from "./optional-buff-pool.js";
 
-/** Each `dice` key as the optional-buff row it stands for. */
+/** Each `dice` key as the optional-buff row it stands for (removeBoost is a negative Add Boost). */
 const DICE_ROWS = Object.freeze({
   boost: ["Roll Modifiers", "Add Boost"],
   setback: ["Roll Modifiers", "Add Setback"],
@@ -23,27 +23,40 @@ const DICE_ROWS = Object.freeze({
   downgradeAbility: ["Dice Modifiers", "Downgrade Ability"],
   upgradeDifficulty: ["Dice Modifiers", "Upgrade Difficulty"],
   downgradeDifficulty: ["Dice Modifiers", "Downgrade Difficulty"],
+  success: ["Result Modifiers", "Add Success"],
+  advantage: ["Result Modifiers", "Add Advantage"],
+  triumph: ["Result Modifiers", "Add Triumph"],
+  threat: ["Result Modifiers", "Add Threat"],
+  failure: ["Result Modifiers", "Add Failure"],
+  despair: ["Result Modifiers", "Add Despair"],
+  force: ["Dice Modifiers", "Add Force"],
+  removeBoost: ["Roll Modifiers", "Add Boost"],
 });
 
 /** Difficulty dice a two-weapon attack adds (spec, "Two weapons"). */
 const TWO_WEAPONS_DIFFICULTY = Object.freeze({ no: 0, same: 1, different: 2 });
 
 /**
- * The rows Two weapons and the ticked options add.
- * @param {Array<{option: {dice: object}, amount: number}>} ticked - "amount" in `dice` takes `amount`
+ * The rows Two weapons and the ticked options add. The planner has already resolved every value
+ * (planOptionStates, a ticked row's `dice`); a difficulty row keeps its option's floor, so the
+ * reduction stops there (applyOfferedBuffs).
+ * @param {Array<{dice: Record<string, number>, floor?: number|null}>} applied - the ticked rows
  * @param {"no"|"same"|"different"} twoWeapons
- * @returns {Array<{modtype: string, mod: string, value: number}>}
+ * @returns {Array<{modtype: string, mod: string, value: number, floor?: number}>}
  */
-export function optionDiceRows(ticked, twoWeapons) {
+export function optionDiceRows(applied, twoWeapons) {
   const rows = [];
   const extra = TWO_WEAPONS_DIFFICULTY[twoWeapons] ?? 0;
   if (extra > 0) rows.push({ modtype: "Dice Modifiers", mod: "Add Difficulty", value: extra });
-  for (const { option, amount } of ticked ?? []) {
-    for (const [key, raw] of Object.entries(option?.dice ?? {})) {
+  for (const { dice, floor = null } of applied ?? []) {
+    for (const [key, raw] of Object.entries(dice ?? {})) {
       const target = DICE_ROWS[key];
       if (!target) continue;
-      const value = raw === "amount" ? Number(amount) || 0 : Number(raw) || 0;
-      if (value !== 0) rows.push({ modtype: target[0], mod: target[1], value });
+      const value = (Number(raw) || 0) * (key === "removeBoost" ? -1 : 1);
+      if (value === 0) continue;
+      const row = { modtype: target[0], mod: target[1], value };
+      if (key === "difficulty" && Number.isInteger(floor)) row.floor = floor;
+      rows.push(row);
     }
   }
   return rows;
@@ -55,7 +68,8 @@ export function optionDiceRows(ticked, twoWeapons) {
  * @param {object} [layers]
  * @param {Array<{rows: object[]}>} [layers.buffs] - ticked optional buffs
  * @param {object[]} [layers.rows] - from optionDiceRows
- * @param {{characteristic?: number|null, rank?: number|null}} [layers.skill] - for Skill Rank buffs
+ * @param {{characteristic?: number|null, rank?: number|null, swapCharacteristic?: number|null, swapRank?: number|null}} [layers.skill]
+ *   - for Skill Rank buffs and a ticked characteristic or skill swap
  * @param {number} [layers.defence] - setback dice from the target's defence
  * @param {number} [layers.adversaryRanks]
  * @param {boolean} [layers.adversaryMode] - false when the player chose the base pool
