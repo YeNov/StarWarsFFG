@@ -8,7 +8,7 @@ import { rollActorFrom } from "./roll-actor.js";
 import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
 import { parseOptionText } from "../helpers/roll-options.js";
 import { collectOfferedOptions, linkedMacroUuids } from "../helpers/roll-options-offer.js";
-import { planOptionStates, rollOptionInputs } from "../helpers/roll-option-costs.js";
+import { liveOptionValues, planOptionStates, rollOptionInputs, swapValues } from "../helpers/roll-option-costs.js";
 import { costText, formatRollOptionsLine, rollOptionCardEntries } from "../helpers/roll-option-card.js";
 import { chargeRollOptionCost, localizeRollOptionText } from "../helpers/roll-option-hooks.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
@@ -93,27 +93,104 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     });
     this._offeredOptions = [];
     this._optionSelection = {};
+    /** The branch picked on each row's switch (rows with choices), key → branch id. */
+    this._optionChoices = {};
     /** Amounts typed into rows that are not ticked yet, used when they are. */
     this._optionAmounts = {};
     this._rollOptionsLoaded = false;
-    /** A sent pool's ticked options, applied once the options they name have loaded. */
+    /** A sent pool's ticked options and picked branches, applied once the options they name have loaded. */
     this._pendingSentOptions = this._sentLayers?.options ?? null;
+    this._pendingSentChoices = this._sentLayers?.choices ?? null;
     this._planOptions();
   }
 
-  /** Re-plan the option rows from the current selection and Two weapons choice. */
+  /**
+   * Re-plan the option rows from the current selection, picks and Two weapons choice. The live
+   * values (Force dice left, the Destiny pool) are read anew every time, so the plan made at Roll
+   * uses the values of that moment, and the pool, the chat line and the charge all come from it.
+   *
+   * An option with a minimum difficulty (Against The Odds: Daunting) is judged on the pool with
+   * every other ticked effect and the Adversary upgrade, so the plan is made twice when one is
+   * offered: once to build that pool, once with its count.
+   */
   _planOptions() {
     const inputs = this._optionInputs;
-    const states = planOptionStates({
+    const common = {
       offered: this._offeredOptions,
       selection: this._optionSelection,
+      choices: this._optionChoices,
       twoWeapons: this._twoWeapons,
       pool: inputs.pool,
       canCharge: inputs.canCharge,
-    });
+      live: this._liveValues(),
+      boostBase: this._boostBase(),
+      swapAvailable: this._swapAvailable(),
+    };
+    let states = planOptionStates(common);
+    if (this._offeredOptions.some((option) => option.minDifficulty != null)) {
+      states = planOptionStates({ ...common, difficultyCount: this._difficultyCount(states) });
+    }
     this._optionSelection = states.selection;
+    this._optionChoices = states.choices;
     this._optionStates = states;
     return states;
+  }
+
+  /** What the live words stand for now: the rolling actor's Force dice left, and the Destiny pool. */
+  _liveValues() {
+    let destiny = {};
+    try {
+      destiny = { destinyLight: game.settings.get("starwarsffg", "dPoolLight"), destinyDark: game.settings.get("starwarsffg", "dPoolDark") };
+    } catch {
+      destiny = {};
+    }
+    return liveOptionValues(this._rollActor ?? null, destiny);
+  }
+
+  /** Whether a swap can rebuild this roll's dice: it needs the actor, the characteristic and the rank. */
+  _swapAvailable() {
+    return !!this._rollActor && Number.isFinite(Number(this.roll.characteristic)) && this.roll.characteristic !== null
+      && Number.isFinite(Number(this.roll.rank)) && this.roll.rank !== null;
+  }
+
+  /** Boost dice in the pool before any option: the player's own and the ticked buffs'. */
+  _boostBase() {
+    const pool = layerPool(this.dicePool, { buffs: this._tickedBuffs(), skill: { characteristic: this.roll.characteristic, rank: this.roll.rank }, adversaryMode: false });
+    return Math.max(0, Number(pool.boost) || 0);
+  }
+
+  /** The skill layer for a plan: the rolled characteristic and rank, and a ticked swap's values. */
+  _skillLayer(states) {
+    const offered = new Map(this._offeredOptions.map((option) => [option.key, option]));
+    const swap = { characteristic: null, skill: null };
+    for (const row of states?.rows ?? []) {
+      const option = row.ticked ? offered.get(row.key) : null;
+      if (!option) continue;
+      swap.characteristic ??= option.characteristic ?? null;
+      swap.skill ??= option.skill ?? null;
+    }
+    const values = swap.characteristic || swap.skill ? swapValues(this._rollActor ?? null, swap) : { swapCharacteristic: null, swapRank: null };
+    return { characteristic: this.roll.characteristic, rank: this.roll.rank, ...values };
+  }
+
+  /**
+   * Difficulty and challenge dice in the pool a plan gives, leaving out the rows that wait for a
+   * minimum difficulty themselves, with defence and the Adversary upgrade as the roll would have them.
+   */
+  _difficultyCount(states) {
+    const offered = new Map(this._offeredOptions.map((option) => [option.key, option]));
+    const applied = (states?.rows ?? [])
+      .filter((row) => row.ticked && offered.has(row.key) && offered.get(row.key).minDifficulty == null)
+      .map((row) => ({ dice: row.dice ?? {}, floor: offered.get(row.key).difficultyFloor ?? null }));
+    const pool = layerPool(this.dicePool, {
+      buffs: this._tickedBuffs(),
+      rows: optionDiceRows(applied, this._twoWeapons),
+      skill: this._skillLayer(states),
+      defence: this._defenceDice(),
+      adversaryRanks: this.adversaryRanks,
+      adversaryMode: this._adversaryMode,
+    });
+    return (Number(pool.difficulty) || 0) + (Number(pool.challenge) || 0);
   }
 
   /**
@@ -150,6 +227,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     if (this._pendingSentOptions) {
       this._optionSelection = { ...this._pendingSentOptions };
       this._pendingSentOptions = null;
+    }
+    if (this._pendingSentChoices) {
+      this._optionChoices = { ...this._pendingSentChoices };
+      this._pendingSentChoices = null;
     }
     this._planOptions();
   }
@@ -572,6 +653,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
           adversaryRanks: layerSnapshot.adversaryRanks,
           adversaryMode: layerSnapshot.adversaryMode,
           options: optionStates.selection,
+          choices: optionStates.choices,
           buffs: buffsInPool.filter((buff) => !buff.applied).map((buff) => buff.key),
           twoWeapons: layerSnapshot.twoWeapons,
         });
@@ -657,6 +739,11 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
   }
 
   _updatePreview(html) {
+    // The rows can depend on the pool (a minimum difficulty, the Boost dice a trade may take), so a
+    // change to the pool or the targets re-plans them, and redraws the card when a row changed.
+    const before = JSON.stringify(this._optionStates?.rows ?? []);
+    this._planOptions();
+    if (JSON.stringify(this._optionStates.rows) !== before) this._renderRollOptionsPanel();
     const poolDiv = html.find(".dice-pool-dialog .dice-pool")[0];
     poolDiv.innerHTML = "";
     const pool = this._effectivePool();
@@ -746,6 +833,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         event.preventDefault();
         this._twoWeapons = choice.dataset.twoWeapons;
         this._onRollOptionsChanged();
+        return;
+      }
+      const branch = event.target.closest?.("[data-option-choice]");
+      if (branch) {
+        event.preventDefault();
+        this._optionChoices[branch.dataset.optionKey] = branch.dataset.optionChoice;
+        this._onRollOptionsChanged();
       }
     });
   }
@@ -793,7 +887,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     return this._offeredOptions.map((option) => {
       const row = rows.get(option.key);
       const amountLabel = option.amount?.label ?? game.i18n.localize("SWFFG.RollOptions.Panel.Amount");
-      const max = row?.maxAmount ?? option.amount?.max ?? 1;
+      // No max: an amount with no cap beyond strain, or one whose cap is not known yet.
+      const max = row?.maxAmount ?? (Number.isFinite(option.amount?.max) ? option.amount.max : null);
+      const typed = this._optionAmounts[option.key] ?? 1;
+      const picked = row?.choice ?? option.choices?.[0]?.id ?? null;
       return {
         key: option.key,
         label: option.ranked ? `${option.label} ${option.rank}` : option.label,
@@ -801,7 +898,10 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         ticked: row?.ticked === true,
         disabled: row?.disabled === true,
         amount: option.amount && !row?.disabled
-          ? { value: row?.ticked ? row.amount : Math.min(this._optionAmounts[option.key] ?? 1, max), max, label: amountLabel }
+          ? { value: row?.ticked ? row.amount : (max === null ? typed : Math.min(typed, max)), max, label: amountLabel }
+          : null,
+        choices: option.choices && !row?.disabled
+          ? option.choices.map((branch) => ({ id: branch.id, label: branch.label, on: branch.id === picked }))
           : null,
         reason: !!row?.reason,
         note: row?.reason ? RollBuilderFFG._optionReasonText(row.reason) : option.hint,
@@ -822,6 +922,19 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       case "zeroMax": return game.i18n.localize("SWFFG.RollOptions.Reason.ZeroMax");
       case "overThreshold":
         return game.i18n.format("SWFFG.RollOptions.Reason.OverThreshold", { unit: unitWord(data.unit), value: data.value, threshold: data.threshold });
+      case "needsDifficulty": {
+        const names = ["Simple", "Easy", "Average", "Hard", "Daunting", "Formidable"];
+        const level = names[data.min] ? game.i18n.localize(`SWFFG.Difficulty${names[data.min]}`) : String(data.min);
+        return game.i18n.format("SWFFG.RollOptions.Reason.NeedsDifficulty", { level });
+      }
+      case "zeroValue": {
+        const suffix = { forceAvailable: "Force", destinyLight: "DestinyLight", destinyDark: "DestinyDark" }[data.word] ?? "Force";
+        return game.i18n.localize(`SWFFG.RollOptions.Reason.Zero${suffix}`);
+      }
+      case "forceTaken": return game.i18n.format("SWFFG.RollOptions.Reason.ForceTaken", { label: data.label });
+      case "swapTaken": return game.i18n.format("SWFFG.RollOptions.Reason.SwapTaken", { label: data.label });
+      case "noBoost": return game.i18n.localize("SWFFG.RollOptions.Reason.NoBoost");
+      case "cannotSwap": return game.i18n.localize("SWFFG.RollOptions.Reason.CannotSwap");
       default: return "";
     }
   }
@@ -1078,7 +1191,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     return layerPool(this.dicePool, {
       buffs: this._tickedBuffs(),
       rows: optionDiceRows(this._tickedOptions(), this._twoWeapons),
-      skill: { characteristic: this.roll.characteristic, rank: this.roll.rank },
+      skill: this._skillLayer(this._optionStates),
       defence,
       adversaryRanks: this.adversaryRanks,
       adversaryMode: this._adversaryMode,

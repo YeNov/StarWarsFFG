@@ -42,3 +42,21 @@ test("saving an attachment keeps its modifications' links (final review, Importa
   const standalone = sheet.slice(sheet.indexOf("// For standalone itemattachments"), sheet.indexOf("const itemUpdate = ItemHelpers.itemUpdate.bind(this);"));
   assert.match(standalone, /keepCopyFields\(this\.object\.system\?\.itemmodifier, expanded\.system\.itemmodifier\)/);
 });
+
+test("every reason the planner gives is put in words by the dialog (talent review batch)", () => {
+  const planner = read("modules/helpers/roll-option-costs.js");
+  const dialog = read("modules/dice/roll-builder.js");
+  const en = JSON.parse(read("lang/en.json"));
+  const codes = [...new Set([...planner.matchAll(/reasonFor\("(\w+)"/g)].map((m) => m[1]))];
+  assert.ok(codes.length >= 11, `found ${codes.length} reason codes`);
+  for (const code of codes) assert.match(dialog, new RegExp(`case "${code}"`), `the dialog handles ${code}`);
+  for (const key of ["NeedsDifficulty", "ZeroForce", "ZeroDestinyLight", "ZeroDestinyDark", "ForceTaken", "SwapTaken", "NoBoost", "CannotSwap"]) {
+    assert.ok(`SWFFG.RollOptions.Reason.${key}` in en, `lang/en.json has Reason.${key}`);
+  }
+});
+
+test("the card shows a switch for a row with choices and leaves an uncapped amount without a max", () => {
+  const panel = read("templates/dice/parts/roll-options-panel.html");
+  assert.match(panel, /data-option-choice="\{\{branch\.id\}\}"/);
+  assert.match(panel, /\{\{#if option\.amount\.max\}\}max="\{\{option\.amount\.max\}\}"\{\{\/if\}\}/);
+});
