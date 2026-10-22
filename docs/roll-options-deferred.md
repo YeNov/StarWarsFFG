@@ -37,7 +37,14 @@ note of what Force points, Advantage or success buy afterwards.
 | Improvised Concoction | Hard Knowledge (Xenology) check with Force dice, once per session, to brew a poison or drug. |
 | In the Know (Improved) | Opposed Deception check, difficulty downgraded per rank of In the Know, to plant false intelligence. |
 | Made You Talk | Opposed social check against a captured enemy, a Boost die per 2 strain they took this encounter. |
+| Natural Remedy | Heal wounds and Critical Injuries with Survival instead of Medicine, at one more difficulty die. |
 | Sense the Scene | Hard Perception check with Force dice at a crime scene; a Force point reads a person's emotions. |
+
+**Kept as an option for now, a special attack later**
+
+| Talent | Today, and later |
+| --- | --- |
+| Sarlacc Sweep | Today an option on Lightsaber checks that adds a difficulty die. Later its own attack: a Lightsaber attack that can hit more engaged targets for Advantage. |
 
 ## Damage, Pierce and crit from options
 
