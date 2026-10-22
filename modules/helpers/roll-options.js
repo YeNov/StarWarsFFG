@@ -7,11 +7,20 @@
  * code it runs. Every key is optional:
  *
  *   { id, label, hint,
- *     offer: { skills, skillTypes, attack, twoWeapons },
+ *     offer: { skills, skillTypes, attack, twoWeapons, minDifficulty },
  *     amount: { max, label },
  *     cost: { strain, maneuvers },
  *     dice: { boost, setback, removeSetback, difficulty,
- *             upgradeAbility, downgradeAbility, upgradeDifficulty, downgradeDifficulty } }
+ *             upgradeAbility, downgradeAbility, upgradeDifficulty, downgradeDifficulty,
+ *             success, advantage, triumph, threat, failure, despair, force, removeBoost },
+ *     difficultyFloor, characteristic, skill,
+ *     choices: [{ id, label, dice }, …] }
+ *
+ * Dice values are whole numbers or words: "ranks", "amount", "forceRating", and the live
+ * "forceAvailable" (Force rating less committed dice), "destinyLight" and "destinyDark" (the
+ * Destiny pool). A word may carry a minus ("-ranks"). `amount.max` is a positive whole number or
+ * one of the words, or is left out for no cap beyond the payer's strain. `choices` are the
+ * either/or branches of one row (the first is the default); their dice add to the option's own.
  *
  * The validator collects every problem rather than stopping at the first, so a GM sees them all at
  * once. Errors are data ({option, key, code}); the Foundry side turns them into localized text.
@@ -24,7 +33,14 @@ export const SKILL_TYPES = Object.freeze(["Combat", "General", "Knowledge", "Soc
 export const DICE_KEYS = Object.freeze([
   "boost", "setback", "removeSetback", "difficulty",
   "upgradeAbility", "downgradeAbility", "upgradeDifficulty", "downgradeDifficulty",
+  "success", "advantage", "triumph", "threat", "failure", "despair", "force", "removeBoost",
 ]);
+
+/** The characteristics a swap may name, as actor data keys them. */
+export const CHARACTERISTICS = Object.freeze(["Brawn", "Agility", "Intellect", "Cunning", "Willpower", "Presence"]);
+
+/** Words read live from the actor and the Destiny pool every time the dialog plans its rows. */
+export const LIVE_WORDS = Object.freeze(["forceAvailable", "destinyLight", "destinyDark"]);
 
 /** The Two weapons switch in the dialog. */
 export const TWO_WEAPONS_CHOICES = Object.freeze(["no", "same", "different"]);
@@ -35,12 +51,26 @@ export const TWO_WEAPONS_OFFERS = Object.freeze(["same", "different", "any"]);
 /** The item types that carry a list of links to option macros. */
 export const LINK_ITEM_TYPES = Object.freeze(["talent", "weapon", "armour", "gear", "itemattachment", "itemmodifier"]);
 
-const OPTION_KEYS = ["id", "label", "hint", "offer", "amount", "cost", "dice"];
-const OFFER_KEYS = ["skills", "skillTypes", "attack", "twoWeapons"];
+const OPTION_KEYS = ["id", "label", "hint", "offer", "amount", "cost", "dice", "difficultyFloor", "characteristic", "skill", "choices"];
+const OFFER_KEYS = ["skills", "skillTypes", "attack", "twoWeapons", "minDifficulty"];
 const AMOUNT_KEYS = ["max", "label"];
 const COST_KEYS = ["strain", "maneuvers"];
-const MAX_WORDS = ["ranks", "forceRating"];
-const DICE_WORDS = ["ranks", "amount", "forceRating"];
+const CHOICE_KEYS = ["id", "label", "dice"];
+const MAX_WORDS = ["ranks", "forceRating", ...LIVE_WORDS];
+const DICE_WORDS = ["ranks", "amount", "forceRating", ...LIVE_WORDS];
+
+/**
+ * A dice value's word without its sign, and the sign: "-ranks" → {word: "ranks", sign: -1}. Null
+ * for a value that is not a known word, signed or not.
+ * @param {unknown} value
+ * @returns {{word: string, sign: 1|-1}|null}
+ */
+export function diceWord(value) {
+  if (typeof value !== "string") return null;
+  const negative = value.startsWith("-");
+  const word = negative ? value.slice(1) : value;
+  return DICE_WORDS.includes(word) ? { word, sign: negative ? -1 : 1 } : null;
+}
 
 /**
  * A name reduced to what matters for matching: no accents, lowercase, letters and digits only.
@@ -131,11 +161,38 @@ function checkOption(option, number, errors, seenIds) {
   if ("offer" in option) checkOffer(option.offer, fail);
   if ("amount" in option) checkAmount(option.amount, fail);
   if ("cost" in option) checkCost(option.cost, fail, amountUsers);
-  if ("dice" in option) checkDice(option.dice, fail, amountUsers);
+  if ("dice" in option) checkDice(option.dice, fail, amountUsers, "dice");
+  if ("difficultyFloor" in option && !(Number.isInteger(option.difficultyFloor) && option.difficultyFloor >= 0)) {
+    fail("difficultyFloor", "notFloor");
+  }
+  if ("characteristic" in option && !CHARACTERISTICS.includes(option.characteristic)) fail("characteristic", "notCharacteristic");
+  if ("skill" in option && !isText(option.skill)) fail("skill", "notText");
+  if ("choices" in option) checkChoices(option.choices, fail, amountUsers);
 
   if (!("amount" in option)) {
     for (const key of amountUsers) fail(key, "amountWithoutAmount");
   }
+}
+
+function checkChoices(choices, fail, amountUsers) {
+  if (!Array.isArray(choices) || choices.length < 2) {
+    fail("choices", "notChoices");
+    return;
+  }
+  const seen = new Set();
+  choices.forEach((choice, index) => {
+    const at = `choices[${index + 1}]`;
+    if (!isPlainObject(choice)) {
+      fail(at, "notObject");
+      return;
+    }
+    checkKnownKeys(at, choice, CHOICE_KEYS, fail);
+    if (!isText(choice.id)) fail(`${at}.id`, "notText");
+    else if (seen.has(choice.id)) fail(`${at}.id`, "duplicateChoiceId");
+    else seen.add(choice.id);
+    if (!isText(choice.label)) fail(`${at}.label`, "notText");
+    if ("dice" in choice) checkDice(choice.dice, fail, amountUsers, `${at}.dice`);
+  });
 }
 
 function checkKnownKeys(group, value, known, fail) {
@@ -159,6 +216,9 @@ function checkOffer(offer, fail) {
   }
   if ("attack" in offer && typeof offer.attack !== "boolean") fail("offer.attack", "notBoolean");
   if ("twoWeapons" in offer && !TWO_WEAPONS_OFFERS.includes(offer.twoWeapons)) fail("offer.twoWeapons", "notTwoWeapons");
+  if ("minDifficulty" in offer && !(Number.isInteger(offer.minDifficulty) && offer.minDifficulty >= 1)) {
+    fail("offer.minDifficulty", "notMinDifficulty");
+  }
 }
 
 function checkAmount(amount, fail) {
@@ -167,9 +227,11 @@ function checkAmount(amount, fail) {
     return;
   }
   checkKnownKeys("amount", amount, AMOUNT_KEYS, fail);
-  const max = amount.max;
-  const validMax = (Number.isInteger(max) && max >= 1) || MAX_WORDS.includes(max);
-  if (!validMax) fail("amount.max", "notMax");
+  if ("max" in amount) {
+    const max = amount.max;
+    const validMax = (Number.isInteger(max) && max >= 1) || MAX_WORDS.includes(max);
+    if (!validMax) fail("amount.max", "notMax");
+  }
   if ("label" in amount && !isText(amount.label)) fail("amount.label", "notText");
 }
 
@@ -187,16 +249,17 @@ function checkCost(cost, fail, amountUsers) {
   }
 }
 
-function checkDice(dice, fail, amountUsers) {
+function checkDice(dice, fail, amountUsers, at) {
   if (!isPlainObject(dice)) {
-    fail("dice", "notObject");
+    fail(at, "notObject");
     return;
   }
-  checkKnownKeys("dice", dice, DICE_KEYS, fail);
+  checkKnownKeys(at, dice, DICE_KEYS, fail);
   for (const key of DICE_KEYS) {
     if (!(key in dice)) continue;
     const value = dice[key];
-    if (value === "amount") amountUsers.push(`dice.${key}`);
-    else if (!(Number.isInteger(value) || DICE_WORDS.includes(value))) fail(`dice.${key}`, "notDiceValue");
+    const word = diceWord(value);
+    if (word?.word === "amount") amountUsers.push(`${at}.${key}`);
+    else if (!(Number.isInteger(value) || word)) fail(`${at}.${key}`, "notDiceValue");
   }
 }

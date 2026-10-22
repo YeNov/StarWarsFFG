@@ -98,6 +98,74 @@ test("every error the validator can report has an English message", async () => 
   assert.equal(optionErrorKey({ code: "notObject", key: "offer" }), "SWFFG.RollOptions.Error.NotObject");
 });
 
+/* The talent review batch (2026-10-22): results, Force dice, Boost trades, live and signed words,
+ * uncapped amounts, the Daunting condition, difficulty floors, swaps and either/or choices. */
+
+test("results, Force dice and Boost trades are dice keys", () => {
+  const all = { success: 1, advantage: "ranks", triumph: 1, threat: 2, failure: 1, despair: 1, force: "forceAvailable", removeBoost: "amount" };
+  assert.equal(validateOptions({ amount: {}, dice: all }).ok, true);
+});
+
+test("live words and signed words are dice values", () => {
+  assert.equal(validateOptions({ dice: { difficulty: "-ranks", success: "destinyLight", threat: "destinyDark", setback: "-forceRating" } }).ok, true);
+  assert.equal(validateOptions({ amount: { max: 3 }, dice: { difficulty: "-amount" } }).ok, true);
+  assert.equal(validateOptions({ dice: { difficulty: "-amount" } }).errors[0].code, "amountWithoutAmount");
+  for (const value of ["-rank", "--ranks", "+ranks", "-"]) assert.equal(validateOptions({ dice: { boost: value } }).errors[0].code, "notDiceValue");
+});
+
+test("amount.max may be left out, or be a live word, but never negative", () => {
+  assert.equal(validateOptions({ amount: { label: "Stealth ranks" }, dice: { success: "amount" } }).ok, true);
+  for (const max of ["forceAvailable", "destinyLight", "destinyDark"]) assert.equal(validateOptions({ amount: { max } }).ok, true);
+  assert.equal(validateOptions({ amount: { max: "-ranks" } }).errors[0].code, "notMax");
+});
+
+test("offer.minDifficulty is a whole number of 1 or more", () => {
+  assert.equal(validateOptions({ offer: { minDifficulty: 4 } }).ok, true);
+  for (const min of [0, 1.5, "4", -2]) assert.equal(validateOptions({ offer: { minDifficulty: min } }).errors[0].code, "notMinDifficulty");
+});
+
+test("difficultyFloor is a whole number of 0 or more", () => {
+  assert.equal(validateOptions({ difficultyFloor: 1, dice: { difficulty: -1 } }).ok, true);
+  assert.equal(validateOptions({ difficultyFloor: 0 }).ok, true);
+  for (const floor of [-1, "1", 0.5]) assert.equal(validateOptions({ difficultyFloor: floor }).errors[0].code, "notFloor");
+});
+
+test("a characteristic swap names a characteristic, a skill swap names a skill", () => {
+  for (const characteristic of ["Brawn", "Agility", "Intellect", "Cunning", "Willpower", "Presence"]) {
+    assert.equal(validateOptions({ characteristic }).ok, true);
+  }
+  assert.equal(validateOptions({ characteristic: "Cunnings" }).errors[0].code, "notCharacteristic");
+  assert.equal(validateOptions({ skill: "Athletics" }).ok, true);
+  assert.equal(validateOptions({ skill: "" }).errors[0].code, "notText");
+});
+
+test("choices are two or more branches, each with its own id, a label and dice", () => {
+  const branch = (id, dice) => ({ id, label: id, dice });
+  const ok = { amount: { max: "ranks" }, dice: { removeBoost: "amount" }, choices: [branch("success", { success: "amount" }), branch("advantage", { advantage: "amount" })] };
+  assert.equal(validateOptions(ok).ok, true);
+  assert.equal(validateOptions({ choices: "success" }).errors[0].code, "notChoices");
+  assert.equal(validateOptions({ choices: [branch("a", {})] }).errors[0].code, "notChoices");
+  assert.deepEqual(validateOptions({ choices: [branch("a", {}), branch("a", {})] }).errors, [{ option: 1, key: "choices[2].id", code: "duplicateChoiceId" }]);
+  assert.deepEqual(validateOptions({ choices: [branch("a", {}), { id: "b", dice: {} }] }).errors, [{ option: 1, key: "choices[2].label", code: "notText" }]);
+  assert.deepEqual(validateOptions({ choices: [branch("a", { success: 0.5 }), branch("b", {})] }).errors, [{ option: 1, key: "choices[1].dice.success", code: "notDiceValue" }]);
+  assert.deepEqual(validateOptions({ choices: [branch("a", {}), { ...branch("b", {}), cost: {} }] }).errors, [{ option: 1, key: "choices[2].cost", code: "unknownKey" }]);
+  assert.deepEqual(validateOptions({ choices: [branch("a", { success: "amount" }), branch("b", {})] }).errors, [{ option: 1, key: "choices[1].dice.success", code: "amountWithoutAmount" }]);
+});
+
+test("every error the batch's keys can report has an English message", async () => {
+  const fs = await import("node:fs");
+  const EN = JSON.parse(fs.readFileSync(new URL("../../lang/en.json", import.meta.url), "utf8"));
+  const errors = [
+    validateOptions({ offer: { minDifficulty: 0 } }),
+    validateOptions({ difficultyFloor: -1 }),
+    validateOptions({ characteristic: "Luck" }),
+    validateOptions({ choices: 1 }),
+    validateOptions({ choices: [{ id: "a", label: "a", dice: {} }, { id: "a", label: "a", dice: {} }] }),
+  ].flatMap((r) => r.errors);
+  assert.deepEqual(errors.map((e) => e.code), ["notMinDifficulty", "notFloor", "notCharacteristic", "notChoices", "duplicateChoiceId"]);
+  for (const error of errors) assert.ok(optionErrorKey(error) in EN, `${optionErrorKey(error)} is in lang/en.json`);
+});
+
 test("normalizeName ignores case, spaces, hyphens, punctuation and accents", () => {
   assert.equal(normalizeName(" Auto-Fire "), "autofire");
   assert.equal(normalizeName("Visée juste"), "viseejuste");
