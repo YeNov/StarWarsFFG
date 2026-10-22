@@ -1,7 +1,7 @@
 # Roll options: deferred work
 
 Talents and features set aside during the review of the roll options library
-(`modules/config/roll-option-library-talents.js`). The talents under **Special actions** are not
+(`modules/config/roll-option-library-entries.js`). The talents under **Special actions** are not
 in the library; the features in the other sections are not built, though the talents that need
 them keep a reminder row in the library. The design the library follows is
 `docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md` (see its amendments).

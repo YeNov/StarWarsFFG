@@ -186,6 +186,17 @@ test("names with an asterisk, other spellings and Improved forms resolve to thei
   assert.equal(libraryEntryFor("talent", "In The Know")?.id, "in-the-know");
 });
 
+test("the library is one list, kept as data apart from the code that reads it", async () => {
+  const { LIBRARY_ENTRIES } = await import("../../modules/config/roll-option-library-entries.js");
+  assert.equal(LIBRARY_ENTRIES.length, 217);
+  assert.deepEqual(ROLL_OPTION_LIBRARY.map((e) => e.id), LIBRARY_ENTRIES.map((e) => e.id));
+  assert.deepEqual(LIBRARY_ENTRIES.filter((e) => e.kind !== undefined).map((e) => [e.id, e.kind]), [["auto-fire", "quality"]], "every other entry is a talent");
+  const fs = await import("node:fs");
+  const code = fs.readFileSync(new URL("../../modules/config/roll-option-library.js", import.meta.url), "utf8");
+  assert.doesNotMatch(code, /entry\("/, "no entries written in the code file");
+  assert.equal(fs.existsSync(new URL("../../modules/config/roll-option-library-talents.js", import.meta.url)), false);
+});
+
 /* The talent review batch (2026-10-22, talent-review-batch.md). */
 
 const DROPPED = ["aggressive-negotiations", "analyze-data", "ask-questions-later", "attack-vector", "breakthrough",

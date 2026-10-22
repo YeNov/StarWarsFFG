@@ -1,20 +1,132 @@
 /**
- * The talent entries of the roll option library (roll-option-library.js), beyond the first eight:
- * talents from the core and reSpecialized specialization trees whose effect fits the roll dialog.
- * Each is { id, names, options }; the library turns them into entries of kind "talent".
+ * The roll option library's entries: ready-made option code for well-known talents and qualities
+ * (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md, "The library", and its
+ * amendments). roll-option-library.js reads this list; nothing else is kept anywhere.
  *
- * The first name is the display name and the macro's name. Names match through normalizeName, so
- * case, spacing and punctuation (the asterisk on some names included) do not matter. Labels and
- * hints are English, like the book names: once installed they are the GM's macro text to edit.
+ * Each entry is { id, kind, names, options }. `kind` is "talent" unless the entry says otherwise
+ * (Auto-fire is a quality). The first name is the display name and the macro's name ("Roll option:
+ * <name>"). Names match through normalizeName, so case, spacing and punctuation (the asterisk on
+ * some names included) do not matter. Labels and hints are English, like the book names: once
+ * installed, an entry's options are the GM's macro text to edit, and a later change here reaches
+ * only worlds that do not have that macro yet.
  *
- * Reviewed talent by talent by the user (2026-10-22): fixed results are added to the pool, Boost
- * trades take Boost dice, swaps change the characteristic or skill, Force dice and the Destiny
- * pool are read live, and a talent that sets up a later check or is an action of its own was
- * left out (docs/roll-options-deferred.md lists the special actions).
+ * The first eight entries (Auto-fire, Intense Focus, Frenzied Attack, Guns Blazing, Saber Swarm,
+ * True Aim, Sniper Shot, Point Blank) were checked against their rule text; Saber Swarm is declared
+ * with a Lightsaber attack and its hint names the Linked rating. The rest are talents from the core
+ * and reSpecialized specialization trees, reviewed talent by talent (2026-10-22): fixed results are
+ * added to the pool, Boost trades take Boost dice, swaps change the characteristic or skill, Force
+ * dice and the Destiny pool are read live, and a talent that sets up a later check or is an action
+ * of its own was left out (docs/roll-options-deferred.md lists the special actions). Where an
+ * option covers only part of a talent, its hint says what is left to the table.
  */
 
-// Derived from each talent's rule text; where an option covers only part of a talent, its hint says what is left to the table.
-export const TALENT_ENTRIES = [
+export const LIBRARY_ENTRIES = [
+  {
+    id: "auto-fire",
+    kind: "quality",
+    names: ["Auto-fire"],
+    options: [
+      {
+        id: "auto-fire",
+        label: "Auto-fire",
+        offer: { attack: true },
+        dice: { difficulty: 1 },
+      },
+    ],
+  },
+  {
+    id: "intense-focus",
+    names: ["Intense Focus"],
+    options: [
+      {
+        id: "intense-focus",
+        label: "Intense Focus",
+        cost: { strain: 1, maneuvers: 1 },
+        dice: { upgradeAbility: 1 },
+      },
+    ],
+  },
+  {
+    id: "frenzied-attack",
+    names: ["Frenzied Attack"],
+    options: [
+      {
+        id: "frenzied-attack",
+        label: "Frenzied Attack",
+        offer: { skills: ["Melee", "Brawl"] },
+        amount: { max: "ranks", label: "Strain" },
+        cost: { strain: "amount" },
+        dice: { upgradeAbility: "amount" },
+      },
+    ],
+  },
+  {
+    id: "guns-blazing",
+    names: ["Guns Blazing"],
+    options: [
+      {
+        id: "guns-blazing",
+        label: "Guns Blazing",
+        offer: { skills: ["Ranged: Light"], twoWeapons: "same" },
+        cost: { strain: 2 },
+        dice: { difficulty: -1 },
+      },
+    ],
+  },
+  {
+    id: "saber-swarm",
+    names: ["Saber Swarm"],
+    options: [
+      {
+        id: "saber-swarm",
+        label: "Saber Swarm",
+        hint: "Linked equal to your Force rating",
+        offer: { skills: ["Lightsaber"], attack: true },
+        cost: { strain: 1, maneuvers: 1 },
+      },
+    ],
+  },
+  {
+    id: "true-aim",
+    names: ["True Aim"],
+    options: [
+      {
+        id: "true-aim",
+        label: "True Aim",
+        hint: "Once per round",
+        offer: { skillTypes: ["Combat"] },
+        cost: { maneuvers: 1 },
+        dice: { boost: 1, upgradeAbility: "ranks" },
+      },
+    ],
+  },
+  {
+    id: "sniper-shot",
+    names: ["Sniper Shot"],
+    options: [
+      {
+        id: "sniper-shot",
+        label: "Sniper Shot",
+        hint: "Not thrown weapons",
+        offer: { skills: ["Ranged: Light", "Ranged: Heavy", "Gunnery"] },
+        amount: { max: "ranks", label: "Range bands" },
+        cost: { maneuvers: 1 },
+        dice: { upgradeDifficulty: "amount" },
+      },
+    ],
+  },
+  {
+    id: "point-blank",
+    names: ["Point Blank"],
+    options: [
+      {
+        id: "point-blank",
+        label: "Point Blank",
+        hint: "Short range or engaged",
+        offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+      },
+    ],
+  },
   {
     id: "against-the-odds",
     names: ["Against The Odds*"],
