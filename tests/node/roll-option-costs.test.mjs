@@ -301,3 +301,39 @@ test("swap values read the actor's characteristic and skill", () => {
   assert.deepEqual(swapValues(actor, {}), { swapCharacteristic: null, swapRank: null });
   assert.deepEqual(swapValues(null, { characteristic: "Cunning" }), { swapCharacteristic: null, swapRank: null });
 });
+
+/* Implementation review (2026-10-22). */
+
+test("a negative Boost supply is not lifted by the options' Boost", () => {
+  const adder = opt("add", { dice: { boost: 1 } });
+  const r = plan2({ offered: [adder, trade("t", { strain: 1 })], selection: { add: 1, t: 1 }, boostBase: -1 });
+  assert.equal(row(r, "t").ticked, false);
+  assert.equal(row(r, "t").reason.code, "noBoost");
+  assert.equal(r.strain, 0);
+});
+
+test("a trade's Boost demand adds the option's own and the branch's", () => {
+  const branches = [
+    { id: "su", label: "Success", dice: { removeBoost: "amount", success: "amount" } },
+    { id: "ad", label: "Advantage", dice: { removeBoost: "amount", advantage: "amount" } },
+  ];
+  const both = opt("b", { max: null, dice: { removeBoost: 1 }, choices: branches });
+  const r = plan2({ offered: [both], selection: { b: 2 }, boostBase: 2 });
+  assert.deepEqual([row(r, "b").amount, row(r, "b").maxAmount, row(r, "b").dice], [1, 1, { removeBoost: 2, success: 1 }]);
+  assert.equal(row(plan2({ offered: [both], selection: { b: 1 }, boostBase: 1 }), "b").reason.code, "noBoost");
+});
+
+test("a live word worth nothing in the picked branch greys the row", () => {
+  const branches = [
+    { id: "light", label: "Light", dice: { success: "destinyLight" } },
+    { id: "force", label: "Force", dice: { force: "forceAvailable" } },
+  ];
+  const o = opt("o", { strain: 1, choices: branches });
+  const none = plan2({ offered: [o], selection: { o: 1 }, live: { destinyLight: 0, forceAvailable: 0 } });
+  assert.deepEqual(row(none, "o").reason, { code: "zeroValue", data: { word: "destinyLight" } });
+  assert.equal(none.strain, 0);
+  const force = plan2({ offered: [o], selection: { o: 1 }, choices: { o: "force" }, live: { destinyLight: 2, forceAvailable: 0 } });
+  assert.deepEqual(row(force, "o").reason, { code: "zeroValue", data: { word: "forceAvailable" } });
+  const light = plan2({ offered: [o], selection: { o: 1 }, live: { destinyLight: 2 } });
+  assert.deepEqual(row(light, "o").dice, { success: 2 });
+});

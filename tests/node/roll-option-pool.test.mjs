@@ -112,3 +112,14 @@ test("a swap travels to the pool through the skill layer", () => {
   const pool = layerPool(new DicePoolFFG({ ability: 1, proficiency: 1 }), { skill: { characteristic: 1, rank: 2, swapCharacteristic: 2 } });
   assert.deepEqual({ ability: pool.ability, proficiency: pool.proficiency }, { ability: 0, proficiency: 2 });
 });
+
+/* Implementation review (2026-10-22). */
+
+test("signed difficulty cancels before a floored reduction", () => {
+  const buffs = [{ rows: [{ modtype: "Dice Modifiers", mod: "Add Difficulty", value: 1 }] }];
+  const pool = layer({ difficulty: 1 }, { buffs, options: [ticked({ difficulty: -1 }), ticked({ difficulty: -1 }, 1)] });
+  assert.equal(pool.difficulty, 1, "+1 and Codebreaker cancel; Master Slicer stops at Easy");
+  const alone = layer({ difficulty: 1 }, { options: [ticked({ difficulty: -1 }, 1)] });
+  const withPair = layer({ difficulty: 1 }, { twoWeapons: "same", options: [ticked({ difficulty: -1 }), ticked({ difficulty: -1 }, 1)] });
+  assert.deepEqual(counts(withPair), counts(alone), "Two weapons and Guns Blazing change nothing next to a floored reduction");
+});

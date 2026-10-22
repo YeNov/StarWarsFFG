@@ -58,11 +58,29 @@ const COUNTS = [
 
 const countFieldOf = (row) => COUNT_FIELDS[`${row.modtype}|${row.mod}`] ?? COUNT_FIELDS[`${row.modtype}|*`];
 
-/** The positive dice `DiceHelpers.rollSkill` builds for a characteristic, rank and upgrades. */
-function positiveDice(characteristic, rank, upgrades) {
+/**
+ * The positive dice `DiceHelpers.rollSkill` builds for a characteristic, rank and upgrades, then
+ * the item modifiers' Upgrade and Downgrade Ability (ModifierHelpers.getDicePoolModifiers), in
+ * that order, as the roll itself was built.
+ */
+function positiveDice(characteristic, rank, upgrades, modUpgrades = 0, modDowngrades = 0) {
   const pool = new DicePoolFFG({ ability: Math.max(characteristic, rank) });
   pool.upgrade(Math.min(characteristic, rank) + upgrades);
+  pool.upgrade(modUpgrades);
+  pool.upgrade(-modDowngrades);
   return pool;
+}
+
+/**
+ * The Boost dice the pool and the ticked buffs hold together, signed and not clamped: the supply a
+ * Boost trade draws on before the options' own Boost is added.
+ * @param {DicePoolFFG} pool
+ * @param {Array<{rows: Array<{modtype: string, mod: string, value: number}>}>} buffs
+ * @returns {number}
+ */
+export function boostSupply(pool, buffs) {
+  const rows = (buffs ?? []).flatMap((buff) => buff?.rows ?? []);
+  return rows.reduce((total, row) => total + (countFieldOf(row) === "boost" ? Number(row.value) || 0 : 0), Number(pool?.boost) || 0);
 }
 
 /**
@@ -86,30 +104,35 @@ export function applyOfferedBuffs(pool, buffs, { characteristic = null, rank = n
   const extraRank = sum((row) => row.modtype === "Skill Rank");
   const swapped = swapCharacteristic !== null || swapRank !== null;
   if ((extraRank !== 0 || swapped) && characteristic !== null && rank !== null) {
-    const upgrades = Number(pool.upgrades) || 0;
-    const before = positiveDice(characteristic, rank, upgrades);
-    const after = positiveDice(swapCharacteristic ?? characteristic, (swapRank ?? rank) + extraRank, upgrades);
+    const ups = [Number(pool.upgrades) || 0, Number(pool.modUpgrades) || 0, Number(pool.modDowngrades) || 0];
+    const before = positiveDice(characteristic, rank, ...ups);
+    const after = positiveDice(swapCharacteristic ?? characteristic, (swapRank ?? rank) + extraRank, ...ups);
     result.ability += after.ability - before.ability;
     result.proficiency += after.proficiency - before.proficiency;
   }
 
-  // 2. Counts. A negative Add Difficulty is set aside for step 2b.
-  const reductions = [];
+  // 2. Counts. Add Difficulty rows without a floor are summed apart (signed), and those with a
+  //    floor set aside, for step 2b.
+  let difficulty = 0;
+  const floored = [];
   for (const row of rows) {
     const value = Number(row.value) || 0;
-    if (isDifficultyRow(row) && value < 0) {
-      reductions.push({ times: -value, floor: Number.isInteger(row.floor) ? row.floor : null });
+    if (isDifficultyRow(row)) {
+      if (Number.isInteger(row.floor) && value < 0) floored.push({ times: -value, floor: row.floor });
+      else difficulty += value;
       continue;
     }
     const field = countFieldOf(row);
     if (field) result[field] += value;
   }
 
-  // 2b. Lowering difficulty, after every die is added (so Guns Blazing still cancels Two weapons'
-  //     die exactly): difficulty dice first, then challenge dice; a reduction with a floor ("to a
-  //     minimum of Easy") stops there, and those go first.
-  for (const { times, floor } of reductions.filter((r) => r.floor !== null)) removeDifficulty(result, times, floor);
-  for (const { times } of reductions.filter((r) => r.floor === null)) removeDifficulty(result, times);
+  // 2b. Difficulty: the signed rows cancel first (so Two weapons' die and Guns Blazing's -1 still
+  //     cancel exactly), and a net addition goes on. Then each reduction with a floor ("to a minimum
+  //     of Easy"), stopping there, then a net reduction; both take difficulty dice first, then
+  //     challenge dice.
+  if (difficulty > 0) result.difficulty += difficulty;
+  for (const { times, floor } of floored) removeDifficulty(result, times, floor);
+  if (difficulty < 0) removeDifficulty(result, -difficulty);
 
   // 3. Ability upgrades, then 4. difficulty upgrades.
   result.upgrade(sum((row) => row.modtype === "Skill Add Upgrade" || (row.modtype === "Dice Modifiers" && row.mod === "Upgrade Ability")));

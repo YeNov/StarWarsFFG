@@ -426,8 +426,14 @@ export default class ModifierHelpers {
     // Downgrades have no tooltip bucket (the pool tracks no negative source), so they
     // stay untracked — the filter above would drop them anyway.
     dicePool.upgradeDifficulty(-1 * valueOf("Downgrade Difficulty", "Dice Modifiers"));
-    dicePool.upgrade(valueOf("Upgrade Ability", "Dice Modifiers", "upgrades", (s) => `${s.name} (${s.type}): ${s.value} upgrade(s)`));
-    dicePool.upgrade(-1 * valueOf("Downgrade Ability", "Dice Modifiers"));
+    // Recorded as well as applied, so a roll option that swaps the characteristic or skill (or a
+    // Skill Rank buff) can rebuild the positive dice with the same upgrades and downgrades.
+    const itemUpgrades = valueOf("Upgrade Ability", "Dice Modifiers", "upgrades", (s) => `${s.name} (${s.type}): ${s.value} upgrade(s)`);
+    dicePool.upgrade(itemUpgrades);
+    dicePool.modUpgrades += Number(itemUpgrades) || 0;
+    const itemDowngrades = valueOf("Downgrade Ability", "Dice Modifiers");
+    dicePool.upgrade(-1 * itemDowngrades);
+    dicePool.modDowngrades += Number(itemDowngrades) || 0;
 
     return dicePool;
   }

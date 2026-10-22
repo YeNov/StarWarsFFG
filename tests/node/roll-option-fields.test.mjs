@@ -60,3 +60,9 @@ test("the card shows a switch for a row with choices and leaves an uncapped amou
   assert.match(panel, /data-option-choice="\{\{branch\.id\}\}"/);
   assert.match(panel, /\{\{#if option\.amount\.max\}\}max="\{\{option\.amount\.max\}\}"\{\{\/if\}\}/);
 });
+
+test("item Upgrade and Downgrade Ability modifiers are recorded on the pool (implementation review)", () => {
+  const modifiers = read("modules/helpers/modifiers.js");
+  assert.match(modifiers, /dicePool\.modUpgrades \+= /);
+  assert.match(modifiers, /dicePool\.modDowngrades \+= /);
+});

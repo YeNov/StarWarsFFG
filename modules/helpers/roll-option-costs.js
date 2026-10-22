@@ -143,8 +143,15 @@ function resolvedDice(option, branch, amount, live) {
 
 const hasDice = (option, branch, key) => key in (option.dice ?? {}) || key in (branch?.dice ?? {});
 
-/** The value of `removeBoost` for this option, unresolved: "amount" (the trade scales) or a number. */
-const tradeValue = (option, branch) => branch?.dice?.removeBoost ?? option.dice?.removeBoost;
+/**
+ * How many Boost dice a trade takes for an amount a: perAmount * a + fixed, from the option's own
+ * removeBoost and the picked branch's together, as resolvedDice adds them.
+ */
+function tradeDemand(option, branch, live) {
+  const fixed = resolvedDice(option, branch, 0, live).removeBoost ?? 0;
+  const perAmount = (resolvedDice(option, branch, 1, live).removeBoost ?? 0) - fixed;
+  return { fixed, perAmount };
+}
 
 /** The smallest of the caps that are finite, or null when there is none. */
 function smallestCap(...caps) {
@@ -212,7 +219,7 @@ export function planOptionStates({
   const blocked = new Map();
   for (const option of rows) {
     let reason = null;
-    const zeroWord = Object.values(option.dice ?? {})
+    const zeroWord = [...Object.values(option.dice ?? {}), ...Object.values(branchOf(option)?.dice ?? {})]
       .map((value) => diceWord(value))
       .find((word) => word && LIVE_WORDS.includes(word.word) && !(Number(live?.[word.word]) > 0));
     const max = maxOf(option);
@@ -253,9 +260,10 @@ export function planOptionStates({
     if (kind === "fixed" && Number(option.cost.strain) > capacity - used) return null;
     if (kind === "amount") amount = Math.min(amount, capacity - used);
     if (isTrade(option)) {
-      const per = tradeValue(option, branchOf(option));
-      if (diceWord(per)?.word === "amount") amount = Math.min(amount, supplyLeft());
-      else if (resolveValue(per, { live }) > supplyLeft()) return null;
+      const { fixed, perAmount } = tradeDemand(option, branchOf(option), live);
+      const room = supplyLeft() - fixed;
+      if (perAmount > 0) amount = Math.min(amount, Math.floor(room / perAmount));
+      else if (room < 0) return null;
     }
     if (amount < 1) return null;
     return { amount, cost: resolvedCost(option, amount), dice: resolvedDice(option, branchOf(option), amount, live) };
@@ -283,7 +291,8 @@ export function planOptionStates({
     const base = { key: option.key, choice: picks[option.key] ?? null };
     const kind = strainKind(option);
     const trade = isTrade(option);
-    const scales = trade && diceWord(tradeValue(option, branchOf(option)))?.word === "amount";
+    const demand = trade ? tradeDemand(option, branchOf(option), live) : { fixed: 0, perAmount: 0 };
+    const scales = demand.perAmount > 0;
     const max = maxOf(option);
     const blockedReason = blocked.get(option.key);
     if (blockedReason) {
@@ -292,7 +301,7 @@ export function planOptionStates({
     const own = kept.get(option.key);
     if (own) {
       const strainCap = kind === "amount" ? capacity - (used - own.cost.strain) : null;
-      const boostCap = scales ? supplyLeft() + own.dice.removeBoost : null;
+      const boostCap = scales ? Math.floor((supplyLeft() + (own.dice.removeBoost ?? 0) - demand.fixed) / demand.perAmount) : null;
       const maxAmount = option.amount ? smallestCap(max, strainCap, boostCap) : null;
       return { ...base, ticked: true, amount: own.amount, maxAmount, cost: own.cost, dice: own.dice, disabled: false, reason: null };
     }
@@ -303,11 +312,13 @@ export function planOptionStates({
     if ((kind === "fixed" && cost.strain > left) || (kind === "amount" && left < 1)) {
       return { ...base, ticked: false, amount: 1, maxAmount: null, cost, dice: null, disabled: true, reason: overThreshold(used, cost.strain) };
     }
-    const needed = trade ? (scales ? 1 : resolveValue(tradeValue(option, branchOf(option)), { live })) : 0;
+    const needed = demand.fixed + demand.perAmount;
     if (trade && supplyLeft() < needed) {
       return { ...base, ticked: false, amount: 1, maxAmount: null, cost, dice: null, disabled: true, reason: reasonFor("noBoost") };
     }
-    const maxAmount = option.amount ? smallestCap(max, kind === "amount" ? left : null, scales ? supplyLeft() : null) : null;
+    const maxAmount = option.amount
+      ? smallestCap(max, kind === "amount" ? left : null, scales ? Math.floor((supplyLeft() - demand.fixed) / demand.perAmount) : null)
+      : null;
     return { ...base, ticked: false, amount: 1, maxAmount, cost, dice: null, disabled: false, reason: null };
   });
 

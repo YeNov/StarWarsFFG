@@ -38,12 +38,14 @@ test("an old message has no layers", () => {
 test("the recipient's pool matches the sender's", () => {
   const buffs = [{ rows: [{ modtype: "Roll Modifiers", mod: "Add Boost", value: 1 }] }];
   const cases = [
-    { base: { ability: 2, difficulty: 2 }, defence: 1, adversaryRanks: 1, twoWeapons: "same", options: { gb: 1 } },
-    { base: { ability: 2, difficulty: 2, setback: -1 }, defence: 2, adversaryRanks: 0, twoWeapons: "no", options: {} },
+    { base: { ability: 2, difficulty: 2 }, defence: 1, adversaryRanks: 1, twoWeapons: "same", options: { gb: 1 }, want: { difficulty: 1, challenge: 1 } },
+    { base: { ability: 2, difficulty: 2, setback: -1 }, defence: 2, adversaryRanks: 0, twoWeapons: "no", options: {}, want: { difficulty: 2, challenge: 0 } },
   ];
   for (const c of cases) {
     const base = new DicePoolFFG(c.base);
-    const ticked = Object.keys(c.options).map(() => ({ option: gunsBlazing, amount: 1 }));
+    const plan = (selection, twoWeapons) => planOptionStates({ offered: [gunsBlazing], selection, twoWeapons, pool: { unit: "strain", current: 0, threshold: 12 }, canCharge: true });
+    const applied = (states) => states.rows.filter((r) => r.ticked).map((r) => ({ dice: r.dice, floor: null }));
+    const ticked = applied(plan(c.options, c.twoWeapons));
     const sender = layerPool(base, {
       buffs, rows: optionDiceRows(ticked, c.twoWeapons), defence: c.defence, adversaryRanks: c.adversaryRanks, adversaryMode: true,
     });
@@ -51,12 +53,13 @@ test("the recipient's pool matches the sender's", () => {
     const layers = readSentLayers({ sentLayers: packSentLayers({
       defence: c.defence, adversaryRanks: c.adversaryRanks, adversaryMode: true, options: c.options, buffs: ["b1"], twoWeapons: c.twoWeapons,
     }) });
-    const received = Object.entries(layers.options).map(([, amount]) => ({ option: gunsBlazing, amount }));
+    const received = applied(plan(layers.options, layers.twoWeapons));
     const recipient = layerPool(sent(base), {
       buffs, rows: optionDiceRows(received, layers.twoWeapons),
       defence: layers.defence, adversaryRanks: layers.adversaryRanks, adversaryMode: layers.adversaryMode,
     });
     assert.deepEqual(counts(recipient), counts(sender), JSON.stringify(c));
+    assert.deepEqual({ difficulty: sender.difficulty, challenge: sender.challenge }, c.want, JSON.stringify(c));
   }
 });
 

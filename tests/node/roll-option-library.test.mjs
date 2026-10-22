@@ -255,3 +255,8 @@ test("Saber Swarm is declared with a Lightsaber attack, and Silent Takedown cost
   assert.deepEqual(byId("saber-swarm").options[0].offer, { skills: ["Lightsaber"], attack: true });
   assert.deepEqual(byId("silent-takedown").options[0].cost, { maneuvers: 1 });
 });
+
+test("hints keep the conditions the rules set (implementation review)", () => {
+  assert.match(byId("respond-in-kind").options[0].hint, /next/i);
+  assert.match(byId("improvised-detonation-supreme").options[0].hint, /three times/i);
+});

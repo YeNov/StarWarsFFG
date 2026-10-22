@@ -43,6 +43,20 @@ export function rollOptionCardEntries({ offered, states, twoWeapons, unit = "str
   return entries;
 }
 
+/**
+ * A row's switch on the card: every branch, the picked one on (the first by default). Shown even
+ * when the row is greyed, since the reason may belong to the picked branch only and another
+ * branch may be fine.
+ * @param {{choices?: Array<{id: string, label: string}>|null}} option - an offered row
+ * @param {{choice?: string|null}|null} row - its planned state
+ * @returns {Array<{id: string, label: string, on: boolean}>|null}
+ */
+export function optionChoicesContext(option, row) {
+  if (!Array.isArray(option?.choices) || option.choices.length === 0) return null;
+  const picked = row?.choice ?? option.choices[0].id;
+  return option.choices.map((branch) => ({ id: branch.id, label: branch.label, on: branch.id === picked }));
+}
+
 /** "2 strain", "1 wound", "3 wounds". */
 function strainText(n, unit, localize) {
   const key = unit === "wounds"

@@ -1150,7 +1150,7 @@ export const TALENT_ENTRIES = [
       {
         id: "improvised-detonation-supreme",
         label: "Improvised Detonation (Supreme)",
-        hint: "Improvised Detonation: one quality per upgrade",
+        hint: "Improvised Detonation: one quality per upgrade; each ranked quality at most three times",
         offer: { skills: ["Mechanics"] },
         amount: { label: "Qualities added" },
         dice: { upgradeDifficulty: "amount" },
@@ -2249,7 +2249,7 @@ export const TALENT_ENTRIES = [
       {
         id: "respond-in-kind",
         label: "Respond In Kind",
-        hint: "Against the foe whose 3 Threat or Despair you spent",
+        hint: "Your next check against the foe whose 3 Threat or Despair you spent",
         offer: { skills: ["Charm", "Negotiation", "Leadership"] },
         dice: { success: 1, advantage: 1 },
       },

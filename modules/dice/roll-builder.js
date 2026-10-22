@@ -3,13 +3,14 @@ import { DicePoolFFG } from "./pool.js";
 import { spendsOwnAmmo, getAmmoValue } from "../helpers/ammo-helpers.js";
 import { onceEffectIds, postThenPay } from "./roll-costs.js";
 import { layerPool, optionDiceRows } from "./roll-option-pool.js";
+import { boostSupply } from "./optional-buff-pool.js";
 import { packSentLayers, packSentPool, readSentLayers } from "./roll-option-sent.js";
 import { rollActorFrom } from "./roll-actor.js";
 import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
 import { parseOptionText } from "../helpers/roll-options.js";
 import { collectOfferedOptions, linkedMacroUuids } from "../helpers/roll-options-offer.js";
 import { liveOptionValues, planOptionStates, rollOptionInputs, swapValues } from "../helpers/roll-option-costs.js";
-import { costText, formatRollOptionsLine, rollOptionCardEntries } from "../helpers/roll-option-card.js";
+import { costText, formatRollOptionsLine, optionChoicesContext, rollOptionCardEntries } from "../helpers/roll-option-card.js";
 import { chargeRollOptionCost, localizeRollOptionText } from "../helpers/roll-option-hooks.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
@@ -153,10 +154,12 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       && Number.isFinite(Number(this.roll.rank)) && this.roll.rank !== null;
   }
 
-  /** Boost dice in the pool before any option: the player's own and the ticked buffs'. */
+  /**
+   * Boost dice in the pool before any option: the player's own and the ticked buffs', signed and
+   * not clamped, so a buff that takes Boost away is not hidden from the trades (boostSupply).
+   */
   _boostBase() {
-    const pool = layerPool(this.dicePool, { buffs: this._tickedBuffs(), skill: { characteristic: this.roll.characteristic, rank: this.roll.rank }, adversaryMode: false });
-    return Math.max(0, Number(pool.boost) || 0);
+    return boostSupply(this.dicePool, this._tickedBuffs());
   }
 
   /** The skill layer for a plan: the rolled characteristic and rank, and a ticked swap's values. */
@@ -890,7 +893,6 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // No max: an amount with no cap beyond strain, or one whose cap is not known yet.
       const max = row?.maxAmount ?? (Number.isFinite(option.amount?.max) ? option.amount.max : null);
       const typed = this._optionAmounts[option.key] ?? 1;
-      const picked = row?.choice ?? option.choices?.[0]?.id ?? null;
       return {
         key: option.key,
         label: option.ranked ? `${option.label} ${option.rank}` : option.label,
@@ -900,9 +902,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         amount: option.amount && !row?.disabled
           ? { value: row?.ticked ? row.amount : (max === null ? typed : Math.min(typed, max)), max, label: amountLabel }
           : null,
-        choices: option.choices && !row?.disabled
-          ? option.choices.map((branch) => ({ id: branch.id, label: branch.label, on: branch.id === picked }))
-          : null,
+        choices: optionChoicesContext(option, row),
         reason: !!row?.reason,
         note: row?.reason ? RollBuilderFFG._optionReasonText(row.reason) : option.hint,
       };

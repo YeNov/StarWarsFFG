@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import "./_stub/foundry-stub.mjs";
-import { costText, describeCharge, formatRollOptionsLine, rollOptionCardEntries } from "../../modules/helpers/roll-option-card.js";
+import { costText, describeCharge, formatRollOptionsLine, optionChoicesContext, rollOptionCardEntries } from "../../modules/helpers/roll-option-card.js";
 import { planOptionStates } from "../../modules/helpers/roll-option-costs.js";
 
 /**
@@ -101,4 +101,14 @@ test("a picked choice is named after the amount", () => {
     formatRollOptionsLine(rollOptionCardEntries({ offered, states, twoWeapons: "no" }), localize),
     "Roll options: Clanker Killer 2: Success, Questionable Ethics 2: Advantage (2 strain)",
   );
+});
+
+test("a greyed row keeps its switch, so another branch can be picked (implementation review)", () => {
+  const option = { choices: [{ id: "trade", label: "Trade" }, { id: "add", label: "Add" }] };
+  assert.deepEqual(optionChoicesContext(option, { disabled: true, choice: "trade" }), [
+    { id: "trade", label: "Trade", on: true },
+    { id: "add", label: "Add", on: false },
+  ]);
+  assert.deepEqual(optionChoicesContext(option, null).map((c) => c.on), [true, false], "the first branch by default");
+  assert.equal(optionChoicesContext({ choices: null }, null), null);
 });
