@@ -128,6 +128,42 @@ test("ranks and forceRating resolve to numbers", () => {
   assert.equal(force[0].dice.upgradeAbility, "amount");
 });
 
+test("signed static words resolve with their sign", () => {
+  const rows = offer([talent({ ranked: true, current: 2 })], one([{ dice: { difficulty: "-ranks", setback: "-forceRating" } }]), { forceRating: 3 });
+  assert.deepEqual(rows[0].dice, { difficulty: -2, setback: -3 });
+});
+
+test("live words and amounts wait for the planner", () => {
+  const rows = offer([talent()], one([{ amount: { max: "destinyLight" }, dice: { force: "forceAvailable", success: "destinyLight", difficulty: "-amount" } }]));
+  assert.deepEqual(rows[0].dice, { force: "forceAvailable", success: "destinyLight", difficulty: "-amount" });
+  assert.equal(rows[0].amount.max, "destinyLight");
+});
+
+test("an amount without a max is offered without one", () => {
+  const [row] = offer([talent()], one([{ amount: { label: "Stealth ranks" }, dice: { success: "amount" } }]));
+  assert.deepEqual(row.amount, { max: null, label: "Stealth ranks" });
+});
+
+test("the batch's keys travel with the row, choices resolved like the option's dice", () => {
+  const option = {
+    offer: { minDifficulty: 4 },
+    difficultyFloor: 1,
+    characteristic: "Cunning",
+    skill: "Survival",
+    dice: { removeBoost: "amount" },
+    amount: { max: "ranks" },
+    choices: [{ id: "su", label: "Success", dice: { success: "amount" } }, { id: "ad", label: "Advantage", dice: { advantage: "ranks" } }],
+  };
+  const [row] = offer([talent({ ranked: true, current: 3 })], one([option]));
+  assert.equal(row.minDifficulty, 4);
+  assert.equal(row.difficultyFloor, 1);
+  assert.equal(row.characteristic, "Cunning");
+  assert.equal(row.skill, "Survival");
+  assert.deepEqual(row.choices, [{ id: "su", label: "Success", dice: { success: "amount" } }, { id: "ad", label: "Advantage", dice: { advantage: 3 } }]);
+  const [plain] = offer([talent()], one([{}]));
+  assert.deepEqual([plain.minDifficulty, plain.difficultyFloor, plain.characteristic, plain.skill, plain.choices], [null, null, null, null, null]);
+});
+
 test("a quality's string rank counts as a number", () => {
   const rows = offer([weapon({ links: [], qualities: [quality({ rank: "2" })] })], one([{ dice: { difficulty: "ranks" } }]), { weaponId: "w1" });
   assert.equal(rows[0].dice.difficulty, 2);

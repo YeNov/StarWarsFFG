@@ -15,11 +15,14 @@
  * - a quality or modification that is switched off or broken offers nothing;
  * - a Force power roll offers nothing.
  *
- * "ranks" and "forceRating" are resolved here; "amount" waits until the player picks an amount.
+ * "ranks" and "forceRating" (with their sign: "-ranks") are resolved here. "amount" waits until the
+ * player picks an amount, and the live words (forceAvailable, destinyLight, destinyDark) until the
+ * planner reads them, so a roll uses the values of the moment it is made. An amount with no max
+ * is offered with `max: null`: no cap beyond the payer's strain.
  *
  * Free of Foundry globals, so Node covers it (tests/node/roll-options-offer.test.mjs).
  */
-import { normalizeName } from "./roll-options.js";
+import { diceWord, normalizeName } from "./roll-options.js";
 import { isCarried } from "./optional-buffs-offer.js";
 import { isModifierSuspended } from "./modifier-switch.js";
 
@@ -172,13 +175,14 @@ export function collectOfferedOptions({ items, macros, context }) {
     if (!offerMatches(option.offer, context ?? {})) continue;
     const ranked = group.talent && group.ranked;
     const rank = ranked ? group.rank : (group.talent ? 1 : group.rank);
+    // "ranks" and "forceRating" are known now; live words and "amount" are left for the planner.
     const resolve = (value) => {
-      if (value === "ranks") return rank;
-      if (value === "forceRating") return forceRating;
+      const word = diceWord(value);
+      if (word?.word === "ranks") return word.sign * rank;
+      if (word?.word === "forceRating") return word.sign * forceRating;
       return value;
     };
-    const dice = {};
-    for (const [diceKey, value] of Object.entries(option.dice ?? {})) dice[diceKey] = resolve(value);
+    const resolveDice = (dice) => Object.fromEntries(Object.entries(dice ?? {}).map(([diceKey, value]) => [diceKey, resolve(value)]));
     offered.push({
       key,
       label: option.label ?? source,
@@ -187,9 +191,18 @@ export function collectOfferedOptions({ items, macros, context }) {
       rank,
       hint: option.hint ?? null,
       twoWeapons: option.offer?.twoWeapons ?? null,
-      amount: option.amount ? { max: resolve(option.amount.max), label: option.amount.label ?? null } : null,
+      minDifficulty: option.offer?.minDifficulty ?? null,
+      amount: option.amount
+        ? { max: option.amount.max === undefined ? null : resolve(option.amount.max), label: option.amount.label ?? null }
+        : null,
       cost: { strain: option.cost?.strain ?? 0, maneuvers: option.cost?.maneuvers ?? 0 },
-      dice,
+      dice: resolveDice(option.dice),
+      difficultyFloor: option.difficultyFloor ?? null,
+      characteristic: option.characteristic ?? null,
+      skill: option.skill ?? null,
+      choices: Array.isArray(option.choices)
+        ? option.choices.map((choice) => ({ id: choice.id, label: choice.label, dice: resolveDice(choice.dice) }))
+        : null,
     });
   }
   return offered;
