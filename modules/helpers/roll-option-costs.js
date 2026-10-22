@@ -17,6 +17,7 @@
  */
 import { readCostPool } from "./defensive-talents.js";
 import { skillTypeOf } from "./roll-options-offer.js";
+import { diceWord, LIVE_WORDS } from "./roll-options.js";
 
 /**
  * Whether a charge for this actor can reach a writer: the active GM, or an owner who is rolling.
@@ -86,16 +87,65 @@ function capacityOf(pool) {
 }
 
 /**
+ * A dice value or amount max as a number now: "amount" from the picked amount, the live words from
+ * `live` (both with their sign). "ranks" and "forceRating" were resolved when the row was offered.
+ */
+function resolveValue(value, { amount = 1, live = {} } = {}) {
+  if (typeof value === "number") return value;
+  const word = diceWord(value);
+  if (!word) return Number(value) || 0;
+  if (word.word === "amount") return word.sign * amount;
+  if (LIVE_WORDS.includes(word.word)) return word.sign * (Number(live?.[word.word]) || 0);
+  return 0;
+}
+
+/** The option's dice plus the chosen branch's, each value a number. */
+function resolvedDice(option, branch, amount, live) {
+  const dice = {};
+  for (const source of [option.dice ?? {}, branch?.dice ?? {}]) {
+    for (const [key, value] of Object.entries(source)) dice[key] = (dice[key] ?? 0) + resolveValue(value, { amount, live });
+  }
+  return dice;
+}
+
+const hasDice = (option, branch, key) => key in (option.dice ?? {}) || key in (branch?.dice ?? {});
+
+/** The value of `removeBoost` for this option, unresolved: "amount" (the trade scales) or a number. */
+const tradeValue = (option, branch) => branch?.dice?.removeBoost ?? option.dice?.removeBoost;
+
+/** The smallest of the caps that are finite, or null when there is none. */
+function smallestCap(...caps) {
+  const finite = caps.filter((cap) => cap !== null && cap !== undefined && Number.isFinite(cap));
+  return finite.length > 0 ? Math.min(...finite) : null;
+}
+
+/**
  * The state of every offered row for the current selection and Two weapons choice.
+ *
+ * Talent review batch (2026-10-22): an amount with `max: null` has no cap beyond the payer's strain
+ * (and, for a Boost trade, the Boost dice left); live words are read from `live`; a row with a
+ * minimum difficulty waits until `difficultyCount` reaches it; only one row adding Force dice may
+ * be ticked; swaps of one field must agree; Boost trades share one supply (`boostBase` plus the
+ * Boost the other ticked rows add), fitted after every other row; a row with choices uses the
+ * picked branch (the first by default), whose dice add to the option's own.
+ *
  * @param {object} params
  * @param {object[]} params.offered - from collectOfferedOptions
  * @param {Record<string, number>} params.selection - ticked keys → amount
+ * @param {Record<string, string>} [params.choices] - keys → picked branch id
  * @param {"no"|"same"|"different"} params.twoWeapons
  * @param {{unit: string, current: number, threshold: number}|null} params.pool - readCostPool(actor)
  * @param {boolean} params.canCharge
- * @returns {{rows: object[], selection: Record<string, number>, strain: number, maneuvers: number, after: number|null}}
+ * @param {{forceAvailable?: number, destinyLight?: number, destinyDark?: number}} [params.live]
+ * @param {number} [params.difficultyCount] - difficulty and challenge dice in the pool (no gating when left out)
+ * @param {number} [params.boostBase] - Boost dice in the pool before any option (no limit when left out)
+ * @param {boolean} [params.swapAvailable] - whether the roll knows the characteristic and rank to swap from
+ * @returns {{rows: object[], selection: Record<string, number>, choices: Record<string, string>, strain: number, maneuvers: number, after: number|null}}
  */
-export function planOptionStates({ offered, selection, twoWeapons, pool, canCharge }) {
+export function planOptionStates({
+  offered, selection, choices = {}, twoWeapons, pool, canCharge,
+  live = {}, difficultyCount = Infinity, boostBase = Infinity, swapAvailable = true,
+}) {
   const rows = offered ?? [];
   const reasonFor = (code, data = {}) => ({ code, data });
   const overThreshold = (used, cost) => reasonFor("overThreshold", {
@@ -103,6 +153,19 @@ export function planOptionStates({ offered, selection, twoWeapons, pool, canChar
     value: (Number(pool?.current) || 0) + used + cost,
     threshold: Number(pool?.threshold),
   });
+
+  // The picked branch of every row with choices: the one asked for, else the first.
+  const picks = {};
+  for (const option of rows) {
+    if (!Array.isArray(option.choices) || option.choices.length === 0) continue;
+    const asked = choices?.[option.key];
+    picks[option.key] = option.choices.some((choice) => choice.id === asked) ? asked : option.choices[0].id;
+  }
+  const branchOf = (option) => (option.key in picks ? option.choices.find((choice) => choice.id === picks[option.key]) : null);
+  const maxOf = (option) => (option.amount
+    ? (option.amount.max === null || option.amount.max === undefined ? null : resolveValue(option.amount.max, { live }))
+    : null);
+  const isTrade = (option) => hasDice(option, branchOf(option), "removeBoost");
 
   // 0. Only offered keys stay selected; an amount is a whole number of 1 or more.
   const wanted = {};
@@ -112,57 +175,107 @@ export function planOptionStates({ offered, selection, twoWeapons, pool, canChar
     wanted[option.key] = Number.isInteger(amount) && amount >= 1 ? amount : 1;
   }
 
-  // 1–3. Reasons that block a row whatever the payer can take.
+  // 1. Reasons that block a row whatever else is ticked.
   const blocked = new Map();
   for (const option of rows) {
     let reason = null;
+    const zeroWord = Object.values(option.dice ?? {})
+      .map((value) => diceWord(value))
+      .find((word) => word && LIVE_WORDS.includes(word.word) && !(Number(live?.[word.word]) > 0));
+    const max = maxOf(option);
     if (!twoWeaponsMatches(option.twoWeapons, twoWeapons)) reason = reasonFor("needsTwoWeapons", { choice: option.twoWeapons });
+    else if (option.minDifficulty != null && difficultyCount < option.minDifficulty) reason = reasonFor("needsDifficulty", { min: option.minDifficulty });
+    else if ((option.characteristic || option.skill) && !swapAvailable) reason = reasonFor("cannotSwap");
     else if (strainKind(option) !== "none" && !pool) reason = reasonFor("cannotPay");
     else if (strainKind(option) !== "none" && !canCharge) reason = reasonFor("needsWriter");
-    else if (option.amount && !(Number(option.amount.max) >= 1)) reason = reasonFor("zeroMax");
+    else if (option.amount && max !== null && !(max >= 1)) reason = reasonFor("zeroMax");
+    else if (zeroWord) reason = reasonFor("zeroValue", { word: zeroWord.word });
     if (reason) blocked.set(option.key, reason);
   }
 
-  // 4. Ticked rows, in offered order, against the capacity left so far.
+  // 2. Ticked rows in offered order: every other row first, then the Boost trades, so a trade
+  //    sees all the Boost the ticked rows add. One Force row; swaps of one field must agree.
   const capacity = capacityOf(pool);
   let used = 0;
-  const kept = new Map(); // key → {amount, cost}
-  for (const option of rows) {
-    if (!(option.key in wanted) || blocked.has(option.key)) continue;
-    const max = option.amount ? Number(option.amount.max) : null;
-    let amount = option.amount ? Math.min(wanted[option.key], max) : 1;
-    const kind = strainKind(option);
-    if (kind === "fixed" && Number(option.cost.strain) > capacity - used) continue;
-    if (kind === "amount") {
-      amount = Math.min(amount, capacity - used);
-      if (amount < 1) continue;
+  let boostAdded = 0;
+  let boostUsed = 0;
+  let forceBy = null;
+  const swapBy = { characteristic: null, skill: null };
+  const kept = new Map(); // key → {amount, cost, dice}
+
+  const conflictOf = (option) => {
+    if (hasDice(option, branchOf(option), "force") && forceBy !== null) return reasonFor("forceTaken", { label: forceBy });
+    for (const field of ["characteristic", "skill"]) {
+      const taken = swapBy[field];
+      if (option[field] && taken && taken.value !== option[field]) return reasonFor("swapTaken", { label: taken.label });
     }
-    const cost = resolvedCost(option, amount);
-    used += cost.strain;
-    kept.set(option.key, { amount, cost });
+    return null;
+  };
+  const supplyLeft = () => boostBase + boostAdded - boostUsed;
+
+  const fit = (option) => {
+    const max = maxOf(option);
+    let amount = option.amount ? (max === null ? wanted[option.key] : Math.min(wanted[option.key], max)) : 1;
+    const kind = strainKind(option);
+    if (kind === "fixed" && Number(option.cost.strain) > capacity - used) return null;
+    if (kind === "amount") amount = Math.min(amount, capacity - used);
+    if (isTrade(option)) {
+      const per = tradeValue(option, branchOf(option));
+      if (diceWord(per)?.word === "amount") amount = Math.min(amount, supplyLeft());
+      else if (resolveValue(per, { live }) > supplyLeft()) return null;
+    }
+    if (amount < 1) return null;
+    return { amount, cost: resolvedCost(option, amount), dice: resolvedDice(option, branchOf(option), amount, live) };
+  };
+
+  for (const trades of [false, true]) {
+    for (const option of rows) {
+      if (!(option.key in wanted) || blocked.has(option.key) || isTrade(option) !== trades) continue;
+      if (conflictOf(option)) continue;
+      const fitted = fit(option);
+      if (!fitted) continue;
+      kept.set(option.key, fitted);
+      used += fitted.cost.strain;
+      boostAdded += trades ? 0 : (fitted.dice.boost ?? 0);
+      boostUsed += trades ? (fitted.dice.removeBoost ?? 0) : 0;
+      if (hasDice(option, branchOf(option), "force")) forceBy ??= option.label;
+      for (const field of ["characteristic", "skill"]) {
+        if (option[field]) swapBy[field] ??= { value: option[field], label: option.label };
+      }
+    }
   }
 
-  // 5. Every row's state, the unticked ones against the capacity left after all ticked rows.
+  // 3. Every row's state, the unticked ones against what the ticked rows left.
   const states = rows.map((option) => {
-    const max = option.amount ? Number(option.amount.max) : null;
+    const base = { key: option.key, choice: picks[option.key] ?? null };
+    const kind = strainKind(option);
+    const trade = isTrade(option);
+    const scales = trade && diceWord(tradeValue(option, branchOf(option)))?.word === "amount";
+    const max = maxOf(option);
     const blockedReason = blocked.get(option.key);
     if (blockedReason) {
-      return { key: option.key, ticked: false, amount: 1, maxAmount: null, cost: resolvedCost(option, 1), disabled: true, reason: blockedReason };
+      return { ...base, ticked: false, amount: 1, maxAmount: null, cost: resolvedCost(option, 1), dice: null, disabled: true, reason: blockedReason };
     }
-    const kind = strainKind(option);
     const own = kept.get(option.key);
     if (own) {
-      const others = used - own.cost.strain;
-      const maxAmount = max === null ? null : kind === "amount" ? Math.min(max, capacity - others) : max;
-      return { key: option.key, ticked: true, amount: own.amount, maxAmount, cost: own.cost, disabled: false, reason: null };
+      const strainCap = kind === "amount" ? capacity - (used - own.cost.strain) : null;
+      const boostCap = scales ? supplyLeft() + own.dice.removeBoost : null;
+      const maxAmount = option.amount ? smallestCap(max, strainCap, boostCap) : null;
+      return { ...base, ticked: true, amount: own.amount, maxAmount, cost: own.cost, dice: own.dice, disabled: false, reason: null };
     }
-    const left = capacity - used;
     const cost = resolvedCost(option, 1);
+    const conflict = conflictOf(option);
+    if (conflict) return { ...base, ticked: false, amount: 1, maxAmount: null, cost, dice: null, disabled: true, reason: conflict };
+    const left = capacity - used;
     if ((kind === "fixed" && cost.strain > left) || (kind === "amount" && left < 1)) {
-      return { key: option.key, ticked: false, amount: 1, maxAmount: null, cost, disabled: true, reason: overThreshold(used, cost.strain) };
+      return { ...base, ticked: false, amount: 1, maxAmount: null, cost, dice: null, disabled: true, reason: overThreshold(used, cost.strain) };
     }
-    const maxAmount = max === null ? null : kind === "amount" ? Math.min(max, left) : max;
-    return { key: option.key, ticked: false, amount: 1, maxAmount, cost, disabled: false, reason: null };
+    const needed = trade ? (scales ? 1 : resolveValue(tradeValue(option, branchOf(option)), { live })) : 0;
+    if (trade && supplyLeft() < needed) {
+      return { ...base, ticked: false, amount: 1, maxAmount: null, cost, dice: null, disabled: true, reason: reasonFor("noBoost") };
+    }
+    const maxAmount = option.amount ? smallestCap(max, kind === "amount" ? left : null, scales ? supplyLeft() : null) : null;
+    return { ...base, ticked: false, amount: 1, maxAmount, cost, dice: null, disabled: false, reason: null };
   });
 
   const finalSelection = {};
@@ -174,6 +287,7 @@ export function planOptionStates({ offered, selection, twoWeapons, pool, canChar
   return {
     rows: states,
     selection: finalSelection,
+    choices: picks,
     strain: used,
     maneuvers,
     after: pool ? (Number(pool.current) || 0) + used : null,

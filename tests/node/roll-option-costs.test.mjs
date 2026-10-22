@@ -172,3 +172,117 @@ test("canChargeFor", () => {
   assert.equal(canChargeFor({ hasActiveGM: false, isOwner: true }), true);
   assert.equal(canChargeFor({ hasActiveGM: false, isOwner: false }), false);
 });
+
+/* The talent review batch (2026-10-22): uncapped amounts, live words, the Daunting condition, one
+ * Force row per check, swaps, a shared Boost supply for trades, and either/or choices. */
+
+const opt = (key, { strain = 0, maneuvers = 0, max, dice = {}, choices = null, minDifficulty = null, characteristic = null, skill = null } = {}) => ({
+  key, label: key, source: key, ranked: false, rank: 1, hint: null, twoWeapons: null, minDifficulty,
+  amount: max === undefined ? null : { max, label: null },
+  cost: { strain, maneuvers }, dice, difficultyFloor: null, characteristic, skill, choices,
+});
+const plan2 = ({ offered, selection = {}, choices = {}, pool = strainPool(0, 12), live = {}, difficultyCount, boostBase, swapAvailable }) =>
+  planOptionStates({ offered, selection, choices, twoWeapons: "no", pool, canCharge: true, live, difficultyCount, boostBase, swapAvailable });
+
+test("an uncapped amount is limited only by strain room", () => {
+  const strainy = opt("s", { strain: "amount", max: null });
+  const r1 = plan2({ offered: [strainy], selection: { s: 7 } });
+  assert.deepEqual([row(r1, "s").amount, row(r1, "s").maxAmount], [7, 12]);
+  const free = opt("f", { max: null, dice: { success: "amount" } });
+  const r2 = plan2({ offered: [free], selection: { f: 9 } });
+  assert.deepEqual([row(r2, "f").amount, row(r2, "f").maxAmount], [9, null]);
+  const fixed = opt("x", { strain: 2, max: null, dice: { boost: "amount" } });
+  const r3 = plan2({ offered: [fixed], selection: { x: 5 }, pool: strainPool(9, 12) });
+  assert.deepEqual([row(r3, "x").ticked, row(r3, "x").amount, row(r3, "x").cost.strain], [true, 5, 2]);
+});
+
+test("live words resolve from the values of the moment", () => {
+  const live = { forceAvailable: 2, destinyLight: 3, destinyDark: 1 };
+  const r = plan2({ offered: [opt("a", { dice: { force: "forceAvailable", success: "destinyLight", threat: "destinyDark" } })], selection: { a: 1 }, live });
+  assert.deepEqual(row(r, "a").dice, { force: 2, success: 3, threat: 1 });
+  const lower = plan2({ offered: [opt("b", { max: "destinyLight", dice: { difficulty: "-amount" } })], selection: { b: 2 }, live });
+  assert.deepEqual([row(lower, "b").dice, row(lower, "b").maxAmount], [{ difficulty: -2 }, 3]);
+});
+
+test("a live word worth nothing greys the row", () => {
+  const offered = [opt("f", { dice: { force: "forceAvailable" } }), opt("d", { max: "destinyDark", dice: { success: "amount" } })];
+  const r = plan2({ offered, selection: { f: 1, d: 1 }, live: { forceAvailable: 0, destinyDark: 0 } });
+  assert.deepEqual(row(r, "f").reason, { code: "zeroValue", data: { word: "forceAvailable" } });
+  assert.equal(row(r, "d").reason.code, "zeroMax");
+  assert.deepEqual(r.selection, {});
+});
+
+test("an option with a minimum difficulty waits until the check is that hard", () => {
+  const odds = opt("odds", { minDifficulty: 4, dice: { boost: 1 } });
+  assert.deepEqual(row(plan2({ offered: [odds], selection: { odds: 1 }, difficultyCount: 3 }), "odds").reason, { code: "needsDifficulty", data: { min: 4 } });
+  assert.equal(row(plan2({ offered: [odds], selection: { odds: 1 }, difficultyCount: 4 }), "odds").ticked, true);
+  assert.equal(row(plan2({ offered: [odds], selection: { odds: 1 } }), "odds").ticked, true, "no count given: not gated");
+});
+
+test("only one Force row per check", () => {
+  const a = opt("a", { dice: { force: "forceAvailable" } });
+  const b = opt("b", { dice: { force: "forceAvailable" } });
+  const live = { forceAvailable: 3 };
+  const both = plan2({ offered: [a, b], selection: { a: 1, b: 1 }, live });
+  assert.deepEqual([row(both, "a").ticked, row(both, "b").ticked], [true, false]);
+  assert.deepEqual(row(both, "b").reason, { code: "forceTaken", data: { label: "a" } });
+  const none = plan2({ offered: [a, b], live });
+  assert.deepEqual([row(none, "a").disabled, row(none, "b").disabled], [false, false]);
+});
+
+test("swaps: the same swap applies once, a different one on the same field is refused", () => {
+  const offered = [opt("a", { characteristic: "Willpower" }), opt("b", { characteristic: "Willpower" }), opt("c", { characteristic: "Cunning" }), opt("d", { skill: "Athletics" })];
+  const r = plan2({ offered, selection: { a: 1, b: 1, c: 1, d: 1 } });
+  assert.deepEqual(["a", "b", "c", "d"].map((k) => row(r, k).ticked), [true, true, false, true]);
+  assert.deepEqual(row(r, "c").reason, { code: "swapTaken", data: { label: "a" } });
+  assert.deepEqual(row(plan2({ offered, selection: { a: 1 }, swapAvailable: false }), "a").reason, { code: "cannotSwap", data: {} });
+});
+
+const trade = (key, extra = {}) => opt(key, { max: null, dice: { removeBoost: "amount", success: "amount" }, ...extra });
+
+test("Boost trades share one supply of Boost dice", () => {
+  const two = plan2({ offered: [trade("t1"), trade("t2")], selection: { t1: 2, t2: 2 }, boostBase: 2 });
+  assert.deepEqual([row(two, "t1").amount, row(two, "t2").ticked], [2, false]);
+  assert.deepEqual(row(two, "t2").reason, { code: "noBoost", data: {} });
+  const three = plan2({ offered: [trade("t1"), trade("t2")], selection: { t1: 2, t2: 2 }, boostBase: 3 });
+  assert.deepEqual([row(three, "t1").amount, row(three, "t2").amount], [2, 1]);
+  assert.deepEqual([row(three, "t1").maxAmount, row(three, "t2").maxAmount], [2, 1]);
+  assert.deepEqual(row(three, "t1").dice, { removeBoost: 2, success: 2 });
+});
+
+test("options that add Boost feed the trades", () => {
+  const adder = opt("add", { dice: { boost: 2 } });
+  assert.equal(row(plan2({ offered: [trade("t"), adder], selection: { t: 2, add: 1 }, boostBase: 0 }), "t").amount, 2);
+  assert.equal(row(plan2({ offered: [trade("t"), adder], selection: { t: 2 }, boostBase: 0 }), "t").reason.code, "noBoost");
+});
+
+test("a trade is also capped by strain and by its own max", () => {
+  const assassinate = trade("as", { strain: "amount", dice: { removeBoost: "amount", advantage: "amount" } });
+  const r = plan2({ offered: [assassinate], selection: { as: 5 }, boostBase: 5, pool: strainPool(10, 12) });
+  assert.deepEqual([row(r, "as").amount, row(r, "as").cost.strain, row(r, "as").maxAmount], [2, 2, 2]);
+  const clanker = trade("ck", { max: 1 });
+  assert.equal(row(plan2({ offered: [clanker], selection: { ck: 3 }, boostBase: 3 }), "ck").amount, 1);
+});
+
+test("a fixed-cost trade needs only its fixed strain", () => {
+  const trigger = trade("td", { strain: 2, dice: { removeBoost: "amount", advantage: "amount" } });
+  assert.equal(row(plan2({ offered: [trigger], selection: { td: 1 }, boostBase: 3, pool: strainPool(11, 12) }), "td").reason.code, "overThreshold");
+  const r = plan2({ offered: [trigger], selection: { td: 3 }, boostBase: 3 });
+  assert.deepEqual([row(r, "td").amount, row(r, "td").cost.strain], [3, 2]);
+});
+
+test("choices: the first is the default, the pick is kept, and its dice add to the option's", () => {
+  const branches = [{ id: "su", label: "Success", dice: { success: "amount" } }, { id: "ad", label: "Advantage", dice: { advantage: "amount" } }];
+  const ck = opt("ck", { max: null, dice: { removeBoost: "amount" }, choices: branches });
+  const first = plan2({ offered: [ck], selection: { ck: 1 }, boostBase: 2 });
+  assert.deepEqual([row(first, "ck").choice, row(first, "ck").dice, first.choices], ["su", { removeBoost: 1, success: 1 }, { ck: "su" }]);
+  const picked = plan2({ offered: [ck], selection: { ck: 2 }, choices: { ck: "ad" }, boostBase: 2 });
+  assert.deepEqual(row(picked, "ck").dice, { removeBoost: 2, advantage: 2 });
+  assert.equal(plan2({ offered: [ck], selection: { ck: 1 }, choices: { ck: "zz" }, boostBase: 2 }).choices.ck, "su");
+  assert.deepEqual(plan2({ offered: [ck], choices: { ck: "ad" }, boostBase: 2 }).choices, { ck: "ad" }, "an unticked row keeps its pick");
+});
+
+test("ticked rows carry their resolved dice, unticked rows none", () => {
+  const r = plan2({ offered: [opt("a", { dice: { boost: 1 } }), opt("b", { dice: { boost: 1 } })], selection: { a: 1 } });
+  assert.deepEqual([row(r, "a").dice, row(r, "b").dice], [{ boost: 1 }, null]);
+});
