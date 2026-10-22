@@ -535,3 +535,40 @@ player; a GM-sent pool arriving ticked and unticking cleanly.
 - Wiki: chapter 9 (*Changing a roll before and after*) for the side card, Two weapons and options;
   the item-editing chapter for option macros, the link lists, the option format and the library
   table; the library run and how to start it; screenshots.
+
+## Amendments: the talent review (2026-10-22)
+
+The user reviewed the library's talents one by one; the decisions, an independent review for
+contradictions and its answers are in the batch file kept with this work. Where this section and
+the text above disagree, this section is the rule.
+
+- **Scope.** The library goes beyond the first eight entries: 209 talents from the core and
+  reSpecialized trees. Talents that set up a later check (an action now, a bonus later) are left
+  out; talents that are an action of their own (Force combat actions, Hidden Fangs, Natural
+  Remedy and others) are set aside in `docs/roll-options-deferred.md`.
+- **Option format** (supersedes "The option format"): `dice` also takes `success`, `advantage`,
+  `triumph`, `threat`, `failure`, `despair` (added to the pool's results, as optional buffs do),
+  `force` and `removeBoost`; values may be the live words `forceAvailable` (Force rating less
+  committed dice), `destinyLight` and `destinyDark` (the Destiny pool), and any word may carry a
+  minus (`"-ranks"`). `amount.max` may be left out (no cap beyond the payer's strain).
+  `offer.minDifficulty` holds a row back until the check has that many difficulty and challenge
+  dice. `difficultyFloor` stops the option's reduction at that many dice. `characteristic` and
+  `skill` swap what the roll is made with. `choices` are the branches of an either/or row.
+- **Planning** (supersedes parts of "Costs and what can be ticked"): live words are read on every
+  plan and again at Roll, and the pool, the chat line and the charge all come from that plan. A
+  minimum difficulty is judged on the pool with every other ticked effect, defence and the
+  Adversary upgrade. Only one row adding Force dice can be ticked on a check. Swaps of one field
+  must agree. Boost trades share the pool's Boost dice (the player's, the buffs', the other
+  options'), fitted after every other row, and are capped by strain too.
+- **The pool** (supersedes the order in "What a ticked option does to the pool"): after all
+  counts, lowering difficulty removes difficulty dice, then challenge dice; reductions with a
+  floor go first, each stopping at its own floor. This also applies to an optional buff's
+  negative difficulty. A swap rebuilds the positive dice the way a Skill Rank buff does.
+- **Side card, chat card, sent pool**: a row with choices shows a switch; the chat line names the
+  branch picked ("Clanker Killer 2: Success"); a sent pool carries it.
+- **Saber Swarm** is offered on Lightsaber attacks, and its hint names the Linked rating. The run
+  never overwrites an installed macro, so a world that has it already keeps its old text until the
+  GM edits it.
+- **Unchanged boundaries**: spending Force points, damage, Pierce and crit, round tracking and
+  spending Destiny Points stay with the table; the base pool is never changed; costs are charged
+  after the roll posts; the player decides which of a base talent and its Improved form to tick.
