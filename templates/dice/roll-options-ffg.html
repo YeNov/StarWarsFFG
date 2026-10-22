@@ -22,10 +22,11 @@
         _relocateRollOptionsPanel moves it to be a direct child of `.application`;
         _renderRollOptionsPanel fills .ffg-roll-options-inner from
         templates/dice/parts/roll-options-panel.html on every change. The tab trails, so it sits
-        on the card's outer edge and stays beside the window when the card is folded. --}}
-  <aside class="ffg-roll-options-panel" aria-hidden="true">
+        on the card's outer edge and stays beside the window when the card is folded. The card
+        starts folded; the tab opens it and shows how many rows are ticked. --}}
+  <aside class="ffg-roll-options-panel ffg-ro-collapsed" aria-hidden="true">
     <div class="ffg-roll-options-inner"></div>
-    <button type="button" class="ffg-roll-options-toggle" aria-expanded="true"
+    <button type="button" class="ffg-roll-options-toggle" aria-expanded="false"
             title="{{localize "SWFFG.RollOptions.Panel.Toggle"}}"><span class="ffg-roll-options-count"></span></button>
   </aside>
   <div class="dice-pool-dialog">

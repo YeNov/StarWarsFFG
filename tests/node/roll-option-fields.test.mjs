@@ -74,3 +74,10 @@ test("the dialog fills in a missing skill key, characteristic and rank before it
   assert.ok(collect.indexOf("rollSkillContext(") < collect.indexOf("collectOfferedBuffs("), "before the buffs read the skill key");
   assert.ok(dialog.indexOf("this._optionalBuffs = this._collectOptionalBuffs()") < dialog.indexOf("this._optionInputs = rollOptionInputs("), "before the roll options read it");
 });
+
+test("the roll options card starts folded, its tab saying so", () => {
+  const dialog = read("templates/dice/roll-options-ffg.html");
+  assert.match(dialog, /<aside class="ffg-roll-options-panel ffg-ro-collapsed"/);
+  const toggle = dialog.slice(dialog.indexOf('class="ffg-roll-options-toggle"'));
+  assert.match(toggle.slice(0, 80), /aria-expanded="false"/);
+});

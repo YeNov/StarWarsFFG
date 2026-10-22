@@ -565,7 +565,8 @@ the text above disagree, this section is the rule.
   floor go first, each stopping at its own floor. This also applies to an optional buff's
   negative difficulty. A swap rebuilds the positive dice the way a Skill Rank buff does.
 - **Side card, chat card, sent pool**: a row with choices shows a switch; the chat line names the
-  branch picked ("Clanker Killer 2: Success"); a sent pool carries it.
+  branch picked ("Clanker Killer 2: Success"); a sent pool carries it. The card **starts folded**
+  on every roll (supersedes "opens unfolded"); its tab opens it and shows how many rows are ticked.
 - **Saber Swarm** is offered on Lightsaber attacks, and its hint names the Linked rating. The run
   never overwrites an installed macro, so a world that has it already keeps its old text until the
   GM edits it.
