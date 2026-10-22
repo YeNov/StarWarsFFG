@@ -164,6 +164,21 @@ test("the batch's keys travel with the row, choices resolved like the option's d
   assert.deepEqual([plain.minDifficulty, plain.difficultyFloor, plain.characteristic, plain.skill, plain.choices], [null, null, null, null, null]);
 });
 
+test("each row carries the description of the talent or item it comes from, for the card's tooltip", () => {
+  const withDescription = (item, description) => ({ ...item, system: { ...item.system, description } });
+  const [fromTalent] = offer([withDescription(talent(), "<p>Talent text</p>")], one([{}]));
+  assert.equal(fromTalent.description, "<p>Talent text</p>");
+  const node = { name: "Point Blank", islearned: true, rollOptions: [M], description: "<p>Node text</p>" };
+  assert.equal(offer([specialization({ talent0: node })], one([{}]))[0].description, "<p>Node text</p>");
+  const q = quality({ links: [M] });
+  q.system.description = "<p>Quality text</p>";
+  assert.equal(offer([weapon({ links: [], qualities: [q] })], one([{}]), { weaponId: "w1" })[0].description, "<p>Quality text</p>");
+  const empty = withDescription(talent({ id: "t1", name: "Shared" }), "");
+  const full = { ...withDescription(talent({ id: "t2", name: "Shared" }), "<p>From the second</p>") };
+  assert.equal(offer([empty, full], one([{}]))[0].description, "<p>From the second</p>", "a talent on two items takes the first text there is");
+  assert.equal(offer([gear()], one([{}]))[0].description, null);
+});
+
 test("a quality's string rank counts as a number", () => {
   const rows = offer([weapon({ links: [], qualities: [quality({ rank: "2" })] })], one([{ dice: { difficulty: "ranks" } }]), { weaponId: "w1" });
   assert.equal(rows[0].dice.difficulty, 2);

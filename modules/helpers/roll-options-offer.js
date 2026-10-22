@@ -97,10 +97,11 @@ function offerMatches(offer, context) {
 export function collectOfferedOptions({ items, macros, context }) {
   if (context?.isForcePower) return [];
 
-  // Sources keyed by row key, in the order first met: {macroUuid, option, optionKey, source, ranked, rank, talent}.
+  // Sources keyed by row key, in the order first met: {macroUuid, option, optionKey, source, ranked, rank, talent, description}.
   const groups = new Map();
+  const textOf = (value) => (typeof value === "string" && value.trim() !== "" ? value : null);
 
-  const addLinks = (links, { source, ranked = false, rank = 1, talentName = null }) => {
+  const addLinks = (links, { source, ranked = false, rank = 1, talentName = null, description = null }) => {
     for (const uuid of links) {
       const parsed = macros?.get(uuid);
       if (!parsed?.ok) continue;
@@ -111,10 +112,13 @@ export function collectOfferedOptions({ items, macros, context }) {
           : `${uuid}:${optionKey}:${normalizeName(talentName)}`;
         const group = groups.get(key);
         if (!group) {
-          groups.set(key, { option, source, ranked, rank, talent: talentName !== null });
-        } else if (group.talent) {
-          group.ranked = group.ranked && ranked;
-          group.rank += rank;
+          groups.set(key, { option, source, ranked, rank, talent: talentName !== null, description: textOf(description) });
+        } else {
+          group.description ??= textOf(description);
+          if (group.talent) {
+            group.ranked = group.ranked && ranked;
+            group.rank += rank;
+          }
         }
       });
     }
@@ -123,16 +127,16 @@ export function collectOfferedOptions({ items, macros, context }) {
   const addQualities = (qualities) => {
     for (const q of listOf(qualities)) {
       if (isOff(q)) continue;
-      addLinks(linksOf(q?.system), { source: q?.name ?? "", rank: rankOf(q?.system?.rank) });
+      addLinks(linksOf(q?.system), { source: q?.name ?? "", rank: rankOf(q?.system?.rank), description: q?.system?.description });
     }
   };
 
   const addHolder = (item) => {
     const system = item.system ?? {};
-    addLinks(linksOf(system), { source: item.name ?? "" });
+    addLinks(linksOf(system), { source: item.name ?? "", description: system.description });
     addQualities(system.itemmodifier);
     for (const a of listOf(system.itemattachment)) {
-      addLinks(linksOf(a?.system), { source: a?.name ?? "" });
+      addLinks(linksOf(a?.system), { source: a?.name ?? "", description: a?.system?.description });
       addQualities(a?.system?.itemmodifier);
     }
   };
@@ -144,13 +148,14 @@ export function collectOfferedOptions({ items, macros, context }) {
         const ranked = system.ranks?.ranked === true;
         addLinks(linksOf(system), {
           source: item.name ?? "", talentName: item.name ?? "", ranked, rank: ranked ? rankOf(system.ranks?.current) : 1,
+          description: system.description,
         });
         break;
       }
       case "specialization": {
         for (const node of Object.values(system.talents ?? {})) {
           if (node?.islearned !== true) continue;
-          addLinks(linksOf(node), { source: node.name ?? "", talentName: node.name ?? "", ranked: node.isRanked === true, rank: 1 });
+          addLinks(linksOf(node), { source: node.name ?? "", talentName: node.name ?? "", ranked: node.isRanked === true, rank: 1, description: node.description });
         }
         break;
       }
@@ -171,7 +176,7 @@ export function collectOfferedOptions({ items, macros, context }) {
   const forceRating = Number(context?.forceRating) || 0;
   const offered = [];
   for (const [key, group] of groups) {
-    const { option, source } = group;
+    const { option, source, description } = group;
     if (!offerMatches(option.offer, context ?? {})) continue;
     const ranked = group.talent && group.ranked;
     const rank = ranked ? group.rank : (group.talent ? 1 : group.rank);
@@ -190,6 +195,7 @@ export function collectOfferedOptions({ items, macros, context }) {
       ranked,
       rank,
       hint: option.hint ?? null,
+      description: description ?? null,
       twoWeapons: option.offer?.twoWeapons ?? null,
       minDifficulty: option.offer?.minDifficulty ?? null,
       amount: option.amount

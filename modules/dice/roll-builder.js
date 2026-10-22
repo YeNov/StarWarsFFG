@@ -6,6 +6,7 @@ import { layerPool, optionDiceRows } from "./roll-option-pool.js";
 import { boostSupply } from "./optional-buff-pool.js";
 import { packSentLayers, packSentPool, readSentLayers } from "./roll-option-sent.js";
 import { rollActorFrom, rollSkillContext } from "./roll-actor.js";
+import PopoutEditor from "../popout-editor.js";
 import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
 import { parseOptionText } from "../helpers/roll-options.js";
 import { collectOfferedOptions, linkedMacroUuids } from "../helpers/roll-options-offer.js";
@@ -226,6 +227,17 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       macros,
       context: this._optionInputs.context,
     });
+    // The description of the talent or item behind each row, drawn as the sheets draw it (dice
+    // markers as dice), shown when the row is hovered.
+    this._optionTooltips = new Map();
+    for (const option of this._offeredOptions) {
+      if (!option.description) continue;
+      try {
+        this._optionTooltips.set(option.key, await PopoutEditor.renderDiceImages(option.description, this._rollActor));
+      } catch (error) {
+        CONFIG.logger.warn(`Could not draw the description of roll option "${option.label}": ${error}`);
+      }
+    }
     // A sent pool's options arrive ticked; the plan unticks any that no longer fit.
     if (this._pendingSentOptions) {
       this._optionSelection = { ...this._pendingSentOptions };
@@ -912,6 +924,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
         choices: optionChoicesContext(option, row),
         reason: !!row?.reason,
         note: row?.reason ? RollBuilderFFG._optionReasonText(row.reason) : option.hint,
+        tooltip: this._optionTooltips?.get(option.key) ?? null,
       };
     });
   }

@@ -81,3 +81,12 @@ test("the roll options card starts folded, its tab saying so", () => {
   const toggle = dialog.slice(dialog.indexOf('class="ffg-roll-options-toggle"'));
   assert.match(toggle.slice(0, 80), /aria-expanded="false"/);
 });
+
+test("hovering an option row shows its source's description", () => {
+  const panel = read("templates/dice/parts/roll-options-panel.html");
+  assert.ok(panel.includes('{{#if option.tooltip}} data-tooltip-html="{{option.tooltip}}" data-tooltip-class="ffg-ro-tooltip"{{/if}}'));
+  const dialog = read("modules/dice/roll-builder.js");
+  assert.ok(dialog.includes("PopoutEditor.renderDiceImages(option.description, this._rollActor)"));
+  assert.ok(dialog.includes("tooltip: this._optionTooltips?.get(option.key) ?? null"));
+  assert.ok(read("styles/mandar.css").includes("#tooltip.ffg-ro-tooltip {"));
+});

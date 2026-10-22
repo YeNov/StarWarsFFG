@@ -18,7 +18,7 @@
 <section class="ffg-ro-section ffg-ro-options">
   <div class="ffg-ro-heading">{{localize "SWFFG.RollOptions.Panel.Options"}}</div>
   {{#each options as |option|}}
-  <div class="ffg-ro-option{{#if option.disabled}} disabled{{/if}}">
+  <div class="ffg-ro-option{{#if option.disabled}} disabled{{/if}}"{{#if option.tooltip}} data-tooltip-html="{{option.tooltip}}" data-tooltip-class="ffg-ro-tooltip"{{/if}}>
     <label class="ffg-ro-option-line">
       <input type="checkbox" class="ffg-ro-option-tick" data-option-key="{{option.key}}" {{#if option.ticked}}checked{{/if}} {{#if option.disabled}}disabled{{/if}} />
       <span class="ffg-ro-option-label">{{option.label}}</span>
