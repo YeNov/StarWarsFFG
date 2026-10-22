@@ -58,6 +58,39 @@ export function rollOptionInputs(actor, { skillKey = null, item = null, configur
   };
 }
 
+/**
+ * What the live words stand for right now: the rolling actor's Force rating less its committed
+ * Force dice (as the sheet counts them: forcePool.max − forcePool.value), and the Destiny pool's
+ * light and dark points. The dialog reads these every time it plans, and again at Roll.
+ * @param {object|null} actor
+ * @param {{destinyLight?: number, destinyDark?: number}} [destiny] - the world's Destiny pool
+ * @returns {{forceAvailable: number, destinyLight: number, destinyDark: number}}
+ */
+export function liveOptionValues(actor, { destinyLight = 0, destinyDark = 0 } = {}) {
+  const whole = (value) => Math.max(0, Math.trunc(Number(value) || 0));
+  const force = actor?.system?.stats?.forcePool;
+  return {
+    forceAvailable: whole((Number(force?.max) || 0) - (Number(force?.value) || 0)),
+    destinyLight: whole(destinyLight),
+    destinyDark: whole(destinyDark),
+  };
+}
+
+/**
+ * The numbers a ticked swap rolls with: the named characteristic's value, the named skill's rank.
+ * Null for a field that is not swapped, or when there is no actor to read.
+ * @param {object|null} actor
+ * @param {{characteristic?: string|null, skill?: string|null}} swap
+ * @returns {{swapCharacteristic: number|null, swapRank: number|null}}
+ */
+export function swapValues(actor, { characteristic = null, skill = null } = {}) {
+  if (!actor) return { swapCharacteristic: null, swapRank: null };
+  return {
+    swapCharacteristic: characteristic ? Number(actor.system?.characteristics?.[characteristic]?.value) || 0 : null,
+    swapRank: skill ? Number(actor.system?.skills?.[skill]?.rank) || 0 : null,
+  };
+}
+
 const strainKind = (option) => {
   const strain = option.cost?.strain;
   if (strain === "amount") return "amount";

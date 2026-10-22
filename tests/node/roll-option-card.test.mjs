@@ -87,3 +87,18 @@ test("what a charge warning names: the total and the options that cost it", () =
   assert.deepEqual(describeCharge(entries, states.strain, "strain", localize), { cost: "3 strain", options: "Guns Blazing, Intense Focus" });
   assert.deepEqual(describeCharge(entries, 1, "wounds", localize).cost, "1 wound");
 });
+
+test("a picked choice is named after the amount", () => {
+  const ck = {
+    ...option("ck", "Clanker Killer", { amount: 3 }),
+    dice: { removeBoost: "amount" },
+    choices: [{ id: "su", label: "Success", dice: { success: "amount" } }, { id: "ad", label: "Advantage", dice: { advantage: "amount" } }],
+  };
+  const qe = { ...option("qe", "Questionable Ethics", { strain: "amount", amount: 3 }), choices: [{ id: "su", label: "Success", dice: {} }, { id: "ad", label: "Advantage", dice: {} }] };
+  const offered = [ck, qe];
+  const states = planOptionStates({ offered, selection: { ck: 2, qe: 2 }, choices: { qe: "ad" }, twoWeapons: "no", pool: pool(), canCharge: true, boostBase: 3 });
+  assert.equal(
+    formatRollOptionsLine(rollOptionCardEntries({ offered, states, twoWeapons: "no" }), localize),
+    "Roll options: Clanker Killer 2: Success, Questionable Ethics 2: Advantage (2 strain)",
+  );
+});

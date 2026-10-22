@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
-import { canChargeFor, planOptionStates, rollOptionInputs } from "../../modules/helpers/roll-option-costs.js";
+import { canChargeFor, liveOptionValues, planOptionStates, rollOptionInputs, swapValues } from "../../modules/helpers/roll-option-costs.js";
 
 /**
  * Which option rows can be ticked, what each costs once its amount is known, and how much the
@@ -285,4 +285,19 @@ test("choices: the first is the default, the pick is kept, and its dice add to t
 test("ticked rows carry their resolved dice, unticked rows none", () => {
   const r = plan2({ offered: [opt("a", { dice: { boost: 1 } }), opt("b", { dice: { boost: 1 } })], selection: { a: 1 } });
   assert.deepEqual([row(r, "a").dice, row(r, "b").dice], [{ boost: 1 }, null]);
+});
+
+test("live values: Force rating less committed dice, and the Destiny pool", () => {
+  const actor = { system: { stats: { forcePool: { max: 3, value: 1 } } } };
+  assert.deepEqual(liveOptionValues(actor, { destinyLight: 2, destinyDark: 4 }), { forceAvailable: 2, destinyLight: 2, destinyDark: 4 });
+  assert.equal(liveOptionValues({ system: { stats: { forcePool: { max: 1, value: 3 } } } }, {}).forceAvailable, 0);
+  assert.deepEqual(liveOptionValues(null, { destinyLight: "2" }), { forceAvailable: 0, destinyLight: 2, destinyDark: 0 });
+});
+
+test("swap values read the actor's characteristic and skill", () => {
+  const actor = { system: { characteristics: { Cunning: { value: 4 } }, skills: { Survival: { rank: 2 } } } };
+  assert.deepEqual(swapValues(actor, { characteristic: "Cunning", skill: "Survival" }), { swapCharacteristic: 4, swapRank: 2 });
+  assert.deepEqual(swapValues(actor, { characteristic: "Presence", skill: "Lore" }), { swapCharacteristic: 0, swapRank: 0 });
+  assert.deepEqual(swapValues(actor, {}), { swapCharacteristic: null, swapRank: null });
+  assert.deepEqual(swapValues(null, { characteristic: "Cunning" }), { swapCharacteristic: null, swapRank: null });
 });

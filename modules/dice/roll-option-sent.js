@@ -19,16 +19,22 @@ const VERSION = 1;
 
 const wholeAtLeastZero = (value) => (Number.isFinite(Number(value)) && Number(value) > 0 ? Math.trunc(Number(value)) : 0);
 
-/** Option selections as key → amount, from the stored list (or an object, as the dialog holds them). */
-function optionEntries(options) {
-  if (Array.isArray(options)) return options.map((entry) => [entry?.key, entry?.amount]);
-  return Object.entries(options ?? {});
+/**
+ * Option selections as [key, amount, choice], from the stored list (or, as the dialog holds them,
+ * an object of amounts and an object of picked choices).
+ */
+function optionEntries(options, choices) {
+  if (Array.isArray(options)) return options.map((entry) => [entry?.key, entry?.amount, entry?.choice]);
+  return Object.entries(options ?? {}).map(([key, amount]) => [key, amount, choices?.[key]]);
 }
 
 function normalize(raw) {
   const options = {};
-  for (const [key, amount] of optionEntries(raw?.options)) {
-    if (typeof key === "string" && key && Number.isInteger(amount) && amount >= 1) options[key] = amount;
+  const choices = {};
+  for (const [key, amount, choice] of optionEntries(raw?.options, raw?.choices)) {
+    if (!(typeof key === "string" && key && Number.isInteger(amount) && amount >= 1)) continue;
+    options[key] = amount;
+    if (typeof choice === "string" && choice) choices[key] = choice;
   }
   return {
     v: VERSION,
@@ -36,6 +42,7 @@ function normalize(raw) {
     adversaryRanks: wholeAtLeastZero(raw?.adversaryRanks),
     adversaryMode: raw?.adversaryMode !== false,
     options,
+    choices,
     buffs: Array.isArray(raw?.buffs) ? raw.buffs.filter((key) => typeof key === "string" && key) : [],
     twoWeapons: TWO_WEAPONS_CHOICES.includes(raw?.twoWeapons) ? raw.twoWeapons : "no",
   };
@@ -48,15 +55,20 @@ function normalize(raw) {
  * @param {number} [layers.adversaryRanks]
  * @param {boolean} [layers.adversaryMode] - false when the sender chose the base pool
  * @param {Record<string, number>} [layers.options] - ticked option keys → amounts
+ * @param {Record<string, string>} [layers.choices] - option keys → picked branch id
  * @param {string[]} [layers.buffs] - ticked optional buff keys
  * @param {"no"|"same"|"different"} [layers.twoWeapons]
  * @returns {object}
  */
 export function packSentLayers(layers = {}) {
-  const normalized = normalize(layers);
+  const { choices, ...normalized } = normalize(layers);
   // Option keys hold macro uuids ("Macro.abc:…"), and Foundry expands dotted keys in a document's
-  // flags, so the selection is stored as a list of entries rather than an object keyed by them.
-  return { ...normalized, options: Object.entries(normalized.options).map(([key, amount]) => ({ key, amount })) };
+  // flags, so the selection is stored as a list of entries rather than an object keyed by them; a
+  // picked choice travels in its option's entry.
+  return {
+    ...normalized,
+    options: Object.entries(normalized.options).map(([key, amount]) => (key in choices ? { key, amount, choice: choices[key] } : { key, amount })),
+  };
 }
 
 /**

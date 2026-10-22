@@ -25,7 +25,7 @@ const counts = (pool) => ({
 const sent = (pool) => new DicePoolFFG(JSON.parse(JSON.stringify(pool)));
 
 test("layers round-trip", () => {
-  const layers = { defence: 2, adversaryRanks: 1, adversaryMode: false, options: { gb: 1, fa: 3 }, buffs: ["b1"], twoWeapons: "same" };
+  const layers = { defence: 2, adversaryRanks: 1, adversaryMode: false, options: { gb: 1, fa: 3 }, choices: { fa: "ad" }, buffs: ["b1"], twoWeapons: "same" };
   assert.deepEqual(readSentLayers({ sentLayers: packSentLayers(layers) }), { v: 1, ...layers });
   assert.deepEqual(readSentLayers({ sentLayers: JSON.parse(JSON.stringify(packSentLayers(layers))) }), { v: 1, ...layers });
 });
@@ -73,7 +73,7 @@ test("bad layers are cleaned", () => {
   const layers = readSentLayers({ sentLayers: {
     v: 1, defence: -3, adversaryRanks: -1, adversaryMode: "yes", options: { a: 2, b: 1.5, c: 0, d: "2" }, buffs: ["k", 3, ""], twoWeapons: "both",
   } });
-  assert.deepEqual(layers, { v: 1, defence: 0, adversaryRanks: 0, adversaryMode: true, options: { a: 2 }, buffs: ["k"], twoWeapons: "no" });
+  assert.deepEqual(layers, { v: 1, defence: 0, adversaryRanks: 0, adversaryMode: true, options: { a: 2 }, choices: {}, buffs: ["k"], twoWeapons: "no" });
 });
 
 /** Foundry expands dotted keys in a document's flags, as foundry.utils.expandObject does. */
@@ -100,4 +100,11 @@ test("the base pool travels as plain data", () => {
   const received = new DicePoolFFG(JSON.parse(JSON.stringify(packed)));
   assert.equal(received.renderDiceExpression(), pool.renderDiceExpression());
   assert.deepEqual(counts(received), counts(pool));
+});
+
+test("a picked choice travels with its option", () => {
+  const packed = packSentLayers({ options: { ck: 2, gb: 1 }, choices: { ck: "ad", zz: "su", gb: 3 } });
+  assert.deepEqual(packed.options, [{ key: "ck", amount: 2, choice: "ad" }, { key: "gb", amount: 1 }]);
+  assert.deepEqual(readSentLayers({ sentLayers: packed }).choices, { ck: "ad" });
+  assert.deepEqual(readSentLayers({ sentLayers: { options: [{ key: "gb", amount: 1 }] } }).choices, {}, "a message from before choices");
 });

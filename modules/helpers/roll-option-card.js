@@ -2,10 +2,11 @@
  * The chat card's roll options line (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md,
  * "Chat card"):
  *
- *   Roll options: Two weapons (same skill), Guns Blazing (2 strain), Point Blank 2, Frenzied Attack 2 (2 strain)
+ *   Roll options: Two weapons (same skill), Guns Blazing (2 strain), Point Blank 2, Frenzied Attack 2 (2 strain),
+ *   Clanker Killer 2: Success
  *
  * Each option shows its label, then the amount the player picked (for an option with an amount) or
- * its rank (for a ranked talent), then its costs. The costs come from the dialog's row states,
+ * its rank (for a ranked talent), then the branch picked on its switch, then its costs. The costs come from the dialog's row states,
  * already resolved for the chosen amount. Options never change the weapon, so the line is the only
  * record of Linked, extra damage or range on the card.
  *
@@ -36,7 +37,8 @@ export function rollOptionCardEntries({ offered, states, twoWeapons, unit = "str
     const row = rows.get(option.key);
     if (!row?.ticked) continue;
     const number = option.amount ? row.amount : option.ranked ? option.rank : null;
-    entries.push({ label: option.label, labelKey: null, number, strain: row.cost.strain, unit, maneuvers: row.cost.maneuvers });
+    const choice = row.choice ? (option.choices ?? []).find((branch) => branch.id === row.choice)?.label ?? null : null;
+    entries.push({ label: option.label, labelKey: null, number, choice, strain: row.cost.strain, unit, maneuvers: row.cost.maneuvers });
   }
   return entries;
 }
@@ -100,6 +102,7 @@ export function formatRollOptionsLine(entries, localize) {
   const parts = entries.map((entry) => {
     let text = entry.labelKey ? localize(entry.labelKey) : entry.label;
     if (entry.number !== null && entry.number !== undefined) text += ` ${entry.number}`;
+    if (entry.choice) text += `: ${entry.choice}`;
     const costs = costParts(entry, entry.unit, localize);
     if (costs.length > 0) text += ` (${costs.join(", ")})`;
     return text;
