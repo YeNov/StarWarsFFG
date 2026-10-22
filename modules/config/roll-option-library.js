@@ -11,10 +11,12 @@
  * text to edit.
  *
  * The first eight entries (Auto-fire and seven talents) were checked against their rule text.
- * Saber Swarm's text says "this turn" rather than "once per round"; the hint follows what the user
- * accepted in the design. After them come the talents from the core and reSpecialized
- * specialization trees, kept as data in roll-option-library-talents.js. A run made after new
- * entries arrive creates only their macros and leaves the existing ones alone.
+ * Saber Swarm is declared with a Lightsaber attack, and its hint names the Linked rating (talent
+ * review, 2026-10-22). After them come the talents from the core and reSpecialized specialization
+ * trees, reviewed one by one, kept as data in roll-option-library-talents.js; the talents set
+ * aside are listed in docs/roll-options-deferred.md. A run made after new entries arrive creates
+ * only their macros and leaves the existing ones alone, so a world that already has a macro keeps
+ * its old text until the GM edits it.
  */
 import { normalizeName } from "../helpers/roll-options.js";
 import { TALENT_ENTRIES } from "./roll-option-library-talents.js";
@@ -57,8 +59,8 @@ export const ROLL_OPTION_LIBRARY = Object.freeze([
     {
       id: "saber-swarm",
       label: "Saber Swarm",
-      hint: "Once per round",
-      offer: { skills: ["Lightsaber"] },
+      hint: "Linked equal to your Force rating",
+      offer: { skills: ["Lightsaber"], attack: true },
       cost: { strain: 1, maneuvers: 1 },
     },
   ]),

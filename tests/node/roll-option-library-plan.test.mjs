@@ -34,7 +34,7 @@ test("a world with the first eight macros gets only the new entries, and their t
   const existing = firstEight.map((id) => ({ uuid: `Macro.old-${id}`, libraryId: id }));
   const { create, uuidByEntry: map } = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
   assert.deepEqual(create.map((entry) => entry.id), ROLL_OPTION_LIBRARY.filter((entry) => !firstEight.includes(entry.id)).map((entry) => entry.id));
-  assert.equal(create.length, 261);
+  assert.equal(create.length, 209, "the reviewed talents (2026-10-22)");
   assert.ok(create.some((entry) => entry.id === "master-slicer"));
   for (const id of firstEight) assert.equal(map.get(id), `Macro.old-${id}`);
 

@@ -42,8 +42,8 @@ const ORIGINAL_ENTRIES = {
     {
       id: "saber-swarm",
       label: "Saber Swarm",
-      hint: "Once per round",
-      offer: { skills: ["Lightsaber"] },
+      hint: "Linked equal to your Force rating",
+      offer: { skills: ["Lightsaber"], attack: true },
       cost: { strain: 1, maneuvers: 1 },
     },
   ],
@@ -84,14 +84,14 @@ test("every library entry validates", () => {
   for (const entry of ROLL_OPTION_LIBRARY) assert.equal(validateOptions(entry.options).ok, true, entry.id);
 });
 
-test("the first eight entries are unchanged, and the talents bring the library to 269", () => {
+test("the first eight entries are as reviewed, and the talents bring the library to 217", () => {
   for (const [id, options] of Object.entries(ORIGINAL_ENTRIES)) {
     assert.ok(byId(id), id);
     assert.deepEqual(byId(id).options, options, id);
   }
   assert.equal(byId("auto-fire").kind, "quality");
   assert.deepEqual(ROLL_OPTION_LIBRARY.slice(0, 8).map((e) => e.id), Object.keys(ORIGINAL_ENTRIES));
-  assert.equal(ROLL_OPTION_LIBRARY.length, 8 + 261);
+  assert.equal(ROLL_OPTION_LIBRARY.length, 8 + 209);
   assert.ok(ROLL_OPTION_LIBRARY.slice(8).every((e) => e.kind === "talent"));
 });
 
@@ -127,7 +127,7 @@ test("every offered skill is a skill of the Star Wars skill list", () => {
 test("labels and hints are words, with no dice markers", () => {
   for (const entry of ROLL_OPTION_LIBRARY) {
     for (const option of entry.options) {
-      for (const text of [option.label, option.hint, option.amount?.label]) {
+      for (const text of [option.label, option.hint, option.amount?.label, ...(option.choices ?? []).map((c) => c.label)]) {
         if (text !== undefined) assert.doesNotMatch(text, /\[[^\]]*\]/, `${entry.id}: ${text}`);
       }
     }
@@ -147,6 +147,7 @@ test("Master Slicer costs 2 strain on Computers for one less difficulty", () => 
   assert.deepEqual(option.offer, { skills: ["Computers"] });
   assert.deepEqual(option.cost, { strain: 2 });
   assert.deepEqual(option.dice, { difficulty: -1 });
+  assert.equal(option.difficultyFloor, 1, "to a minimum of Easy");
 });
 
 test("Intimidating downgrades the difficulty once per strain chosen, up to its ranks", () => {
@@ -163,10 +164,14 @@ test("Quick Strike adds a boost die per rank to combat checks", () => {
   assert.deepEqual(option.dice, { boost: "ranks" });
 });
 
-test("talents with two rows keep both, each with its own id", () => {
-  const entry = libraryEntryFor("talent", "Bargain Hunter");
-  assert.deepEqual(entry.options.map((o) => o.id), ["bargain-hunter-boost", "bargain-hunter-setback"]);
-  assert.deepEqual(entry.options.map((o) => o.dice), [{ boost: "ranks" }, { removeSetback: "ranks" }]);
+test("either/or talents are one row with a switch", () => {
+  for (const name of ["Bargain Hunter", "Constructor", "Gatherer", "Historian", "Inquiring", "Inventor", "Swindler*"]) {
+    const entry = libraryEntryFor("talent", name);
+    assert.equal(entry.options.length, 1, name);
+    assert.deepEqual(entry.options[0].choices.map((c) => c.dice), [{ boost: "ranks" }, { removeSetback: "ranks" }], name);
+  }
+  assert.deepEqual(libraryEntryFor("talent", "Dead-Eye").options[0].choices.map((c) => c.id), ["boost", "called-shot"]);
+  assert.deepEqual(libraryEntryFor("talent", "Surgeon (Improved)").options[0].choices.map((c) => c.dice), [{ boost: "amount" }, { removeSetback: "amount" }]);
 });
 
 test("names with an asterisk, other spellings and Improved forms resolve to their own entries", () => {
@@ -177,6 +182,76 @@ test("names with an asterisk, other spellings and Improved forms resolve to thei
   assert.equal(libraryEntryFor("talent", "Short Cut")?.id, "short-cut");
   assert.equal(libraryEntryFor("talent", "Shortcut")?.id, "short-cut");
   assert.equal(libraryEntryFor("talent", "Shortcut (Improved)")?.id, "shortcut-improved");
-  assert.equal(libraryEntryFor("talent", "In The Know (Improved)")?.id, "in-the-know-improved");
+  assert.equal(libraryEntryFor("talent", "In The Know (Improved)"), null, "deferred to docs/roll-options-deferred.md");
   assert.equal(libraryEntryFor("talent", "In The Know")?.id, "in-the-know");
+});
+
+/* The talent review batch (2026-10-22, talent-review-batch.md). */
+
+const DROPPED = ["aggressive-negotiations", "analyze-data", "ask-questions-later", "attack-vector", "breakthrough",
+  "exit-strategy", "find-the-story", "hunters-quarry", "researcher-improved", "thorough-assessment", "wretched-hive",
+  "field-researcher", "inside-person", "tinkerer-improved", "natural-camouflage", "they-cant-refuse"];
+const DEFERRED = ["disruptive-strike", "draw-closer", "far-strike", "hawk-bat-swoop", "makashi-finish", "saber-throw",
+  "strategic-form", "terrify", "in-the-know-improved", "made-you-talk", "sense-the-scene", "improvised-concoction",
+  "hidden-fangs", "design-flaw-imp", "natural-remedy"];
+
+test("dropped and deferred talents are not in the library", () => {
+  for (const id of [...DROPPED, ...DEFERRED]) assert.equal(byId(id), undefined, id);
+  assert.ok(byId("sarlacc-sweep"), "Sarlacc Sweep stays for now");
+  assert.ok(byId("finish-the-fight") && byId("finish-the-fight-improved"), "Finish the Fight stays");
+});
+
+test("Against The Odds waits for a Daunting check", () => {
+  assert.deepEqual(byId("against-the-odds").options[0].offer, { minDifficulty: 4 });
+});
+
+test("fixed results are real", () => {
+  assert.deepEqual(byId("blind-spot").options[0].dice, { advantage: 1 });
+  assert.deepEqual(byId("by-the-book").options[0].dice, { advantage: "ranks" });
+  assert.deepEqual(byId("reckless-charge").options[0].dice, { success: 2, threat: 2 });
+  assert.deepEqual(byId("bedside-manners").options[0].choices.map((c) => c.dice), [{ advantage: 2 }, { success: 1, threat: 2 }]);
+  assert.deepEqual(byId("rapid-reaction").options[0].dice, { success: "amount" });
+});
+
+test("Boost trades take Boost dice and give results", () => {
+  const assassinate = byId("assassinate-improved").options[0];
+  assert.deepEqual([assassinate.amount, assassinate.cost, assassinate.dice], [{ label: "Boost traded" }, { strain: "amount" }, { removeBoost: "amount", advantage: "amount" }]);
+  const clanker = byId("clanker-killer").options[0];
+  assert.deepEqual([clanker.amount.max, clanker.dice, clanker.choices.map((c) => c.id)], ["ranks", { removeBoost: "amount" }, ["success", "advantage"]]);
+  assert.deepEqual(byId("trigger-discipline").options[0].cost, { strain: 2 });
+});
+
+test("the Destiny pool and Force dice are read live", () => {
+  assert.deepEqual(byId("beginners-luck").options[0].dice, { success: "destinyLight" });
+  assert.deepEqual(byId("strength-from-passion").options[0].dice, { success: "destinyDark", threat: "destinyDark" });
+  assert.deepEqual([byId("vaapad-control").options[0].dice, byId("vaapad-control").options[0].amount], [{ downgradeDifficulty: "destinyLight" }, undefined]);
+  for (const id of ["animal-empathy", "enhanced-leader", "essential-kill", "force-connection", "intuitive-improvements", "intuitive-navigation",
+    "intuitive-shot", "intuitive-strike", "overwhelm-emotions", "quick-movement", "ravage", "sapith-sundering", "transmogrify"]) {
+    assert.equal(byId(id).options[0].dice.force, "forceAvailable", id);
+  }
+});
+
+test("swaps name the characteristic or skill to roll with", () => {
+  assert.equal(byId("blending-in").options[0].characteristic, "Cunning");
+  assert.equal(byId("imposing-leader").options[0].characteristic, "Willpower");
+  assert.deepEqual(byId("martial-prowess").options.map((o) => [o.offer.skills, o.skill]), [[["Melee"], "Athletics"], [["Ranged: Light", "Ranged: Heavy"], "Coordination"]]);
+});
+
+test("lowering difficulty: per rank, per strain, with floors", () => {
+  assert.deepEqual(byId("confidence").options[0].dice, { difficulty: "-ranks" });
+  assert.deepEqual(byId("disciple-of-lore").options[0].dice, { difficulty: "-ranks" });
+  const filp = byId("friends-in-low-places-improved").options[0];
+  assert.deepEqual([filp.dice, filp.difficultyFloor, filp.amount.max], [{ difficulty: "-amount" }, 1, undefined]);
+  for (const id of ["master-artisan", "master-leader", "master-starhopper"]) assert.equal(byId(id).options[0].difficultyFloor, 1, id);
+});
+
+test("only real limits cap an amount", () => {
+  const capped = ROLL_OPTION_LIBRARY.flatMap((e) => e.options.filter((o) => typeof o.amount?.max === "number").map(() => e.id));
+  assert.deepEqual(capped.sort(), ["gliding-step", "one-shot-one-kill"], "two Move or two aim maneuvers at most");
+  assert.equal(byId("enough-to-get-by").options[0].amount.label, "Your Knowledge (Education) ranks");
+});
+
+test("Saber Swarm is declared with a Lightsaber attack, and Silent Takedown costs its maneuver", () => {
+  assert.deepEqual(byId("saber-swarm").options[0].offer, { skills: ["Lightsaber"], attack: true });
+  assert.deepEqual(byId("silent-takedown").options[0].cost, { maneuvers: 1 });
 });

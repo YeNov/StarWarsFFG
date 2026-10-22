@@ -6,23 +6,15 @@
  * The first name is the display name and the macro's name. Names match through normalizeName, so
  * case, spacing and punctuation (the asterisk on some names included) do not matter. Labels and
  * hints are English, like the book names: once installed they are the GM's macro text to edit.
+ *
+ * Reviewed talent by talent by the user (2026-10-22): fixed results are added to the pool, Boost
+ * trades take Boost dice, swaps change the characteristic or skill, Force dice and the Destiny
+ * pool are read live, and a talent that sets up a later check or is an action of its own was
+ * left out (docs/roll-options-deferred.md lists the special actions).
  */
 
 // Derived from each talent's rule text; where an option covers only part of a talent, its hint says what is left to the table.
 export const TALENT_ENTRIES = [
-  {
-    id: "they-cant-refuse",
-    names: ["...They Can't Refuse"],
-    options: [
-      {
-        id: "they-cant-refuse",
-        label: "...They Can't Refuse",
-        hint: "Once per session; Coercion replaces the required social skill",
-        offer: { skills: ["Coercion"] },
-        cost: { strain: 3 },
-      },
-    ],
-  },
   {
     id: "against-the-odds",
     names: ["Against The Odds*"],
@@ -30,21 +22,8 @@ export const TALENT_ENTRIES = [
       {
         id: "against-the-odds",
         label: "Against The Odds*",
-        hint: "Daunting or harder checks",
+        offer: { minDifficulty: 4 },
         dice: { boost: "ranks" },
-      },
-    ],
-  },
-  {
-    id: "aggressive-negotiations",
-    names: ["Aggressive Negotiations"],
-    options: [
-      {
-        id: "aggressive-negotiations",
-        label: "Aggressive Negotiations",
-        hint: "After a successful Aggressive Negotiations this encounter",
-        offer: { skills: ["Negotiation"] },
-        dice: { difficulty: -2 },
       },
     ],
   },
@@ -75,17 +54,6 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "analyze-data",
-    names: ["Analyze Data"],
-    options: [
-      {
-        id: "analyze-data",
-        label: "Analyze Data",
-        hint: "Once this session, on the analyzed data: +1 Success per Knowledge (Warfare) rank",
-      },
-    ],
-  },
-  {
     id: "animal-companion",
     names: ["Animal Companion"],
     options: [
@@ -105,8 +73,9 @@ export const TALENT_ENTRIES = [
       {
         id: "animal-empathy",
         label: "Animal Empathy",
-        hint: "Animal handling: Force dice up to Force rating; Force point: Success or Advantage",
+        hint: "Animal handling; Force point: Success or Advantage",
         offer: { skills: ["Survival"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -123,40 +92,17 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "ask-questions-later",
-    names: ["Ask Questions Later"],
-    options: [
-      {
-        id: "ask-questions-later",
-        label: "Ask Questions Later",
-        hint: "Once per encounter, strongest foe beaten: minion Advantage, rival Success, nemesis Triumph",
-        offer: { skillTypes: ["Social"] },
-      },
-    ],
-  },
-  {
     id: "assassinate-improved",
     names: ["Assassinate (Improved)"],
     options: [
       {
         id: "assassinate-improved",
         label: "Assassinate (Improved)",
-        hint: "Undetected: by hand, swap that many Boost dice for as many Advantage",
+        hint: "Undetected by the target",
         offer: { skillTypes: ["Combat"], attack: true },
-        amount: { max: 3, label: "Boost traded" },
+        amount: { label: "Boost traded" },
         cost: { strain: "amount" },
-      },
-    ],
-  },
-  {
-    id: "attack-vector",
-    names: ["Attack Vector"],
-    options: [
-      {
-        id: "attack-vector",
-        label: "Attack Vector",
-        hint: "Aimed at the weak point found by Attack Vector: +1 Success",
-        offer: { skillTypes: ["Combat"], attack: true },
+        dice: { advantage: "amount", removeBoost: "amount" },
       },
     ],
   },
@@ -178,18 +124,14 @@ export const TALENT_ENTRIES = [
     names: ["Bargain Hunter"],
     options: [
       {
-        id: "bargain-hunter-boost",
-        label: "Bargain Hunter: boost",
+        id: "bargain-hunter",
+        label: "Bargain Hunter",
         hint: "Buying or selling goods or services",
         offer: { skills: ["Negotiation", "Streetwise"] },
-        dice: { boost: "ranks" },
-      },
-      {
-        id: "bargain-hunter-setback",
-        label: "Bargain Hunter: remove setback",
-        hint: "Buying or selling goods or services",
-        offer: { skills: ["Negotiation", "Streetwise"] },
-        dice: { removeSetback: "ranks" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "ranks" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "ranks" } },
+        ],
       },
     ],
   },
@@ -225,8 +167,12 @@ export const TALENT_ENTRIES = [
       {
         id: "bedside-manners",
         label: "Bedside Manners",
-        hint: "Treated this encounter: +2 Advantage; tortured: +1 Success, +2 Threat",
+        hint: "How you treated the target this encounter",
         offer: { skillTypes: ["Social"] },
+        choices: [
+          { id: "treated", label: "Treated", dice: { advantage: 2 } },
+          { id: "tortured", label: "Tortured", dice: { success: 1, threat: 2 } },
+        ],
       },
     ],
   },
@@ -237,7 +183,8 @@ export const TALENT_ENTRIES = [
       {
         id: "beginners-luck",
         label: "Beginner's Luck",
-        hint: "Once per session: +1 Success per light side Destiny Point in the pool",
+        hint: "Once per session",
+        dice: { success: "destinyLight" },
       },
     ],
   },
@@ -248,9 +195,9 @@ export const TALENT_ENTRIES = [
       {
         id: "blending-in",
         label: "Blending In",
-        hint: "Use Cunning instead of Agility",
         offer: { skills: ["Stealth"] },
         cost: { strain: 2 },
+        characteristic: "Cunning",
       },
     ],
   },
@@ -261,8 +208,9 @@ export const TALENT_ENTRIES = [
       {
         id: "blind-spot",
         label: "Blind Spot",
-        hint: "Benefiting from cover: +1 Advantage",
+        hint: "Benefiting from cover",
         offer: { skillTypes: ["Combat"] },
+        dice: { advantage: 1 },
       },
     ],
   },
@@ -317,28 +265,16 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "breakthrough",
-    names: ["Breakthrough"],
-    options: [
-      {
-        id: "breakthrough",
-        label: "Breakthrough",
-        hint: "Once per session, spend a Destiny Point: solving a mystery, 1 Boost die per clue",
-        amount: { max: 5, label: "Clues" },
-        dice: { boost: "amount" },
-      },
-    ],
-  },
-  {
     id: "by-the-book",
     names: ["By the Book"],
     options: [
       {
         id: "by-the-book",
         label: "By the Book",
-        hint: "Once per encounter: +1 Advantage per rank",
+        hint: "Once per encounter",
         offer: { skillTypes: ["Combat"] },
         cost: { strain: 2 },
+        dice: { advantage: "ranks" },
       },
     ],
   },
@@ -364,7 +300,7 @@ export const TALENT_ENTRIES = [
         label: "Bypass Security (Improved)*",
         hint: "Same system or location this session, after spending 3 Advantage or a Triumph",
         offer: { skills: ["Computers", "Skulduggery"] },
-        amount: { max: 5, label: "Bypass Security ranks" },
+        amount: { label: "Your Bypass Security ranks" },
         dice: { boost: "amount" },
       },
     ],
@@ -376,8 +312,9 @@ export const TALENT_ENTRIES = [
       {
         id: "cannibalize",
         label: "Cannibalize*",
-        hint: "Once per encounter: scrap similar gear for +1 Success",
+        hint: "Once per encounter: scrap similar gear",
         offer: { skills: ["Mechanics"] },
+        dice: { success: 1 },
       },
     ],
   },
@@ -401,9 +338,14 @@ export const TALENT_ENTRIES = [
       {
         id: "clanker-killer",
         label: "Clanker Killer",
-        hint: "Droid target: by hand, swap that many Boost dice for as many Success or Advantage",
+        hint: "Targeting a droid",
         offer: { skillTypes: ["Combat"] },
         amount: { max: "ranks", label: "Boost traded" },
+        dice: { removeBoost: "amount" },
+        choices: [
+          { id: "success", label: "Success", dice: { success: "amount" } },
+          { id: "advantage", label: "Advantage", dice: { advantage: "amount" } },
+        ],
       },
     ],
   },
@@ -439,8 +381,9 @@ export const TALENT_ENTRIES = [
       {
         id: "compelling-counterpart",
         label: "Compelling Counterpart*",
-        hint: "Engaged with your Droid Companion, chosen skill: +1 Advantage",
+        hint: "Your chosen skill, engaged with your Droid Companion",
         offer: { skillTypes: ["Social"] },
+        dice: { advantage: 1 },
       },
     ],
   },
@@ -451,8 +394,9 @@ export const TALENT_ENTRIES = [
       {
         id: "confidence",
         label: "Confidence",
-        hint: "Fear check: −1 difficulty per rank (by hand); at 0, no check",
+        hint: "Discipline check to avoid fear; at 0, no check",
         offer: { skills: ["Discipline"] },
+        dice: { difficulty: "-ranks" },
       },
     ],
   },
@@ -488,18 +432,14 @@ export const TALENT_ENTRIES = [
     names: ["Constructor"],
     options: [
       {
-        id: "constructor-boost",
-        label: "Constructor: boost",
+        id: "constructor",
+        label: "Constructor",
         hint: "Constructing bases, defenses or positions",
         offer: { skills: ["Mechanics"] },
-        dice: { boost: "ranks" },
-      },
-      {
-        id: "constructor-setback",
-        label: "Constructor: remove setback",
-        hint: "Constructing bases, defenses or positions",
-        offer: { skills: ["Mechanics"] },
-        dice: { removeSetback: "ranks" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "ranks" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "ranks" } },
+        ],
       },
     ],
   },
@@ -536,9 +476,9 @@ export const TALENT_ENTRIES = [
       {
         id: "cunning-persona",
         label: "Cunning Persona",
-        hint: "Use Cunning instead of Presence",
         offer: { skills: ["Charm"] },
         cost: { strain: 2 },
+        characteristic: "Cunning",
       },
     ],
   },
@@ -562,7 +502,8 @@ export const TALENT_ENTRIES = [
       {
         id: "danger-close-improved",
         label: "Danger Close (Improved)",
-        hint: "Next check after engaging a foe: +1 Success",
+        hint: "Next check after engaging a foe",
+        dice: { success: 1 },
       },
     ],
   },
@@ -590,15 +531,10 @@ export const TALENT_ENTRIES = [
         hint: "Third aim maneuver",
         offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
         cost: { maneuvers: 1 },
-        dice: { boost: 1 },
-      },
-      {
-        id: "dead-eye-called",
-        label: "Dead-Eye: called shot",
-        hint: "Third aim maneuver at a specific part of the target",
-        offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
-        cost: { maneuvers: 1 },
-        dice: { removeSetback: 1 },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: 1 } },
+          { id: "called-shot", label: "Called shot", dice: { removeSetback: 1 } },
+        ],
       },
     ],
   },
@@ -609,8 +545,9 @@ export const TALENT_ENTRIES = [
       {
         id: "death-before-discovery",
         label: "Death Before Discovery",
-        hint: "Once per session, spend a Destiny Point: +1 Triumph against someone exposing you",
+        hint: "Once per session, spend a Destiny Point: against someone uncovering your identity or mission",
         offer: { skillTypes: ["Combat"] },
+        dice: { triumph: 1 },
       },
     ],
   },
@@ -634,22 +571,9 @@ export const TALENT_ENTRIES = [
       {
         id: "design-flaw",
         label: "Design Flaw",
-        hint: "Personal weapon against a droid: +1 Advantage per rank",
+        hint: "Personal-scale weapon against a droid",
         offer: { skillTypes: ["Combat"], attack: true },
-      },
-    ],
-  },
-  {
-    id: "design-flaw-imp",
-    names: ["Design Flaw (Imp)*"],
-    options: [
-      {
-        id: "design-flaw-imp",
-        label: "Design Flaw (Imp)*",
-        hint: "Improved Design Flaw action against a disabled or restrained droid",
-        offer: { skills: ["Computers"] },
-        amount: { max: 5, label: "Design Flaw ranks" },
-        dice: { downgradeDifficulty: "amount" },
+        dice: { advantage: "ranks" },
       },
     ],
   },
@@ -673,9 +597,10 @@ export const TALENT_ENTRIES = [
       {
         id: "disciple-of-lore",
         label: "Disciple of Lore",
-        hint: "Once per round: −1 difficulty per rank (by hand)",
+        hint: "Once per round",
         offer: { skills: ["Knowledge: Lore"] },
         cost: { strain: 1 },
+        dice: { difficulty: "-ranks" },
       },
     ],
   },
@@ -694,26 +619,15 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "disruptive-strike",
-    names: ["Disruptive Strike"],
-    options: [
-      {
-        id: "disruptive-strike",
-        label: "Disruptive Strike",
-        hint: "Cunning; Force dice up to Force rating; Force point: target's next attack +1 Failure",
-        offer: { skills: ["Lightsaber"] },
-      },
-    ],
-  },
-  {
     id: "doctors-orders",
     names: ["Doctor's Orders*"],
     options: [
       {
         id: "doctors-orders",
         label: "Doctor's Orders*",
-        hint: "Healing a Critical Injury of a patient under your supervision: +1 Success",
+        hint: "Healing a Critical Injury of a patient under your supervision",
         offer: { skills: ["Medicine"] },
+        dice: { success: 1 },
       },
     ],
   },
@@ -727,18 +641,6 @@ export const TALENT_ENTRIES = [
         hint: "After cancelling, double the remaining Advantage",
         cost: { strain: 2 },
         dice: { difficulty: 1 },
-      },
-    ],
-  },
-  {
-    id: "draw-closer",
-    names: ["Draw Closer"],
-    options: [
-      {
-        id: "draw-closer",
-        label: "Draw Closer",
-        hint: "Willpower, silhouette 1, medium; Force dice up to Force rating; Force point: pull or Success",
-        offer: { skills: ["Lightsaber"] },
       },
     ],
   },
@@ -788,8 +690,9 @@ export const TALENT_ENTRIES = [
       {
         id: "enhanced-leader",
         label: "Enhanced Leader",
-        hint: "Add Force dice up to Force rating; Force point: Success or Advantage",
+        hint: "Force point: Success or Advantage",
         offer: { skills: ["Leadership"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -801,7 +704,7 @@ export const TALENT_ENTRIES = [
         id: "enough-to-get-by",
         label: "Enough to Get By",
         hint: "Once per encounter: Boost dice = Knowledge (Education) ranks",
-        amount: { max: 5, label: "Knowledge (Education) ranks" },
+        amount: { label: "Your Knowledge (Education) ranks" },
         cost: { strain: 2 },
         dice: { boost: "amount" },
       },
@@ -814,8 +717,9 @@ export const TALENT_ENTRIES = [
       {
         id: "essential-kill",
         label: "Essential Kill",
-        hint: "Add Force dice up to Force rating; Force point: Advantage; 3 Force points: Triumph",
+        hint: "Force point: Advantage; 3 Force points: Triumph",
         offer: { skills: ["Brawl", "Lightsaber", "Melee", "Ranged: Light", "Ranged: Heavy"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -865,18 +769,6 @@ export const TALENT_ENTRIES = [
         label: "Exhaust Port",
         hint: "Attacking a starship or vehicle: spend a Destiny Point to ignore Massive",
         offer: { skillTypes: ["Combat"], attack: true },
-      },
-    ],
-  },
-  {
-    id: "exit-strategy",
-    names: ["Exit Strategy*"],
-    options: [
-      {
-        id: "exit-strategy",
-        label: "Exit Strategy*",
-        hint: "Checks to leave the encounter, after a successful Exit Strategy",
-        dice: { boost: 1 },
       },
     ],
   },
@@ -972,18 +864,6 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "far-strike",
-    names: ["Far Strike"],
-    options: [
-      {
-        id: "far-strike",
-        label: "Far Strike",
-        hint: "Brawl at range; Force dice up to Force rating; Force point: +1 range band (max long)",
-        offer: { skills: ["Brawl"] },
-      },
-    ],
-  },
-  {
     id: "field-calibration-imp",
     names: ["Field Calibration (Imp)*"],
     options: [
@@ -997,17 +877,6 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "field-researcher",
-    names: ["Field Researcher"],
-    options: [
-      {
-        id: "field-researcher",
-        label: "Field Researcher",
-        hint: "Acting on new knowledge: by hand, −1 difficulty per Researcher rank, min Easy",
-      },
-    ],
-  },
-  {
     id: "field-tester",
     names: ["Field Tester*"],
     options: [
@@ -1016,17 +885,6 @@ export const TALENT_ENTRIES = [
         label: "Field Tester*",
         hint: "Using equipment or a vessel you repaired or improved this session",
         dice: { removeSetback: "ranks" },
-      },
-    ],
-  },
-  {
-    id: "find-the-story",
-    names: ["Find The Story"],
-    options: [
-      {
-        id: "find-the-story",
-        label: "Find The Story",
-        hint: "Using the story found this session: +1 Success",
       },
     ],
   },
@@ -1074,8 +932,9 @@ export const TALENT_ENTRIES = [
       {
         id: "force-connection",
         label: "Force Connection",
-        hint: "Add Force dice up to Force rating; Force point: Success or Advantage",
+        hint: "Force point: Success or Advantage",
         offer: { skills: ["Survival", "Knowledge: Xenology"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -1086,8 +945,9 @@ export const TALENT_ENTRIES = [
       {
         id: "friends-in-low-places",
         label: "Friends in Low Places",
-        hint: "Finding or interacting with the criminal element: +1 Advantage per rank",
+        hint: "Finding or interacting with the criminal element",
         offer: { skills: ["Streetwise", "Charm", "Coercion", "Deception", "Negotiation", "Knowledge: Underworld"] },
+        dice: { advantage: "ranks" },
       },
     ],
   },
@@ -1098,10 +958,12 @@ export const TALENT_ENTRIES = [
       {
         id: "friends-in-low-places-improved",
         label: "Friends in Low Places (Improved)",
-        hint: "Once per encounter, criminal element: by hand, −1 difficulty per strain, min Easy",
+        hint: "Once per encounter, interacting with the criminal element; minimum Easy",
         offer: { skills: ["Streetwise", "Charm", "Coercion", "Deception", "Negotiation", "Knowledge: Underworld"] },
-        amount: { max: 5, label: "Strain" },
+        amount: { label: "Strain (up to your Friends in Low Places ranks)" },
         cost: { strain: "amount" },
+        dice: { difficulty: "-amount" },
+        difficultyFloor: 1,
       },
     ],
   },
@@ -1124,18 +986,14 @@ export const TALENT_ENTRIES = [
     names: ["Gatherer"],
     options: [
       {
-        id: "gatherer-boost",
-        label: "Gatherer: boost",
+        id: "gatherer",
+        label: "Gatherer",
         hint: "Foraging for food, water or shelter",
         offer: { skills: ["Survival"] },
-        dice: { boost: "ranks" },
-      },
-      {
-        id: "gatherer-setback",
-        label: "Gatherer: remove setback",
-        hint: "Foraging for food, water or shelter",
-        offer: { skills: ["Survival"] },
-        dice: { removeSetback: "ranks" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "ranks" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "ranks" } },
+        ],
       },
     ],
   },
@@ -1146,8 +1004,10 @@ export const TALENT_ENTRIES = [
       {
         id: "get-the-drop",
         label: "Get The Drop",
-        hint: "Once per session, initiative: +1 Success per Stealth rank (allies too)",
+        hint: "Once per session, initiative; allies add it too",
         offer: { skills: ["Cool", "Vigilance"] },
+        amount: { label: "Your Stealth ranks" },
+        dice: { success: "amount" },
       },
     ],
   },
@@ -1186,7 +1046,8 @@ export const TALENT_ENTRIES = [
       {
         id: "happy-to-help-imp",
         label: "Happy to Help (Imp)*",
-        hint: "Once per encounter, assisting or assisted: a Success instead of the Boost die",
+        hint: "Once per encounter, assisting or assisted: instead of Happy to Help's Boost die",
+        dice: { success: 1 },
       },
     ],
   },
@@ -1199,31 +1060,6 @@ export const TALENT_ENTRIES = [
         label: "Happy to Help*",
         hint: "Providing or accepting assistance",
         dice: { boost: 1 },
-      },
-    ],
-  },
-  {
-    id: "hawk-bat-swoop",
-    names: ["Hawk Bat Swoop"],
-    options: [
-      {
-        id: "hawk-bat-swoop",
-        label: "Hawk Bat Swoop",
-        hint: "Agility, within short; Force dice up to Force rating; Force points: engage, +1 Advantage",
-        offer: { skills: ["Lightsaber"] },
-      },
-    ],
-  },
-  {
-    id: "hidden-fangs",
-    names: ["Hidden Fangs"],
-    options: [
-      {
-        id: "hidden-fangs",
-        label: "Hidden Fangs",
-        hint: "Poisoned weapon: use Skulduggery instead of the combat skill",
-        offer: { skillTypes: ["Combat"], attack: true },
-        cost: { strain: 2 },
       },
     ],
   },
@@ -1245,16 +1081,13 @@ export const TALENT_ENTRIES = [
     names: ["Historian"],
     options: [
       {
-        id: "historian-boost",
-        label: "Historian: boost",
+        id: "historian",
+        label: "Historian",
         hint: "Ancient or abandoned places or things",
-        dice: { boost: "ranks" },
-      },
-      {
-        id: "historian-setback",
-        label: "Historian: remove setback",
-        hint: "Ancient or abandoned places or things",
-        dice: { removeSetback: "ranks" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "ranks" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "ranks" } },
+        ],
       },
     ],
   },
@@ -1290,36 +1123,10 @@ export const TALENT_ENTRIES = [
       {
         id: "hunter-supreme",
         label: "Hunter (Supreme)",
-        hint: "Non-sentient creature: critical rating −1 per strain (max its silhouette), min 1",
+        hint: "Non-sentient creature: critical rating −1 per strain (up to its silhouette), minimum 1",
         offer: { skillTypes: ["Combat"], attack: true },
-        amount: { max: 5, label: "Strain" },
+        amount: { label: "Strain" },
         cost: { strain: "amount", maneuvers: 1 },
-      },
-    ],
-  },
-  {
-    id: "hunters-quarry",
-    names: ["Hunter's Quarry"],
-    options: [
-      {
-        id: "hunters-quarry",
-        label: "Hunter's Quarry",
-        hint: "Your Hunter's Quarry target at long range, until the end of your next turn",
-        offer: { skillTypes: ["Combat"], attack: true },
-        dice: { upgradeAbility: 1 },
-      },
-    ],
-  },
-  {
-    id: "hunters-quarry-improved",
-    names: ["Hunter's Quarry (Improved)"],
-    options: [
-      {
-        id: "hunters-quarry-improved",
-        label: "Hunter's Quarry (Improved)",
-        hint: "Hunter's Quarry as a maneuver",
-        offer: { skills: ["Survival"] },
-        cost: { strain: 2 },
       },
     ],
   },
@@ -1330,21 +1137,9 @@ export const TALENT_ENTRIES = [
       {
         id: "imposing-leader",
         label: "Imposing Leader",
-        hint: "Use Willpower instead of Presence",
         offer: { skills: ["Leadership"] },
         cost: { strain: 2 },
-      },
-    ],
-  },
-  {
-    id: "improvised-concoction",
-    names: ["Improvised Concoction"],
-    options: [
-      {
-        id: "improvised-concoction",
-        label: "Improvised Concoction",
-        hint: "Once per session: Force dice up to Force rating; Force points raise the rarity",
-        offer: { skills: ["Knowledge: Xenology"] },
+        characteristic: "Willpower",
       },
     ],
   },
@@ -1357,19 +1152,8 @@ export const TALENT_ENTRIES = [
         label: "Improvised Detonation (Supreme)",
         hint: "Improvised Detonation: one quality per upgrade",
         offer: { skills: ["Mechanics"] },
-        amount: { max: 6, label: "Qualities" },
+        amount: { label: "Qualities added" },
         dice: { upgradeDifficulty: "amount" },
-      },
-    ],
-  },
-  {
-    id: "in-plain-sight",
-    names: ["In Plain Sight"],
-    options: [
-      {
-        id: "in-plain-sight",
-        label: "In Plain Sight",
-        hint: "Avoiding scrutiny or identification, after a successful In Plain Sight: +1 Success",
       },
     ],
   },
@@ -1387,34 +1171,17 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "in-the-know-improved",
-    names: ["In the Know (Improved)"],
-    options: [
-      {
-        id: "in-the-know-improved",
-        label: "In the Know (Improved)",
-        hint: "Once per session: planting false intelligence",
-        offer: { skills: ["Deception"] },
-        amount: { max: 5, label: "In the Know ranks" },
-        dice: { downgradeDifficulty: "amount" },
-      },
-    ],
-  },
-  {
     id: "inquiring",
     names: ["Inquiring"],
     options: [
       {
-        id: "inquiring-boost",
-        label: "Inquiring: boost",
+        id: "inquiring",
+        label: "Inquiring",
         hint: "Investigating a case",
-        dice: { boost: "ranks" },
-      },
-      {
-        id: "inquiring-setback",
-        label: "Inquiring: remove setback",
-        hint: "Investigating a case",
-        dice: { removeSetback: "ranks" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "ranks" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "ranks" } },
+        ],
       },
     ],
   },
@@ -1425,20 +1192,14 @@ export const TALENT_ENTRIES = [
       {
         id: "inquiring-improved",
         label: "Inquiring (Improved)",
-        hint: "Investigating a crime: by hand, swap that many Boost dice for Success or Advantage",
+        hint: "Investigating a crime; a mix of the two by hand",
         offer: { skillTypes: ["Social"] },
-        amount: { max: 5, label: "Boost traded" },
-      },
-    ],
-  },
-  {
-    id: "inside-person",
-    names: ["Inside Person"],
-    options: [
-      {
-        id: "inside-person",
-        label: "Inside Person",
-        hint: "This session, checks tied to the base or vehicle you infiltrated: +2 Advantage",
+        amount: { label: "Boost traded (up to your Inquiring ranks)" },
+        dice: { removeBoost: "amount" },
+        choices: [
+          { id: "success", label: "Success", dice: { success: "amount" } },
+          { id: "advantage", label: "Advantage", dice: { advantage: "amount" } },
+        ],
       },
     ],
   },
@@ -1476,8 +1237,9 @@ export const TALENT_ENTRIES = [
       {
         id: "intuitive-improvements",
         label: "Intuitive Improvements",
-        hint: "Craft or repair: Force dice up to Force rating; 2 Force points: +1 hard point (max 2)",
+        hint: "Crafting or repairing; 2 Force points: +1 hard point (max 2)",
         offer: { skills: ["Mechanics"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -1488,8 +1250,9 @@ export const TALENT_ENTRIES = [
       {
         id: "intuitive-navigation",
         label: "Intuitive Navigation",
-        hint: "Add Force dice up to Force rating; Force point: Success or Advantage",
+        hint: "Force point: Success or Advantage",
         offer: { skills: ["Astrogation", "Knowledge: Outer Rim"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -1500,8 +1263,9 @@ export const TALENT_ENTRIES = [
       {
         id: "intuitive-shot",
         label: "Intuitive Shot",
-        hint: "Add Force dice up to Force rating; Force point: Success or Advantage",
+        hint: "Force point: Success or Advantage",
         offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -1512,8 +1276,9 @@ export const TALENT_ENTRIES = [
       {
         id: "intuitive-strike",
         label: "Intuitive Strike",
-        hint: "Planetary weapon: Force dice up to Force rating; 2 Force points: Success or Advantage",
+        hint: "Planetary-scale weapon; 2 Force points: Success or Advantage",
         offer: { skillTypes: ["Combat"], attack: true },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -1522,18 +1287,14 @@ export const TALENT_ENTRIES = [
     names: ["Inventor"],
     options: [
       {
-        id: "inventor-boost",
-        label: "Inventor: boost",
+        id: "inventor",
+        label: "Inventor",
         hint: "Constructing items or modifying attachments",
         offer: { skills: ["Mechanics"] },
-        dice: { boost: "ranks" },
-      },
-      {
-        id: "inventor-setback",
-        label: "Inventor: remove setback",
-        hint: "Constructing items or modifying attachments",
-        offer: { skills: ["Mechanics"] },
-        dice: { removeSetback: "ranks" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "ranks" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "ranks" } },
+        ],
       },
     ],
   },
@@ -1552,17 +1313,6 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "keen-eyed-improved",
-    names: ["Keen Eyed (Improved)"],
-    options: [
-      {
-        id: "keen-eyed-improved",
-        label: "Keen Eyed (Improved)",
-        hint: "Next check acting on the Keen Eyed observation: +1 Success",
-      },
-    ],
-  },
-  {
     id: "kill-confirmed",
     names: ["Kill Confirmed"],
     options: [
@@ -1576,19 +1326,6 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "know-their-weakness",
-    names: ["Know Their Weakness"],
-    options: [
-      {
-        id: "know-their-weakness",
-        label: "Know Their Weakness",
-        hint: "Against your Know Their Weakness target this session",
-        offer: { skillTypes: ["Social"] },
-        dice: { downgradeDifficulty: "ranks" },
-      },
-    ],
-  },
-  {
     id: "knows-the-ropes",
     names: ["Knows the Ropes"],
     options: [
@@ -1597,19 +1334,8 @@ export const TALENT_ENTRIES = [
         label: "Knows the Ropes",
         hint: "Escaping restraints: Boost dice = Knowledge (Underworld) ranks",
         offer: { skills: ["Athletics", "Coordination", "Skulduggery"] },
-        amount: { max: 5, label: "Knowledge (Underworld) ranks" },
+        amount: { label: "Your Knowledge (Underworld) ranks" },
         dice: { boost: "amount" },
-      },
-    ],
-  },
-  {
-    id: "lay-of-the-land",
-    names: ["Lay of the Land"],
-    options: [
-      {
-        id: "lay-of-the-land",
-        label: "Lay of the Land",
-        hint: "This encounter, checks the prepared-for environment affects: +1 Advantage",
       },
     ],
   },
@@ -1622,17 +1348,6 @@ export const TALENT_ENTRIES = [
         label: "Learning Opportunity",
         hint: "Next check after spending 3 Advantage from a failed check",
         dice: { upgradeAbility: 1 },
-      },
-    ],
-  },
-  {
-    id: "loose-lips",
-    names: ["Loose Lips..."],
-    options: [
-      {
-        id: "loose-lips",
-        label: "Loose Lips...",
-        hint: "A check using the intel against the NPC's organization: +1 Triumph",
       },
     ],
   },
@@ -1655,35 +1370,10 @@ export const TALENT_ENTRIES = [
       {
         id: "low-blow-improved",
         label: "Low Blow (Improved)",
-        hint: "Once per encounter, Destiny Point: by hand, swap that many Boost dice for Advantage",
+        hint: "Once per encounter, spend a Destiny Point",
         offer: { skillTypes: ["Combat"] },
-        amount: { max: 5, label: "Boost traded" },
-      },
-    ],
-  },
-  {
-    id: "made-you-talk",
-    names: ["Made You Talk"],
-    options: [
-      {
-        id: "made-you-talk",
-        label: "Made You Talk",
-        hint: "Once per session, captured enemy: 1 Boost die per 2 strain inflicted this encounter",
-        offer: { skillTypes: ["Social"] },
-        amount: { max: 5, label: "Boost" },
-        dice: { boost: "amount" },
-      },
-    ],
-  },
-  {
-    id: "makashi-finish",
-    names: ["Makashi Finish"],
-    options: [
-      {
-        id: "makashi-finish",
-        label: "Makashi Finish",
-        hint: "Presence, engaged; Force dice up to Force rating; Force point: +10 to Critical Injuries",
-        offer: { skills: ["Lightsaber"] },
+        amount: { label: "Boost traded" },
+        dice: { advantage: "amount", removeBoost: "amount" },
       },
     ],
   },
@@ -1696,7 +1386,7 @@ export const TALENT_ENTRIES = [
         label: "Make An Offer...",
         hint: "Once per encounter, Destiny Point: Boost dice = Knowledge (Underworld) ranks",
         offer: { skillTypes: ["Social"] },
-        amount: { max: 5, label: "Knowledge (Underworld) ranks" },
+        amount: { label: "Your Knowledge (Underworld) ranks" },
         dice: { boost: "amount" },
       },
     ],
@@ -1722,33 +1412,9 @@ export const TALENT_ENTRIES = [
       {
         id: "marked-for-death",
         label: "Marked for Death",
-        hint: "Against your Marked for Death target: +2 Advantage",
+        hint: "Against your target, while Force stays committed to it",
         offer: { skillTypes: ["Combat"] },
-      },
-    ],
-  },
-  {
-    id: "market-connections",
-    names: ["Market Connections"],
-    options: [
-      {
-        id: "market-connections",
-        label: "Market Connections",
-        hint: "Buying from the seller found with Market Connections: +1 Success",
-        offer: { skills: ["Negotiation"] },
-      },
-    ],
-  },
-  {
-    id: "market-connections-improved",
-    names: ["Market Connections (Improved)"],
-    options: [
-      {
-        id: "market-connections-improved",
-        label: "Market Connections (Improved)",
-        hint: "Market Connections for an illegal good",
-        offer: { skillTypes: ["Knowledge"] },
-        dice: { upgradeDifficulty: 1 },
+        dice: { advantage: 2 },
       },
     ],
   },
@@ -1770,11 +1436,18 @@ export const TALENT_ENTRIES = [
     names: ["Martial Prowess"],
     options: [
       {
-        id: "martial-prowess",
-        label: "Martial Prowess",
-        hint: "Athletics instead of Melee, or Coordination instead of Ranged",
-        offer: { skills: ["Melee", "Ranged: Light", "Ranged: Heavy"] },
+        id: "martial-prowess-athletics",
+        label: "Martial Prowess: Athletics",
+        offer: { skills: ["Melee"] },
         cost: { strain: 2 },
+        skill: "Athletics",
+      },
+      {
+        id: "martial-prowess-coordination",
+        label: "Martial Prowess: Coordination",
+        offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+        cost: { strain: 2 },
+        skill: "Coordination",
       },
     ],
   },
@@ -1789,6 +1462,7 @@ export const TALENT_ENTRIES = [
         offer: { skills: ["Mechanics"] },
         cost: { strain: 2 },
         dice: { difficulty: -1 },
+        difficultyFloor: 1,
       },
     ],
   },
@@ -1844,6 +1518,7 @@ export const TALENT_ENTRIES = [
         offer: { skills: ["Leadership"] },
         cost: { strain: 2 },
         dice: { difficulty: -1 },
+        difficultyFloor: 1,
       },
     ],
   },
@@ -1880,9 +1555,9 @@ export const TALENT_ENTRIES = [
       {
         id: "master-missileer",
         label: "Master Missileer",
-        hint: "Guided roll; max = the weapon skill's ranks",
+        hint: "Guided roll; up to the weapon skill's ranks",
         offer: { skillTypes: ["Combat"], attack: true },
-        amount: { max: 5, label: "Strain" },
+        amount: { label: "Strain" },
         cost: { strain: "amount" },
         dice: { upgradeAbility: "amount" },
       },
@@ -1897,7 +1572,7 @@ export const TALENT_ENTRIES = [
         label: "Master of Arms (Supreme)",
         hint: "Master of Arms: one upgrade per weapon beyond the first",
         offer: { skills: ["Mechanics"] },
-        amount: { max: 4, label: "Extra weapons" },
+        amount: { label: "Extra weapons" },
         dice: { upgradeDifficulty: "amount" },
       },
     ],
@@ -1923,7 +1598,8 @@ export const TALENT_ENTRIES = [
       {
         id: "master-of-none",
         label: "Master of None",
-        hint: "Once per round, a skill with fewer than 2 ranks: +1 Success",
+        hint: "Once per round, a skill with fewer than 2 ranks",
+        dice: { success: 1 },
       },
     ],
   },
@@ -1978,6 +1654,7 @@ export const TALENT_ENTRIES = [
         offer: { skills: ["Computers"] },
         cost: { strain: 2 },
         dice: { difficulty: -1 },
+        difficultyFloor: 1,
       },
     ],
   },
@@ -1992,6 +1669,7 @@ export const TALENT_ENTRIES = [
         offer: { skills: ["Astrogation"] },
         cost: { strain: 2 },
         dice: { difficulty: -1 },
+        difficultyFloor: 1,
       },
     ],
   },
@@ -2049,8 +1727,8 @@ export const TALENT_ENTRIES = [
       {
         id: "more-machine-than-man-improved",
         label: "More Machine Than Man (Improved)",
-        hint: "Max: half your installed cybernetics, rounded up; say which one helps",
-        amount: { max: 4, label: "Strain" },
+        hint: "Up to half your installed cybernetics, rounded up; say which one helps",
+        amount: { label: "Strain" },
         cost: { strain: "amount" },
         dice: { boost: "amount" },
       },
@@ -2070,40 +1748,15 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "natural-camouflage",
-    names: ["Natural Camouflage"],
-    options: [
-      {
-        id: "natural-camouflage",
-        label: "Natural Camouflage",
-        hint: "Natural environment: use Survival instead of Stealth",
-        offer: { skills: ["Stealth"] },
-        cost: { strain: 2 },
-      },
-    ],
-  },
-  {
-    id: "natural-remedy",
-    names: ["Natural Remedy"],
-    options: [
-      {
-        id: "natural-remedy",
-        label: "Natural Remedy",
-        hint: "Healing with Survival instead of Medicine",
-        offer: { skills: ["Survival"] },
-        dice: { difficulty: 1 },
-      },
-    ],
-  },
-  {
     id: "neutralizer",
     names: ["Neutralizer"],
     options: [
       {
         id: "neutralizer",
         label: "Neutralizer",
-        hint: "Once per encounter, targeting a poisoned character: +1 Triumph",
+        hint: "Once per encounter, targeting a poisoned character",
         cost: { strain: 3 },
+        dice: { triumph: 1 },
       },
     ],
   },
@@ -2115,7 +1768,7 @@ export const TALENT_ENTRIES = [
         id: "no-loose-ends",
         label: "No Loose Ends",
         hint: "Once per session, Destiny Point, a check using your network; it then shrinks by one",
-        amount: { max: 5, label: "Willpower" },
+        amount: { label: "Your Willpower" },
         dice: { removeSetback: "amount" },
       },
     ],
@@ -2127,8 +1780,9 @@ export const TALENT_ENTRIES = [
       {
         id: "on-the-lookout",
         label: "On The Lookout",
-        hint: "Initiative, spend a Destiny Point: +1 Success, also for allies up to Cunning ranks",
+        hint: "Initiative, spend a Destiny Point; also allies up to your Cunning",
         offer: { skills: ["Cool", "Vigilance"] },
+        dice: { success: 1 },
       },
     ],
   },
@@ -2203,8 +1857,9 @@ export const TALENT_ENTRIES = [
       {
         id: "overwhelm-emotions",
         label: "Overwhelm Emotions",
-        hint: "Force dice up to Force rating; light and dark side points add Success or Failure",
+        hint: "Light and dark side points add Success or Failure",
         offer: { skills: ["Charm", "Coercion", "Deception"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -2215,9 +1870,10 @@ export const TALENT_ENTRIES = [
       {
         id: "overwhelming-aura",
         label: "Overwhelming Aura",
-        hint: "+1 Advantage per committed Force die",
+        hint: "Force dice you commit to it; enemies nearby add Threat",
         offer: { skillTypes: ["Social"] },
         amount: { max: "forceRating", label: "Force dice committed" },
+        dice: { advantage: "amount" },
       },
     ],
   },
@@ -2228,7 +1884,8 @@ export const TALENT_ENTRIES = [
       {
         id: "package-secured",
         label: "Package Secured",
-        hint: "Once per session, Destiny Point: +1 Triumph to keep a valuable item",
+        hint: "Once per session, Destiny Point, a valuable item at risk; or a Despair on someone else's check to take it (by hand)",
+        dice: { triumph: 1 },
       },
     ],
   },
@@ -2241,7 +1898,7 @@ export const TALENT_ENTRIES = [
         label: "Percussive Maintenance*",
         hint: "Once per encounter, repair or damage an engaged machine: suffer 2 wounds",
         offer: { skills: ["Mechanics", "Melee", "Brawl"] },
-        amount: { max: 5, label: "Melee or Brawl ranks" },
+        amount: { label: "Your Melee or Brawl ranks, the higher" },
         cost: { maneuvers: 1 },
         dice: { boost: "amount" },
       },
@@ -2274,25 +1931,15 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "plans-within-plans",
-    names: ["Plans Within Plans"],
-    options: [
-      {
-        id: "plans-within-plans",
-        label: "Plans Within Plans",
-        hint: "A plan-related check this encounter: +1 Success",
-      },
-    ],
-  },
-  {
     id: "port-of-call",
     names: ["Port of Call"],
     options: [
       {
         id: "port-of-call",
         label: "Port of Call",
-        hint: "Flagship repairs or supplies at its Port of Call: +1 Success, +1 Advantage",
+        hint: "Repairing or resupplying the Flagship at its Port of Call",
         offer: { skills: ["Mechanics", "Negotiation"] },
+        dice: { success: 1, advantage: 1 },
       },
     ],
   },
@@ -2303,9 +1950,10 @@ export const TALENT_ENTRIES = [
       {
         id: "power-broker",
         label: "Power Broker",
-        hint: "Once per encounter, invoking a patron or organization, or its members: +1 Success",
+        hint: "Once per encounter, invoking a patron or organization, or with its members",
         offer: { skillTypes: ["Social"] },
         cost: { strain: 2 },
+        dice: { success: 1 },
       },
     ],
   },
@@ -2316,9 +1964,10 @@ export const TALENT_ENTRIES = [
       {
         id: "power-broker-improved",
         label: "Power Broker (Improved)",
-        hint: "Once per session, in place of Power Broker's Success: +1 Triumph",
+        hint: "Once per session, instead of Power Broker's Success",
         offer: { skillTypes: ["Social"] },
         cost: { strain: 4 },
+        dice: { triumph: 1 },
       },
     ],
   },
@@ -2393,10 +2042,14 @@ export const TALENT_ENTRIES = [
       {
         id: "questionable-ethics",
         label: "Questionable Ethics",
-        hint: "Also suffer as much Conflict; add as many Success or Advantage",
+        hint: "Also suffer as much Conflict",
         offer: { skills: ["Medicine", "Coercion"] },
         amount: { max: "ranks", label: "Strain" },
         cost: { strain: "amount" },
+        choices: [
+          { id: "success", label: "Success", dice: { success: "amount" } },
+          { id: "advantage", label: "Advantage", dice: { advantage: "amount" } },
+        ],
       },
     ],
   },
@@ -2407,8 +2060,9 @@ export const TALENT_ENTRIES = [
       {
         id: "quick-movement",
         label: "Quick Movement",
-        hint: "Add Force dice up to Force rating; 2 Force points: one more Move after the action",
+        hint: "2 Force points: one more Move after the action",
         cost: { strain: 2 },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -2486,10 +2140,11 @@ export const TALENT_ENTRIES = [
       {
         id: "rapid-reaction",
         label: "Rapid Reaction",
-        hint: "Initiative: +1 Success per strain",
+        hint: "Initiative",
         offer: { skills: ["Cool", "Vigilance"] },
         amount: { max: "ranks", label: "Strain" },
         cost: { strain: "amount" },
+        dice: { success: "amount" },
       },
     ],
   },
@@ -2500,22 +2155,10 @@ export const TALENT_ENTRIES = [
       {
         id: "ravage",
         label: "Ravage",
-        hint: "Once per encounter, engaged foe: Force dice up to Force rating; Force point: Success or Advantage",
+        hint: "Once per encounter, engaged foe; Force point: Success or Advantage",
         offer: { skillTypes: ["Combat"] },
         cost: { strain: 3 },
-      },
-    ],
-  },
-  {
-    id: "read-the-room",
-    names: ["Read The Room"],
-    options: [
-      {
-        id: "read-the-room",
-        label: "Read The Room",
-        hint: "Targeting the character you read with Read The Room (2 Advantage spent)",
-        offer: { skillTypes: ["Social"] },
-        dice: { boost: 1 },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -2552,9 +2195,10 @@ export const TALENT_ENTRIES = [
       {
         id: "reckless-charge",
         label: "Reckless Charge",
-        hint: "After a maneuver to engage: +2 Successes, +2 Threat",
+        hint: "After a maneuver to engage, this turn",
         offer: { skills: ["Brawl", "Melee", "Lightsaber"] },
         cost: { strain: 2 },
+        dice: { success: 2, threat: 2 },
       },
     ],
   },
@@ -2569,18 +2213,6 @@ export const TALENT_ENTRIES = [
         amount: { max: "ranks", label: "Strain" },
         cost: { strain: "amount" },
         dice: { downgradeDifficulty: "amount" },
-      },
-    ],
-  },
-  {
-    id: "researcher-improved",
-    names: ["Researcher (Improved)"],
-    options: [
-      {
-        id: "researcher-improved",
-        label: "Researcher (Improved)",
-        hint: "Acting on new knowledge until your next turn ends: +1 Advantage per Researcher rank",
-        amount: { max: 5, label: "Researcher ranks" },
       },
     ],
   },
@@ -2617,8 +2249,9 @@ export const TALENT_ENTRIES = [
       {
         id: "respond-in-kind",
         label: "Respond In Kind",
-        hint: "Foe whose 3 Threat or Despair you spent: next check +1 Success, +1 Advantage",
+        hint: "Against the foe whose 3 Threat or Despair you spent",
         offer: { skills: ["Charm", "Negotiation", "Leadership"] },
+        dice: { success: 1, advantage: 1 },
       },
     ],
   },
@@ -2641,21 +2274,9 @@ export const TALENT_ENTRIES = [
       {
         id: "righteous-anger",
         label: "Righteous Anger",
-        hint: "Use Willpower instead of Presence",
         offer: { skills: ["Leadership"] },
         cost: { strain: 2 },
-      },
-    ],
-  },
-  {
-    id: "saber-throw",
-    names: ["Saber Throw"],
-    options: [
-      {
-        id: "saber-throw",
-        label: "Saber Throw",
-        hint: "Within medium; Force dice up to Force rating; a Force point to hit, one to return",
-        offer: { skills: ["Lightsaber"] },
+        characteristic: "Willpower",
       },
     ],
   },
@@ -2666,8 +2287,9 @@ export const TALENT_ENTRIES = [
       {
         id: "sapith-sundering",
         label: "Sapith Sundering",
-        hint: "Force dice up to Force rating; gains Sunder; Force points act as Advantage for it",
+        hint: "Gains Sunder; Force points act as Advantage for it",
         offer: { skills: ["Brawl"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -2704,8 +2326,11 @@ export const TALENT_ENTRIES = [
       {
         id: "secrets-of-the-jedi",
         label: "Secrets of the Jedi",
-        hint: "Lightsaber hilts: by hand, −1 difficulty per 2 Knowledge (Lore) ranks, min Easy",
+        hint: "Constructing or repairing lightsaber hilts; minimum Easy",
         offer: { skills: ["Mechanics"] },
+        amount: { label: "Half your Knowledge (Lore) ranks, rounded up" },
+        dice: { difficulty: "-amount" },
+        difficultyFloor: 1,
       },
     ],
   },
@@ -2718,30 +2343,6 @@ export const TALENT_ENTRIES = [
         label: "Sense Danger",
         hint: "Once per session",
         dice: { removeSetback: 2 },
-      },
-    ],
-  },
-  {
-    id: "sense-the-scene",
-    names: ["Sense the Scene"],
-    options: [
-      {
-        id: "sense-the-scene",
-        label: "Sense the Scene",
-        hint: "Action: Force dice up to Force rating; Force point: one person's emotional traits",
-        offer: { skills: ["Perception"] },
-      },
-    ],
-  },
-  {
-    id: "shadowfeed-secret",
-    names: ["Shadowfeed Secret"],
-    options: [
-      {
-        id: "shadowfeed-secret",
-        label: "Shadowfeed Secret",
-        hint: "Slicing your Shadowfeed target this session: +1 Triumph",
-        offer: { skills: ["Computers"] },
       },
     ],
   },
@@ -2765,9 +2366,11 @@ export const TALENT_ENTRIES = [
       {
         id: "shortcut-improved",
         label: "Shortcut (Improved)",
-        hint: "Chase or race: +1 Success per Shortcut rank",
+        hint: "Chase or race",
         offer: { skills: ["Piloting: Planetary", "Piloting: Space", "Athletics", "Coordination"] },
+        amount: { label: "Your Short Cut ranks" },
         cost: { strain: 2 },
+        dice: { success: "amount" },
       },
     ],
   },
@@ -2791,21 +2394,9 @@ export const TALENT_ENTRIES = [
       {
         id: "sidearm-diplomacy",
         label: "Sidearm Diplomacy",
-        hint: "Once per encounter: +1 Success per rank",
+        hint: "Once per encounter",
         offer: { skillTypes: ["Social"] },
-        dice: { upgradeDifficulty: 1 },
-      },
-    ],
-  },
-  {
-    id: "signature-superiority",
-    names: ["Signature Superiority"],
-    options: [
-      {
-        id: "signature-superiority",
-        label: "Signature Superiority",
-        hint: "Checks involving your Signature Vehicle, after Signature Superiority: +1 Success",
-        offer: { skills: ["Piloting: Planetary", "Piloting: Space", "Gunnery", "Mechanics", "Computers"] },
+        dice: { upgradeDifficulty: 1, success: "ranks" },
       },
     ],
   },
@@ -2829,8 +2420,9 @@ export const TALENT_ENTRIES = [
       {
         id: "signature-vehicle-supreme",
         label: "Signature Vehicle (Supreme)",
-        hint: "Once per session, Destiny Point: +1 Triumph involving your Signature Vehicle",
+        hint: "Once per session, Destiny Point: a check involving your Signature Vehicle",
         offer: { skills: ["Piloting: Planetary", "Piloting: Space", "Gunnery", "Mechanics", "Computers"] },
+        dice: { triumph: 1 },
       },
     ],
   },
@@ -2843,6 +2435,7 @@ export const TALENT_ENTRIES = [
         label: "Silent Takedown",
         hint: "Once per encounter, target within short range: silent if it incapacitates",
         offer: { skillTypes: ["Combat"], attack: true },
+        cost: { maneuvers: 1 },
       },
     ],
   },
@@ -2853,8 +2446,9 @@ export const TALENT_ENTRIES = [
       {
         id: "silent-takedown-improved",
         label: "Silent Takedown (Improved)",
-        hint: "With Silent Takedown: +2 Advantage",
+        hint: "With Silent Takedown",
         offer: { skillTypes: ["Combat"], attack: true },
+        dice: { advantage: 2 },
       },
     ],
   },
@@ -2867,17 +2461,6 @@ export const TALENT_ENTRIES = [
         label: "Sincerest Flattery",
         hint: "Once per encounter: a skill another character used this encounter",
         dice: { boost: 2 },
-      },
-    ],
-  },
-  {
-    id: "sleeper-activate",
-    names: ["Sleeper Activate"],
-    options: [
-      {
-        id: "sleeper-activate",
-        label: "Sleeper Activate",
-        hint: "After Sleeper Activate succeeded this encounter: +1 Success (Triumph: −1 difficulty)",
       },
     ],
   },
@@ -2912,8 +2495,9 @@ export const TALENT_ENTRIES = [
       {
         id: "spice-of-life",
         label: "Spice of Life",
-        hint: "Under the influence of your drugs: +1 Success",
+        hint: "Under the influence of your drugs",
         cost: { strain: 2 },
+        dice: { success: 1 },
       },
     ],
   },
@@ -2924,9 +2508,9 @@ export const TALENT_ENTRIES = [
       {
         id: "spice-of-life-improved",
         label: "Spice of Life (Improved)",
-        hint: "Once per session, on your drugs: +1 Triumph instead of Spice of Life's Success",
+        hint: "Once per session, on your drugs: instead of Spice of Life's Success",
         cost: { strain: 2 },
-        dice: { upgradeDifficulty: 1 },
+        dice: { upgradeDifficulty: 1, triumph: 1 },
       },
     ],
   },
@@ -2958,25 +2542,14 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "stakeout",
-    names: ["Stakeout"],
-    options: [
-      {
-        id: "stakeout",
-        label: "Stakeout",
-        hint: "This session, checks tied to the person or place you staked out: +2 Advantage",
-      },
-    ],
-  },
-  {
     id: "steady-nerves-improved",
     names: ["Steady Nerves (Improved)"],
     options: [
       {
         id: "steady-nerves-improved",
         label: "Steady Nerves (Improved)",
-        hint: "Once per encounter, precise or dangerous technical check; max Steady Nerves ranks",
-        amount: { max: 5, label: "Strain" },
+        hint: "Once per encounter, precise or dangerous technical check; up to your Steady Nerves ranks",
+        amount: { label: "Strain" },
         cost: { strain: "amount" },
         dice: { downgradeDifficulty: "amount" },
       },
@@ -2996,25 +2569,14 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "strategic-form",
-    names: ["Strategic Form"],
-    options: [
-      {
-        id: "strategic-form",
-        label: "Strategic Form",
-        hint: "Action: Force dice up to Force rating; a target within short may only attack you",
-        offer: { skills: ["Lightsaber"] },
-      },
-    ],
-  },
-  {
     id: "strength-from-passion",
     names: ["Strength From Passion"],
     options: [
       {
         id: "strength-from-passion",
         label: "Strength From Passion",
-        hint: "Once per session, Destiny Point: +1 Success, +1 Threat per dark side Destiny Point",
+        hint: "Once per session, spend a Destiny Point (by hand)",
+        dice: { success: "destinyDark", threat: "destinyDark" },
       },
     ],
   },
@@ -3037,21 +2599,9 @@ export const TALENT_ENTRIES = [
       {
         id: "suave-and-sophisticated",
         label: "Suave And Sophisticated",
-        hint: "Use Presence instead of Cunning",
         offer: { skills: ["Deception"] },
         cost: { strain: 2 },
-      },
-    ],
-  },
-  {
-    id: "subterfuge",
-    names: ["Subterfuge"],
-    options: [
-      {
-        id: "subterfuge",
-        label: "Subterfuge",
-        hint: "Against the foe you fooled with Subterfuge, until your next turn ends: +1 Triumph",
-        offer: { skillTypes: ["Combat"] },
+        characteristic: "Presence",
       },
     ],
   },
@@ -3060,22 +2610,16 @@ export const TALENT_ENTRIES = [
     names: ["Surgeon (Improved)*"],
     options: [
       {
-        id: "surgeon-improved-boost",
-        label: "Surgeon (Improved): boost",
-        hint: "Max = Surgeon ranks",
+        id: "surgeon-improved",
+        label: "Surgeon (Improved)",
+        hint: "Up to your Surgeon ranks",
         offer: { skills: ["Medicine"] },
-        amount: { max: 5, label: "Strain" },
+        amount: { label: "Strain" },
         cost: { strain: "amount" },
-        dice: { boost: "amount" },
-      },
-      {
-        id: "surgeon-improved-setback",
-        label: "Surgeon (Improved): remove setback",
-        hint: "Max = Surgeon ranks",
-        offer: { skills: ["Medicine"] },
-        amount: { max: 5, label: "Strain" },
-        cost: { strain: "amount" },
-        dice: { removeSetback: "amount" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "amount" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "amount" } },
+        ],
       },
     ],
   },
@@ -3098,18 +2642,14 @@ export const TALENT_ENTRIES = [
     names: ["Swindler*"],
     options: [
       {
-        id: "swindler-boost",
-        label: "Swindler: boost",
+        id: "swindler",
+        label: "Swindler",
         hint: "Cheating or committing subterfuge",
         offer: { skills: ["Deception", "Skulduggery"] },
-        dice: { boost: "ranks" },
-      },
-      {
-        id: "swindler-setback",
-        label: "Swindler: remove setback",
-        hint: "Cheating or committing subterfuge",
-        offer: { skills: ["Deception", "Skulduggery"] },
-        dice: { removeSetback: "ranks" },
+        choices: [
+          { id: "boost", label: "Boost", dice: { boost: "ranks" } },
+          { id: "setback", label: "Remove Setback", dice: { removeSetback: "ranks" } },
+        ],
       },
     ],
   },
@@ -3122,7 +2662,7 @@ export const TALENT_ENTRIES = [
         label: "Tactical Dodge",
         hint: "Against an attacker who missed you after you Dodged",
         offer: { skillTypes: ["Combat"] },
-        amount: { max: 5, label: "Dodge strain" },
+        amount: { label: "Strain spent on Dodge" },
         dice: { upgradeAbility: "amount" },
       },
     ],
@@ -3136,7 +2676,7 @@ export const TALENT_ENTRIES = [
         label: "Target Acquired (Improved)",
         hint: "Target Acquired: 1 Boost die per status effect on the target",
         offer: { skills: ["Coercion"] },
-        amount: { max: 5, label: "Status effects" },
+        amount: { label: "Status effects on the target" },
         dice: { boost: "amount" },
       },
     ],
@@ -3154,42 +2694,6 @@ export const TALENT_ENTRIES = [
     ],
   },
   {
-    id: "terrify",
-    names: ["Terrify"],
-    options: [
-      {
-        id: "terrify",
-        label: "Terrify",
-        hint: "Force dice up to Force rating; Successes disorient; a Force point immobilizes",
-        offer: { skills: ["Coercion"] },
-      },
-    ],
-  },
-  {
-    id: "thorough-assessment",
-    names: ["Thorough Assessment"],
-    options: [
-      {
-        id: "thorough-assessment",
-        label: "Thorough Assessment",
-        hint: "Spend Thorough Assessment Boost dice gained this encounter",
-        amount: { max: 5, label: "Boost" },
-        dice: { boost: "amount" },
-      },
-    ],
-  },
-  {
-    id: "thorough-assessment-improved",
-    names: ["Thorough Assessment (Improved)"],
-    options: [
-      {
-        id: "thorough-assessment-improved",
-        label: "Thorough Assessment (Improved)",
-        hint: "Instead of a Thorough Assessment Boost die: +1 Success",
-      },
-    ],
-  },
-  {
     id: "time-splitter",
     names: ["Time-Splitter"],
     options: [
@@ -3198,20 +2702,9 @@ export const TALENT_ENTRIES = [
         label: "Time-Splitter",
         hint: "Once per encounter: ignore Slow-Firing, or refire with one upgrade per earlier shot",
         offer: { skillTypes: ["Combat"], attack: true },
-        amount: { max: 3, label: "Upgrades" },
+        amount: { label: "Upgrades" },
         cost: { maneuvers: 1 },
         dice: { upgradeDifficulty: "amount" },
-      },
-    ],
-  },
-  {
-    id: "tinkerer-improved",
-    names: ["Tinkerer (Improved)"],
-    options: [
-      {
-        id: "tinkerer-improved",
-        label: "Tinkerer (Improved)",
-        hint: "Once per session, Destiny Point; Tinkered item: +1 Advantage per Tinkerer rank",
       },
     ],
   },
@@ -3236,7 +2729,7 @@ export const TALENT_ENTRIES = [
         label: "Trade In Secrets",
         hint: "Trading information when buying; the GM sets the Boost dice",
         offer: { skills: ["Negotiation"] },
-        amount: { max: 3, label: "Boost" },
+        amount: { label: "Boost dice (the GM decides)" },
         dice: { boost: "amount" },
       },
     ],
@@ -3248,8 +2741,9 @@ export const TALENT_ENTRIES = [
       {
         id: "transmogrify",
         label: "Transmogrify",
-        hint: "Crafting: Force dice up to Force rating; Force point: Success; 2 Force points: Advantage",
+        hint: "Crafting; Force point: Success; 2 Force points: Advantage",
         offer: { skills: ["Mechanics"] },
+        dice: { force: "forceAvailable" },
       },
     ],
   },
@@ -3273,34 +2767,11 @@ export const TALENT_ENTRIES = [
       {
         id: "trigger-discipline",
         label: "Trigger Discipline",
-        hint: "By hand, swap that many Boost dice for as many Advantage (max Discipline ranks)",
+        hint: "Ranged attack",
         offer: { skills: ["Ranged: Light", "Ranged: Heavy", "Gunnery"] },
-        amount: { max: 5, label: "Boost traded" },
+        amount: { label: "Boost traded (up to your Discipline ranks)" },
         cost: { strain: 2 },
-      },
-    ],
-  },
-  {
-    id: "ultimatum",
-    names: ["Ultimatum"],
-    options: [
-      {
-        id: "ultimatum",
-        label: "Ultimatum",
-        hint: "Attacking or subduing your Ultimatum target: +1 Success",
-        offer: { skillTypes: ["Combat"] },
-      },
-    ],
-  },
-  {
-    id: "universal-relief",
-    names: ["Universal Relief"],
-    options: [
-      {
-        id: "universal-relief",
-        label: "Universal Relief",
-        hint: "This session, first check with each member of the chosen species: +2 Advantage",
-        offer: { skills: ["Charm", "Coercion", "Deception", "Leadership", "Negotiation", "Medicine"] },
+        dice: { advantage: "amount", removeBoost: "amount" },
       },
     ],
   },
@@ -3324,36 +2795,10 @@ export const TALENT_ENTRIES = [
       {
         id: "vaapad-control",
         label: "Vaapad Control",
-        hint: "One downgrade per light side Destiny Point in the pool",
+        hint: "One downgrade per light side Destiny Point",
         offer: { skills: ["Lightsaber"] },
-        amount: { max: 5, label: "Light side Destiny Points" },
         cost: { strain: 1 },
-        dice: { downgradeDifficulty: "amount" },
-      },
-    ],
-  },
-  {
-    id: "war-of-ideas",
-    names: ["War of Ideas"],
-    options: [
-      {
-        id: "war-of-ideas",
-        label: "War of Ideas",
-        hint: "This session, targeting the foe or party after War of Ideas made the foe fail",
-        offer: { skillTypes: ["Social"] },
-        dice: { upgradeAbility: 1 },
-      },
-    ],
-  },
-  {
-    id: "weak-foundation",
-    names: ["Weak Foundation"],
-    options: [
-      {
-        id: "weak-foundation",
-        label: "Weak Foundation",
-        hint: "Targeting the structure found with Weak Foundation: +2 Advantage or +1 Success",
-        offer: { skillTypes: ["Combat"] },
+        dice: { downgradeDifficulty: "destinyLight" },
       },
     ],
   },
@@ -3366,7 +2811,7 @@ export const TALENT_ENTRIES = [
         label: "Weapons Free",
         hint: "Once per encounter: ignore Slow-Firing this turn; upgrades = Slow-Firing rank",
         offer: { skillTypes: ["Combat"], attack: true },
-        amount: { max: 3, label: "Slow-Firing rank" },
+        amount: { label: "Slow-Firing rank" },
         cost: { maneuvers: 1 },
         dice: { upgradeDifficulty: "amount" },
       },
@@ -3382,30 +2827,6 @@ export const TALENT_ENTRIES = [
         hint: "Selling goods illegally: +10% credits per Wheel and Deal rank",
         offer: { skills: ["Negotiation", "Streetwise"] },
         dice: { upgradeDifficulty: 1 },
-      },
-    ],
-  },
-  {
-    id: "where-it-hurts",
-    names: ["Where It Hurts"],
-    options: [
-      {
-        id: "where-it-hurts",
-        label: "Where It Hurts",
-        hint: "Against the foe chosen with Where It Hurts: Pierce = Cunning",
-        offer: { skillTypes: ["Combat"], attack: true },
-      },
-    ],
-  },
-  {
-    id: "wretched-hive",
-    names: ["Wretched Hive"],
-    options: [
-      {
-        id: "wretched-hive",
-        label: "Wretched Hive",
-        hint: "This session: traveling to or dealing with the Wretched Hive Shadowport",
-        dice: { upgradeAbility: 1 },
       },
     ],
   },
