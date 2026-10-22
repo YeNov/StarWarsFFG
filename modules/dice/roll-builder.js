@@ -5,7 +5,7 @@ import { onceEffectIds, postThenPay } from "./roll-costs.js";
 import { layerPool, optionDiceRows } from "./roll-option-pool.js";
 import { boostSupply } from "./optional-buff-pool.js";
 import { packSentLayers, packSentPool, readSentLayers } from "./roll-option-sent.js";
-import { rollActorFrom } from "./roll-actor.js";
+import { rollActorFrom, rollSkillContext } from "./roll-actor.js";
 import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs-offer.js";
 import { parseOptionText } from "../helpers/roll-options.js";
 import { collectOfferedOptions, linkedMacroUuids } from "../helpers/roll-options-offer.js";
@@ -254,6 +254,13 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       this.roll.actorUuid ??= actor?.uuid ?? null;
       // The actor the roll is for (a crew member for a crew roll), or null: roll options read it.
       this._rollActor = actor ?? null;
+      // A roll opened without the skill's key, characteristic and rank (a module such as Token
+      // Action HUD calls displayRollDialog with the skill's name only) gets them from the actor, so
+      // its buffs and roll options match the skill as they do from the sheet.
+      Object.assign(this.roll, rollSkillContext(
+        { actor, item, skillName: this.roll.skillName, skillKey: this.roll.skillKey, characteristic: this.roll.characteristic, rank: this.roll.rank },
+        { configuredSkills: CONFIG.FFG?.skills ?? null, localize: (key) => game.i18n.localize(key) },
+      ));
       const offered = collectOfferedBuffs({
         items: actor?.items ?? [],
         skillKey: this.roll.skillKey,

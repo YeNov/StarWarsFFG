@@ -66,3 +66,11 @@ test("item Upgrade and Downgrade Ability modifiers are recorded on the pool (imp
   assert.match(modifiers, /dicePool\.modUpgrades \+= /);
   assert.match(modifiers, /dicePool\.modDowngrades \+= /);
 });
+
+test("the dialog fills in a missing skill key, characteristic and rank before it reads them (Token Action HUD)", () => {
+  const dialog = read("modules/dice/roll-builder.js");
+  const collect = dialog.slice(dialog.indexOf("_collectOptionalBuffs() {"), dialog.indexOf("_tickedBuffs() {"));
+  assert.ok(collect.indexOf("rollSkillContext(") > 0, "_collectOptionalBuffs calls rollSkillContext");
+  assert.ok(collect.indexOf("rollSkillContext(") < collect.indexOf("collectOfferedBuffs("), "before the buffs read the skill key");
+  assert.ok(dialog.indexOf("this._optionalBuffs = this._collectOptionalBuffs()") < dialog.indexOf("this._optionInputs = rollOptionInputs("), "before the roll options read it");
+});
