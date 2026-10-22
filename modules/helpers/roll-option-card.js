@@ -1,0 +1,125 @@
+/**
+ * The chat card's roll options line (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md,
+ * "Chat card"):
+ *
+ *   Roll options: Two weapons (same skill), Guns Blazing (2 strain), Point Blank 2, Frenzied Attack 2 (2 strain),
+ *   Clanker Killer 2: Success
+ *
+ * Each option shows its label, then the amount the player picked (for an option with an amount) or
+ * its rank (for a ranked talent), then the branch picked on its switch, then its costs. The costs come from the dialog's row states,
+ * already resolved for the chosen amount. Options never change the weapon, so the line is the only
+ * record of Linked, extra damage or range on the card.
+ *
+ * Localization is passed in, so Node covers it (tests/node/roll-option-card.test.mjs).
+ */
+
+const TWO_WEAPONS_KEYS = Object.freeze({
+  same: "SWFFG.RollOptions.Card.TwoWeaponsSame",
+  different: "SWFFG.RollOptions.Card.TwoWeaponsDifferent",
+});
+
+/**
+ * The entries of the line: Two weapons first, then each ticked option in the order offered.
+ * @param {object} params
+ * @param {object[]} params.offered - from collectOfferedOptions
+ * @param {{rows: object[]}} params.states - from planOptionStates
+ * @param {"no"|"same"|"different"} params.twoWeapons
+ * @param {"strain"|"wounds"} [params.unit] - what the payer pays in
+ * @returns {Array<{label: string|null, labelKey: string|null, number: number|null, strain: number, unit: string, maneuvers: number}>}
+ */
+export function rollOptionCardEntries({ offered, states, twoWeapons, unit = "strain" }) {
+  const entries = [];
+  if (TWO_WEAPONS_KEYS[twoWeapons]) {
+    entries.push({ label: null, labelKey: TWO_WEAPONS_KEYS[twoWeapons], number: null, strain: 0, unit, maneuvers: 0 });
+  }
+  const rows = new Map((states?.rows ?? []).map((row) => [row.key, row]));
+  for (const option of offered ?? []) {
+    const row = rows.get(option.key);
+    if (!row?.ticked) continue;
+    const number = option.amount ? row.amount : option.ranked ? option.rank : null;
+    const choice = row.choice ? (option.choices ?? []).find((branch) => branch.id === row.choice)?.label ?? null : null;
+    entries.push({ label: option.label, labelKey: null, number, choice, strain: row.cost.strain, unit, maneuvers: row.cost.maneuvers });
+  }
+  return entries;
+}
+
+/**
+ * A row's switch on the card: every branch, the picked one on (the first by default). Shown even
+ * when the row is greyed, since the reason may belong to the picked branch only and another
+ * branch may be fine.
+ * @param {{choices?: Array<{id: string, label: string}>|null}} option - an offered row
+ * @param {{choice?: string|null}|null} row - its planned state
+ * @returns {Array<{id: string, label: string, on: boolean}>|null}
+ */
+export function optionChoicesContext(option, row) {
+  if (!Array.isArray(option?.choices) || option.choices.length === 0) return null;
+  const picked = row?.choice ?? option.choices[0].id;
+  return option.choices.map((branch) => ({ id: branch.id, label: branch.label, on: branch.id === picked }));
+}
+
+/** "2 strain", "1 wound", "3 wounds". */
+function strainText(n, unit, localize) {
+  const key = unit === "wounds"
+    ? (n === 1 ? "SWFFG.RollOptions.Cost.Wound" : "SWFFG.RollOptions.Cost.Wounds")
+    : "SWFFG.RollOptions.Cost.Strain";
+  return localize(key, { n });
+}
+
+/** "1 maneuver", "2 maneuvers". */
+function maneuverText(n, localize) {
+  return localize(n === 1 ? "SWFFG.RollOptions.Cost.Maneuver" : "SWFFG.RollOptions.Cost.Maneuvers", { n });
+}
+
+/** The costs of one entry or row, in reading order. */
+function costParts({ strain = 0, maneuvers = 0 }, unit, localize) {
+  const parts = [];
+  if (strain > 0) parts.push(strainText(strain, unit, localize));
+  if (maneuvers > 0) parts.push(maneuverText(maneuvers, localize));
+  return parts;
+}
+
+/**
+ * A row's cost on the roll options card: "2 strain · 1 maneuver", or "" when it costs nothing.
+ * @param {{strain: number, maneuvers: number}} cost - the row's resolved cost
+ * @param {"strain"|"wounds"} unit
+ * @param {(key: string, data?: object) => string} localize
+ * @returns {string}
+ */
+export function costText(cost, unit, localize) {
+  return costParts(cost ?? {}, unit, localize).join(" · ");
+}
+
+/**
+ * What a charge warning names: the total cost, and the options that cost it.
+ * @param {ReturnType<typeof rollOptionCardEntries>} entries
+ * @param {number} total
+ * @param {"strain"|"wounds"} unit
+ * @param {(key: string, data?: object) => string} localize
+ * @returns {{cost: string, options: string}}
+ */
+export function describeCharge(entries, total, unit, localize) {
+  const options = (entries ?? [])
+    .filter((entry) => entry.strain > 0)
+    .map((entry) => (entry.labelKey ? localize(entry.labelKey) : entry.label))
+    .join(", ");
+  return { cost: strainText(total, unit, localize), options };
+}
+
+/**
+ * The line's text, or null when nothing was used.
+ * @param {ReturnType<typeof rollOptionCardEntries>} entries
+ * @param {(key: string, data?: object) => string} localize - game.i18n.format, or localize when there is no data
+ * @returns {string|null}
+ */
+export function formatRollOptionsLine(entries, localize) {
+  if (!entries?.length) return null;
+  const parts = entries.map((entry) => {
+    let text = entry.labelKey ? localize(entry.labelKey) : entry.label;
+    if (entry.number !== null && entry.number !== undefined) text += ` ${entry.number}`;
+    if (entry.choice) text += `: ${entry.choice}`;
+    const costs = costParts(entry, entry.unit, localize);
+    if (costs.length > 0) text += ` (${costs.join(", ")})`;
+    return text;
+  });
+  return localize("SWFFG.RollOptions.CardLine", { entries: parts.join(", ") });
+}

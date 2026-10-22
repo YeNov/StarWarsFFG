@@ -166,3 +166,21 @@ export const OptionalBuffsTemplate = (Base) =>
       };
     }
   };
+
+/**
+ * `rollOptions` — links (macro uuids) to the roll option macros this item offers in the roll
+ * dialog (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md). The macro's JSON is the
+ * code; the item only links to it, so editing the macro changes every item that links it. Carried
+ * by talent, weapon, armour, gear, itemattachment and itemmodifier; only a GM may change it
+ * (helpers/roll-option-hooks.js).
+ */
+export const RollOptionLinksTemplate = (Base) =>
+  class extends Base {
+    static defineSchema() {
+      const f = foundry.data.fields;
+      return {
+        ...super.defineSchema(),
+        rollOptions: new f.ArrayField(new f.StringField({ blank: false })),
+      };
+    }
+  };

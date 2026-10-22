@@ -26,6 +26,9 @@ import {
   renameBuff,
   setBuffRow,
 } from "../helpers/optional-buffs.js";
+import { LINK_ITEM_TYPES } from "../helpers/roll-options.js";
+import { bindRollOptionLinks, describeRollOptionLinks } from "../helpers/roll-option-hooks.js";
+import { keepCopyFields } from "../helpers/roll-option-links.js";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -758,6 +761,11 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     data.buffModifierTypes = buffModifierTypes(data.modifierTypes);
     this._optionalBuffModChoices = data.modifierChoices;
 
+    // Roll option links (templates/parts/shared/ffg-roll-option-links.html): GM only.
+    data.showRollOptionLinks = game.user.isGM && LINK_ITEM_TYPES.includes(this.object.type);
+    data.rollOptionLinksEditable = data.showRollOptionLinks && this.isEditable;
+    data.rollOptionLinks = data.showRollOptionLinks ? describeRollOptionLinks(this.object.system?.rollOptions) : [];
+
     return data;
   }
 
@@ -1326,8 +1334,9 @@ export class ItemSheetFFG extends FFGDocumentSheet {
       }
     });
 
-    // Optional buffs; the Codex II item sheets inherit this.
+    // Optional buffs and roll option links; the Codex II item sheets inherit these.
     this._activateOptionalBuffListeners(html);
+    this._activateRollOptionLinkListeners(html);
 
     if (["signatureability"].includes(this.object.type)) {
       html.find(".talent-action").on("click", this._onClickTalentControl.bind(this));
@@ -2200,6 +2209,11 @@ export class ItemSheetFFG extends FFGDocumentSheet {
           expanded.system[cleanKey].push(expanded.system[arrayKey]);
           delete expanded.system[arrayKey];
         }
+        // The form carries neither the modifications' ids nor their roll option links, and the
+        // array is written whole: put back what the form does not carry.
+        if (Array.isArray(expanded.system.itemmodifier)) {
+          expanded.system.itemmodifier = keepCopyFields(this.object.system?.itemmodifier, expanded.system.itemmodifier);
+        }
         // flatten back to dot notation for the standard update path
         formData = foundry.utils.flattenObject(expanded);
       }
@@ -2487,6 +2501,30 @@ export class ItemSheetFFG extends FFGDocumentSheet {
     await this._optionalBuffQueue.edit(change, options);
   }
 
+  /**
+   * The roll option link list (templates/parts/shared/ffg-roll-option-links.html), GM only: drop a
+   * macro to link it, open or remove a link. Each change saves the whole list through a queue, as
+   * the optional buffs do, so two quick changes never save over each other.
+   * @param {jQuery} html
+   */
+  _activateRollOptionLinkListeners(html) {
+    bindRollOptionLinks(html, { save: (change) => this._saveRollOptionLinks(change) });
+  }
+
+  /**
+   * Save one change to the item's roll option links, unless the owning actor is in Edit Mode.
+   * @param {(links: string[]) => string[]} change
+   */
+  async _saveRollOptionLinks(change) {
+    if (this.actor && !this.actor.verifyEditModeIsNotEnabled()) return;
+    this._rollOptionLinkQueue ??= createBuffEditQueue({
+      read: () => this.object.system?.rollOptions,
+      write: (next) => this.object.update({ "system.rollOptions": next }),
+      clean: (stored) => (Array.isArray(stored) ? [...stored] : []),
+    });
+    await this._rollOptionLinkQueue.edit(change);
+  }
+
   async _onDropTalentToSpecialization(event) {
     let data;
     const specialization = this.object;
@@ -2580,6 +2618,8 @@ export class ItemSheetFFG extends FFGDocumentSheet {
               // The talent's optional buffs travel into the tree like its modifiers do. An array,
               // so a later drop onto this slot replaces them instead of merging.
               optionalBuffs: cleanBuffs(itemObject.system.optionalBuffs),
+              // Its roll option links too: links, not copies, so the node follows the macros.
+              rollOptions: [...(itemObject.system.rollOptions ?? [])],
               isRanked: itemObject.system.ranks.ranked,
               isForceTalent: itemObject.system.isForceTalent,
               isConflictTalent: itemObject.system.isConflictTalent,

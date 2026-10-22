@@ -4,6 +4,7 @@ import ModifierHelpers from "../helpers/modifiers.js";
 import { DicePoolFFG } from "../dice-pool-ffg.js";
 import { hasAmmoToFire } from "./ammo-helpers.js";
 import { effectiveSkillRank } from "./minion-group.js";
+import { skillDicePool } from "../dice/skill-pool.js";
 
 export default class DiceHelpers {
   static async rollSkill(obj, event, type, flavorText, sound) {
@@ -401,27 +402,9 @@ export function get_dice_pool(actor_id, skill_name, incoming_roll, options = {})
   const characteristicValue = Number(characteristic.value) || 0;
   const skillRank = effectiveSkillRank(skill, options);
 
-  const dicePool = new DicePoolFFG({
-    ability: Math.max(characteristicValue, skillRank) + incomingPool.ability - (Math.min(characteristicValue, skillRank) + incomingPool.proficiency),
-    proficiency: Math.min(characteristicValue, skillRank) + incomingPool.proficiency,
-    boost: (skill.boost ?? 0) + incomingPool.boost,
-    setback: (skill.setback ?? 0) + incomingPool.setback,
-    force: (skill.force ?? 0) + incomingPool.force,
-    advantage: (skill.advantage ?? 0) + incomingPool.advantage,
-    dark: (skill.dark ?? 0) + incomingPool.dark,
-    light: (skill.light ?? 0) + incomingPool.light,
-    failure: (skill.failure ?? 0) + incomingPool.failure,
-    threat: (skill.threat ?? 0) + incomingPool.threat,
-    success: (skill.success ?? 0) + incomingPool.success,
-    triumph: (skill.triumph ?? 0) + incomingPool.triumph,
-    despair: (skill.despair ?? 0) + incomingPool.despair,
-    upgrades: (skill.upgrades ?? 0) + incomingPool.upgrades,
-    remsetback: (skill.remsetback ?? 0) + incomingPool.remsetback,
-    difficulty: +incomingPool.difficulty + (skill.difficulty ?? 0),
-    challenge: +incomingPool.challenge,
-  });
-  dicePool.upgradeDifficulty(skill.upgradeDifficulty ?? 0);
-  return dicePool;
+  // The skill's upgrades are applied to the dice, as rollSkill does for a roll from the sheet
+  // (they used to be recorded here without being applied).
+  return skillDicePool({ characteristic: characteristicValue, rank: skillRank, skill, incoming: incomingPool });
 }
 
 function resolveDicePoolActor(actor_id, skill_name) {

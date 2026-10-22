@@ -1,11 +1,11 @@
 import { mix, BaseItemDataModel } from "../../mix.js";
-import { CoreTemplate, QualitiesTemplate } from "../../item-templates.js";
+import { CoreTemplate, QualitiesTemplate, RollOptionLinksTemplate } from "../../item-templates.js";
 
 /**
  * `itemmodifier` — template.json `templates: ["core", "qualities"]` + a `type`
  * category and `rank`. A quality/modifier snapshot (e.g. weapon qualities).
  */
-export class ItemModifierDataModel extends mix(BaseItemDataModel, CoreTemplate, QualitiesTemplate) {
+export class ItemModifierDataModel extends mix(BaseItemDataModel, CoreTemplate, QualitiesTemplate, RollOptionLinksTemplate) {
   static defineSchema() {
     const f = foundry.data.fields;
     return {

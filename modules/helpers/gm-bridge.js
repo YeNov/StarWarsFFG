@@ -20,9 +20,10 @@ import { availFor } from "./crit-availability.js";
 import {
   createActorApplyCoordinator, ApplyRequestError,
   APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT, CAPABILITY_EVENT, CAPABILITY_RESULT_EVENT,
+  ROLL_OPTION_COST_CAPABILITY, WRITER_DISCONNECTED, WRITER_OUTDATED,
 } from "./actor-apply-coordinator.js";
 
-export { DEFENSIVE_DAMAGE_CAPABILITY, WRITER_OUTDATED } from "./actor-apply-coordinator.js";
+export { DEFENSIVE_DAMAGE_CAPABILITY, ROLL_OPTION_COST_CAPABILITY, WRITER_DISCONNECTED, WRITER_OUTDATED } from "./actor-apply-coordinator.js";
 import { BASE_DEFENCE_COST, MIN_DEFENCE_COST, defenceCostPool, readCostPool, wouldIncapacitate } from "./defensive-talents.js";
 
 const FFG_SOCKET = "system.starwarsffg";
@@ -52,6 +53,9 @@ const MAX_DAMAGE_CHANGES = 2;
 
 /** ApplyRequestError code: the target can no longer pay the selected Parry/Reflect cost. */
 export const DEFENCE_UNAFFORDABLE = "defence-unaffordable";
+
+/** ApplyRequestError code: the roller can no longer pay the strain (or wounds) of the roll options they ticked. */
+export const ROLL_COST_UNAFFORDABLE = "roll-cost-unaffordable";
 
 /** True for a value that is an object literal (not null, not an array). */
 function isPlainObject(value) {
@@ -99,6 +103,24 @@ export function narrowDamageChanges(data, actorType) {
 }
 
 /**
+ * Narrow a roll option charge: the strain (wounds, for a rival) a roll's ticked options cost. It
+ * must name the actor type's own cost pool and be a whole number of 1 or more; minions and vehicles
+ * have no pool to charge. Nothing about the current value or threshold is taken from the payload.
+ * See docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md. Pure, so Node covers it.
+ *
+ * @param {object} data       the request
+ * @param {string} actorType  the resolved actor's `type`
+ * @returns {{ok: true, op: object}|{ok: false, reason: string}}
+ */
+function narrowRollCost(data, actorType) {
+  const pool = defenceCostPool(actorType);
+  if (!pool || data?.path !== pool.path || !Number.isInteger(data?.delta) || data.delta < 1) {
+    return { ok: false, reason: "roll-cost" };
+  }
+  return { ok: true, op: { type: "roll-cost", path: data.path, delta: data.delta } };
+}
+
+/**
  * Narrow a forwarded request down to an operation this bridge is willing to
  * perform, discarding everything else the sender put in the payload.
  *
@@ -135,6 +157,8 @@ export function narrowApplyRequest(data, actorType, { minionGroup = false } = {}
       if (!isGroup) return { ok: false, reason: "not-a-minion" };
       return { ok: true, op: { type: "kill-minion" } };
     }
+    case "roll-cost":
+      return narrowRollCost(data, actorType);
     default:
       return { ok: false, reason: "type" };
   }
@@ -170,6 +194,27 @@ export function planDamageWrite(actor, op) {
 }
 
 /**
+ * The `actor.update` payload for a roll option charge, computed from the live actor inside the
+ * writer's queue. Validated on every path, because local and forwarded-owner requests never pass
+ * through narrowApplyRequest; refused when the cost no longer fits under the threshold (another
+ * hit, or another charge, may have landed since the dialog showed it).
+ *
+ * @param {object} actor  the resolved actor
+ * @param {object} op     a "roll-cost" operation
+ * @returns {Record<string, number>}
+ * @throws {ApplyRequestError} a malformed request, or code ROLL_COST_UNAFFORDABLE
+ */
+export function planRollCostWrite(actor, op) {
+  const narrowed = narrowRollCost(op, actor?.type);
+  if (!narrowed.ok) throw new ApplyRequestError(`Invalid apply request: ${narrowed.reason}.`);
+  const { path, delta } = narrowed.op;
+  if (wouldIncapacitate(readCostPool(actor), delta)) {
+    throw new ApplyRequestError("The actor can no longer pay the roll options' cost.", ROLL_COST_UNAFFORDABLE);
+  }
+  return { [path]: (Number(foundry.utils.getProperty(actor, path)) || 0) + delta };
+}
+
+/**
  * Perform the actual privileged operation against an actor the current client
  * is allowed to modify. Always reached through the apply coordinator, never
  * called directly, so the read-modify-write below cannot interleave.
@@ -190,6 +235,8 @@ async function performApply(actor, op) {
     await actor.createEmbeddedDocuments("Item", op.items);
   } else if (op.type === "kill-minion") {
     await killMinion(actor);
+  } else if (op.type === "roll-cost") {
+    await actor.update(planRollCostWrite(actor, op));
   }
 }
 
@@ -274,6 +321,37 @@ export async function applyToTargetActor(actor, op, options) {
     ui.notifications.warn(game.i18n.localize("SWFFG.GMBridge.NoGM"));
   }
   return result;
+}
+
+/**
+ * Charge the strain (wounds, for a rival) of a roll's ticked options, through the same queue as
+ * damage and Parry, whoever is rolling: two charges for one actor never read the same value, and
+ * the writer re-checks the threshold inside the queue. Shows no notification itself; the caller
+ * turns the outcome into one with classifyCharge.
+ * @param {Actor} actor  the payer
+ * @param {number} delta  the total cost, a whole number of 1 or more
+ * @returns {Promise<"local"|"forwarded"|false>} false when no writer can be reached; rejects on refusal
+ */
+export function chargeRollCost(actor, delta) {
+  const path = readCostPool(actor)?.path;
+  return applyCoordinator.apply(actor, { type: "roll-cost", path, delta }, { capability: ROLL_OPTION_COST_CAPABILITY });
+}
+
+/**
+ * What a roller is told about a roll option charge. A writer that disconnected before confirming
+ * may already have applied it, so that outcome is unknown, never "not charged".
+ * @param {{result?: "local"|"forwarded"|false, error?: Error}} outcome
+ * @returns {{kind: "charged"|"notCharged"|"unknown", reason: "noWriter"|"unaffordable"|"outdated"|"failed"|null}}
+ */
+export function classifyCharge({ result, error } = {}) {
+  if (error) {
+    if (error.code === WRITER_DISCONNECTED) return { kind: "unknown", reason: null };
+    if (error.code === ROLL_COST_UNAFFORDABLE) return { kind: "notCharged", reason: "unaffordable" };
+    if (error.code === WRITER_OUTDATED) return { kind: "notCharged", reason: "outdated" };
+    return { kind: "notCharged", reason: "failed" };
+  }
+  if (result === "local" || result === "forwarded") return { kind: "charged", reason: null };
+  return { kind: "notCharged", reason: "noWriter" };
 }
 
 /**

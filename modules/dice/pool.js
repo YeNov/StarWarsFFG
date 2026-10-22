@@ -28,6 +28,11 @@ export class DicePoolFFG {
     this.despair = obj.despair || 0;
 
     this.upgrades = obj.upgrades || 0;
+    // Upgrade / Downgrade Ability item modifiers applied straight to the dice
+    // (ModifierHelpers.getDicePoolModifiers), kept so a swap or a Skill Rank buff
+    // can rebuild the positive dice exactly.
+    this.modUpgrades = obj.modUpgrades || 0;
+    this.modDowngrades = obj.modDowngrades || 0;
 
     this.source = {};
 

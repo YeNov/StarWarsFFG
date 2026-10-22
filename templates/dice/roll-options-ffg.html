@@ -17,6 +17,18 @@
       <div class="ffg-defence-warning"></div>
     </div>
   </aside>
+  {{!-- The roll options card hangs off the window's RIGHT edge, mirroring the defence card on
+        the left: Two weapons, talent and quality options, and the optional buffs.
+        _relocateRollOptionsPanel moves it to be a direct child of `.application`;
+        _renderRollOptionsPanel fills .ffg-roll-options-inner from
+        templates/dice/parts/roll-options-panel.html on every change. The tab trails, so it sits
+        on the card's outer edge and stays beside the window when the card is folded. The card
+        starts folded; the tab opens it and shows how many rows are ticked. --}}
+  <aside class="ffg-roll-options-panel ffg-ro-collapsed" aria-hidden="true">
+    <div class="ffg-roll-options-inner"></div>
+    <button type="button" class="ffg-roll-options-toggle" aria-expanded="false"
+            title="{{localize "SWFFG.RollOptions.Panel.Toggle"}}"><span class="ffg-roll-options-count"></span></button>
+  </aside>
   <div class="dice-pool-dialog">
     <div class="adversary-pool-toggle" style="display: none;">
       <button type="button" class="adversary-mode-btn" data-mode="base">{{localize "SWFFG.Adversary.BasePool"}}</button>
@@ -136,18 +148,6 @@
       </tr>
       {{/if}}
     </table>
-    {{#if optionalBuffs.length}}
-    <section class="optional-buffs">
-      <div class="optional-buffs-title">{{localize "SWFFG.OptionalBuffs.DialogTitle"}}</div>
-      {{#each optionalBuffs as |buff|}}
-      <label class="optional-buff-option" title="{{#if buff.locked}}{{localize 'SWFFG.OptionalBuffs.AlreadyApplied'}}{{else}}{{#if buff.source}}{{localize 'SWFFG.OptionalBuffs.From' source=buff.source}}{{/if}}{{/if}}">
-        <input type="checkbox" class="optional-buff-tick" data-buff-key="{{buff.key}}" {{#if buff.ticked}}checked{{/if}} {{#if buff.locked}}disabled{{/if}} />
-        <span class="optional-buff-option-name">{{buff.name}}</span>
-        {{#if buff.source}}<span class="optional-buff-option-source">{{buff.source}}</span>{{/if}}
-      </label>
-      {{/each}}
-    </section>
-    {{/if}}
     <details>
     <summary>Options</summary>
     <div class="pool-roll-options">

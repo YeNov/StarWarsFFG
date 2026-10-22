@@ -1067,6 +1067,10 @@
    its card and ink from the rule above; only their dividing lines follow the scheme here. */
 .cdx .cdx-pane.attributes .optional-buffs .optional-buffs-header { border-color:var(--cdx-line); }
 .cdx .cdx-pane.attributes .optional-buffs .optional-buff { border-bottom-color:var(--cdx-line); }
+/* Roll option links (the system's ffg-roll-option-links partial, GM only) follow the same rule. */
+.cdx .cdx-pane.attributes .roll-option-links .roll-option-links-header { border-color:var(--cdx-line); }
+.cdx .cdx-pane.attributes .roll-option-links .roll-option-link { border-bottom-color:var(--cdx-line); }
+.cdx .cdx-pane.attributes .roll-option-links .roll-option-link-drop { border-color:var(--cdx-line); }
 /* Effects table is full-bleed (no pane padding) so the accent header reaches the
    edges. NOTE: do NOT use overflow:hidden here — the pane is a flex item, and any
    non-visible overflow sets its min-height to 0, letting it collapse and clip the

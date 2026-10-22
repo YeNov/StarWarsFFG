@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import "./_stub/foundry-stub.mjs";
 import {
   APPLY_EVENT, APPLY_RESULT_EVENT, APPLY_STATUS_EVENT, CAPABILITY_EVENT, CAPABILITY_RESULT_EVENT,
-  DEFENSIVE_DAMAGE_CAPABILITY, WRITER_OUTDATED,
+  DEFENSIVE_DAMAGE_CAPABILITY, ROLL_OPTION_COST_CAPABILITY, WRITER_DISCONNECTED, WRITER_OUTDATED,
   ApplyRequestError, createActorApplyCoordinator, selectApplyExecutor,
 } from "../../modules/helpers/actor-apply-coordinator.js";
-import { prepareForwardedApply, DAMAGE_PATHS } from "../../modules/helpers/gm-bridge.js";
+import {
+  prepareForwardedApply, DAMAGE_PATHS, planRollCostWrite, classifyCharge, ROLL_COST_UNAFFORDABLE,
+} from "../../modules/helpers/gm-bridge.js";
 
 const damage = (delta) => ({ type: "damage", path: DAMAGE_PATHS[0], delta });
 
@@ -257,7 +259,7 @@ test("a request is settled, not polled forever, once its writer disconnects", as
   // a newly elected writer must not be asked to replay a possibly-applied hit.
   users[0].active = false;
   users.activeGM = null;
-  await assert.rejects(applying, { name: "ApplyRequestError", message: /disconnected before confirming/ });
+  await assert.rejects(applying, { name: "ApplyRequestError", message: /disconnected before confirming/, code: WRITER_DISCONNECTED });
   const polls = sent.filter((d) => d.event === APPLY_STATUS_EVENT).length;
   await new Promise((resolve) => setTimeout(resolve, 20));
   assert.equal(sent.filter((d) => d.event === APPLY_STATUS_EVENT).length, polls);
@@ -588,4 +590,59 @@ test("an unknown capability fails even on the local writer", async () => {
   const c = clients();
   await assert.rejects(c.apply("gm", talentHit(), undefined, { capability: "teleport-v9" }), { code: WRITER_OUTDATED });
   assert.equal(c.writes.length, 0);
+});
+
+/* Roll option costs: every charge, owner or not, goes through the same queue and is re-checked
+ * against the live actor inside it (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md). */
+
+const STRAIN_PATH = "system.stats.strain.value";
+const rollCost = (delta) => ({ type: "roll-cost", path: STRAIN_PATH, delta });
+const costGate = { capability: ROLL_OPTION_COST_CAPABILITY };
+
+/** A lone GM writer whose performApply is the real planRollCostWrite against a stored actor. */
+function costWriter({ strain = 0, max = 12, capabilities } = {}) {
+  const users = [user("gm", true)];
+  users.activeGM = users[0];
+  const store = { strain };
+  const coordinator = createActorApplyCoordinator({
+    getUserId: () => "gm",
+    getUsers: () => users,
+    resolveActor: async (uuid) => ({ uuid, type: "character", isOwner: true, testUserPermission: () => true,
+      system: { stats: { strain: { value: store.strain, max } } } }),
+    async performApply(actor, op) {
+      const update = planRollCostWrite(actor, op);
+      await tick(); // the write lands after a real await, as actor.update does
+      store.strain = update[STRAIN_PATH];
+    },
+    send: () => {},
+    postChat: async () => {},
+    makeRequestId: () => "request",
+    onChatError: () => {},
+    ...(capabilities ? { capabilities } : {}),
+  });
+  const charge = (delta) => coordinator.apply({ uuid: "Actor.pc", isOwner: true }, rollCost(delta), costGate);
+  return { store, charge };
+}
+
+test("two concurrent roll costs for one actor both land", async () => {
+  const w = costWriter({ strain: 0 });
+  assert.deepEqual(await Promise.all([w.charge(2), w.charge(3)]), ["local", "local"]);
+  assert.equal(w.store.strain, 5);
+});
+
+test("the second of two concurrent costs is refused when together they pass the threshold", async () => {
+  const w = costWriter({ strain: 9, max: 12 });
+  const [first, second] = await Promise.allSettled([w.charge(2), w.charge(2)]);
+  assert.equal(first.status, "fulfilled");
+  assert.equal(second.status, "rejected");
+  assert.equal(second.reason.code, ROLL_COST_UNAFFORDABLE);
+  assert.equal(w.store.strain, 11);
+  // What the roller is told: not charged, because it no longer fits.
+  assert.deepEqual(classifyCharge({ error: second.reason }), { kind: "notCharged", reason: "unaffordable" });
+});
+
+test("a roll cost needs the roll-option capability", async () => {
+  const w = costWriter({ capabilities: [DEFENSIVE_DAMAGE_CAPABILITY] });
+  await assert.rejects(w.charge(1), { name: "ApplyRequestError", code: WRITER_OUTDATED });
+  assert.equal(w.store.strain, 0);
 });

@@ -34,7 +34,11 @@
 // templates/parts/shared/ffg-optional-buffs.html, which Codex item templates include, and
 // ItemSheetFFG#_activateOptionalBuffListeners / #_saveOptionalBuffs, which Codex item sheets
 // inherit through activateListeners.
-export const PUBLIC_API_VERSION = 2;
+// apiVersion 3 adds the roll option link list: the shared partial
+// templates/parts/shared/ffg-roll-option-links.html, which Codex item templates include, and
+// ItemSheetFFG#_activateRollOptionLinkListeners / #_saveRollOptionLinks, which Codex item sheets
+// inherit through activateListeners.
+export const PUBLIC_API_VERSION = 3;
 
 export const PUBLIC_API_SHAPE = Object.freeze({
   sheets: ["ActorSheetFFG", "AdversarySheetFFG", "ItemSheetFFG"],

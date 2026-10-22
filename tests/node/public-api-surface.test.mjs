@@ -18,7 +18,11 @@ const SURFACE = {
   ],
   "modules/apps/ffg-actor-sheet.js": ["_getHeaderControls(", 'Hooks.callAll("renderActorSheetV2"'],
   // Codex II item sheets inherit the optional buffs editor (apiVersion 2).
-  "modules/items/item-sheet-ffg.js": ["_activateOptionalBuffListeners(", "async _saveOptionalBuffs("],
+  // ...and the roll option link list (apiVersion 3).
+  "modules/items/item-sheet-ffg.js": [
+    "_activateOptionalBuffListeners(", "async _saveOptionalBuffs(",
+    "_activateRollOptionLinkListeners(", "async _saveRollOptionLinks(",
+  ],
   "modules/actors/actor-sheet-ffg.js": [
     "async getData(", "activateListeners(html)", "async _buyCore(", "async _buySkillRank(",
     "_createSkillColumns(", "async _itemDisplayDetails(", "async _itemDetailsElement(",
@@ -52,6 +56,7 @@ const SHARED_PARTIALS = [
   "templates/parts/shared/ffg-effects.html",
   "templates/parts/shared/ffg-modifiers.html",
   "templates/parts/shared/ffg-optional-buffs.html",
+  "templates/parts/shared/ffg-roll-option-links.html",
   "templates/parts/shared/ffg-sources.html",
   "templates/parts/shared/ffg-tags.html",
   "templates/parts/ffg-mods.html",
@@ -84,5 +89,13 @@ const SHARED_IMAGES = [
 test("the system images Codex points at exist", () => {
   for (const path of SHARED_IMAGES) {
     assert.ok(fs.existsSync(new URL(`../../${path}`, import.meta.url)), `${path} is missing`);
+  }
+});
+
+test("the Codex item sheets that carry roll option links include the link list (apiVersion 3)", () => {
+  // Codex II has no quality sheet, so five of the six link-carrying types.
+  for (const type of ["weapon", "armour", "gear", "talent", "itemattachment"]) {
+    const template = read(`codex/templates/items/codex-${type}.html`);
+    assert.ok(template.includes('{{> "systems/starwarsffg/templates/parts/shared/ffg-roll-option-links.html"}}'), `codex-${type}.html includes the link list`);
   }
 });
