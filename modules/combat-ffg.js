@@ -1,10 +1,10 @@
 import {DicePoolFFG, RollFFG} from "./dice-pool-ffg.js";
 import PopoutEditor from "./popout-editor.js";
 import { postThenPay } from "./dice/roll-costs.js";
-import { RollOptionsCard } from "./dice/roll-options-card.js";
+import { loadOptionMacros, RollOptionsCard } from "./dice/roll-options-card.js";
 import {
-  initiativeBasePool, initiativeDialogModel, initiativeHidden, initiativeSkillLayer, initiativeSpeaker, initiativeValue,
-  planInitiativeBatch,
+  initiativeBasePool, initiativeDialogModel, initiativeHidden, initiativeMacroUuids, initiativeSkillLayer, initiativeSpeaker,
+  initiativeValue, planInitiativeBatch, runInitiativeGroup, talentedCombatants,
 } from "./helpers/initiative-roll.js";
 
 const { DialogV2 } = foundry.applications.api;
@@ -15,6 +15,26 @@ const INITIATIVE_SKIPPED = Object.freeze({
   needsPilot: "SWFFG.InitiativeSkipped.NeedsPilot",
   noSkill: "SWFFG.InitiativeSkipped.NoSkill",
 });
+
+/**
+ * Ask whether a group roll uses talents.
+ * @param {string[]} names - the talented combatants
+ * @returns {Promise<"talents"|"together"|null>} null when the prompt is closed
+ */
+async function askInitiativeTalents(names) {
+  const list = names.map((name) => foundry.utils.escapeHTML(name)).join(", ");
+  const answer = await DialogV2.wait({
+    window: { title: game.i18n.localize("SWFFG.InitiativeTalents.Title") },
+    classes: ["starwarsffg", "ffg-initiative-talents-dialog"],
+    content: `<p>${game.i18n.format("SWFFG.InitiativeTalents.Body", { names: list })}</p>`,
+    buttons: [
+      { action: "talents", icon: "fas fa-check", label: game.i18n.localize("SWFFG.InitiativeTalents.WithTalents"), default: true },
+      { action: "together", icon: "fas fa-users", label: game.i18n.localize("SWFFG.InitiativeTalents.AllTogether") },
+    ],
+    rejectClose: false,
+  });
+  return answer === "talents" || answer === "together" ? answer : null;
+}
 
 /**
  * Extend the base Combat entity.
@@ -184,16 +204,37 @@ export class CombatFFG extends Combat {
 
   /**
    * Roll initiative (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md). One
-   * combatant gets the initiative dialog with the roll options card; several share today's dialog.
-   * Settles with the combat once the dialog has closed, rolled or not.
+   * combatant gets the initiative dialog with the roll options card. Several share today's dialog,
+   * unless one of them has an initiative talent: then the user is asked whether to roll with talents,
+   * and if so the others share a dialog and each talented combatant gets one of their own, with the
+   * card (runInitiativeGroup). Settles with the combat once the last dialog has closed, rolled or not.
    * @override
    */
   async rollInitiative(ids, { formula = null, updateTurn = true, messageOptions = {} } = {}) {
     const list = typeof ids === "string" ? [ids] : [...(ids ?? [])];
-    if (list.length === 0) return this;
-    await this._openInitiativeDialog(list, { formula, updateTurn, messageOptions }, { withCard: list.length === 1 });
+    const options = { formula, updateTurn, messageOptions };
+    const talented = list.length > 1 ? await this._talentedCombatantIds(list) : new Set();
+    await runInitiativeGroup(list, {
+      talented,
+      nameOf: (id) => this.combatants.get(id)?.name ?? "",
+      ask: askInitiativeTalents,
+      open: (batch, { withCard }) => this._openInitiativeDialog(batch, options, { withCard }),
+    });
     return this;
   }
+
+  /**
+   * The listed combatants whose roller has an option kept to initiative rolls, with every macro
+   * their items link loaded once.
+   * @param {string[]} ids
+   * @returns {Promise<Set<string>>}
+   */
+  async _talentedCombatantIds(ids) {
+    const lookups = this._initiativeLookups();
+    const macros = await loadOptionMacros(initiativeMacroUuids(ids, lookups));
+    return talentedCombatants(ids, { ...lookups, macros });
+  }
+
 
   /** How the initiative helpers find a combatant and a crew member's actor. */
   _initiativeLookups() {
