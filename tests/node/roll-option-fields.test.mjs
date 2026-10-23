@@ -70,10 +70,15 @@ test("item Upgrade and Downgrade Ability modifiers are recorded on the pool (imp
 
 test("the dialog fills in a missing skill key, characteristic and rank before it reads them (Token Action HUD)", () => {
   const dialog = read("modules/dice/roll-builder.js");
-  const collect = dialog.slice(dialog.indexOf("_collectOptionalBuffs() {"), dialog.indexOf("_tickedBuffs() {"));
-  assert.ok(collect.indexOf("rollSkillContext(") > 0, "_collectOptionalBuffs calls rollSkillContext");
-  assert.ok(collect.indexOf("rollSkillContext(") < collect.indexOf("collectOfferedBuffs("), "before the buffs read the skill key");
-  assert.ok(dialog.indexOf("this._optionalBuffs = this._collectOptionalBuffs()") < dialog.indexOf("this._optionInputs = rollOptionInputs("), "before the roll options read it");
+  const resolve = dialog.slice(dialog.indexOf("_resolveRollActor() {"));
+  assert.ok(resolve.indexOf("rollSkillContext(") > 0, "_resolveRollActor calls rollSkillContext");
+  // The card (roll-options-card.js) reads the skill key for its buffs and roll options when it is
+  // made, so the key must be filled in before.
+  assert.ok(dialog.indexOf("this._resolveRollActor()") > 0, "the constructor resolves the actor");
+  assert.ok(dialog.indexOf("this._resolveRollActor()") < dialog.indexOf("new RollOptionsCard("), "before the card reads the skill key");
+  const card = read("modules/dice/roll-options-card.js");
+  assert.match(card, /collectOfferedBuffs\(\{[\s\S]*?skillKey: this\.skill\.key/);
+  assert.match(card, /rollOptionInputs\(this\.actor, \{\s*skillKey: this\.skill\.key/);
 });
 
 test("the roll options card starts folded, its tab saying so", () => {
@@ -86,9 +91,9 @@ test("the roll options card starts folded, its tab saying so", () => {
 test("hovering an option row shows its source's description", () => {
   const panel = read("templates/dice/parts/roll-options-panel.html");
   assert.ok(panel.includes('{{#if option.tooltip}} data-tooltip-html="{{option.tooltip}}" data-tooltip-class="ffg-ro-tooltip"{{/if}}'));
-  const dialog = read("modules/dice/roll-builder.js");
-  assert.ok(dialog.includes("PopoutEditor.renderDiceImages(option.description, this._rollActor)"));
-  assert.ok(dialog.includes("tooltips: this._optionTooltips"), "the dialog hands the card its tooltips");
+  const card = read("modules/dice/roll-options-card.js");
+  assert.ok(card.includes("PopoutEditor.renderDiceImages(option.description, this.actor)"));
+  assert.ok(card.includes("tooltips: this.tooltips"), "the card hands its tooltips to the context");
   assert.ok(read("modules/helpers/roll-option-card.js").includes("tooltip: tooltips?.get?.(option.key) ?? null"));
   assert.ok(read("styles/mandar.css").includes("#tooltip.ffg-ro-tooltip {"));
 });
