@@ -3,12 +3,14 @@
  * (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md, "The library", and its
  * amendments). roll-option-library.js reads this list; nothing else is kept anywhere.
  *
- * Each entry is { id, kind, names, options }. `kind` is "talent" unless the entry says otherwise
- * (Auto-fire is a quality). The first name is the display name and the macro's name ("Roll option:
+ * Each entry is { id, kind, names, options, previous }. `kind` is "talent" unless the entry says
+ * otherwise (Auto-fire is a quality). `previous` lists an entry's earlier `options`, exactly as
+ * earlier runs installed them, so a run can update an unedited macro in place; an entry whose text
+ * never changed has none. The first name is the display name and the macro's name ("Roll option:
  * <name>"). Names match through normalizeName, so case, spacing and punctuation (the asterisk on
  * some names included) do not matter. Labels and hints are English, like the book names: once
- * installed, an entry's options are the GM's macro text to edit, and a later change here reaches
- * only worlds that do not have that macro yet.
+ * installed, an entry's options are the GM's macro text to edit; a later change here reaches a
+ * world that has the macro only when the old text goes into `previous` and the GM never edited it.
  *
  * The first eight entries (Auto-fire, Intense Focus, Frenzied Attack, Guns Blazing, Saber Swarm,
  * True Aim, Sniper Shot, Point Blank) were checked against their rule text; Saber Swarm is declared
@@ -1112,12 +1114,25 @@ export const LIBRARY_ENTRIES = [
   {
     id: "get-the-drop",
     names: ["Get The Drop"],
+    // The text earlier library runs installed; a run updates an unedited macro from it.
+    previous: [
+      [
+        {
+          id: "get-the-drop",
+          label: "Get The Drop",
+          hint: "Once per session, initiative; allies add it too",
+          offer: { skills: ["Cool", "Vigilance"] },
+          amount: { label: "Your Stealth ranks" },
+          dice: { success: "amount" },
+        },
+      ],
+    ],
     options: [
       {
         id: "get-the-drop",
         label: "Get The Drop",
-        hint: "Once per session, initiative; allies add it too",
-        offer: { skills: ["Cool", "Vigilance"] },
+        hint: "Once per session; allies add it too",
+        offer: { initiative: true },
         amount: { label: "Your Stealth ranks" },
         dice: { success: "amount" },
       },
@@ -1788,12 +1803,25 @@ export const LIBRARY_ENTRIES = [
   {
     id: "master-strategist",
     names: ["Master Strategist"],
+    // The text earlier library runs installed; a run updates an unedited macro from it.
+    previous: [
+      [
+        {
+          id: "master-strategist",
+          label: "Master Strategist",
+          hint: "Mass Combat check; once per phase",
+          offer: { skills: ["Leadership", "Cool", "Discipline", "Knowledge: Warfare"] },
+          cost: { strain: 2 },
+          dice: { difficulty: -1 },
+        },
+      ],
+    ],
     options: [
       {
         id: "master-strategist",
         label: "Master Strategist",
         hint: "Mass Combat check; once per phase",
-        offer: { skills: ["Leadership", "Cool", "Discipline", "Knowledge: Warfare"] },
+        offer: { initiative: false, skills: ["Leadership", "Cool", "Discipline", "Knowledge: Warfare"] },
         cost: { strain: 2 },
         dice: { difficulty: -1 },
       },
@@ -1888,12 +1916,24 @@ export const LIBRARY_ENTRIES = [
   {
     id: "on-the-lookout",
     names: ["On The Lookout"],
+    // The text earlier library runs installed; a run updates an unedited macro from it.
+    previous: [
+      [
+        {
+          id: "on-the-lookout",
+          label: "On The Lookout",
+          hint: "Initiative, spend a Destiny Point; also allies up to your Cunning",
+          offer: { skills: ["Cool", "Vigilance"] },
+          dice: { success: 1 },
+        },
+      ],
+    ],
     options: [
       {
         id: "on-the-lookout",
         label: "On The Lookout",
-        hint: "Initiative, spend a Destiny Point; also allies up to your Cunning",
-        offer: { skills: ["Cool", "Vigilance"] },
+        hint: "Spend a Destiny Point; also allies up to your Cunning",
+        offer: { initiative: true },
         dice: { success: 1 },
       },
     ],
@@ -2248,12 +2288,25 @@ export const LIBRARY_ENTRIES = [
   {
     id: "rapid-reaction",
     names: ["Rapid Reaction"],
+    // The text earlier library runs installed; a run updates an unedited macro from it.
+    previous: [
+      [
+        {
+          id: "rapid-reaction",
+          label: "Rapid Reaction",
+          hint: "Initiative",
+          offer: { skills: ["Cool", "Vigilance"] },
+          amount: { max: "ranks", label: "Strain" },
+          cost: { strain: "amount" },
+          dice: { success: "amount" },
+        },
+      ],
+    ],
     options: [
       {
         id: "rapid-reaction",
         label: "Rapid Reaction",
-        hint: "Initiative",
-        offer: { skills: ["Cool", "Vigilance"] },
+        offer: { initiative: true },
         amount: { max: "ranks", label: "Strain" },
         cost: { strain: "amount" },
         dice: { success: "amount" },
@@ -2290,12 +2343,30 @@ export const LIBRARY_ENTRIES = [
   {
     id: "ready-for-anything",
     names: ["Ready for Anything"],
+    // The text earlier library runs installed; a run updates an unedited macro from it.
+    previous: [
+      [
+        {
+          id: "ready-for-anything",
+          label: "Ready for Anything",
+          hint: "Initiative (Cool or Vigilance) or Mass Combat checks",
+          offer: { skills: ["Cool", "Vigilance", "Leadership", "Discipline", "Knowledge: Warfare"] },
+          dice: { removeSetback: "ranks" },
+        },
+      ],
+    ],
     options: [
       {
         id: "ready-for-anything",
         label: "Ready for Anything",
-        hint: "Initiative (Cool or Vigilance) or Mass Combat checks",
-        offer: { skills: ["Cool", "Vigilance", "Leadership", "Discipline", "Knowledge: Warfare"] },
+        offer: { initiative: true, skills: ["Cool", "Vigilance"] },
+        dice: { removeSetback: "ranks" },
+      },
+      {
+        id: "ready-for-anything-mass-combat",
+        label: "Ready for Anything",
+        hint: "Mass Combat checks",
+        offer: { initiative: false, skills: ["Leadership", "Discipline", "Knowledge: Warfare"] },
         dice: { removeSetback: "ranks" },
       },
     ],
