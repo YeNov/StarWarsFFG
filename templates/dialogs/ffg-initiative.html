@@ -1,4 +1,14 @@
 <div id="{{id}}" class="dialog-content initiative-dialog dice-pool-dialog">
+  {{#if card}}
+  {{!-- The roll options card, as on the dice dialog (templates/dice/roll-options-ffg.html): the
+        initiative dialog moves it onto its window (RollOptionsCard#attach), so it hangs off the
+        right edge; it starts folded, and its tab shows how many rows are ticked. --}}
+  <aside class="ffg-roll-options-panel ffg-ro-collapsed" aria-hidden="true">
+    <div class="ffg-roll-options-inner"></div>
+    <button type="button" class="ffg-roll-options-toggle" aria-expanded="false"
+            title="{{localize "SWFFG.RollOptions.Panel.Toggle"}}"><span class="ffg-roll-options-count"></span></button>
+  </aside>
+  {{/if}}
   <div style="text-align: center;"><span>{{localize "SWFFG.InitiativePoolSelectorHint"}}</span></div>
   <div class="pool-selector">
     {{#each dicePools as |p key|}}
