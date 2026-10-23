@@ -197,6 +197,14 @@ combatant without one). In any dialog, one combatant that cannot roll never stop
   alias and the flavor use the combatant's name, and the hidden rule reads the combatant's own
   hidden flag. The scene is the combatant's, else the viewed one, else none.
 - A combatant that is not found, or that the user does not own, is skipped quietly, as today.
+- **Opening the dialog never fails on these either.** Today's dialog setup reads the combatant's
+  actor name, its system data and each listed skill's data before anything is rolled. It is
+  rebuilt so that a one-combatant dialog for an actorless combatant, or for an actor without
+  Vigilance or Cool, still opens: the title falls back to the combatant's name, and the skill
+  picker lists Vigilance and Cool plus any skill flagged for initiative that exists. The card is
+  only built for a roller with an actor (and a Pilot, for a vehicle). Its plans use an empty base
+  pool, plus the add table, whenever the picked skill has no data. That holds on every replan,
+  not only the first. The Roll then skips such a combatant with its warning.
 
 Calls made while writing this up *(mine)*:
 
@@ -249,6 +257,9 @@ library macros **in place**, so their uuids, and every link to them, stay valid:
 - When the run finds an existing library macro (by its library mark) whose JSON is structurally
   equal to one of its entry's earlier texts, the GM never edited it: the run rewrites its text to
   the entry's current options.
+- **Every** macro carrying a library mark is checked, not only the first per entry: a world can
+  hold two (a GM's duplicate, an import), and items may link either. The first stays the one new
+  links point at, as today.
 - A library macro whose JSON matches neither the current text nor an earlier one was edited by the
   GM and is left alone. The run's report lists it when its entry's text has changed, so the GM can
   bring it up to date by hand.
@@ -344,3 +355,7 @@ The user's review of the first plan found five problems; the sections above now 
   shows on initiative, so the talent cannot apply twice. Master Strategist gets `initiative: false`
   too *(my call)*.
 - The plan no longer names a personal email address.
+
+A second review of the revised plan added two more, also folded in above: the dialog's own setup
+is guarded against missing actors and skills (on every replan too), and the library run checks
+every macro carrying a library mark, not only the first per entry.

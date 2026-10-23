@@ -31,7 +31,7 @@
 - **An item linking the library macro and a custom macro** when the library run updates the library macro: the item keeps both links and gets the new text. Test in Task 3.
 - **Switching Vigilance and Cool with Rapid Reaction ticked at 3 strain**: the row stays ticked with its amount; a row the new skill does not offer is dropped. Test in Task 4 (`keepOffered`).
 - **A rival rolling initiative**: rows cost wounds and the footer reads "Wounds after roll". Test in Task 4.
-- **Roll All with nobody left to roll**, and **a group listing an actorless combatant**: nothing throws, the actorless one is skipped with its warning, the rest roll. Tests in Task 6 (`runInitiativeGroup`, `planInitiativeBatch`).
+- **Roll All with nobody left to roll**, and **an actorless combatant or an actor without the skill**: the dialog still opens (alone, or as the only one left for the shared dialog), nothing throws, the Roll skips it with its warning, and the rest roll. Tests in Task 6 (`initiativeDialogModel`, `initiativeBasePool`, `planInitiativeBatch`, `runInitiativeGroup`).
 
 ---
 
@@ -156,7 +156,12 @@ git commit -m "Offer the initiative talents on initiative rolls only"
 - Consumes: `entry.previous` (Task 2).
 - Produces:
   - `libraryMacroText(entry) → string` — `JSON.stringify(entry.options, null, 2)`; the runner uses it for created and updated macros.
-  - `planLibraryMacros(entries, existing: Array<{ uuid, libraryId, command? }>) → { create, uuidByEntry, update: Array<{ uuid, entryId, command }>, edited: Array<{ uuid, entryId }> }`. Only the first macro per library id counts, as today. A macro whose parsed `command` is structurally equal (key order and spacing ignored) to one of its entry's `previous` goes in `update` with `command = libraryMacroText(entry)`. One equal to neither the current options nor any `previous`, for an entry whose `previous` is not empty, goes in `edited`; an unparsable command counts as edited. The other macros are left out of both lists.
+  - `planLibraryMacros(entries, existing: Array<{ uuid, libraryId, command? }>) → { create, uuidByEntry, update: Array<{ uuid, entryId, command }>, edited: Array<{ uuid, entryId }> }`.
+    - `uuidByEntry` keeps the first macro per library id, as today: the macro new links point at.
+    - `update` and `edited` check **every** existing macro, in the order given.
+    - A macro whose parsed `command` is structurally equal to one of its entry's `previous` (key order and spacing ignored) goes in `update`, with `command = libraryMacroText(entry)`.
+    - A macro equal to neither the current options nor any `previous` goes in `edited`, but only when its entry's `previous` is not empty. An unparsable command counts as edited.
+    - Every other macro is left out of both lists.
 - Lang: `"SWFFG.RollOptions.Library.ReportUpdated": "Macros brought up to the library's current text: {names}."`, `"SWFFG.RollOptions.Library.ReportEdited": "Left as you edited them, although the library's text for them has changed: {names}."`; `ConfirmBody` ends `"Macros you edited and links you already have are left as they are; a library macro you never edited is brought up to the library's current text."`
 
 - [ ] **Step 1: Write the failing tests** (`const rr = ROLL_OPTION_LIBRARY.find((e) => e.id === "rapid-reaction")`; `const old = JSON.stringify(rr.previous[0], null, 2)`)
@@ -166,6 +171,7 @@ git commit -m "Offer the initiative talents on initiative rolls only"
 - `test("an edited library macro is left and reported")`: `command` = the old text with its hint changed → `update` `[]`, `edited` `[{ uuid: "Macro.rr", entryId: "rapid-reaction" }]`; `command: "not json"` → also `edited`.
 - `test("a current macro, or an edited one whose entry never changed, is left quietly")`: `command: libraryMacroText(rr)` → both lists empty; an `auto-fire` macro with an edited command → both lists empty.
 - `test("an item with the library link and a custom link keeps both")`: with the update planned above, `planItemLinks({ type: "talent", name: "Rapid Reaction", system: { rollOptions: ["Macro.rr", "Macro.mine"] } }, { uuidByEntry, isLive: () => true }).update` is `null`: nothing is relinked, the item keeps `Macro.rr`, and that is the uuid whose text the run updates.
+- `test("every macro of an entry is checked")`: existing `[{ uuid: "Macro.rr1", libraryId: "rapid-reaction", command: old }, { uuid: "Macro.rr2", libraryId: "rapid-reaction", command: old }]` → `update.map((u) => u.uuid)` is `["Macro.rr1", "Macro.rr2"]` and `uuidByEntry.get("rapid-reaction") === "Macro.rr1"`. With `Macro.rr2`'s hint edited → `update` lists only `Macro.rr1` and `edited` is `[{ uuid: "Macro.rr2", entryId: "rapid-reaction" }]`.
 - `test("running it again changes nothing")`: every entry present with `command: libraryMacroText(entry)` → `create`, `update` and `edited` all empty.
 
 - [ ] **Step 2: Run them to see them fail**
@@ -302,7 +308,19 @@ git commit -m "Keep the roll options card's code in one controller"
     - a vehicle without one, or whose Pilot the lookup cannot find, gives `{ actor, data: actor.system, needsPilot: true }`;
     - any other actor gives `{ actor, data: actor.system, needsPilot: false }`;
     - no actor gives `{ actor: null, data: null, needsPilot: false }`.
-  - `initiativePool(data, skillKey, added = {}) → DicePoolFFG | null` — `null` when `data?.skills?.[skillKey]` or that skill's characteristic value is missing. Otherwise the pool `_buildInitiativePool` in `combat-ffg.js` builds today, then the add table exactly as today: `success`, `advantage`, `failure`, `threat`, `boost` and `setback` added; `force` **set** to `added.force`; `upgrade(added.upgrades)`. It also records `pool.upgrades = Number(added.upgrades) || 0`. Missing `added` fields count 0.
+  - `initiativePool(data, skillKey, added = {}) → DicePoolFFG | null` — `null` when `data?.skills?.[skillKey]` or that skill's characteristic value is missing. Otherwise:
+    - the pool `_buildInitiativePool` in `combat-ffg.js` builds today;
+    - then the add table, exactly as today: `success`, `advantage`, `failure`, `threat`, `boost` and `setback` added; `force` **set** to `added.force`; then the upgrades applied;
+    - it also records `pool.upgrades = Number(added.upgrades) || 0`.
+
+    Missing `added` fields count 0. Pass `Number(added.upgrades) || 0` to `upgrade()`: `DicePoolFFG#upgrade(undefined)` upgrades once.
+  - `initiativeBasePool(data, skillKey, added = {}) → DicePoolFFG` — `initiativePool(...)`, or, when that is null, an empty pool with the add table applied the same way (upgrades recorded). The card plans on this, so it never lacks a pool.
+  - `initiativeDialogModel(ids, { combatantOf, lookupActor }) → { name: string|null, skills: Array<{ name, label }>, cardRoller: { actor, data }|null }` — what the dialog shows. It reads nothing that can be missing.
+    - For one id with a combatant:
+      - `name` is the roller's actor name, else the combatant's name, else `""`.
+      - `skills` lists first each skill in the roller's `data.skills` with `useForInitiative`, labelled with its own `label`, then `{ name: "Vigilance", label: "SWFFG.SkillsNameVigilance" }` and `{ name: "Cool", label: "SWFFG.SkillsNameCool" }` unless already listed.
+      - `cardRoller` is the roller when it has an actor and no `needsPilot`, else `null`.
+    - For several ids, or one id with no combatant: `name` is `null` (the caller titles it as today), `skills` is just Vigilance and Cool, and `cardRoller` is `null`.
   - `initiativeSkillLayer(data, skillKey) → { characteristic: number|null, rank: number|null }`.
   - `initiativeValue(ffg) → number` — `ffg.success + ffg.advantage * 0.01`.
   - `initiativeSpeaker(combatant, viewedSceneId) → { scene, actor, token, alias }` — `scene: combatant.sceneId ?? viewedSceneId ?? null`, `actor: combatant.actor?.id ?? null`, `token: combatant.token?.id ?? null`, `alias: combatant.token?.name ?? combatant.name ?? ""`.
@@ -331,6 +349,14 @@ git commit -m "Keep the roll options card's code in one controller"
 With `const data = { characteristics: { Willpower: { value: 3 } }, skills: { Vigilance: { characteristic: "Willpower", rank: 2, boost: 1, advantage: 0, success: 0 } } }`:
 - `test("the skill's initiative pool, as before")`: `initiativePool(data, "Vigilance")` has `proficiency 2, ability 1, boost 1, upgrades 0`; `initiativePool(data, "Cool")` and `initiativePool(null, "Vigilance")` are `null`.
 - `test("the add table, as before, with its upgrades recorded")`: `{ boost: 1, setback: 2, upgrades: 1, force: 1, success: 1, threat: 1 }` → `proficiency 3, ability 0, boost 2, setback 2, force 1, success 1, threat 1, upgrades 1`.
+- `test("a base pool even without the skill")`: `initiativeBasePool(data, "Cool", { boost: 1, upgrades: 1 })` → `ability 1, proficiency 0, boost 1, upgrades 1`; `initiativeBasePool(null, "Vigilance")` → an empty pool; `initiativeBasePool(data, "Vigilance")` equals `initiativePool(data, "Vigilance")`.
+- `test("the dialog opens for whoever is listed")`:
+  - one actorless combatant `ghost` (name "Ghost") → `{ name: "Ghost", skills: [Vigilance, Cool], cardRoller: null }`;
+  - one character `kira` without Cool but with Perception flagged `useForInitiative` (label "Perception") → `skills` names `["Perception", "Vigilance", "Cool"]` and `cardRoller.actor` is Kira;
+  - a vehicle without a Pilot → `cardRoller: null`;
+  - `["kira", "ghost"]` → `{ name: null, skills: [Vigilance, Cool], cardRoller: null }`;
+  - `["missing"]` → `name: null`.
+- `test("a shared dialog holding only an actorless combatant")`: `runInitiativeGroup(["a", "ghost"], …)` with talented `{ a }` and the answer `"talents"` opens `["ghost"]` without the card, then `["a"]` with it. For that shared dialog, `initiativeDialogModel(["ghost"], …)` returns without throwing, and `planInitiativeBatch(["ghost"], …)` gives `rolls: []` and `skipped: [{ id: "ghost", name: "Ghost", reason: "noActor" }]`.
 - `test("a Skill Rank buff over added upgrades")`: `layerPool(initiativePool(data, "Vigilance", { upgrades: 1 }), { buffs: [{ rows: [{ modtype: "Skill Rank", value: 1 }] }], skill: initiativeSkillLayer(data, "Vigilance") })` has `proficiency 3, ability 1` (`layerPool` from `modules/dice/roll-option-pool.js`).
 - `test("the skill layer")`: `initiativeSkillLayer(data, "Vigilance")` → `{ characteristic: 3, rank: 2 }`; for `"Cool"` → `{ characteristic: null, rank: null }`.
 - `test("the initiative value")`: `initiativeValue({ success: 2, advantage: 3 })` → `2.03`.
@@ -390,7 +416,7 @@ git commit -m "Pure helpers for initiative pools, rollers, batches and group rol
 - Modify: `lang/en.json` (after `SWFFG.InitiativePoolSelectorHint`)
 
 **Interfaces:**
-- Consumes: `RollOptionsCard` (Task 5); `initiativeRoller`, `initiativePool`, `initiativeSkillLayer`, `initiativeValue`, `initiativeSpeaker`, `initiativeHidden`, `planInitiativeBatch` (Task 6); `postThenPay` (`modules/dice/roll-costs.js`).
+- Consumes: `RollOptionsCard` (Task 5); `initiativeDialogModel`, `initiativeBasePool`, `initiativeSkillLayer`, `initiativeValue`, `initiativeSpeaker`, `initiativeHidden`, `planInitiativeBatch` (Task 6); `postThenPay` (`modules/dice/roll-costs.js`).
 - Produces on `CombatFFG`:
   - `async _openInitiativeDialog(ids: string[], { formula, updateTurn, messageOptions }, { withCard: boolean }) → Promise<void>` — resolves when the dialog closes, rolled or not.
   - `async _rollInitiativeBatch(ids, { skill: string, added: object, card: RollOptionsCard|null, updateTurn, messageOptions }) → Promise<void>`.
@@ -409,15 +435,20 @@ git commit -m "Pure helpers for initiative pools, rollers, batches and group rol
 
 - [ ] **Step 2: Rebuild `rollInitiative` around the two methods**
 
-`_openInitiativeDialog` builds today's dialog: the title, the skill pools and the add table, with the same `render` wiring for the add buttons. It awaits `DialogV2.wait`, and combatants are looked up with `this.combatants.get(id)`.
+`_openInitiativeDialog` builds the dialog from `initiativeDialogModel(ids, { combatantOf: (id) => this.combatants.get(id), lookupActor: (id) => game.actors.get(id) })`, and from nothing else:
+- the title uses `model.name`, or today's text for several combatants when it is `null`;
+- the skill picker's radios come from `model.skills`;
+- the add table and its `render` wiring stay as today.
 
-With `withCard` and one id whose roller has an actor and no `needsPilot`, it:
-- creates `new RollOptionsCard({ actor: roller.actor, skill: { key, ...initiativeSkillLayer(roller.data, key) }, initiative: true })` for the default skill;
+Setup no longer reads `c.actor`, `data.skills` or a skill pool. The template's unused per-skill pool blocks get no data. It awaits `DialogV2.wait`.
+
+With `withCard` and a `model.cardRoller`, it:
+- creates `new RollOptionsCard({ actor: cardRoller.actor, skill: { key, ...initiativeSkillLayer(cardRoller.data, key) }, initiative: true })` for the default skill;
 - awaits `load()`;
-- plans with `{ basePool: initiativePool(roller.data, key) ?? new DicePoolFFG() }`;
+- plans with `{ basePool: initiativeBasePool(cardRoller.data, key) }`;
 - passes `card: true` to the template.
 
-In `render`, it calls `card.attach(dialog.element, replan)` and `card.render()`. A change of the skill radio calls `card.setSkill(...)` and then `replan`. Each add-dice click calls `replan`, which plans with `initiativePool(roller.data, skill, added)` from the dialog's current inputs, then renders the card.
+In `render`, it calls `card.attach(dialog.element, replan)` and `card.render()`. A change of the skill radio calls `card.setSkill(...)` and then `replan`. Each add-dice click calls `replan`, which plans with `initiativeBasePool(cardRoller.data, skill, added)` from the dialog's current inputs, then renders the card. The first plan and every replan both go through `initiativeBasePool`, so a missing skill never leaves the card without a pool.
 
 The Roll callback reads the skill and the add table (`DicePoolFFG.fromContainer`) and awaits `_rollInitiativeBatch`.
 
