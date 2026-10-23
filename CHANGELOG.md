@@ -20,6 +20,7 @@
 * Fixed — **rolls opened by modules such as Token Action HUD showed no roll options or buffs tied to a skill**: the module opens the dice dialog without naming the skill's key, characteristic and rank. The dialog now works them out from the actor, so these rolls offer the same options and buffs as a roll from the sheet.
 * Fixed — **crew rolls and skill rolls from modules such as Token Action HUD ignored the skill's upgrades** (from talents, for example), which a roll from the sheet applies. They now apply them too.
 * Fixed — **a roll that failed to reach chat still used up the actor's one-check effects and a round of ammo**. Both are now spent only once the roll has posted, so the roll can simply be made again.
+  * The same holds when a module cancels the chat message: nothing is spent, and no roll option strain is charged.
 * Fixed — **Apply Crit added nothing when the table row links an item from a compendium**: the draw appeared in chat, but the target got no injury. Compendium items are now added like world items, and a row with no linked item says so instead of failing silently.
 * Fixed — **an Apply Crit total above the table's highest row was quietly rolled again until it fit**, so the worst results never came up. It now lands on the top row (the book's 151+).
 * Fixed — **Apply Crit posted its result publicly even after a whispered or blind attack**. The draw and the injury now go to whoever saw the attack.
