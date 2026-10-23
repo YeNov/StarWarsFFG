@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import { ROLL_OPTION_LIBRARY } from "../../modules/config/roll-option-library.js";
-import { planItemLinks, planLibraryMacros } from "../../modules/helpers/roll-option-library-plan.js";
+import { libraryMacroText, planItemLinks, planLibraryMacros } from "../../modules/helpers/roll-option-library-plan.js";
 
 /**
  * What the GM's library run creates and links
@@ -21,7 +21,7 @@ function apply(data, update) {
   return next;
 }
 
-test("existing macros are reused and never rewritten", () => {
+test("existing macros are reused, not recreated", () => {
   const { create, uuidByEntry: map } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.af", libraryId: "auto-fire" }]);
   assert.equal(create.length, ROLL_OPTION_LIBRARY.length - 1);
   assert.equal(create.some((entry) => entry.id === "auto-fire"), false);
@@ -127,4 +127,68 @@ test("running twice changes nothing the second time", () => {
     assert.ok(first.update, item.name);
     assert.equal(plan(apply(item, first.update)).update, null, item.name);
   }
+});
+
+/* Updating library macros in place (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md, "The library"). */
+
+const rr = ROLL_OPTION_LIBRARY.find((entry) => entry.id === "rapid-reaction");
+const old = JSON.stringify(rr.previous[0], null, 2);
+const editedOld = JSON.stringify(rr.previous[0].map((option) => ({ ...option, hint: "Mine" })), null, 2);
+
+test("an unedited library macro is updated in place", () => {
+  const { create, uuidByEntry: map, update, edited } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.rr", libraryId: "rapid-reaction", command: old }]);
+  assert.deepEqual(update, [{ uuid: "Macro.rr", entryId: "rapid-reaction", command: libraryMacroText(rr) }]);
+  assert.deepEqual(edited, []);
+  assert.equal(map.get("rapid-reaction"), "Macro.rr");
+  assert.equal(create.some((entry) => entry.id === "rapid-reaction"), false);
+});
+
+test("key order and spacing do not count as an edit", () => {
+  const reordered = JSON.stringify(rr.previous[0].map((option) => Object.fromEntries(Object.entries(option).reverse())));
+  const { update } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.rr", libraryId: "rapid-reaction", command: reordered }]);
+  assert.deepEqual(update, [{ uuid: "Macro.rr", entryId: "rapid-reaction", command: libraryMacroText(rr) }]);
+});
+
+test("an edited library macro is left and reported", () => {
+  const edits = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.rr", libraryId: "rapid-reaction", command: editedOld }]);
+  assert.deepEqual([edits.update, edits.edited], [[], [{ uuid: "Macro.rr", entryId: "rapid-reaction" }]]);
+  const broken = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.rr", libraryId: "rapid-reaction", command: "not json" }]);
+  assert.deepEqual([broken.update, broken.edited], [[], [{ uuid: "Macro.rr", entryId: "rapid-reaction" }]]);
+});
+
+test("a current macro, or an edited one whose entry never changed, is left quietly", () => {
+  const current = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.rr", libraryId: "rapid-reaction", command: libraryMacroText(rr) }]);
+  assert.deepEqual([current.update, current.edited], [[], []]);
+  const autoFire = ROLL_OPTION_LIBRARY.find((entry) => entry.id === "auto-fire");
+  const mine = JSON.stringify(autoFire.options.map((option) => ({ ...option, hint: "Mine" })));
+  const quiet = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.af", libraryId: "auto-fire", command: mine }]);
+  assert.deepEqual([quiet.update, quiet.edited], [[], []]);
+});
+
+test("every macro of an entry is checked", () => {
+  const both = planLibraryMacros(ROLL_OPTION_LIBRARY, [
+    { uuid: "Macro.rr1", libraryId: "rapid-reaction", command: old },
+    { uuid: "Macro.rr2", libraryId: "rapid-reaction", command: old },
+  ]);
+  assert.deepEqual(both.update.map((u) => u.uuid), ["Macro.rr1", "Macro.rr2"]);
+  assert.equal(both.uuidByEntry.get("rapid-reaction"), "Macro.rr1");
+  const one = planLibraryMacros(ROLL_OPTION_LIBRARY, [
+    { uuid: "Macro.rr1", libraryId: "rapid-reaction", command: old },
+    { uuid: "Macro.rr2", libraryId: "rapid-reaction", command: editedOld },
+  ]);
+  assert.deepEqual(one.update.map((u) => u.uuid), ["Macro.rr1"]);
+  assert.deepEqual(one.edited, [{ uuid: "Macro.rr2", entryId: "rapid-reaction" }]);
+});
+
+test("an item with the library link and a custom link keeps both", () => {
+  const { uuidByEntry: map, update } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.rr", libraryId: "rapid-reaction", command: old }]);
+  const item = { type: "talent", name: "Rapid Reaction", system: { rollOptions: ["Macro.rr", "Macro.mine"] } };
+  assert.equal(planItemLinks(item, { uuidByEntry: map, isLive: () => true }).update, null, "nothing to relink");
+  assert.deepEqual(update.map((u) => u.uuid), ["Macro.rr"], "the macro the item links is the one updated");
+});
+
+test("running it again changes nothing", () => {
+  const existing = ROLL_OPTION_LIBRARY.map((entry) => ({ uuid: `Macro.${entry.id}`, libraryId: entry.id, command: libraryMacroText(entry) }));
+  const again = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
+  assert.deepEqual([again.create, again.update, again.edited], [[], [], []]);
 });

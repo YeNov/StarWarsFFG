@@ -4,8 +4,9 @@
  *
  *   game.ffg.rollOptions.installLibrary()
  *
- * It creates the library's macros in a "Roll options" folder (never touching one already there,
- * even if the GM edited it), then links them into every matching talent and quality it can edit:
+ * It creates the library's macros in a "Roll options" folder, brings a library macro still holding
+ * an earlier library text up to the current one in place (so every link to it stays good), never
+ * touches a macro the GM edited (it names those whose library text changed), then links them into every matching talent and quality it can edit:
  * world items, world actors' items, unlinked tokens' items on every scene, and unlocked Item and
  * Actor compendiums. Locked compendiums are skipped and named. A place that already has a live link
  * is left alone, so running it again changes nothing. The decisions are in
@@ -15,7 +16,7 @@
  * the macros keep their default ownership.
  */
 import { ROLL_OPTION_LIBRARY } from "../config/roll-option-library.js";
-import { planItemLinks, planLibraryMacros } from "./roll-option-library-plan.js";
+import { libraryMacroText, planItemLinks, planLibraryMacros } from "./roll-option-library-plan.js";
 
 const SCOPE = "starwarsffg";
 
@@ -44,6 +45,12 @@ function reportContent(report) {
   lines.push(`<p>${escape(report.created.length > 0
     ? t("SWFFG.RollOptions.Library.ReportCreated", { names: report.created.join(", ") })
     : t("SWFFG.RollOptions.Library.ReportNoneCreated"))}</p>`);
+  if (report.updated.length > 0) {
+    lines.push(`<p>${escape(t("SWFFG.RollOptions.Library.ReportUpdated", { names: report.updated.join(", ") }))}</p>`);
+  }
+  if (report.edited.length > 0) {
+    lines.push(`<p>${escape(t("SWFFG.RollOptions.Library.ReportEdited", { names: report.edited.join(", ") }))}</p>`);
+  }
 
   if (report.linked.length > 0) {
     lines.push(`<p>${escape(t("SWFFG.RollOptions.Library.ReportLinked", { count: report.linked.length }))}</p>`);
@@ -84,19 +91,33 @@ export async function installRollOptionLibrary() {
   });
   if (!confirmed) return null;
 
-  const report = { created: [], linked: [], lockedPacks: [], modulePacks: [], errors: [] };
+  const report = { created: [], updated: [], edited: [], linked: [], lockedPacks: [], modulePacks: [], errors: [] };
 
-  // 1. The library's macros: reuse every one already in the world, create the rest.
-  const existing = game.macros
-    .filter((macro) => macro.getFlag(SCOPE, "rollOptionLibraryId"))
-    .map((macro) => ({ uuid: macro.uuid, libraryId: macro.getFlag(SCOPE, "rollOptionLibraryId") }));
-  const { create, uuidByEntry } = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
+  // 1. The library's macros: reuse every one already in the world, bring the unedited ones up to the
+  //    library's current text in place, and create the rest.
+  const libraryMacros = game.macros.filter((macro) => macro.getFlag(SCOPE, "rollOptionLibraryId"));
+  const existing = libraryMacros.map((macro) => ({
+    uuid: macro.uuid,
+    libraryId: macro.getFlag(SCOPE, "rollOptionLibraryId"),
+    command: macro.command,
+  }));
+  const { create, uuidByEntry, update, edited } = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
+  const macroByUuid = new Map(libraryMacros.map((macro) => [macro.uuid, macro]));
+  if (update.length > 0) {
+    try {
+      await Macro.updateDocuments(update.map(({ uuid, command }) => ({ _id: macroByUuid.get(uuid).id, command })));
+      for (const { uuid } of update) report.updated.push(macroByUuid.get(uuid).name);
+    } catch (error) {
+      report.errors.push(`${game.i18n.localize("SWFFG.RollOptions.Library.FolderName")}: ${error?.message ?? error}`);
+    }
+  }
+  for (const { uuid } of edited) report.edited.push(macroByUuid.get(uuid).name);
   if (create.length > 0) {
     const folder = await libraryFolder();
     const created = await Macro.createDocuments(create.map((entry) => ({
       name: entry.macroName,
       type: "script",
-      command: JSON.stringify(entry.options, null, 2),
+      command: libraryMacroText(entry),
       folder: folder?.id ?? null,
       flags: { [SCOPE]: { rollOption: true, rollOptionLibraryId: entry.id } },
     })));
