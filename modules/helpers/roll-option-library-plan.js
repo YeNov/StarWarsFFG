@@ -7,7 +7,9 @@
  * qualities on weapons, armour and attachments, the modifications inside attachments installed on
  * weapons and armour, and specialization tree nodes, learned or not. Species only hold references
  * to their talents and are skipped. A place is linked only when it has no live link: none, or only
- * links to macros that no longer exist. Running it again changes nothing.
+ * links to macros that no longer exist. A library macro still holding an earlier library text
+ * (`entry.previous`) gets the current one in place, so its links stay good; one the GM edited is
+ * left alone, and named when its entry's text changed. Running it again changes nothing.
  *
  * Plain data in, updates out; the runner (roll-option-library-run.js) gathers the documents and
  * applies the result. Free of Foundry globals, so Node covers it
@@ -16,17 +18,65 @@
 import { libraryEntryFor } from "../config/roll-option-library.js";
 
 /**
- * Which library macros to create, and the uuid of each entry's macro once it exists.
- * @param {Array<{id: string}>} entries - the library
- * @param {Array<{uuid: string, libraryId: string}>} existing - library macros already in the world
- * @returns {{create: Array<object>, uuidByEntry: Map<string, string>}}
+ * A library entry's macro text, as the run writes it when it creates or updates the macro.
+ * @param {{options: object[]}} entry
+ * @returns {string}
+ */
+export function libraryMacroText(entry) {
+  return JSON.stringify(entry.options, null, 2);
+}
+
+/** A value with its object keys sorted, so key order does not tell two option texts apart. */
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
+  }
+  return value;
+}
+
+/** The macro text's options in canonical form, or null when it is not JSON. */
+function parsedText(command) {
+  try {
+    return JSON.stringify(canonical(JSON.parse(command)));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Which library macros to create, which to update in place, which the GM edited, and the uuid of
+ * each entry's macro once it exists.
+ *
+ * New links point at the first macro of each entry. Every macro is checked against its entry: one
+ * still holding an earlier library text (`entry.previous`; key order and spacing aside) was never
+ * edited and gets the current text; one holding neither the current text nor an earlier one was
+ * edited, and is listed only when its entry's text has changed, so the GM hears about it.
+ * @param {Array<{id: string, options: object[], previous?: object[][]}>} entries - the library
+ * @param {Array<{uuid: string, libraryId: string, command?: string}>} existing - library macros already in the world
+ * @returns {{create: Array<object>, uuidByEntry: Map<string, string>,
+ *   update: Array<{uuid: string, entryId: string, command: string}>, edited: Array<{uuid: string, entryId: string}>}}
  */
 export function planLibraryMacros(entries, existing) {
+  const byId = new Map((entries ?? []).map((entry) => [entry.id, entry]));
   const uuidByEntry = new Map();
-  for (const { uuid, libraryId } of existing ?? []) {
-    if (uuid && libraryId && !uuidByEntry.has(libraryId)) uuidByEntry.set(libraryId, uuid);
+  const update = [];
+  const edited = [];
+  for (const { uuid, libraryId, command } of existing ?? []) {
+    if (!uuid || !libraryId) continue;
+    if (!uuidByEntry.has(libraryId)) uuidByEntry.set(libraryId, uuid);
+    const entry = byId.get(libraryId);
+    const previous = entry?.previous ?? [];
+    if (!entry || previous.length === 0) continue;
+    const text = parsedText(command);
+    if (text !== null && text === JSON.stringify(canonical(entry.options))) continue;
+    if (text !== null && previous.some((earlier) => text === JSON.stringify(canonical(earlier)))) {
+      update.push({ uuid, entryId: libraryId, command: libraryMacroText(entry) });
+    } else {
+      edited.push({ uuid, entryId: libraryId });
+    }
   }
-  return { create: (entries ?? []).filter((entry) => !uuidByEntry.has(entry.id)), uuidByEntry };
+  return { create: (entries ?? []).filter((entry) => !uuidByEntry.has(entry.id)), uuidByEntry, update, edited };
 }
 
 /**

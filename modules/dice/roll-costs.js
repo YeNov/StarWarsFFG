@@ -26,7 +26,8 @@ export function onceEffectIds(effects) {
 
 /**
  * Post the roll, then pay its costs. When the post fails, nothing is paid and the error is
- * passed on. A cost that fails is reported and does not stop the others: the roll is already in
+ * passed on; when a hook cancels it (no message comes back), nothing is paid either. A cost
+ * that fails is reported and does not stop the others: the roll is already in
  * chat by then.
  * @param {() => Promise<*>} post - creates the chat message
  * @param {Array<() => Promise<*>>} costs - each pays one cost
@@ -36,6 +37,9 @@ export function onceEffectIds(effects) {
  */
 export async function postThenPay(post, costs, { onCostError = reportCostError } = {}) {
   const result = await post();
+  // A preCreateChatMessage hook that refuses the message makes ChatMessage.create resolve
+  // undefined (one message) or [] (a list): the roll never reached chat, so nothing is paid.
+  if (result === undefined || result === null || (Array.isArray(result) && result.length === 0)) return result;
   for (const pay of costs) {
     try {
       await pay();

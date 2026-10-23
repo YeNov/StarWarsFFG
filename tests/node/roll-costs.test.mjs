@@ -56,3 +56,17 @@ test("only once-only effects are consumed, whichever field carries the marker", 
 
   assert.deepEqual(onceEffectIds(effects), ["flagged", "legacy"]);
 });
+
+test("a post a hook cancelled costs nothing (Codex review)", async () => {
+  // ChatMessage.create resolves undefined for one message and [] for a list when a
+  // preCreateChatMessage hook refuses them: the roll never reached chat.
+  for (const cancelled of [undefined, null, []]) {
+    let paid = 0;
+    const result = await postThenPay(async () => cancelled, [async () => { paid += 1; }]);
+    assert.equal(paid, 0, `nothing paid for ${JSON.stringify(cancelled)}`);
+    assert.deepEqual(result, cancelled);
+  }
+  let paid = 0;
+  await postThenPay(async () => [{ id: "m1" }], [async () => { paid += 1; }]);
+  assert.equal(paid, 1, "a list with a message in it is a post");
+});

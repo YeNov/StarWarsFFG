@@ -5,6 +5,7 @@ import "./_stub/foundry-stub.mjs";
 import { ROLL_OPTION_LIBRARY, libraryEntryFor } from "../../modules/config/roll-option-library.js";
 import { defaultSkillList } from "../../modules/config/ffg-skillslist.js";
 import { normalizeName, validateOptions } from "../../modules/helpers/roll-options.js";
+import { collectOfferedOptions } from "../../modules/helpers/roll-options-offer.js";
 
 /**
  * The roll option library (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md,
@@ -270,4 +271,54 @@ test("Saber Swarm is declared with a Lightsaber attack, and Silent Takedown cost
 test("hints keep the conditions the rules set (implementation review)", () => {
   assert.match(byId("respond-in-kind").options[0].hint, /next/i);
   assert.match(byId("improvised-detonation-supreme").options[0].hint, /three times/i);
+});
+
+/* Initiative rolls (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md, "The library"). */
+
+test("the initiative talents are offered on initiative rolls only", () => {
+  for (const id of ["rapid-reaction", "get-the-drop", "on-the-lookout"]) {
+    assert.equal(byId(id).options.length, 1, id);
+    assert.deepEqual(byId(id).options[0].offer, { initiative: true }, id);
+  }
+  assert.deepEqual(byId("ready-for-anything").options.map((o) => [o.id, o.offer, o.dice, o.hint]), [
+    ["ready-for-anything", { initiative: true, skills: ["Cool", "Vigilance"] }, { removeSetback: "ranks" }, undefined],
+    ["ready-for-anything-mass-combat", { initiative: false, skills: ["Leadership", "Discipline", "Knowledge: Warfare"] }, { removeSetback: "ranks" }, "Mass Combat checks"],
+  ]);
+  assert.deepEqual(byId("master-strategist").options[0].offer, { initiative: false, skills: ["Leadership", "Cool", "Discipline", "Knowledge: Warfare"] });
+  const rapid = byId("rapid-reaction").options[0];
+  assert.deepEqual([rapid.hint, rapid.amount, rapid.cost, rapid.dice], [undefined, { max: "ranks", label: "Strain" }, { strain: "amount" }, { success: "amount" }]);
+  assert.equal(byId("get-the-drop").options[0].hint, "Once per session; allies add it too");
+  assert.equal(byId("on-the-lookout").options[0].hint, "Spend a Destiny Point; also allies up to your Cunning");
+});
+
+test("Ready for Anything removes its Setback once per roll", () => {
+  const items = [{ id: "t1", name: "Ready for Anything", type: "talent", system: { rollOptions: ["Macro.rfa"], ranks: { ranked: true, current: 2 } } }];
+  const macros = new Map([["Macro.rfa", { ok: true, options: byId("ready-for-anything").options }]]);
+  const ids = (over) => collectOfferedOptions({
+    items, macros,
+    context: { skillKey: null, skillType: null, weaponId: null, isAttack: false, isForcePower: false, isInitiative: false, forceRating: 0, ...over },
+  }).map((row) => row.key.split(":")[2]);
+  assert.deepEqual(ids({ skillKey: "Leadership", isInitiative: true }), []);
+  assert.deepEqual(ids({ skillKey: "Cool", isInitiative: true }), ["ready-for-anything"]);
+  assert.deepEqual(ids({ skillKey: "Leadership" }), ["ready-for-anything-mass-combat"]);
+  assert.deepEqual(ids({ skillKey: "Cool" }), []);
+});
+
+test("changed entries keep the text they had", () => {
+  const earlier = {
+    "rapid-reaction": [{ skills: ["Cool", "Vigilance"] }, "Initiative"],
+    "get-the-drop": [{ skills: ["Cool", "Vigilance"] }, "Once per session, initiative; allies add it too"],
+    "on-the-lookout": [{ skills: ["Cool", "Vigilance"] }, "Initiative, spend a Destiny Point; also allies up to your Cunning"],
+    "ready-for-anything": [{ skills: ["Cool", "Vigilance", "Leadership", "Discipline", "Knowledge: Warfare"] }, "Initiative (Cool or Vigilance) or Mass Combat checks"],
+    "master-strategist": [{ skills: ["Leadership", "Cool", "Discipline", "Knowledge: Warfare"] }, "Mass Combat check; once per phase"],
+  };
+  for (const [id, [offer, hint]] of Object.entries(earlier)) {
+    const { previous } = byId(id);
+    assert.equal(previous.length, 1, id);
+    assert.equal(validateOptions(previous[0]).ok, true, id);
+    assert.deepEqual([previous[0][0].offer, previous[0][0].hint], [offer, hint], id);
+  }
+  for (const entry of ROLL_OPTION_LIBRARY) {
+    if (!(entry.id in earlier)) assert.deepEqual(entry.previous, [], entry.id);
+  }
 });

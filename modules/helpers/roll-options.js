@@ -7,7 +7,7 @@
  * code it runs. Every key is optional:
  *
  *   { id, label, hint,
- *     offer: { skills, skillTypes, attack, twoWeapons, minDifficulty },
+ *     offer: { skills, skillTypes, attack, twoWeapons, minDifficulty, initiative },
  *     amount: { max, label },
  *     cost: { strain, maneuvers },
  *     dice: { boost, setback, removeSetback, difficulty,
@@ -21,6 +21,9 @@
  * Destiny pool). A word may carry a minus ("-ranks"). `amount.max` is a positive whole number or
  * one of the words, or is left out for no cap beyond the payer's strain. `choices` are the
  * either/or branches of one row (the first is the default); their dice add to the option's own.
+ * `offer.initiative` true offers a row on initiative rolls only, false never on them; left out, an
+ * initiative roll is like any check of its skill
+ * (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md).
  *
  * The validator collects every problem rather than stopping at the first, so a GM sees them all at
  * once. Errors are data ({option, key, code}); the Foundry side turns them into localized text.
@@ -52,7 +55,7 @@ export const TWO_WEAPONS_OFFERS = Object.freeze(["same", "different", "any"]);
 export const LINK_ITEM_TYPES = Object.freeze(["talent", "weapon", "armour", "gear", "itemattachment", "itemmodifier"]);
 
 const OPTION_KEYS = ["id", "label", "hint", "offer", "amount", "cost", "dice", "difficultyFloor", "characteristic", "skill", "choices"];
-const OFFER_KEYS = ["skills", "skillTypes", "attack", "twoWeapons", "minDifficulty"];
+const OFFER_KEYS = ["skills", "skillTypes", "attack", "twoWeapons", "minDifficulty", "initiative"];
 const AMOUNT_KEYS = ["max", "label"];
 const COST_KEYS = ["strain", "maneuvers"];
 const CHOICE_KEYS = ["id", "label", "dice"];
@@ -215,6 +218,7 @@ function checkOffer(offer, fail) {
     else if (!offer.skillTypes.every((type) => SKILL_TYPES.includes(type))) fail("offer.skillTypes", "notSkillType");
   }
   if ("attack" in offer && typeof offer.attack !== "boolean") fail("offer.attack", "notBoolean");
+  if ("initiative" in offer && typeof offer.initiative !== "boolean") fail("offer.initiative", "notBoolean");
   if ("twoWeapons" in offer && !TWO_WEAPONS_OFFERS.includes(offer.twoWeapons)) fail("offer.twoWeapons", "notTwoWeapons");
   if ("minDifficulty" in offer && !(Number.isInteger(offer.minDifficulty) && offer.minDifficulty >= 1)) {
     fail("offer.minDifficulty", "notMinDifficulty");

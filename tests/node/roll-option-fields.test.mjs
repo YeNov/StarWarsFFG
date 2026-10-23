@@ -43,9 +43,10 @@ test("saving an attachment keeps its modifications' links (final review, Importa
   assert.match(standalone, /keepCopyFields\(this\.object\.system\?\.itemmodifier, expanded\.system\.itemmodifier\)/);
 });
 
-test("every reason the planner gives is put in words by the dialog (talent review batch)", () => {
+test("every reason the planner gives is put in words by the card (talent review batch)", () => {
   const planner = read("modules/helpers/roll-option-costs.js");
-  const dialog = read("modules/dice/roll-builder.js");
+  // optionReasonText, shared by the dice dialog and the initiative dialog.
+  const dialog = read("modules/helpers/roll-option-card.js");
   const en = JSON.parse(read("lang/en.json"));
   const codes = [...new Set([...planner.matchAll(/reasonFor\("(\w+)"/g)].map((m) => m[1]))];
   assert.ok(codes.length >= 11, `found ${codes.length} reason codes`);
@@ -69,10 +70,15 @@ test("item Upgrade and Downgrade Ability modifiers are recorded on the pool (imp
 
 test("the dialog fills in a missing skill key, characteristic and rank before it reads them (Token Action HUD)", () => {
   const dialog = read("modules/dice/roll-builder.js");
-  const collect = dialog.slice(dialog.indexOf("_collectOptionalBuffs() {"), dialog.indexOf("_tickedBuffs() {"));
-  assert.ok(collect.indexOf("rollSkillContext(") > 0, "_collectOptionalBuffs calls rollSkillContext");
-  assert.ok(collect.indexOf("rollSkillContext(") < collect.indexOf("collectOfferedBuffs("), "before the buffs read the skill key");
-  assert.ok(dialog.indexOf("this._optionalBuffs = this._collectOptionalBuffs()") < dialog.indexOf("this._optionInputs = rollOptionInputs("), "before the roll options read it");
+  const resolve = dialog.slice(dialog.indexOf("_resolveRollActor() {"));
+  assert.ok(resolve.indexOf("rollSkillContext(") > 0, "_resolveRollActor calls rollSkillContext");
+  // The card (roll-options-card.js) reads the skill key for its buffs and roll options when it is
+  // made, so the key must be filled in before.
+  assert.ok(dialog.indexOf("this._resolveRollActor()") > 0, "the constructor resolves the actor");
+  assert.ok(dialog.indexOf("this._resolveRollActor()") < dialog.indexOf("new RollOptionsCard("), "before the card reads the skill key");
+  const card = read("modules/dice/roll-options-card.js");
+  assert.match(card, /collectOfferedBuffs\(\{[\s\S]*?skillKey: this\.skill\.key/);
+  assert.match(card, /rollOptionInputs\(this\.actor, \{\s*skillKey: this\.skill\.key/);
 });
 
 test("the roll options card starts folded, its tab saying so", () => {
@@ -85,8 +91,21 @@ test("the roll options card starts folded, its tab saying so", () => {
 test("hovering an option row shows its source's description", () => {
   const panel = read("templates/dice/parts/roll-options-panel.html");
   assert.ok(panel.includes('{{#if option.tooltip}} data-tooltip-html="{{option.tooltip}}" data-tooltip-class="ffg-ro-tooltip"{{/if}}'));
-  const dialog = read("modules/dice/roll-builder.js");
-  assert.ok(dialog.includes("PopoutEditor.renderDiceImages(option.description, this._rollActor)"));
-  assert.ok(dialog.includes("tooltip: this._optionTooltips?.get(option.key) ?? null"));
+  const card = read("modules/dice/roll-options-card.js");
+  assert.ok(card.includes("PopoutEditor.renderDiceImages(option.description, this.actor)"));
+  assert.ok(card.includes("tooltips: this.tooltips"), "the card hands its tooltips to the context");
+  assert.ok(read("modules/helpers/roll-option-card.js").includes("tooltip: tooltips?.get?.(option.key) ?? null"));
   assert.ok(read("styles/mandar.css").includes("#tooltip.ffg-ro-tooltip {"));
+});
+
+test("an initiative roll fixes its charge and chat lines when it plans, before any await (final review)", () => {
+  const combat = read("modules/combat-ffg.js");
+  const batch = combat.slice(combat.indexOf("async _rollInitiativeBatch("), combat.indexOf("// Update multiple combatants"));
+  const planned = batch.slice(batch.indexOf("card.plan({ basePool: base });"), batch.indexOf("await new RollFFG("));
+  assert.ok(planned.length > 0, "the card is planned before the roll");
+  for (const call of ["card.entries()", "card.pool(", "card.chargeAfterPost(", "card.rollOptionsText(", "card.optionalBuffsText()"]) {
+    assert.ok(planned.includes(call), `${call} is read with the plan, before the roll's awaits`);
+  }
+  const after = combat.slice(combat.indexOf("// Update multiple combatants"), combat.indexOf("// Update multiple combatants") + 1500);
+  assert.ok(!after.includes("card."), "nothing is read off the card after the awaits");
 });

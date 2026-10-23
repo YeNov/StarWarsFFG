@@ -1,8 +1,40 @@
 import {DicePoolFFG, RollFFG} from "./dice-pool-ffg.js";
 import PopoutEditor from "./popout-editor.js";
-import { crewRollOptions, withGroupSkillRanks } from "./helpers/minion-group.js";
+import { postThenPay } from "./dice/roll-costs.js";
+import { loadOptionMacros, RollOptionsCard } from "./dice/roll-options-card.js";
+import {
+  initiativeBasePool, initiativeDialogModel, initiativeHidden, initiativeMacroUuids, initiativeSkillLayer, initiativeSpeaker,
+  initiativeValue, planInitiativeBatch, rollTracker, runInitiativeGroup, talentedCombatants,
+} from "./helpers/initiative-roll.js";
 
 const { DialogV2 } = foundry.applications.api;
+
+/** The warning for a combatant an initiative dialog could not roll, by planInitiativeBatch's reason. */
+const INITIATIVE_SKIPPED = Object.freeze({
+  noActor: "SWFFG.InitiativeSkipped.NoActor",
+  needsPilot: "SWFFG.InitiativeSkipped.NeedsPilot",
+  noSkill: "SWFFG.InitiativeSkipped.NoSkill",
+});
+
+/**
+ * Ask whether a group roll uses talents.
+ * @param {string[]} names - the talented combatants
+ * @returns {Promise<"talents"|"together"|null>} null when the prompt is closed
+ */
+async function askInitiativeTalents(names) {
+  const list = names.map((name) => foundry.utils.escapeHTML(name)).join(", ");
+  const answer = await DialogV2.wait({
+    window: { title: game.i18n.localize("SWFFG.InitiativeTalents.Title") },
+    classes: ["starwarsffg", "ffg-initiative-talents-dialog"],
+    content: `<p>${game.i18n.format("SWFFG.InitiativeTalents.Body", { names: list })}</p>`,
+    buttons: [
+      { action: "talents", icon: "fas fa-check", label: game.i18n.localize("SWFFG.InitiativeTalents.WithTalents"), default: true },
+      { action: "together", icon: "fas fa-users", label: game.i18n.localize("SWFFG.InitiativeTalents.AllTogether") },
+    ],
+    rejectClose: false,
+  });
+  return answer === "talents" || answer === "together" ? answer : null;
+}
 
 /**
  * Extend the base Combat entity.
@@ -170,91 +202,116 @@ export class CombatFFG extends Combat {
     return CONFIG.Combat.initiative.formula || game.system.initiative;
   }
 
-  /** @override */
+  /**
+   * Roll initiative (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md). One
+   * combatant gets the initiative dialog with the roll options card. Several share today's dialog,
+   * unless one of them has an initiative talent: then the user is asked whether to roll with talents,
+   * and if so the others share a dialog and each talented combatant gets one of their own, with the
+   * card (runInitiativeGroup). Settles with the combat once the last dialog has closed, rolled or not.
+   * @override
+   */
   async rollInitiative(ids, { formula = null, updateTurn = true, messageOptions = {} } = {}) {
-    let initiative = this;
+    const list = typeof ids === "string" ? [ids] : [...(ids ?? [])];
+    const options = { formula, updateTurn, messageOptions };
+    const talented = list.length > 1 ? await this._talentedCombatantIds(list) : new Set();
+    await runInitiativeGroup(list, {
+      talented,
+      nameOf: (id) => this.combatants.get(id)?.name ?? "",
+      ask: askInitiativeTalents,
+      open: (batch, { withCard }) => this._openInitiativeDialog(batch, options, { withCard }),
+    });
+    return this;
+  }
 
-    let promise = new Promise(async function (resolve, reject) {
-      const id = foundry.utils.randomID();
+  /**
+   * The listed combatants whose roller has an option kept to initiative rolls, with every macro
+   * their items link loaded once.
+   * @param {string[]} ids
+   * @returns {Promise<Set<string>>}
+   */
+  async _talentedCombatantIds(ids) {
+    const lookups = this._initiativeLookups();
+    const macros = await loadOptionMacros(initiativeMacroUuids(ids, lookups));
+    return talentedCombatants(ids, { ...lookups, macros });
+  }
 
-      let whosInitiative = initiative.combatant?.name;
-      let dicePools = [];
-      let vigilanceDicePool = new DicePoolFFG({});
-      let coolDicePool = new DicePoolFFG({});
-      let addDicePool = new DicePoolFFG({});
 
-      const defaultInitiativeFormula = formula || initiative._getInitiativeFormula();
-      if (Array.isArray(ids) && ids.length > 1) {
-        whosInitiative = "Multiple Combatants";
-      } else {
-        // Make sure we are dealing with an array of ids
-        ids = typeof ids === "string" ? [ids] : ids;
-        const c = initiative.getCombatantByToken(
-            initiative.combatants.map(combatant => combatant)
-            .filter(combatantData => combatantData._id == ids[0])[0]
-            .tokenId);
-        //const data = c.actor.system;
-        const data = _findActorForInitiative(c);
-        whosInitiative = c.actor.name;
+  /** How the initiative helpers find a combatant and a crew member's actor. */
+  _initiativeLookups() {
+    return { combatantOf: (id) => this.combatants.get(id), lookupActor: (id) => game.actors.get(id) };
+  }
 
-        vigilanceDicePool = _buildInitiativePool(data, "Vigilance");
-        coolDicePool = _buildInitiativePool(data, "Cool");
+  /**
+   * The initiative dialog for these combatants: the skill picker and the add table, as always, plus
+   * the roll options card when `withCard` and the one combatant's roller can have one. Its setup reads
+   * only initiativeDialogModel, so a combatant without an actor or a skill never stops it opening.
+   * @param {string[]} ids
+   * @param {{formula?: string|null, updateTurn?: boolean, messageOptions?: object}} options
+   * @param {{withCard: boolean}} card
+   * @returns {Promise<void>} once the dialog has closed
+   */
+  async _openInitiativeDialog(ids, { formula = null, updateTurn = true, messageOptions = {} } = {}, { withCard = false } = {}) {
+    const model = initiativeDialogModel(ids, this._initiativeLookups());
+    const id = foundry.utils.randomID();
+    const defaultSkill = formula || this._getInitiativeFormula();
+    const whosInitiative = model.name ?? (ids.length > 1 ? "Multiple Combatants" : "");
 
-        const initSkills = Object.keys(data.skills).filter((skill) => data.skills[skill].useForInitiative);
+    // The card plans on the roller's pool for the picked skill, or on the add table alone when the
+    // skill has no data; the Roll then skips such a combatant with a warning.
+    const roller = withCard ? model.cardRoller : null;
+    let card = null;
+    if (roller) {
+      card = new RollOptionsCard({ actor: roller.actor, skill: { key: defaultSkill, ...initiativeSkillLayer(roller.data, defaultSkill) }, initiative: true });
+      await card.load();
+      card.plan({ basePool: initiativeBasePool(roller.data, defaultSkill) });
+    }
 
-        initSkills.forEach((skill) => {
-          if (dicePools.find((p) => p.name === skill)) return;
+    const diceSymbols = {
+      boost: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[BO]"),
+      setback: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SE]"),
+      advantage: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[AD]"),
+      success: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SU]"),
+      threat: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[TH]"),
+      failure: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FA]"),
+      upgrade: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[PR]"),
+      force: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FO]"),
+    };
 
-          const skillPool = _buildInitiativePool(data, skill);
-          skillPool.label = data.skills[skill].label;
-          skillPool.name = skill;
-          dicePools.push(skillPool);
-        });
-      }
+    const title = game.i18n.localize("SWFFG.InitiativeRoll") + ` ${whosInitiative}...`;
+    const content = await foundry.applications.handlebars.renderTemplate("systems/starwarsffg/templates/dialogs/ffg-initiative.html", {
+      id,
+      dicePools: model.skills,
+      defaultInitiativeFormula: defaultSkill,
+      diceSymbols,
+      card: !!card,
+    });
 
-      if (dicePools.findIndex((p) => p.name === "Vigilance") < 0) {
-        vigilanceDicePool.label = "SWFFG.SkillsNameVigilance";
-        vigilanceDicePool.name = "Vigilance";
-        dicePools.push(vigilanceDicePool);
-      }
-      if (dicePools.findIndex((p) => p.name === "Cool") < 0) {
-        coolDicePool.label = "SWFFG.SkillsNameCool";
-        coolDicePool.name = "Cool";
-        dicePools.push(coolDicePool);
-      }
+    const containerOf = (root) => root?.querySelector?.(`[id="${id}"]`) ?? document.getElementById(id);
+    const readSkill = (container) => container?.querySelector('input[name="skill"]:checked')?.value ?? defaultSkill;
+    const readAdded = (container) => DicePoolFFG.fromContainer(container.querySelector(".addDicePool"));
 
-      const diceSymbols = {
-        boost: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[BO]"),
-        setback: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SE]"),
-        advantage: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[AD]"),
-        success: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[SU]"),
-        threat: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[TH]"),
-        failure: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FA]"),
-        upgrade: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[PR]"),
-        force: await foundry.applications.ux.TextEditor.implementation.enrichHTML("[FO]"),
-      };
-
-      const title = game.i18n.localize("SWFFG.InitiativeRoll") + ` ${whosInitiative}...`;
-      const content = await foundry.applications.handlebars.renderTemplate("systems/starwarsffg/templates/dialogs/ffg-initiative.html", {
-        id,
-        dicePools,
-        addDicePool,
-        defaultInitiativeFormula,
-        diceSymbols,
-      });
-
-      DialogV2.wait({
-        window: { title },
-        classes: ["starwarsffg", "ffg-initiative-dialog"],
-        content,
-        // The dice-pool +/- buttons were wired by an inline <script> in
-        // ffg-initiative.html. jQuery's .html() eval'd that under V1 Dialog,
-        // but DialogV2 injects content via innerHTML, which never runs inline
-        // scripts -- so the buttons were dead. Wire them here instead: left
-        // click increments, right click decrements, clamped to a minimum of 0.
-        render: (event, dialog) => {
-          const scope = dialog.element.querySelector(".addDicePool");
-          if (!scope) return;
+    // The Roll button's work, awaited after the dialog: closing the window mid-roll must not let
+    // the next dialog open (or the caller go on) before this roll has posted and been charged.
+    const rolling = rollTracker();
+    await DialogV2.wait({
+      window: { title },
+      classes: ["starwarsffg", "ffg-initiative-dialog"],
+      content,
+      // The dice-pool +/- buttons were wired by an inline <script> in
+      // ffg-initiative.html. jQuery's .html() eval'd that under V1 Dialog,
+      // but DialogV2 injects content via innerHTML, which never runs inline
+      // scripts -- so the buttons were dead. Wire them here instead: left
+      // click increments, right click decrements, clamped to a minimum of 0.
+      render: (event, dialog) => {
+        const container = containerOf(dialog.element);
+        // Every change the card can depend on re-plans it from the dialog's current inputs.
+        const replan = async () => {
+          if (!card) return;
+          card.plan({ basePool: initiativeBasePool(roller.data, readSkill(container), readAdded(container)) });
+          await card.render();
+        };
+        const scope = dialog.element.querySelector(".addDicePool");
+        if (scope) {
           for (const type of ["boost", "setback", "advantage", "success", "threat", "failure", "upgrades", "force"]) {
             const input = scope.querySelector(`[name="${type}"]`);
             if (!input) continue;
@@ -262,134 +319,146 @@ export class CombatFFG extends Combat {
             input.addEventListener("click", (ev) => {
               ev.preventDefault();
               input.value = String((parseInt(input.value, 10) || 0) + 1);
+              replan();
             });
             input.addEventListener("contextmenu", (ev) => {
               ev.preventDefault();
               const cur = parseInt(input.value, 10) || 0;
               if (cur > 0) input.value = String(cur - 1);
+              replan();
             });
           }
+        }
+        if (!card) return;
+        card.attach(dialog.element, replan);
+        card.render();
+        // Another skill offers another card: rows still offered keep their ticks.
+        for (const radio of dialog.element.querySelectorAll('input[name="skill"]')) {
+          radio.addEventListener("change", async () => {
+            const key = readSkill(container);
+            await card.setSkill({ key, ...initiativeSkillLayer(roller.data, key) });
+            await replan();
+          });
+        }
+      },
+      buttons: [
+        {
+          action: "one",
+          icon: "fas fa-check",
+          label: game.i18n.localize("SWFFG.InitiativeRoll"),
+          default: true,
+          callback: async (event, button, dialog) => {
+            const container = containerOf(dialog?.element);
+            const params = { skill: readSkill(container), added: readAdded(container), card, updateTurn, messageOptions };
+            await rolling.start(() => this._rollInitiativeBatch(ids, params));
+          },
         },
-        buttons: [
-          {
-            action: "one",
-            icon: "fas fa-check",
-            label: game.i18n.localize("SWFFG.InitiativeRoll"),
-            default: true,
-            callback: async () => {
-              const container = document.getElementById(id);
-              const currentId = initiative.combatant?.id;
-
-              const baseFormulaType = container.querySelector('input[name="skill"]:checked').value;
-
-              // Iterate over Combatants, performing an initiative roll for each
-              const [updates, messages] = await ids.reduce(
-                async (results, id, i) => {
-                  let [updates, messages] = await results;
-                  // Get Combatant data
-                  const c = initiative.getCombatantByToken(
-                    initiative.combatants.map(combatant => combatant)
-                    .filter(combatantData => combatantData._id == id)[0]
-                    .tokenId);
-                  if (!c || !c.isOwner) return resolve(results);
-
-                  // Detemine Formula
-                  const data = _findActorForInitiative(c);
-                  let pool = _buildInitiativePool(data, baseFormulaType);
-
-                  const addPool = DicePoolFFG.fromContainer(container.querySelector(`.addDicePool`));
-                  pool.success += +addPool.success;
-                  pool.advantage += +addPool.advantage;
-                  pool.failure += +addPool.failure;
-                  pool.threat += +addPool.threat;
-                  pool.boost += +addPool.boost;
-                  pool.setback += +addPool.setback;
-                  pool.force = +addPool.force;
-                  pool.upgrade(addPool.upgrades)
-
-                  const rollData = c.actor ? c.actor.getRollData() : {};
-                  let roll = await new RollFFG(pool.renderDiceExpression(), rollData, { success: pool.success, advantage: pool.advantage, failure: pool.failure, threat: pool.threat }).roll();
-                  const total = roll.ffg.success + roll.ffg.advantage * 0.01;
-                  roll._result = total;
-                  roll._total = total;
-
-                  // Roll initiative
-                  updates.push({ _id: id, initiative: roll.total });
-
-                  // Determine the roll mode. V14 renamed core.rollMode ->
-                  // core.messageMode with a new value vocabulary (public/gm/blind/
-                  // self) and applies it via ChatMessage#applyMode; feature-detect so
-                  // hidden combatants still roll privately on both V13 and V14, and
-                  // map any legacy caller-supplied rollMode.
-                  const isV14 = game.release.generation >= 14;
-                  const modeKey = isV14 ? "messageMode" : "rollMode";
-                  let rollMode;
-                  if (isV14) {
-                    rollMode = messageOptions.messageMode
-                      ?? (messageOptions.rollMode ? Roll._mapLegacyRollMode(messageOptions.rollMode) : game.settings.get("core", "messageMode"));
-                    if ((c.token.hidden || c.hidden) && (rollMode === "public" || rollMode === "ic")) rollMode = "gm";
-                  } else {
-                    rollMode = messageOptions.rollMode || game.settings.get("core", "rollMode");
-                    if ((c.token.hidden || c.hidden) && rollMode === "roll") rollMode = "gmroll";
-                  }
-
-                  // Construct chat message data
-                  let messageData = foundry.utils.mergeObject(
-                    {
-                      speaker: {
-                        scene: canvas.scene.id,
-                        actor: c.actor ? c.actor.id : null,
-                        token: c.token.id,
-                        alias: c.token.name,
-                      },
-                      flavor: `${c.token.name} ${game.i18n.localize("SWFFG.InitiativeRoll")} (${game.i18n.localize(`SWFFG.SkillsName${baseFormulaType.replace(/[: ]/g, "")}`)})`,
-                      flags: { "core.initiativeRoll": true },
-                    },
-                    messageOptions
-                  );
-                  const chatData = await roll.toMessage(messageData, { create: false, [modeKey]: rollMode });
-
-                  // Play 1 sound for the whole rolled set
-                  if (i > 0) chatData.sound = null;
-                  messages.push(chatData);
-
-                  // Return the Roll and the chat data
-                  return results;
-                },
-                [[], []]
-              );
-              if (!updates.length) return initiative;
-
-              // Update multiple combatants
-              await initiative.updateEmbeddedDocuments("Combatant", updates);
-
-              // Ensure the turn order remains with the same combatant if there was one active
-              if (updateTurn && !!currentId) {
-                await initiative.update({ turn: initiative.turns.findIndex((t) => t.id === currentId) });
-              }
-
-              // Create multiple chat messages. Pass chatBubble:false so these initiative rolls
-              // don't pop a chat bubble over each combatant's token and pan the camera to it:
-              // core styles speaker'd messages as in-character, and ChatMessage._preCreate then
-              // auto-enables chatBubble for IC/EMOTE, whose sayBubble -> bubbles.say defaults
-              // pan:true (with the chatBubblesPan setting also defaulting on). The `??=` in core
-              // means an explicit false here is preserved.
-              await CONFIG.ChatMessage.documentClass.create(messages, { chatBubble: false });
-
-              resolve(initiative);
-            },
-          },
-          {
-            action: "two",
-            icon: "fas fa-times",
-            label: game.i18n.localize("SWFFG.Cancel"),
-          },
-        ],
-        rejectClose: false,
-      });
+        {
+          action: "two",
+          icon: "fas fa-times",
+          label: game.i18n.localize("SWFFG.Cancel"),
+        },
+      ],
+      rejectClose: false,
     });
+    await rolling.settled();
+  }
 
-    return await promise;
+  /**
+   * Roll one dialog's combatants: each that can roll gets its pool (with the card's ticked rows when
+   * the dialog has one), the combatants' initiative is set, then the messages post and, only then,
+   * the card's strain is charged. Those that cannot roll are named in a warning; the rest still roll.
+   * @param {string[]} ids
+   * @param {{skill: string, added: object, card: RollOptionsCard|null, updateTurn: boolean, messageOptions: object}} params
+   */
+  async _rollInitiativeBatch(ids, { skill, added, card = null, updateTurn = true, messageOptions = {} }) {
+    const currentId = this.combatant?.id;
+    const skillName = game.i18n.localize(`SWFFG.SkillsName${skill.replace(/[: ]/g, "")}`);
+    const batch = planInitiativeBatch(ids, { ...this._initiativeLookups(), skill, added });
+    for (const { name, reason } of batch.skipped) {
+      ui.notifications.warn(game.i18n.format(INITIATIVE_SKIPPED[reason], { name, skill: skillName }));
+    }
+    if (batch.rolls.length === 0) return;
+
+    const updates = [];
+    const messages = [];
+    let charge = null;
+    for (const [i, { id, combatant: c, pool: base }] of batch.rolls.entries()) {
+      // The card stays live while the roll is made, so everything taken from it -- the pool, the
+      // chat lines and the charge -- is read with the plan, before the first await, as the dice
+      // dialog's click-time snapshot is.
+      let pool = base;
+      let rollOptionsText = null;
+      let optionalBuffsText = null;
+      if (card) {
+        card.plan({ basePool: base });
+        const entries = card.entries();
+        pool = card.pool({ basePool: base });
+        charge = card.chargeAfterPost(entries);
+        rollOptionsText = card.rollOptionsText(entries);
+        optionalBuffsText = card.optionalBuffsText();
+      }
+      const rollData = c.actor ? c.actor.getRollData() : {};
+      const roll = await new RollFFG(pool.renderDiceExpression(), rollData, pool).roll();
+      const total = initiativeValue(roll.ffg);
+      roll._result = total;
+      roll._total = total;
+      roll.rollOptionsText = rollOptionsText;
+      roll.optionalBuffsText = optionalBuffsText;
+
+      // Roll initiative
+      updates.push({ _id: id, initiative: roll.total });
+
+      // Determine the roll mode. V14 renamed core.rollMode ->
+      // core.messageMode with a new value vocabulary (public/gm/blind/
+      // self) and applies it via ChatMessage#applyMode; feature-detect so
+      // hidden combatants still roll privately on both V13 and V14, and
+      // map any legacy caller-supplied rollMode.
+      const hidden = initiativeHidden(c);
+      const isV14 = game.release.generation >= 14;
+      const modeKey = isV14 ? "messageMode" : "rollMode";
+      let rollMode;
+      if (isV14) {
+        rollMode = messageOptions.messageMode
+          ?? (messageOptions.rollMode ? Roll._mapLegacyRollMode(messageOptions.rollMode) : game.settings.get("core", "messageMode"));
+        if (hidden && (rollMode === "public" || rollMode === "ic")) rollMode = "gm";
+      } else {
+        rollMode = messageOptions.rollMode || game.settings.get("core", "rollMode");
+        if (hidden && rollMode === "roll") rollMode = "gmroll";
+      }
+
+      // Construct chat message data. A combatant without a token speaks as itself.
+      const speaker = initiativeSpeaker(c, canvas?.scene?.id ?? null);
+      const messageData = foundry.utils.mergeObject(
+        {
+          speaker,
+          flavor: `${speaker.alias} ${game.i18n.localize("SWFFG.InitiativeRoll")} (${skillName})`,
+          flags: { "core.initiativeRoll": true },
+        },
+        messageOptions
+      );
+      const chatData = await roll.toMessage(messageData, { create: false, [modeKey]: rollMode });
+
+      // Play 1 sound for the whole rolled set
+      if (i > 0) chatData.sound = null;
+      messages.push(chatData);
+    }
+
+    // Update multiple combatants
+    await this.updateEmbeddedDocuments("Combatant", updates);
+
+    // Ensure the turn order remains with the same combatant if there was one active
+    if (updateTurn && !!currentId) {
+      await this.update({ turn: this.turns.findIndex((t) => t.id === currentId) });
+    }
+
+    // Create multiple chat messages, then charge the card's options: a post that fails charges
+    // nothing. Pass chatBubble:false so these initiative rolls don't pop a chat bubble over each
+    // combatant's token and pan the camera to it: core styles speaker'd messages as in-character,
+    // and ChatMessage._preCreate then auto-enables chatBubble for IC/EMOTE, whose sayBubble ->
+    // bubbles.say defaults pan:true (with the chatBubblesPan setting also defaulting on). The `??=`
+    // in core means an explicit false here is preserved.
+    await postThenPay(() => CONFIG.ChatMessage.documentClass.create(messages, { chatBubble: false }), charge ? [charge] : []);
   }
 
   /**
@@ -1069,44 +1138,6 @@ function _getInitiativeFormula(skill, ability) {
   });
   dicePool.upgrade(parseInt(skill.rank));
   return dicePool.renderDiceExpression();
-}
-
-function _findActorForInitiative(c) {
-  let data = c.actor.system;
-  const initiativeRole = game.settings.get('starwarsffg', 'initiativeCrewRole');
-  CONFIG.logger.debug("Attempting to find initiative data for actor in combat");
-  if (c.actor.type === "vehicle") {
-    CONFIG.logger.debug("Actor is a vehicle, looking for initiative crew role.");
-    const crew = c.actor.getFlag("starwarsffg", "crew");
-    if (crew !== undefined && crew !== []) {
-      const initiativeCrew = crew.find((c) => c.role === "Pilot");
-      if (initiativeCrew) {
-        CONFIG.logger.debug("Found initiative crew role, swapping data to crew member");
-        const realActor = game.actors.get(initiativeCrew.actor_id);
-        if (realActor?.system) {
-          // A minion vehicle group's pilot rolls Cool/Vigilance at the group's strength, read from
-          // this combatant's own vehicle (the token actor on an unlinked squadron).
-          data = withGroupSkillRanks(realActor.system, crewRollOptions(c.actor));
-        }
-      }
-    } else {
-      CONFIG.logger.warn("You must set a crew member with the pilot role to roll initiative for a vehicle");
-    }
-  }
-  CONFIG.logger.debug("Finished checking");
-  return data;
-}
-
-function _buildInitiativePool(data, skill) {
-  const pool = new DicePoolFFG({
-    ability: Math.max(data.characteristics[data.skills[skill].characteristic].value, data.skills[skill].rank),
-    boost: data.skills[skill].boost,
-    advantage: data.skills[skill].advantage,
-    success: data.skills[skill].success,
-  });
-  pool.upgrade(Math.min(data.characteristics[data.skills[skill].characteristic].value, data.skills[skill].rank));
-
-  return pool;
 }
 
 export class CombatTrackerFFG extends foundry.applications.sidebar.tabs.CombatTracker {

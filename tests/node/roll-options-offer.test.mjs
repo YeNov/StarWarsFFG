@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
-import { collectOfferedOptions, linkedMacroUuids, skillTypeOf } from "../../modules/helpers/roll-options-offer.js";
+import { collectOfferedOptions, hasInitiativeOption, linkedMacroUuids, skillTypeOf } from "../../modules/helpers/roll-options-offer.js";
 
 /**
  * Which roll options a roll offers, from which items, with ranks and Force rating resolved
@@ -13,7 +13,7 @@ const M = "Macro.m1";
 const macroMap = (entries) => new Map(Object.entries(entries).map(([uuid, options]) => [uuid, { ok: true, options }]));
 const one = (options, uuid = M) => macroMap({ [uuid]: options });
 const context = (over = {}) => ({
-  skillKey: null, skillType: null, weaponId: null, isAttack: false, isForcePower: false, forceRating: 0, ...over,
+  skillKey: null, skillType: null, weaponId: null, isAttack: false, isForcePower: false, isInitiative: false, forceRating: 0, ...over,
 });
 const offer = (items, macros, over) => collectOfferedOptions({ items, macros, context: context(over) });
 const labels = (rows) => rows.map((row) => row.label);
@@ -232,4 +232,33 @@ test("linkedMacroUuids walks items and every copy", () => {
     specialization({ talent0: { name: "Node", islearned: false, rollOptions: ["Macro.n"] } }),
   ];
   assert.deepEqual(linkedMacroUuids(items), ["Macro.t", "Macro.q", "Macro.a", "Macro.aq", "Macro.n"]);
+});
+
+/* Initiative rolls (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md, "The option format"). */
+
+test("initiative: true only on initiative rolls, false never on them", () => {
+  const macros = one([{ label: "Init", offer: { initiative: true } }, { label: "Never", offer: { initiative: false } }, { label: "Any" }]);
+  assert.deepEqual(labels(offer([gear()], macros, { skillKey: "Cool", isInitiative: true })), ["Init", "Any"]);
+  assert.deepEqual(labels(offer([gear()], macros, { skillKey: "Cool" })), ["Never", "Any"]);
+});
+
+test("initiative and skills must both match", () => {
+  const macros = one([{ label: "Cool init", offer: { initiative: true, skills: ["Cool"] } }]);
+  assert.deepEqual(labels(offer([gear()], macros, { skillKey: "Vigilance", isInitiative: true })), []);
+  assert.deepEqual(labels(offer([gear()], macros, { skillKey: "Cool", isInitiative: true })), ["Cool init"]);
+});
+
+test("hasInitiativeOption looks at initiative: true only", () => {
+  const init = one([{ offer: { initiative: true, skills: ["Cool"] } }]);
+  const never = one([{ offer: { initiative: false } }]);
+  const plain = one([{ offer: { skills: ["Cool"] } }]);
+  assert.equal(hasInitiativeOption({ items: [talent()], macros: init }), true);
+  assert.equal(hasInitiativeOption({ items: [talent()], macros: never }), false);
+  assert.equal(hasInitiativeOption({ items: [talent()], macros: plain }), false);
+  assert.equal(hasInitiativeOption({ items: [gear({ carried: false })], macros: init }), false, "gear not carried");
+  assert.equal(hasInitiativeOption({ items: [armour({ equipped: false })], macros: init }), false, "armour not equipped");
+  assert.equal(hasInitiativeOption({ items: [armour({ links: [], qualities: [quality({ active: false })] })], macros: init }), false, "quality switched off");
+  assert.equal(hasInitiativeOption({ items: [weapon()], macros: init }), false, "no weapon is rolled");
+  assert.equal(hasInitiativeOption({ items: [], macros: init }), false);
+  assert.equal(hasInitiativeOption({ items: [talent()], macros: new Map() }), false, "macro not loaded");
 });
