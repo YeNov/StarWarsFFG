@@ -37,9 +37,10 @@ export function canChargeFor({ hasActiveGM, isOwner }) {
  * @param {object|null} [params.item] - the item rolled with
  * @param {object|null} [params.configuredSkills] - e.g. CONFIG.FFG.skills
  * @param {boolean} [params.hasActiveGM]
+ * @param {boolean} [params.initiative] - the roll is an initiative roll
  * @returns {{items: object[], context: object, pool: object|null, canCharge: boolean}}
  */
-export function rollOptionInputs(actor, { skillKey = null, item = null, configuredSkills = null, hasActiveGM = false } = {}) {
+export function rollOptionInputs(actor, { skillKey = null, item = null, configuredSkills = null, hasActiveGM = false, initiative = false } = {}) {
   const type = item?.type;
   const context = {
     skillKey: skillKey ?? null,
@@ -47,6 +48,7 @@ export function rollOptionInputs(actor, { skillKey = null, item = null, configur
     weaponId: type === "weapon" ? (item.id ?? item._id ?? null) : null,
     isAttack: type === "weapon" || type === "shipweapon",
     isForcePower: type === "forcepower",
+    isInitiative: initiative === true,
     forceRating: actor ? Number(actor.system?.stats?.forcePool?.max) || 0 : 0,
   };
   if (!actor) return { items: [], context, pool: null, canCharge: false };

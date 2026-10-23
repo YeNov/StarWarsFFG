@@ -171,3 +171,10 @@ test("normalizeName ignores case, spaces, hyphens, punctuation and accents", () 
   assert.equal(normalizeName("Visée juste"), "viseejuste");
   assert.notEqual(normalizeName("Point Blank (Improved)"), normalizeName("Point Blank"));
 });
+
+test("offer.initiative is a boolean", () => {
+  assert.equal(validateOptions({ offer: { initiative: true } }).ok, true);
+  assert.equal(validateOptions({ offer: { initiative: false } }).ok, true);
+  const [error] = validateOptions({ offer: { initiative: "yes" } }).errors;
+  assert.deepEqual([error.key, error.code], ["offer.initiative", "notBoolean"]);
+});

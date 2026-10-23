@@ -337,3 +337,8 @@ test("a live word worth nothing in the picked branch greys the row", () => {
   const light = plan2({ offered: [o], selection: { o: 1 }, live: { destinyLight: 2 } });
   assert.deepEqual(row(light, "o").dice, { success: 2 });
 });
+
+test("inputs mark an initiative roll", () => {
+  assert.equal(rollOptionInputs(null, { skillKey: "Cool", initiative: true }).context.isInitiative, true);
+  assert.equal(rollOptionInputs(null, { skillKey: "Cool" }).context.isInitiative, false);
+});
