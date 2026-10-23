@@ -269,3 +269,23 @@ export async function runInitiativeGroup(ids, { talented, nameOf, ask, open }) {
     for (const id of withTalents) await open([id], { withCard: true });
   }
 }
+
+/**
+ * Keeps hold of the roll a dialog's Roll button started. DialogV2.wait resolves as soon as the
+ * window closes, and Escape or the close button still close it while the roll is posting and
+ * charging; the flow awaits `settled()` after the dialog, so the next dialog (or the caller) only
+ * goes on once that roll and its charge are done.
+ * @returns {{start: (run: () => Promise<*>) => Promise<*>, settled: () => Promise<void>}}
+ */
+export function rollTracker() {
+  let running = null;
+  return {
+    start(run) {
+      running = Promise.resolve().then(run);
+      return running;
+    },
+    async settled() {
+      if (running) await running;
+    },
+  };
+}

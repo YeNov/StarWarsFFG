@@ -4,7 +4,7 @@ import { postThenPay } from "./dice/roll-costs.js";
 import { loadOptionMacros, RollOptionsCard } from "./dice/roll-options-card.js";
 import {
   initiativeBasePool, initiativeDialogModel, initiativeHidden, initiativeMacroUuids, initiativeSkillLayer, initiativeSpeaker,
-  initiativeValue, planInitiativeBatch, runInitiativeGroup, talentedCombatants,
+  initiativeValue, planInitiativeBatch, rollTracker, runInitiativeGroup, talentedCombatants,
 } from "./helpers/initiative-roll.js";
 
 const { DialogV2 } = foundry.applications.api;
@@ -290,6 +290,9 @@ export class CombatFFG extends Combat {
     const readSkill = (container) => container?.querySelector('input[name="skill"]:checked')?.value ?? defaultSkill;
     const readAdded = (container) => DicePoolFFG.fromContainer(container.querySelector(".addDicePool"));
 
+    // The Roll button's work, awaited after the dialog: closing the window mid-roll must not let
+    // the next dialog open (or the caller go on) before this roll has posted and been charged.
+    const rolling = rollTracker();
     await DialogV2.wait({
       window: { title },
       classes: ["starwarsffg", "ffg-initiative-dialog"],
@@ -346,13 +349,8 @@ export class CombatFFG extends Combat {
           default: true,
           callback: async (event, button, dialog) => {
             const container = containerOf(dialog?.element);
-            await this._rollInitiativeBatch(ids, {
-              skill: readSkill(container),
-              added: readAdded(container),
-              card,
-              updateTurn,
-              messageOptions,
-            });
+            const params = { skill: readSkill(container), added: readAdded(container), card, updateTurn, messageOptions };
+            await rolling.start(() => this._rollInitiativeBatch(ids, params));
           },
         },
         {
@@ -363,6 +361,7 @@ export class CombatFFG extends Combat {
       ],
       rejectClose: false,
     });
+    await rolling.settled();
   }
 
   /**

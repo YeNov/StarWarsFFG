@@ -209,3 +209,26 @@ test("a shared dialog holding only an actorless combatant", async () => {
     skipped: [{ id: "ghost", name: "Ghost", reason: "noActor" }],
   });
 });
+
+test("a dialog closed mid-roll still waits for the roll it started (Codex review)", async () => {
+  const { rollTracker } = await import("../../modules/helpers/initiative-roll.js");
+  const events = [];
+  const tracker = rollTracker();
+  const started = tracker.start(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    events.push("charged");
+  });
+  // The dialog closes (Escape) while the roll is still running; the flow waits for it.
+  await tracker.settled();
+  events.push("next dialog");
+  assert.deepEqual(events, ["charged", "next dialog"]);
+  await started;
+
+  const idle = rollTracker();
+  await idle.settled();
+  assert.ok(true, "nothing started: settles at once");
+
+  const failing = rollTracker();
+  failing.start(async () => { throw new Error("post failed"); }).catch(() => {});
+  await assert.rejects(failing.settled(), /post failed/);
+});
