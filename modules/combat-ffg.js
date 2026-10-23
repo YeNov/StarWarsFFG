@@ -383,23 +383,29 @@ export class CombatFFG extends Combat {
 
     const updates = [];
     const messages = [];
-    let entries = null;
+    let charge = null;
     for (const [i, { id, combatant: c, pool: base }] of batch.rolls.entries()) {
+      // The card stays live while the roll is made, so everything taken from it -- the pool, the
+      // chat lines and the charge -- is read with the plan, before the first await, as the dice
+      // dialog's click-time snapshot is.
       let pool = base;
+      let rollOptionsText = null;
+      let optionalBuffsText = null;
       if (card) {
         card.plan({ basePool: base });
-        entries = card.entries();
+        const entries = card.entries();
         pool = card.pool({ basePool: base });
+        charge = card.chargeAfterPost(entries);
+        rollOptionsText = card.rollOptionsText(entries);
+        optionalBuffsText = card.optionalBuffsText();
       }
       const rollData = c.actor ? c.actor.getRollData() : {};
       const roll = await new RollFFG(pool.renderDiceExpression(), rollData, pool).roll();
       const total = initiativeValue(roll.ffg);
       roll._result = total;
       roll._total = total;
-      if (card) {
-        roll.rollOptionsText = card.rollOptionsText(entries);
-        roll.optionalBuffsText = card.optionalBuffsText();
-      }
+      roll.rollOptionsText = rollOptionsText;
+      roll.optionalBuffsText = optionalBuffsText;
 
       // Roll initiative
       updates.push({ _id: id, initiative: roll.total });
@@ -453,8 +459,7 @@ export class CombatFFG extends Combat {
     // and ChatMessage._preCreate then auto-enables chatBubble for IC/EMOTE, whose sayBubble ->
     // bubbles.say defaults pan:true (with the chatBubblesPan setting also defaulting on). The `??=`
     // in core means an explicit false here is preserved.
-    const cost = card ? card.chargeAfterPost(entries) : null;
-    await postThenPay(() => CONFIG.ChatMessage.documentClass.create(messages, { chatBubble: false }), cost ? [cost] : []);
+    await postThenPay(() => CONFIG.ChatMessage.documentClass.create(messages, { chatBubble: false }), charge ? [charge] : []);
   }
 
   /**

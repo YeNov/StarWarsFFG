@@ -97,3 +97,15 @@ test("hovering an option row shows its source's description", () => {
   assert.ok(read("modules/helpers/roll-option-card.js").includes("tooltip: tooltips?.get?.(option.key) ?? null"));
   assert.ok(read("styles/mandar.css").includes("#tooltip.ffg-ro-tooltip {"));
 });
+
+test("an initiative roll fixes its charge and chat lines when it plans, before any await (final review)", () => {
+  const combat = read("modules/combat-ffg.js");
+  const batch = combat.slice(combat.indexOf("async _rollInitiativeBatch("), combat.indexOf("// Update multiple combatants"));
+  const planned = batch.slice(batch.indexOf("card.plan({ basePool: base });"), batch.indexOf("await new RollFFG("));
+  assert.ok(planned.length > 0, "the card is planned before the roll");
+  for (const call of ["card.entries()", "card.pool(", "card.chargeAfterPost(", "card.rollOptionsText(", "card.optionalBuffsText()"]) {
+    assert.ok(planned.includes(call), `${call} is read with the plan, before the roll's awaits`);
+  }
+  const after = combat.slice(combat.indexOf("// Update multiple combatants"), combat.indexOf("// Update multiple combatants") + 1500);
+  assert.ok(!after.includes("card."), "nothing is read off the card after the awaits");
+});
