@@ -11,7 +11,7 @@ import { collectOfferedBuffs, withAppliedBuffs } from "../helpers/optional-buffs
 import { parseOptionText } from "../helpers/roll-options.js";
 import { collectOfferedOptions, linkedMacroUuids } from "../helpers/roll-options-offer.js";
 import { liveOptionValues, planOptionStates, rollOptionInputs, swapValues } from "../helpers/roll-option-costs.js";
-import { costText, formatRollOptionsLine, optionChoicesContext, rollOptionCardEntries } from "../helpers/roll-option-card.js";
+import { cardPanelContext, formatRollOptionsLine, rollOptionCardEntries, tickedRowCount } from "../helpers/roll-option-card.js";
 import { chargeRollOptionCost, localizeRollOptionText } from "../helpers/roll-option-hooks.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
@@ -880,99 +880,23 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
 
   /** What the card shows, for templates/dice/parts/roll-options-panel.html. */
   _rollOptionsPanelContext() {
-    const choice = (value, suffix) => ({
-      value,
-      label: game.i18n.localize(`SWFFG.RollOptions.Panel.TwoWeapons${suffix}`),
-      on: this._twoWeapons === value,
+    return cardPanelContext({
+      twoWeaponsAvailable: this._twoWeaponsAvailable(),
+      twoWeapons: this._twoWeapons,
+      buffs: this._optionalBuffs,
+      tickedBuffKeys: this._tickedBuffKeys,
+      offered: this._offeredOptions,
+      states: this._optionStates,
+      amounts: this._optionAmounts,
+      tooltips: this._optionTooltips,
+      pool: this._optionInputs.pool,
+      localize: localizeRollOptionText,
     });
-    return {
-      twoWeapons: {
-        available: this._twoWeaponsAvailable(),
-        choices: [choice("no", "No"), choice("same", "Same"), choice("different", "Different")],
-      },
-      buffs: this._optionalBuffs.map((buff) => ({
-        key: buff.key,
-        name: RollBuilderFFG._buffLabel(buff),
-        source: buff.source,
-        ticked: buff.applied === true || this._tickedBuffKeys.has(buff.key),
-        locked: buff.applied === true,
-      })),
-      options: this._optionRowsContext(),
-      footer: this._optionFooter(),
-    };
-  }
-
-  /** The option rows as the card shows them. */
-  _optionRowsContext() {
-    const unit = this._optionInputs.pool?.unit === "wounds" ? "wounds" : "strain";
-    const rows = new Map(this._optionStates.rows.map((row) => [row.key, row]));
-    return this._offeredOptions.map((option) => {
-      const row = rows.get(option.key);
-      const amountLabel = option.amount?.label ?? game.i18n.localize("SWFFG.RollOptions.Panel.Amount");
-      // No max: an amount with no cap beyond strain, or one whose cap is not known yet.
-      const max = row?.maxAmount ?? (Number.isFinite(option.amount?.max) ? option.amount.max : null);
-      const typed = this._optionAmounts[option.key] ?? 1;
-      return {
-        key: option.key,
-        label: option.ranked ? `${option.label} ${option.rank}` : option.label,
-        cost: costText(row?.cost, unit, localizeRollOptionText),
-        ticked: row?.ticked === true,
-        disabled: row?.disabled === true,
-        amount: option.amount && !row?.disabled
-          ? { value: row?.ticked ? row.amount : (max === null ? typed : Math.min(typed, max)), max, label: amountLabel }
-          : null,
-        choices: optionChoicesContext(option, row),
-        reason: !!row?.reason,
-        note: row?.reason ? RollBuilderFFG._optionReasonText(row.reason) : option.hint,
-        tooltip: this._optionTooltips?.get(option.key) ?? null,
-      };
-    });
-  }
-
-  /** Why a row is greyed, in words. */
-  static _optionReasonText({ code, data }) {
-    const unitWord = (unit) => game.i18n.localize(unit === "wounds" ? "SWFFG.RollOptions.Unit.Wounds" : "SWFFG.RollOptions.Unit.Strain");
-    switch (code) {
-      case "needsTwoWeapons": {
-        const suffix = { same: "Same", different: "Different" }[data.choice] ?? "Any";
-        return game.i18n.localize(`SWFFG.RollOptions.Reason.NeedsTwoWeapons${suffix}`);
-      }
-      case "cannotPay": return game.i18n.localize("SWFFG.RollOptions.Reason.CannotPay");
-      case "needsWriter": return game.i18n.localize("SWFFG.RollOptions.Reason.NeedsWriter");
-      case "zeroMax": return game.i18n.localize("SWFFG.RollOptions.Reason.ZeroMax");
-      case "overThreshold":
-        return game.i18n.format("SWFFG.RollOptions.Reason.OverThreshold", { unit: unitWord(data.unit), value: data.value, threshold: data.threshold });
-      case "needsDifficulty": {
-        const names = ["Simple", "Easy", "Average", "Hard", "Daunting", "Formidable"];
-        const level = names[data.min] ? game.i18n.localize(`SWFFG.Difficulty${names[data.min]}`) : String(data.min);
-        return game.i18n.format("SWFFG.RollOptions.Reason.NeedsDifficulty", { level });
-      }
-      case "zeroValue": {
-        const suffix = { forceAvailable: "Force", destinyLight: "DestinyLight", destinyDark: "DestinyDark" }[data.word] ?? "Force";
-        return game.i18n.localize(`SWFFG.RollOptions.Reason.Zero${suffix}`);
-      }
-      case "forceTaken": return game.i18n.format("SWFFG.RollOptions.Reason.ForceTaken", { label: data.label });
-      case "swapTaken": return game.i18n.format("SWFFG.RollOptions.Reason.SwapTaken", { label: data.label });
-      case "noBoost": return game.i18n.localize("SWFFG.RollOptions.Reason.NoBoost");
-      case "cannotSwap": return game.i18n.localize("SWFFG.RollOptions.Reason.CannotSwap");
-      default: return "";
-    }
-  }
-
-  /** "Strain after roll: 12 / 12" when the payer has a threshold and an offered option costs strain. */
-  _optionFooter() {
-    const pool = this._optionInputs.pool;
-    if (!pool || !(Number(pool.threshold) > 0)) return null;
-    const costs = this._offeredOptions.some((option) => option.cost.strain === "amount" || Number(option.cost.strain) > 0);
-    if (!costs) return null;
-    const key = pool.unit === "wounds" ? "SWFFG.RollOptions.Panel.WoundsAfter" : "SWFFG.RollOptions.Panel.StrainAfter";
-    return game.i18n.format(key, { value: this._optionStates.after, threshold: pool.threshold });
   }
 
   /** How many rows on the card are ticked, for the fold tab. */
   _rollOptionsTickedCount() {
-    const buffs = this._optionalBuffs.filter((buff) => buff.applied === true || this._tickedBuffKeys.has(buff.key)).length;
-    return buffs + this._tickedOptions().length + (this._twoWeapons !== "no" ? 1 : 0);
+    return tickedRowCount({ buffs: this._optionalBuffs, tickedBuffKeys: this._tickedBuffKeys, states: this._optionStates, twoWeapons: this._twoWeapons });
   }
 
   /**

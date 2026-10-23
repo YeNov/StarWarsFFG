@@ -123,3 +123,149 @@ export function formatRollOptionsLine(entries, localize) {
   });
   return localize("SWFFG.RollOptions.CardLine", { entries: parts.join(", ") });
 }
+
+/* The card itself (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md, "Sharing the
+   card's code"): what the dice dialog and the initiative dialog both draw, kept here so both draw
+   it the same way. */
+
+const DIFFICULTY_NAMES = Object.freeze(["Simple", "Easy", "Average", "Hard", "Daunting", "Formidable"]);
+const REASON_SUFFIX_ZERO = Object.freeze({ forceAvailable: "Force", destinyLight: "DestinyLight", destinyDark: "DestinyDark" });
+
+/**
+ * Why a row is greyed, in words.
+ * @param {{code: string, data: object}} reason - from planOptionStates
+ * @param {(key: string, data?: object) => string} localize
+ * @returns {string}
+ */
+export function optionReasonText({ code, data }, localize) {
+  const unitWord = (unit) => localize(unit === "wounds" ? "SWFFG.RollOptions.Unit.Wounds" : "SWFFG.RollOptions.Unit.Strain");
+  switch (code) {
+    case "needsTwoWeapons": {
+      const suffix = { same: "Same", different: "Different" }[data.choice] ?? "Any";
+      return localize(`SWFFG.RollOptions.Reason.NeedsTwoWeapons${suffix}`);
+    }
+    case "cannotPay": return localize("SWFFG.RollOptions.Reason.CannotPay");
+    case "needsWriter": return localize("SWFFG.RollOptions.Reason.NeedsWriter");
+    case "zeroMax": return localize("SWFFG.RollOptions.Reason.ZeroMax");
+    case "overThreshold":
+      return localize("SWFFG.RollOptions.Reason.OverThreshold", { unit: unitWord(data.unit), value: data.value, threshold: data.threshold });
+    case "needsDifficulty": {
+      const name = DIFFICULTY_NAMES[data.min];
+      const level = name ? localize(`SWFFG.Difficulty${name}`) : String(data.min);
+      return localize("SWFFG.RollOptions.Reason.NeedsDifficulty", { level });
+    }
+    case "zeroValue": return localize(`SWFFG.RollOptions.Reason.Zero${REASON_SUFFIX_ZERO[data.word] ?? "Force"}`);
+    case "forceTaken": return localize("SWFFG.RollOptions.Reason.ForceTaken", { label: data.label });
+    case "swapTaken": return localize("SWFFG.RollOptions.Reason.SwapTaken", { label: data.label });
+    case "noBoost": return localize("SWFFG.RollOptions.Reason.NoBoost");
+    case "cannotSwap": return localize("SWFFG.RollOptions.Reason.CannotSwap");
+    default: return "";
+  }
+}
+
+/** The option rows as the card shows them. */
+function optionRows({ offered, states, amounts, tooltips, unit, localize }) {
+  const rows = new Map((states?.rows ?? []).map((row) => [row.key, row]));
+  return (offered ?? []).map((option) => {
+    const row = rows.get(option.key);
+    const amountLabel = option.amount?.label ?? localize("SWFFG.RollOptions.Panel.Amount");
+    // No max: an amount with no cap beyond strain, or one whose cap is not known yet.
+    const max = row?.maxAmount ?? (Number.isFinite(option.amount?.max) ? option.amount.max : null);
+    const typed = amounts?.[option.key] ?? 1;
+    return {
+      key: option.key,
+      label: option.ranked ? `${option.label} ${option.rank}` : option.label,
+      cost: costText(row?.cost, unit, localize),
+      ticked: row?.ticked === true,
+      disabled: row?.disabled === true,
+      amount: option.amount && !row?.disabled
+        ? { value: row?.ticked ? row.amount : (max === null ? typed : Math.min(typed, max)), max, label: amountLabel }
+        : null,
+      choices: optionChoicesContext(option, row),
+      reason: !!row?.reason,
+      note: row?.reason ? optionReasonText(row.reason, localize) : option.hint,
+      tooltip: tooltips?.get?.(option.key) ?? null,
+    };
+  });
+}
+
+/** "Strain after roll: 12 / 12" when the payer has a threshold and an offered option costs strain. */
+function footerText({ pool, offered, states, localize }) {
+  if (!pool || !(Number(pool.threshold) > 0)) return null;
+  const costs = (offered ?? []).some((option) => option.cost?.strain === "amount" || Number(option.cost?.strain) > 0);
+  if (!costs) return null;
+  const key = pool.unit === "wounds" ? "SWFFG.RollOptions.Panel.WoundsAfter" : "SWFFG.RollOptions.Panel.StrainAfter";
+  return localize(key, { value: states?.after, threshold: pool.threshold });
+}
+
+/**
+ * What the card shows, for templates/dice/parts/roll-options-panel.html.
+ * @param {object} params
+ * @param {boolean} params.twoWeaponsAvailable
+ * @param {"no"|"same"|"different"} params.twoWeapons
+ * @param {object[]} params.buffs - offered optional buffs (with `applied` for those already in a sent pool)
+ * @param {Set<string>} params.tickedBuffKeys
+ * @param {object[]} params.offered - from collectOfferedOptions
+ * @param {object} params.states - from planOptionStates
+ * @param {Record<string, number>} params.amounts - amounts typed into rows not ticked yet
+ * @param {Map<string, string>} params.tooltips - row key → description HTML
+ * @param {{unit: string, current: number, threshold: number}|null} params.pool - readCostPool(actor)
+ * @param {(key: string, data?: object) => string} params.localize
+ * @returns {{twoWeapons: object, buffs: object[], options: object[], footer: string|null}}
+ */
+export function cardPanelContext({ twoWeaponsAvailable, twoWeapons, buffs, tickedBuffKeys, offered, states, amounts, tooltips, pool, localize }) {
+  const choice = (value, suffix) => ({
+    value,
+    label: localize(`SWFFG.RollOptions.Panel.TwoWeapons${suffix}`),
+    on: twoWeapons === value,
+  });
+  const unit = pool?.unit === "wounds" ? "wounds" : "strain";
+  return {
+    twoWeapons: {
+      available: twoWeaponsAvailable === true,
+      choices: [choice("no", "No"), choice("same", "Same"), choice("different", "Different")],
+    },
+    buffs: (buffs ?? []).map((buff) => ({
+      key: buff.key,
+      name: buff.name || localize("SWFFG.OptionalBuffs.Unnamed"),
+      source: buff.source,
+      ticked: buff.applied === true || !!tickedBuffKeys?.has(buff.key),
+      locked: buff.applied === true,
+    })),
+    options: optionRows({ offered, states, amounts, tooltips, unit, localize }),
+    footer: footerText({ pool, offered, states, localize }),
+  };
+}
+
+/**
+ * How many rows on the card are ticked, for the fold tab.
+ * @param {object} params
+ * @param {object[]} params.buffs
+ * @param {Set<string>} params.tickedBuffKeys
+ * @param {{rows: object[]}} params.states
+ * @param {"no"|"same"|"different"} params.twoWeapons
+ * @returns {number}
+ */
+export function tickedRowCount({ buffs, tickedBuffKeys, states, twoWeapons }) {
+  const ticked = (buffs ?? []).filter((buff) => buff.applied === true || !!tickedBuffKeys?.has(buff.key)).length;
+  const options = (states?.rows ?? []).filter((row) => row.ticked).length;
+  return ticked + options + (twoWeapons && twoWeapons !== "no" ? 1 : 0);
+}
+
+/**
+ * The ticks, picked branches and buff ticks a new offer still has rows for, as when the skill of an
+ * initiative roll changes: the rest are dropped, the kept values stay as they were.
+ * @param {{selection: Record<string, number>, choices: Record<string, string>, buffKeys: Set<string>}} state
+ * @param {{offered: Array<{key: string}>, buffs: Array<{key: string}>}} offer
+ * @returns {{selection: Record<string, number>, choices: Record<string, string>, buffKeys: Set<string>}}
+ */
+export function keepOffered({ selection = {}, choices = {}, buffKeys = new Set() }, { offered = [], buffs = [] }) {
+  const optionKeys = new Set(offered.map((option) => option.key));
+  const buffKeySet = new Set(buffs.map((buff) => buff.key));
+  const keep = (object) => Object.fromEntries(Object.entries(object).filter(([key]) => optionKeys.has(key)));
+  return {
+    selection: keep(selection),
+    choices: keep(choices),
+    buffKeys: new Set([...buffKeys].filter((key) => buffKeySet.has(key))),
+  };
+}

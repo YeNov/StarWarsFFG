@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import "./_stub/foundry-stub.mjs";
-import { costText, describeCharge, formatRollOptionsLine, optionChoicesContext, rollOptionCardEntries } from "../../modules/helpers/roll-option-card.js";
+import {
+  cardPanelContext, costText, describeCharge, formatRollOptionsLine, keepOffered, optionChoicesContext, optionReasonText,
+  rollOptionCardEntries, tickedRowCount,
+} from "../../modules/helpers/roll-option-card.js";
 import { planOptionStates } from "../../modules/helpers/roll-option-costs.js";
 
 /**
@@ -111,4 +114,74 @@ test("a greyed row keeps its switch, so another branch can be picked (implementa
   ]);
   assert.deepEqual(optionChoicesContext(option, null).map((c) => c.on), [true, false], "the first branch by default");
   assert.equal(optionChoicesContext({ choices: null }, null), null);
+});
+
+/* The card's context, moved out of RollBuilderFFG so the initiative dialog shares it
+   (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md, "Sharing the card's code"). */
+
+const cardContext = ({ offered, selection = {}, pool: payer = pool("strain"), amounts = {}, tooltips = new Map(), buffs = [], tickedBuffKeys = new Set(), twoWeapons = "no" }) => {
+  const states = planOptionStates({ offered, selection, twoWeapons, pool: payer, canCharge: true });
+  return cardPanelContext({ twoWeaponsAvailable: true, twoWeapons, buffs, tickedBuffKeys, offered, states, amounts, tooltips, pool: payer, localize });
+};
+
+test("a greyed row says why", () => {
+  const over = optionReasonText({ code: "overThreshold", data: { unit: "strain", value: 13, threshold: 12 } }, localize);
+  assert.match(over, /13/);
+  assert.match(over, /12/);
+  assert.match(optionReasonText({ code: "needsDifficulty", data: { min: 4 } }, localize), new RegExp(EN["SWFFG.DifficultyDaunting"]));
+  assert.equal(optionReasonText({ code: "nope", data: {} }, localize), "");
+});
+
+test("the card's context", () => {
+  const offered = [
+    option("pb", "Point Blank", { ranked: true, rank: 2 }),
+    option("rr", "Rapid Reaction", { strain: "amount", amount: 3 }),
+    { ...option("ta", "True Aim"), hint: "Once per round" },
+    option("big", "Big", { strain: 25 }),
+  ];
+  const ticked = cardContext({ offered, selection: { rr: 2 }, tooltips: new Map([["pb", "<p>x</p>"]]), twoWeapons: "same" });
+  assert.equal(ticked.options[0].label, "Point Blank 2");
+  assert.equal(ticked.options[0].tooltip, "<p>x</p>");
+  assert.equal(ticked.options[1].ticked, true);
+  assert.equal(ticked.options[1].amount.value, 2);
+  assert.equal(ticked.options[2].note, "Once per round");
+  assert.equal(ticked.options[2].reason, false);
+  assert.equal(ticked.options[3].disabled, true);
+  assert.equal(ticked.options[3].reason, true);
+  assert.equal(ticked.options[3].note, optionReasonText({ code: "overThreshold", data: { unit: "strain", value: 27, threshold: 20 } }, localize));
+  assert.equal(ticked.footer, localize("SWFFG.RollOptions.Panel.StrainAfter", { value: 2, threshold: 20 }));
+  assert.deepEqual(ticked.twoWeapons.choices.map((c) => c.on), [false, true, false]);
+  assert.equal(ticked.twoWeapons.available, true);
+
+  const typed = cardContext({ offered, amounts: { rr: 5 } });
+  assert.equal(typed.options[1].ticked, false);
+  assert.equal(typed.options[1].amount.value, 3, "the typed amount is capped at the row's max");
+
+  const withBuffs = cardContext({ offered, buffs: [{ key: "b", name: "", applied: true }, { key: "c", name: "Cover", source: "Shield" }], tickedBuffKeys: new Set(["c"]) });
+  assert.deepEqual(withBuffs.buffs.map(({ name, ticked, locked }) => ({ name, ticked, locked })), [
+    { name: EN["SWFFG.OptionalBuffs.Unnamed"], ticked: true, locked: true },
+    { name: "Cover", ticked: true, locked: false },
+  ]);
+});
+
+test("a rival's card counts wounds", () => {
+  const offered = [option("rr", "Rapid Reaction", { strain: "amount", amount: 3 })];
+  assert.equal(cardContext({ offered, selection: { rr: 2 }, pool: pool("wounds") }).footer,
+    localize("SWFFG.RollOptions.Panel.WoundsAfter", { value: 2, threshold: 20 }));
+  assert.equal(cardContext({ offered: [option("pb", "Point Blank")] }).footer, null, "no costed row, no footer");
+});
+
+test("ticked rows are counted for the fold tab", () => {
+  const offered = [option("a", "A"), option("b", "B"), option("c", "C")];
+  const states = planOptionStates({ offered, selection: { a: 1, b: 1 }, twoWeapons: "same", pool: pool(), canCharge: true });
+  const buffs = [{ key: "x", applied: true }, { key: "y" }, { key: "z" }];
+  assert.equal(tickedRowCount({ buffs, tickedBuffKeys: new Set(["y"]), states, twoWeapons: "same" }), 5);
+  assert.equal(tickedRowCount({ buffs: [], tickedBuffKeys: new Set(), states, twoWeapons: "no" }), 2);
+});
+
+test("a skill change keeps only what is still offered", () => {
+  assert.deepEqual(
+    keepOffered({ selection: { a: 3, b: 1 }, choices: { a: "x", b: "y" }, buffKeys: new Set(["k1", "k2"]) }, { offered: [{ key: "a" }], buffs: [{ key: "k2" }] }),
+    { selection: { a: 3 }, choices: { a: "x" }, buffKeys: new Set(["k2"]) },
+  );
 });

@@ -43,9 +43,10 @@ test("saving an attachment keeps its modifications' links (final review, Importa
   assert.match(standalone, /keepCopyFields\(this\.object\.system\?\.itemmodifier, expanded\.system\.itemmodifier\)/);
 });
 
-test("every reason the planner gives is put in words by the dialog (talent review batch)", () => {
+test("every reason the planner gives is put in words by the card (talent review batch)", () => {
   const planner = read("modules/helpers/roll-option-costs.js");
-  const dialog = read("modules/dice/roll-builder.js");
+  // optionReasonText, shared by the dice dialog and the initiative dialog.
+  const dialog = read("modules/helpers/roll-option-card.js");
   const en = JSON.parse(read("lang/en.json"));
   const codes = [...new Set([...planner.matchAll(/reasonFor\("(\w+)"/g)].map((m) => m[1]))];
   assert.ok(codes.length >= 11, `found ${codes.length} reason codes`);
@@ -87,6 +88,7 @@ test("hovering an option row shows its source's description", () => {
   assert.ok(panel.includes('{{#if option.tooltip}} data-tooltip-html="{{option.tooltip}}" data-tooltip-class="ffg-ro-tooltip"{{/if}}'));
   const dialog = read("modules/dice/roll-builder.js");
   assert.ok(dialog.includes("PopoutEditor.renderDiceImages(option.description, this._rollActor)"));
-  assert.ok(dialog.includes("tooltip: this._optionTooltips?.get(option.key) ?? null"));
+  assert.ok(dialog.includes("tooltips: this._optionTooltips"), "the dialog hands the card its tooltips");
+  assert.ok(read("modules/helpers/roll-option-card.js").includes("tooltip: tooltips?.get?.(option.key) ?? null"));
   assert.ok(read("styles/mandar.css").includes("#tooltip.ffg-ro-tooltip {"));
 });
