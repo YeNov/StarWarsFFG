@@ -69,8 +69,17 @@ is shared by everyone), as a new stored field on talents and specialization tree
 time the row shows it carries a skill dropdown; after that it is offered only on the picked skill,
 and the pick can be changed on the talent sheet.
 
-## Options on initiative rolls
+## Initiative talents, the rest
 
-Rapid Reaction, Get The Drop, On The Lookout and Ready for Anything help initiative checks. Their
-options should also appear when initiative is rolled, not only on Cool or Vigilance checks made
-from the sheet.
+Initiative rolls carry the roll options card
+(`docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md`). What the dialog still
+leaves to the table:
+
+- **Get The Drop** adds Success equal to the character's Stealth ranks, typed into the row's
+  amount. A value word for another skill's rank (such as `"skill:Stealth"`) would fill it in and
+  cap it.
+- **On The Lookout** costs a Destiny Point, flipped by hand. A `destiny` cost, charged through the
+  GM after the roll posts as strain is, would flip it, and grey the row when no light side point is
+  left.
+- **The allies' half** of both talents: allies add the bonus to their own initiative checks. Their
+  rolls do not see the talent, so they add the Success in the add table.
