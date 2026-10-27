@@ -2,6 +2,7 @@ import PopoutEditor from "../popout-editor.js";
 import { ForceDie } from "./dietype/ForceDie.js";
 import {migrateDataToSystem} from "../helpers/migration.js";
 import {ItemFFG} from "../items/item-ffg.js";
+import { applyWeaponAdjust, cardWeaponStats } from "../helpers/roll-option-weapon.js";
 
 /**
  * New extension of the core DicePool class for evaluating rolls with the FFG DiceTerms
@@ -281,6 +282,11 @@ export class RollFFG extends Roll {
       this.data.defenceZoneText = this.defenceZoneText ?? null;
       this.data.optionalBuffsText = this.optionalBuffsText ?? null;
       this.data.rollOptionsText = this.rollOptionsText ?? null;
+      // Ticked roll options' damage and crit go on the copy. A copy reloaded above gets them fresh;
+      // one that could not be reloaded gets them on its first render, and its marker keeps later
+      // renders from adding them again.
+      applyWeaponAdjust(this.data, this.weaponAdjust ?? null);
+      if (this.data.system?.damage) this.data.weaponStats = cardWeaponStats(this.data.system);
     } else {
       this.data = {
         additionalFlavorText: this.flavorText,
@@ -418,6 +424,7 @@ export class RollFFG extends Roll {
     json.defenceZoneText = this.defenceZoneText ?? null;
     json.optionalBuffsText = this.optionalBuffsText ?? null;
     json.rollOptionsText = this.rollOptionsText ?? null;
+    json.weaponAdjust = this.weaponAdjust ?? null;
     json.modifications = this.modifications ?? [];
     return json;
   }
@@ -434,6 +441,7 @@ export class RollFFG extends Roll {
     roll.defenceZoneText = data.defenceZoneText ?? null;
     roll.optionalBuffsText = data.optionalBuffsText ?? null;
     roll.rollOptionsText = data.rollOptionsText ?? null;
+    roll.weaponAdjust = data.weaponAdjust ?? null;
     roll.modifications = data.modifications ?? [];
     return roll;
   }

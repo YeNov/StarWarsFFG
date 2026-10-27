@@ -126,9 +126,44 @@ export const LIBRARY_ENTRIES = [
         label: "Point Blank",
         hint: "Short range or engaged",
         offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+        weapon: { damage: "ranks" },
       },
     ],
+    // The text earlier library runs installed; a run updates an unedited macro from it.
+    previous: [
+      [
+        {
+          id: "point-blank",
+          label: "Point Blank",
+          hint: "Short range or engaged",
+          offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+        },
+      ],
+    ],
   },
+  // Deadly Accuracy: damage equal to ranks in the combat skill picked when the talent was taken.
+  // One version per Star Wars combat skill. A run links the Ranged: Heavy one to every Deadly
+  // Accuracy talent, as the most common pick; for another skill the GM drags that version's macro
+  // onto the talent in its place.
+  ...[
+    ["brawl", "Brawl"],
+    ["gunnery", "Gunnery"],
+    ["lightsaber", "Lightsaber"],
+    ["melee", "Melee"],
+    ["ranged-light", "Ranged: Light"],
+    ["ranged-heavy", "Ranged: Heavy"],
+  ].map(([slug, skill]) => ({
+    id: `deadly-accuracy-${slug}`,
+    names: skill === "Ranged: Heavy" ? [`Deadly Accuracy (${skill})`, "Deadly Accuracy"] : [`Deadly Accuracy (${skill})`],
+    options: [
+      {
+        id: `deadly-accuracy-${slug}`,
+        label: "Deadly Accuracy",
+        offer: { skills: [skill], attack: true },
+        weapon: { damage: "skillRank" },
+      },
+    ],
+  })),
   {
     id: "against-the-odds",
     names: ["Against The Odds*"],

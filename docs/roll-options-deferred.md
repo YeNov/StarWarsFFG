@@ -50,15 +50,21 @@ note of what Force points, Advantage or success buy afterwards.
 
 ## Damage, Pierce and crit from options
 
-Today these stay reminders: the card note names the effect and the table applies it. Making them
-real would mean option keys `damage`, `pierce` and `crit`; value words for a skill's ranks and a
-characteristic; the chat line showing the numbers ("Ambush +3 damage"); Apply Damage opening with
-the extra damage and Pierce; Apply Crit adding the bonus. It reverses the design's decision that
-options do not change the weapon or Apply Damage, so it needs its own design pass. Talents: Ambush,
-Ambusher, Barrage, Embrace Your Hate, Falling Avalanche, Finish the Fight, Finish the Fight
-(Improved), Martial Grace, Momentum, Point Blank, Prey on the Weak, Ride Down, Temple Training;
-Pierce: One Shot, One Kill, Precise Aim (Improved); crit: Clanker Killer (Improved), Hunter,
-Hunter (Supreme), Sorry About the Mess, Overcharged Battery.
+Options can now change the attacking weapon's damage and critical rating for one attack:
+`weapon: { damage, critical }`, with the `skillRank` word for the rolled skill's rank. The chat
+line shows the numbers and Apply Damage opens with the damage
+(`docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md`, "Amendments: weapon damage and
+crit from options"). Point Blank and Deadly Accuracy use it. Deadly Accuracy comes as one library
+entry per Star Wars combat skill; a run links the Ranged: Heavy one, and the GM swaps in another
+by hand.
+
+Still deferred: Pierce, a word for a characteristic's value, and Apply Crit adding a bonus to the
+roll (as opposed to the crit rating). The talents below still need checking against their rule
+text before their entries take a `weapon` key; until then the card note names the effect and the
+table applies it. Damage: Ambush, Ambusher, Barrage, Embrace Your Hate, Falling Avalanche, Finish
+the Fight, Finish the Fight (Improved), Martial Grace, Momentum, Prey on the Weak, Ride Down,
+Temple Training; Pierce: One Shot, One Kill, Precise Aim (Improved); crit: Clanker Killer
+(Improved), Hunter, Hunter (Supreme), Sorry About the Mess, Overcharged Battery.
 
 ## A skill the character picks once
 
@@ -67,7 +73,8 @@ offered on every social check and the player ticks it on the right one. A real c
 `choose: { skill: [...] }` in the option and keep the pick on the character's own talent (the macro
 is shared by everyone), as a new stored field on talents and specialization tree slots. The first
 time the row shows it carries a skill dropdown; after that it is offered only on the picked skill,
-and the pick can be changed on the talent sheet.
+and the pick can be changed on the talent sheet. Deadly Accuracy sidesteps this with one macro per
+combat skill, which the GM picks by linking it.
 
 ## Initiative talents, the rest
 

@@ -1,4 +1,5 @@
 import test from "node:test";
+import { applyWeaponAdjust } from "../../modules/helpers/roll-option-weapon.js";
 import assert from "node:assert/strict";
 
 import {
@@ -198,6 +199,14 @@ test("the seed falls back to the base damage and to a generic name", () => {
 
   assert.equal(seed.autoDamage, 7);
   assert.equal(seed.weaponName, "weapon");
+});
+
+test("the seed keeps a roll option's 0 damage", () => {
+  const weapon = { name: "Holdout", system: { damage: { value: 1, adjusted: 1 }, crit: { value: 3, adjusted: 3 } } };
+  applyWeaponAdjust(weapon, { damage: -1, critical: 0 });
+
+  assert.equal(planDamageSeed(weapon, 2).autoDamage, 2);
+  assert.equal(planDamageSeed({ system: { damage: { value: 1, adjusted: 0 } } }, 2).autoDamage, 3);
 });
 
 test("the seed reads Pierce and Breach off the rendered qualities, suffixed or not", () => {

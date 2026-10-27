@@ -75,6 +75,8 @@ const ORIGINAL_ENTRIES = {
       label: "Point Blank",
       hint: "Short range or engaged",
       offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+      // Added 2026-10-27, when options could change the weapon's damage.
+      weapon: { damage: "ranks" },
     },
   ],
 };
@@ -85,14 +87,15 @@ test("every library entry validates", () => {
   for (const entry of ROLL_OPTION_LIBRARY) assert.equal(validateOptions(entry.options).ok, true, entry.id);
 });
 
-test("the first eight entries are as reviewed, and the talents bring the library to 217", () => {
+test("the first eight entries are as reviewed, and the talents bring the library to 223", () => {
   for (const [id, options] of Object.entries(ORIGINAL_ENTRIES)) {
     assert.ok(byId(id), id);
     assert.deepEqual(byId(id).options, options, id);
   }
   assert.equal(byId("auto-fire").kind, "quality");
   assert.deepEqual(ROLL_OPTION_LIBRARY.slice(0, 8).map((e) => e.id), Object.keys(ORIGINAL_ENTRIES));
-  assert.equal(ROLL_OPTION_LIBRARY.length, 8 + 209);
+  // 209 reviewed talents (2026-10-22), plus Deadly Accuracy for each of six combat skills (2026-10-27).
+  assert.equal(ROLL_OPTION_LIBRARY.length, 8 + 215);
   assert.ok(ROLL_OPTION_LIBRARY.slice(8).every((e) => e.kind === "talent"));
 });
 
@@ -189,7 +192,7 @@ test("names with an asterisk, other spellings and Improved forms resolve to thei
 
 test("the library is one list, kept as data apart from the code that reads it", async () => {
   const { LIBRARY_ENTRIES } = await import("../../modules/config/roll-option-library-entries.js");
-  assert.equal(LIBRARY_ENTRIES.length, 217);
+  assert.equal(LIBRARY_ENTRIES.length, 223);
   assert.deepEqual(ROLL_OPTION_LIBRARY.map((e) => e.id), LIBRARY_ENTRIES.map((e) => e.id));
   assert.deepEqual(LIBRARY_ENTRIES.filter((e) => e.kind !== undefined).map((e) => [e.id, e.kind]), [["auto-fire", "quality"]], "every other entry is a talent");
   const fs = await import("node:fs");
@@ -311,6 +314,7 @@ test("changed entries keep the text they had", () => {
     "on-the-lookout": [{ skills: ["Cool", "Vigilance"] }, "Initiative, spend a Destiny Point; also allies up to your Cunning"],
     "ready-for-anything": [{ skills: ["Cool", "Vigilance", "Leadership", "Discipline", "Knowledge: Warfare"] }, "Initiative (Cool or Vigilance) or Mass Combat checks"],
     "master-strategist": [{ skills: ["Leadership", "Cool", "Discipline", "Knowledge: Warfare"] }, "Mass Combat check; once per phase"],
+    "point-blank": [{ skills: ["Ranged: Light", "Ranged: Heavy"] }, "Short range or engaged"],
   };
   for (const [id, [offer, hint]] of Object.entries(earlier)) {
     const { previous } = byId(id);
@@ -321,4 +325,26 @@ test("changed entries keep the text they had", () => {
   for (const entry of ROLL_OPTION_LIBRARY) {
     if (!(entry.id in earlier)) assert.deepEqual(entry.previous, [], entry.id);
   }
+});
+
+test("Deadly Accuracy comes in one version per Star Wars combat skill; Ranged: Heavy is the one linked by default", () => {
+  const combat = Object.entries(defaultSkillList.find((list) => list.id === "starwars").skills)
+    .filter(([, skill]) => skill.type === "Combat")
+    .map(([key]) => key);
+  const versions = ROLL_OPTION_LIBRARY.filter((e) => e.id.startsWith("deadly-accuracy"));
+  assert.deepEqual(versions.map((e) => e.options[0].offer.skills), combat.map((key) => [key]));
+  for (const [i, entry] of versions.entries()) {
+    const names = [`Deadly Accuracy (${combat[i]})`];
+    if (combat[i] === "Ranged: Heavy") names.push("Deadly Accuracy");
+    assert.deepEqual(entry.names, names);
+    assert.deepEqual(entry.options, [{
+      id: entry.id,
+      label: "Deadly Accuracy",
+      offer: { skills: [combat[i]], attack: true },
+      weapon: { damage: "skillRank" },
+    }]);
+  }
+  // A run links Ranged: Heavy; for another skill the GM drags that version onto the talent instead.
+  assert.equal(libraryEntryFor("talent", "Deadly Accuracy")?.id, "deadly-accuracy-ranged-heavy");
+  assert.equal(libraryEntryFor("talent", "Deadly Accuracy (Melee)")?.id, "deadly-accuracy-melee");
 });

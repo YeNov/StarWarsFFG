@@ -18,7 +18,9 @@
  *   hasInitiativeOption says whether a roller has such a row at all (a "talented" combatant in a
  *   group initiative roll; docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md).
  *
- * "ranks" and "forceRating" (with their sign: "-ranks") are resolved here. "amount" waits until the
+ * An option that changes the weapon (`weapon`) is offered on attacks only.
+ *
+ * "ranks", "forceRating" and "skillRank" (with their sign: "-ranks") are resolved here. "amount" waits until the
  * player picks an amount, and the live words (forceAvailable, destinyLight, destinyDark) until the
  * planner reads them, so a roll uses the values of the moment it is made. An amount with no max
  * is offered with `max: null`: no cap beyond the payer's strain.
@@ -96,7 +98,7 @@ function offerMatches(offer, context) {
  * @param {Iterable<object>} params.items - the rolling actor's items
  * @param {Map<string, {ok: boolean, options?: object[]}>} params.macros - parsed macro text by uuid
  * @param {{skillKey: string|null, skillType: string|null, weaponId: string|null, isAttack: boolean,
- *   isForcePower: boolean, isInitiative?: boolean, forceRating: number}} params.context
+ *   isForcePower: boolean, isInitiative?: boolean, forceRating: number, skillRank?: number}} params.context
  * @returns {object[]} OfferedOption rows
  */
 export function collectOfferedOptions({ items, macros, context }) {
@@ -104,17 +106,22 @@ export function collectOfferedOptions({ items, macros, context }) {
   const groups = gatherOptionGroups(items, macros, context?.weaponId ?? null);
 
   const forceRating = Number(context?.forceRating) || 0;
+  const skillRank = Number(context?.skillRank) || 0;
   const offered = [];
   for (const [key, group] of groups) {
     const { option, source, description } = group;
     if (!offerMatches(option.offer, context ?? {})) continue;
+    // A row that changes the weapon needs a weapon to change.
+    if (option.weapon && !context?.isAttack) continue;
     const ranked = group.talent && group.ranked;
     const rank = ranked ? group.rank : (group.talent ? 1 : group.rank);
-    // "ranks" and "forceRating" are known now; live words and "amount" are left for the planner.
+    // "ranks", "forceRating" and "skillRank" are known now; live words and "amount" are left for
+    // the planner.
     const resolve = (value) => {
       const word = diceWord(value);
       if (word?.word === "ranks") return word.sign * rank;
       if (word?.word === "forceRating") return word.sign * forceRating;
+      if (word?.word === "skillRank") return word.sign * skillRank;
       return value;
     };
     const resolveDice = (dice) => Object.fromEntries(Object.entries(dice ?? {}).map(([diceKey, value]) => [diceKey, resolve(value)]));
@@ -133,6 +140,7 @@ export function collectOfferedOptions({ items, macros, context }) {
         : null,
       cost: { strain: option.cost?.strain ?? 0, maneuvers: option.cost?.maneuvers ?? 0 },
       dice: resolveDice(option.dice),
+      weapon: option.weapon ? resolveDice(option.weapon) : null,
       difficultyFloor: option.difficultyFloor ?? null,
       characteristic: option.characteristic ?? null,
       skill: option.skill ?? null,

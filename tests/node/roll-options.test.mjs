@@ -178,3 +178,24 @@ test("offer.initiative is a boolean", () => {
   const [error] = validateOptions({ offer: { initiative: "yes" } }).errors;
   assert.deepEqual([error.key, error.code], ["offer.initiative", "notBoolean"]);
 });
+
+test("weapon takes damage and critical, as numbers or words", () => {
+  assert.equal(validateOptions([{ id: "a", weapon: { damage: 2, critical: "-ranks" } }]).ok, true);
+  assert.equal(validateOptions({ weapon: { damage: "skillRank" } }).ok, true);
+  assert.deepEqual(validateOptions({ weapon: { pierce: 1 } }).errors, [{ option: 1, key: "weapon.pierce", code: "unknownKey" }]);
+  assert.deepEqual(validateOptions({ weapon: { damage: "lots" } }).errors, [{ option: 1, key: "weapon.damage", code: "notDiceValue" }]);
+  assert.deepEqual(validateOptions({ weapon: 3 }).errors, [{ option: 1, key: "weapon", code: "notObject" }]);
+  assert.deepEqual(validateOptions({ weapon: { damage: "amount" } }).errors, [{ option: 1, key: "weapon.damage", code: "amountWithoutAmount" }]);
+  assert.equal(validateOptions({ amount: { max: 2 }, weapon: { damage: "amount" } }).ok, true);
+});
+
+test("weapon is not allowed inside choices", () => {
+  const choices = [{ id: "a", label: "A", weapon: { damage: 1 } }, { id: "b", label: "B" }];
+  assert.deepEqual(validateOptions({ choices }).errors, [{ option: 1, key: "choices[1].weapon", code: "unknownKey" }]);
+});
+
+test("skillRank is a word for dice, weapon and amount.max", () => {
+  assert.equal(validateOptions({ dice: { boost: "skillRank", setback: "-skillRank" } }).ok, true);
+  assert.equal(validateOptions({ amount: { max: "skillRank" } }).ok, true);
+  assert.equal(validateOptions({ amount: { max: "-skillRank" } }).errors[0].code, "notMax");
+});

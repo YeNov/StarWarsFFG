@@ -13,10 +13,12 @@
  *     dice: { boost, setback, removeSetback, difficulty,
  *             upgradeAbility, downgradeAbility, upgradeDifficulty, downgradeDifficulty,
  *             success, advantage, triumph, threat, failure, despair, force, removeBoost },
+ *     weapon: { damage, critical },
  *     difficultyFloor, characteristic, skill,
  *     choices: [{ id, label, dice }, …] }
  *
- * Dice values are whole numbers or words: "ranks", "amount", "forceRating", and the live
+ * Dice values are whole numbers or words: "ranks", "amount", "forceRating", "skillRank" (the rank
+ * of the skill the roll was opened with, before any swap), and the live
  * "forceAvailable" (Force rating less committed dice), "destinyLight" and "destinyDark" (the
  * Destiny pool). A word may carry a minus ("-ranks"). `amount.max` is a positive whole number or
  * one of the words, or is left out for no cap beyond the payer's strain. `choices` are the
@@ -24,6 +26,10 @@
  * `offer.initiative` true offers a row on initiative rolls only, false never on them; left out, an
  * initiative roll is like any check of its skill
  * (docs/superpowers/specs/2026-10-23-initiative-roll-options-design.md).
+ * `weapon` changes the attacking weapon's damage and critical rating for that one attack. Its
+ * values take the same numbers and words as dice values; it is not allowed inside `choices`
+ * (docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md, "Amendments: weapon damage
+ * and crit from options").
  *
  * The validator collects every problem rather than stopping at the first, so a GM sees them all at
  * once. Errors are data ({option, key, code}); the Foundry side turns them into localized text.
@@ -38,6 +44,9 @@ export const DICE_KEYS = Object.freeze([
   "upgradeAbility", "downgradeAbility", "upgradeDifficulty", "downgradeDifficulty",
   "success", "advantage", "triumph", "threat", "failure", "despair", "force", "removeBoost",
 ]);
+
+/** What a ticked option may change on the attacking weapon, for that one attack. */
+export const WEAPON_KEYS = Object.freeze(["damage", "critical"]);
 
 /** The characteristics a swap may name, as actor data keys them. */
 export const CHARACTERISTICS = Object.freeze(["Brawn", "Agility", "Intellect", "Cunning", "Willpower", "Presence"]);
@@ -54,13 +63,13 @@ export const TWO_WEAPONS_OFFERS = Object.freeze(["same", "different", "any"]);
 /** The item types that carry a list of links to option macros. */
 export const LINK_ITEM_TYPES = Object.freeze(["talent", "weapon", "armour", "gear", "itemattachment", "itemmodifier"]);
 
-const OPTION_KEYS = ["id", "label", "hint", "offer", "amount", "cost", "dice", "difficultyFloor", "characteristic", "skill", "choices"];
+const OPTION_KEYS = ["id", "label", "hint", "offer", "amount", "cost", "dice", "weapon", "difficultyFloor", "characteristic", "skill", "choices"];
 const OFFER_KEYS = ["skills", "skillTypes", "attack", "twoWeapons", "minDifficulty", "initiative"];
 const AMOUNT_KEYS = ["max", "label"];
 const COST_KEYS = ["strain", "maneuvers"];
 const CHOICE_KEYS = ["id", "label", "dice"];
-const MAX_WORDS = ["ranks", "forceRating", ...LIVE_WORDS];
-const DICE_WORDS = ["ranks", "amount", "forceRating", ...LIVE_WORDS];
+const MAX_WORDS = ["ranks", "forceRating", "skillRank", ...LIVE_WORDS];
+const DICE_WORDS = ["ranks", "amount", "forceRating", "skillRank", ...LIVE_WORDS];
 
 /**
  * A dice value's word without its sign, and the sign: "-ranks" → {word: "ranks", sign: -1}. Null
@@ -165,6 +174,7 @@ function checkOption(option, number, errors, seenIds) {
   if ("amount" in option) checkAmount(option.amount, fail);
   if ("cost" in option) checkCost(option.cost, fail, amountUsers);
   if ("dice" in option) checkDice(option.dice, fail, amountUsers, "dice");
+  if ("weapon" in option) checkValues(option.weapon, WEAPON_KEYS, fail, amountUsers, "weapon");
   if ("difficultyFloor" in option && !(Number.isInteger(option.difficultyFloor) && option.difficultyFloor >= 0)) {
     fail("difficultyFloor", "notFloor");
   }
@@ -254,14 +264,19 @@ function checkCost(cost, fail, amountUsers) {
 }
 
 function checkDice(dice, fail, amountUsers, at) {
-  if (!isPlainObject(dice)) {
+  checkValues(dice, DICE_KEYS, fail, amountUsers, at);
+}
+
+/** A group of dice-style values (dice, weapon): known keys only, each a whole number or a word. */
+function checkValues(values, keys, fail, amountUsers, at) {
+  if (!isPlainObject(values)) {
     fail(at, "notObject");
     return;
   }
-  checkKnownKeys(at, dice, DICE_KEYS, fail);
-  for (const key of DICE_KEYS) {
-    if (!(key in dice)) continue;
-    const value = dice[key];
+  checkKnownKeys(at, values, keys, fail);
+  for (const key of keys) {
+    if (!(key in values)) continue;
+    const value = values[key];
     const word = diceWord(value);
     if (word?.word === "amount") amountUsers.push(`${at}.${key}`);
     else if (!(Number.isInteger(value) || word)) fail(`${at}.${key}`, "notDiceValue");

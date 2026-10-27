@@ -17,7 +17,7 @@
  */
 import { readCostPool } from "./defensive-talents.js";
 import { skillTypeOf } from "./roll-options-offer.js";
-import { diceWord, LIVE_WORDS } from "./roll-options.js";
+import { diceWord, LIVE_WORDS, WEAPON_KEYS } from "./roll-options.js";
 
 /**
  * Whether a charge for this actor can reach a writer: the active GM, or an owner who is rolling.
@@ -50,6 +50,8 @@ export function rollOptionInputs(actor, { skillKey = null, item = null, configur
     isForcePower: type === "forcepower",
     isInitiative: initiative === true,
     forceRating: actor ? Number(actor.system?.stats?.forcePool?.max) || 0 : 0,
+    // The rank of the skill the roll was opened with; a ticked skill swap does not change it.
+    skillRank: actor && skillKey ? Number(actor.system?.skills?.[skillKey]?.rank) || 0 : 0,
   };
   if (!actor) return { items: [], context, pool: null, canCharge: false };
   return {
@@ -141,6 +143,12 @@ function resolvedDice(option, branch, amount, live) {
     for (const [key, value] of Object.entries(source)) dice[key] = (dice[key] ?? 0) + resolveValue(value, { amount, live });
   }
   return dice;
+}
+
+/** The option's weapon changes as numbers, every key present; null for an option without `weapon`. */
+function resolvedWeapon(option, amount, live) {
+  if (!option.weapon) return null;
+  return Object.fromEntries(WEAPON_KEYS.map((key) => [key, key in option.weapon ? resolveValue(option.weapon[key], { amount, live }) : 0]));
 }
 
 const hasDice = (option, branch, key) => key in (option.dice ?? {}) || key in (branch?.dice ?? {});
@@ -268,7 +276,12 @@ export function planOptionStates({
       else if (room < 0) return null;
     }
     if (amount < 1) return null;
-    return { amount, cost: resolvedCost(option, amount), dice: resolvedDice(option, branchOf(option), amount, live) };
+    return {
+      amount,
+      cost: resolvedCost(option, amount),
+      dice: resolvedDice(option, branchOf(option), amount, live),
+      weapon: resolvedWeapon(option, amount, live),
+    };
   };
 
   for (const trades of [false, true]) {
@@ -331,7 +344,8 @@ export function planOptionStates({
     maneuvers += cost.maneuvers;
   }
   return {
-    rows: states,
+    // The weapon numbers belong to ticked rows only, like their dice.
+    rows: states.map((state) => ({ ...state, weapon: state.ticked ? kept.get(state.key)?.weapon ?? null : null })),
     selection: finalSelection,
     choices: picks,
     strain: used,

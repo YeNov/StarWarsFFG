@@ -342,3 +342,21 @@ test("inputs mark an initiative roll", () => {
   assert.equal(rollOptionInputs(null, { skillKey: "Cool", initiative: true }).context.isInitiative, true);
   assert.equal(rollOptionInputs(null, { skillKey: "Cool" }).context.isInitiative, false);
 });
+
+test("inputs read the rolled skill's rank as skillRank", () => {
+  const actor = { type: "character", isOwner: true, items: [], system: { stats: {}, skills: { "Ranged: Light": { rank: 2 } } } };
+  assert.equal(rollOptionInputs(actor, { skillKey: "Ranged: Light" }).context.skillRank, 2);
+  assert.equal(rollOptionInputs(actor, { skillKey: "Melee" }).context.skillRank, 0);
+  assert.equal(rollOptionInputs(actor, {}).context.skillRank, 0);
+  assert.equal(rollOptionInputs(null, { skillKey: "Ranged: Light" }).context.skillRank, 0);
+});
+
+test("a ticked row carries its weapon numbers; an unticked one carries none", () => {
+  const hit = { ...opt("w", { max: 3 }), weapon: { damage: "amount" } };
+  const ticked = row(plan2({ offered: [hit], selection: { w: 2 } }), "w");
+  assert.deepEqual(ticked.weapon, { damage: 2, critical: 0 });
+  assert.equal(row(plan2({ offered: [hit], selection: {} }), "w").weapon, null);
+  const fixed = { ...opt("f"), weapon: { critical: -1 } };
+  assert.deepEqual(row(plan2({ offered: [fixed], selection: { f: 1 } }), "f").weapon, { damage: 0, critical: -1 });
+  assert.equal(row(plan2({ offered: [opt("n")], selection: { n: 1 } }), "n").weapon, null);
+});
