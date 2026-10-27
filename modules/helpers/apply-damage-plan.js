@@ -14,6 +14,7 @@
  */
 
 import { switchedOn } from "./modifier-switch.js";
+import { cardWeaponStats } from "./roll-option-weapon.js";
 
 /**
  * The protective qualities worn on the target, deduplicated and sorted.
@@ -111,10 +112,9 @@ export function planDamageTarget(actor) {
 export function planDamageSeed(itemData, successes, target) {
   const itemSystem = itemData?.system || {};
   // `adjusted` folds in modifiers and attachments; it is 0 on a weapon that has never been
-  // through the item sheet, in which case the raw value is the honest number.
-  const adjusted = Number(itemSystem.damage?.adjusted) || 0;
-  const baseValue = Number(itemSystem.damage?.value) || 0;
-  const baseDamage = adjusted !== 0 ? adjusted : baseValue;
+  // through the item sheet, in which case the raw value is the honest number, unless a roll
+  // option took the damage to 0. The chat card reads the same rule.
+  const baseDamage = cardWeaponStats(itemSystem).damage;
 
   // The rendered qualities live at system.doNotSubmit.qualities with computed totalRanks
   // (including attachment stacking). Names may carry a suffix like " Quality"

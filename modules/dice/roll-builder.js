@@ -5,6 +5,7 @@ import { onceEffectIds, postThenPay } from "./roll-costs.js";
 import { packSentLayers, packSentPool, readSentLayers } from "./roll-option-sent.js";
 import { rollActorFrom, rollSkillContext } from "./roll-actor.js";
 import { RollOptionsCard } from "./roll-options-card.js";
+import { sumWeaponAdjust } from "../helpers/roll-option-weapon.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
 import { characterDefenceDice } from "../helpers/defence-helpers.js";
@@ -384,6 +385,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // card, a sent pool and the charge take from it is read here.
       this._card.plan(this._cardEnv(defenceSnapshot));
       const optionEntries = this._card.entries();
+      const weaponAdjust = sumWeaponAdjust(optionEntries);
       const sentSelections = this._card.sentSelections();
       const optionCharge = this._card.chargeAfterPost(optionEntries);
       const optionalBuffsText = this._card.optionalBuffsText();
@@ -539,6 +541,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
                 dice: zoneSnapshot.dice,
               });
         roll.rollOptionsText = this._card.rollOptionsText(optionEntries);
+        roll.weaponAdjust = weaponAdjust;
         roll.optionalBuffsText = optionalBuffsText;
         // check if this is a crew roll - and it's a roll for a weapon
         if (this.roll.item && this.roll.item.hasOwnProperty('crew') && Object.keys(this.roll.item).length > 1) {
