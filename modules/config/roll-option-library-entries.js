@@ -126,6 +126,34 @@ export const LIBRARY_ENTRIES = [
         label: "Point Blank",
         hint: "Short range or engaged",
         offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+        weapon: { damage: "ranks" },
+      },
+    ],
+    // The text earlier library runs installed; a run updates an unedited macro from it.
+    previous: [
+      [
+        {
+          id: "point-blank",
+          label: "Point Blank",
+          hint: "Short range or engaged",
+          offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+        },
+      ],
+    ],
+  },
+  {
+    // Damage equal to ranks in the combat skill picked when the talent was taken. The pick is not
+    // stored yet (docs/roll-options-deferred.md, "A skill the character picks once"), so the row
+    // is offered on every Combat attack and the hint names the condition.
+    id: "deadly-accuracy",
+    names: ["Deadly Accuracy"],
+    options: [
+      {
+        id: "deadly-accuracy",
+        label: "Deadly Accuracy",
+        hint: "Only on the skill you chose",
+        offer: { skillTypes: ["Combat"], attack: true },
+        weapon: { damage: "skillRank" },
       },
     ],
   },

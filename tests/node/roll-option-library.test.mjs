@@ -75,6 +75,8 @@ const ORIGINAL_ENTRIES = {
       label: "Point Blank",
       hint: "Short range or engaged",
       offer: { skills: ["Ranged: Light", "Ranged: Heavy"] },
+      // Added 2026-10-27, when options could change the weapon's damage.
+      weapon: { damage: "ranks" },
     },
   ],
 };
@@ -85,14 +87,15 @@ test("every library entry validates", () => {
   for (const entry of ROLL_OPTION_LIBRARY) assert.equal(validateOptions(entry.options).ok, true, entry.id);
 });
 
-test("the first eight entries are as reviewed, and the talents bring the library to 217", () => {
+test("the first eight entries are as reviewed, and the talents bring the library to 218", () => {
   for (const [id, options] of Object.entries(ORIGINAL_ENTRIES)) {
     assert.ok(byId(id), id);
     assert.deepEqual(byId(id).options, options, id);
   }
   assert.equal(byId("auto-fire").kind, "quality");
   assert.deepEqual(ROLL_OPTION_LIBRARY.slice(0, 8).map((e) => e.id), Object.keys(ORIGINAL_ENTRIES));
-  assert.equal(ROLL_OPTION_LIBRARY.length, 8 + 209);
+  // 209 reviewed talents (2026-10-22), plus Deadly Accuracy (2026-10-27).
+  assert.equal(ROLL_OPTION_LIBRARY.length, 8 + 210);
   assert.ok(ROLL_OPTION_LIBRARY.slice(8).every((e) => e.kind === "talent"));
 });
 
@@ -189,7 +192,7 @@ test("names with an asterisk, other spellings and Improved forms resolve to thei
 
 test("the library is one list, kept as data apart from the code that reads it", async () => {
   const { LIBRARY_ENTRIES } = await import("../../modules/config/roll-option-library-entries.js");
-  assert.equal(LIBRARY_ENTRIES.length, 217);
+  assert.equal(LIBRARY_ENTRIES.length, 218);
   assert.deepEqual(ROLL_OPTION_LIBRARY.map((e) => e.id), LIBRARY_ENTRIES.map((e) => e.id));
   assert.deepEqual(LIBRARY_ENTRIES.filter((e) => e.kind !== undefined).map((e) => [e.id, e.kind]), [["auto-fire", "quality"]], "every other entry is a talent");
   const fs = await import("node:fs");
@@ -311,6 +314,7 @@ test("changed entries keep the text they had", () => {
     "on-the-lookout": [{ skills: ["Cool", "Vigilance"] }, "Initiative, spend a Destiny Point; also allies up to your Cunning"],
     "ready-for-anything": [{ skills: ["Cool", "Vigilance", "Leadership", "Discipline", "Knowledge: Warfare"] }, "Initiative (Cool or Vigilance) or Mass Combat checks"],
     "master-strategist": [{ skills: ["Leadership", "Cool", "Discipline", "Knowledge: Warfare"] }, "Mass Combat check; once per phase"],
+    "point-blank": [{ skills: ["Ranged: Light", "Ranged: Heavy"] }, "Short range or engaged"],
   };
   for (const [id, [offer, hint]] of Object.entries(earlier)) {
     const { previous } = byId(id);

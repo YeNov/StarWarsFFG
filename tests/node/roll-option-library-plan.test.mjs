@@ -34,7 +34,7 @@ test("a world with the first eight macros gets only the new entries, and their t
   const existing = firstEight.map((id) => ({ uuid: `Macro.old-${id}`, libraryId: id }));
   const { create, uuidByEntry: map } = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
   assert.deepEqual(create.map((entry) => entry.id), ROLL_OPTION_LIBRARY.filter((entry) => !firstEight.includes(entry.id)).map((entry) => entry.id));
-  assert.equal(create.length, 209, "the reviewed talents (2026-10-22)");
+  assert.equal(create.length, 210, "the reviewed talents (2026-10-22) and Deadly Accuracy (2026-10-27)");
   assert.ok(create.some((entry) => entry.id === "master-slicer"));
   for (const id of firstEight) assert.equal(map.get(id), `Macro.old-${id}`);
 
@@ -191,4 +191,21 @@ test("running it again changes nothing", () => {
   const existing = ROLL_OPTION_LIBRARY.map((entry) => ({ uuid: `Macro.${entry.id}`, libraryId: entry.id, command: libraryMacroText(entry) }));
   const again = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
   assert.deepEqual([again.create, again.update, again.edited], [[], [], []]);
+});
+
+// Point Blank as the library installed it before options could add damage.
+const pointBlankBefore = [{ id: "point-blank", label: "Point Blank", hint: "Short range or engaged", offer: { skills: ["Ranged: Light", "Ranged: Heavy"] } }];
+
+test("an installed, unedited Point Blank macro gets the damage", () => {
+  const pb = ROLL_OPTION_LIBRARY.find((entry) => entry.id === "point-blank");
+  const { update, edited } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.pb", libraryId: "point-blank", command: JSON.stringify(pointBlankBefore) }]);
+  assert.deepEqual(update, [{ uuid: "Macro.pb", entryId: "point-blank", command: libraryMacroText(pb) }]);
+  assert.deepEqual(JSON.parse(update[0].command)[0].weapon, { damage: "ranks" });
+  assert.deepEqual(edited, []);
+});
+
+test("a Point Blank macro the GM edited is left and reported", () => {
+  const mine = JSON.stringify([{ ...pointBlankBefore[0], hint: "Engaged only" }]);
+  const { update, edited } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.pb", libraryId: "point-blank", command: mine }]);
+  assert.deepEqual([update, edited], [[], [{ uuid: "Macro.pb", entryId: "point-blank" }]]);
 });
