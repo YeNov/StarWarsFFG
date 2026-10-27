@@ -282,8 +282,9 @@ export class RollFFG extends Roll {
       this.data.defenceZoneText = this.defenceZoneText ?? null;
       this.data.optionalBuffsText = this.optionalBuffsText ?? null;
       this.data.rollOptionsText = this.rollOptionsText ?? null;
-      // Ticked roll options' damage and crit go on the copy just reloaded; a copy that was not
-      // reloaded already has them and is left alone.
+      // Ticked roll options' damage and crit go on the copy. A copy reloaded above gets them fresh;
+      // one that could not be reloaded gets them on its first render, and its marker keeps later
+      // renders from adding them again.
       applyWeaponAdjust(this.data, this.weaponAdjust ?? null);
       if (this.data.system?.damage) this.data.weaponStats = cardWeaponStats(this.data.system);
     } else {

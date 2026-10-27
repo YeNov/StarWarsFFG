@@ -591,7 +591,7 @@ one attack. Range, qualities, Pierce, encumbrance, price, rarity and hardpoints 
   attack (a weapon or ship weapon). Its `offer` still narrows it further.
 - **What a tick does.** The ticked rows' damage and crit add up. The chat card's weapon copy gets
   them on top of its adjusted values (the raw value when `adjusted` is 0): damage never below 0,
-  crit never below 1. Apply Damage opens with that damage, since it reads the same copy. The
+  crit never below 1, and a weapon with no crit rating (0) keeps none. Apply Damage opens with that damage, since it reads the same copy. The
   pool is unchanged.
 - **Chat line.** A ticked weapon row shows its numbers after its label: "Point Blank 2 (+2
   damage)", "Hunter (Crit −1)".

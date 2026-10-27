@@ -77,3 +77,10 @@ test("without an option, the card's numbers follow today's rule", () => {
   assert.deepEqual(cardWeaponStats(copy({ damage: 5, damageAdjusted: 0, crit: 3, critAdjusted: 2 }).system), { damage: 5, crit: 3 });
   assert.deepEqual(cardWeaponStats({}), { damage: 0, crit: 0 });
 });
+
+test("a weapon with no crit rating keeps none", () => {
+  const net = applyWeaponAdjust(copy({ damage: 0, damageAdjusted: 0, crit: 0, critAdjusted: 0 }), { damage: 2, critical: 0 });
+  assert.deepEqual([net.system.damage.adjusted, net.system.crit.adjusted], [2, 0]);
+  assert.equal(applyWeaponAdjust(copy({ crit: 0 }), { damage: 0, critical: -1 }).system.crit.adjusted, 0);
+  assert.equal(cardWeaponStats(net.system).crit, 0);
+});

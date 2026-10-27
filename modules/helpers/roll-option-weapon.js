@@ -35,7 +35,7 @@ const startOf = (stat, fallsBack) => (fallsBack ? number(stat?.value) : number(s
 
 /**
  * Put the options' changes on the chat card's weapon copy, in place: damage never below 0, crit
- * never below 1. Records them as `system.rollOptionWeapon`, and does nothing on a copy that has
+ * never below 1, and a weapon with no crit rating (0) keeps none. Records them as `system.rollOptionWeapon`, and does nothing on a copy that has
  * them already.
  * @param {object} itemData - the weapon copy the chat card renders
  * @param {{damage: number, critical: number}|null} adjust - from sumWeaponAdjust
@@ -48,7 +48,9 @@ export function applyWeaponAdjust(itemData, adjust) {
   const fallsBack = number(system.damage.adjusted) === 0;
   system.damage.adjusted = Math.max(0, startOf(system.damage, fallsBack) + number(adjust.damage));
   system.crit = system.crit ?? {};
-  system.crit.adjusted = Math.max(1, startOf(system.crit, fallsBack) + number(adjust.critical));
+  // A crit of 0 means the weapon has no crit rating ("—"); an option does not give it one.
+  const critStart = startOf(system.crit, fallsBack);
+  system.crit.adjusted = critStart === 0 ? 0 : Math.max(1, critStart + number(adjust.critical));
   system.rollOptionWeapon = { damage: number(adjust.damage), critical: number(adjust.critical) };
   return itemData;
 }
