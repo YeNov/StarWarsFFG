@@ -262,3 +262,24 @@ test("hasInitiativeOption looks at initiative: true only", () => {
   assert.equal(hasInitiativeOption({ items: [], macros: init }), false);
   assert.equal(hasInitiativeOption({ items: [talent()], macros: new Map() }), false, "macro not loaded");
 });
+
+test("skillRank resolves to the rolled skill's rank in weapon and dice values", () => {
+  const macros = one([{ label: "Deadly", weapon: { damage: "skillRank", critical: "-skillRank" }, dice: { boost: "skillRank" } }]);
+  const [row] = offer([gear()], macros, { isAttack: true, skillRank: 3 });
+  assert.deepEqual(row.weapon, { damage: 3, critical: -3 });
+  assert.equal(row.dice.boost, 3);
+  assert.equal(offer([gear()], macros, { isAttack: true })[0].weapon.damage, 0);
+});
+
+test("ranks resolve in weapon values; amount stays a word", () => {
+  const macros = one([{ label: "PB", weapon: { damage: "ranks" } }, { label: "Am", amount: { max: 2 }, weapon: { critical: "-amount" } }]);
+  const rows = offer([talent({ ranked: true, current: 2 })], macros, { isAttack: true });
+  assert.deepEqual(rows.map((r) => r.weapon), [{ damage: 2 }, { critical: "-amount" }]);
+});
+
+test("an option with weapon is offered on attacks only", () => {
+  const macros = one([{ label: "Hit harder", weapon: { damage: 1 } }, { label: "Plain" }]);
+  assert.deepEqual(labels(offer([gear()], macros, { isAttack: false })), ["Plain"]);
+  assert.deepEqual(labels(offer([gear()], macros, { isAttack: true })), ["Hit harder", "Plain"]);
+  assert.equal(offer([gear()], macros, { isAttack: true })[1].weapon, null);
+});
