@@ -573,3 +573,32 @@ the text above disagree, this section is the rule.
 - **Unchanged boundaries**: spending Force points, damage, Pierce and crit, round tracking and
   spending Destiny Points stay with the table; the base pool is never changed; costs are charged
   after the roll posts; the player decides which of a base talent and its Improved form to tick.
+
+## Amendments: weapon damage and crit from options (2026-10-27)
+
+Where this section and the text above disagree, this section is the rule. It narrows the
+non-goal "Changing the weapon for the roll" and the "damage … and crit stay with the table"
+boundary: a ticked option may now change the weapon's **damage** and **critical rating** for that
+one attack. Range, qualities, Pierce, encumbrance, price, rarity and hardpoints stay out.
+
+- **Option format.** A new optional key `weapon: { damage, critical }`. Each value is a whole
+  number or a word, as dice values are, and may carry a minus. Any other key under `weapon` is an
+  `unknownKey` error; a bad value is `notDiceValue`. `weapon` is not allowed inside `choices`.
+- **A new word, `skillRank`**: the rank of the skill the roll was opened with, read when the row
+  is offered (a ticked `skill` swap does not change it). Allowed wherever `ranks` is: dice values,
+  `weapon` values and `amount.max`. 0 when the roll has no skill or no actor.
+- **Offered on attacks only.** An option with a `weapon` key is offered only when the roll is an
+  attack (a weapon or ship weapon). Its `offer` still narrows it further.
+- **What a tick does.** The ticked rows' damage and crit add up. The chat card's weapon copy gets
+  them on top of its adjusted values (the raw value when `adjusted` is 0): damage never below 0,
+  crit never below 1. Apply Damage opens with that damage, since it reads the same copy. The
+  pool is unchanged.
+- **Chat line.** A ticked weapon row shows its numbers after its label: "Point Blank 2 (+2
+  damage)", "Hunter (Crit −1)".
+- **A pool the GM sends.** Nothing new travels: the player's dialog re-plans the sent selection, so
+  the weapon numbers come from the player's own skill rank and the weapon they roll with.
+- **Library.** Point Blank gains `weapon: { damage: "ranks" }`. A new entry, Deadly Accuracy,
+  is offered on Combat attacks with `weapon: { damage: "skillRank" }` and the hint "Only on the
+  skill you chose". It is not ticked by default; picking the skill once stays in "A skill the
+  character picks once" in `docs/roll-options-deferred.md`. The other damage and crit talents in
+  that file stay deferred until each is checked against its rule text.
