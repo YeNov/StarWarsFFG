@@ -141,22 +141,29 @@ export const LIBRARY_ENTRIES = [
       ],
     ],
   },
-  {
-    // Damage equal to ranks in the combat skill picked when the talent was taken. The pick is not
-    // stored yet (docs/roll-options-deferred.md, "A skill the character picks once"), so the row
-    // is offered on every Combat attack and the hint names the condition.
-    id: "deadly-accuracy",
-    names: ["Deadly Accuracy"],
+  // Deadly Accuracy: damage equal to ranks in the combat skill picked when the talent was taken.
+  // One version per Star Wars combat skill. A run links the Ranged: Heavy one to every Deadly
+  // Accuracy talent, as the most common pick; for another skill the GM drags that version's macro
+  // onto the talent in its place.
+  ...[
+    ["brawl", "Brawl"],
+    ["gunnery", "Gunnery"],
+    ["lightsaber", "Lightsaber"],
+    ["melee", "Melee"],
+    ["ranged-light", "Ranged: Light"],
+    ["ranged-heavy", "Ranged: Heavy"],
+  ].map(([slug, skill]) => ({
+    id: `deadly-accuracy-${slug}`,
+    names: skill === "Ranged: Heavy" ? [`Deadly Accuracy (${skill})`, "Deadly Accuracy"] : [`Deadly Accuracy (${skill})`],
     options: [
       {
-        id: "deadly-accuracy",
+        id: `deadly-accuracy-${slug}`,
         label: "Deadly Accuracy",
-        hint: "Only on the skill you chose",
-        offer: { skillTypes: ["Combat"], attack: true },
+        offer: { skills: [skill], attack: true },
         weapon: { damage: "skillRank" },
       },
     ],
-  },
+  })),
   {
     id: "against-the-odds",
     names: ["Against The Odds*"],

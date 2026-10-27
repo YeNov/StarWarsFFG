@@ -34,7 +34,7 @@ test("a world with the first eight macros gets only the new entries, and their t
   const existing = firstEight.map((id) => ({ uuid: `Macro.old-${id}`, libraryId: id }));
   const { create, uuidByEntry: map } = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
   assert.deepEqual(create.map((entry) => entry.id), ROLL_OPTION_LIBRARY.filter((entry) => !firstEight.includes(entry.id)).map((entry) => entry.id));
-  assert.equal(create.length, 210, "the reviewed talents (2026-10-22) and Deadly Accuracy (2026-10-27)");
+  assert.equal(create.length, 215, "the reviewed talents (2026-10-22) and six Deadly Accuracy versions (2026-10-27)");
   assert.ok(create.some((entry) => entry.id === "master-slicer"));
   for (const id of firstEight) assert.equal(map.get(id), `Macro.old-${id}`);
 
@@ -208,4 +208,12 @@ test("a Point Blank macro the GM edited is left and reported", () => {
   const mine = JSON.stringify([{ ...pointBlankBefore[0], hint: "Engaged only" }]);
   const { update, edited } = planLibraryMacros(ROLL_OPTION_LIBRARY, [{ uuid: "Macro.pb", libraryId: "point-blank", command: mine }]);
   assert.deepEqual([update, edited], [[], [{ uuid: "Macro.pb", entryId: "point-blank" }]]);
+});
+
+test("a run links Deadly Accuracy to its Ranged: Heavy version, and keeps a version the GM swapped in", () => {
+  const map = new Map([["deadly-accuracy-ranged-heavy", "Macro.da-rh"], ["deadly-accuracy-melee", "Macro.da-melee"]]);
+  const link = (itemData) => planItemLinks(itemData, { uuidByEntry: map, isLive: () => true });
+  assert.deepEqual(link({ type: "talent", name: "Deadly Accuracy", system: { rollOptions: [] } }).update,
+    { "system.rollOptions": ["Macro.da-rh"] });
+  assert.equal(link({ type: "talent", name: "Deadly Accuracy", system: { rollOptions: ["Macro.da-melee"] } }).update ?? null, null);
 });

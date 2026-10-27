@@ -597,8 +597,10 @@ one attack. Range, qualities, Pierce, encumbrance, price, rarity and hardpoints 
   damage)", "Hunter (Crit −1)".
 - **A pool the GM sends.** Nothing new travels: the player's dialog re-plans the sent selection, so
   the weapon numbers come from the player's own skill rank and the weapon they roll with.
-- **Library.** Point Blank gains `weapon: { damage: "ranks" }`. A new entry, Deadly Accuracy,
-  is offered on Combat attacks with `weapon: { damage: "skillRank" }` and the hint "Only on the
-  skill you chose". It is not ticked by default; picking the skill once stays in "A skill the
-  character picks once" in `docs/roll-options-deferred.md`. The other damage and crit talents in
+- **Library.** Point Blank gains `weapon: { damage: "ranks" }`. Deadly Accuracy is six new
+  entries, one per Star Wars combat skill ("Deadly Accuracy (Melee)" and so on), each offered on
+  attacks with that skill only, with `weapon: { damage: "skillRank" }`. The Ranged: Heavy entry
+  also carries the plain name "Deadly Accuracy", so a run links it to every Deadly Accuracy talent;
+  for another skill the GM removes that link and drops the right version's macro on the talent. A
+  run leaves a talent with a live link alone, so the swap survives later runs. The other damage and crit talents in
   that file stay deferred until each is checked against its rule text.

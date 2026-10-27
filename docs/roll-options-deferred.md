@@ -54,7 +54,9 @@ Options can now change the attacking weapon's damage and critical rating for one
 `weapon: { damage, critical }`, with the `skillRank` word for the rolled skill's rank. The chat
 line shows the numbers and Apply Damage opens with the damage
 (`docs/superpowers/specs/2026-10-20-roll-dialog-talents-design.md`, "Amendments: weapon damage and
-crit from options"). Point Blank and Deadly Accuracy use it.
+crit from options"). Point Blank and Deadly Accuracy use it. Deadly Accuracy comes as one library
+entry per Star Wars combat skill; a run links the Ranged: Heavy one, and the GM swaps in another
+by hand.
 
 Still deferred: Pierce, a word for a characteristic's value, and Apply Crit adding a bonus to the
 roll (as opposed to the crit rating). The talents below still need checking against their rule
@@ -71,7 +73,8 @@ offered on every social check and the player ticks it on the right one. A real c
 `choose: { skill: [...] }` in the option and keep the pick on the character's own talent (the macro
 is shared by everyone), as a new stored field on talents and specialization tree slots. The first
 time the row shows it carries a skill dropdown; after that it is offered only on the picked skill,
-and the pick can be changed on the talent sheet.
+and the pick can be changed on the talent sheet. Deadly Accuracy sidesteps this with one macro per
+combat skill, which the GM picks by linking it.
 
 ## Initiative talents, the rest
 
