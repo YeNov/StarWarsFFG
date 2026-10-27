@@ -396,6 +396,8 @@
   "SWFFG.RollOptions.CardLine": "Roll options: {entries}",
   "SWFFG.RollOptions.Card.TwoWeaponsSame": "Two weapons (same skill)",
   "SWFFG.RollOptions.Card.TwoWeaponsDifferent": "Two weapons (different skills)",
+  "SWFFG.RollOptions.Card.Damage": "{value} damage",
+  "SWFFG.RollOptions.Card.Critical": "Crit {value}",
   "SWFFG.RollOptions.Cost.Strain": "{n} strain",
   "SWFFG.RollOptions.Cost.Wound": "{n} wound",
   "SWFFG.RollOptions.Cost.Wounds": "{n} wounds",

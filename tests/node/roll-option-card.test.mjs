@@ -185,3 +185,15 @@ test("a skill change keeps only what is still offered", () => {
     { selection: { a: 3 }, choices: { a: "x" }, buffKeys: new Set(["k2"]) },
   );
 });
+
+test("a ticked weapon row shows its numbers before its costs", () => {
+  const withWeapon = (opt, weapon) => ({ ...opt, weapon });
+  const pb = withWeapon(option("pb", "Point Blank", { ranked: true, rank: 2 }), { damage: 2 });
+  assert.equal(line({ offered: [pb], selection: { pb: 1 } }), "Roll options: Point Blank 2 (+2 damage)");
+  const hunter = withWeapon(option("h", "Hunter"), { critical: -1 });
+  assert.equal(line({ offered: [hunter], selection: { h: 1 } }), "Roll options: Hunter (Crit \u22121)");
+  const both = withWeapon(option("x", "X", { strain: 1 }), { damage: 1, critical: 0 });
+  assert.equal(line({ offered: [both], selection: { x: 1 } }), "Roll options: X (+1 damage, 1 strain)");
+  const states = planOptionStates({ offered: [pb], selection: { pb: 1 }, twoWeapons: "no", pool: pool(), canCharge: true });
+  assert.deepEqual(rollOptionCardEntries({ offered: [pb], states, twoWeapons: "no" })[0].weapon, { damage: 2, critical: 0 });
+});

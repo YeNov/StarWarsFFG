@@ -25,7 +25,7 @@ const TWO_WEAPONS_KEYS = Object.freeze({
  * @param {{rows: object[]}} params.states - from planOptionStates
  * @param {"no"|"same"|"different"} params.twoWeapons
  * @param {"strain"|"wounds"} [params.unit] - what the payer pays in
- * @returns {Array<{label: string|null, labelKey: string|null, number: number|null, strain: number, unit: string, maneuvers: number}>}
+ * @returns {Array<{label: string|null, labelKey: string|null, number: number|null, strain: number, unit: string, maneuvers: number, weapon?: {damage: number, critical: number}|null}>}
  */
 export function rollOptionCardEntries({ offered, states, twoWeapons, unit = "strain" }) {
   const entries = [];
@@ -38,7 +38,10 @@ export function rollOptionCardEntries({ offered, states, twoWeapons, unit = "str
     if (!row?.ticked) continue;
     const number = option.amount ? row.amount : option.ranked ? option.rank : null;
     const choice = row.choice ? (option.choices ?? []).find((branch) => branch.id === row.choice)?.label ?? null : null;
-    entries.push({ label: option.label, labelKey: null, number, choice, strain: row.cost.strain, unit, maneuvers: row.cost.maneuvers });
+    entries.push({
+      label: option.label, labelKey: null, number, choice, strain: row.cost.strain, unit, maneuvers: row.cost.maneuvers,
+      weapon: row.weapon ?? null,
+    });
   }
   return entries;
 }
@@ -75,6 +78,17 @@ function costParts({ strain = 0, maneuvers = 0 }, unit, localize) {
   const parts = [];
   if (strain > 0) parts.push(strainText(strain, unit, localize));
   if (maneuvers > 0) parts.push(maneuverText(maneuvers, localize));
+  return parts;
+}
+
+/** "+2", "−1" (a true minus sign). */
+const signed = (n) => (n < 0 ? `−${-n}` : `+${n}`);
+
+/** What a ticked row does to the weapon: "+2 damage", "Crit −1"; nothing for a zero. */
+function weaponParts(weapon, localize) {
+  const parts = [];
+  if (weapon?.damage) parts.push(localize("SWFFG.RollOptions.Card.Damage", { value: signed(weapon.damage) }));
+  if (weapon?.critical) parts.push(localize("SWFFG.RollOptions.Card.Critical", { value: signed(weapon.critical) }));
   return parts;
 }
 
@@ -117,7 +131,7 @@ export function formatRollOptionsLine(entries, localize) {
     let text = entry.labelKey ? localize(entry.labelKey) : entry.label;
     if (entry.number !== null && entry.number !== undefined) text += ` ${entry.number}`;
     if (entry.choice) text += `: ${entry.choice}`;
-    const costs = costParts(entry, entry.unit, localize);
+    const costs = [...weaponParts(entry.weapon, localize), ...costParts(entry, entry.unit, localize)];
     if (costs.length > 0) text += ` (${costs.join(", ")})`;
     return text;
   });
