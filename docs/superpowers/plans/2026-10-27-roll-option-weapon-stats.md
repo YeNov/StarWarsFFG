@@ -23,10 +23,12 @@
 ## Review Focus
 
 1. **Re-rendering a chat message** (reload, scroll-back, another client): the bonus must apply once, not stack. The copy is reloaded from the uuid on most renders, but not when the item is gone. Task 4 pins this with a marker test.
-2. **A weapon whose `damage.adjusted` is 0** (never opened in the sheet): the bonus must add to `damage.value`, and the card must show the new number. The template falls back to `value` when `adjusted` is 0. Task 4 tests it.
-3. **A crit bonus that would drop the rating below 1** (e.g. crit 1, Hunter −1): the card shows 1. Task 4 tests it.
-4. **A GM-sent pool**: the player's dialog must show and apply the same weapon numbers after re-planning. No new code; Task 6 checks it by hand and Task 2 tests that the planner gives a ticked sent row its `weapon`.
-5. **An option with `weapon` on a non-attack roll** (a Combat skill check without a weapon, e.g. from the skills list): not offered. Task 2 tests it.
+2. **Damage that ends at exactly 0** (base 1, an option −1): the card, its crit line and Apply Damage must all use the adjusted copy. Today the template and `planDamageSeed` read `adjusted == 0` as "never adjusted" and fall back to the raw `value` (and the template to the raw crit), so base 1 → 0 with 2 successes gives 3 instead of 2. Task 4 routes both through one reader that honours the option marker, and tests it.
+3. **A weapon whose `damage.adjusted` is 0 because it was never opened in the sheet**: the bonus adds to `damage.value`. Task 4 tests it.
+4. **The target changes while Roll is awaiting** (a re-plan between the click and the post): the weapon numbers must be the ones the line names and the charge pays for. Task 4 derives them from the click-time `optionEntries` snapshot, and tests that a later re-plan does not change them.
+5. **A world that already installed the library**: an unedited Point Blank macro must get the new text on the next library run, and one the GM edited stays as it is and is reported. Task 5 tests both.
+
+Also covered by tests, lower risk: crit floor at 1 (Task 4); a GM-sent pool re-plans to the same numbers (Task 2 tests the planner, Task 6 by hand); an option with `weapon` is not offered on a non-attack roll (Task 2).
 
 ---
 
@@ -98,42 +100,58 @@
 **Files:**
 - Create: `modules/helpers/roll-option-weapon.js`
 - Modify: `modules/dice/roll.js` (`render`, `toJSON`, `fromData`)
-- Modify: `modules/dice/roll-options-card.js` (new `weaponAdjust()`)
-- Modify: `modules/dice/roll-builder.js` (set `roll.weaponAdjust` next to `roll.rollOptionsText`, ~line 539)
-- Test: `tests/node/roll-option-weapon.test.mjs`
+- Modify: `modules/dice/roll-builder.js` (capture beside `optionEntries`, ~line 386; assign beside `roll.rollOptionsText`, ~line 541)
+- Modify: `templates/chat/roll-weapon-card.html` (lines 7–10: the two damage/crit branches)
+- Modify: `modules/helpers/apply-damage-plan.js` (`planDamageSeed`, lines 115–117)
+- Test: `tests/node/roll-option-weapon.test.mjs`, `tests/node/apply-damage.test.mjs`
 
 **Interfaces:**
-- Consumes: planned rows (Task 2).
+- Consumes: entries from `rollOptionCardEntries`, each with `weapon` (Task 3).
 - Produces:
-  - `sumWeaponAdjust(rows: Array<{ticked: boolean, weapon: object|null}>): {damage: number, critical: number} | null` — null when both sums are 0.
-  - `applyWeaponAdjust(itemData: object, adjust: object|null): object` — returns itemData. Sets `system.damage.adjusted` to (adjusted, or value when adjusted is 0) + damage, floor 0; `system.crit.adjusted` likewise with floor 1; records `system.rollOptionWeapon = adjust`. Returns itemData untouched when `adjust` is null, when the copy has no `system.damage`, or when `system.rollOptionWeapon` is already set.
-  - `RollOptionsCard#weaponAdjust()` → `sumWeaponAdjust(this.states.rows)`.
+  - `sumWeaponAdjust(entries: Array<{weapon: object|null}>): {damage: number, critical: number} | null` — sums the entries (every entry is a ticked row); null when both sums are 0.
+  - `applyWeaponAdjust(itemData: object, adjust: object|null): object` — returns itemData. Sets `system.damage.adjusted` to (adjusted, or value when adjusted is 0) + damage, floor 0; `system.crit.adjusted` likewise with floor 1; records `system.rollOptionWeapon = adjust`. Untouched when `adjust` is null, when the copy has no `system.damage`, or when `system.rollOptionWeapon` is already set.
+  - `cardWeaponStats(itemSystem: object): {damage: number, crit: number}` — the one rule for which numbers the card uses. With `rollOptionWeapon` set: `damage.adjusted` and `crit.adjusted`, even when 0. Otherwise today's rule: both `adjusted` when damage `adjusted != 0`, else both raw `value`s (the crit follows the damage branch, as the template does now).
   - `RollFFG#weaponAdjust` (default null), carried by `toJSON`/`fromData`.
 
 - [ ] **Step 1: Write the failing tests** in `tests/node/roll-option-weapon.test.mjs`:
-  - sum of two ticked rows `{2,0}` and `{1,-1}` → `{damage: 3, critical: -1}`; unticked rows ignored; all zero → null.
+  - sum of entries `{2,0}` and `{1,-1}` → `{damage: 3, critical: -1}`; entries without `weapon` ignored; all zero → null.
+  - **Click-time capture** (Review Focus 4): build entries with `rollOptionCardEntries` from a plan with Point Blank ticked and take `sumWeaponAdjust(entries)`. Then re-plan with it unticked, as a target change during the awaits would. The captured sum is still `{damage: 2, critical: 0}`, and the new plan's entries sum to null.
   - apply `{damage: 2, critical: 0}` to `{system: {damage: {value: 5, adjusted: 7}, crit: {value: 3, adjusted: 3}}}` → damage.adjusted 9, crit.adjusted 3.
-  - adjusted 0, value 5 → damage.adjusted 7 (Review Focus 2).
-  - crit adjusted 1, critical −1 → 1 (Review Focus 3); damage 1, damage −3 → 0.
+  - adjusted 0, value 5 → damage.adjusted 7.
+  - crit adjusted 1, critical −1 → 1; damage 1, damage −3 → 0.
   - applying twice gives the same numbers as once (Review Focus 1).
   - null adjust, or no `system.damage`, leaves the object unchanged.
-- [ ] **Step 2: Run** `node --test tests/node/roll-option-weapon.test.mjs` — fails (module missing).
-- [ ] **Step 3: Implement** the helper. In `RollFFG.render`, call `applyWeaponAdjust(this.data, this.weaponAdjust)` after the `rollOptionsText` line in the `this.data` branch only (the else branch has no weapon). Add `weaponAdjust` to `toJSON`/`fromData` beside `rollOptionsText`. In `roll-builder.js`, `roll.weaponAdjust = this._card.weaponAdjust();`.
-- [ ] **Step 4: Run** `npm test` and `node --input-type=module --check < modules/dice/roll.js` (and the other two edited files) — pass.
-- [ ] **Step 5: Commit** `Apply roll option damage and crit to the attack's chat card`.
+  - `cardWeaponStats` (Review Focus 2): damage 1, crit 3 (adjusted 1 and 3), after `applyWeaponAdjust` with `{damage: -1, critical: -1}` → `{damage: 0, crit: 2}`. An unmarked copy with damage adjusted 0 → both raw values (today's behaviour).
+- [ ] **Step 2: Add to `tests/node/apply-damage.test.mjs`**: `planDamageSeed` on a copy with base damage 1 reduced to 0 by `applyWeaponAdjust`, with 2 successes → `autoDamage` 2 (today 3). An unmarked copy with adjusted 0 still uses `value`.
+- [ ] **Step 3: Run** `node --test tests/node/roll-option-weapon.test.mjs tests/node/apply-damage.test.mjs` — the new tests fail.
+- [ ] **Step 4: Implement.**
+  - The helper module, pure (nothing from Foundry).
+  - `planDamageSeed`: replace the `adjusted !== 0 ? adjusted : baseValue` lines with `cardWeaponStats(itemSystem).damage`.
+  - `RollFFG.render`, in the `this.data` branch after the `rollOptionsText` line: `applyWeaponAdjust(this.data, this.weaponAdjust)`, then `this.data.weaponStats = cardWeaponStats(this.data.system)` when `this.data.system?.damage` exists. Add `weaponAdjust` to `toJSON`/`fromData`.
+  - Template: replace the two `iff` branches on lines 7–10 with one, guarded by `system.weaponStats`, showing `weaponStats.damage + ffg.success` and `weaponStats.crit`. Markup and classes unchanged.
+  - Builder: `const weaponAdjust = sumWeaponAdjust(optionEntries);` right after `const optionEntries = this._card.entries();`, and `roll.weaponAdjust = weaponAdjust;` beside `roll.rollOptionsText`. Nothing reads the card again after the awaits.
+- [ ] **Step 5: Run** `npm test`, and `node --input-type=module --check <` each edited module — pass.
+- [ ] **Step 6: Commit** `Apply roll option damage and crit to the attack's chat card`.
 
 ### Task 5: Library entries and the deferred list
 
 **Files:**
 - Modify: `modules/config/roll-option-library-entries.js` (Point Blank; new Deadly Accuracy entry after it)
 - Modify: `docs/roll-options-deferred.md` ("Damage, Pierce and crit from options")
-- Test: the existing library tests (`tests/node/roll-option-library*.test.mjs`) validate every entry.
+- Test: `tests/node/roll-option-library-plan.test.mjs`; the existing library tests also validate every entry.
 
-- [ ] **Step 1: Edit Point Blank**: add `weapon: { damage: "ranks" }`. Check the rule text: +1 damage per rank at short range or engaged — the hint already says the range.
-- [ ] **Step 2: Add Deadly Accuracy**: `id: "deadly-accuracy"`, `names: ["Deadly Accuracy"]`, one option `{ id: "deadly-accuracy", label: "Deadly Accuracy", hint: "Only on the skill you chose", offer: { skillTypes: ["Combat"], attack: true }, weapon: { damage: "skillRank" } }`. Check the rule text (damage equal to ranks in the chosen combat skill) and whether OggDude imports it under another spelling; add that to `names`.
-- [ ] **Step 3: Update the deferred list**: remove Point Blank from the talent list; say `weapon` damage/crit and `skillRank` now exist; Pierce, characteristic words and Apply Crit stay deferred; the remaining talents still need their rule check.
-- [ ] **Step 4: Run** `npm test` — passes.
-- [ ] **Step 5: Commit** `Point Blank and Deadly Accuracy add damage from the roll dialog`.
+**Interfaces:**
+- Consumes: `planLibraryMacros(entries, existing)` and `libraryMacroText(entry)` from `modules/helpers/roll-option-library-plan.js`. An installed macro is updated only when its text matches one of `entry.previous` (key order and spacing aside); otherwise it goes in `edited` and is left alone.
+
+- [ ] **Step 1: Write the failing tests** in `tests/node/roll-option-library-plan.test.mjs`, against the real `LIBRARY_ENTRIES` (Review Focus 5):
+  - an installed `point-blank` macro holding today's library text (the options array without `weapon`) → one `update`, whose command parses to the new options with `weapon: { damage: "ranks" }`; nothing in `edited`.
+  - an installed `point-blank` macro the GM edited (today's text with a different hint) → no `update`; listed in `edited`.
+- [ ] **Step 2: Run** `node --test tests/node/roll-option-library-plan.test.mjs` — the first test fails (Point Blank has no `previous`).
+- [ ] **Step 3: Edit Point Blank**: copy today's `options` array verbatim into `previous: [ <that array> ]`, with the comment Get The Drop uses. Then add `weapon: { damage: "ranks" }` to the current option. Check the rule text: +1 damage per rank at short range or engaged — the hint already says the range.
+- [ ] **Step 4: Add Deadly Accuracy** (new, so no `previous`): `id: "deadly-accuracy"`, `names: ["Deadly Accuracy"]`, one option `{ id: "deadly-accuracy", label: "Deadly Accuracy", hint: "Only on the skill you chose", offer: { skillTypes: ["Combat"], attack: true }, weapon: { damage: "skillRank" } }`. Check the rule text (damage equal to ranks in the chosen combat skill) and whether OggDude imports it under another spelling; add that to `names`.
+- [ ] **Step 5: Update the deferred list**: remove Point Blank from the talent list; say `weapon` damage/crit and `skillRank` now exist; Pierce, characteristic words and Apply Crit stay deferred; the remaining talents still need their rule check.
+- [ ] **Step 6: Run** `npm test` — passes.
+- [ ] **Step 7: Commit** `Point Blank and Deadly Accuracy add damage from the roll dialog`.
 
 ### Task 6: Docs and a check in Foundry
 
@@ -141,7 +159,7 @@
 - Modify: `CHANGELOG.md` (topmost unreleased block, or a new `Unreleased` block)
 - Wiki clone (`git clone https://github.com/YeNov/StarWarsFFG.wiki.git`, set `user.email` to the YeNov address): the roll options page — the `weapon` key and the `skillRank` word, one line each in the format reference.
 
-- [ ] **Step 1: Changelog**, one line: roll options can now add weapon damage or change the critical rating for one attack; Point Blank and Deadly Accuracy use it. Sub-bullet: worlds that already installed the library macros keep the old text until the GM re-runs the library or edits the macro.
+- [ ] **Step 1: Changelog**, one line: roll options can now add weapon damage or change the critical rating for one attack; Point Blank and Deadly Accuracy use it. Sub-bullet: to get the new Point Blank text and Deadly Accuracy, the GM runs the library again; a Point Blank macro the GM edited is left as it is and reported.
 - [ ] **Step 2: Wiki** — add the lines; no screenshot changes unless the roll options line in one is now wrong.
-- [ ] **Step 3: Check in Foundry** (headless test world): a character with Ranged (Light) 2 and Point Blank 2 attacks with a blaster pistol (damage 6): tick Point Blank → card shows damage 8, line "Point Blank 2 (+2 damage)", Apply Damage opens at 8 + successes. Reload the page: still 8. Send the same pool from the GM to the player with Point Blank ticked: the player's roll also shows 8.
+- [ ] **Step 3: Check in Foundry** (headless test world): a character with Ranged (Light) 2 and Point Blank 2 attacks with a blaster pistol (damage 6): tick Point Blank → card shows damage 8, line "Point Blank 2 (+2 damage)", Apply Damage opens at 8 + successes. Reload the page: still 8. With a test macro at damage −1 on a damage-1 weapon and 2 successes: the card shows 0 + 2 = 2 and the adjusted crit, and Apply Damage opens at 2. Re-run the library in a world holding the old Point Blank macro: it updates. Send the same pool from the GM to the player with Point Blank ticked: the player's roll also shows 8.
 - [ ] **Step 4: Commit** the changelog (`Changelog for weapon damage from roll options`); commit and push the wiki only after the user agrees.
