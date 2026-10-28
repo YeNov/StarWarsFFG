@@ -4006,13 +4006,15 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
 /* V14 sizes the status palette's rows to fill the token-HUD column height, so its
    grid-template-rows resolves to ~51px per row while our icons are 24px — leaving a
    big vertical gap in every row (looks like empty rows). Pack the rows to icon height
-   and top-align so the grid hugs the icons. Unlayered, so it beats core's @layer rule
-   without !important (same approach as the colour rules above). */
+   and top-align so the grid hugs the icons. Cap it at core's 8-row height so a long
+   effect list scrolls inside the panel instead of spilling below it. Unlayered, so it
+   beats core's @layer rule without !important (same approach as the colour rules above). */
 #token-hud .status-effects.palette {
   grid-template-rows: none;
-  grid-auto-rows: 24px;
+  grid-auto-rows: var(--effect-size, 24px);
   align-content: start;
-  height: max-content;
+  height: auto;
+  max-height: calc(8 * (var(--effect-size, 24px) + var(--effect-gap, 3px)) + 2 * var(--effect-gap, 3px));
 }
 
 /* PC Wizard — Background accordion. */
