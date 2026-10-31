@@ -1,0 +1,16 @@
+<div class="ffg-homestead-roll">
+  {{#if showCharacters}}
+  <div class="form-group">
+    <label for="ffg-homestead-roll-character">{{localize "SWFFG.Homestead.Roll.Character"}}</label>
+    <select id="ffg-homestead-roll-character" name="character">
+      {{#each characters}}
+      <option value="{{id}}">{{name}}</option>
+      {{/each}}
+    </select>
+  </div>
+  {{/if}}
+  <div class="form-group">
+    <input type="search" name="skill-search" placeholder="{{localize 'SWFFG.Homestead.Roll.Search'}}" aria-label="{{localize 'SWFFG.Homestead.Roll.Search'}}" autocomplete="off" />
+  </div>
+  <ul class="ffg-homestead-roll-skills" role="list"></ul>
+</div>

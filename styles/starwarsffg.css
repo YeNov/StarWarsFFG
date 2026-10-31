@@ -5079,3 +5079,15 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
    the same white outline so it reads on the dark dialog. Only black.png needs it; the
    other rows (yellow/green/red/purple/blue/whiteHex) are coloured and stay untouched. */
 .cdx-dice .pool-dice-pool img[src*="black.png"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
+.ffg-homestead-roll-dialog .ffg-homestead-roll-skills {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.ffg-homestead-roll-dialog .ffg-homestead-roll-skills button {
+  width: 100%;
+  text-align: left;
+  margin: 0.125rem 0;
+}
