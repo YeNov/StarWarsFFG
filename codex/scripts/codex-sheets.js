@@ -767,6 +767,19 @@ export const CodexSchemeMixin = (Base) => class extends Base {
       if (CDX_ALIGNMENTS.includes(v)) this.actor?.setFlag("starwarsffg", "codexAlignment", v);
     });
     this._cdxWireAmmo(root);
+    // Homestead "add upgrade". The stock .item-add handler names every type it does not
+    // know "Gear", so the upgrade list has its own button.
+    root.querySelectorAll(".cdx-home-add-upgrade").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (this.actor?.verifyEditModeIsNotEnabled?.() === false) return;
+        this.actor?.createEmbeddedDocuments("Item", [{
+          name: game.i18n.localize("TYPES.Item.homesteadupgrade"),
+          type: "homesteadupgrade",
+        }]);
+      });
+    });
     // Strain recovery — self-contained post-encounter strain recovery dialog.
     root.querySelectorAll(".cdx-strain-rest").forEach((btn) => {
       btn.addEventListener("click", (ev) => { ev.preventDefault(); this._cdxStrainRecovery(); });
@@ -1538,6 +1551,19 @@ export const CodexSchemeMixin = (Base) => class extends Base {
         ctx.cdxMinionWoundHint = game.i18n.format("SWFFG.Codex.WoundsSuffered", { n: unit });
       } catch (e) { ctx.cdxMinionGroups = []; }
     }
+    // Homestead: the Upgrades and Storage lists (storage is every item that is not an
+    // upgrade, as on the classic sheet), item type names for the storage cards, and the
+    // enriched biography -- the base getData enriches it only for characters and vehicles.
+    if (this.actor?.type === "homestead") {
+      ctx.cdxHomeUpgrades = ctx.cdxItems.filter((i) => i.type === "homesteadupgrade");
+      ctx.cdxHomeStorage = ctx.cdxItems.filter((i) => i.type !== "homesteadupgrade");
+      ctx.cdxItemTypeLabels = Object.fromEntries(
+        [...new Set(ctx.cdxHomeStorage.map((i) => i.type))].map((t) => [t, game.i18n.localize(`TYPES.Item.${t}`)]),
+      );
+      ctx.cdxHomeBio = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
+        this.actor.system?.biography ?? "", { secrets: this.actor.isOwner, relativeTo: this.actor },
+      );
+    }
     // Vehicle derived data: hull/strain damage tracks, hard points used/rating,
     // crew count, and a compact cost string.
     if (this.actor?.type === "vehicle") {
@@ -1888,7 +1914,7 @@ export const CodexSchemeMixin = (Base) => class extends Base {
   }
 };
 
-/** Codex sheet for character / rival / nemesis / minion / vehicle. */
+/** Codex sheet for character / rival / nemesis / minion / vehicle / homestead. */
 export class CodexActorSheet extends CodexSchemeMixin(ActorSheetFFG) {
   /** @override */
   get template() {

@@ -56,5 +56,9 @@
   "SWFFG.Codex.CritTrauma.MechanicsLabel": "Mechanics",
   "SWFFG.Codex.CritTrauma.NoResilienceSkill": "This actor has no Resilience skill to roll.",
   "SWFFG.Codex.CritTrauma.RollFailedNoMessage": "The recovery roll could not be posted, but the weekly attempt was used.",
-  "SWFFG.Codex.CritTrauma.AttemptUnavailable": "This recovery attempt is not available yet."
+  "SWFFG.Codex.CritTrauma.AttemptUnavailable": "This recovery attempt is not available yet.",
+  "SWFFG.Codex.AddUpgrade": "Add upgrade",
+  "SWFFG.Codex.AddGear": "Add gear",
+  "SWFFG.Codex.HomesteadNoUpgrades": "No upgrades yet.",
+  "SWFFG.Codex.HomesteadNoStorage": "Nothing in storage."
 }
