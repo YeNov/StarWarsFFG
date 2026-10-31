@@ -5,6 +5,7 @@ import { onceEffectIds, postThenPay } from "./roll-costs.js";
 import { packSentLayers, packSentPool, readSentLayers } from "./roll-option-sent.js";
 import { rollActorFrom, rollSkillContext } from "./roll-actor.js";
 import { RollOptionsCard } from "./roll-options-card.js";
+import { homesteadItems } from "../helpers/homestead-roll.js";
 import { sumWeaponAdjust } from "../helpers/roll-option-weapon.js";
 // The PURE helpers, not DiceHelpers: dice-helpers.js imports this file, so going
 // through it would close an import cycle.
@@ -44,6 +45,8 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       // member rolling from the vehicle's sheet). Filled in below otherwise, so a pool sent to a
       // player still names the token's own actor.
       actorUuid: rollOptions.actorUuid ?? null,
+      // A roll made from a homestead sheet: its upgrades' optional buffs are offered as well.
+      homesteadUuid: rollOptions.homesteadUuid ?? null,
     };
     this.dicePool = rollDicePool;
     this.description = rollDescription;
@@ -74,6 +77,7 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
       skill: { key: this.roll.skillKey, characteristic: this.roll.characteristic, rank: this.roll.rank },
       appliedBuffs: this.roll.appliedBuffs,
       sent: this._sentLayers,
+      extraItems: this._homesteadItems(),
     });
     this._card.plan(this._cardEnv());
   }
@@ -116,6 +120,21 @@ export default class RollBuilderFFG extends HandlebarsApplicationMixin(Applicati
     } catch (error) {
       CONFIG.logger.warn(`Could not read the actor for this roll: ${error}`);
       return null;
+    }
+  }
+
+  /**
+   * The upgrades of the homestead this roll was made from, or none. A homestead deleted since
+   * the button was clicked just offers nothing extra.
+   * @returns {Array<Item>}
+   */
+  _homesteadItems() {
+    if (!this.roll.homesteadUuid) return [];
+    try {
+      return homesteadItems(foundry.utils.fromUuidSync(this.roll.homesteadUuid));
+    } catch (error) {
+      CONFIG.logger.warn(`Could not read the homestead for this roll: ${error}`);
+      return [];
     }
   }
 

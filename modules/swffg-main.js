@@ -1714,6 +1714,7 @@ Hooks.on("renderChatMessageHTML", async (message, html) => {
         rank: poolData.roll.rank ?? null,
         appliedBuffs: poolData.roll.appliedBuffs ?? [],
         actorUuid: poolData.roll.actorUuid ?? null,
+        homesteadUuid: poolData.roll.homesteadUuid ?? null,
         sentLayers: poolData.sentLayers ?? null,
       },
     );

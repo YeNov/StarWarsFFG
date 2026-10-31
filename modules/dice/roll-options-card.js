@@ -78,9 +78,11 @@ export class RollOptionsCard {
    * @param {boolean} [params.initiative] - an initiative roll
    * @param {Array<{key: string, name: string}>} [params.appliedBuffs] - buffs baked into an older sent pool
    * @param {object|null} [params.sent] - a sent pool's layers (readSentLayers), or null
+   * @param {Array<Item>} [params.extraItems] - items besides the actor's whose buffs the roll offers (a homestead's upgrades)
    */
-  constructor({ actor = null, item = null, skill = { key: null, characteristic: null, rank: null }, initiative = false, appliedBuffs = [], sent = null } = {}) {
+  constructor({ actor = null, item = null, skill = { key: null, characteristic: null, rank: null }, initiative = false, appliedBuffs = [], sent = null, extraItems = [] } = {}) {
     this.actor = actor ?? null;
+    this.extraItems = Array.isArray(extraItems) ? extraItems : [];
     this.item = item ?? null;
     this.skill = { key: skill?.key ?? null, characteristic: skill?.characteristic ?? null, rank: skill?.rank ?? null };
     this.initiative = initiative === true;
@@ -373,12 +375,12 @@ export class RollOptionsCard {
       : game.i18n.localize("SWFFG.RollOptions.Panel.Toggle"));
   }
 
-  /** The optional buffs this roll offers, read from the rolling actor's items for the skill. */
+  /** The optional buffs this roll offers, read from the rolling actor's items (and any extra ones) for the skill. */
   #collectBuffs() {
     try {
       const item = this.item;
       const offered = collectOfferedBuffs({
-        items: this.actor?.items ?? [],
+        items: [...(this.actor?.items ?? []), ...this.extraItems],
         skillKey: this.skill.key,
         weaponId: item?.type === "weapon" ? (item.id ?? item._id ?? null) : null,
         isForcePower: item?.type === "forcepower",
