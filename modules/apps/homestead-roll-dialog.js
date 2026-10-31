@@ -14,19 +14,13 @@ import { firstSkill, groupSkills, homesteadDefaultRows, homesteadItems, homestea
 const TEMPLATE = "systems/starwarsffg/templates/dialogs/homestead-roll.html";
 const SEARCH_DELAY_MS = 200;
 
-/** The character's skills with what the sheet shows beside them: category, characteristic, rank. */
+/** The character's skills with their category, as the sheet groups them. */
 function skillChoices(actor) {
-  return Object.entries(actor?.system?.skills ?? {}).map(([key, skill]) => {
-    const characteristic = skill?.characteristic ?? "";
-    const abbreviation = CONFIG.FFG?.characteristics?.[characteristic]?.abrev;
-    return {
-      key,
-      label: game.i18n.localize(skill?.label ?? key),
-      type: skill?.type ?? "General",
-      characteristic: abbreviation ? game.i18n.localize(abbreviation) : characteristic.slice(0, 2),
-      rank: Number(skill?.rank) || 0,
-    };
-  });
+  return Object.entries(actor?.system?.skills ?? {}).map(([key, skill]) => ({
+    key,
+    label: game.i18n.localize(skill?.label ?? key),
+    type: skill?.type ?? "General",
+  }));
 }
 
 /** The skill categories in the sheet's order. */
@@ -77,17 +71,11 @@ async function pickCharacterAndSkill(homestead, rollers) {
           const heading = document.createElement("h3");
           heading.textContent = group.label;
           section.append(heading);
-          for (const { key, label, characteristic, rank } of group.skills) {
+          for (const { key, label } of group.skills) {
             const button = document.createElement("button");
             button.type = "button";
             button.dataset.skill = key;
-            const name = document.createElement("span");
-            name.className = "skill-name";
-            name.textContent = label;
-            const detail = document.createElement("span");
-            detail.className = "skill-detail";
-            detail.textContent = `${characteristic} · ${rank}`;
-            button.append(name, detail);
+            button.textContent = label;
             section.append(button);
           }
           return section;

@@ -5099,14 +5099,8 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
   opacity: 0.85;
 }
 .ffg-homestead-roll-dialog .ffg-homestead-roll-group button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: block;
   width: 100%;
   margin: 0.125rem 0;
   text-align: left;
-}
-.ffg-homestead-roll-dialog .ffg-homestead-roll-group .skill-detail {
-  opacity: 0.7;
-  font-size: 0.85em;
 }
