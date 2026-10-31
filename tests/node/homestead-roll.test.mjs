@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
-import { filterSkills, homesteadDefaultRows, homesteadItems, homesteadRollers } from "../../modules/helpers/homestead-roll.js";
+import { filterSkills, firstSkill, homesteadDefaultRows, homesteadItems, homesteadRollers, homesteadRollPool } from "../../modules/helpers/homestead-roll.js";
 
 /**
  * Rolling a character's skill from the homestead sheet
@@ -65,4 +65,38 @@ test("homesteadItems returns only upgrades", () => {
   const items = [upgrade("u1", "Workshop", {}), upgrade("g1", "Toolkit", {}, "gear")];
 
   assert.deepEqual(homesteadItems({ type: "homestead", items }).map((i) => i.id), ["u1"]);
+});
+
+test("a default Skill Rank row stays rebuildable by a ticked rank buff", async () => {
+  const { DicePoolFFG } = await import("../../modules/dice/pool.js");
+  const { applyOfferedBuffs } = await import("../../modules/dice/optional-buff-pool.js");
+  // Intellect 3, Mechanics 2: 2 proficiency + 1 ability. The Library adds a rank (3, 3 → 3 proficiency).
+  const start = new DicePoolFFG({ proficiency: 2, ability: 1, difficulty: 2 });
+  const library = [{ key: "u1:default", name: "Library", source: "Library", rows: [{ modtype: "Skill Rank", mod: "Mechanics", value: 1 }] }];
+
+  const { pool, rank } = homesteadRollPool({ pool: start, groups: library, characteristic: 3, rank: 2 });
+  assert.deepEqual([pool.proficiency, pool.ability, rank], [3, 0, 3]);
+
+  // The character's own +1 rank buff, ticked in the dialog: (3, 4) is 3 proficiency + 1 ability.
+  const ticked = applyOfferedBuffs(pool, [{ rows: [{ modtype: "Skill Rank", mod: "Mechanics", value: 1 }] }], { characteristic: 3, rank });
+  assert.deepEqual([ticked.proficiency, ticked.ability], [3, 1]);
+});
+
+test("default upgrade rows are recorded on the pool", async () => {
+  const { DicePoolFFG } = await import("../../modules/dice/pool.js");
+  const start = new DicePoolFFG({ ability: 2, difficulty: 2 });
+  const groups = [{ key: "u1:default", name: "Lab", source: "Lab", rows: [
+    { modtype: "Skill Add Upgrade", mod: "Mechanics", value: 1 },
+    { modtype: "Dice Modifiers", mod: "Upgrade Ability", value: 1 },
+  ] }];
+
+  const { pool } = homesteadRollPool({ pool: start, groups, characteristic: 2, rank: 0 });
+  assert.deepEqual([pool.proficiency, pool.ability, pool.upgrades, pool.modUpgrades], [2, 0, 1, 1]);
+});
+
+test("firstSkill picks the first skill the search leaves", () => {
+  const skills = [{ key: "Mechanics", label: "Mechanics" }, { key: "Medicine", label: "Medicine" }];
+
+  assert.equal(firstSkill(skills, "medi"), "Medicine");
+  assert.equal(firstSkill(skills, "zzz"), null);
 });

@@ -7,6 +7,7 @@
  */
 import { BUFF_MODTYPES } from "./optional-buffs.js";
 import { applicableRows } from "./optional-buffs-offer.js";
+import { applyOfferedBuffs } from "../dice/optional-buff-pool.js";
 
 const BUFF_MODTYPE_SET = new Set(BUFF_MODTYPES);
 
@@ -44,6 +45,16 @@ export function filterSkills(skills, query) {
 }
 
 /**
+ * The key of the first skill the search leaves, for Enter in the search box; null when none.
+ * @param {Array<{key: string, label: string}>} skills
+ * @param {string} query
+ * @returns {string|null}
+ */
+export function firstSkill(skills, query) {
+  return filterSkills(skills, query)[0]?.key ?? null;
+}
+
+/**
  * The upgrades of a homestead actor; nothing for anything else.
  * @param {Actor|null} homestead
  * @returns {Array<Item>}
@@ -75,4 +86,27 @@ export function homesteadDefaultRows(items, skillKey) {
     }
   }
   return groups;
+}
+
+/**
+ * Fold the upgrades' default rows into a character's pool, and record them the way a character's
+ * own modifiers are recorded: a Skill Rank row raises the rank, a Skill Add Upgrade row the pool's
+ * `upgrades`, an Upgrade / Downgrade Ability row its `modUpgrades` / `modDowngrades`. A Skill Rank
+ * buff or a swap ticked later in the dialog rebuilds the positive dice from these, so they must
+ * describe the dice the pool now holds.
+ * @param {object} params
+ * @param {DicePoolFFG} params.pool - the character's pool
+ * @param {Array<{rows: Array}>} params.groups - from homesteadDefaultRows
+ * @param {number} params.characteristic - the rolled characteristic's value
+ * @param {number} params.rank - the character's skill rank
+ * @returns {{pool: DicePoolFFG, rank: number}}
+ */
+export function homesteadRollPool({ pool, groups, characteristic, rank }) {
+  const rows = (groups ?? []).flatMap((group) => group?.rows ?? []);
+  const sum = (match) => rows.filter(match).reduce((total, row) => total + (Number(row.value) || 0), 0);
+  const result = applyOfferedBuffs(pool, groups, { characteristic, rank });
+  result.upgrades += sum((row) => row.modtype === "Skill Add Upgrade");
+  result.modUpgrades += sum((row) => row.modtype === "Dice Modifiers" && row.mod === "Upgrade Ability");
+  result.modDowngrades += sum((row) => row.modtype === "Dice Modifiers" && row.mod === "Downgrade Ability");
+  return { pool: result, rank: rank + sum((row) => row.modtype === "Skill Rank") };
 }

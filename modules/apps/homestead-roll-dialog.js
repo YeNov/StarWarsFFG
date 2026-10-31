@@ -9,8 +9,7 @@
  */
 import DiceHelpers, { crewRollBuffOptions, get_dice_pool } from "../helpers/dice-helpers.js";
 import { DicePoolFFG } from "../dice/pool.js";
-import { applyOfferedBuffs } from "../dice/optional-buff-pool.js";
-import { filterSkills, homesteadDefaultRows, homesteadItems, homesteadRollers } from "../helpers/homestead-roll.js";
+import { filterSkills, firstSkill, homesteadDefaultRows, homesteadItems, homesteadRollers, homesteadRollPool } from "../helpers/homestead-roll.js";
 
 const TEMPLATE = "systems/starwarsffg/templates/dialogs/homestead-roll.html";
 const SEARCH_DELAY_MS = 200;
@@ -61,11 +60,17 @@ async function pickCharacterAndSkill(homestead, rollers) {
         }));
       };
 
-      list.addEventListener("click", (event) => {
-        const key = event.target.closest("button[data-skill]")?.dataset.skill;
+      const pick = (key) => {
         if (!key) return;
         chosen = { actor: currentActor(), skillKey: key };
         dialog.close();
+      };
+      list.addEventListener("click", (event) => pick(event.target.closest("button[data-skill]")?.dataset.skill));
+      // Enter would submit the form through Cancel; it rolls the first skill the search leaves.
+      search.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        pick(firstSkill(skills, search.value));
       });
       search.addEventListener("input", foundry.utils.debounce(draw, SEARCH_DELAY_MS));
       select?.addEventListener("change", () => {
@@ -92,8 +97,11 @@ async function rollWithHomestead(homestead, actor, skillKey) {
     ui.notifications.warn(game.i18n.format("SWFFG.Homestead.Roll.NoSkill", { actor: actor.name }));
     return;
   }
-  let pool = get_dice_pool(actor.id, skillKey, new DicePoolFFG({ difficulty: 2 }));
-  pool = applyOfferedBuffs(pool, homesteadDefaultRows(homesteadItems(homestead), skillKey), {
+  // The rank the upgrades raise travels on, so a Skill Rank buff or swap ticked in the dialog
+  // rebuilds the dice from it.
+  const { pool, rank } = homesteadRollPool({
+    pool: get_dice_pool(actor.id, skillKey, new DicePoolFFG({ difficulty: 2 })),
+    groups: homesteadDefaultRows(homesteadItems(homestead), skillKey),
     characteristic: options.characteristic,
     rank: options.rank,
   });
@@ -103,11 +111,11 @@ async function rollWithHomestead(homestead, actor, skillKey) {
     actor.sheet,
     pool,
     `${game.i18n.localize("SWFFG.Rolling")} ${label}`,
-    skillKey,
+    label,
     {},
     game.i18n.format("SWFFG.Homestead.Roll.Flavor", { name: homestead.name }),
     undefined,
-    { ...options, homesteadUuid: homestead.uuid },
+    { ...options, rank, homesteadUuid: homestead.uuid },
   );
 }
 
