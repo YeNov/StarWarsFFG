@@ -4,7 +4,7 @@
  */
 
 /** The public API version (modules/api/public-api.js in the system) this Codex was written for. */
-export const REQUIRED_API_VERSION = 3;
+export const REQUIRED_API_VERSION = 4;
 
 /** Set on globalThis by the first Codex copy to start, so a second copy can stand down. */
 export const LOADED_MARK = Symbol.for("kelborns-swffg-codex-ii.loaded");

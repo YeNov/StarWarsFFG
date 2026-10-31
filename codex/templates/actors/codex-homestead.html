@@ -17,9 +17,8 @@
       <textarea class="cdx-name cdx-veh-name" name="name" rows="2" placeholder="{{localize 'SWFFG.Name'}}" data-dtype="String">{{actor.name}}</textarea>
       <div class="cdx-pills"><span class="cdx-pill">{{localize "TYPES.Actor.homestead"}}</span></div>
     </div>
-    {{!-- Header actions: buttons that act on the whole homestead (e.g. a skill roll
-         using its upgrades) go here. Hidden while empty. --}}
-    <div class="cdx-header-actions"></div>
+    {{!-- Header actions: buttons that act on the whole homestead. Hidden while empty. --}}
+    <div class="cdx-header-actions">{{#if owner}}<button type="button" class="cdx-home-roll cdx-rest" title="{{localize 'SWFFG.Homestead.Roll.Button'}}" aria-label="{{localize 'SWFFG.Homestead.Roll.Button'}}"><i class="fas fa-dice-d20"></i></button>{{/if}}</div>
   </header>
   </div>
 

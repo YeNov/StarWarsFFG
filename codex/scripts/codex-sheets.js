@@ -33,7 +33,7 @@ const {
   DiceHelpers, DicePoolFFG, ActorHelpers, killMinionGroup, groupTrack, hullPoolSegments, stepUnits,
   availFor, applyCritRecoveryAttempt, isAmmoTracked, getAmmoMax, getAmmoValue,
   vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings, vehicleDefenceZones,
-  adjustCodexStat, bindStatStepPrediction, predictedCodexStat,
+  adjustCodexStat, bindStatStepPrediction, predictedCodexStat, rollFromHomestead,
 } = systemApi.helpers;
 
 export const CDX_SCHEMES = ["republic", "empire", "dark", "light", "mercenary", "eldritch-scholar", "eldritch-fate"];
@@ -778,6 +778,14 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           name: game.i18n.localize("TYPES.Item.homesteadupgrade"),
           type: "homesteadupgrade",
         }]);
+      });
+    });
+    // Homestead "Roll skill": a character's skill with the homestead's upgrades (system API 4).
+    root.querySelectorAll(".cdx-home-roll").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        rollFromHomestead(this.actor);
       });
     });
     // Strain recovery — self-contained post-encounter strain recovery dialog.

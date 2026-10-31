@@ -38,7 +38,9 @@
 // templates/parts/shared/ffg-roll-option-links.html, which Codex item templates include, and
 // ItemSheetFFG#_activateRollOptionLinkListeners / #_saveRollOptionLinks, which Codex item sheets
 // inherit through activateListeners.
-export const PUBLIC_API_VERSION = 3;
+// apiVersion 4 adds helpers.rollFromHomestead(homestead): the homestead sheet's Roll skill button
+// (modules/apps/homestead-roll-dialog.js), which the Codex homestead sheet calls.
+export const PUBLIC_API_VERSION = 4;
 
 export const PUBLIC_API_SHAPE = Object.freeze({
   sheets: ["ActorSheetFFG", "AdversarySheetFFG", "ItemSheetFFG"],
@@ -50,6 +52,7 @@ export const PUBLIC_API_SHAPE = Object.freeze({
     "isAmmoTracked", "getAmmoMax", "getAmmoValue",
     "vehicleHardpoints", "vehicleHardpointSourceRating", "vehicleShieldSourceRatings", "vehicleDefenceZones",
     "adjustCodexStat", "bindStatStepPrediction", "predictedCodexStat",
+    "rollFromHomestead",
   ],
   sheetResolvers: ["register", "has", "resolve"],
 });

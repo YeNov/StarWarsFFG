@@ -10,6 +10,11 @@
         <div class="container flex-group-center item-name">
           <h1 class="charname"><input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SWFFG.Name'}}" /></h1>
         </div>
+        {{#if owner}}
+        <div class="container flex-group-center">
+          <button type="button" class="homestead-roll-skill"><i class="fas fa-dice-d20"></i> {{localize "SWFFG.Homestead.Roll.Button"}}</button>
+        </div>
+        {{/if}}
       </div>
     </div>
   </header>

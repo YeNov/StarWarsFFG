@@ -64,3 +64,7 @@ test("the check runs before any other Codex script, and a failure stops them all
   assert.equal(firstStaticImport(read("scripts/codex-main.js")), "./system-api.js");
   assert.match(read("scripts/system-api.js"), /if \(!result\.ok\) \{[\s\S]*throw new Error\(/);
 });
+
+test("Codex II is written for system API 4", () => {
+  assert.equal(REQUIRED_API_VERSION, 4);
+});

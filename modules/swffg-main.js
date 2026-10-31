@@ -79,6 +79,7 @@ import { vehicleHardpointSourceRating, vehicleHardpoints, vehicleShieldSourceRat
 import { vehicleDefenceZones } from "./helpers/vehicle-defence.js";
 import { registerRollOptionHooks } from "./helpers/roll-option-hooks.js";
 import { installRollOptionLibrary } from "./helpers/roll-option-library-run.js";
+import { rollFromHomestead } from "./apps/homestead-roll-dialog.js";
 
 // The system's public API for optional packages (the Codex II module): see
 // modules/api/public-api.js. Set while this file is evaluated, before any module script runs.
@@ -97,6 +98,7 @@ globalThis.starwarsffg = buildPublicApi({
     isAmmoTracked, getAmmoMax, getAmmoValue,
     vehicleHardpoints, vehicleHardpointSourceRating, vehicleShieldSourceRatings, vehicleDefenceZones,
     adjustCodexStat, bindStatStepPrediction, predictedCodexStat,
+    rollFromHomestead,
   },
   sheetResolvers: { register: registerSheetResolver, has: hasSheetResolver, resolve: resolveSheetClass },
 });

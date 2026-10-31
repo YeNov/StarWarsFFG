@@ -89,7 +89,7 @@
 .cdx:not(#_) form button:is(.cdx-tab,.cdx-step,.cdx-ammo-step,.cdx-ratio-step,.cdx-hcollapse-btn,
   .cdx-cr-op,.cdx-cr-change,.cdx-cr-confirm,.cdx-cr-cancel,.cdx-gs-step,.cdx-inj-mechfail,
   .cdx-inj-medfail,.cdx-inj-resilience,.cdx-item-ammo-step,.cdx-rest,.cdx-strain-rest,
-  .cdx-restrict-btn,.cdx-wipeout) {
+  .cdx-restrict-btn,.cdx-wipeout,.cdx-home-roll) {
   background:var(--cdx-btn-bg,transparent) !important;
   border-width:var(--cdx-btn-bw,0) !important;
   border-style:var(--cdx-btn-bs,solid) !important;

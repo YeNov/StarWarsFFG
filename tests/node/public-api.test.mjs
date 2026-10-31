@@ -50,3 +50,8 @@ test("swffg-main.js publishes the API before any hook, with every listed name", 
     }
   }
 });
+
+test("apiVersion 4 lists the homestead skill roll", () => {
+  assert.equal(PUBLIC_API_VERSION, 4);
+  assert.ok(PUBLIC_API_SHAPE.helpers.includes("rollFromHomestead"));
+});
