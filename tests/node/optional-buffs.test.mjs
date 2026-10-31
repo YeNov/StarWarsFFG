@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import {
+  BUFF_ITEM_TYPES,
   addBuff,
   addBuffRow,
   buffModifierTypes,
@@ -189,4 +190,8 @@ test("the queue can hold another kind of list, cleaned its own way", async () =>
   queue.edit((links) => links.filter((uuid) => uuid !== "Macro.a"));
   await store.finishNext();
   assert.deepEqual(store.list, ["Macro.b"]);
+});
+
+test("homestead upgrades carry optional buffs", () => {
+  assert.ok(BUFF_ITEM_TYPES.includes("homesteadupgrade"));
 });

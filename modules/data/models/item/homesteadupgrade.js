@@ -1,5 +1,5 @@
 import { mix, BaseItemDataModel } from "../../mix.js";
-import { CoreTemplate } from "../../item-templates.js";
+import { CoreTemplate, OptionalBuffsTemplate } from "../../item-templates.js";
 
 /**
  * `homesteadupgrade` — template.json declares `templates: ["meta_only"]`, but
@@ -12,9 +12,10 @@ import { CoreTemplate } from "../../item-templates.js";
  * `CoreTemplate` supplies description + attributes + metadata. `price`/`rarity`
  * are declared here rather than by mixing in `BasicTemplate`, because these
  * items never carried `quantity`/`encumbrance` — pulling in the full template
- * would invent fields the type has never had.
+ * would invent fields the type has never had. `OptionalBuffsTemplate` adds the
+ * situational bonuses a roll from the homestead offers.
  */
-export class HomesteadUpgradeDataModel extends mix(BaseItemDataModel, CoreTemplate) {
+export class HomesteadUpgradeDataModel extends mix(BaseItemDataModel, CoreTemplate, OptionalBuffsTemplate) {
   static defineSchema() {
     const f = foundry.data.fields;
     const num = (initial = 0) => new f.NumberField({ initial });

@@ -149,3 +149,24 @@ test("buffs the GM already ticked are marked applied, and unknown ones still lis
     { key: "x:y", name: "Elsewhere", source: "", rows: [], applied: true },
   ]);
 });
+
+test("offers homestead upgrade buffs", () => {
+  const upgrade = item("homesteadupgrade", {
+    id: "u1",
+    name: "Workshop",
+    buffs: [buff("b1", [row("Skill Boost", "Mechanics"), row("Roll Modifiers", "Add Advantage")], "Ship repairs")],
+  });
+
+  assert.deepEqual(offer([upgrade], { skillKey: "Mechanics" }), [
+    { key: "u1:b1", name: "Ship repairs", source: "Workshop", rows: [row("Skill Boost", "Mechanics", 1), row("Roll Modifiers", "Add Advantage", 1)] },
+  ]);
+  assert.deepEqual(offer([upgrade], { skillKey: "Charm" }), [
+    { key: "u1:b1", name: "Ship repairs", source: "Workshop", rows: [row("Roll Modifiers", "Add Advantage", 1)] },
+  ]);
+});
+
+test("keeps same-named buffs on two upgrades apart", () => {
+  const upgrades = ["u1", "u2"].map((id) => item("homesteadupgrade", { id, name: id, buffs: [buff("b1", [boost], "Repairs")] }));
+
+  assert.deepEqual(offer(upgrades).map((entry) => entry.key), ["u1:b1", "u2:b1"]);
+});
