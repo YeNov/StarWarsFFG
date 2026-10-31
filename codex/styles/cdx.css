@@ -660,8 +660,9 @@
 .cdx .cdx-cards-head .cdx-home-add-upgrade { cursor:pointer; color:var(--cdx-accent); }
 .cdx .cdx-home-empty { padding:10px 4px; color:var(--cdx-dim); font-style:italic; }
 /* A read-only homestead (Observer, locked compendium) has no add, edit, delete or
-   quantity handlers bound, so their controls are hidden rather than left dead. */
-.cdx form.locked .cdx-sheet.homestead :is(.item-add, .cdx-home-add-upgrade, .item-edit, .item-delete, .quantity) { display:none; }
+   quantity handlers bound, so their controls are hidden rather than left dead. The
+   template's .cdx-sheet wrapper is not rendered, so the form is matched by its header. */
+.cdx form.locked:has(.cdx-home-header) :is(.item-add, .cdx-home-add-upgrade, .item-edit, .item-delete, .quantity) { display:none; }
 
 /* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
 /* Silhouette · Speed · Handling · Armour span the sheet above both columns. As a direct
