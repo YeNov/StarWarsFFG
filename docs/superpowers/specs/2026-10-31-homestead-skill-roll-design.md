@@ -24,6 +24,8 @@ bonuses weapons and gear already carry.
    - **For the GM**: only player characters — `character` actors owned by at
      least one non-GM user — not every actor in the world.
 3. **Pick a skill** from that character's skill list (the skill theme in use).
+   The picker has a search box: typing filters the list, and the list updates
+   0.2 s after the last keystroke.
 4. **The standard dice dialog opens**, built exactly as a roll from that
    character's own sheet would build it (characteristic + ranks, the
    character's talents, gear and status effects), **plus the default modifiers
