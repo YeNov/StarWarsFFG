@@ -50,8 +50,32 @@ export function filterSkills(skills, query) {
  * @param {string} query
  * @returns {string|null}
  */
-export function firstSkill(skills, query) {
-  return filterSkills(skills, query)[0]?.key ?? null;
+export function firstSkill(skills, query, types = []) {
+  return groupSkills(skills, types, query)[0]?.skills[0]?.key ?? null;
+}
+
+/**
+ * The skills the search leaves, grouped as the character sheet shows them: categories in the
+ * actor's `skilltypes` order (any other type after them), each sorted by key, or by label when
+ * the Sort skills by label setting is on. Categories the search empties are dropped.
+ * @param {Array<{key: string, label: string, type?: string}>} skills
+ * @param {Array<{type: string, label: string}>} types - the actor's `system.skilltypes`
+ * @param {string} query
+ * @param {boolean} [byLabel]
+ * @returns {Array<{type: string, label: string, skills: Array}>}
+ */
+export function groupSkills(skills, types, query, byLabel = false) {
+  const order = [...(types ?? [])];
+  const left = filterSkills(skills, query);
+  for (const skill of left) {
+    if (!order.some((t) => t.type === skill.type)) order.push({ type: skill.type, label: String(skill.type ?? "") });
+  }
+  const compare = byLabel
+    ? (a, b) => String(a.label).localeCompare(String(b.label))
+    : (a, b) => String(a.key).toLowerCase().localeCompare(String(b.key).toLowerCase());
+  return order
+    .map((t) => ({ type: t.type, label: t.label, skills: left.filter((s) => s.type === t.type).sort(compare) }))
+    .filter((g) => g.skills.length > 0);
 }
 
 /**

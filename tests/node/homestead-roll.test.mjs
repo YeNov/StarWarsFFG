@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
-import { filterSkills, firstSkill, homesteadDefaultRows, homesteadItems, homesteadRollers, homesteadRollPool } from "../../modules/helpers/homestead-roll.js";
+import { filterSkills, firstSkill, groupSkills, homesteadDefaultRows, homesteadItems, homesteadRollers, homesteadRollPool } from "../../modules/helpers/homestead-roll.js";
 
 /**
  * Rolling a character's skill from the homestead sheet
@@ -99,4 +99,35 @@ test("firstSkill picks the first skill the search leaves", () => {
 
   assert.equal(firstSkill(skills, "medi"), "Medicine");
   assert.equal(firstSkill(skills, "zzz"), null);
+});
+
+test("groupSkills follows the character sheet: categories in order, skills sorted, empty ones dropped", () => {
+  const types = [{ type: "General", label: "General" }, { type: "Combat", label: "Combat" }, { type: "Knowledge", label: "Knowledge" }];
+  const skills = [
+    { key: "Ranged-Light", label: "Ranged (Light)", type: "Combat" },
+    { key: "Mechanics", label: "Mechanics", type: "General" },
+    { key: "Brawl", label: "Brawl", type: "Combat" },
+    { key: "Astrogation", label: "Astrogation", type: "General" },
+    { key: "Xenology", label: "Xenology", type: "Knowledge" },
+  ];
+
+  assert.deepEqual(groupSkills(skills, types, "").map((g) => [g.label, g.skills.map((s) => s.key)]), [
+    ["General", ["Astrogation", "Mechanics"]],
+    ["Combat", ["Brawl", "Ranged-Light"]],
+    ["Knowledge", ["Xenology"]],
+  ]);
+  assert.deepEqual(groupSkills(skills, types, "me").map((g) => [g.label, g.skills.map((s) => s.key)]), [["General", ["Mechanics"]]]);
+});
+
+test("groupSkills keeps skills of a type the list does not name", () => {
+  const groups = groupSkills([{ key: "Pilot", label: "Pilot", type: "Custom" }], [{ type: "General", label: "General" }], "");
+
+  assert.deepEqual(groups.map((g) => [g.label, g.skills.map((s) => s.key)]), [["Custom", ["Pilot"]]]);
+});
+
+test("firstSkill follows the grouped order", () => {
+  const types = [{ type: "General", label: "General" }, { type: "Combat", label: "Combat" }];
+  const skills = [{ key: "Brawl", label: "Brawl", type: "Combat" }, { key: "Mechanics", label: "Mechanics", type: "General" }];
+
+  assert.equal(firstSkill(skills, "", types), "Mechanics");
 });

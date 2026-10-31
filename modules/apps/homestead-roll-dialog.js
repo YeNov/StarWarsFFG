@@ -9,16 +9,36 @@
  */
 import DiceHelpers, { crewRollBuffOptions, get_dice_pool } from "../helpers/dice-helpers.js";
 import { DicePoolFFG } from "../dice/pool.js";
-import { filterSkills, firstSkill, homesteadDefaultRows, homesteadItems, homesteadRollers, homesteadRollPool } from "../helpers/homestead-roll.js";
+import { firstSkill, groupSkills, homesteadDefaultRows, homesteadItems, homesteadRollers, homesteadRollPool } from "../helpers/homestead-roll.js";
 
 const TEMPLATE = "systems/starwarsffg/templates/dialogs/homestead-roll.html";
 const SEARCH_DELAY_MS = 200;
 
-/** The character's skills as `{key, label}`, labels localized, sorted by label. */
+/** The character's skills with what the sheet shows beside them: category, characteristic, rank. */
 function skillChoices(actor) {
-  return Object.entries(actor?.system?.skills ?? {})
-    .map(([key, skill]) => ({ key, label: game.i18n.localize(skill?.label ?? key) }))
-    .sort((a, b) => a.label.localeCompare(b.label, game.i18n.lang));
+  return Object.entries(actor?.system?.skills ?? {}).map(([key, skill]) => {
+    const characteristic = skill?.characteristic ?? "";
+    const abbreviation = CONFIG.FFG?.characteristics?.[characteristic]?.abrev;
+    return {
+      key,
+      label: game.i18n.localize(skill?.label ?? key),
+      type: skill?.type ?? "General",
+      characteristic: abbreviation ? game.i18n.localize(abbreviation) : characteristic.slice(0, 2),
+      rank: Number(skill?.rank) || 0,
+    };
+  });
+}
+
+/** The skill categories in the sheet's order. */
+const skillTypes = (actor) => (Array.isArray(actor?.system?.skilltypes) ? actor.system.skilltypes : []);
+
+/** Whether the Sort skills by label setting is on, as the sheet reads it. */
+function sortByLabel() {
+  try {
+    return game.settings.get("starwarsffg", "skillSorting") === true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -36,6 +56,7 @@ async function pickCharacterAndSkill(homestead, rollers) {
 
   await foundry.applications.api.DialogV2.wait({
     window: { title: game.i18n.format("SWFFG.Homestead.Roll.Title", { name: homestead.name }) },
+    position: { width: 680 },
     classes: ["dialog", "ffg-homestead-roll-dialog"],
     content,
     buttons: [{ action: "cancel", label: game.i18n.localize("Cancel"), default: true }],
@@ -49,14 +70,27 @@ async function pickCharacterAndSkill(homestead, rollers) {
       let skills = skillChoices(currentActor());
 
       const draw = () => {
-        list.replaceChildren(...filterSkills(skills, search.value).map(({ key, label }) => {
-          const li = document.createElement("li");
-          const button = document.createElement("button");
-          button.type = "button";
-          button.dataset.skill = key;
-          button.textContent = label;
-          li.append(button);
-          return li;
+        const groups = groupSkills(skills, skillTypes(currentActor()), search.value, sortByLabel());
+        list.replaceChildren(...groups.map((group) => {
+          const section = document.createElement("section");
+          section.className = "ffg-homestead-roll-group";
+          const heading = document.createElement("h3");
+          heading.textContent = group.label;
+          section.append(heading);
+          for (const { key, label, characteristic, rank } of group.skills) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.dataset.skill = key;
+            const name = document.createElement("span");
+            name.className = "skill-name";
+            name.textContent = label;
+            const detail = document.createElement("span");
+            detail.className = "skill-detail";
+            detail.textContent = `${characteristic} · ${rank}`;
+            button.append(name, detail);
+            section.append(button);
+          }
+          return section;
         }));
       };
 
@@ -70,7 +104,7 @@ async function pickCharacterAndSkill(homestead, rollers) {
       search.addEventListener("keydown", (event) => {
         if (event.key !== "Enter") return;
         event.preventDefault();
-        pick(firstSkill(skills, search.value));
+        pick(firstSkill(skills, search.value, skillTypes(currentActor())));
       });
       search.addEventListener("input", foundry.utils.debounce(draw, SEARCH_DELAY_MS));
       select?.addEventListener("change", () => {
