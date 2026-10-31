@@ -650,6 +650,18 @@
 .cdx .cdx-veh-talent-ctl { display:flex; gap:8px; margin-left:auto; align-self:center; }
 .cdx .cdx-veh-talent-ctl .item-control { color:inherit; }
 .cdx .cdx-veh-talent.off { opacity:.5; filter:grayscale(1); }
+/* ---- Homestead ---- */
+/* Header actions: buttons acting on the whole homestead sit at the header's right edge. */
+.cdx .cdx-header-actions { flex:none; display:flex; flex-direction:column; gap:6px; align-self:center; }
+.cdx .cdx-header-actions:empty { display:none; }
+/* Cost / consumables strip (reuses the vehicle rarity/cost panel). */
+.cdx .cdx-home-values .cdx-vr-in.cdx-home-cost { width:6em; }
+.cdx .cdx-home-values .cdx-vr-in.cdx-home-duration { width:7em; font-weight:700; font-size:13px; }
+.cdx .cdx-cards-head .cdx-home-add-upgrade { cursor:pointer; color:var(--cdx-accent); }
+.cdx .cdx-home-empty { padding:10px 4px; color:var(--cdx-dim); font-style:italic; }
+/* A read-only homestead (Observer, locked compendium) has no add, edit, delete or
+   quantity handlers bound, so their controls are hidden rather than left dead. */
+.cdx form.locked .cdx-sheet.homestead :is(.item-add, .cdx-home-add-upgrade, .item-edit, .item-delete, .quantity) { display:none; }
 
 /* Two-column body: stacked stats on the left, the 4-zone defence panel right. */
 /* Silhouette · Speed · Handling · Armour span the sheet above both columns. As a direct

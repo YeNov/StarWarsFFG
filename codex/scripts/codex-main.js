@@ -10,7 +10,7 @@ import { effectiveSheetTheme } from "./sheet-theme.js";
 import { healStaleThemeChoice, registerCodexSettings } from "./settings.js";
 import { registerCodexIntegrations } from "./integrations.js";
 
-export const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle"];
+export const CODEX_ACTOR_TYPES = ["character", "rival", "nemesis", "minion", "vehicle", "homestead"];
 
 // Types left out keep the stock sheet: career, itemmodifier and species.
 export const CODEX_ITEM_TYPES = [
@@ -23,6 +23,7 @@ const CODEX_STYLESHEETS = ["cdx", "cdx-republic", "cdx-empire", "cdx-dark", "cdx
 
 const CODEX_TEMPLATES = [
   "templates/actors/codex-character.html", "templates/actors/codex-minion.html", "templates/actors/codex-vehicle.html",
+  "templates/actors/codex-homestead.html",
   "templates/items/codex-item.html", "templates/items/codex-gear.html", "templates/items/codex-weapon.html",
   "templates/items/codex-armour.html", "templates/items/codex-talent.html", "templates/items/codex-crit.html",
   "templates/items/codex-shipweapon.html", "templates/items/codex-itemattachment.html",
