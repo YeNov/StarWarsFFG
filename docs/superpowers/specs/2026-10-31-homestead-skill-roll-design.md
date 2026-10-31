@@ -69,10 +69,9 @@ this version.
   Effects; they count only for a roll started from the homestead.
 - Works for linked and unlinked character tokens no differently than a
   sheet roll does today (the character is the world actor picked in step 2).
-- Codex II: a Codex II homestead sheet is being built on branch
-  `claude/codex-homestead-sheet-b1f5ea` (not merged yet). The button belongs on
-  both the classic and the Codex II homestead sheets; whichever lands second adds
-  it to the other.
+- Codex II: the Codex II homestead sheet is merged into this branch. The button
+  goes on both the classic and the Codex II homestead sheets in this work; the
+  Codex sheet has an empty `.cdx-header-actions` slot for it.
 - CHANGELOG entry and wiki tutorial update are part of the work (see CLAUDE.md).
 
 ## Non-goals
