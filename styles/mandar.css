@@ -7467,3 +7467,49 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
    the same white outline so it reads on the dark dialog. Only black.png needs it; the
    other rows (yellow/green/red/purple/blue/whiteHex) are coloured and stay untouched. */
 .cdx-dice .pool-dice-pool img[src*="black.png"] { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
+
+/* Homestead, classic sheet. */
+/* Roll skill: large enough to find at a glance. */
+.starwarsffg form.homestead button.homestead-roll-skill {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.6rem 1.5rem;
+  min-height: 3rem;
+  width: auto;
+  min-width: 16rem;
+  margin: 0.4rem auto;
+}
+.starwarsffg form.homestead button.homestead-roll-skill i {
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+/* Description tab: Price and Consumables sit in one row above the editor, which takes the rest
+   (the shared rule pins them absolutely to the bottom, where they pile up on this sheet). */
+.starwarsffg form.homestead .tab.biography.active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.starwarsffg form.homestead .tab.biography .container.biography-values {
+  position: static;
+  order: -1;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.75rem;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+.starwarsffg form.homestead .tab.biography .biography-values .resource {
+  flex: 0 1 14rem;
+  margin: 0;
+}
+.starwarsffg form.homestead .tab.biography .biography-editor {
+  flex: 1 1 auto;
+  min-height: 12rem;
+  height: auto;
+}

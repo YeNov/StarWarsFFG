@@ -13,7 +13,7 @@
  */
 
 /** The item types that carry optional buffs. */
-export const BUFF_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "itemattachment"];
+export const BUFF_ITEM_TYPES = ["weapon", "armour", "gear", "talent", "itemattachment", "homesteadupgrade"];
 
 /** The row types a buff may hold: the ones that change a roll's dice. */
 export const BUFF_MODTYPES = [

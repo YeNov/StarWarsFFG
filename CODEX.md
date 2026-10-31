@@ -39,7 +39,7 @@ Each actor can also override the colour scheme from the sheet's header palette m
 
 ## Scope — what v1 does
 
-**Actor sheets** (character, rival, nemesis, minion, vehicle, adversary)
+**Actor sheets** (character, rival, nemesis, minion, vehicle, adversary, homestead)
 - Bespoke header, stat blocks, defence/wounds/strain tracks, skill tables, and
   weapon / armour / gear / talent cards.
 - Per-actor colour scheme, stored on the actor.

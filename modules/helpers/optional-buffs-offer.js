@@ -5,6 +5,7 @@
  * rows that apply and each row's value already multiplied by how many times it counts:
  *   { key, name, source, rows: [{ modtype, mod, value }], applied? }
  *
+ * - Homestead upgrades count once (only a roll from the homestead passes them in).
  * - Armour counts while equipped; weapons and gear while not marked "not carried"; talents (items
  *   and learned specialization tree nodes) always; attachments when the item they sit on counts.
  * - Skill rows apply to rolls of their skill. Roll / Dice / Result rows on a weapon (or one of its
@@ -42,7 +43,7 @@ const quantityOf = (item) => {
  * @param {boolean} rules.rollRows - whether Roll / Dice / Result rows apply at all
  * @param {number} rules.rollTimes - how many times they count
  */
-function applicableRows(buff, { skillKey, skillTimes, rollRows, rollTimes }) {
+export function applicableRows(buff, { skillKey, skillTimes, rollRows, rollTimes }) {
   const rows = [];
   for (const row of buff.rows) {
     if (isSkillModtype(row.modtype)) {
@@ -118,6 +119,13 @@ export function collectOfferedBuffs({ items, skillKey = null, weaponId = null, i
         const times = quantityOf(item);
         for (const buff of cleanBuffs(system.optionalBuffs)) {
           offer(`${id}:${buff.id}`, buff, item.name, { skillTimes: times, rollRows: true, rollTimes: times });
+        }
+        break;
+      }
+      case "homesteadupgrade": {
+        // Offered only on a roll made from the homestead (the roll options card adds its items).
+        for (const buff of cleanBuffs(system.optionalBuffs)) {
+          offer(`${id}:${buff.id}`, buff, item.name, { skillTimes: 1, rollRows: true, rollTimes: 1 });
         }
         break;
       }

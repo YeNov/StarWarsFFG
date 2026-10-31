@@ -26,6 +26,7 @@ import {
 } from "../helpers/crew.js";
 import {DicePoolFFG} from "../dice/pool.js";
 import {get_dice_pool, crewRollBuffOptions} from "../helpers/dice-helpers.js";
+import { rollFromHomestead } from "../apps/homestead-roll-dialog.js";
 import { crewRollOptions, isMinionVehicle } from "../helpers/minion-group.js";
 import { hasAmmoToFire } from "../helpers/ammo-helpers.js";
 import { planTalentGrant, planTalentRevoke } from "../helpers/talent-stacking.js";
@@ -1012,6 +1013,12 @@ export class ActorSheetFFG extends FFGActorSheet {
     });
 
     // Add Inventory Item
+    // Homestead "Roll skill": a character's skill with the homestead's upgrades.
+    html.find(".homestead-roll-skill").click((ev) => {
+      ev.preventDefault();
+      rollFromHomestead(this.actor);
+    });
+
     html.find(".item-add").click((ev) => {
       if(!this.actor.verifyEditModeIsNotEnabled()) {
         return;

@@ -153,8 +153,8 @@ export const QualitiesTemplate = (Base) =>
 /**
  * `optionalBuffs` — named groups of modifier rows that apply to a roll only when the player
  * ticks them in the roll dialog: `[{ id, name, rows: [{ modtype, mod, value }] }]`
- * (modules/helpers/optional-buffs.js). Carried by weapon, armour, gear, talent and
- * itemattachment. Each buff is a plain object, like the attachment and quality snapshots above.
+ * (modules/helpers/optional-buffs.js). Carried by weapon, armour, gear, talent,
+ * itemattachment and homesteadupgrade. Each buff is a plain object, like the attachment and quality snapshots above.
  */
 export const OptionalBuffsTemplate = (Base) =>
   class extends Base {
