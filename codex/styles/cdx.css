@@ -662,6 +662,9 @@
 /* A read-only homestead (Observer, locked compendium) has no add, edit, delete or
    quantity handlers bound, so their controls are hidden rather than left dead. The
    template's .cdx-sheet wrapper is not rendered, so the form is matched by its header. */
+/* Homestead Roll skill: a labelled header button, not an icon-sized one. */
+.cdx .cdx-home-roll { --cdx-btn-bw:1px; --cdx-btn-bc:rgba(255,255,255,.4); --cdx-btn-bg:rgba(255,255,255,.12); color:#fff; --color-text-primary:#fff; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; padding:8px 16px; font-size:15px; font-weight:600; white-space:nowrap; }
+.cdx .cdx-home-roll i { font-size:18px; }
 .cdx form.locked:has(.cdx-home-header) :is(.item-add, .cdx-home-add-upgrade, .item-edit, .item-delete) { display:none; }
 .cdx form.locked:has(.cdx-home-header) .cdx-card.gear .cdx-qty .quantity { display:none; }  /* outranks the stepper rule below */
 
