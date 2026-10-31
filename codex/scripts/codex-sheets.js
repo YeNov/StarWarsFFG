@@ -1757,7 +1757,9 @@ export const CodexSchemeMixin = (Base) => class extends Base {
    */
   async _cdxApplyStrainRecovery(pool, currentStrain) {
     const actor = this.actor;
-    const message = await new game.ffg.RollFFG(pool.renderDiceExpression()).toMessage({
+    // The pool goes in as the third argument, as the roll builder does: the dice expression holds
+    // only dice, so advantages and successes the skill adds (talents, gear) come from the pool.
+    const message = await new game.ffg.RollFFG(pool.renderDiceExpression(), {}, pool).toMessage({
       speaker: { actor },
       flavor: `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize("SWFFG.Codex.StrainRecovery.Title")}...`,
     });
@@ -1826,7 +1828,8 @@ export const CodexSchemeMixin = (Base) => class extends Base {
           });
           pool.upgrade(Math.min(characteristic.value ?? 0, skill.rank ?? 0));
           const flavor = `${game.i18n.localize("SWFFG.Rolling")} ${game.i18n.localize("SWFFG.Codex.CritTrauma.RollResilience")}...`;
-          const roll = new game.ffg.RollFFG(pool.renderDiceExpression());   // may throw here → BEFORE the stamp
+          // Pool as the third argument so the skill's added symbols count (see _cdxApplyStrainRecovery).
+          const roll = new game.ffg.RollFFG(pool.renderDiceExpression(), {}, pool);   // may throw here → BEFORE the stamp
           // 5. Stamp the reservation.
           await item.update({ "system.resilienceLastAttemptDay": day });
           // 6. Roll + read back, preserving the stamp on any post-reservation failure.
