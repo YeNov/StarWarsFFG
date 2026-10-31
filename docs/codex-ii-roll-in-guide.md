@@ -13,7 +13,7 @@ Use it when you want:
 - A more compact, purpose-built character sheet.
 - Color schemes per actor or item.
 - Better card-style inventory views.
-- Dedicated minion and vehicle layouts.
+- Dedicated minion, vehicle and homestead layouts.
 - Codex progression trees for force powers, specializations, and signature abilities.
 
 Codex II does not require rebuilding characters. Existing actors and items can be opened with Codex sheets if their type is supported.
@@ -70,9 +70,10 @@ Codex II supports these actor sheets:
 - Nemesis
 - Minion
 - Vehicle
+- Homestead
 - Character-type Adversary Sheet
 
-Homestead actors are not part of the Codex II actor sheet set.
+The homestead sheet has three tabs: Description (cost, consumables and biography), Upgrades (homestead upgrade items) and Storage (every other item, with a quantity stepper). Drop items onto the sheet to add them, as on the stock sheet.
 
 ## 6. Supported Item Types
 
@@ -318,7 +319,7 @@ The actor is missing the Cool or Discipline skill/characteristic — Codex's bui
 
 ### The Codex sheet does not appear in sheet configuration
 
-Confirm the document type is supported. Career, species, item modifier, and homestead actor sheets are not Codex-registered.
+Confirm the document type is supported. Career, species and item modifier sheets are not Codex-registered.
 
 ### Tree edit controls are missing
 
