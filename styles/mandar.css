@@ -6482,6 +6482,31 @@ body.theme-dark #token-hud .status-effects .effect-control[src*="systems/starwar
      the true-colour rule above. */
   filter: brightness(0) invert(1);
 }
+/* V14 sizes the status palette's rows to fill the token-HUD column height, leaving a
+   gap in every row. Pack the rows to icon height, top-align, and cap the panel at
+   core's 8 rows so a long effect list scrolls inside it. Unlayered, so it beats
+   core's @layer rule without !important. Mirrors starwarsffg.css, which the Mandar
+   themes disable. */
+#token-hud .status-effects.palette {
+  grid-template-rows: none;
+  grid-auto-rows: var(--effect-size, 24px);
+  align-content: start;
+  height: auto;
+  max-height: calc(8 * (var(--effect-size, 24px) + var(--effect-gap, 3px)) + 2 * var(--effect-gap, 3px));
+}
+/* Keep each icon the size of its grid cell. Touch VTT (a mobile/touch layout module)
+   sets the icons to 34x34 with 3px padding, a size from older HUDs, so on V14's 24px
+   grid they overlap the next row and get squeezed sideways. */
+#token-hud .status-effects.palette .effect-control {
+  width: var(--effect-size, 24px);
+  height: var(--effect-size, 24px);
+  padding: 0;
+}
+/* On a touch device Touch VTT flags the body; grow the whole grid to its 34px icons
+   there, so touch players keep the larger tap targets without the overlap. */
+body.touchvtt-using-touch #token-hud .status-effects.palette {
+  --effect-size: 34px;
+}
 
 /* PC Wizard — Background accordion. */
 .charCreator section.tab > p,
