@@ -1,4 +1,5 @@
 import PopoutEditor from "../popout-editor.js";
+import { omitClosedEditorFields } from "../helpers/closed-editor-fields.js";
 
 const { DocumentSheetV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -874,7 +875,8 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
   _getSubmitData(updateData = {}) {
     if (!this.form) throw new Error("The sheet has no registered form element.");
     const fd = new foundry.applications.ux.FormDataExtended(this.form, { editors: this.editors });
-    let data = fd.object;
+    // Closed {{editor}} blocks hold enriched display HTML, not the source.
+    let data = omitClosedEditorFields(fd.object, this.form, this.editors);
     if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
     return foundry.utils.flattenObject(data);
   }

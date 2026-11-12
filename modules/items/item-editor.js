@@ -4,6 +4,7 @@ import ModifierHelpers from "../helpers/modifiers.js";
 import { applyTalentToInnateModification, buildInnateTalentModification } from "../helpers/innate-talents.js";
 import { isAttributeSuspended, isModifierSuspended } from "../helpers/modifier-switch.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
+import { omitClosedEditorFields } from "../helpers/closed-editor-fields.js";
 import { bindRollOptionLinks, describeRollOptionLinks } from "../helpers/roll-option-hooks.js";
 import { copyIdentity, keepCopyFields, withCopyLinks } from "../helpers/roll-option-links.js";
 
@@ -183,7 +184,8 @@ export class itemEditor extends FFGFormApplication {
   _getSubmitData(updateData = {}) {
     if (!this.form) throw new Error("The form application has no registered form element.");
     const fd = new foundry.applications.ux.FormDataExtended(this.form, { editors: this.editors });
-    let data = fd.object;
+    // Closed {{editor}} blocks hold enriched display HTML, not the source.
+    let data = omitClosedEditorFields(fd.object, this.form, this.editors);
     if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
     return foundry.utils.flattenObject(data);
   }
