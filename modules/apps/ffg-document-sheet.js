@@ -1,5 +1,6 @@
 import PopoutEditor from "../popout-editor.js";
 import { omitClosedEditorFields } from "../helpers/closed-editor-fields.js";
+import { restoreDiceCodes } from "../helpers/restore-dice-codes.js";
 
 const { DocumentSheetV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -664,7 +665,8 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     // otherwise permanently brick the edit button via the guard above. Clear
     // it so this click can mount a fresh editor.
     if (this.editors[name]) this._destroyEditor(name);
-    const initial = foundry.utils.getProperty(this.document, name) ?? "";
+    // Glyphs saved by the old closed-editor bug go back to their codes.
+    const initial = restoreDiceCodes(foundry.utils.getProperty(this.document, name) ?? "");
     const { ProseMirrorEditor } = foundry.applications.ux;
 
     // Register a FormDataExtended-compatible entry BEFORE create() resolves.

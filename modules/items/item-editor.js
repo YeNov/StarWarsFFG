@@ -5,6 +5,7 @@ import { applyTalentToInnateModification, buildInnateTalentModification } from "
 import { isAttributeSuspended, isModifierSuspended } from "../helpers/modifier-switch.js";
 import { FFGFormApplication } from "../apps/ffg-form-application.js";
 import { omitClosedEditorFields } from "../helpers/closed-editor-fields.js";
+import { restoreDiceCodes } from "../helpers/restore-dice-codes.js";
 import { bindRollOptionLinks, describeRollOptionLinks } from "../helpers/roll-option-hooks.js";
 import { copyIdentity, keepCopyFields, withCopyLinks } from "../helpers/roll-option-links.js";
 
@@ -211,7 +212,8 @@ export class itemEditor extends FFGFormApplication {
   async _activateEditor(name, contentEl, containerEl, buttonEl) {
     if (this.editors[name]?.instance?.view) return;
     if (this.editors[name]) this._destroyEditor(name);
-    const initial = foundry.utils.getProperty(this.data.clickedObject, name) ?? "";
+    // Glyphs saved by the old closed-editor bug go back to their codes.
+    const initial = restoreDiceCodes(foundry.utils.getProperty(this.data.clickedObject, name) ?? "");
     const { ProseMirrorEditor } = foundry.applications.ux;
     // Register the FormDataExtended-compatible entry BEFORE create() resolves so
     // a submit-on-change mid-mount still serializes this editor.
