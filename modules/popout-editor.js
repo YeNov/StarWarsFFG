@@ -1,4 +1,5 @@
 import {migrateDataToSystem} from "./helpers/migration.js";
+import { restoreDiceCodes } from "./helpers/restore-dice-codes.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -101,9 +102,9 @@ export default class PopoutEditor extends HandlebarsApplicationMixin(Application
     // Get current value
     let attr = foundry.utils.getProperty(this.object.system, this.attribute.replace('data.', ''));
 
-    // Return data
+    // Return data. Glyphs saved by the old closed-editor bug go back to their codes.
     return {
-      value: attr,
+      value: restoreDiceCodes(attr),
       cssClass: "editable popout-editor-window",
     };
   }

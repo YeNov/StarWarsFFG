@@ -1,4 +1,6 @@
 import PopoutEditor from "../popout-editor.js";
+import { omitClosedEditorFields } from "../helpers/closed-editor-fields.js";
+import { restoreDiceCodes } from "../helpers/restore-dice-codes.js";
 
 const { DocumentSheetV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -663,7 +665,8 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
     // otherwise permanently brick the edit button via the guard above. Clear
     // it so this click can mount a fresh editor.
     if (this.editors[name]) this._destroyEditor(name);
-    const initial = foundry.utils.getProperty(this.document, name) ?? "";
+    // Glyphs saved by the old closed-editor bug go back to their codes.
+    const initial = restoreDiceCodes(foundry.utils.getProperty(this.document, name) ?? "");
     const { ProseMirrorEditor } = foundry.applications.ux;
 
     // Register a FormDataExtended-compatible entry BEFORE create() resolves.
@@ -874,7 +877,8 @@ export class FFGDocumentSheet extends HandlebarsApplicationMixin(DocumentSheetV2
   _getSubmitData(updateData = {}) {
     if (!this.form) throw new Error("The sheet has no registered form element.");
     const fd = new foundry.applications.ux.FormDataExtended(this.form, { editors: this.editors });
-    let data = fd.object;
+    // Closed {{editor}} blocks hold enriched display HTML, not the source.
+    let data = omitClosedEditorFields(fd.object, this.form, this.editors);
     if (updateData) data = foundry.utils.mergeObject(data, updateData, { inplace: false });
     return foundry.utils.flattenObject(data);
   }
