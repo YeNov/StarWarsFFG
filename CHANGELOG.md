@@ -22,6 +22,8 @@
 * Fixed — **one combatant could stop a whole initiative roll**: a combatant without a token, a vehicle with no Pilot, or a combatant whose actor was deleted. A combatant without a token now rolls; the others are skipped with a warning naming them, and everyone else still rolls.
 * Fixed — **the Hyperdrive import lost the +1 from a Dedication talent**: a character showing Cunning 4 in Hyperdrive arrived with 3. The Dedication is now added on top, and the XP check now charges 10 XP more for a specialization from outside the career, so an export whose XP balances no longer gets a mismatch warning.
   * Re-import a character that bought Dedication, or raise that characteristic by 1 on the actor.
+* Fixed — **Hyperdrive-imported talents showed "Missing macro" for their roll options** when the specialization or talent came from a module compendium that a different world had linked. The importer now links them to this world's roll option macros, once `installLibrary()` has created them.
+  * For a character already imported, run `game.ffg.rollOptions.installLibrary()` again: it replaces the dead links on actors' items.
 * Changed — **optional buffs moved onto the roll options card**, and a pool the GM sends to a player now arrives with its buffs and options ticked but not locked, so the player can untick them.
 * Changed — **Configure Codex is now listed below Skill List Import** in Configure Settings, because Codex II now registers its own settings ahead of its move to a separate module.
 * Added — **Apply Crit counts the attacker's Lethal Blows**: +10 per rank on a Critical Injury roll, shown beside Vicious in the crit dialog, where it can be adjusted. It does not apply to a vehicle's Critical Hit.
