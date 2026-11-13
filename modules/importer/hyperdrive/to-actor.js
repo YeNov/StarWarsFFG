@@ -155,13 +155,35 @@ export function dedicationAdvances(parsed) {
 }
 
 /**
+ * The characteristic values Hyperdrive displays. Its `Characteristics` export holds the
+ * species start plus purchased advances only: Dedication is tracked separately in
+ * `Dedications` and added at display time, the same way equipment bonuses are left out.
+ * Treating the export as the displayed value silently cancels the Dedication's +1.
+ */
+export function displayedCharacteristics(parsed) {
+  const dedications = dedicationAdvances(parsed);
+  return Object.fromEntries(Object.entries(parsed?.characteristics ?? {}).map(([characteristic, value]) => [
+    characteristic,
+    Number(value ?? 0) + Number(dedications[characteristic] ?? 0),
+  ]));
+}
+
+function careerSpecializationKeys(parsed) {
+  const keys = [
+    ...(Array.isArray(parsed?.career?.Specializations) ? parsed.career.Specializations : []),
+    ...(Array.isArray(parsed?.career?.Specs) ? parsed.career.Specs : []),
+  ];
+  return new Set(keys.map((key) => String(key).toUpperCase()));
+}
+
+/**
  * Spend derived from the purchases themselves, so the exported remaining XP can be
  * CHECKED rather than trusted. Deriving `spent` as `total - exportedRemaining` would be
  * circular: it would agree with the export by construction and could never surface a
  * costing defect (design §10).
  */
 export function deriveXpSpend(parsed) {
-  const dedications = dedicationAdvances(parsed);
+  const careerSpecs = careerSpecializationKeys(parsed);
 
   let talents = 0;
   let specializations = 0;
@@ -171,8 +193,14 @@ export function deriveXpSpend(parsed) {
       row.forEach((bought) => { if (bought) talents += cost; });
     });
     // The starting specialization is free; a universal one is a flat 10, otherwise the
-    // nth specialization costs 10 x n.
-    if (index > 0) specializations += spec?.universal ? 10 : 10 * (index + 1);
+    // nth specialization costs 10 x n, plus 10 when it is not one of the career's own.
+    if (index === 0) return;
+    if (spec?.universal) {
+      specializations += 10;
+      return;
+    }
+    const outOfCareer = careerSpecs.size > 0 && !careerSpecs.has(String(keyOf(spec) ?? "").toUpperCase());
+    specializations += 10 * (index + 1) + (outOfCareer ? 10 : 0);
   });
 
   let forcePowers = 0;
@@ -181,9 +209,11 @@ export function deriveXpSpend(parsed) {
   }
 
   let characteristics = 0;
-  for (const [characteristic, final] of Object.entries(parsed?.characteristics ?? {})) {
+  // The export excludes Dedication (see displayedCharacteristics), so every step above
+  // the species start was bought with XP.
+  for (const [characteristic, exported] of Object.entries(parsed?.characteristics ?? {})) {
     const starting = Number(parsed?.species?.startingChars?.[characteristic] ?? 0);
-    const steps = Number(final) - starting - Number(dedications[characteristic] ?? 0);
+    const steps = Number(exported) - starting;
     for (let step = 1; step <= steps; step += 1) characteristics += 10 * (starting + step);
   }
 
@@ -240,20 +270,24 @@ export function deriveXp(parsed) {
 }
 
 /**
- * Hyperdrive characteristics are final values, while imported species and Dedication
- * items add their own characteristic effects. Persist only the residual that those
- * build items do not already supply, measured from an unsaved build-item-only preview.
+ * Hyperdrive characteristics are species start + purchased advances; Dedication comes on
+ * top (`dedications`, from dedicationAdvances). Imported species and Dedication items add
+ * their own characteristic effects, so persist only the residual that those build items
+ * do not already supply, measured from an unsaved build-item-only preview. Measuring
+ * against the target that includes Dedication keeps the result right whether or not the
+ * world's talent tree supplied the Dedication effect.
  *
  * Equipment is deliberately excluded: a cybernetic's modifier belongs to the item, so
  * it must not reduce the character's base. Hyperdrive skill values have different
  * semantics and are handled separately below.
  */
-export function residualCharacteristicDeltas(characteristics, preview) {
+export function residualCharacteristicDeltas(characteristics, preview, dedications = {}) {
   const deltas = {};
   const warnings = [];
-  for (const [characteristic, value] of Object.entries(characteristics ?? {})) {
+  for (const [characteristic, exported] of Object.entries(characteristics ?? {})) {
+    const value = Number(exported) + Number(dedications?.[characteristic] ?? 0);
     const supplied = Number(preview?.characteristics?.[characteristic]?.value ?? 0);
-    const delta = Number(value) - supplied;
+    const delta = value - supplied;
     if (delta < 0) {
       warnings.push(`${characteristic}: imported items already supply ${supplied} but the export lists ${value}; leaving the base at 0.`);
     }
@@ -348,7 +382,8 @@ export function rankedTalentResidualEffects(parsed, { materializedSpecialization
 
 export function driftReport(parsed, prepared) {
   const drift = [];
-  for (const [characteristic, exported] of Object.entries(parsed?.characteristics ?? {})) {
+  // Compare against what Hyperdrive displays (export + Dedication), not the raw export.
+  for (const [characteristic, exported] of Object.entries(displayedCharacteristics(parsed))) {
     const value = prepared?.characteristics?.[characteristic]?.value;
     if (value == null) continue;
     if (Number(value) !== Number(exported)) {
@@ -688,7 +723,7 @@ export async function hyperdriveToActorData(parsed, deps) {
   // Build items are complete here; equipment is deliberately NOT part of the preview
   // (an item carries its own modifiers, so it must not depress the character's base).
   const preview = await deps.preparePreview(buildItems);
-  const characteristicBase = residualCharacteristicDeltas(parsed.characteristics, preview);
+  const characteristicBase = residualCharacteristicDeltas(parsed.characteristics, preview, dedicationAdvances(parsed));
   const purchasedSkills = residualSkillDeltas(parsed.skills, skillOptions);
   report.warnings.push(...characteristicBase.warnings, ...purchasedSkills.warnings);
   const xp = deriveXp(parsed);
