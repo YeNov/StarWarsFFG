@@ -27,19 +27,21 @@ test("derives spend from the purchases and preserves an overspent export", () =>
   assert.deepEqual(xp.breakdown, {
     talents: 120, // Steel Hand 95 + Death Watch 25, from each row's Cost
     forcePowers: 55, // Conjure 20 + 15, Alter 10 + 10 (PaidCosts)
-    characteristics: 170, // Agility 2->4 (70), Intellect 2->4 (70), Cunning 2->3 (30)
+    // Brawn 2->3 (30), Agility 2->4 (70), Intellect 2->4 (70), Cunning 2->3 (30). The
+    // Steel Hand Dedication is not inside the exported Brawn 3, so that step was bought.
+    characteristics: 200,
     specializations: 10, // Death Watch is universal, a flat 10
     skills: 80, // exported values are paid ranks; free ranks determine each purchase's tier
-    total: 435,
+    total: 465,
   });
-  assert.equal(xp.spent, 435);
+  assert.equal(xp.spent, 465);
 });
 
 test("reports a spend that does not reconcile with the exported remaining XP", () => {
   const xp = deriveXp(parsed);
-  // 140 - 435 = -295, but the export claims -215: the fixture's own counter is 80 XP
+  // 140 - 465 = -325, but the export claims -215: the fixture's own counter is 110 XP
   // adrift. Deriving `spent` as `total - available` would have hidden this entirely.
-  assert.match(xp.warnings.join("\n"), /does not reconcile.*difference of 80 XP/s);
+  assert.match(xp.warnings.join("\n"), /does not reconcile.*difference of 110 XP/s);
 });
 
 test("adds Hyperdrive earned XP to the lifetime total", () => {
@@ -71,6 +73,67 @@ test("adds Hyperdrive earned XP to the lifetime total", () => {
   assert.equal(xp.available, 0);
 });
 
+// A Smuggler who took Infiltrator as a second specialization and bought its Dedication
+// node for Cunning. Hyperdrive's `Characteristics` hold species start + purchased
+// advances only: the sheet shows Cunning 4 while the export says 3, and the export's
+// own XP counter only balances when the Dedication is NOT inside that 3.
+const DEDICATED = parseHyperdrive({
+  Species: {
+    StartingAttrs: { Experience: "100" },
+    StartingChars: { Brawn: 2, Agility: 2, Intellect: 2, Cunning: 2, Willpower: 2, Presence: 2 },
+  },
+  Career: { Key: "SMUG", Specializations: ["CHARMER", "PILOT"] },
+  Specializations: [
+    {
+      Key: "CHARMER",
+      TalentRows: [{ Cost: "5", Talents: ["SMOOTHTALK", "KILL", "GRIT", "CONGENIAL"] }],
+      BoughtTalents: [[false, false, false, false]],
+    },
+    {
+      Key: "INFILTRATOR",
+      TalentRows: [{ Cost: "5", Talents: ["DEDI", "GRIT", "DODGE", "JUMP"] }],
+      BoughtTalents: [[true, false, false, false]],
+    },
+  ],
+  Dedications: { Cunning: ["INFILTRATOR"] },
+  Characteristics: { Brawn: 2, Agility: 2, Intellect: 2, Cunning: 3, Willpower: 2, Presence: 2 },
+  EarnedXP: "0",
+  // 100 - (Dedication node 5 + out-of-career specialization 30 + Cunning 2->3 30)
+  XP: 35,
+});
+
+test("exported characteristics exclude Dedication, so the bought advance is still charged", () => {
+  const xp = deriveXp(DEDICATED);
+  assert.equal(xp.breakdown.characteristics, 30);
+  assert.equal(xp.breakdown.talents, 5);
+});
+
+test("a specialization outside the career costs 10 XP more", () => {
+  const xp = deriveXp(DEDICATED);
+  assert.equal(xp.breakdown.specializations, 30);
+  assert.equal(xp.spent, 65);
+  assert.deepEqual(xp.warnings, []);
+});
+
+test("Dedication is added on top of the exported characteristic", () => {
+  // The preview has the species 2 + the Dedication item effect 1.
+  const preview = { characteristics: { Cunning: { value: 3 } } };
+  const { deltas, warnings } = residualCharacteristicDeltas(
+    { Cunning: 3 },
+    preview,
+    dedicationAdvances(DEDICATED),
+  );
+  assert.equal(deltas.Cunning, 1); // 2 + 1 + 1 = 4, as Hyperdrive shows
+  assert.deepEqual(warnings, []);
+});
+
+test("Dedication still lands when the talent tree supplied no Dedication effect", () => {
+  // The specialization was not matched in the world, so only the species applies.
+  const preview = { characteristics: { Cunning: { value: 2 } } };
+  const { deltas } = residualCharacteristicDeltas({ Cunning: 3 }, preview, { Cunning: 1 });
+  assert.equal(deltas.Cunning, 2);
+});
+
 test("counts Dedication advances from purchased nodes, not the Dedications map", () => {
   // The fixture's map still lists Intellect -> MARSHAL, a specialization the character
   // no longer owns; only Steel Hand's purchased DEDI node is a real advance.
@@ -95,9 +158,9 @@ test("persists characteristic residuals and purchased skill ranks", () => {
       Coordination: { rank: 1 },
     },
   };
-  const characteristics = residualCharacteristicDeltas(parsed.characteristics, preview);
+  const characteristics = residualCharacteristicDeltas(parsed.characteristics, preview, dedicationAdvances(parsed));
   assert.deepEqual(characteristics.deltas, {
-    Brawn: 0, // fully supplied by the species + Dedication — persisting 1 would double-count
+    Brawn: 1, // exported 3 + Dedication 1 = 4, of which the species + Dedication supply 3
     Agility: 2,
     Intellect: 2,
     Cunning: 1,

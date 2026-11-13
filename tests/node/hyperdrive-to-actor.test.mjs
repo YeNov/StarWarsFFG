@@ -252,11 +252,12 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
       },
     }
     : originalGet(type, key);
-  // Base Brawn is the residual 0; species (2) + Dedication (1) + the cybernetic's own
-  // +1 prepare to 4. Hyperdrive's export omits the cybernetic's bonus, so the extra
-  // point is legitimate drift for the report rather than an importer error.
+  // Base Brawn is the residual 1; with species (2) + Dedication (1) + the cybernetic's
+  // own +1 it prepares to 5. Hyperdrive shows 4 (export 3 + Dedication) and leaves the
+  // cybernetic's bonus out, so the extra point is legitimate drift for the report
+  // rather than an importer error.
   base.deps.prepareFinal = async () => ({
-    characteristics: CHARS(4),
+    characteristics: { ...CHARS(4), Brawn: { value: 5 } },
     wounds: 19,
     strain: 13,
     soak: 4,
@@ -270,8 +271,8 @@ test("matched cybernetic is routed to compendium and its Brawn effect is preserv
   assert.deepEqual(report.drift.find((row) => row.stat === "Brawn"), {
     kind: "characteristic",
     stat: "Brawn",
-    exported: 3,
-    prepared: 4,
+    exported: 4,
+    prepared: 5,
   });
   assert.deepEqual(report.drift.find((row) => row.stat === "wounds"), {
     kind: "threshold",
@@ -289,11 +290,12 @@ test("golden export stores characteristic residuals and purchased skill ranks", 
     type === "specialization" && key === "DEATHWCOTR" ? null : originalGet(type, key);
   const { actorData, report } = await hyperdriveToActorData(parsed, deps);
 
-  // Brawn 3 = species 2 + Dedication 1, so nothing is left to persist; writing the
-  // exported 3 here would double-count against the very items that supply it.
-  assert.equal(actorData.system.characteristics.Brawn.value, 0);
-  assert.equal(actorData.system.stats.wounds.max, 0);
-  assert.equal(actorData.system.stats.encumbrance.max, 0);
+  // The export's Brawn 3 excludes the Steel Hand Dedication, so Hyperdrive shows 4. The
+  // species (2) and Dedication (1) items supply 3; the bought advance stays on the actor.
+  assert.equal(actorData.system.characteristics.Brawn.value, 1);
+  // Base Brawn carries its derived stats, as a bought advance does in the creator.
+  assert.equal(actorData.system.stats.wounds.max, 1);
+  assert.equal(actorData.system.stats.encumbrance.max, 1);
   // Characteristics no item supplies stay on the actor: Agility/Intellect 4 - 2, Cunning 3 - 2.
   assert.equal(actorData.system.characteristics.Agility.value, 2);
   assert.equal(actorData.system.characteristics.Intellect.value, 2);
@@ -322,11 +324,11 @@ test("golden export stores characteristic residuals and purchased skill ranks", 
   assert.ok(cyber.effects.flatMap((effect) => effect.changes).some((change) =>
     change.key === "system.stats.wounds.max" && change.value === 1));
 
-  // Characteristics are exported as final values, while skill values are purchased
+  // Characteristics are exported without Dedication, and skill values are purchased
   // ranks. The free Athletics rank therefore adds to its exported purchased rank.
   assert.equal(
     actorData.system.characteristics.Brawn.value + 2 + 1,
-    parsed.characteristics.Brawn,
+    parsed.characteristics.Brawn + 1,
   );
   assert.equal(
     actorData.system.skills.Athletics.rank + 1,
