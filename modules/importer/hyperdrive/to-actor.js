@@ -737,6 +737,9 @@ export async function hyperdriveToActorData(parsed, deps) {
   if (parsed.vehicles?.length) report.warnings.push(`${parsed.vehicles.length} vehicle entry or entries were skipped.`);
   if (!parsed.signatureAbilities?.length) report.warnings.push("The export contains no signature abilities.");
 
+  // A copy from a module compendium can carry roll option links to another world's macros;
+  // the live relinker points them at this world's library macros (relinkItemSource).
+  const relink = typeof deps.relinkRollOptions === "function" ? deps.relinkRollOptions : (source) => source;
   const assembled = deps.assemble({
     name: parsed.name,
     img: parsed.img,
@@ -759,8 +762,8 @@ export async function hyperdriveToActorData(parsed, deps) {
         },
       },
     },
-    buildItems,
-    equipmentItems,
+    buildItems: buildItems.map(relink),
+    equipmentItems: equipmentItems.map(relink),
   });
   report.warnings.push(...(assembled.warnings ?? []));
   report.ambiguities = [...(deps.resolve.ambiguities ?? [])];

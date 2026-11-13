@@ -552,3 +552,26 @@ test("driftReport skips absent prepared characteristic entries", () => {
     soak: 4,
   }), []);
 });
+
+test("every imported item passes through the roll option relinker", async () => {
+  // Live, the relinker points links copied from another world's compendium at this world's
+  // library macros (relinkItemSource). Here it just marks what it saw.
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const seen = [];
+  deps.relinkRollOptions = (source) => {
+    seen.push(source.name);
+    return { ...source, system: { ...(source.system ?? {}), rollOptions: ["Macro.relinked"] } };
+  };
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+  assert.ok(seen.includes("STEELHAND"), "a specialization");
+  assert.ok(actorData.items.some((item) => item.type === "weapon"), "the fixture has equipment");
+  for (const item of actorData.items) assert.deepEqual(item.system.rollOptions, ["Macro.relinked"], item.name);
+});
+
+test("without a relinker the imported items keep their links", async () => {
+  const parsed = parseHyperdrive(RAW);
+  const { deps } = basicDeps();
+  const { actorData } = await hyperdriveToActorData(parsed, deps);
+  assert.equal(actorData.items.some((item) => item.system?.rollOptions?.includes("Macro.relinked")), false);
+});

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import "./_stub/foundry-stub.mjs";
 import { ROLL_OPTION_LIBRARY } from "../../modules/config/roll-option-library.js";
-import { libraryMacroText, planItemLinks, planLibraryMacros } from "../../modules/helpers/roll-option-library-plan.js";
+import { libraryMacroText, planItemLinks, planLibraryMacros, relinkItemSource } from "../../modules/helpers/roll-option-library-plan.js";
 
 /**
  * What the GM's library run creates and links
@@ -216,4 +216,40 @@ test("a run links Deadly Accuracy to its Ranged: Heavy version, and keeps a vers
   assert.deepEqual(link({ type: "talent", name: "Deadly Accuracy", system: { rollOptions: [] } }).update,
     { "system.rollOptions": ["Macro.da-rh"] });
   assert.equal(link({ type: "talent", name: "Deadly Accuracy", system: { rollOptions: ["Macro.da-melee"] } }).update ?? null, null);
+});
+
+test("an item source copied from another world's compendium is relinked to this world's macros", () => {
+  // A specialization from a shared module pack: its nodes link macros another world created.
+  const source = {
+    name: "Infiltrator",
+    type: "specialization",
+    system: {
+      talents: {
+        talent2: { name: "Frenzied Attack", islearned: true, rollOptions: ["Macro.otherWorld1"] },
+        talent3: { name: "Grit", rollOptions: [] },
+        talent9: { name: "Frenzied Attack", rollOptions: ["Macro.otherWorld1"] },
+      },
+    },
+  };
+  const isLive = (uuid) => !uuid.startsWith("Macro.otherWorld");
+  const { source: relinked, linked } = relinkItemSource(source, { uuidByEntry, isLive });
+  assert.deepEqual(relinked.system.talents.talent2.rollOptions, ["Macro.frenzied-attack"]);
+  assert.deepEqual(relinked.system.talents.talent9.rollOptions, ["Macro.frenzied-attack"]);
+  assert.equal(relinked.system.talents.talent2.islearned, true, "the rest of the node is kept");
+  assert.deepEqual(relinked.system.talents.talent3.rollOptions, [], "a talent the library lacks is left alone");
+  assert.equal(linked.length, 2);
+  assert.deepEqual(source.system.talents.talent2.rollOptions, ["Macro.otherWorld1"], "the input is not changed");
+});
+
+test("relinking keeps live links and returns the same source when nothing changes", () => {
+  const source = { name: "Frenzied Attack", type: "talent", system: { rollOptions: ["Macro.custom"] } };
+  const result = relinkItemSource(source, { uuidByEntry, isLive: () => true });
+  assert.equal(result.source, source);
+  assert.deepEqual(result.linked, []);
+});
+
+test("relinking a weapon replaces its quality list with the linked one", () => {
+  const source = { name: "Rifle", type: "weapon", system: { itemmodifier: [quality("Auto-fire", ["Macro.dead"])] } };
+  const { source: relinked } = relinkItemSource(source, { uuidByEntry, isLive: (uuid) => uuid !== "Macro.dead" });
+  assert.deepEqual(relinked.system.itemmodifier[0].system.rollOptions, ["Macro.auto-fire"]);
 });

@@ -22,6 +22,8 @@ import {
 import { buildInPlace } from "./in-place.js";
 import { hyperdriveToActorData } from "./to-actor.js";
 import { replaceActor } from "./persist.js";
+import { ROLL_OPTION_LIBRARY } from "../../config/roll-option-library.js";
+import { planLibraryMacros, relinkItemSource } from "../../helpers/roll-option-library-plan.js";
 
 const { ApplicationV2, DialogV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -126,6 +128,27 @@ async function collectSuggestionEntries() {
   }));
 }
 
+/**
+ * Point an imported item's roll option links at this world's library macros. A specialization or
+ * talent from a module compendium is shared by every world, and the library run there linked it to
+ * that world's macros, which do not exist here. Does nothing until the GM has run installLibrary().
+ */
+function makeRollOptionRelinker() {
+  const existing = (game.macros ?? [])
+    .filter((macro) => macro.getFlag("starwarsffg", "rollOptionLibraryId"))
+    .map((macro) => ({ uuid: macro.uuid, libraryId: macro.getFlag("starwarsffg", "rollOptionLibraryId") }));
+  if (!existing.length) return (source) => source;
+  const { uuidByEntry } = planLibraryMacros(ROLL_OPTION_LIBRARY, existing);
+  const isLive = (uuid) => {
+    try {
+      return !!foundry.utils.fromUuidSync(uuid);
+    } catch {
+      return false;
+    }
+  };
+  return (source) => relinkItemSource(source, { uuidByEntry, isLive }).source;
+}
+
 async function makeLiveDependencies({ overrides = new Map() } = {}) {
   const entries = await collectLiveEntries();
   const resolve = buildImportIndex(entries);
@@ -174,6 +197,7 @@ async function makeLiveDependencies({ overrides = new Map() } = {}) {
     attachmentIndex: buildSnapshotIndex(entries, "itemattachment"),
     toItemData: buildDeps.toItemData,
     buildInPlace,
+    relinkRollOptions: makeRollOptionRelinker(),
     preparePreview,
     prepareFinal,
     assemble,

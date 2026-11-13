@@ -148,3 +148,29 @@ export function planItemLinks(itemData, { uuidByEntry, isLive }) {
 
   return { update: Object.keys(update).length > 0 ? update : null, linked };
 }
+
+/** `data` with `value` set at the dotted `path`, copying each object on the way so `data` is untouched. */
+function withPath(data, path, value) {
+  const [head, ...rest] = path.split(".");
+  const holder = data && typeof data === "object" ? data : {};
+  return { ...holder, [head]: rest.length ? withPath(holder[head], rest.join("."), value) : value };
+}
+
+/**
+ * An item source with its talents' and qualities' links pointed at this world's library macros,
+ * the way the library run would link the item once it exists. For copies made from a compendium:
+ * one in a module pack is shared by every world, so its links can name macros another world
+ * created, which this one shows as "Missing macro". A place with a live link is left alone.
+ * @param {object} source - plain item data, not changed
+ * @param {object} params - as planItemLinks takes them
+ * @param {Map<string, string>} params.uuidByEntry
+ * @param {(uuid: string) => boolean} params.isLive
+ * @returns {{source: object, linked: Array<{entryId: string, place: string}>}} the same source when nothing changes
+ */
+export function relinkItemSource(source, { uuidByEntry, isLive }) {
+  const { update, linked } = planItemLinks(source, { uuidByEntry, isLive });
+  if (!update) return { source, linked };
+  let next = source;
+  for (const [path, value] of Object.entries(update)) next = withPath(next, path, value);
+  return { source: next, linked };
+}
